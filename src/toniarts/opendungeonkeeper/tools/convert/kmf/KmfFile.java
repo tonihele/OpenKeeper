@@ -344,6 +344,14 @@ public class KmfFile {
         return byteArray;
     }
 
+    /**
+     * Reads strings of varying length (ASCII NULL terminated) from the file
+     *
+     * @param rawKmf the file to read from
+     * @param numberOfStrings number of Strings to read
+     * @return list of strings read from the file
+     * @throws IOException
+     */
     private List<String> readVaryingLengthStrings(RandomAccessFile rawKmf, int numberOfStrings) throws IOException {
         List<String> strings = new ArrayList<>(numberOfStrings);
 
