@@ -21,7 +21,7 @@ public class MeshVertex {
         return geomIndex;
     }
 
-    public void setGeomIndex(short geomIndex) {
+    protected void setGeomIndex(short geomIndex) {
         this.geomIndex = geomIndex;
     }
 
@@ -29,7 +29,7 @@ public class MeshVertex {
         return uv;
     }
 
-    public void setUv(Uv uv) {
+    protected void setUv(Uv uv) {
         this.uv = uv;
     }
 
@@ -37,7 +37,7 @@ public class MeshVertex {
         return normal;
     }
 
-    public void setNormal(Vector3f normal) {
+    protected void setNormal(Vector3f normal) {
         this.normal = normal;
     }
 }
