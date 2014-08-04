@@ -19,7 +19,7 @@ public class MeshControl {
         return unknown1;
     }
 
-    public void setUnknown1(int unknown1) {
+    protected void setUnknown1(int unknown1) {
         this.unknown1 = unknown1;
     }
 
@@ -27,7 +27,7 @@ public class MeshControl {
         return unknown2;
     }
 
-    public void setUnknown2(int unknown2) {
+    protected void setUnknown2(int unknown2) {
         this.unknown2 = unknown2;
     }
 }
