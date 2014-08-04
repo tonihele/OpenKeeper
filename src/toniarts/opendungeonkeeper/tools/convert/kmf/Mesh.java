@@ -22,12 +22,14 @@ public class Mesh {
     private List<MeshControl> controls;
     //SPRS
     private List<MeshSprite> sprites;
+    //GEOM
+    private List<Vector3f> geometries;
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
+    protected void setName(String name) {
         this.name = name;
     }
 
@@ -35,7 +37,7 @@ public class Mesh {
         return pos;
     }
 
-    public void setPos(Vector3f pos) {
+    protected void setPos(Vector3f pos) {
         this.pos = pos;
     }
 
@@ -43,7 +45,7 @@ public class Mesh {
         return scale;
     }
 
-    public void setScale(float scale) {
+    protected void setScale(float scale) {
         this.scale = scale;
     }
 
@@ -51,7 +53,7 @@ public class Mesh {
         return controls;
     }
 
-    public void setControls(List<MeshControl> controls) {
+    protected void setControls(List<MeshControl> controls) {
         this.controls = controls;
     }
 
@@ -59,7 +61,15 @@ public class Mesh {
         return sprites;
     }
 
-    public void setSprites(List<MeshSprite> sprites) {
+    protected void setSprites(List<MeshSprite> sprites) {
         this.sprites = sprites;
+    }
+
+    public List<Vector3f> getGeometries() {
+        return geometries;
+    }
+
+    protected void setGeometries(List<Vector3f> geometries) {
+        this.geometries = geometries;
     }
 }
