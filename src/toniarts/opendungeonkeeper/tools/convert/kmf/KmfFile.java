@@ -57,6 +57,7 @@ public class KmfFile {
     private static final String KMF_MESH_SPRITES = "SPRS";
     private static final String KMF_MESH_SPRITES_HEADER = "SPHD";
     private static final String KMF_MESH_SPRITES_DATA_HEADER = "SPRS";
+    private static final String KMF_MESH_GEOM = "GEOM";
 
     public KmfFile(File file) {
 
@@ -96,7 +97,9 @@ public class KmfFile {
             //KMSH/MESH, there are n amount of these
             meshes = new ArrayList();
             do {
-                rawKmf.read(buf);
+                if (rawKmf.read(buf) == -1) {
+                    break; // EOF
+                }
                 temp = Utils.bytesToString(buf);
                 if (KMF_MESH.equals(temp)) {
                     meshes.add(parseMesh(rawKmf));
@@ -225,6 +228,15 @@ public class KmfFile {
         }
         m.setSprites(parseMeshSprites(rawKmf, sprsCount, lodCount));
 
+        //Geoms
+        //KMSH/MESH/GEOM
+        rawKmf.read(buf);
+        temp = Utils.bytesToString(buf);
+        if (!KMF_MESH_GEOM.equals(temp)) {
+            throw new RuntimeException("Header should be " + KMF_MESH_GEOM + " and it was " + temp + "! Cancelling!");
+        }
+        m.setGeometries(parseMeshGeoms(rawKmf, geomCount));
+
         return m;
     }
 
@@ -255,7 +267,7 @@ public class KmfFile {
      * Parses the mesh sprites section<br>
      * KMSH/MESH/SPRS
      *
-     * @param rawKmf kmf file starting on mesh
+     * @param rawKmf kmf file starting on sprite
      */
     private List<MeshSprite> parseMeshSprites(RandomAccessFile rawKmf, int sprsCount, int lodCount) throws IOException {
         rawKmf.skipBytes(4);
@@ -329,6 +341,24 @@ public class KmfFile {
     }
 
     /**
+     * Parses the mesh geometries section<br>
+     * KMSH/MESH/GEOM
+     *
+     * @param rawKmf kmf file starting on geom
+     */
+    private List<Vector3f> parseMeshGeoms(RandomAccessFile rawKmf, int geomCount) throws IOException {
+        rawKmf.skipBytes(4);
+        List<Vector3f> geometries = new ArrayList<>(geomCount);
+
+        //Geometries
+        for (int i = 0; i < geomCount; i++) {
+            geometries.add(new Vector3f(Utils.readFloat(rawKmf), Utils.readFloat(rawKmf), Utils.readFloat(rawKmf)));
+        }
+
+        return geometries;
+    }
+
+    /**
      * Converts a list of bytes to an array of bytes
      *
      * @param bytes the list of bytes
@@ -371,5 +401,21 @@ public class KmfFile {
             strings.add(Utils.bytesToString(toByteArray(bytes)));
         }
         return strings;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public List<Material> getMaterials() {
+        return materials;
+    }
+
+    public List<Mesh> getMeshes() {
+        return meshes;
     }
 }
