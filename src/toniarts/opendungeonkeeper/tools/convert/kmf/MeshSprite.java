@@ -49,7 +49,7 @@ public class MeshSprite {
         return mmFactor;
     }
 
-    public void setMmFactor(float mmFactor) {
+    protected void setMmFactor(float mmFactor) {
         this.mmFactor = mmFactor;
     }
 
@@ -57,7 +57,7 @@ public class MeshSprite {
         return materialIndex;
     }
 
-    public void setMaterialIndex(int materialIndex) {
+    protected void setMaterialIndex(int materialIndex) {
         this.materialIndex = materialIndex;
     }
 
@@ -65,7 +65,7 @@ public class MeshSprite {
         return triangles;
     }
 
-    public void setTriangles(HashMap<Integer, List<Triangle>> triangles) {
+    protected void setTriangles(HashMap<Integer, List<Triangle>> triangles) {
         this.triangles = triangles;
     }
 
@@ -73,7 +73,7 @@ public class MeshSprite {
         return vertices;
     }
 
-    public void setVertices(List<MeshVertex> vertices) {
+    protected void setVertices(List<MeshVertex> vertices) {
         this.vertices = vertices;
     }
 }
