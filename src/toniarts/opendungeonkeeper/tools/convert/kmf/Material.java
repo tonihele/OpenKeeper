@@ -11,7 +11,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-class Material {
+public class Material {
 
     private String name;
     private List<String> textures;
@@ -24,7 +24,7 @@ class Material {
         return name;
     }
 
-    public void setName(String name) {
+    protected void setName(String name) {
         this.name = name;
     }
 
@@ -32,7 +32,7 @@ class Material {
         return textures;
     }
 
-    public void setTextures(List<String> textures) {
+    protected void setTextures(List<String> textures) {
         this.textures = textures;
     }
 
@@ -40,7 +40,7 @@ class Material {
         return flag;
     }
 
-    public void setFlag(int flag) {
+    protected void setFlag(int flag) {
         this.flag = flag;
     }
 
@@ -48,7 +48,7 @@ class Material {
         return brightness;
     }
 
-    public void setBrightness(float brightness) {
+    protected void setBrightness(float brightness) {
         this.brightness = brightness;
     }
 
@@ -56,7 +56,7 @@ class Material {
         return gamma;
     }
 
-    public void setGamma(float gamma) {
+    protected void setGamma(float gamma) {
         this.gamma = gamma;
     }
 
@@ -64,7 +64,7 @@ class Material {
         return environmentMappingTexture;
     }
 
-    public void setEnvironmentMappingTexture(String environmentMappingTexture) {
+    protected void setEnvironmentMappingTexture(String environmentMappingTexture) {
         this.environmentMappingTexture = environmentMappingTexture;
     }
 }
