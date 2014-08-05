@@ -8,8 +8,6 @@ import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoader;
 import com.jme3.export.binary.BinaryExporter;
-import com.jme3.material.Material;
-import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
@@ -29,7 +27,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.opendungeonkeeper.Main;
 import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
 import toniarts.opendungeonkeeper.tools.convert.kmf.MeshSprite;
 import toniarts.opendungeonkeeper.tools.convert.kmf.MeshVertex;
@@ -43,9 +40,9 @@ import toniarts.opendungeonkeeper.tools.convert.kmf.Uv;
 public class KmfModelLoader implements AssetLoader {
 
     public static void main(final String[] args) throws IOException {
-        Main main = new Main();
-        main.start();
-        AssetInfo ai = new AssetInfo(main.getAssetManager(), null) {
+//        Main main = new Main();
+//        main.start();
+        AssetInfo ai = new AssetInfo(/*main.getAssetManager()*/null, null) {
             @Override
             public InputStream openStream() {
                 try {
@@ -123,22 +120,27 @@ public class KmfModelLoader implements AssetLoader {
                 VertexBuffer[] lodLevels = new VertexBuffer[meshSprite.getTriangles().size()];
                 for (Entry<Integer, List<Triangle>> triangles : meshSprite.getTriangles().entrySet()) {
                     int[] indexes = new int[triangles.getValue().size() * 3];
+                    int x = 0;
                     for (Triangle triangle : triangles.getValue()) {
-                        triangle.getTriangle();
+                        indexes[x * 3] = triangle.getTriangle()[0];
+                        indexes[x * 3 + 1] = triangle.getTriangle()[1];
+                        indexes[x * 3 + 2] = triangle.getTriangle()[2];
+                        x++;
                     }
                     VertexBuffer buf = new VertexBuffer(Type.Index);
                     buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.Int, BufferUtils.createIntBuffer(indexes));
                     lodLevels[triangles.getKey()] = buf;
                 }
                 mesh.setLodLevels(lodLevels);
+                mesh.updateBound();
 
                 //Create geometry
                 Geometry geom = new Geometry("lol", mesh);
 
                 //FIXME: Proper material
-                Material mat = new Material(assetInfo.getManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-                mat.setColor("Color", ColorRGBA.Blue);
-                geom.setMaterial(mat);
+//                Material mat = new Material(assetInfo.getManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+//                mat.setColor("Color", ColorRGBA.Blue);
+//                geom.setMaterial(mat);
 
                 //Attach the geometry to the node
                 node.attachChild(geom);
