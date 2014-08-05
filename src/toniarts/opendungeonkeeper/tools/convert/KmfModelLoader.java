@@ -8,6 +8,7 @@ import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoader;
 import com.jme3.export.binary.BinaryExporter;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
@@ -27,7 +28,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
 import toniarts.opendungeonkeeper.tools.convert.kmf.MeshSprite;
+import toniarts.opendungeonkeeper.tools.convert.kmf.MeshVertex;
 import toniarts.opendungeonkeeper.tools.convert.kmf.Triangle;
+import toniarts.opendungeonkeeper.tools.convert.kmf.Uv;
 
 /**
  *
@@ -115,28 +118,28 @@ public class KmfModelLoader implements AssetLoader {
 //                mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
 
 
-//            MeshSprite meshSprite = sourceMesh.getSprites().get(0);
+//            MeshSprite meshSprite = sourceMesh.getSprites().get(2);
             for (MeshSprite meshSprite : sourceMesh.getSprites()) {
                 mesh = new Mesh();
                 List<Integer> faces = new ArrayList<>();
 
-                vertices = new Vector3f[sourceMesh.getGeometries().size()];
-//                Vector2f[] texCoord = new Vector2f[meshSprite.getVertices().size()];
-//                Vector3f[] normals = new Vector3f[meshSprite.getVertices().size()];
+                vertices = new Vector3f[meshSprite.getVertices().size()];
+                Vector2f[] texCoord = new Vector2f[meshSprite.getVertices().size()];
+                Vector3f[] normals = new Vector3f[meshSprite.getVertices().size()];
                 i = 0;
-                for (javax.vecmath.Vector3f v : sourceMesh.getGeometries()) {
+                for (MeshVertex meshVertex : meshSprite.getVertices()) {
 
                     //Vertice
-//                    javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
+                    javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
                     vertices[i] = new Vector3f(v.x, v.y, v.z);
 
                     //Texture coordinate
-//                    Uv uv = meshVertex.getUv();
-//                    texCoord[i] = new Vector2f(uv.getUv()[0], uv.getUv()[1]);
+                    Uv uv = meshVertex.getUv();
+                    texCoord[i] = new Vector2f(uv.getUv()[0], uv.getUv()[1]);
 
                     //Normals
-//                    v = meshVertex.getNormal();
-//                    normals[i] = new Vector3f(v.x, v.y, v.z);
+                    v = meshVertex.getNormal();
+                    normals[i] = new Vector3f(v.x, v.y, v.z);
 
                     i++;
                 }
@@ -165,9 +168,9 @@ public class KmfModelLoader implements AssetLoader {
 //                vertices[i] = new Vector3f(v.x, v.y, v.z);
 
                 for (Triangle tri : meshSprite.getTriangles().get(0)) {
-                    faces.add(new Short(meshSprite.getVertices().get(tri.getTriangle()[0]).getGeomIndex()).intValue());
-                    faces.add(new Short(meshSprite.getVertices().get(tri.getTriangle()[1]).getGeomIndex()).intValue());
-                    faces.add(new Short(meshSprite.getVertices().get(tri.getTriangle()[2]).getGeomIndex()).intValue());
+                    faces.add(new Short(tri.getTriangle()[0]).intValue());
+                    faces.add(new Short(tri.getTriangle()[1]).intValue());
+                    faces.add(new Short(tri.getTriangle()[2]).intValue());
                 }
 //            }
                 int[] indexes = new int[faces.size()];
@@ -178,6 +181,8 @@ public class KmfModelLoader implements AssetLoader {
                 }
                 mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
                 mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indexes));
+                mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
+                mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
 
                 //Triangles, we have LODs here
 //                VertexBuffer[] lodLevels = new VertexBuffer[meshSprite.getTriangles().size()];
