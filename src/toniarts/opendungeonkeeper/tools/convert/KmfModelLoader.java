@@ -8,12 +8,10 @@ import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoader;
 import com.jme3.export.binary.BinaryExporter;
-import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
-import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.util.BufferUtils;
 import java.io.BufferedOutputStream;
@@ -23,15 +21,13 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
 import toniarts.opendungeonkeeper.tools.convert.kmf.MeshSprite;
-import toniarts.opendungeonkeeper.tools.convert.kmf.MeshVertex;
 import toniarts.opendungeonkeeper.tools.convert.kmf.Triangle;
-import toniarts.opendungeonkeeper.tools.convert.kmf.Uv;
 
 /**
  *
@@ -87,51 +83,118 @@ public class KmfModelLoader implements AssetLoader {
             //Source mesh is node
             Node node = new Node(sourceMesh.getName());
 
-            //Each sprite represents a geometry (+ mesh) since they each have their own material
-            for (MeshSprite meshSprite : sourceMesh.getSprites()) {
-                Mesh mesh = new Mesh();
 
-                //Vertices, UV (texture coordinates), normals
-                Vector3f[] vertices = new Vector3f[meshSprite.getVertices().size()];
-                Vector2f[] texCoord = new Vector2f[meshSprite.getVertices().size()];
-                Vector3f[] normals = new Vector3f[meshSprite.getVertices().size()];
-                int i = 0;
-                for (MeshVertex meshVertex : meshSprite.getVertices()) {
+
+            //Each sprite represents a geometry (+ mesh) since they each have their own material
+//            for (MeshSprite meshSprite : sourceMesh.getSprites()) {
+            Mesh mesh = new Mesh();
+
+            //Vertices, UV (texture coordinates), normals
+            Vector3f[] vertices = new Vector3f[sourceMesh.getGeometries().size()];
+//                Vector2f[] texCoord = new Vector2f[meshSprite.getVertices().size()];
+//                Vector3f[] normals = new Vector3f[meshSprite.getVertices().size()];
+            int i = 0;
+            for (javax.vecmath.Vector3f v : sourceMesh.getGeometries()) {
+
+                //Vertice
+//                    javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
+                vertices[i] = new Vector3f(v.x, v.y, v.z);
+
+                //Texture coordinate
+//                    Uv uv = meshVertex.getUv();
+//                    texCoord[i] = new Vector2f(uv.getUv()[0], uv.getUv()[1]);
+
+                //Normals
+//                    v = meshVertex.getNormal();
+//                    normals[i] = new Vector3f(v.x, v.y, v.z);
+
+                i++;
+            }
+//            mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
+//                mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
+//                mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
+
+
+//            MeshSprite meshSprite = sourceMesh.getSprites().get(0);
+            for (MeshSprite meshSprite : sourceMesh.getSprites()) {
+                mesh = new Mesh();
+                List<Integer> faces = new ArrayList<>();
+
+                vertices = new Vector3f[sourceMesh.getGeometries().size()];
+//                Vector2f[] texCoord = new Vector2f[meshSprite.getVertices().size()];
+//                Vector3f[] normals = new Vector3f[meshSprite.getVertices().size()];
+                i = 0;
+                for (javax.vecmath.Vector3f v : sourceMesh.getGeometries()) {
 
                     //Vertice
-                    javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
+//                    javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
                     vertices[i] = new Vector3f(v.x, v.y, v.z);
 
                     //Texture coordinate
-                    Uv uv = meshVertex.getUv();
-                    texCoord[i] = new Vector2f(uv.getUv()[0], uv.getUv()[1]);
+//                    Uv uv = meshVertex.getUv();
+//                    texCoord[i] = new Vector2f(uv.getUv()[0], uv.getUv()[1]);
 
                     //Normals
-                    v = meshVertex.getNormal();
-                    normals[i] = new Vector3f(v.x, v.y, v.z);
+//                    v = meshVertex.getNormal();
+//                    normals[i] = new Vector3f(v.x, v.y, v.z);
 
                     i++;
                 }
+
+//                vertices = new Vector3f[meshSprite.getVertices().size()];
+//
+////            int y = 0;
+//                List<MeshVertex> meshVertices = meshSprite.getVertices();
+//                Collections.sort(meshVertices, new Comparator<MeshVertex>() {
+//                    @Override
+//                    public int compare(MeshVertex o1, MeshVertex o2) {
+//                        return new Short(o1.getGeomIndex()).compareTo(new Short(o2.getGeomIndex()));
+//                    }
+//                });
+//                int x = 0;
+//                HashMap<Short, Integer> geomMap = new HashMap<>();
+//                for (MeshVertex vertex : meshVertices) {
+//                    javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(vertex.getGeomIndex());
+//                    vertices[x] = new Vector3f(v.x, v.y, v.z);
+//                    geomMap.put(vertex.getGeomIndex(), x);
+//                    x++;
+//                }
+
+                //Vertice
+//                    javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
+//                vertices[i] = new Vector3f(v.x, v.y, v.z);
+
+                for (Triangle tri : meshSprite.getTriangles().get(0)) {
+                    faces.add(new Short(meshSprite.getVertices().get(tri.getTriangle()[0]).getGeomIndex()).intValue());
+                    faces.add(new Short(meshSprite.getVertices().get(tri.getTriangle()[1]).getGeomIndex()).intValue());
+                    faces.add(new Short(meshSprite.getVertices().get(tri.getTriangle()[2]).getGeomIndex()).intValue());
+                }
+//            }
+                int[] indexes = new int[faces.size()];
+                int x = 0;
+                for (Integer inte : faces) {
+                    indexes[x] = inte;
+                    x++;
+                }
                 mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
-                mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
-                mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
+                mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indexes));
 
                 //Triangles, we have LODs here
-                VertexBuffer[] lodLevels = new VertexBuffer[meshSprite.getTriangles().size()];
-                for (Entry<Integer, List<Triangle>> triangles : meshSprite.getTriangles().entrySet()) {
-                    int[] indexes = new int[triangles.getValue().size() * 3];
-                    int x = 0;
-                    for (Triangle triangle : triangles.getValue()) {
-                        indexes[x * 3] = triangle.getTriangle()[0];
-                        indexes[x * 3 + 1] = triangle.getTriangle()[1];
-                        indexes[x * 3 + 2] = triangle.getTriangle()[2];
-                        x++;
-                    }
-                    VertexBuffer buf = new VertexBuffer(Type.Index);
-                    buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.Int, BufferUtils.createIntBuffer(indexes));
-                    lodLevels[triangles.getKey()] = buf;
-                }
-                mesh.setLodLevels(lodLevels);
+//                VertexBuffer[] lodLevels = new VertexBuffer[meshSprite.getTriangles().size()];
+//                for (Entry<Integer, List<Triangle>> triangles : meshSprite.getTriangles().entrySet()) {
+//                    int[] indexes = new int[triangles.getValue().size() * 3];
+//                    int x = 0;
+//                    for (Triangle triangle : triangles.getValue()) {
+//                        indexes[x * 3] = triangle.getTriangle()[0];
+//                        indexes[x * 3 + 1] = triangle.getTriangle()[1];
+//                        indexes[x * 3 + 2] = triangle.getTriangle()[2];
+//                        x++;
+//                    }
+//                    VertexBuffer buf = new VertexBuffer(Type.Index);
+//                    buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.Int, BufferUtils.createIntBuffer(indexes));
+//                    lodLevels[triangles.getKey()] = buf;
+//                }
+//                mesh.setLodLevels(lodLevels);
                 mesh.updateBound();
 
                 //Create geometry
