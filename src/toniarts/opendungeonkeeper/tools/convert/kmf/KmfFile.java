@@ -15,6 +15,7 @@ import toniarts.opendungeonkeeper.tools.convert.Utils;
 
 /**
  * Reads Dungeon Keeper II model file to a data structure<br>
+ * The file is LITTLE ENDIAN I might say<br>
  * Uses the Dungeon Keeper 2 File Format Guide by George Gensure
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
@@ -164,18 +165,18 @@ public class KmfFile {
         Material m = new Material();
 
         //Now we should have the name
-        m.setName(readVaryingLengthStrings(rawKmf, 1).get(0));
+        m.setName(Utils.readVaryingLengthStrings(rawKmf, 1).get(0));
 
         //Textures
         int texturesCount = Utils.readUnsignedInteger(rawKmf);
-        m.setTextures(readVaryingLengthStrings(rawKmf, texturesCount));
+        m.setTextures(Utils.readVaryingLengthStrings(rawKmf, texturesCount));
 
         m.setFlag(Utils.readUnsignedInteger(rawKmf));
         m.setBrightness(Utils.readFloat(rawKmf));
         m.setGamma(Utils.readFloat(rawKmf));
 
         //Environment map
-        m.setEnvironmentMappingTexture(readVaryingLengthStrings(rawKmf, 1).get(0));
+        m.setEnvironmentMappingTexture(Utils.readVaryingLengthStrings(rawKmf, 1).get(0));
 
         return m;
     }
@@ -202,7 +203,7 @@ public class KmfFile {
         Mesh m = new Mesh();
 
         //Now we should have the name
-        m.setName(readVaryingLengthStrings(rawKmf, 1).get(0));
+        m.setName(Utils.readVaryingLengthStrings(rawKmf, 1).get(0));
 
         int sprsCount = Utils.readUnsignedInteger(rawKmf);
         int geomCount = Utils.readUnsignedInteger(rawKmf);
@@ -356,51 +357,6 @@ public class KmfFile {
         }
 
         return geometries;
-    }
-
-    /**
-     * Converts a list of bytes to an array of bytes
-     *
-     * @param bytes the list of bytes
-     * @return the byte array
-     */
-    private byte[] toByteArray(List<Byte> bytes) {
-        byte[] byteArray = new byte[bytes.size()];
-        int i = 0;
-        for (Byte b : bytes) {
-            byteArray[i] = b.byteValue();
-            i++;
-        }
-        return byteArray;
-    }
-
-    /**
-     * Reads strings of varying length (ASCII NULL terminated) from the file
-     *
-     * @param rawKmf the file to read from
-     * @param numberOfStrings number of Strings to read
-     * @return list of strings read from the file
-     * @throws IOException
-     */
-    private List<String> readVaryingLengthStrings(RandomAccessFile rawKmf, int numberOfStrings) throws IOException {
-        List<String> strings = new ArrayList<>(numberOfStrings);
-
-        for (int i = 0; i < numberOfStrings; i++) {
-
-            // A bit tricky, read until 0 byte
-            List<Byte> bytes = new ArrayList();
-            byte b = 0;
-            do {
-                b = rawKmf.readByte();
-                if (b != 0) {
-                    bytes.add(b);
-                } else {
-                    break;
-                }
-            } while (true);
-            strings.add(Utils.bytesToString(toByteArray(bytes)));
-        }
-        return strings;
     }
 
     public int getVersion() {
