@@ -9,6 +9,8 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Contains static helper methods
@@ -114,5 +116,50 @@ public class Utils {
      */
     public static byte toUnsignedByte(byte b) {
         return (byte) (b & 0xFF);
+    }
+
+    /**
+     * Reads strings of varying length (ASCII NULL terminated) from the file
+     *
+     * @param rawKmf the file to read from
+     * @param numberOfStrings number of Strings to read
+     * @return list of strings read from the file
+     * @throws IOException
+     */
+    public static List<String> readVaryingLengthStrings(RandomAccessFile rawKmf, int numberOfStrings) throws IOException {
+        List<String> strings = new ArrayList<>(numberOfStrings);
+
+        for (int i = 0; i < numberOfStrings; i++) {
+
+            // A bit tricky, read until 0 byte
+            List<Byte> bytes = new ArrayList();
+            byte b = 0;
+            do {
+                b = rawKmf.readByte();
+                if (b != 0) {
+                    bytes.add(b);
+                } else {
+                    break;
+                }
+            } while (true);
+            strings.add(Utils.bytesToString(toByteArray(bytes)));
+        }
+        return strings;
+    }
+
+    /**
+     * Converts a list of bytes to an array of bytes
+     *
+     * @param bytes the list of bytes
+     * @return the byte array
+     */
+    public static byte[] toByteArray(List<Byte> bytes) {
+        byte[] byteArray = new byte[bytes.size()];
+        int i = 0;
+        for (Byte b : bytes) {
+            byteArray[i] = b.byteValue();
+            i++;
+        }
+        return byteArray;
     }
 }
