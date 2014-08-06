@@ -19,6 +19,7 @@ import toniarts.opendungeonkeeper.tools.convert.Utils;
 /**
  * Stores the wad file structure and contains the methods to handle the WAD
  * archive<br>
+ * The file is LITTLE ENDIAN I might say<br>
  * Converted to JAVA from C code, C code by:
  * <li>Tomasz Lis</li>
  * <li>Anonymous</li>
