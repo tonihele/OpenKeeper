@@ -162,4 +162,25 @@ public class Utils {
         }
         return byteArray;
     }
+
+    /**
+     * Bit play<br>
+     * http://stackoverflow.com/questions/11419501/converting-bits-in-to-integer
+     *
+     * @param n bytes converted to int
+     * @param offset from where to read (bits index)
+     * @param length how many bits to read
+     * @return integer represented by the bits
+     */
+    public static int bits(int n, int offset, int length) {
+
+        //Shift the bits rightward, so that the desired chunk is at the right end
+        n = n >> (31 - offset - length);
+
+        //Prepare a mask where only the rightmost `length`  bits are 1's
+        int mask = ~(-1 << length);
+
+        //Zero out all bits but the right chunk
+        return n & mask;
+    }
 }
