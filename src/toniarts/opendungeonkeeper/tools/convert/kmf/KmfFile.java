@@ -49,6 +49,7 @@ public class KmfFile {
     private Type type;
     private List<Material> materials;
     private List<Mesh> meshes;
+    private Anim anim;
     private static final String KMF_HEADER_IDENTIFIER = "KMSH";
     private static final String KMF_HEAD = "HEAD";
     private static final String KMF_MATERIALS = "MATL";
@@ -59,6 +60,10 @@ public class KmfFile {
     private static final String KMF_MESH_SPRITES_HEADER = "SPHD";
     private static final String KMF_MESH_SPRITES_DATA_HEADER = "SPRS";
     private static final String KMF_MESH_GEOM = "GEOM";
+    private static final String KMF_ANIM = "ANIM";
+    private static final String KMF_ANIM_SPRITES_POLY_HEADER = "POLY";
+    private static final String KMF_ANIM_SPRITES_VERT_HEADER = "VERT";
+    private static final String KMF_ANIM_SPRITES_ITAB_HEADER = "ITAB";
 
     public KmfFile(File file) {
 
@@ -108,6 +113,11 @@ public class KmfFile {
                     break;
                 }
             } while (true);
+
+            //KMSH/ANIM
+            if (type == Type.ANIM && KMF_ANIM.equals(temp)) {
+                anim = parseAnim(rawKmf);
+            }
 
         } catch (IOException e) {
 
@@ -359,6 +369,224 @@ public class KmfFile {
         return geometries;
     }
 
+    /**
+     * Parses the anim section<br>
+     * KMSH/ANIM
+     *
+     * @param rawKmf kmf file starting on ANIM
+     */
+    private Anim parseAnim(RandomAccessFile rawKmf) throws IOException {
+        rawKmf.skipBytes(4);
+
+        //KMSH/ANIM/HEAD
+        byte[] buf = new byte[4];
+        rawKmf.read(buf);
+        String temp = Utils.bytesToString(buf);
+        if (!KMF_HEAD.equals(temp)) {
+            throw new RuntimeException("Header should be " + KMF_HEAD + " and it was " + temp + "! Cancelling!");
+        }
+        rawKmf.skipBytes(4);
+
+        //Create the anim
+        Anim a = new Anim();
+
+        //Now we should have the name
+        a.setName(Utils.readVaryingLengthStrings(rawKmf, 1).get(0));
+
+        int sprsCount = Utils.readUnsignedInteger(rawKmf);
+        int frameCount = Utils.readUnsignedInteger(rawKmf);
+        int indexCount = Utils.readUnsignedInteger(rawKmf);
+        int geomCount = Utils.readUnsignedInteger(rawKmf);
+        a.setFrameFactorFunction(Anim.FrameFactorFunction.toFrameFactorFunction(Utils.readUnsignedInteger(rawKmf)));
+        a.setPos(new Vector3f(Utils.readFloat(rawKmf), Utils.readFloat(rawKmf), Utils.readFloat(rawKmf)));
+        a.setCubeScale(Utils.readFloat(rawKmf));
+        a.setScale(Utils.readFloat(rawKmf));
+        int lodCount = Utils.readUnsignedInteger(rawKmf);
+
+        //Controls
+        //KMSH/ANIM/CTRL
+        rawKmf.read(buf);
+        temp = Utils.bytesToString(buf);
+        if (!KMF_MESH_CONTROL.equals(temp)) {
+            throw new RuntimeException("Header should be " + KMF_MESH_CONTROL + " and it was " + temp + "! Cancelling!");
+        }
+        a.setControls(parseAnimControls(rawKmf));
+
+        //Sprites
+        //KMSH/ANIM/SPRS
+        rawKmf.read(buf);
+        temp = Utils.bytesToString(buf);
+        if (!KMF_MESH_SPRITES.equals(temp)) {
+            throw new RuntimeException("Header should be " + KMF_MESH_SPRITES + " and it was " + temp + "! Cancelling!");
+        }
+        a.setSprites(parseAnimSprites(rawKmf, sprsCount, frameCount, indexCount, geomCount, lodCount));
+
+        //ITAB
+        //KMSH/ANIM/SPRS/ITAB
+        //indexCount sized chunks for each 128 frame block
+        buf = new byte[4];
+        rawKmf.read(buf);
+        temp = Utils.bytesToString(buf);
+        if (!KMF_ANIM_SPRITES_ITAB_HEADER.equals(temp)) {
+            throw new RuntimeException("Header should be " + KMF_ANIM_SPRITES_ITAB_HEADER + " and it was " + temp + "! Cancelling!");
+        }
+        rawKmf.skipBytes(4);
+        int chunks = (int) Math.floor(frameCount / 128.0 + 1);
+        int[][] itab = new int[indexCount][chunks];
+        for (int chunk = 0; chunk < chunks; chunk++) {
+            for (int index = 0; index < indexCount; index++) {
+                itab[index][chunk] = Utils.readUnsignedInteger(rawKmf);
+            }
+        }
+        a.setItab(itab);
+
+        //Sprite geometries
+        //KMSH/ANIM/SPRS/GEOM
+        buf = new byte[4];
+        rawKmf.read(buf);
+        temp = Utils.bytesToString(buf);
+        if (!KMF_MESH_GEOM.equals(temp)) {
+            throw new RuntimeException("Header should be " + KMF_MESH_GEOM + " and it was " + temp + "! Cancelling!");
+        }
+        rawKmf.skipBytes(4);
+        List<AnimGeom> geometries = new ArrayList<>(geomCount);
+        for (int i = 0; i < geomCount; i++) {
+            //10 bits, BITS, yes BITS, per coordinate (Z, Y, X) = 30 bits (2 last bits can be thrown away)
+            // ^ so read 4 bytes
+            // + 1 byte for frame base
+            byte[] bytes = new byte[4];
+            rawKmf.read(bytes);
+            int coordinates = Utils.readUnsignedInteger(bytes); //Read to an integer, the bit order is now reversed to "normal"??
+            AnimGeom geom = new AnimGeom();
+
+            //Divide by 1000, seems right scale... If the positions are f* up, here is the bug then...
+            geom.setGeometry(new Vector3f(Utils.bits(coordinates, 0, 10) / 1000f * a.getScale(), Utils.bits(coordinates, 10, 10) / 1000f * a.getScale(), Utils.bits(coordinates, 20, 10) / 1000f * a.getScale()));
+
+            geom.setFrameBase(Utils.toUnsignedByte(rawKmf.readByte()));
+            geometries.add(geom);
+        }
+        a.setGeometries(geometries);
+
+        return a;
+    }
+
+    /**
+     * Parses the anim control section<br>
+     * KMSH/ANIM/CTRL
+     *
+     * @param rawKmf kmf file starting on mesh
+     */
+    private List<AnimControl> parseAnimControls(RandomAccessFile rawKmf) throws IOException {
+        rawKmf.skipBytes(4);
+
+        int controlCount = Utils.readUnsignedInteger(rawKmf);
+        List<AnimControl> controls = new ArrayList<>(controlCount);
+
+        //Read the controls
+        for (int i = 0; i < controlCount; i++) {
+            AnimControl control = new AnimControl();
+            control.setUnknown1(Utils.readUnsignedShort(rawKmf));
+            control.setUnknown2(Utils.readUnsignedShort(rawKmf));
+            control.setUnknown3(Utils.readUnsignedInteger(rawKmf));
+            controls.add(control);
+        }
+
+        return controls;
+    }
+
+    /**
+     * Parses the anim sprites section<br>
+     * KMSH/ANIM/SPRS
+     *
+     * @param rawKmf kmf file starting on sprite
+     */
+    private List<AnimSprite> parseAnimSprites(RandomAccessFile rawKmf, int sprsCount, int frameCount, int indexCount, int geomCount, int lodCount) throws IOException {
+        rawKmf.skipBytes(4);
+        List<AnimSprite> sprites = new ArrayList<>(sprsCount);
+
+        //Headers
+        for (int i = 0; i < sprsCount; i++) {
+
+            //Sprite headers
+            //KMSH/ANIM/SPRS/SPHD
+            byte[] buf = new byte[4];
+            rawKmf.read(buf);
+            String temp = Utils.bytesToString(buf);
+            if (!KMF_MESH_SPRITES_HEADER.equals(temp)) {
+                throw new RuntimeException("Header should be " + KMF_MESH_SPRITES_HEADER + " and it was " + temp + "! Cancelling!");
+            }
+            rawKmf.skipBytes(4);
+
+            //Create new sprite
+            AnimSprite sprite = new AnimSprite();
+            List<Integer> triangleCounts = new ArrayList<>(lodCount);
+            for (int j = 0; j < lodCount; j++) {
+                triangleCounts.add(Utils.readUnsignedInteger(rawKmf));
+            }
+            sprite.setTriangleCounts(triangleCounts);
+            sprite.setVerticeCount(Utils.readUnsignedInteger(rawKmf));
+            sprite.setMmFactor(Utils.readFloat(rawKmf));
+            sprites.add(sprite);
+        }
+
+        //Sprite data
+        for (int i = 0; i < sprsCount; i++) {
+
+            //Sprite data
+            //KMSH/ANIM/SPRS/SPRS
+            byte[] buf = new byte[4];
+            rawKmf.read(buf);
+            String temp = Utils.bytesToString(buf);
+            if (!KMF_MESH_SPRITES_DATA_HEADER.equals(temp)) {
+                throw new RuntimeException("Header should be " + KMF_MESH_SPRITES_DATA_HEADER + " and it was " + temp + "! Cancelling!");
+            }
+            rawKmf.skipBytes(4);
+
+            AnimSprite sprite = sprites.get(i);
+            sprite.setMaterialIndex(Utils.readUnsignedInteger(rawKmf));
+
+            //The triangles, for each lod level
+            //KMSH/ANIM/SPRS/SPRS/POLY
+            buf = new byte[4];
+            rawKmf.read(buf);
+            temp = Utils.bytesToString(buf);
+            if (!KMF_ANIM_SPRITES_POLY_HEADER.equals(temp)) {
+                throw new RuntimeException("Header should be " + KMF_ANIM_SPRITES_POLY_HEADER + " and it was " + temp + "! Cancelling!");
+            }
+            rawKmf.skipBytes(4);
+            HashMap<Integer, List<Triangle>> trianglesPerLod = new HashMap<>(lodCount);
+            for (int j = 0; j < lodCount; j++) {
+                List<Triangle> triangles = new ArrayList<>(sprite.getTriangleCounts().get(j));
+                for (int k = 0; k < sprite.getTriangleCounts().get(j); k++) {
+                    triangles.add(new Triangle(Utils.toUnsignedByte(rawKmf.readByte()), Utils.toUnsignedByte(rawKmf.readByte()), Utils.toUnsignedByte(rawKmf.readByte())));
+                }
+                trianglesPerLod.put(j, triangles);
+            }
+            sprite.setTriangles(trianglesPerLod);
+
+            //Anim vertices
+            //KMSH/ANIM/SPRS/SPRS/VERT
+            buf = new byte[4];
+            rawKmf.read(buf);
+            temp = Utils.bytesToString(buf);
+            if (!KMF_ANIM_SPRITES_VERT_HEADER.equals(temp)) {
+                throw new RuntimeException("Header should be " + KMF_ANIM_SPRITES_VERT_HEADER + " and it was " + temp + "! Cancelling!");
+            }
+            rawKmf.skipBytes(4);
+            List<AnimVertex> vertices = new ArrayList<>(sprite.getVerticeCount());
+            for (int j = 0; j < sprite.getVerticeCount(); j++) {
+                AnimVertex animVertex = new AnimVertex();
+                animVertex.setUv(new Uv(Utils.readUnsignedShort(rawKmf), Utils.readUnsignedShort(rawKmf)));
+                animVertex.setNormal(new Vector3f(Utils.readFloat(rawKmf), Utils.readFloat(rawKmf), Utils.readFloat(rawKmf)));
+                animVertex.setItabIndex(Utils.readUnsignedShort(rawKmf));
+                vertices.add(animVertex);
+            }
+            sprite.setVertices(vertices);
+        }
+
+        return sprites;
+    }
+
     public int getVersion() {
         return version;
     }
@@ -373,5 +601,9 @@ public class KmfFile {
 
     public List<Mesh> getMeshes() {
         return meshes;
+    }
+
+    public Anim getAnim() {
+        return anim;
     }
 }
