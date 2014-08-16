@@ -64,6 +64,7 @@ public class KmfFile {
     private static final String KMF_ANIM_SPRITES_POLY_HEADER = "POLY";
     private static final String KMF_ANIM_SPRITES_VERT_HEADER = "VERT";
     private static final String KMF_ANIM_SPRITES_ITAB_HEADER = "ITAB";
+    private static final String KMF_ANIM_SPRITES_VGEO_HEADER = "VGEO";
 
     public KmfFile(File file) {
 
@@ -71,37 +72,24 @@ public class KmfFile {
         try (RandomAccessFile rawKmf = new RandomAccessFile(file, "r")) {
 
             //Read the identifier
-            byte[] buf = new byte[4];
-            rawKmf.read(buf);
-            String temp = Utils.bytesToString(buf);
-            if (!KMF_HEADER_IDENTIFIER.equals(temp)) {
-                throw new RuntimeException("Header should be " + KMF_HEADER_IDENTIFIER + " and it was " + temp + "! Cancelling!");
-            }
-
-
+            checkHeader(rawKmf, KMF_HEADER_IDENTIFIER);
             rawKmf.skipBytes(4);
             version = Utils.readUnsignedInteger(rawKmf);
 
             //KMSH/HEAD
-            rawKmf.read(buf);
-            temp = Utils.bytesToString(buf);
-            if (!KMF_HEAD.equals(temp)) {
-                throw new RuntimeException("Header should be " + KMF_HEAD + " and it was " + temp + "! Cancelling!");
-            }
+            checkHeader(rawKmf, KMF_HEAD);
             parseHead(rawKmf);
 
             //KMSH/MATL
             if (type != Type.GROP) {
-                rawKmf.read(buf);
-                temp = Utils.bytesToString(buf);
-                if (!KMF_MATERIALS.equals(temp)) {
-                    throw new RuntimeException("Header should be " + KMF_MATERIALS + " and it was " + temp + "! Cancelling!");
-                }
+                checkHeader(rawKmf, KMF_MATERIALS);
                 parseMatl(rawKmf);
             }
 
             //KMSH/MESH, there are n amount of these
             meshes = new ArrayList();
+            String temp = "";
+            byte[] buf = new byte[4];
             do {
                 if (rawKmf.read(buf) == -1) {
                     break; // EOF
@@ -134,8 +122,7 @@ public class KmfFile {
      */
     private void parseHead(RandomAccessFile rawKmf) throws IOException {
         rawKmf.skipBytes(4);
-        int type = Utils.readUnsignedInteger(rawKmf);
-        this.type = Type.toType(type);
+        this.type = Type.toType(Utils.readUnsignedInteger(rawKmf));
         int unknown = Utils.readUnsignedInteger(rawKmf);
     }
 
@@ -153,11 +140,7 @@ public class KmfFile {
         //Read the materials
         materials = new ArrayList(materialsCount);
         for (int i = 0; i < materialsCount; i++) {
-            rawKmf.read(buf);
-            String temp = Utils.bytesToString(buf);
-            if (!KMF_MATERIAL.equals(temp)) {
-                throw new RuntimeException("Header should be " + KMF_MATERIAL + " and it was " + temp + "! Cancelling!");
-            }
+            checkHeader(rawKmf, KMF_MATERIAL);
             materials.add(parseMat2(rawKmf));
         }
     }
@@ -201,12 +184,7 @@ public class KmfFile {
         rawKmf.skipBytes(4);
 
         //KMSH/MESH/HEAD
-        byte[] buf = new byte[4];
-        rawKmf.read(buf);
-        String temp = Utils.bytesToString(buf);
-        if (!KMF_HEAD.equals(temp)) {
-            throw new RuntimeException("Header should be " + KMF_HEAD + " and it was " + temp + "! Cancelling!");
-        }
+        checkHeader(rawKmf, KMF_HEAD);
         rawKmf.skipBytes(4);
 
         //Create the mesh
@@ -223,29 +201,17 @@ public class KmfFile {
 
         //Controls
         //KMSH/MATL/CTRL
-        rawKmf.read(buf);
-        temp = Utils.bytesToString(buf);
-        if (!KMF_MESH_CONTROL.equals(temp)) {
-            throw new RuntimeException("Header should be " + KMF_MESH_CONTROL + " and it was " + temp + "! Cancelling!");
-        }
+        checkHeader(rawKmf, KMF_MESH_CONTROL);
         m.setControls(parseMeshControls(rawKmf));
 
         //Sprites
         //KMSH/MESH/SPRS
-        rawKmf.read(buf);
-        temp = Utils.bytesToString(buf);
-        if (!KMF_MESH_SPRITES.equals(temp)) {
-            throw new RuntimeException("Header should be " + KMF_MESH_SPRITES + " and it was " + temp + "! Cancelling!");
-        }
+        checkHeader(rawKmf, KMF_MESH_SPRITES);
         m.setSprites(parseMeshSprites(rawKmf, sprsCount, lodCount));
 
         //Geoms
         //KMSH/MESH/GEOM
-        rawKmf.read(buf);
-        temp = Utils.bytesToString(buf);
-        if (!KMF_MESH_GEOM.equals(temp)) {
-            throw new RuntimeException("Header should be " + KMF_MESH_GEOM + " and it was " + temp + "! Cancelling!");
-        }
+        checkHeader(rawKmf, KMF_MESH_GEOM);
         m.setGeometries(parseMeshGeoms(rawKmf, geomCount));
 
         return m;
@@ -289,12 +255,7 @@ public class KmfFile {
 
             //Sprite headers
             //KMSH/MESH/SPRS/SPHD
-            byte[] buf = new byte[4];
-            rawKmf.read(buf);
-            String temp = Utils.bytesToString(buf);
-            if (!KMF_MESH_SPRITES_HEADER.equals(temp)) {
-                throw new RuntimeException("Header should be " + KMF_MESH_SPRITES_HEADER + " and it was " + temp + "! Cancelling!");
-            }
+            checkHeader(rawKmf, KMF_MESH_SPRITES_HEADER);
             rawKmf.skipBytes(4);
 
             //Create new sprite
@@ -314,12 +275,7 @@ public class KmfFile {
 
             //Sprite data
             //KMSH/MESH/SPRS/SPRS
-            byte[] buf = new byte[4];
-            rawKmf.read(buf);
-            String temp = Utils.bytesToString(buf);
-            if (!KMF_MESH_SPRITES_DATA_HEADER.equals(temp)) {
-                throw new RuntimeException("Header should be " + KMF_MESH_SPRITES_DATA_HEADER + " and it was " + temp + "! Cancelling!");
-            }
+            checkHeader(rawKmf, KMF_MESH_SPRITES_DATA_HEADER);
             rawKmf.skipBytes(4);
 
             MeshSprite sprite = sprites.get(i);
@@ -379,12 +335,7 @@ public class KmfFile {
         rawKmf.skipBytes(4);
 
         //KMSH/ANIM/HEAD
-        byte[] buf = new byte[4];
-        rawKmf.read(buf);
-        String temp = Utils.bytesToString(buf);
-        if (!KMF_HEAD.equals(temp)) {
-            throw new RuntimeException("Header should be " + KMF_HEAD + " and it was " + temp + "! Cancelling!");
-        }
+        checkHeader(rawKmf, KMF_HEAD);
         rawKmf.skipBytes(4);
 
         //Create the anim
@@ -402,34 +353,23 @@ public class KmfFile {
         a.setCubeScale(Utils.readFloat(rawKmf));
         a.setScale(Utils.readFloat(rawKmf));
         int lodCount = Utils.readUnsignedInteger(rawKmf);
+        a.setFrames(frameCount);
+        a.setIndexes(indexCount);
 
         //Controls
         //KMSH/ANIM/CTRL
-        rawKmf.read(buf);
-        temp = Utils.bytesToString(buf);
-        if (!KMF_MESH_CONTROL.equals(temp)) {
-            throw new RuntimeException("Header should be " + KMF_MESH_CONTROL + " and it was " + temp + "! Cancelling!");
-        }
+        checkHeader(rawKmf, KMF_MESH_CONTROL);
         a.setControls(parseAnimControls(rawKmf));
 
         //Sprites
         //KMSH/ANIM/SPRS
-        rawKmf.read(buf);
-        temp = Utils.bytesToString(buf);
-        if (!KMF_MESH_SPRITES.equals(temp)) {
-            throw new RuntimeException("Header should be " + KMF_MESH_SPRITES + " and it was " + temp + "! Cancelling!");
-        }
-        a.setSprites(parseAnimSprites(rawKmf, sprsCount, frameCount, indexCount, geomCount, lodCount));
+        checkHeader(rawKmf, KMF_MESH_SPRITES);
+        a.setSprites(parseAnimSprites(rawKmf, sprsCount, lodCount));
 
         //ITAB
         //KMSH/ANIM/SPRS/ITAB
         //indexCount sized chunks for each 128 frame block
-        buf = new byte[4];
-        rawKmf.read(buf);
-        temp = Utils.bytesToString(buf);
-        if (!KMF_ANIM_SPRITES_ITAB_HEADER.equals(temp)) {
-            throw new RuntimeException("Header should be " + KMF_ANIM_SPRITES_ITAB_HEADER + " and it was " + temp + "! Cancelling!");
-        }
+        checkHeader(rawKmf, KMF_ANIM_SPRITES_ITAB_HEADER);
         rawKmf.skipBytes(4);
         int chunks = (int) Math.floor(frameCount / 128.0 + 1);
         int[][] itab = new int[indexCount][chunks];
@@ -442,12 +382,7 @@ public class KmfFile {
 
         //Sprite geometries
         //KMSH/ANIM/SPRS/GEOM
-        buf = new byte[4];
-        rawKmf.read(buf);
-        temp = Utils.bytesToString(buf);
-        if (!KMF_MESH_GEOM.equals(temp)) {
-            throw new RuntimeException("Header should be " + KMF_MESH_GEOM + " and it was " + temp + "! Cancelling!");
-        }
+        checkHeader(rawKmf, KMF_MESH_GEOM);
         rawKmf.skipBytes(4);
         List<AnimGeom> geometries = new ArrayList<>(geomCount);
         for (int i = 0; i < geomCount; i++) {
@@ -466,6 +401,18 @@ public class KmfFile {
             geometries.add(geom);
         }
         a.setGeometries(geometries);
+
+        //Sprite offsets
+        //KMSH/ANIM/SPRS/VGEO
+        checkHeader(rawKmf, KMF_ANIM_SPRITES_VGEO_HEADER);
+        rawKmf.skipBytes(4);
+        byte[][] offsets = new byte[frameCount][indexCount];
+        for (int index = 0; index < indexCount; index++) {
+            for (int frame = 0; frame < frameCount; frame++) {
+                offsets[frame][index] = Utils.toUnsignedByte(rawKmf.readByte());
+            }
+        }
+        a.setOffsets(offsets);
 
         return a;
     }
@@ -500,7 +447,7 @@ public class KmfFile {
      *
      * @param rawKmf kmf file starting on sprite
      */
-    private List<AnimSprite> parseAnimSprites(RandomAccessFile rawKmf, int sprsCount, int frameCount, int indexCount, int geomCount, int lodCount) throws IOException {
+    private List<AnimSprite> parseAnimSprites(RandomAccessFile rawKmf, int sprsCount, int lodCount) throws IOException {
         rawKmf.skipBytes(4);
         List<AnimSprite> sprites = new ArrayList<>(sprsCount);
 
@@ -509,12 +456,7 @@ public class KmfFile {
 
             //Sprite headers
             //KMSH/ANIM/SPRS/SPHD
-            byte[] buf = new byte[4];
-            rawKmf.read(buf);
-            String temp = Utils.bytesToString(buf);
-            if (!KMF_MESH_SPRITES_HEADER.equals(temp)) {
-                throw new RuntimeException("Header should be " + KMF_MESH_SPRITES_HEADER + " and it was " + temp + "! Cancelling!");
-            }
+            checkHeader(rawKmf, KMF_MESH_SPRITES_HEADER);
             rawKmf.skipBytes(4);
 
             //Create new sprite
@@ -534,12 +476,7 @@ public class KmfFile {
 
             //Sprite data
             //KMSH/ANIM/SPRS/SPRS
-            byte[] buf = new byte[4];
-            rawKmf.read(buf);
-            String temp = Utils.bytesToString(buf);
-            if (!KMF_MESH_SPRITES_DATA_HEADER.equals(temp)) {
-                throw new RuntimeException("Header should be " + KMF_MESH_SPRITES_DATA_HEADER + " and it was " + temp + "! Cancelling!");
-            }
+            checkHeader(rawKmf, KMF_MESH_SPRITES_DATA_HEADER);
             rawKmf.skipBytes(4);
 
             AnimSprite sprite = sprites.get(i);
@@ -547,12 +484,7 @@ public class KmfFile {
 
             //The triangles, for each lod level
             //KMSH/ANIM/SPRS/SPRS/POLY
-            buf = new byte[4];
-            rawKmf.read(buf);
-            temp = Utils.bytesToString(buf);
-            if (!KMF_ANIM_SPRITES_POLY_HEADER.equals(temp)) {
-                throw new RuntimeException("Header should be " + KMF_ANIM_SPRITES_POLY_HEADER + " and it was " + temp + "! Cancelling!");
-            }
+            checkHeader(rawKmf, KMF_ANIM_SPRITES_POLY_HEADER);
             rawKmf.skipBytes(4);
             HashMap<Integer, List<Triangle>> trianglesPerLod = new HashMap<>(lodCount);
             for (int j = 0; j < lodCount; j++) {
@@ -566,12 +498,7 @@ public class KmfFile {
 
             //Anim vertices
             //KMSH/ANIM/SPRS/SPRS/VERT
-            buf = new byte[4];
-            rawKmf.read(buf);
-            temp = Utils.bytesToString(buf);
-            if (!KMF_ANIM_SPRITES_VERT_HEADER.equals(temp)) {
-                throw new RuntimeException("Header should be " + KMF_ANIM_SPRITES_VERT_HEADER + " and it was " + temp + "! Cancelling!");
-            }
+            checkHeader(rawKmf, KMF_ANIM_SPRITES_VERT_HEADER);
             rawKmf.skipBytes(4);
             List<AnimVertex> vertices = new ArrayList<>(sprite.getVerticeCount());
             for (int j = 0; j < sprite.getVerticeCount(); j++) {
@@ -585,6 +512,23 @@ public class KmfFile {
         }
 
         return sprites;
+    }
+
+    /**
+     * Check the header. If the header is not the expected type, throw an
+     * exception
+     *
+     * @param expectedHeader header that is expected
+     * @throws RuntimeException if the extracted header doesn't mach the
+     * expected header
+     */
+    private void checkHeader(RandomAccessFile rawKmf, String expectedHeader) throws RuntimeException, IOException {
+        byte[] buf = new byte[4];
+        rawKmf.read(buf);
+        String extractedHeader = Utils.bytesToString(buf);
+        if (!expectedHeader.equals(extractedHeader)) {
+            throw new RuntimeException("Header should be " + expectedHeader + " and it was " + extractedHeader + "! Cancelling!");
+        }
     }
 
     public int getVersion() {

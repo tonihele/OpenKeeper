@@ -36,6 +36,8 @@ public class Anim {
     }
     //HEAD
     private String name;
+    private int frames;
+    private int indexes;
     private Vector3f pos;
     private float scale;
     private float cubeScale;
@@ -48,6 +50,9 @@ public class Anim {
     private int[][] itab;
     //GEOM
     private List<AnimGeom> geometries;
+    //VGEO
+    /*GEOM Offset for Frame*/
+    private byte[][] offsets;
 
     public String getName() {
         return name;
@@ -119,5 +124,29 @@ public class Anim {
 
     protected void setItab(int[][] itab) {
         this.itab = itab;
+    }
+
+    public byte[][] getOffsets() {
+        return offsets;
+    }
+
+    protected void setOffsets(byte[][] offsets) {
+        this.offsets = offsets;
+    }
+
+    public int getFrames() {
+        return frames;
+    }
+
+    protected void setFrames(int frames) {
+        this.frames = frames;
+    }
+
+    public int getIndexes() {
+        return indexes;
+    }
+
+    protected void setIndexes(int indexes) {
+        this.indexes = indexes;
     }
 }
