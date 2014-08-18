@@ -50,6 +50,7 @@ public class KmfFile {
     private List<Material> materials;
     private List<Mesh> meshes;
     private Anim anim;
+    private List<Grop> grops;
     private static final String KMF_HEADER_IDENTIFIER = "KMSH";
     private static final String KMF_HEAD = "HEAD";
     private static final String KMF_MATERIALS = "MATL";
@@ -65,6 +66,8 @@ public class KmfFile {
     private static final String KMF_ANIM_SPRITES_VERT_HEADER = "VERT";
     private static final String KMF_ANIM_SPRITES_ITAB_HEADER = "ITAB";
     private static final String KMF_ANIM_SPRITES_VGEO_HEADER = "VGEO";
+    private static final String KMF_GROP = "GROP";
+    private static final String KMF_GROP_ELEM = "ELEM";
 
     public KmfFile(File file) {
 
@@ -105,6 +108,11 @@ public class KmfFile {
             //KMSH/ANIM
             if (type == Type.ANIM && KMF_ANIM.equals(temp)) {
                 anim = parseAnim(rawKmf);
+            }
+
+            //KMSH/GROP
+            if (type == Type.GROP && KMF_GROP.equals(temp)) {
+                grops = parseGrop(rawKmf);
             }
 
         } catch (IOException e) {
@@ -371,7 +379,7 @@ public class KmfFile {
         //indexCount sized chunks for each 128 frame block
         checkHeader(rawKmf, KMF_ANIM_SPRITES_ITAB_HEADER);
         rawKmf.skipBytes(4);
-        int chunks = (int) Math.floor(frameCount / 128.0 + 1);
+        int chunks = (int) Math.floor((frameCount - 1) / 128.0 + 1);
         int[][] itab = new int[indexCount][chunks];
         for (int chunk = 0; chunk < chunks; chunk++) {
             for (int index = 0; index < indexCount; index++) {
@@ -515,6 +523,38 @@ public class KmfFile {
     }
 
     /**
+     * Parses the kmf GROP section<br>
+     * KMSH/GROP
+     *
+     * @param rawKmf kmf file starting on grop
+     */
+    private List<Grop> parseGrop(RandomAccessFile rawKmf) throws IOException {
+        rawKmf.skipBytes(4);
+
+        //KMSH/GROP/HEAD
+        checkHeader(rawKmf, KMF_HEAD);
+        rawKmf.skipBytes(4);
+        int elementCount = Utils.readUnsignedInteger(rawKmf);
+
+        //Read the elements
+        List<Grop> gs = new ArrayList<>();
+        for (int i = 0; i < elementCount; i++) {
+
+            //KMSH/GROP/ELEM
+            checkHeader(rawKmf, KMF_GROP_ELEM);
+            rawKmf.skipBytes(4);
+
+            //Read it
+            Grop grop = new Grop();
+            grop.setName(Utils.readVaryingLengthStrings(rawKmf, 1).get(0));
+            grop.setPos(new Vector3f(Utils.readFloat(rawKmf), Utils.readFloat(rawKmf), Utils.readFloat(rawKmf)));
+            gs.add(grop);
+        }
+
+        return gs;
+    }
+
+    /**
      * Check the header. If the header is not the expected type, throw an
      * exception
      *
@@ -549,5 +589,9 @@ public class KmfFile {
 
     public Anim getAnim() {
         return anim;
+    }
+
+    public List<Grop> getGrops() {
+        return grops;
     }
 }
