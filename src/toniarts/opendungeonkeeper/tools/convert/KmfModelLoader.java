@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -70,6 +71,19 @@ public class KmfModelLoader implements AssetLoader {
         String path = args[0].substring(0, args[0].length() - file.toPath().getFileName().toString().length());
         file = new File(path + "converted" + File.separator + file.toPath().getFileName().toString() + ".j3o");
         exporter.save(n, file);
+
+        //Load all KMF files
+        File f = new File(path);
+        File[] files = f.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.toLowerCase().endsWith(".kmf");
+            }
+        });
+        for (File kmf : files) {
+            KmfFile kmfFile = new KmfFile(kmf);
+            System.out.println(kmf + " is of type " + kmfFile.getType());
+        }
     }
 
     @Override
