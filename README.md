@@ -19,7 +19,7 @@ TODO
     - [x] Names & entries
     - [ ] Texture compression
   - [ ] Read sounds (*
-  - [ ]Read cutscenes (*
+  - [ ] Read cutscenes (*
   - ?
 - [ ] Conversion of formats
   - [ ] Meshes to JMonkeyEngine j3o
