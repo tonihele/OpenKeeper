@@ -18,8 +18,8 @@ TODO
   - [ ] Read textures (EngineTextures.dat, what does the EngineTextures.wad file contain?)
     - [x] Names & entries
     - [ ] Texture compression
-  - Read sounds (*
-  - Read cutscenes (*
+  - [ ] Read sounds (*
+  - [ ]Read cutscenes (*
   - ?
 - [ ] Conversion of formats
   - [ ] Meshes to JMonkeyEngine j3o
@@ -30,12 +30,14 @@ TODO
   - [ ] Maps to our open map format (XML, xstream?)
   - [ ] Sound player for DK format (or to OGG, loss of quality but easy to replace with own sounds) (*
   - [ ] Video playes for DK format (-||-) (*
+  - ?
 - [ ] Load maps to engine
 - [ ] Basic world interaction
 - [ ] Basic AI
 - [ ] Main menu
 - [ ] In game menu
 - [ ] Save & load
+- ?
   
 (* low priority
 (** vertex animations, we need our own animation control, JME doesn't support out of the box
