@@ -53,3 +53,5 @@ http://keeperklan.com/threads/220-DK2-texture-format
 https://code.google.com/p/jadex-agentkeeper/
 
 https://github.com/werkt/kwd
+
+[Sound & Video formats](http://wiki.multimedia.cx/index.php?title=Electronic_Arts_Formats)
