@@ -39,13 +39,17 @@ TODO
 - [ ] Save & load
 - ?
   
-(* low priority
-(** vertex animations, we need our own animation control, JME doesn't support out of the box
+`(*` low priority
+
+`(**` vertex animations, we need our own animation control, JME doesn't support out of the box
 
 Resources
 =========
 
 http://keeperklan.com/threads/4623-Reversal-of-DKII-Binary-File-Formats
+
 http://keeperklan.com/threads/220-DK2-texture-format
+
 https://code.google.com/p/jadex-agentkeeper/
+
 https://github.com/werkt/kwd
