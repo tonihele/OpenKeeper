@@ -35,5 +35,6 @@ public class TextureExtractor {
 
         //Extract the meshes
         EngineTexturesFile etFile = new EngineTexturesFile(new File(dataDirectory + "EngineTextures.dat"));
+        etFile.extractFileData(destination);
     }
 }
