@@ -14,9 +14,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import javax.imageio.ImageIO;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 
@@ -66,52 +64,51 @@ public class EngineTexturesFile {
     public EngineTexturesFile(File file) {
         this.file = file;
 
-        //Read the file
-        List<EngineTextureEntry> entries = new ArrayList<>();
-        try (RandomAccessFile rawTextures = new RandomAccessFile(file, "r")) {
-
-            //Read the entries
-            do {
-
-                //Read the header
-                EngineTextureEntry entry = new EngineTextureEntry();
-                entry.setResX(Utils.readUnsignedInteger(rawTextures));
-                entry.setResY(Utils.readUnsignedInteger(rawTextures));
-                entry.setSize(Utils.readUnsignedInteger(rawTextures));
-                entry.setsResX(Utils.readUnsignedShort(rawTextures));
-                entry.setsResY(Utils.readUnsignedShort(rawTextures));
-                entry.setUnknown(Utils.readUnsignedInteger(rawTextures));
-                entry.setDataStartLocation(rawTextures.getFilePointer());
-                entries.add(entry);
-
-                //Skip the file
-                rawTextures.skipBytes(entry.getSize() - 8);
-            } while (rawTextures.getFilePointer() != rawTextures.length());
-        } catch (IOException e) {
-
-            //Fug
-            throw new RuntimeException("Failed to open the file " + file + "!", e);
-        }
-
         //Read the names from the DIR file in the same folder
-        engineTextureEntries = new HashMap<>(entries.size());
         File dirFile = new File(file.toString().substring(0, file.toString().length() - 3).concat("dir"));
         try (RandomAccessFile rawDir = new RandomAccessFile(dirFile, "r")) {
 
             // File format:
+            // HEADER:
             // TCHC
-            // 8 bytes of unknown
+            // int size
+            // int version
             // int numberOfEntries
-            // 1...n null terminated string + 4 bytes of unknown
+            // ENTRY:
+            // string name
+            // int offset <- data offset in the DAT file
 
             //Read the entries
-            rawDir.skipBytes(16);
-            int i = 0;
-            do {
-                engineTextureEntries.put(Utils.readVaryingLengthStrings(rawDir, 1).get(0), entries.get(i));
-                rawDir.skipBytes(4);
-                i++;
-            } while (rawDir.getFilePointer() != rawDir.length());
+            rawDir.skipBytes(12);
+            int numberOfEntries = Utils.readUnsignedInteger(rawDir);
+            engineTextureEntries = new HashMap<>(numberOfEntries);
+
+            try (RandomAccessFile rawTextures = new RandomAccessFile(file, "r")) {
+                do {
+                    String name = Utils.readVaryingLengthStrings(rawDir, 1).get(0);
+                    int offset = Utils.readUnsignedInteger(rawDir);
+
+                    //Read the actual data from the DAT file from the offset specified by the DIR file
+                    rawTextures.seek(offset);
+
+                    //Read the header
+                    EngineTextureEntry entry = new EngineTextureEntry();
+                    entry.setResX(Utils.readUnsignedInteger(rawTextures));
+                    entry.setResY(Utils.readUnsignedInteger(rawTextures));
+                    entry.setSize(Utils.readUnsignedInteger(rawTextures));
+                    entry.setsResX(Utils.readUnsignedShort(rawTextures));
+                    entry.setsResY(Utils.readUnsignedShort(rawTextures));
+                    entry.setUnknown(Utils.readUnsignedInteger(rawTextures));
+                    entry.setDataStartLocation(rawTextures.getFilePointer());
+
+                    //Put the entry to the hash
+                    engineTextureEntries.put(name, entry);
+                } while (rawDir.getFilePointer() != rawDir.length());
+            } catch (IOException e) {
+
+                //Fug
+                throw new RuntimeException("Failed to open the file " + file + "!", e);
+            }
         } catch (IOException e) {
 
             //Fug
