@@ -12,7 +12,6 @@ package toniarts.opendungeonkeeper.tools.convert.enginetextures;
  */
 public class EngineTextureEntry {
 
-    private String name;
     private int resX;
     private int resY;
     private int size;
@@ -20,14 +19,6 @@ public class EngineTextureEntry {
     private short sResY;
     private int unknown; // Compression identifier?
     private long dataStartLocation;
-
-    public String getName() {
-        return name;
-    }
-
-    protected void setName(String name) {
-        this.name = name;
-    }
 
     public int getResX() {
         return resX;
