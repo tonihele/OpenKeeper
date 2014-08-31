@@ -18,7 +18,7 @@ TODO
   - [ ] Read textures (EngineTextures.dat, what does the EngineTextures.wad file contain?)
     - [x] Names & entries
     - [ ] Texture compression
-  - [ ] Read sounds (*
+  - [x] Read sounds
   - [ ] Read cutscenes (*
   - ?
 - [ ] Conversion of formats
@@ -28,8 +28,8 @@ TODO
     - [ ] Animations (**
     - [ ] Materials
   - [ ] Maps to our open map format (XML, xstream?)
-  - [ ] Sound player for DK format (or to OGG, loss of quality but easy to replace with own sounds) (*
-  - [ ] Video playes for DK format (-||-) (*
+  - [ ] Sounds (MP2 is not supported by JME, either write support or convert to WAV/OGG, Xuggler?) (*
+  - [ ] Video playes for DK format (*
   - ?
 - [ ] Load maps to engine
 - [ ] Basic world interaction
