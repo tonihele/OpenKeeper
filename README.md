@@ -18,7 +18,7 @@ TODO
   - [ ] Read textures (EngineTextures.dat, what does the EngineTextures.wad file contain?)
     - [x] Names & entries
     - [ ] Texture compression
-  - [ ] Read sounds (*
+  - [x] Read sounds
   - [ ] Read cutscenes (*
   - ?
 - [ ] Conversion of formats
