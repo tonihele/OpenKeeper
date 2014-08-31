@@ -67,6 +67,15 @@ public class SdtFile {
                 entry.setUnknown3(Utils.readUnsignedInteger(rawSdt));
                 entry.setUnknown4(Utils.readUnsignedInteger(rawSdt));
                 entry.setDataOffset(rawSdt.getFilePointer());
+
+                //Skip entries of size 0, there seems to be these BLANKs
+                if (entry.getSize() == 0) {
+                    continue;
+                }
+
+                //Fix file extension
+                filename = fixFileExtension(filename);
+
                 sdtFileEntries.put(filename, entry);
 
                 //Skip to next one (or to end of file)
@@ -158,5 +167,37 @@ public class SdtFile {
         }
 
         return result;
+    }
+
+    /**
+     * Fix the file extensions, since the 16 char limit, it seems that there are
+     * broken extensions<br>
+     * And WAV extensions, don't change these, however I was unable to play them
+     * anyhow
+     *
+     * @param filename the file name to fix
+     * @return fixed file name
+     */
+    private String fixFileExtension(String filename) {
+        if (!filename.toLowerCase().endsWith(".mp2")) {
+            if (filename.contains(".")) {
+
+                //Partial extension found
+                if (filename.toLowerCase().contains(".w")) {
+
+                    //It is supposed to be a WAV?
+                    filename = filename.substring(0, filename.indexOf(".")) + ".wav";
+                } else {
+
+                    //Replace with MP2
+                    filename = filename.substring(0, filename.indexOf(".")) + ".mp2";
+                }
+            } else {
+
+                //No extension, make it a MP2
+                filename += ".mp2";
+            }
+        }
+        return filename;
     }
 }
