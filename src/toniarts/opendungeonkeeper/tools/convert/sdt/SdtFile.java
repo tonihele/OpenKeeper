@@ -4,8 +4,11 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.sdt;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
@@ -74,5 +77,86 @@ public class SdtFile {
             //Fug
             throw new RuntimeException("Failed to open the file " + file + "!", e);
         }
+    }
+
+    /**
+     * Extract all the files to a given location
+     *
+     * @param destination destination directory
+     */
+    public void extractFileData(String destination) {
+
+        //Open the WAD for extraction
+        try (RandomAccessFile rawSdt = new RandomAccessFile(file, "r")) {
+
+            for (String fileName : sdtFileEntries.keySet()) {
+                extractFileData(fileName, destination, rawSdt);
+            }
+        } catch (Exception e) {
+
+            //Fug
+            throw new RuntimeException("Faile to read the WAD file!", e);
+        }
+    }
+
+    /**
+     * Extract a single file to a given location
+     *
+     * @param fileName file to extract
+     * @param destination destination directory
+     * @param rawSdt the opened SDT file
+     */
+    private void extractFileData(String fileName, String destination, RandomAccessFile rawSdt) {
+
+        //See that the destination is formatted correctly and create it if it does not exist
+        String dest = destination;
+        if (!dest.endsWith(File.separator)) {
+            dest = dest.concat(File.separator);
+        }
+        File destinationFolder = new File(dest);
+        destinationFolder.mkdirs();
+        dest = dest.concat(fileName);
+
+        //Write to the file
+        try (OutputStream outputStream = new FileOutputStream(dest)) {
+            getFileData(fileName, rawSdt).writeTo(outputStream);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write to " + dest + "!", e);
+        }
+    }
+
+    /**
+     * Extract a single file
+     *
+     * @param fileName the file to extract
+     * @param rawSdt the opened SDT file
+     * @return the file data
+     */
+    private ByteArrayOutputStream getFileData(String fileName, RandomAccessFile rawSdt) {
+        ByteArrayOutputStream result = null;
+
+        //Get the file
+        SdtFileEntry fileEntry = sdtFileEntries.get(fileName);
+        if (fileEntry == null) {
+            throw new RuntimeException("File " + fileName + " not found from the SDT archive!");
+        }
+
+        try {
+
+            //Seek to the file we want and read it
+            rawSdt.seek(fileEntry.getDataOffset());
+            byte[] bytes = new byte[fileEntry.getSize()];
+            rawSdt.read(bytes);
+
+            result = new ByteArrayOutputStream();
+            result.write(bytes);
+
+        } catch (Exception e) {
+
+            //Fug
+            throw new RuntimeException("Faile to read the SDT file!", e);
+        }
+
+        return result;
     }
 }
