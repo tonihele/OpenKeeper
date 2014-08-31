@@ -58,7 +58,7 @@ public class KcsFile {
                 entry.setUnknown3(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
                 entry.setUnknown4(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
                 entry.setUnknown5(Utils.readFloat(rawKcs));
-                entry.setUnknown6(Utils.readFloat(rawKcs));
+                entry.setUnknown6(Utils.readFloat(rawKcs)); // Always 3600??
                 kcsEntries.add(entry);
             }
         } catch (IOException e) {
