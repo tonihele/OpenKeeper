@@ -20,7 +20,7 @@ TODO
     - [ ] Texture compression
   - [x] Read sounds
   - [ ] Read cutscenes (*
-  - [x] Read paths
+  - [ ] Read paths
     - [x] Read paths (paths.wad -> kcs)
     - [ ] Understand paths
   - ?
