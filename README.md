@@ -20,6 +20,9 @@ TODO
     - [ ] Texture compression
   - [x] Read sounds
   - [ ] Read cutscenes (*
+  - [x] Read paths
+    - [x] Read paths (paths.wad -> kcs)
+    - [ ] Understand paths
   - ?
 - [ ] Conversion of formats
   - [ ] Meshes to JMonkeyEngine j3o
@@ -30,6 +33,7 @@ TODO
   - [ ] Maps to our open map format (XML, xstream?)
   - [ ] Sounds (MP2 is not supported by JME, either write support or convert to WAV/OGG, Xuggler?) (*
   - [ ] Video playes for DK format (*
+  - [ ] Paths to JME MotionPaths?
   - ?
 - [ ] Load maps to engine
 - [ ] Basic world interaction
