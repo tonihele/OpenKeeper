@@ -4,6 +4,8 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.kld;
 
+import toniarts.opendungeonkeeper.tools.convert.ArtResource;
+
 
 
 /**
@@ -68,10 +70,10 @@ class RoomBlock {
 //};
     
   private String name; /* 0 */
-//  ArtResource gui_icon; /* 20 */
-//  ArtResource room_icon; /* 74 */
-//  ArtResource complete; /* c8 */
-//  ArtResource ref[7]; /* 11c */
+  private ArtResource gui_icon; /* 20 */
+  private ArtResource room_icon; /* 74 */
+  private ArtResource complete; /* c8 */
+  private ArtResource[] ref; /* 11c */
   private int unk1; /* 368 - very likely flags */
   private short unk2; /* 36c */
   private short intensity; /* 36e */
@@ -96,7 +98,7 @@ class RoomBlock {
   private short x3c3; /* 3c3 */
   private short unk10; /* 3c4 */
   private short unk11; /* 3c6 */
-//  ArtResource torch; /* 3c7 */
+  private ArtResource torch; /* 3c7 */
   private short x41b; /* 41b */
   private short x41c; /* 41c */
   short x41d; /* 41d */
@@ -323,6 +325,46 @@ class RoomBlock {
 
     public void setX41d(short x41d) {
         this.x41d = x41d;
+    }
+
+    public ArtResource getGui_icon() {
+        return gui_icon;
+    }
+
+    public void setGui_icon(ArtResource gui_icon) {
+        this.gui_icon = gui_icon;
+    }
+
+    public ArtResource getRoom_icon() {
+        return room_icon;
+    }
+
+    public void setRoom_icon(ArtResource room_icon) {
+        this.room_icon = room_icon;
+    }
+
+    public ArtResource getComplete() {
+        return complete;
+    }
+
+    public void setComplete(ArtResource complete) {
+        this.complete = complete;
+    }
+
+    public ArtResource[] getRef() {
+        return ref;
+    }
+
+    public void setRef(ArtResource[] ref) {
+        this.ref = ref;
+    }
+
+    public ArtResource getTorch() {
+        return torch;
+    }
+
+    public void setTorch(ArtResource torch) {
+        this.torch = torch;
     }
     
   

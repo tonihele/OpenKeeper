@@ -4,6 +4,8 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.kld;
 
+import toniarts.opendungeonkeeper.tools.convert.ArtResource;
+
 /**
  * Barely started placeholder for the container class for the Terrain & TerrainBlock
  * 
@@ -72,11 +74,11 @@ class TerrainBlock {
     
     
   private String name;
-//  ArtResource complete; /* 20 */
-//  ArtResource side; /* 74 */
-//  ArtResource top; /* c8 */
-//  ArtResource tagged; /* 11c */
-//  StringIds string_ids; /* 170 */
+  private ArtResource complete; /* 20 */
+  private ArtResource side; /* 74 */
+  private ArtResource top; /* c8 */
+  private ArtResource tagged; /* 11c */
+  //StringIds string_ids; /* 170 */
   private int unk188; /* 188 */
   private int light_height; /* 18c */
   private int flags; /* 190 */
@@ -372,6 +374,38 @@ class TerrainBlock {
 
     public void setUnk224(int unk224) {
         this.unk224 = unk224;
+    }
+
+    public ArtResource getComplete() {
+        return complete;
+    }
+
+    public void setComplete(ArtResource complete) {
+        this.complete = complete;
+    }
+
+    public ArtResource getSide() {
+        return side;
+    }
+
+    public void setSide(ArtResource side) {
+        this.side = side;
+    }
+
+    public ArtResource getTop() {
+        return top;
+    }
+
+    public void setTop(ArtResource top) {
+        this.top = top;
+    }
+
+    public ArtResource getTagged() {
+        return tagged;
+    }
+
+    public void setTagged(ArtResource tagged) {
+        this.tagged = tagged;
     }
     
     
