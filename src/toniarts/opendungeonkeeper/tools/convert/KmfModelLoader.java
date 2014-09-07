@@ -8,6 +8,7 @@ import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoader;
 import com.jme3.export.binary.BinaryExporter;
+import com.jme3.material.Material;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
@@ -15,6 +16,7 @@ import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.VertexBuffer.Type;
+import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -25,6 +27,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -96,6 +99,17 @@ public class KmfModelLoader implements AssetLoader {
             kmfFile = new KmfFile(inputStreamToFile(assetInfo.openStream(), assetInfo.getKey().getName()));
         }
 
+        // Create the materials
+        HashMap<Integer, Material> materials = new HashMap(kmfFile.getMaterials().size());
+        int i = 0;
+        for (toniarts.opendungeonkeeper.tools.convert.kmf.Material mat : kmfFile.getMaterials()) {
+            Material material = new Material(assetInfo.getManager(), "Common/MatDefs/Light/Lighting.j3md");
+            Texture tex = assetInfo.getManager().loadTexture(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(mat.getTextures().get(0)).concat(".png"));
+            material.setTexture("DiffuseMap", tex);
+            materials.put(i, material);
+            i++;
+        }
+
         //Create a root
         Node root = new Node("Root");
 
@@ -119,7 +133,7 @@ public class KmfModelLoader implements AssetLoader {
                 Vector3f[] vertices = new Vector3f[meshSprite.getVertices().size()];
                 Vector2f[] texCoord = new Vector2f[meshSprite.getVertices().size()];
                 Vector3f[] normals = new Vector3f[meshSprite.getVertices().size()];
-                int i = 0;
+                i = 0;
                 for (MeshVertex meshVertex : meshSprite.getVertices()) {
 
                     //Vertice
@@ -179,10 +193,8 @@ public class KmfModelLoader implements AssetLoader {
                 //Create geometry
                 Geometry geom = new Geometry(index + "", mesh);
 
-                //FIXME: Proper material
-//                Material mat = new Material(assetInfo.getManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-//                mat.setColor("Color", ColorRGBA.Blue);
-//                geom.setMaterial(mat);
+                // Material
+                geom.setMaterial(materials.get(meshSprite.getMaterialIndex()));
 
                 //Attach the geometry to the node
                 node.attachChild(geom);
