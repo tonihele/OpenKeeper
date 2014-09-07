@@ -32,7 +32,7 @@ import toniarts.opendungeonkeeper.tools.convert.wad.WadFile;
 public class AssetsConverter {
 
     private static final String ASSETS_FOLDER = "assets";
-    private static final String TEXTURES_FOLDER = "Textures";
+    public static final String TEXTURES_FOLDER = "Textures";
     private static final String MODELS_FOLDER = "Models";
     private static final boolean OVERWRITE_DATA = false; // Not exhausting your SDD :) or our custom graphics
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
