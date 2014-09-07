@@ -147,7 +147,7 @@ public class WadFile {
      * @param destination destination directory
      * @param rawWad the opened WAD file
      */
-    private void extractFileData(String fileName, String destination, RandomAccessFile rawWad) {
+    private File extractFileData(String fileName, String destination, RandomAccessFile rawWad) {
 
         //See that the destination is formatted correctly and create it if it does not exist
         String dest = destination;
@@ -161,6 +161,7 @@ public class WadFile {
         //Write to the file
         try (OutputStream outputStream = new FileOutputStream(dest)) {
             getFileData(fileName, rawWad).writeTo(outputStream);
+            return new File(dest);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write to " + dest + "!", e);
         }
@@ -172,11 +173,11 @@ public class WadFile {
      * @param fileName file to extract
      * @param destination destination directory
      */
-    public void extractFileData(String fileName, String destination) {
+    public File extractFileData(String fileName, String destination) {
 
         //Open the WAD for extraction
         try (RandomAccessFile rawWad = new RandomAccessFile(file, "r")) {
-            extractFileData(fileName, destination, rawWad);
+            return extractFileData(fileName, destination, rawWad);
         } catch (Exception e) {
 
             //Fug
