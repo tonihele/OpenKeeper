@@ -52,7 +52,7 @@ public class Anim {
     private List<AnimGeom> geometries;
     //VGEO
     /*GEOM Offset for Frame*/
-    private byte[][] offsets;
+    private short[][] offsets;
 
     public String getName() {
         return name;
@@ -126,11 +126,11 @@ public class Anim {
         this.itab = itab;
     }
 
-    public byte[][] getOffsets() {
+    public short[][] getOffsets() {
         return offsets;
     }
 
-    protected void setOffsets(byte[][] offsets) {
+    protected void setOffsets(short[][] offsets) {
         this.offsets = offsets;
     }
 

@@ -16,17 +16,17 @@ public class AnimGeom {
     /**
      * Frame Base Modulus
      */
-    private byte frameBase;
+    private short frameBase;
     /**
      * Scaled geometry, just add to position
      */
     private Vector3f geometry;
 
-    public byte getFrameBase() {
+    public short getFrameBase() {
         return frameBase;
     }
 
-    protected void setFrameBase(byte frameBase) {
+    protected void setFrameBase(short frameBase) {
         this.frameBase = frameBase;
     }
 

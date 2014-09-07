@@ -414,7 +414,7 @@ public class KmfFile {
         //KMSH/ANIM/SPRS/VGEO
         checkHeader(rawKmf, KMF_ANIM_SPRITES_VGEO_HEADER);
         rawKmf.skipBytes(4);
-        byte[][] offsets = new byte[frameCount][indexCount];
+        short[][] offsets = new short[frameCount][indexCount];
         for (int index = 0; index < indexCount; index++) {
             for (int frame = 0; frame < frameCount; frame++) {
                 offsets[frame][index] = Utils.toUnsignedByte(rawKmf.readByte());

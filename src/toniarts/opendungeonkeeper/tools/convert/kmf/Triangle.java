@@ -11,16 +11,16 @@ package toniarts.opendungeonkeeper.tools.convert.kmf;
  */
 public class Triangle {
 
-    private final byte[] triangle;
+    private final short[] triangle;
 
-    public Triangle(byte x, byte y, byte z) {
-        triangle = new byte[3];
+    public Triangle(short x, short y, short z) {
+        triangle = new short[3];
         triangle[0] = x;
         triangle[1] = y;
         triangle[2] = z;
     }
 
-    public byte[] getTriangle() {
+    public short[] getTriangle() {
         return triangle;
     }
 }
