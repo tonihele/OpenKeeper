@@ -89,7 +89,12 @@ public class KmfModelLoader implements AssetLoader {
     @Override
     public Object load(AssetInfo assetInfo) throws IOException {
 
-        KmfFile kmfFile = new KmfFile(inputStreamToFile(assetInfo.openStream(), assetInfo.getKey().getName()));
+        KmfFile kmfFile = null;
+        if (assetInfo instanceof KmfAssetInfo) {
+            kmfFile = ((KmfAssetInfo) assetInfo).getKmfFile();
+        } else {
+            kmfFile = new KmfFile(inputStreamToFile(assetInfo.openStream(), assetInfo.getKey().getName()));
+        }
 
         //Create a root
         Node root = new Node("Root");
