@@ -16,6 +16,8 @@ import java.io.RandomAccessFile;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 
@@ -31,6 +33,7 @@ import toniarts.opendungeonkeeper.tools.convert.Utils;
  */
 public class EngineTexturesFile implements Iterable<String> {
 
+    private static final Logger logger = Logger.getLogger(EngineTexturesFile.class.getName());
     private static final boolean DECOMPRESSION_ENABLED = false;
     private static final int CHESS_BOARD_GRID_SIZE = 8;
     private final File file;
@@ -128,7 +131,7 @@ public class EngineTexturesFile implements Iterable<String> {
         try (RandomAccessFile rawTextures = new RandomAccessFile(file, "r")) {
 
             for (String textureEntry : engineTextureEntries.keySet()) {
-                extractFileData(textureEntry, destination, rawTextures);
+                extractFileData(textureEntry, destination, rawTextures, true);
             }
         } catch (IOException e) {
 
@@ -142,13 +145,14 @@ public class EngineTexturesFile implements Iterable<String> {
      *
      * @param textureEntry entry to extract
      * @param destination destination directory
+     * @param overwrite overwrite destination file
      * @return returns the extracted file
      */
-    public File extractFileData(String textureEntry, String destination) {
+    public File extractFileData(String textureEntry, String destination, boolean overwrite) {
 
         //Open the Texture file for extraction
         try (RandomAccessFile rawTextures = new RandomAccessFile(file, "r")) {
-            return extractFileData(textureEntry, destination, rawTextures);
+            return extractFileData(textureEntry, destination, rawTextures, overwrite);
         } catch (IOException e) {
 
             //Fug
@@ -162,8 +166,10 @@ public class EngineTexturesFile implements Iterable<String> {
      * @param textureEntry texture to extract
      * @param destination destination directory
      * @param rawTextures the opened EngineTextures file
+     * @param overwrite overwrite destination file
+     *
      */
-    private File extractFileData(String textureEntry, String destination, RandomAccessFile rawTextures) {
+    private File extractFileData(String textureEntry, String destination, RandomAccessFile rawTextures, boolean overwrite) {
 
         //See that the destination is formatted correctly and create it if it does not exist
         String dest = destination;
@@ -171,6 +177,12 @@ public class EngineTexturesFile implements Iterable<String> {
             dest = dest.concat(File.separator);
         }
         File destinationFile = new File(dest.concat(textureEntry).concat(".png"));
+        if (!overwrite && destinationFile.exists()) {
+
+            //Skip
+            logger.log(Level.INFO, "File " + destinationFile + " already exists, skipping!");
+            return destinationFile;
+        }
         Path destinationFolder = destinationFile.toPath();
         destinationFolder.getParent().toFile().mkdirs();
 

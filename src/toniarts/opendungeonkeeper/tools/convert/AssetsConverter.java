@@ -24,6 +24,7 @@ public class AssetsConverter {
 
     private static final String ASSETS_FOLDER = "assets";
     private static final String TEXTURES_FOLDER = "Textures";
+    private static final boolean OVERWRITE_DATA = false; // Not exhausting your SDD :) or our custom graphics
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
 
     private AssetsConverter() {
@@ -75,12 +76,12 @@ public class AssetsConverter {
             if (found && Integer.parseInt(matcher.group("mipmaplevel")) == 0) {
 
                 //Highest resolution, extract and rename
-                File f = etFile.extractFileData(textureFile, destination);
+                File f = etFile.extractFileData(textureFile, destination, OVERWRITE_DATA);
                 f.renameTo(new File(f.toString().replaceFirst("MM" + matcher.group("mipmaplevel"), "")));
             } else if (!found) {
 
                 // No mipmap levels, just extract
-                etFile.extractFileData(textureFile, destination);
+                etFile.extractFileData(textureFile, destination, OVERWRITE_DATA);
             }
         }
     }
