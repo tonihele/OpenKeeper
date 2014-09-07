@@ -112,10 +112,10 @@ public class Utils {
      * Convert a byte to unsigned byte
      *
      * @param b byte
-     * @return unsigned byte
+     * @return unsigned byte (needs to be short in JAVA)
      */
-    public static byte toUnsignedByte(byte b) {
-        return (byte) (b & 0xFF);
+    public static short toUnsignedByte(byte b) {
+        return Integer.valueOf(b & 0xFF).shortValue();
     }
 
     /**
