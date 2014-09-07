@@ -15,6 +15,7 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Iterator;
 import javax.imageio.ImageIO;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 
@@ -28,7 +29,7 @@ import toniarts.opendungeonkeeper.tools.convert.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EngineTexturesFile {
+public class EngineTexturesFile implements Iterable<String> {
 
     private static final boolean DECOMPRESSION_ENABLED = false;
     private static final int CHESS_BOARD_GRID_SIZE = 8;
@@ -123,12 +124,31 @@ public class EngineTexturesFile {
      */
     public void extractFileData(String destination) {
 
-        //Open the WAD for extraction
+        //Open the Texture file for extraction
         try (RandomAccessFile rawTextures = new RandomAccessFile(file, "r")) {
 
             for (String textureEntry : engineTextureEntries.keySet()) {
                 extractFileData(textureEntry, destination, rawTextures);
             }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to open the file " + file + "!", e);
+        }
+    }
+
+    /**
+     * Extract a single to a given location
+     *
+     * @param textureEntry entry to extract
+     * @param destination destination directory
+     * @return returns the extracted file
+     */
+    public File extractFileData(String textureEntry, String destination) {
+
+        //Open the Texture file for extraction
+        try (RandomAccessFile rawTextures = new RandomAccessFile(file, "r")) {
+            return extractFileData(textureEntry, destination, rawTextures);
         } catch (IOException e) {
 
             //Fug
@@ -143,7 +163,7 @@ public class EngineTexturesFile {
      * @param destination destination directory
      * @param rawTextures the opened EngineTextures file
      */
-    private void extractFileData(String textureEntry, String destination, RandomAccessFile rawTextures) {
+    private File extractFileData(String textureEntry, String destination, RandomAccessFile rawTextures) {
 
         //See that the destination is formatted correctly and create it if it does not exist
         String dest = destination;
@@ -157,6 +177,7 @@ public class EngineTexturesFile {
         //Write to the file
         try (OutputStream outputStream = new FileOutputStream(destinationFile)) {
             getFileData(textureEntry, rawTextures).writeTo(outputStream);
+            return destinationFile;
         } catch (IOException e) {
             throw new RuntimeException("Failed to write to " + destinationFile + "!", e);
         }
@@ -175,7 +196,7 @@ public class EngineTexturesFile {
         //Get the file
         EngineTextureEntry engineTextureEntry = engineTextureEntries.get(textureEntry);
         if (engineTextureEntry == null) {
-            throw new RuntimeException("File " + textureEntry + " not found from the WAD archive!");
+            throw new RuntimeException("File " + textureEntry + " not found from the texture archive!");
         }
 
         try {
@@ -324,5 +345,10 @@ public class EngineTexturesFile {
 //            out += stride;
 //            inp += 64;
 //        }
+    }
+
+    @Override
+    public Iterator<String> iterator() {
+        return engineTextureEntries.keySet().iterator();
     }
 }
