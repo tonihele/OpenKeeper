@@ -188,7 +188,7 @@ public class KmfModelLoader implements AssetLoader {
                         x++;
                     }
                     VertexBuffer buf = new VertexBuffer(Type.Index);
-                    buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.Int, BufferUtils.createIntBuffer(indexes));
+                    buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(indexes));
                     lodLevels[triangles.getKey()] = buf;
                 }
 
@@ -209,7 +209,7 @@ public class KmfModelLoader implements AssetLoader {
                 //Set the buffers
                 mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
                 mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indexes));
-//                mesh.setLodLevels(lodLevels); <--- Breaks stuff???
+                mesh.setLodLevels(lodLevels);
                 mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
                 mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
 
