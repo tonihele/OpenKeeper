@@ -44,6 +44,25 @@ import toniarts.opendungeonkeeper.tools.convert.kmf.Uv;
  */
 public class KmfModelLoader implements AssetLoader {
 
+    /* Some textures are broken */
+    private final static HashMap<String, String> textureFixes;
+
+    static {
+        textureFixes = new HashMap<>();
+        textureFixes.put("Goblinbak", "GoblinBack");
+        textureFixes.put("Goblin2", "GoblinFront");
+        textureFixes.put("Knightfrnt", "KnightFrnt");
+        textureFixes.put("skeleton", "Skeleton");
+        textureFixes.put("3dMap_secretL1+3", "3dMap_SecretL1+3");
+        textureFixes.put("Level17_castle", "Level17_Castle");
+        textureFixes.put("gui\\Traps\\Alarm", "GUI/Traps/alarm");
+        textureFixes.put("3dMap_secretL4+5", "3dMap_SecretL4+5");
+        textureFixes.put("ThiefBack", "THIEFback");
+        textureFixes.put("ThiefFront", "THIEFfront");
+        textureFixes.put("StoneKnightFrnt", "StoneKnightfrnt");
+        textureFixes.put("3dMap_secretL2", "3dMap_SecretL2");
+    }
+
     public static void main(final String[] args) throws IOException {
 //        Main main = new Main();
 //        main.start();
@@ -104,7 +123,13 @@ public class KmfModelLoader implements AssetLoader {
         int i = 0;
         for (toniarts.opendungeonkeeper.tools.convert.kmf.Material mat : kmfFile.getMaterials()) {
             Material material = new Material(assetInfo.getManager(), "Common/MatDefs/Light/Lighting.j3md");
-            Texture tex = assetInfo.getManager().loadTexture(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(mat.getTextures().get(0)).concat(".png"));
+            String texture = mat.getTextures().get(0);
+            if (textureFixes.containsKey(texture)) {
+
+                //Fix the texture entry
+                texture = textureFixes.get(texture);
+            }
+            Texture tex = assetInfo.getManager().loadTexture(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png"));
             material.setTexture("DiffuseMap", tex);
             materials.put(i, material);
             i++;
