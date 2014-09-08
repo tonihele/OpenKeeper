@@ -27,9 +27,9 @@ TODO
 - [ ] Conversion of formats
   - [ ] Meshes to JMonkeyEngine j3o
     - [x] Basic mesh conversion
-    - [ ] LOD
+    - [x] LOD
     - [ ] Animations (**
-    - [ ] Materials
+    - [x] Materials
   - [ ] Maps to our open map format (XML, xstream?)
   - [ ] Sounds (MP2 is not supported by JME, either write support or convert to WAV/OGG, Xuggler?) (*
   - [ ] Video playes for DK format (*
