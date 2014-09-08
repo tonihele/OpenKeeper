@@ -167,7 +167,7 @@ public class KmfModelLoader implements AssetLoader {
 
                     //Texture coordinate
                     Uv uv = meshVertex.getUv();
-                    texCoord[i] = new Vector2f(uv.getUv()[0], uv.getUv()[1]);
+                    texCoord[i] = new Vector2f(uv.getUv()[0] / 32768f, uv.getUv()[1] / 32768f);
 
                     //Normals
                     v = meshVertex.getNormal();
