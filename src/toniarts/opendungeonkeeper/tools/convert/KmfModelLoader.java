@@ -186,9 +186,9 @@ public class KmfModelLoader implements AssetLoader {
                     int[] indexes = new int[triangles.getValue().size() * 3];
                     int x = 0;
                     for (Triangle triangle : triangles.getValue()) {
-                        indexes[x * 3] = triangle.getTriangle()[0];
+                        indexes[x * 3] = triangle.getTriangle()[2];
                         indexes[x * 3 + 1] = triangle.getTriangle()[1];
-                        indexes[x * 3 + 2] = triangle.getTriangle()[2];
+                        indexes[x * 3 + 2] = triangle.getTriangle()[0];
                         x++;
                     }
                     VertexBuffer buf = new VertexBuffer(Type.Index);
@@ -199,9 +199,9 @@ public class KmfModelLoader implements AssetLoader {
                 //Max LOD level triangles
                 List<Integer> faces = new ArrayList<>(meshSprite.getTriangles().get(0).size() * 3);
                 for (Triangle tri : meshSprite.getTriangles().get(0)) {
-                    faces.add(new Short(tri.getTriangle()[0]).intValue());
-                    faces.add(new Short(tri.getTriangle()[1]).intValue());
                     faces.add(new Short(tri.getTriangle()[2]).intValue());
+                    faces.add(new Short(tri.getTriangle()[1]).intValue());
+                    faces.add(new Short(tri.getTriangle()[0]).intValue());
                 }
                 int[] indexes = new int[faces.size()];
                 int x = 0;
