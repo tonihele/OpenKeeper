@@ -33,7 +33,7 @@ public class AssetsConverter {
 
     private static final String ASSETS_FOLDER = "assets";
     public static final String TEXTURES_FOLDER = "Textures";
-    private static final String MODELS_FOLDER = "Models";
+    public static final String MODELS_FOLDER = "Models";
     private static final boolean OVERWRITE_DATA = false; // Not exhausting your SDD :) or our custom graphics
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
 
@@ -132,6 +132,7 @@ public class AssetsConverter {
                 // See if we already have this model
                 if (!OVERWRITE_DATA && new File(destination.concat(entry.substring(0, entry.length() - 4)).concat(".j3o")).exists()) {
                     logger.log(Level.INFO, "File " + entry + " already exists, skipping!");
+                    continue;
                 }
 
                 // Extract each file to temp
@@ -149,23 +150,42 @@ public class AssetsConverter {
         // First, convert the regular models
         for (Entry<String, KmfFile> entry : kmfs.entrySet()) {
             if (entry.getValue().getType() == KmfFile.Type.MESH) {
-
-                //Remove the file extension from the file
-                KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(entry.getKey()), entry.getValue());
-                KmfModelLoader kmfModelLoader = new KmfModelLoader();
-                try {
-                    Node n = (Node) kmfModelLoader.load(ai);
-
-                    //Export
-                    BinaryExporter exporter = BinaryExporter.getInstance();
-                    File file = new File(destination.concat(entry.getKey().substring(0, entry.getKey().length() - 4)).concat(".j3o"));
-                    exporter.save(n, file);
-                } catch (Exception ex) {
-                    String msg = "Failed to convert KMF entry " + entry.getKey() + "!";
-                    logger.log(Level.SEVERE, msg, ex);
-                    throw new RuntimeException(msg, ex);
-                }
+                convertModel(assetManager, entry, destination);
             }
+        }
+
+        // And the groups (now they can be linked)
+        for (Entry<String, KmfFile> entry : kmfs.entrySet()) {
+            if (entry.getValue().getType() == KmfFile.Type.GROP) {
+                convertModel(assetManager, entry, destination);
+            }
+        }
+    }
+
+    /**
+     * Convert a single KMF to JME object
+     *
+     * @param assetManager assetManager, for finding stuff
+     * @param entry KMF / name entry
+     * @param destination destination directory
+     * @throws RuntimeException May fail
+     */
+    private static void convertModel(AssetManager assetManager, Entry<String, KmfFile> entry, String destination) throws RuntimeException {
+
+        //Remove the file extension from the file
+        KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(entry.getKey()), entry.getValue());
+        KmfModelLoader kmfModelLoader = new KmfModelLoader();
+        try {
+            Node n = (Node) kmfModelLoader.load(ai);
+
+            //Export
+            BinaryExporter exporter = BinaryExporter.getInstance();
+            File file = new File(destination.concat(entry.getKey().substring(0, entry.getKey().length() - 4)).concat(".j3o"));
+            exporter.save(n, file);
+        } catch (Exception ex) {
+            String msg = "Failed to convert KMF entry " + entry.getKey() + "!";
+            logger.log(Level.SEVERE, msg, ex);
+            throw new RuntimeException(msg, ex);
         }
     }
 }
