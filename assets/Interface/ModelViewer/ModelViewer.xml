@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty xmlns="http://nifty-gui.sourceforge.net/nifty-1.3.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://nifty-gui.sourceforge.net/nifty-1.3.xsd http://nifty-gui.sourceforge.net/nifty-1.3.xsd">
+    <useStyles filename="nifty-default-styles.xml" />
+    <useControls filename="nifty-default-controls.xml" />
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Main Screen for model loader -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="start" controller="toniarts.opendungeonkeeper.tools.modelviewer.ModelViewer">
+        <layer id="layer" childLayout="horizontal">
+            <panel id="panel" height="95%" width="25%" align="left" valign="center" childLayout="center" visibleToMouse="true">
+                <control id="modelListBox" name="listBox" forceSelection="true" vertical="optional" horizontal="optional" displayItems="20" selection="Single" />
+            </panel>
+        </layer>
+    </screen>
+</nifty>
