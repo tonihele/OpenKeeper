@@ -48,14 +48,11 @@ public class AssetsConverter {
      * @param assetManager
      */
     public static void convertAssets(String dungeonKeeperFolder, AssetManager assetManager) {
-        String currentFolder = Paths.get("").toAbsolutePath().toString();
+        String currentFolder = getCurrentFolder();
         logger.log(Level.INFO, "Starting asset convertion from DK II folder: " + dungeonKeeperFolder);
         logger.log(Level.INFO, "Current folder set to: " + currentFolder);
 
         //Create an assets folder
-        if (!currentFolder.endsWith(File.separator)) {
-            currentFolder = currentFolder.concat(File.separator);
-        }
         currentFolder = currentFolder.concat(ASSETS_FOLDER).concat(File.separator);
 
         //TODO: We need to search the normal assets before extracting do we actually already
@@ -187,5 +184,27 @@ public class AssetsConverter {
             logger.log(Level.SEVERE, msg, ex);
             throw new RuntimeException(msg, ex);
         }
+    }
+
+    /**
+     * Get the current folder
+     *
+     * @return the current folder
+     */
+    public static String getCurrentFolder() {
+        String currentFolder = Paths.get("").toAbsolutePath().toString();
+        if (!currentFolder.endsWith(File.separator)) {
+            currentFolder = currentFolder.concat(File.separator);
+        }
+        return currentFolder;
+    }
+
+    /**
+     * Get the assets root folder
+     *
+     * @return the assets folder
+     */
+    public static String getAssetsFolder() {
+        return getCurrentFolder().concat(ASSETS_FOLDER).concat(File.separator);
     }
 }
