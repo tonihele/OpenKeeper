@@ -47,29 +47,29 @@ public class Utils {
 
     /**
      * Reads 2 bytes and converts it to JAVA short from LITTLE ENDIAN unsigned
-     * short
+     * short (needs to be int in JAVA)
      *
      * @param file the file to read from
-     * @return JAVA native short
+     * @return JAVA native int
      * @throws IOException may fail
      */
-    public static short readUnsignedShort(RandomAccessFile file) throws IOException {
+    public static int readUnsignedShort(RandomAccessFile file) throws IOException {
         byte[] unsignedShort = new byte[2];
         file.read(unsignedShort);
         return readUnsignedShort(unsignedShort);
     }
 
     /**
-     * Converts 2 bytes to JAVA short from LITTLE ENDIAN unsigned shoer
-     * presented by a byte array
+     * Converts 2 bytes to JAVA short from LITTLE ENDIAN unsigned short
+     * presented by a byte array (needs to be int in JAVA)
      *
      * @param unsignedInt the byte array
-     * @return JAVA native short
+     * @return JAVA native int
      */
-    public static short readUnsignedShort(byte[] unsignedShort) {
+    public static int readUnsignedShort(byte[] unsignedShort) {
         ByteBuffer buffer = ByteBuffer.wrap(unsignedShort);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
-        return buffer.getShort();
+        return buffer.getShort() & 0xFFFF;
     }
 
     /**

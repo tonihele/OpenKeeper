@@ -15,13 +15,13 @@ public class AnimVertex {
 
     private Uv uv;
     private Vector3f normal;
-    private short itabIndex;
+    private int itabIndex;
 
-    public short getItabIndex() {
+    public int getItabIndex() {
         return itabIndex;
     }
 
-    protected void setItabIndex(short itabIndex) {
+    protected void setItabIndex(int itabIndex) {
         this.itabIndex = itabIndex;
     }
 

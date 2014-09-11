@@ -11,15 +11,15 @@ package toniarts.opendungeonkeeper.tools.convert.kmf;
  */
 public class Uv {
 
-    private final short[] uv;
+    private final int[] uv;
 
-    public Uv(short x, short y) {
-        uv = new short[2];
+    public Uv(int x, int y) {
+        uv = new int[2];
         uv[0] = x;
         uv[1] = y;
     }
 
-    public short[] getUv() {
+    public int[] getUv() {
         return uv;
     }
 }

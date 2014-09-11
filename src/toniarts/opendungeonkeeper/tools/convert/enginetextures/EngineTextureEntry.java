@@ -15,8 +15,8 @@ public class EngineTextureEntry {
     private int resX;
     private int resY;
     private int size;
-    private short sResX;
-    private short sResY;
+    private int sResX;
+    private int sResY;
     private int unknown; // Compression identifier?
     private long dataStartLocation;
 
@@ -44,19 +44,19 @@ public class EngineTextureEntry {
         this.size = size;
     }
 
-    public short getsResX() {
+    public int getsResX() {
         return sResX;
     }
 
-    protected void setsResX(short sResX) {
+    protected void setsResX(int sResX) {
         this.sResX = sResX;
     }
 
-    public short getsResY() {
+    public int getsResY() {
         return sResY;
     }
 
-    protected void setsResY(short sResY) {
+    protected void setsResY(int sResY) {
         this.sResY = sResY;
     }
 

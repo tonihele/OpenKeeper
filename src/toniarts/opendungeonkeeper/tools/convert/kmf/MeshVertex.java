@@ -13,15 +13,15 @@ import javax.vecmath.Vector3f;
  */
 public class MeshVertex {
 
-    private short geomIndex;
+    private int geomIndex;
     private Uv uv;
     private Vector3f normal;
 
-    public short getGeomIndex() {
+    public int getGeomIndex() {
         return geomIndex;
     }
 
-    protected void setGeomIndex(short geomIndex) {
+    protected void setGeomIndex(int geomIndex) {
         this.geomIndex = geomIndex;
     }
 
