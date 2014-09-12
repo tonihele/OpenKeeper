@@ -34,6 +34,7 @@ public class AssetsConverter {
     private static final String ASSETS_FOLDER = "assets";
     public static final String TEXTURES_FOLDER = "Textures";
     public static final String MODELS_FOLDER = "Models";
+    public static final String MOUSE_CURSORS_FOLDER = "Interface".concat(File.separator).concat("Cursors");
     private static final boolean OVERWRITE_DATA = false; // Not exhausting your SDD :) or our custom graphics
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
 
@@ -64,6 +65,9 @@ public class AssetsConverter {
         //And the models, note that these already need to find the textures (our custom resource locator)
         //In development this works without such
         convertModels(dungeonKeeperFolder, currentFolder.concat(MODELS_FOLDER).concat(File.separator), assetManager);
+
+        //The mouse cursors
+        convertMouseCursors(dungeonKeeperFolder, currentFolder.concat(MOUSE_CURSORS_FOLDER).concat(File.separator));
     }
 
     /**
@@ -183,6 +187,25 @@ public class AssetsConverter {
             String msg = "Failed to convert KMF entry " + entry.getKey() + "!";
             logger.log(Level.SEVERE, msg, ex);
             throw new RuntimeException(msg, ex);
+        }
+    }
+
+    /**
+     * Extract and copy DK II mouse cursors
+     *
+     * @param dungeonKeeperFolder DK II main folder
+     * @param destination Destination folder
+     */
+    private static void convertMouseCursors(String dungeonKeeperFolder, String destination) {
+
+        //Mouse cursors are PNG files in the Sprite.WAD
+        WadFile wadFile = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("Sprite.WAD")));
+        for (String fileName : wadFile.getWadFileEntries()) {
+            if (fileName.toLowerCase().endsWith(".png")) {
+
+                //Extract the file
+                wadFile.extractFileData(fileName, destination);
+            }
         }
     }
 
