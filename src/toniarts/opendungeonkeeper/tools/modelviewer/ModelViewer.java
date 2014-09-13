@@ -31,6 +31,7 @@ import java.io.FilenameFilter;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.regex.Matcher;
+import toniarts.opendungeonkeeper.gui.CursorFactory;
 import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
 
 /**
@@ -120,11 +121,16 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         // Set default font
         RenderFont font = nifty.createFont("Interface/Fonts/DungeonKeeperII.fnt");
         nifty.getRenderEngine().setFont(font);
+        nifty.registerMouseCursor("pointer", "Interface/Cursors/Idle.png", 4, 4);
 
         cam.setLocation(new Vector3f(-15.445636f, 30.162927f, 60.252777f));
         cam.setRotation(new Quaternion(0.05173137f, 0.92363626f, -0.13454558f, 0.35513034f));
         flyCam.setMoveSpeed(30);
         flyCam.setDragToRotate(true);
+
+        // Mouse cursor
+        inputManager.setCursorVisible(true);
+        inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.Cursor.IDLE, assetManager));
 
         setupLighting();
         setupFloor();
