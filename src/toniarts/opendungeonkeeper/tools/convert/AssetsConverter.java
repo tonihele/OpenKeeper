@@ -125,9 +125,9 @@ public class AssetsConverter {
 
         //Meshes are in the data folder, access the packed file
         WadFile wad = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("Meshes.WAD")));
-        HashMap<String, KmfFile> kmfs = new HashMap<>(wad.getWadFileEntryCount());
+        HashMap<String, KmfFile> kmfs = new HashMap<>();
         File tmpdir = new File(System.getProperty("java.io.tmpdir"));
-        for (String entry : wad.getWadFileEntries()) {
+        for (final String entry : wad.getWadFileEntries()) {
             try {
 
                 // See if we already have this model
@@ -141,25 +141,44 @@ public class AssetsConverter {
                 f.deleteOnExit();
 
                 // Parse
-                kmfs.put(entry, new KmfFile(f));
+                final KmfFile kmfFile = new KmfFile(f);
+
+                // If it is a regular model or animation, process it straight away
+                // Leave groups for later (since linking)
+                if (kmfFile.getType() == KmfFile.Type.MESH || kmfFile.getType() == KmfFile.Type.ANIM) {
+                    convertModel(assetManager, new Entry<String, KmfFile>() {
+                        @Override
+                        public String getKey() {
+                            return entry;
+                        }
+
+                        @Override
+                        public KmfFile getValue() {
+                            return kmfFile;
+                        }
+
+                        @Override
+                        public KmfFile setValue(KmfFile value) {
+                            throw new UnsupportedOperationException("Plz, don't do this!");
+                        }
+                    }, destination);
+
+                    // We can delete the file straight
+                    f.delete();
+                } else {
+
+                    // For later processing
+                    kmfs.put(entry, kmfFile);
+                }
             } catch (Exception ex) {
                 logger.log(Level.SEVERE, "Failed to create a file for WAD entry " + entry + "!", ex);
                 throw ex;
             }
         }
 
-        // First, convert the regular models
-        for (Entry<String, KmfFile> entry : kmfs.entrySet()) {
-            if (entry.getValue().getType() == KmfFile.Type.MESH) {
-                convertModel(assetManager, entry, destination);
-            }
-        }
-
         // And the groups (now they can be linked)
         for (Entry<String, KmfFile> entry : kmfs.entrySet()) {
-            if (entry.getValue().getType() == KmfFile.Type.GROP) {
-                convertModel(assetManager, entry, destination);
-            }
+            convertModel(assetManager, entry, destination);
         }
     }
 
