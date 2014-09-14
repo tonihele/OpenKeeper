@@ -4,17 +4,13 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.kmf;
 
-import javax.vecmath.Vector3f;
-
 /**
  * AnimVertex
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class AnimVertex {
+public class AnimVertex extends Vertex {
 
-    private Uv uv;
-    private Vector3f normal;
     private int itabIndex;
 
     public int getItabIndex() {
@@ -23,21 +19,5 @@ public class AnimVertex {
 
     protected void setItabIndex(int itabIndex) {
         this.itabIndex = itabIndex;
-    }
-
-    public Uv getUv() {
-        return uv;
-    }
-
-    protected void setUv(Uv uv) {
-        this.uv = uv;
-    }
-
-    public Vector3f getNormal() {
-        return normal;
-    }
-
-    protected void setNormal(Vector3f normal) {
-        this.normal = normal;
     }
 }
