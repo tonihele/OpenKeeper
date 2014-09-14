@@ -231,6 +231,7 @@ public class KmfModelLoader implements AssetLoader {
 
                     // Material
                     geom.setMaterial(materials.get(meshSprite.getMaterialIndex()));
+                    geom.updateModelBound();
 
                     //Attach the geometry to the node
                     node.attachChild(geom);
