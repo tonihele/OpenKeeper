@@ -30,9 +30,14 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import toniarts.opendungeonkeeper.gui.CursorFactory;
 import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
+import toniarts.opendungeonkeeper.tools.convert.KmfAssetInfo;
+import toniarts.opendungeonkeeper.tools.convert.KmfModelLoader;
+import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
 
 /**
  * Simple model viewer
@@ -47,6 +52,8 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private DirectionalLight dl;
     private Nifty nifty;
     private Screen screen;
+    private final File kmfModel;
+    private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
 
     public static void main(String[] args) {
 
@@ -56,8 +63,14 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         }
         dkIIFolder = args[0];
 
-        ModelViewer app = new ModelViewer();
+        ModelViewer app = new ModelViewer(null);
         app.start();
+    }
+
+    public ModelViewer(File kmfModel) {
+        super();
+
+        this.kmfModel = kmfModel;
     }
 
     public void setupLighting() {
@@ -134,6 +147,19 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         setupLighting();
         setupFloor();
+
+        // Open a KMF model if set
+        if (kmfModel != null) {
+            try {
+                KmfFile kmf = new KmfFile(kmfModel);
+                KmfModelLoader loader = new KmfModelLoader();
+                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf);
+                Node node = (Node) loader.load(asset);
+                setupModel(node);
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Failed to handle: " + kmfModel, e);
+            }
+        }
     }
 
     /**
@@ -165,38 +191,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         List<String> selection = event.getSelection();
         if (selection.size() == 1) {
 
-            String name = "SelectedModel";
-
             // Load the selected model
             Node spat = (Node) this.getAssetManager().loadModel(selection.get(0).concat(".j3o").replaceAll(Matcher.quoteReplacement(File.separator), "/"));
-            spat.setName(name);
-
-            // Reset the game translation and scale
-            for (Spatial subSpat : spat.getChildren()) {
-                subSpat.setLocalScale(1);
-                subSpat.setLocalTranslation(0, 0, 0);
-            }
-
-            // Make it bigger and move
-            spat.scale(10);
-            spat.setLocalTranslation(10, 25, 30);
-
-            // Rotate it
-            Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(1, 0, 0));
-            spat.rotate(quat);
-
-            // Shadows
-            spat.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
-
-            // Make it rotate
-            spat.addControl(new RotatorControl());
-
-            // Remove the old model
-            rootNode.detachChildNamed(name);
-
-            // Attach the new model
-            rootNode.attachChild(spat);
+            setupModel(spat);
         }
     }
 
@@ -223,5 +220,37 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     @Override
     public void onEndScreen() {
+    }
+
+    private void setupModel(Node spat) {
+        String name = "SelectedModel";
+        spat.setName(name);
+
+        // Reset the game translation and scale
+        for (Spatial subSpat : spat.getChildren()) {
+            subSpat.setLocalScale(1);
+            subSpat.setLocalTranslation(0, 0, 0);
+        }
+
+        // Make it bigger and move
+        spat.scale(10);
+        spat.setLocalTranslation(10, 25, 30);
+
+        // Rotate it
+        Quaternion quat = new Quaternion();
+        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(1, 0, 0));
+        spat.rotate(quat);
+
+        // Shadows
+        spat.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+
+        // Make it rotate
+        spat.addControl(new RotatorControl());
+
+        // Remove the old model
+        rootNode.detachChildNamed(name);
+
+        // Attach the new model
+        rootNode.attachChild(spat);
     }
 }
