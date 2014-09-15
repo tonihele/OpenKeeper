@@ -1,6 +1,9 @@
 package toniarts.opendungeonkeeper.tools.modelviewer;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.input.KeyInput;
+import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.KeyTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
@@ -14,6 +17,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
+import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Quad;
 import com.jme3.shadow.DirectionalLightShadowRenderer;
@@ -53,6 +57,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private Nifty nifty;
     private Screen screen;
     private final File kmfModel;
+    private final String name = "SelectedModel";
     private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
 
     public static void main(String[] args) {
@@ -113,6 +118,25 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         floorGeom.setMaterial(mat);
         rootNode.attachChild(floorGeom);
     }
+    private ActionListener actionListener = new ActionListener() {
+        @Override
+        public void onAction(String name, boolean pressed, float tpf) {
+            // toggle wireframe
+            if (name.equals("toggle wireframe") && !pressed) {
+                Spatial spat = rootNode.getChild(ModelViewer.this.name);
+                if (spat != null) {
+                    spat.depthFirstTraversal(new SceneGraphVisitor() {
+                        public void visit(Spatial spatial) {
+                            if (spatial instanceof Geometry) {
+                                ((Geometry) spatial).getMaterial().getAdditionalRenderState().setWireframe(!((Geometry) spatial).getMaterial().getAdditionalRenderState().isWireframe());
+                            }
+                        }
+                    });
+                }
+            }
+            // else ... other input tests.
+        }
+    };
 
     @Override
     public void simpleInitApp() {
@@ -144,6 +168,10 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         // Mouse cursor
         inputManager.setCursorVisible(true);
         inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.Cursor.IDLE, assetManager));
+
+        // Wireframe
+        inputManager.addMapping("toggle wireframe", new KeyTrigger(KeyInput.KEY_T));
+        inputManager.addListener(actionListener, "toggle wireframe");
 
         setupLighting();
         setupFloor();
@@ -223,7 +251,6 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     }
 
     private void setupModel(Node spat) {
-        String name = "SelectedModel";
         spat.setName(name);
 
         // Reset the game translation and scale
