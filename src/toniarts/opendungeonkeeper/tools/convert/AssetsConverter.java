@@ -216,6 +216,7 @@ public class AssetsConverter {
      * @param destination Destination folder
      */
     private static void convertMouseCursors(String dungeonKeeperFolder, String destination) {
+        logger.log(Level.INFO, "Extracting mouse cursors to: " + destination);
 
         //Mouse cursors are PNG files in the Sprite.WAD
         WadFile wadFile = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("Sprite.WAD")));
