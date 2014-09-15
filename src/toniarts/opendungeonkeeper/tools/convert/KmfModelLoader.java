@@ -8,7 +8,6 @@ import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoader;
 import com.jme3.asset.ModelKey;
-import com.jme3.export.binary.BinaryExporter;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
@@ -26,7 +25,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -35,12 +33,16 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.opendungeonkeeper.tools.convert.kmf.Anim;
+import toniarts.opendungeonkeeper.tools.convert.kmf.AnimSprite;
+import toniarts.opendungeonkeeper.tools.convert.kmf.AnimVertex;
 import toniarts.opendungeonkeeper.tools.convert.kmf.Grop;
 import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
 import toniarts.opendungeonkeeper.tools.convert.kmf.MeshSprite;
 import toniarts.opendungeonkeeper.tools.convert.kmf.MeshVertex;
 import toniarts.opendungeonkeeper.tools.convert.kmf.Triangle;
 import toniarts.opendungeonkeeper.tools.convert.kmf.Uv;
+import toniarts.opendungeonkeeper.tools.modelviewer.ModelViewer;
 
 /**
  *
@@ -89,28 +91,32 @@ public class KmfModelLoader implements AssetLoader {
                 return null;
             }
         };
-        KmfModelLoader kmfModelLoader = new KmfModelLoader();
-        Node n = (Node) kmfModelLoader.load(ai);
 
-        //Export
-        BinaryExporter exporter = BinaryExporter.getInstance();
-        File file = new File(args[0]);
-        String path = args[0].substring(0, args[0].length() - file.toPath().getFileName().toString().length());
-        file = new File(path + "converted" + File.separator + file.toPath().getFileName().toString() + ".j3o");
-        exporter.save(n, file);
+        ModelViewer app = new ModelViewer(new File(args[0]));
+        app.start();
 
-        //Load all KMF files
-        File f = new File(path);
-        File[] files = f.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.toLowerCase().endsWith(".kmf");
-            }
-        });
-        for (File kmf : files) {
-            KmfFile kmfFile = new KmfFile(kmf);
-            System.out.println(kmf + " is of type " + kmfFile.getType());
-        }
+//        KmfModelLoader kmfModelLoader = new KmfModelLoader();
+//        Node n = (Node) kmfModelLoader.load(ai);
+//
+//        //Export
+//        BinaryExporter exporter = BinaryExporter.getInstance();
+//        File file = new File(args[0]);
+//        String path = args[0].substring(0, args[0].length() - file.toPath().getFileName().toString().length());
+//        file = new File(path + "converted" + File.separator + file.toPath().getFileName().toString() + ".j3o");
+//        exporter.save(n, file);
+
+//        Load all KMF files
+//        File f = new File(path);
+//        File[] files = f.listFiles(new FilenameFilter() {
+//            @Override
+//            public boolean accept(File dir, String name) {
+//                return name.toLowerCase().endsWith(".kmf");
+//            }
+//        });
+//        for (File kmf : files) {
+//            KmfFile kmfFile = new KmfFile(kmf);
+//            System.out.println(kmf + " is of type " + kmfFile.getType());
+//        }
     }
 
     @Override
@@ -157,6 +163,7 @@ public class KmfModelLoader implements AssetLoader {
                 handleMesh(sourceMesh, materials, root);
             }
             if (kmfFile.getType() == KmfFile.Type.ANIM) {
+                handleAnim(kmfFile.getAnim(), materials, root);
             }
         } else if (kmfFile.getType() == KmfFile.Type.GROP) {
             createGroup(root, kmfFile);
@@ -239,6 +246,7 @@ public class KmfModelLoader implements AssetLoader {
 
                 //Vertice
                 javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
+                System.out.println(v);
                 vertices[i] = new Vector3f(v.x, v.y, v.z);
 
                 //Texture coordinate
@@ -296,6 +304,122 @@ public class KmfModelLoader implements AssetLoader {
 
             // Material
             geom.setMaterial(materials.get(meshSprite.getMaterialIndex()));
+            geom.updateModelBound();
+
+            //Attach the geometry to the node
+            node.attachChild(geom);
+            index++;
+        }
+
+        //Attach the node to the root
+        root.attachChild(node);
+    }
+
+    /**
+     * Handle mesh creation
+     *
+     * @param anim the anim
+     * @param materials materials map
+     * @param root the root node
+     */
+    private void handleAnim(Anim anim, HashMap<Integer, Material> materials, Node root) {
+
+        //Source mesh is node
+        Node node = new Node(anim.getName());
+        node.setLocalScale(anim.getCubeScale());
+        node.setLocalTranslation(new Vector3f(anim.getPos().x, anim.getPos().y, anim.getPos().z));
+
+        int index = 0;
+        for (AnimSprite animSprite : anim.getSprites()) {
+
+            //Each sprite represents a geometry (+ mesh) since they each have their own material
+            Mesh mesh = new Mesh();
+
+            //Vertices, UV (texture coordinates), normals
+            Vector3f[] vertices = new Vector3f[animSprite.getVertices().size()];
+            Vector2f[] texCoord = new Vector2f[animSprite.getVertices().size()];
+            Vector3f[] normals = new Vector3f[animSprite.getVertices().size()];
+            int i = 0;
+            for (AnimVertex animVertex : animSprite.getVertices()) {
+
+                int frame = 0;
+
+                //Vertice
+                int geomBase = anim.getItab()[animVertex.getItabIndex()][frame >> 7];
+                short geomOffset = anim.getOffsets()[frame][animVertex.getItabIndex()];
+                int geomIndex = geomBase + geomOffset;
+
+                short frameBase = anim.getGeometries().get(geomIndex).getFrameBase();
+                short nextFrameBase = anim.getGeometries().get(geomIndex + 1).getFrameBase();
+                float geomFactor = ((frame & 0x7f) - frameBase) / (nextFrameBase - frameBase);
+                javax.vecmath.Vector3f coord = anim.getGeometries().get(geomIndex).getGeometry();
+                javax.vecmath.Vector3f nextCoord = anim.getGeometries().get(geomIndex + 1).getGeometry();
+                javax.vecmath.Vector3f interpCoord = new javax.vecmath.Vector3f(nextCoord);
+                interpCoord.sub(coord);
+                interpCoord.scale(geomFactor);
+                interpCoord.add(coord);
+
+//                System.out.println("GEOM index: " + geomIndex);
+//                System.out.println("Framebase: " + anim.getGeometries().get(geomIndex).getFrameBase());
+//                javax.vecmath.Vector3f v = anim.getGeometries().get(geomIndex).getGeometry();
+                System.out.println(coord);
+                vertices[i] = new Vector3f(coord.x, coord.y, coord.z);
+
+                //Texture coordinate
+                Uv uv = animVertex.getUv();
+                texCoord[i] = new Vector2f(uv.getUv()[0] / 32768f, uv.getUv()[1] / 32768f);
+
+                //Normals
+                javax.vecmath.Vector3f v = animVertex.getNormal();
+                normals[i] = new Vector3f(v.x, v.y, v.z);
+
+                i++;
+            }
+
+            // Triangles, we have LODs here
+            VertexBuffer[] lodLevels = new VertexBuffer[animSprite.getTriangles().size()];
+            for (Entry<Integer, List<Triangle>> triangles : animSprite.getTriangles().entrySet()) {
+                int[] indexes = new int[triangles.getValue().size() * 3];
+                int x = 0;
+                for (Triangle triangle : triangles.getValue()) {
+                    indexes[x * 3] = triangle.getTriangle()[2];
+                    indexes[x * 3 + 1] = triangle.getTriangle()[1];
+                    indexes[x * 3 + 2] = triangle.getTriangle()[0];
+                    x++;
+                }
+                VertexBuffer buf = new VertexBuffer(Type.Index);
+                buf.setupData(VertexBuffer.Usage.Dynamic, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(indexes));
+                lodLevels[triangles.getKey()] = buf;
+            }
+
+            //Max LOD level triangles
+            List<Integer> faces = new ArrayList<>(animSprite.getTriangles().get(0).size() * 3);
+            for (Triangle tri : animSprite.getTriangles().get(0)) {
+                faces.add(Short.valueOf(tri.getTriangle()[2]).intValue());
+                faces.add(Short.valueOf(tri.getTriangle()[1]).intValue());
+                faces.add(Short.valueOf(tri.getTriangle()[0]).intValue());
+            }
+            int[] indexes = new int[faces.size()];
+            int x = 0;
+            for (Integer inte : faces) {
+                indexes[x] = inte;
+                x++;
+            }
+
+            //Set the buffers
+            mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
+            mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indexes));
+            mesh.setLodLevels(lodLevels);
+            mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
+            mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
+
+            mesh.updateBound();
+
+            //Create geometry
+            Geometry geom = new Geometry(index + "", mesh);
+
+            // Material
+            geom.setMaterial(materials.get(animSprite.getMaterialIndex()));
             geom.updateModelBound();
 
             //Attach the geometry to the node
