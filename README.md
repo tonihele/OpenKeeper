@@ -15,7 +15,7 @@ TODO
     - [x] Support compression
   - [x] Read meshes (meshes.wad -> kmf)
   - [ ] Read maps (kwd, kld)
-  - [ ] Read textures (EngineTextures.dat, what does the EngineTextures.wad file contain?)
+  - [ ] Read textures (EngineTextures.dat, what does the EngineTextures.wad file contain? - PNGs..)
     - [x] Names & entries
     - [ ] Texture compression
   - [x] Read sounds
@@ -23,6 +23,7 @@ TODO
   - [ ] Read paths
     - [x] Read paths (paths.wad -> kcs)
     - [ ] Understand paths
+  - [x] Read cursors
   - ?
 - [ ] Conversion of formats
   - [ ] Meshes to JMonkeyEngine j3o
@@ -34,6 +35,7 @@ TODO
   - [ ] Sounds (MP2 is not supported by JME, either write support or convert to WAV/OGG, Xuggler?) (*
   - [ ] Video playes for DK format (*
   - [ ] Paths to JME MotionPaths?
+  - [x] Cursors
   - ?
 - [ ] Load maps to engine
 - [ ] Basic world interaction
