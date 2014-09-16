@@ -58,6 +58,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private Screen screen;
     private final File kmfModel;
     private final String name = "SelectedModel";
+    private boolean wireframe = false;
     private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
 
     public static void main(String[] args) {
@@ -121,22 +122,27 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private ActionListener actionListener = new ActionListener() {
         @Override
         public void onAction(String name, boolean pressed, float tpf) {
-            // toggle wireframe
+
+            // Toggle wireframe
             if (name.equals("toggle wireframe") && !pressed) {
-                Spatial spat = rootNode.getChild(ModelViewer.this.name);
-                if (spat != null) {
-                    spat.depthFirstTraversal(new SceneGraphVisitor() {
-                        public void visit(Spatial spatial) {
-                            if (spatial instanceof Geometry) {
-                                ((Geometry) spatial).getMaterial().getAdditionalRenderState().setWireframe(!((Geometry) spatial).getMaterial().getAdditionalRenderState().isWireframe());
-                            }
-                        }
-                    });
-                }
+                wireframe = !wireframe;
+                toggleWireframe();
             }
-            // else ... other input tests.
         }
     };
+
+    private void toggleWireframe() {
+        Spatial spat = rootNode.getChild(ModelViewer.this.name);
+        if (spat != null) {
+            spat.depthFirstTraversal(new SceneGraphVisitor() {
+                public void visit(Spatial spatial) {
+                    if (spatial instanceof Geometry) {
+                        ((Geometry) spatial).getMaterial().getAdditionalRenderState().setWireframe(wireframe);
+                    }
+                }
+            });
+        }
+    }
 
     @Override
     public void simpleInitApp() {
@@ -279,5 +285,8 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         // Attach the new model
         rootNode.attachChild(spat);
+
+        // Wireframe status
+        toggleWireframe();
     }
 }
