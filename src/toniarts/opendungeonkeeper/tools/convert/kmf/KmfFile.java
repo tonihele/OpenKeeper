@@ -380,10 +380,10 @@ public class KmfFile {
         checkHeader(rawKmf, KMF_ANIM_SPRITES_ITAB_HEADER);
         rawKmf.skipBytes(4);
         int chunks = (int) Math.floor((frameCount - 1) / 128.0 + 1);
-        int[][] itab = new int[indexCount][chunks];
+        int[][] itab = new int[chunks][indexCount];
         for (int chunk = 0; chunk < chunks; chunk++) {
-            for (int index = 0; index < indexCount; index++) {
-                itab[index][chunk] = Utils.readUnsignedInteger(rawKmf);
+            for (int i = 0; i < indexCount; i++) {
+                itab[chunk][i] = Utils.readUnsignedInteger(rawKmf);
             }
         }
         a.setItab(itab);
@@ -397,21 +397,15 @@ public class KmfFile {
             //10 bits, BITS, yes BITS, per coordinate (Z, Y, X) = 30 bits (2 last bits can be thrown away)
             // ^ so read 4 bytes
             // + 1 byte for frame base
-            byte[] bytes = new byte[4];
-//            rawKmf.read(bytes);
-            rawKmf.getFilePointer();
-//            int coordinates = Utils.readUnsignedInteger(bytes); //Read to an integer, the bit order is now reversed to "normal"??
+            int coordinates = Utils.readUnsignedInteger(rawKmf);
             AnimGeom geom = new AnimGeom();
-            index = 8;
-            float z = readUnsignedShort(rawKmf, 10) / 1000f;
-            float y = readUnsignedShort(rawKmf, 10) / 1000f;
-            float x = readUnsignedShort(rawKmf, 10) / 1000f;
 
+            float x = (((coordinates >> 20) & 0x3ff) - 0x200) / 511.0f;
+            float y = (((coordinates >> 10) & 0x3ff) - 0x200) / 511.0f;
+            float z = (((coordinates >> 0) & 0x3ff) - 0x200) / 511.0f;
 
-            //Divide by 1000, seems right scale... If the positions are f* up, here is the bug then...
             Vector3f v = new Vector3f(x, y, z);
-            v.scale(a.getScale());
-            v.add(a.getPos());
+            v.scale(a.getScale()); // Scale
             geom.setGeometry(v);
 
             geom.setFrameBase(Utils.toUnsignedByte(rawKmf.readByte()));
@@ -423,10 +417,10 @@ public class KmfFile {
         //KMSH/ANIM/SPRS/VGEO
         checkHeader(rawKmf, KMF_ANIM_SPRITES_VGEO_HEADER);
         rawKmf.skipBytes(4);
-        short[][] offsets = new short[frameCount][indexCount];
-        for (int index = 0; index < indexCount; index++) {
+        short[][] offsets = new short[indexCount][frameCount];
+        for (int i = 0; i < indexCount; i++) {
             for (int frame = 0; frame < frameCount; frame++) {
-                offsets[frame][index] = Utils.toUnsignedByte(rawKmf.readByte());
+                offsets[i][frame] = Utils.toUnsignedByte(rawKmf.readByte());
             }
         }
         a.setOffsets(offsets);
@@ -603,118 +597,4 @@ public class KmfFile {
     public List<Grop> getGrops() {
         return grops;
     }
-
-    /**
-     * Reads an unsigned byte value.
-     *
-     * @param length the number of bits for the value; between {@code 0}
-     * (exclusive) and {@code 8} (inclusive).
-     *
-     * @return an unsigned byte value.
-     *
-     * @throws IllegalArgumentException if {@code length} is not valid.
-     * @throws IOException if an I/O error occurs.
-     */
-    protected int readUnsignedByte(RandomAccessFile rawKmf, final int length) throws IOException {
-        if (length <= 0) {
-            throw new IllegalArgumentException("length(" + length + ") <= 0");
-        }
-        if (length > 8) {
-            throw new IllegalArgumentException("length(" + length + ") > 8");
-        }
-        if (index == 8) {
-            int octet = octet(rawKmf);
-            if (length == 8) {
-                return octet;
-            }
-            for (int i = 7; i >= 0; i--) {
-                flags[i] = (octet & 0x01) == 0x01;
-                octet >>= 1;
-            }
-            index = 0;
-        }
-        final int available = 8 - index;
-        final int required = length - available;
-        if (required > 0) {
-            return (readUnsignedByte(rawKmf, available) << required)
-                    | readUnsignedByte(rawKmf, required);
-        }
-        int value = 0x00;
-        for (int i = 0; i < length; i++) {
-            value <<= 1;
-            value |= (flags[index++] ? 0x01 : 0x00);
-        }
-        return value;
-    }
-
-    /**
-     * Reads an unsigned byte from {@code input} and increments the
-     * {@code count}.
-     *
-     * @return an unsigned byte value.
-     *
-     * @throws IOException if an I/O error occurs.
-     */
-    private int octet(RandomAccessFile rawKmf) throws IOException {
-        final int value = swapEndianFormat(rawKmf.readByte());
-        if (value == -1) {
-//            throw new EOFException("eof");
-        }
-//        count++;
-        return value;
-    }
-
-    /**
-     * Reads an unsigned short value.
-     *
-     * @param length the number of bits for the value; between 0 (exclusive) and
-     * 16 (inclusive).
-     *
-     * @return the unsigned short value.
-     *
-     * @throws IllegalArgumentException if {@code length} is not valid.
-     * @throws IOException if an I/O error occurs.
-     */
-    protected int readUnsignedShort(RandomAccessFile rawKmf, final int length) throws IOException {
-        if (length <= 0) {
-            throw new IllegalArgumentException("length(" + length + ") <= 0");
-        }
-        if (length > 16) {
-            throw new IllegalArgumentException("length(" + length + ") > 16");
-        }
-        final int quotient = length / 8;
-        final int remainder = length % 8;
-        int value = 0x00;
-        for (int i = 0; i < quotient; i++) {
-            value <<= 8;
-            value |= readUnsignedByte(rawKmf, 8);
-        }
-        if (remainder > 0) {
-            value <<= remainder;
-            value |= readUnsignedByte(rawKmf, remainder);
-        }
-        return value;
-    }
-
-    public static byte swapEndianFormat(byte b) {
-        int converted = 0x00;
-        converted ^= (b & 0b1000_0000) >> 7;
-        converted ^= (b & 0b0100_0000) >> 5;
-        converted ^= (b & 0b0010_0000) >> 3;
-        converted ^= (b & 0b0001_0000) >> 1;
-        converted ^= (b & 0b0000_1000) << 1;
-        converted ^= (b & 0b0000_0100) << 3;
-        converted ^= (b & 0b0000_0010) << 5;
-        converted ^= (b & 0b0000_0001) << 7;
-
-        return (byte) (converted & 0xFF);
-    }
-    /**
-     * The next bit index to read.
-     */
-    private int index = 8;
-    /**
-     * The array of bit flags.
-     */
-    private final boolean[] flags = new boolean[8];
 }
