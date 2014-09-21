@@ -246,7 +246,6 @@ public class KmfModelLoader implements AssetLoader {
 
                 //Vertice
                 javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
-                System.out.println(v);
                 vertices[i] = new Vector3f(v.x, v.y, v.z);
 
                 //Texture coordinate
@@ -345,8 +344,8 @@ public class KmfModelLoader implements AssetLoader {
                 int frame = 0;
 
                 //Vertice
-                int geomBase = anim.getItab()[animVertex.getItabIndex()][frame >> 7];
-                short geomOffset = anim.getOffsets()[frame][animVertex.getItabIndex()];
+                int geomBase = anim.getItab()[frame >> 7][animVertex.getItabIndex()];
+                short geomOffset = anim.getOffsets()[animVertex.getItabIndex()][frame];
                 int geomIndex = geomBase + geomOffset;
 
                 short frameBase = anim.getGeometries().get(geomIndex).getFrameBase();
@@ -354,15 +353,18 @@ public class KmfModelLoader implements AssetLoader {
                 float geomFactor = ((frame & 0x7f) - frameBase) / (nextFrameBase - frameBase);
                 javax.vecmath.Vector3f coord = anim.getGeometries().get(geomIndex).getGeometry();
                 javax.vecmath.Vector3f nextCoord = anim.getGeometries().get(geomIndex + 1).getGeometry();
-                javax.vecmath.Vector3f interpCoord = new javax.vecmath.Vector3f(nextCoord);
-                interpCoord.sub(coord);
-                interpCoord.scale(geomFactor);
-                interpCoord.add(coord);
+                javax.vecmath.Vector3f interpCoord = null;
+                if (nextCoord != null) {
+                    interpCoord = new javax.vecmath.Vector3f(nextCoord);
+                    interpCoord.sub(coord);
+                    interpCoord.scale(geomFactor);
+                    interpCoord.add(coord);
+                }
 
 //                System.out.println("GEOM index: " + geomIndex);
 //                System.out.println("Framebase: " + anim.getGeometries().get(geomIndex).getFrameBase());
 //                javax.vecmath.Vector3f v = anim.getGeometries().get(geomIndex).getGeometry();
-                System.out.println(coord);
+//                System.out.println(coord);
                 vertices[i] = new Vector3f(coord.x, coord.y, coord.z);
 
                 //Texture coordinate
