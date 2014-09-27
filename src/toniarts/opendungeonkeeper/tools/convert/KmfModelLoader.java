@@ -4,6 +4,7 @@
  */
 package toniarts.opendungeonkeeper.tools.convert;
 
+import com.jme3.animation.AnimControl;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoader;
@@ -33,6 +34,9 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.opendungeonkeeper.animation.Pose;
+import toniarts.opendungeonkeeper.animation.PoseTrack;
+import toniarts.opendungeonkeeper.animation.PoseTrack.PoseFrame;
 import toniarts.opendungeonkeeper.tools.convert.kmf.Anim;
 import toniarts.opendungeonkeeper.tools.convert.kmf.AnimSprite;
 import toniarts.opendungeonkeeper.tools.convert.kmf.AnimVertex;
@@ -328,8 +332,21 @@ public class KmfModelLoader implements AssetLoader {
         node.setLocalScale(anim.getCubeScale());
         node.setLocalTranslation(new Vector3f(anim.getPos().x, anim.getPos().y, anim.getPos().z));
 
+        // PoseFrames for each mesh index
+        HashMap<Integer, List<PoseFrame>> frames = new HashMap<>(anim.getSprites().size());
+
         int index = 0;
         for (AnimSprite animSprite : anim.getSprites()) {
+
+            // Animation
+
+            // Poses for each frame
+            HashMap<Integer, List<Pose>> poses = new HashMap<>(anim.getFrames() - 1);
+
+            HashMap<Integer, List<Integer>> frameIndices = new HashMap<>(anim.getFrames() - 1);
+            HashMap<Integer, List<Vector3f>> frameOffsets = new HashMap<>(anim.getFrames() - 1);
+
+            //
 
             //Each sprite represents a geometry (+ mesh) since they each have their own material
             Mesh mesh = new Mesh();
@@ -341,31 +358,51 @@ public class KmfModelLoader implements AssetLoader {
             int i = 0;
             for (AnimVertex animVertex : animSprite.getVertices()) {
 
-                int frame = 0;
+                javax.vecmath.Vector3f baseCoord = null;
 
-                //Vertice
-                int geomBase = anim.getItab()[frame >> 7][animVertex.getItabIndex()];
-                short geomOffset = anim.getOffsets()[animVertex.getItabIndex()][frame];
-                int geomIndex = geomBase + geomOffset;
+                //Go through every frame
+                for (int frame = 0; frame < anim.getFrames() - 1; frame++) {
 
-                short frameBase = anim.getGeometries().get(geomIndex).getFrameBase();
-                short nextFrameBase = anim.getGeometries().get(geomIndex + 1).getFrameBase();
-                float geomFactor = ((frame & 0x7f) - frameBase) / (nextFrameBase - frameBase);
-                javax.vecmath.Vector3f coord = anim.getGeometries().get(geomIndex).getGeometry();
-                javax.vecmath.Vector3f nextCoord = anim.getGeometries().get(geomIndex + 1).getGeometry();
-                javax.vecmath.Vector3f interpCoord = null;
-                if (nextCoord != null) {
-                    interpCoord = new javax.vecmath.Vector3f(nextCoord);
+                    //Vertice
+                    int geomBase = anim.getItab()[frame >> 7][animVertex.getItabIndex()];
+                    short geomOffset = anim.getOffsets()[animVertex.getItabIndex()][frame];
+                    int geomIndex = geomBase + geomOffset;
+
+                    short frameBase = anim.getGeometries().get(geomIndex).getFrameBase();
+                    short nextFrameBase = anim.getGeometries().get(geomIndex + 1).getFrameBase();
+                    float geomFactor = (float) ((frame & 0x7f) - frameBase) / (float) (nextFrameBase - frameBase);
+                    javax.vecmath.Vector3f coord = anim.getGeometries().get(geomIndex).getGeometry();
+
+                    // Store the frame zero coord
+                    if (frame == 0) {
+                        baseCoord = coord;
+                    }
+
+                    // The next coordinate
+                    javax.vecmath.Vector3f nextCoord = anim.getGeometries().get(geomIndex + 1).getGeometry();
+                    javax.vecmath.Vector3f interpCoord = new javax.vecmath.Vector3f(nextCoord);
                     interpCoord.sub(coord);
                     interpCoord.scale(geomFactor);
                     interpCoord.add(coord);
+
+                    //Add if it has moved
+                    if (!interpCoord.equals(coord)) {
+                        if (!frameIndices.containsKey(frame)) {
+                            frameIndices.put(frame, new ArrayList<Integer>());
+                        }
+                        if (!frameOffsets.containsKey(frame)) {
+                            frameOffsets.put(frame, new ArrayList<Vector3f>());
+                        }
+                        frameIndices.get(frame).add(i);
+                        frameOffsets.get(frame).add(new Vector3f(interpCoord.x, interpCoord.y, interpCoord.z));
+                    }
                 }
 
 //                System.out.println("GEOM index: " + geomIndex);
 //                System.out.println("Framebase: " + anim.getGeometries().get(geomIndex).getFrameBase());
 //                javax.vecmath.Vector3f v = anim.getGeometries().get(geomIndex).getGeometry();
 //                System.out.println(coord);
-                vertices[i] = new Vector3f(coord.x, coord.y, coord.z);
+                vertices[i] = new Vector3f(baseCoord.x, baseCoord.y, baseCoord.z);
 
                 //Texture coordinate
                 Uv uv = animVertex.getUv();
@@ -377,6 +414,47 @@ public class KmfModelLoader implements AssetLoader {
 
                 i++;
             }
+
+            // We have all the animation vertices from a single pose
+            for (int frame = 0; frame < anim.getFrames() - 1; frame++) {
+                if (!poses.containsKey(frame)) {
+                    poses.put(frame, new ArrayList<Pose>());
+                }
+                if (frameIndices.containsKey(frame)) {
+                    List<Integer> list = frameIndices.get(frame);
+                    int[] array = new int[list.size()];
+                    for (int integer = 0; integer < list.size(); integer++) {
+                        array[integer] = list.get(integer);
+                    }
+                    Pose p = new Pose(index + "", index, frameOffsets.get(frame).toArray(new Vector3f[frameOffsets.get(frame).size()]), array);
+                    poses.get(frame).add(p);
+                } else {
+
+                    // This mesh is not going to move on this frame, contruct an empty pose
+                    Pose p = new Pose(index + "", index, new Vector3f[0], new int[0]);
+                    poses.get(frame).add(p);
+                }
+            }
+
+            // More animation, create the pose frames by the mesh index
+            List<PoseFrame> frameList = new ArrayList<>(anim.getFrames() - 1);
+            for (int frame = 0; frame < anim.getFrames() - 1; frame++) {
+                if (!poses.containsKey(frame)) {
+                    continue;
+                }
+                List<Pose> posesList = poses.get(frame);
+
+                // Create the weight array, I don't know, just make everything 1f
+                float[] weights = new float[posesList.size()];
+                for (int x = 0; x < posesList.size(); x++) {
+                    weights[x] = 1.0f;
+                }
+
+                // Create and add the frame
+                PoseFrame f = new PoseFrame(posesList.toArray(new Pose[poses.get(frame).size()]), weights);
+                frameList.add(f);
+            }
+            frames.put(index, frameList);
 
             // Triangles, we have LODs here
             VertexBuffer[] lodLevels = new VertexBuffer[animSprite.getTriangles().size()];
@@ -410,10 +488,12 @@ public class KmfModelLoader implements AssetLoader {
 
             //Set the buffers
             mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
+            mesh.setBuffer(Type.BindPosePosition, 3, BufferUtils.createFloatBuffer(vertices));
             mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indexes));
             mesh.setLodLevels(lodLevels);
             mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
+            mesh.setBuffer(Type.BindPoseNormal, 3, BufferUtils.createFloatBuffer(normals));
 
             mesh.updateBound();
 
@@ -428,6 +508,26 @@ public class KmfModelLoader implements AssetLoader {
             node.attachChild(geom);
             index++;
         }
+
+        // Create times
+        float[] times = new float[frames.size()];
+        for (int i = 0; i < frames.size(); i++) {
+            times[i] = (i + 1) * 5;
+        }
+
+        // Create pose tracks for each mesh index
+        List<PoseTrack> poseTracks = new ArrayList<>(frames.size());
+        for (Entry<Integer, List<PoseFrame>> entry : frames.entrySet()) {
+            PoseTrack poseTrack = new PoseTrack(entry.getKey(), times, entry.getValue().toArray(new PoseFrame[entry.getValue().size()]));
+            poseTracks.add(poseTrack);
+        }
+
+        // Create the animation itself and attach the animation
+        com.jme3.animation.Animation animation = new com.jme3.animation.Animation("anim", (anim.getFrames() - 1) * 5);
+        animation.setTracks(poseTracks.toArray(new PoseTrack[poseTracks.size()]));
+        AnimControl control = new AnimControl();
+        control.addAnim(animation);
+        node.addControl(control);
 
         //Attach the node to the root
         root.attachChild(node);
