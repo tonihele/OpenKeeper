@@ -510,8 +510,8 @@ public class KmfModelLoader implements AssetLoader {
         }
 
         // Create times
-        float[] times = new float[frames.size()];
-        for (int i = 0; i < frames.size(); i++) {
+        float[] times = new float[anim.getFrames()];
+        for (int i = 0; i < anim.getFrames(); i++) {
             times[i] = (i + 1) * 5;
         }
 
