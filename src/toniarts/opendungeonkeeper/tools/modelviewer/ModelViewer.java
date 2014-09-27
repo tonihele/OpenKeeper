@@ -1,5 +1,8 @@
 package toniarts.opendungeonkeeper.tools.modelviewer;
 
+import com.jme3.animation.AnimChannel;
+import com.jme3.animation.AnimControl;
+import com.jme3.animation.LoopMode;
 import com.jme3.app.SimpleApplication;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
@@ -288,5 +291,13 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         // Wireframe status
         toggleWireframe();
+
+        // Animate!
+        AnimControl animControl = (AnimControl) spat.getChild(0).getControl(AnimControl.class);
+        if (animControl != null) {
+            AnimChannel channel = animControl.createChannel();
+            channel.setAnim("anim");
+            channel.setLoopMode(LoopMode.Loop);
+        }
     }
 }
