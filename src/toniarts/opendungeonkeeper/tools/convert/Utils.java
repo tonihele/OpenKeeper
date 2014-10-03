@@ -42,7 +42,14 @@ public class Utils {
     public static int readUnsignedInteger(byte[] unsignedInt) {
         ByteBuffer buffer = ByteBuffer.wrap(unsignedInt);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
-        return buffer.getInt();
+        int result = buffer.getInt();
+        if (result < 0) {
+
+            // Yes, this should be long, however, in our purpose this might be sufficient as int
+            // Safety measure
+            throw new RuntimeException("Result is negative! Result: " + result + "!");
+        }
+        return result;
     }
 
     /**
