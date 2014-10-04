@@ -40,9 +40,7 @@ public class Utils {
      * @return JAVA native int
      */
     public static int readUnsignedInteger(byte[] unsignedInt) {
-        ByteBuffer buffer = ByteBuffer.wrap(unsignedInt);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        int result = buffer.getInt();
+        int result = readInteger(unsignedInt);
         if (result < 0) {
 
             // Yes, this should be long, however, in our purpose this might be sufficient as int
@@ -50,6 +48,32 @@ public class Utils {
             throw new RuntimeException("Result is negative! Result: " + result + "!");
         }
         return result;
+    }
+
+    /**
+     * Reads 4 bytes and converts it to JAVA int from LITTLE ENDIAN int
+     *
+     * @param file the file to read from
+     * @return JAVA native int
+     * @throws IOException may fail
+     */
+    public static int readInteger(RandomAccessFile file) throws IOException {
+        byte[] signedInt = new byte[4];
+        file.read(signedInt);
+        return readInteger(signedInt);
+    }
+
+    /**
+     * Converts 4 bytes to JAVA int from LITTLE ENDIAN int presented by a byte
+     * array
+     *
+     * @param signedInt the byte array
+     * @return JAVA native int
+     */
+    public static int readInteger(byte[] signedInt) {
+        ByteBuffer buffer = ByteBuffer.wrap(signedInt);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        return buffer.getInt();
     }
 
     /**
