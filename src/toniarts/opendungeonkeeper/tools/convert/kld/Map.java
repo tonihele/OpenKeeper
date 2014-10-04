@@ -6,59 +6,51 @@ package toniarts.opendungeonkeeper.tools.convert.kld;
 
 /**
  * Barely started placeholder for the container class for the levelnameMap.kld
- * 
  *
- * @author Wizand Petteri Loisko
- * petteri.loisko@gmail.com
- * 
+ *
+ * @author Wizand Petteri Loisko petteri.loisko@gmail.com
+ *
  * Thank you https://github.com/werkt
  */
 public class Map {
-    
-//  uint8_t x00; /* c */
-//  uint8_t x01;
-//  uint8_t x02;
-//  uint8_t x03; /* padding */
-    
-    private byte x00;
-    private byte x01;
-    private byte x02;
-    private byte x03;
 
-    public byte getX00() {
-        return x00;
+    // Lookup into Terrain kwd with id (BYTE at Terrain Block 0x1d6)
+    private short terrainId;
+    // Lookup into Players kld with id (BYTE at Player Block 0xa8)
+    private short playerId;
+    // Only a '2' bit here is interpreted to do anything special at load, 1 may indicate 'valid', but it is not interpreted as such
+    private short flag;
+    private short unknown;
+
+    public short getTerrainId() {
+        return terrainId;
     }
 
-    public void setX00(byte x00) {
-        this.x00 = x00;
+    protected void setTerrainId(short terrainId) {
+        this.terrainId = terrainId;
     }
 
-    public byte getX01() {
-        return x01;
+    public short getPlayerId() {
+        return playerId;
     }
 
-    public void setX01(byte x01) {
-        this.x01 = x01;
+    protected void setPlayerId(short playerId) {
+        this.playerId = playerId;
     }
 
-    public byte getX02() {
-        return x02;
+    public short getFlag() {
+        return flag;
     }
 
-    public void setX02(byte x02) {
-        this.x02 = x02;
+    protected void setFlag(short flag) {
+        this.flag = flag;
     }
 
-    public byte getX03() {
-        return x03;
+    public short getUnknown() {
+        return unknown;
     }
 
-    public void setX03(byte x03) {
-        this.x03 = x03;
+    protected void setUnknown(short unknown) {
+        this.unknown = unknown;
     }
-    
-    
-    
-    
-    
 }
