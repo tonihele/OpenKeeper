@@ -7,6 +7,7 @@ package toniarts.opendungeonkeeper.tools.convert.kld;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.HashMap;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 
 /**
@@ -23,6 +24,7 @@ public class KwdFile {
     private Map[][] tiles;
     private int width;
     private int height;
+    private HashMap<Short, Player> players;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -60,6 +62,39 @@ public class KwdFile {
     public void loadMap(File file) {
 
         // Read the requested MAP file
+        readMapFile(file);
+
+        // Read the requested PLAYER file
+        readPlayerFile(file);
+    }
+
+    /**
+     * Get the map width
+     *
+     * @return map width
+     */
+    public int getWidth() {
+        return width;
+    }
+
+    /**
+     * Get the map height
+     *
+     * @return map height
+     */
+    public int getHeight() {
+        return height;
+    }
+
+    /**
+     * Reads the *Map.kld
+     *
+     * @param file the original map KWD file
+     * @throws RuntimeException reading may fail
+     */
+    private void readMapFile(File file) throws RuntimeException {
+
+        // Read the requested MAP file
         File mapFile = new File(file.toString().substring(0, file.toString().length() - 4).concat("Map.kld"));
         try (RandomAccessFile rawMap = new RandomAccessFile(mapFile, "r")) {
 
@@ -94,20 +129,50 @@ public class KwdFile {
     }
 
     /**
-     * Get the map width
+     * Reads the *Players.kld
      *
-     * @return map width
+     * @param file the original map KWD file
+     * @throws RuntimeException reading may fail
      */
-    public int getWidth() {
-        return width;
-    }
+    private void readPlayerFile(File file) throws RuntimeException {
 
-    /**
-     * Get the map height
-     *
-     * @return map height
-     */
-    public int getHeight() {
-        return height;
+        // Read the requested PLAYER file
+        File playerFile = new File(file.toString().substring(0, file.toString().length() - 4).concat("Players.kld"));
+        try (RandomAccessFile rawPlayer = new RandomAccessFile(playerFile, "r")) {
+
+            // Player file has a 36 header
+            rawPlayer.seek(20);
+            int playerCount = Utils.readUnsignedInteger(rawPlayer);
+
+            // The map file is just simple blocks until EOF
+            rawPlayer.seek(36); // End of header
+            rawPlayer.skipBytes(20); // I don't know what is in here
+
+            players = new HashMap<>(playerCount);
+            for (int playerIndex = 0; playerIndex < playerCount; playerIndex++) {
+                Player player = new Player();
+                player.setStartingGold(Utils.readInteger(rawPlayer));
+                player.setUnknown2(Utils.readInteger(rawPlayer));
+                short[] unknown3 = new short[158];
+                for (int i = 0; i < unknown3.length; i++) {
+                    unknown3[i] = (short) rawPlayer.readUnsignedByte();
+                }
+                player.setUnknown3(unknown3);
+                player.setUnknown4(Utils.readUnsignedShort(rawPlayer));
+                player.setPlayerId((short) rawPlayer.readUnsignedByte());
+                player.setUnknown5(Utils.readUnsignedShort(rawPlayer));
+                player.setUnknown6(Utils.readUnsignedShort(rawPlayer));
+                byte[] bytes = new byte[32];
+                rawPlayer.read(bytes);
+                player.setName(Utils.bytesToString(bytes).trim());
+
+                // Add to the hash by the player ID
+                players.put(player.getPlayerId(), player);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to open the file " + playerFile + "!", e);
+        }
     }
 }
