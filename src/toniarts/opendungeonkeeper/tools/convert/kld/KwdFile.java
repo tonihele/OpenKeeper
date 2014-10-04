@@ -7,8 +7,7 @@ package toniarts.opendungeonkeeper.tools.convert.kld;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.ArrayList;
-import java.util.List;
+import toniarts.opendungeonkeeper.tools.convert.Utils;
 
 /**
  * Reads a DK II map file, the KWD is the file name of the main map identifier,
@@ -21,7 +20,9 @@ import java.util.List;
  */
 public class KwdFile {
 
-    private List<Map> tiles;
+    private Map[][] tiles;
+    private int width;
+    private int height;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -62,20 +63,51 @@ public class KwdFile {
         File mapFile = new File(file.toString().substring(0, file.toString().length() - 4).concat("Map.kld"));
         try (RandomAccessFile rawMap = new RandomAccessFile(mapFile, "r")) {
 
+            // Map file has a 36 header (height & width got confused in the keeper klan forums I think)
+            // 8 - 11: Size of file w*h*4+36
+            // 20 : width
+            // 24 : height
+            // 32 - 33: Size of map w*h*4
+            // Lets just take the height & width
+            rawMap.seek(20);
+            width = Utils.readUnsignedInteger(rawMap);
+            height = Utils.readUnsignedInteger(rawMap);
+
             // The map file is just simple blocks until EOF
-            tiles = new ArrayList<>((int) (rawMap.length() / 4));
-            while (rawMap.getFilePointer() != rawMap.length()) {
-                Map map = new Map();
-                map.setTerrainId((short) rawMap.readUnsignedByte());
-                map.setPlayerId((short) rawMap.readUnsignedByte());
-                map.setFlag((short) rawMap.readUnsignedByte());
-                map.setUnknown((short) rawMap.readUnsignedByte());
-                tiles.add(map);
+            rawMap.seek(36);
+            tiles = new Map[width][height];
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    Map map = new Map();
+                    map.setTerrainId((short) rawMap.readUnsignedByte());
+                    map.setPlayerId((short) rawMap.readUnsignedByte());
+                    map.setFlag((short) rawMap.readUnsignedByte());
+                    map.setUnknown((short) rawMap.readUnsignedByte());
+                    tiles[x][y] = map;
+                }
             }
         } catch (IOException e) {
 
             //Fug
             throw new RuntimeException("Failed to open the file " + mapFile + "!", e);
         }
+    }
+
+    /**
+     * Get the map width
+     *
+     * @return map width
+     */
+    public int getWidth() {
+        return width;
+    }
+
+    /**
+     * Get the map height
+     *
+     * @return map height
+     */
+    public int getHeight() {
+        return height;
     }
 }
