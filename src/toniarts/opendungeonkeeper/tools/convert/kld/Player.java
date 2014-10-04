@@ -4,117 +4,96 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.kld;
 
-
 /**
  * Barely started placeholder for the container class for the mapnamePlayer.kld
- * 
  *
- * @author Wizand Petteri Loisko
- * petteri.loisko@gmail.com
- * 
+ *
+ * @author Wizand Petteri Loisko petteri.loisko@gmail.com
+ *
  * Thank you https://github.com/werkt
  */
 public class Player {
-    
-    private PlayerBlock playerBlock;
 
-    public PlayerBlock getPlayerBlock() {
-        return playerBlock;
+    //
+    // struct Player
+    // int x00;
+    // int x04;
+    // uint8_t x08[158];
+    // uint16_t xa6;
+    // uint8_t xa8;
+    // uint16_t xa9;
+    // uint16_t xab;
+    // char name[32]; // ad
+    private int startingGold; // x00
+    private int unknown2; // x04, I suspect that this is AI = 1, Human player = 0
+    private short[] unknown3; // x08
+    private int unknown4; // xa6
+    private short playerId; // 0xa8
+    private int unknown5; // xa9
+    private int unknown6; // xab
+    private String name; // ad
+
+    public int getStartingGold() {
+        return startingGold;
     }
 
-    public void setPlayerBlock(PlayerBlock playerBlock) {
-        this.playerBlock = playerBlock;
-    }
-    
-    
-    
-}
-class PlayerBlock {
-  /**
-  struct PlayerBlock {
-  int x00;
-  int x04;
-  uint8_t x08[158];
-  uint16_t xa6;
-  uint8_t xa8;
-  uint16_t xa9;
-  uint16_t xab;
-  char name[32]; // ad 
-    };
-     */
-    private int x00;
-    private int x04;
-    private byte[] x08;
-    private short xa6;
-    private byte idPlayer; // 0xa8
-    private short xa9;
-    private short xab;
-    private  String name;
-
-    public int getX00() {
-        return x00;
+    protected void setStartingGold(int startingGold) {
+        this.startingGold = startingGold;
     }
 
-    public void setX00(int x00) {
-        this.x00 = x00;
+    public int getUnknown2() {
+        return unknown2;
     }
 
-    public int getX04() {
-        return x04;
+    protected void setUnknown2(int unknown2) {
+        this.unknown2 = unknown2;
     }
 
-    public void setX04(int x04) {
-        this.x04 = x04;
+    public short[] getUnknown3() {
+        return unknown3;
     }
 
-    public byte[] getX08() {
-        return x08;
+    protected void setUnknown3(short[] unknown3) {
+        this.unknown3 = unknown3;
     }
 
-    public void setX08(byte[] x08) {
-        this.x08 = x08;
+    public int getUnknown4() {
+        return unknown4;
     }
 
-    public short getXa6() {
-        return xa6;
+    protected void setUnknown4(int unknown4) {
+        this.unknown4 = unknown4;
     }
 
-    public void setXa6(short xa6) {
-        this.xa6 = xa6;
+    public short getPlayerId() {
+        return playerId;
     }
 
-    public byte getIdPlayer() {
-        return idPlayer;
+    protected void setPlayerId(short idPlayer) {
+        this.playerId = idPlayer;
     }
 
-    public void setIdPlayer(byte idPlayer) {
-        this.idPlayer = idPlayer;
+    public int getUnknown5() {
+        return unknown5;
     }
 
-    public short getXa9() {
-        return xa9;
+    protected void setUnknown5(int unknown5) {
+        this.unknown5 = unknown5;
     }
 
-    public void setXa9(short xa9) {
-        this.xa9 = xa9;
+    public int getUnknown6() {
+        return unknown6;
     }
 
-    public short getXab() {
-        return xab;
-    }
-
-    public void setXab(short xab) {
-        this.xab = xab;
+    protected void setUnknown6(int unknown6) {
+        this.unknown6 = unknown6;
     }
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
+    protected void setName(String name) {
         this.name = name;
     }
-
-    
-    
 }
