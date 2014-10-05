@@ -8,7 +8,9 @@ import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 
 /**
@@ -27,6 +29,7 @@ public class KwdFile {
     private int height;
     private HashMap<Short, Player> players;
     private HashMap<Short, Terrain> terrainTiles;
+    private List<Door> doors;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -43,6 +46,8 @@ public class KwdFile {
         // Creatures
         // CreatureSpells
         // Doors
+        readDoors(dkIIPath);
+
         // EffectElemets
         // Effects
         // GlobalVariables
@@ -293,6 +298,7 @@ public class KwdFile {
         short sometimesOne = (short) file.readUnsignedByte();
 
         // TODO: Map the types to the classes
+        // 1 = image?
         // Debug
         System.out.println("Type: " + type);
         int param1 = Utils.readUnsignedInteger(bytes);
@@ -322,5 +328,51 @@ public class KwdFile {
         }
 
         return new StringId(ids, x14);
+    }
+
+    /**
+     * Reads the Doors.kwd
+     *
+     * @param dkIIPath path to DK II data files (for filling up the catalogs)
+     * @throws RuntimeException reading may fail
+     */
+    private void readDoors(String dkIIPath) throws RuntimeException {
+
+        // Read the doors catalog
+        File doorsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Doors.kwd"));
+        try (RandomAccessFile rawDoors = new RandomAccessFile(doorsFile, "r")) {
+
+            // Terrain file has a 36 header
+            rawDoors.seek(20);
+            int doorCount = Utils.readUnsignedInteger(rawDoors);
+
+            // The doors file is just simple blocks until EOF
+            rawDoors.seek(36); // End of header
+            rawDoors.skipBytes(20); // I don't know what is in here
+
+            doors = new ArrayList<>(doorCount);
+            for (int i = 0; i < doorCount; i++) {
+                Door door = new Door();
+                byte[] bytes = new byte[32];
+                rawDoors.read(bytes);
+                door.setName(Utils.bytesToString(bytes).trim());
+                ArtResource[] ref = new ArtResource[5];
+                for (int x = 0; x < ref.length; x++) {
+                    ref[x] = readArtResource(rawDoors);
+                }
+                door.setRef(ref);
+                short[] unknown = new short[164];
+                for (int x = 0; x < unknown.length; x++) {
+                    unknown[x] = (short) rawDoors.readUnsignedByte();
+                }
+                door.setUnknown(unknown);
+
+                doors.add(door);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + doorsFile + "!", e);
+        }
     }
 }

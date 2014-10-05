@@ -6,11 +6,10 @@ package toniarts.opendungeonkeeper.tools.convert.map;
 
 /**
  * Stub for the container class for the Doors.kwd
- * 
  *
- * @author Wizand Petteri Loisko
- * petteri.loisko@gmail.com
- * 
+ *
+ * @author Wizand Petteri Loisko petteri.loisko@gmail.com
+ *
  * Thank you https://github.com/werkt
  */
 public class Door {
@@ -19,11 +18,10 @@ public class Door {
 //  ArtResource ref[5];
 //  uint8_t unk[164];
 //};
-    
-    
+
     private String name;
     private ArtResource[] ref;
-    private byte[] unk;
+    private short[] unknown;
 
     public String getName() {
         return name;
@@ -41,13 +39,11 @@ public class Door {
         this.ref = ref;
     }
 
-    public byte[] getUnk() {
-        return unk;
+    public short[] getUnknown() {
+        return unknown;
     }
 
-    public void setUnk(byte[] unk) {
-        this.unk = unk;
+    public void setUnknown(short[] unknown) {
+        this.unknown = unknown;
     }
-    
-    
 }
