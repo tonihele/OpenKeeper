@@ -6,11 +6,10 @@ package toniarts.opendungeonkeeper.tools.convert.map;
 
 /**
  * Stub for the container class for the Trap
- * 
  *
- * @author Wizand Petteri Loisko
- * petteri.loisko@gmail.com
- * 
+ *
+ * @author Wizand Petteri Loisko petteri.loisko@gmail.com
+ *
  * Thank you https://github.com/werkt
  */
 public class Trap {
@@ -20,7 +19,7 @@ public class Trap {
 
     private String name;
     private ArtResource[] ref;
-    private byte[] data;
+    private short[] data;
 
     public String getName() {
         return name;
@@ -38,14 +37,11 @@ public class Trap {
         this.ref = ref;
     }
 
-    public byte[] getData() {
+    public short[] getData() {
         return data;
     }
 
-    public void setData(byte[] data) {
+    public void setData(short[] data) {
         this.data = data;
     }
-
-    
-    
 }

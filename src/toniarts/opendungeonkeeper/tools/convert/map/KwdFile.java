@@ -30,6 +30,7 @@ public class KwdFile {
     private HashMap<Short, Player> players;
     private HashMap<Short, Terrain> terrainTiles;
     private List<Door> doors;
+    private List<Trap> traps;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -59,6 +60,7 @@ public class KwdFile {
         readTerrain(dkIIPath);
 
         // Traps
+        readTraps(dkIIPath);
     }
 
     /**
@@ -342,7 +344,7 @@ public class KwdFile {
         File doorsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Doors.kwd"));
         try (RandomAccessFile rawDoors = new RandomAccessFile(doorsFile, "r")) {
 
-            // Terrain file has a 36 header
+            // Doors file has a 36 header
             rawDoors.seek(20);
             int doorCount = Utils.readUnsignedInteger(rawDoors);
 
@@ -373,6 +375,52 @@ public class KwdFile {
 
             //Fug
             throw new RuntimeException("Failed to read the file " + doorsFile + "!", e);
+        }
+    }
+
+    /**
+     * Reads the Traps.kwd
+     *
+     * @param dkIIPath path to DK II data files (for filling up the catalogs)
+     * @throws RuntimeException reading may fail
+     */
+    private void readTraps(String dkIIPath) throws RuntimeException {
+
+        // Read the doors catalog
+        File trapsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Traps.kwd"));
+        try (RandomAccessFile rawTraps = new RandomAccessFile(trapsFile, "r")) {
+
+            // Traps file has a 36 header
+            rawTraps.seek(20);
+            int trapCount = Utils.readUnsignedInteger(rawTraps);
+
+            // The doors file is just simple blocks until EOF
+            rawTraps.seek(36); // End of header
+            rawTraps.skipBytes(20); // I don't know what is in here
+
+            traps = new ArrayList<>(trapCount);
+            for (int i = 0; i < trapCount; i++) {
+                Trap trap = new Trap();
+                byte[] bytes = new byte[32];
+                rawTraps.read(bytes);
+                trap.setName(Utils.bytesToString(bytes).trim());
+                ArtResource[] ref = new ArtResource[5];
+                for (int x = 0; x < ref.length; x++) {
+                    ref[x] = readArtResource(rawTraps);
+                }
+                trap.setRef(ref);
+                short[] data = new short[127];
+                for (int x = 0; x < data.length; x++) {
+                    data[x] = (short) rawTraps.readUnsignedByte();
+                }
+                trap.setData(data);
+
+                traps.add(trap);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + trapsFile + "!", e);
         }
     }
 }
