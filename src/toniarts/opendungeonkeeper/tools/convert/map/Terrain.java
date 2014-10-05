@@ -4,6 +4,8 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import java.awt.Color;
+
 /**
  * Barely started placeholder for the container class for the Terrain &
  * TerrainBlock
@@ -15,121 +17,85 @@ package toniarts.opendungeonkeeper.tools.convert.map;
  */
 public class Terrain {
 
-    /**
-     * struct Terrain { char name[32]; /* 0
-     */
-//  ArtResource complete; /* 20 */
-//  ArtResource side; /* 74 */
-//  ArtResource top; /* c8 */
-//  ArtResource tagged; /* 11c */
-//  StringIds string_ids; /* 170 */
-//  uint32_t unk188; /* 188 */
-//  uint32_t light_height; /* 18c */
-//  uint32_t flags; /* 190 */
-//  uint16_t damage; /* 194 */
-//  uint16_t unk196; /* 196 */
-//  uint16_t unk198; /* 198 */
-//  uint16_t gold_value; /* 19a */
-//  uint16_t mana_gain; /* 19c */
-//  uint16_t max_mana_gain; /* 19e */
-//  uint16_t unk1a0; /* 1a0 */
-//  uint16_t unk1a2; /* 1a2 */
-//  uint16_t unk1a4; /* 1a4 */
-//  uint16_t unk1a6; /* 1a6 */
-//  uint16_t unk1a8; /* 1a8 */
-//  uint16_t unk1aa; /* 1aa */
-//  uint16_t unk1ac; /* 1ac */
-//  uint16_t unk1ae[16]; /* 1ae */
-//  uint8_t wibble_h; /* 1ce */
-//  uint8_t lean_h[3]; /* 1cf */
-//  uint8_t wibble_v; /* 1d2 */
-//  uint8_t lean_v[3]; /* 1d3 */
-//  uint8_t id; /* 1d6 */
-//  uint16_t starting_health; /* 1d7 */
-//  uint8_t max_health_type; /* 1d9 */
-//  uint8_t destroyed_type; /* 1da */
-//  uint8_t terrain_light[3]; /* 1db */
-//  uint8_t texture_frames; /* 1de */
-//  char str1[32]; /* 1df */
-//  uint16_t max_health; /* 1ff */
-//  uint8_t ambient_light[3]; /* 201 */
-//  char str2[32]; /* 204 */
-//  uint32_t unk224; /* 224 */
-//};
+    //
+    // struct Terrain { char name[32]; /* 0
+    //
+    //  ArtResource complete; /* 20 */
+    //  ArtResource side; /* 74 */
+    //  ArtResource top; /* c8 */
+    //  ArtResource tagged; /* 11c */
+    //  StringIds string_ids; /* 170 */
+    //  uint32_t unk188; /* 188 */
+    //  uint32_t light_height; /* 18c */
+    //  uint32_t flags; /* 190 */
+    //  uint16_t damage; /* 194 */
+    //  uint16_t unk196; /* 196 */
+    //  uint16_t unk198; /* 198 */
+    //  uint16_t gold_value; /* 19a */
+    //  uint16_t mana_gain; /* 19c */
+    //  uint16_t max_mana_gain; /* 19e */
+    //  uint16_t unk1a0; /* 1a0 */
+    //  uint16_t unk1a2; /* 1a2 */
+    //  uint16_t unk1a4; /* 1a4 */
+    //  uint16_t unk1a6; /* 1a6 */
+    //  uint16_t unk1a8; /* 1a8 */
+    //  uint16_t unk1aa; /* 1aa */
+    //  uint16_t unk1ac; /* 1ac */
+    //  uint16_t unk1ae[16]; /* 1ae */
+    //  uint8_t wibble_h; /* 1ce */
+    //  uint8_t lean_h[3]; /* 1cf */
+    //  uint8_t wibble_v; /* 1d2 */
+    //  uint8_t lean_v[3]; /* 1d3 */
+    //  uint8_t id; /* 1d6 */
+    //  uint16_t starting_health; /* 1d7 */
+    //  uint8_t max_health_type; /* 1d9 */
+    //  uint8_t destroyed_type; /* 1da */
+    //  uint8_t terrain_light[3]; /* 1db */
+    //  uint8_t texture_frames; /* 1de */
+    //  char str1[32]; /* 1df */
+    //  uint16_t max_health; /* 1ff */
+    //  uint8_t ambient_light[3]; /* 201 */
+    //  char str2[32]; /* 204 */
+    //  uint32_t unk224; /* 224 */
+    //};
     private String name;
-    private ArtResource complete; /* 20 */
-
-    private ArtResource side; /* 74 */
-
-    private ArtResource top; /* c8 */
-
-    private ArtResource tagged; /* 11c */
-    //StringIds string_ids; /* 170 */
-
-    private int unk188; /* 188 */
-
-    private int light_height; /* 18c */
-
-    private int flags; /* 190 */
-
-    private short damage; /* 194 */
-
-    private short unk196; /* 196 */
-
-    private short unk198; /* 198 */
-
-    private short gold_value; /* 19a */
-
-    private short mana_gain; /* 19c */
-
-    private short max_mana_gain; /* 19e */
-
-    private short unk1a0; /* 1a0 */
-
-    private short unk1a2; /* 1a2 */
-
-    private short unk1a4; /* 1a4 */
-
-    private short unk1a6; /* 1a6 */
-
-    private short unk1a8; /* 1a8 */
-
-    private short unk1aa; /* 1aa */
-
-    private short unk1ac; /* 1ac */
-
-    private short[] unk1ae; /* 1ae */
-
-    private byte wibble_h; /* 1ce */
-
-    private byte[] lean_h; /* 1cf */
-
-    private byte wibble_v; /* 1d2 */
-
-    private byte[] lean_v; /* 1d3 */
-
-    private byte id; /* 1d6 */
-
-    private short starting_health; /* 1d7 */
-
-    private byte max_health_type; /* 1d9 */
-
-    private byte destroyed_type; /* 1da */
-
-    private byte[] terrain_light; /* 1db */
-
-    private byte texture_frames; /* 1de */
-
-    private String str1; /* 1df */
-
-    private short max_health; /* 1ff */
-
-    private byte[] ambient_light; /* 201 */
-
-    private String str2; /* 204 */
-
-    private int unk224; /* 224 */
-
+    private ArtResource complete; // 20
+    private ArtResource side; // 74
+    private ArtResource top; // c8
+    private ArtResource tagged; // 11c
+    private StringId stringIds; // 170
+    private int unk188; // 188
+    private int lightHeight; // 18c
+    private int flags; // 190
+    private int damage; // 194
+    private int unk196; // 196
+    private int unk198; // 198
+    private int goldValue; // 19a
+    private int manaGain; // 19c
+    private int maxManaGain; // 19e
+    private int unk1a0; // 1a0
+    private int unk1a2; // 1a2
+    private int unk1a4; // 1a4
+    private int unk1a6; // 1a6
+    private int unk1a8; // 1a8
+    private int unk1aa; // 1aa
+    private int unk1ac; // 1ac
+    private int[] unk1ae; // 1ae
+    private short wibbleH; // 1ce
+    private short[] leanH; // 1cf
+    private short wibbleV; // 1d2
+    private short[] leanV; // 1d3
+    private short terrainId; // 1d6
+    private int startingHealth; // 1d7
+    private short maxHealthType; // 1d9
+    private short destroyedType; // 1da
+    private Color terrainLight; // 1db
+    private short textureFrames; // 1de
+    private String str1; // 1df
+    private int maxHealth; // 1ff
+    private Color ambientLight; // 201
+    private String str2; // 204
+    private int unk224; // 224
 
     public String getName() {
         return name;
@@ -147,12 +113,12 @@ public class Terrain {
         this.unk188 = unk188;
     }
 
-    public int getLight_height() {
-        return light_height;
+    public int getLightHeight() {
+        return lightHeight;
     }
 
-    protected void setLight_height(int light_height) {
-        this.light_height = light_height;
+    protected void setLightHeight(int lightHeight) {
+        this.lightHeight = lightHeight;
     }
 
     public int getFlags() {
@@ -163,196 +129,196 @@ public class Terrain {
         this.flags = flags;
     }
 
-    public short getDamage() {
+    public int getDamage() {
         return damage;
     }
 
-    protected void setDamage(short damage) {
+    protected void setDamage(int damage) {
         this.damage = damage;
     }
 
-    public short getUnk196() {
+    public int getUnk196() {
         return unk196;
     }
 
-    protected void setUnk196(short unk196) {
+    protected void setUnk196(int unk196) {
         this.unk196 = unk196;
     }
 
-    public short getUnk198() {
+    public int getUnk198() {
         return unk198;
     }
 
-    protected void setUnk198(short unk198) {
+    protected void setUnk198(int unk198) {
         this.unk198 = unk198;
     }
 
-    public short getGold_value() {
-        return gold_value;
+    public int getGoldValue() {
+        return goldValue;
     }
 
-    protected void setGold_value(short gold_value) {
-        this.gold_value = gold_value;
+    protected void setGoldValue(int goldValue) {
+        this.goldValue = goldValue;
     }
 
-    public short getMana_gain() {
-        return mana_gain;
+    public int getManaGain() {
+        return manaGain;
     }
 
-    protected void setMana_gain(short mana_gain) {
-        this.mana_gain = mana_gain;
+    protected void setManaGain(int manaGain) {
+        this.manaGain = manaGain;
     }
 
-    public short getMax_mana_gain() {
-        return max_mana_gain;
+    public int getMaxManaGain() {
+        return maxManaGain;
     }
 
-    protected void setMax_mana_gain(short max_mana_gain) {
-        this.max_mana_gain = max_mana_gain;
+    protected void setMaxManaGain(int maxManaGain) {
+        this.maxManaGain = maxManaGain;
     }
 
-    public short getUnk1a0() {
+    public int getUnk1a0() {
         return unk1a0;
     }
 
-    protected void setUnk1a0(short unk1a0) {
+    protected void setUnk1a0(int unk1a0) {
         this.unk1a0 = unk1a0;
     }
 
-    public short getUnk1a2() {
+    public int getUnk1a2() {
         return unk1a2;
     }
 
-    protected void setUnk1a2(short unk1a2) {
+    protected void setUnk1a2(int unk1a2) {
         this.unk1a2 = unk1a2;
     }
 
-    public short getUnk1a4() {
+    public int getUnk1a4() {
         return unk1a4;
     }
 
-    protected void setUnk1a4(short unk1a4) {
+    protected void setUnk1a4(int unk1a4) {
         this.unk1a4 = unk1a4;
     }
 
-    public short getUnk1a6() {
+    public int getUnk1a6() {
         return unk1a6;
     }
 
-    protected void setUnk1a6(short unk1a6) {
+    protected void setUnk1a6(int unk1a6) {
         this.unk1a6 = unk1a6;
     }
 
-    public short getUnk1a8() {
+    public int getUnk1a8() {
         return unk1a8;
     }
 
-    protected void setUnk1a8(short unk1a8) {
+    protected void setUnk1a8(int unk1a8) {
         this.unk1a8 = unk1a8;
     }
 
-    public short getUnk1aa() {
+    public int getUnk1aa() {
         return unk1aa;
     }
 
-    protected void setUnk1aa(short unk1aa) {
+    protected void setUnk1aa(int unk1aa) {
         this.unk1aa = unk1aa;
     }
 
-    public short getUnk1ac() {
+    public int getUnk1ac() {
         return unk1ac;
     }
 
-    protected void setUnk1ac(short unk1ac) {
+    protected void setUnk1ac(int unk1ac) {
         this.unk1ac = unk1ac;
     }
 
-    public short[] getUnk1ae() {
+    public int[] getUnk1ae() {
         return unk1ae;
     }
 
-    protected void setUnk1ae(short[] unk1ae) {
+    protected void setUnk1ae(int[] unk1ae) {
         this.unk1ae = unk1ae;
     }
 
-    public byte getWibble_h() {
-        return wibble_h;
+    public short getWibbleH() {
+        return wibbleH;
     }
 
-    protected void setWibble_h(byte wibble_h) {
-        this.wibble_h = wibble_h;
+    protected void setWibbleH(short wibbleH) {
+        this.wibbleH = wibbleH;
     }
 
-    public byte[] getLean_h() {
-        return lean_h;
+    public short[] getLeanH() {
+        return leanH;
     }
 
-    protected void setLean_h(byte[] lean_h) {
-        this.lean_h = lean_h;
+    protected void setLeanH(short[] leanH) {
+        this.leanH = leanH;
     }
 
-    public byte getWibble_v() {
-        return wibble_v;
+    public short getWibbleV() {
+        return wibbleV;
     }
 
-    protected void setWibble_v(byte wibble_v) {
-        this.wibble_v = wibble_v;
+    protected void setWibbleV(short wibbleV) {
+        this.wibbleV = wibbleV;
     }
 
-    public byte[] getLean_v() {
-        return lean_v;
+    public short[] getLeanV() {
+        return leanV;
     }
 
-    protected void setLean_v(byte[] lean_v) {
-        this.lean_v = lean_v;
+    protected void setLeanV(short[] leanV) {
+        this.leanV = leanV;
     }
 
-    public byte getId() {
-        return id;
+    public short getTerrainId() {
+        return terrainId;
     }
 
-    protected void setId(byte id) {
-        this.id = id;
+    protected void setTerrainId(short terrainId) {
+        this.terrainId = terrainId;
     }
 
-    public short getStarting_health() {
-        return starting_health;
+    public int getStartingHealth() {
+        return startingHealth;
     }
 
-    protected void setStarting_health(short starting_health) {
-        this.starting_health = starting_health;
+    protected void setStartingHealth(int startingHealth) {
+        this.startingHealth = startingHealth;
     }
 
-    public byte getMax_health_type() {
-        return max_health_type;
+    public short getMaxHealthType() {
+        return maxHealthType;
     }
 
-    protected void setMax_health_type(byte max_health_type) {
-        this.max_health_type = max_health_type;
+    protected void setMaxHealthType(short maxHealthType) {
+        this.maxHealthType = maxHealthType;
     }
 
-    public byte getDestroyed_type() {
-        return destroyed_type;
+    public short getDestroyedType() {
+        return destroyedType;
     }
 
-    protected void setDestroyed_type(byte destroyed_type) {
-        this.destroyed_type = destroyed_type;
+    protected void setDestroyedType(short destroyedType) {
+        this.destroyedType = destroyedType;
     }
 
-    public byte[] getTerrain_light() {
-        return terrain_light;
+    public Color getTerrainLight() {
+        return terrainLight;
     }
 
-    protected void setTerrain_light(byte[] terrain_light) {
-        this.terrain_light = terrain_light;
+    protected void setTerrainLight(Color terrainLight) {
+        this.terrainLight = terrainLight;
     }
 
-    public byte getTexture_frames() {
-        return texture_frames;
+    public short getTextureFrames() {
+        return textureFrames;
     }
 
-    protected void setTexture_frames(byte texture_frames) {
-        this.texture_frames = texture_frames;
+    protected void setTextureFrames(short textureFrames) {
+        this.textureFrames = textureFrames;
     }
 
     public String getStr1() {
@@ -363,20 +329,20 @@ public class Terrain {
         this.str1 = str1;
     }
 
-    public short getMax_health() {
-        return max_health;
+    public int getMaxHealth() {
+        return maxHealth;
     }
 
-    protected void setMax_health(short max_health) {
-        this.max_health = max_health;
+    protected void setMaxHealth(int maxHealth) {
+        this.maxHealth = maxHealth;
     }
 
-    public byte[] getAmbient_light() {
-        return ambient_light;
+    public Color getAmbientLight() {
+        return ambientLight;
     }
 
-    protected void setAmbient_light(byte[] ambient_light) {
-        this.ambient_light = ambient_light;
+    protected void setAmbientLight(Color ambientLight) {
+        this.ambientLight = ambientLight;
     }
 
     public String getStr2() {
@@ -425,5 +391,13 @@ public class Terrain {
 
     protected void setTagged(ArtResource tagged) {
         this.tagged = tagged;
+    }
+
+    public StringId getStringIds() {
+        return stringIds;
+    }
+
+    protected void setStringIds(StringId stringIds) {
+        this.stringIds = stringIds;
     }
 }
