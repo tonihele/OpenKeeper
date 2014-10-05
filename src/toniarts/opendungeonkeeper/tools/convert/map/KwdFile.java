@@ -4,6 +4,7 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -25,6 +26,7 @@ public class KwdFile {
     private int width;
     private int height;
     private HashMap<Short, Player> players;
+    private HashMap<Short, Terrain> terrainTiles;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -48,7 +50,9 @@ public class KwdFile {
         // Objects
         // Rooms
         // Shots
-        // Terrain
+        // Terrain catalog
+        readTerrain(dkIIPath);
+
         // Traps
     }
 
@@ -124,7 +128,7 @@ public class KwdFile {
         } catch (IOException e) {
 
             //Fug
-            throw new RuntimeException("Failed to open the file " + mapFile + "!", e);
+            throw new RuntimeException("Failed to read the file " + mapFile + "!", e);
         }
     }
 
@@ -172,7 +176,145 @@ public class KwdFile {
         } catch (IOException e) {
 
             //Fug
-            throw new RuntimeException("Failed to open the file " + playerFile + "!", e);
+            throw new RuntimeException("Failed to read the file " + playerFile + "!", e);
         }
+    }
+
+    /**
+     * Reads the Terrain.kwd
+     *
+     * @param dkIIPath path to DK II data files (for filling up the catalogs)
+     * @throws RuntimeException reading may fail
+     */
+    private void readTerrain(String dkIIPath) throws RuntimeException {
+
+        // Read the terrain catalog
+        File terrainFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Terrain.kwd"));
+        try (RandomAccessFile rawTerrain = new RandomAccessFile(terrainFile, "r")) {
+
+            // Terrain file has a 36 header
+            rawTerrain.seek(20);
+            int terrainCount = Utils.readUnsignedInteger(rawTerrain);
+
+            // The terrain file is just simple blocks until EOF
+            rawTerrain.seek(36); // End of header
+            rawTerrain.skipBytes(20); // I don't know what is in here
+
+            terrainTiles = new HashMap<>(terrainCount);
+            for (int i = 0; i < terrainCount; i++) {
+                Terrain terrain = new Terrain();
+                byte[] bytes = new byte[32];
+                rawTerrain.read(bytes);
+                terrain.setName(Utils.bytesToString(bytes).trim());
+                terrain.setComplete(readArtResource(rawTerrain));
+                terrain.setSide(readArtResource(rawTerrain));
+                terrain.setTop(readArtResource(rawTerrain));
+                terrain.setTagged(readArtResource(rawTerrain));
+                terrain.setStringIds(readStringId(rawTerrain));
+                terrain.setUnk188(Utils.readUnsignedInteger(rawTerrain));
+                terrain.setLightHeight(Utils.readUnsignedInteger(rawTerrain));
+                terrain.setFlags(Utils.readUnsignedInteger(rawTerrain));
+                terrain.setDamage(Utils.readUnsignedShort(rawTerrain));
+                terrain.setUnk196(Utils.readUnsignedShort(rawTerrain));
+                terrain.setUnk198(Utils.readUnsignedShort(rawTerrain));
+                terrain.setGoldValue(Utils.readUnsignedShort(rawTerrain));
+                terrain.setManaGain(Utils.readUnsignedShort(rawTerrain));
+                terrain.setMaxManaGain(Utils.readUnsignedShort(rawTerrain));
+                terrain.setUnk1a0(Utils.readUnsignedShort(rawTerrain));
+                terrain.setUnk1a2(Utils.readUnsignedShort(rawTerrain));
+                terrain.setUnk1a4(Utils.readUnsignedShort(rawTerrain));
+                terrain.setUnk1a6(Utils.readUnsignedShort(rawTerrain));
+                terrain.setUnk1a8(Utils.readUnsignedShort(rawTerrain));
+                terrain.setUnk1aa(Utils.readUnsignedShort(rawTerrain));
+                terrain.setUnk1ac(Utils.readUnsignedShort(rawTerrain));
+                int[] unk1ae = new int[16];
+                for (int x = 0; x < unk1ae.length; x++) {
+                    unk1ae[x] = Utils.readUnsignedShort(rawTerrain);
+                }
+                terrain.setUnk1ae(unk1ae);
+                terrain.setWibbleH((short) rawTerrain.readUnsignedByte());
+                short[] leanH = new short[3];
+                for (int x = 0; x < leanH.length; x++) {
+                    leanH[x] = (short) rawTerrain.readUnsignedByte();
+                }
+                terrain.setLeanH(leanH);
+                terrain.setWibbleV((short) rawTerrain.readUnsignedByte());
+                short[] leanV = new short[3];
+                for (int x = 0; x < leanV.length; x++) {
+                    leanV[x] = (short) rawTerrain.readUnsignedByte();
+                }
+                terrain.setLeanV(leanV);
+                terrain.setTerrainId((short) rawTerrain.readUnsignedByte());
+                terrain.setStartingHealth(Utils.readUnsignedShort(rawTerrain));
+                terrain.setMaxHealthType((short) rawTerrain.readUnsignedByte());
+                terrain.setDestroyedType((short) rawTerrain.readUnsignedByte());
+                terrain.setTerrainLight(new Color(rawTerrain.readUnsignedByte(), rawTerrain.readUnsignedByte(), rawTerrain.readUnsignedByte()));
+                terrain.setTextureFrames((short) rawTerrain.readUnsignedByte());
+                bytes = new byte[32];
+                rawTerrain.read(bytes);
+                terrain.setStr1(Utils.bytesToString(bytes).trim());
+                terrain.setMaxHealth(Utils.readUnsignedShort(rawTerrain));
+                terrain.setAmbientLight(new Color(rawTerrain.readUnsignedByte(), rawTerrain.readUnsignedByte(), rawTerrain.readUnsignedByte()));
+                bytes = new byte[32];
+                rawTerrain.read(bytes);
+                terrain.setStr2(Utils.bytesToString(bytes).trim());
+                terrain.setUnk224(Utils.readUnsignedInteger(rawTerrain));
+
+                // Add to the hash by the terrain ID
+                terrainTiles.put(terrain.getTerrainId(), terrain);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + terrainFile + "!", e);
+        }
+    }
+
+    /**
+     * Reads and parses an ArtResource object from the current file location
+     *
+     * @param file the file stream to parse from
+     * @return an ArtResource
+     */
+    private ArtResource readArtResource(RandomAccessFile file) throws IOException {
+        ArtResource artResource = new ArtResource();
+
+        // Read the data
+        byte[] bytes = new byte[64];
+        file.read(bytes);
+        artResource.setName(Utils.bytesToString(bytes).trim());
+        //ArtResource.ArtSettings artSettings = new ArtResource.ArtSettings();
+        int flags = Utils.readUnsignedInteger(file);
+        bytes = new byte[12];
+        file.read(bytes); // Depends on the type how these are interpreted?
+        short type = (short) file.readUnsignedByte();
+        short startAf = (short) file.readUnsignedByte();
+        short endAf = (short) file.readUnsignedByte();
+        short sometimesOne = (short) file.readUnsignedByte();
+
+        return artResource;
+    }
+
+    /**
+     * Reads and parses an StringId object from the current file location
+     *
+     * @param file the file stream to parse from
+     * @return an StringId
+     */
+    private StringId readStringId(RandomAccessFile file) throws IOException {
+
+        // Read the IDs
+        int[] ids = new int[5];
+        for (int i = 0; i < ids.length; i++) {
+            ids[i] = Utils.readUnsignedInteger(file);
+        }
+
+        // And the unknowns
+        short[] x14 = new short[4];
+        for (int i = 0; i < x14.length; i++) {
+            x14[i] = (short) file.readUnsignedByte();
+        }
+
+        return new StringId(ids, x14);
     }
 }
