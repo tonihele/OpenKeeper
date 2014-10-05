@@ -292,6 +292,12 @@ public class KwdFile {
         short endAf = (short) file.readUnsignedByte();
         short sometimesOne = (short) file.readUnsignedByte();
 
+        // TODO: Map the types to the classes
+        // Debug
+        System.out.println("Type: " + type);
+        int param1 = Utils.readUnsignedInteger(bytes);
+        System.out.println("Param1: " + param1);
+
         return artResource;
     }
 
