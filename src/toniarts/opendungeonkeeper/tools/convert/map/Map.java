@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package toniarts.opendungeonkeeper.tools.convert.kld;
+package toniarts.opendungeonkeeper.tools.convert.map;
 
 /**
  * Barely started placeholder for the container class for the levelnameMap.kld

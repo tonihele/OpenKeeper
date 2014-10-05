@@ -2,22 +2,17 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package toniarts.opendungeonkeeper.tools.convert;
-
-
+package toniarts.opendungeonkeeper.tools.convert.map;
 
 /**
  * Barely started placeholder for the container class for the ArtResource
  *
- * @author Wizand Petteri Loisko
- * petteri.loisko@gmail.com
- * 
+ * @author Wizand Petteri Loisko petteri.loisko@gmail.com
+ *
  * Thank you https://github.com/werkt
  */
-
-
 public class ArtResource {
-    
+
     private String name;
     private ResourceType settings;
 
@@ -36,11 +31,12 @@ public class ArtResource {
     public void setSettings(ResourceType settings) {
         this.settings = settings;
     }
-    
-    
 }
+
 class ResourceType {
+
     private int flags; /* 0 */
+
     private byte type;
     private byte start_af;
     private byte end_af;
@@ -88,14 +84,12 @@ class ResourceType {
 }
 
 /**
-    struct {
-      uint32_t width; // fixed 
-      uint32_t height; // fixed 
-      int16_t frames;
-    } image;
+ * struct { uint32_t width; // fixed uint32_t height; // fixed int16_t frames; }
+ * image;
  */
-class Image extends ResourceType{
-    private int width; 
+class Image extends ResourceType {
+
+    private int width;
     private int height;
 
     public int getWidth() {
@@ -116,12 +110,10 @@ class Image extends ResourceType{
 }
 
 /**
-   struct {
-      int32_t scale; // fixed 
-      uint16_t frames;
-    } mesh;
+ * struct { int32_t scale; // fixed uint16_t frames; } mesh;
  */
 class Mesh extends ResourceType {
+
     private int sacle;
     private short frames;
 
@@ -140,17 +132,14 @@ class Mesh extends ResourceType {
     public void setFrames(short frames) {
         this.frames = frames;
     }
-    
 }
+
 /**
-     struct {
-      uint32_t frames; // 4
-      uint32_t fps; // 8 
-      uint16_t start_dist; // c 
-      uint16_t end_dist; // e 
-    } anim;
+ * struct { uint32_t frames; // 4 uint32_t fps; // 8 uint16_t start_dist; // c
+ * uint16_t end_dist; // e } anim;
  */
 class Animation extends ResourceType {
+
     private int frames; //4
     private int fps; // 8
     private short start_dist; // c
@@ -190,11 +179,10 @@ class Animation extends ResourceType {
 }
 
 /**
-    struct {
-      uint32_t id;
-    } proc;
+ * struct { uint32_t id; } proc;
  */
 class Proc extends ResourceType {
+
     private int id;
 
     public int getId() {
@@ -204,17 +192,13 @@ class Proc extends ResourceType {
     public void setId(int id) {
         this.id = id;
     }
-    
 }
 
 /**
-     struct {
-      uint32_t x00;
-      uint32_t x04;
-      uint8_t frames;
-    } terrain;
+ * struct { uint32_t x00; uint32_t x04; uint8_t frames; } terrain;
  */
-class Terrain extends ResourceType {
+class TerrainResource extends ResourceType {
+
     private int x00;
     private int x04;
     private byte frames;

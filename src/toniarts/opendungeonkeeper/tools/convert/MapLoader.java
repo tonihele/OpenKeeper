@@ -5,7 +5,7 @@
 package toniarts.opendungeonkeeper.tools.convert;
 
 import java.io.File;
-import toniarts.opendungeonkeeper.tools.convert.kld.KwdFile;
+import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
 
 /**
  * A simple class to load up a map file

@@ -2,12 +2,10 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package toniarts.opendungeonkeeper.tools.convert.kld;
-
-import toniarts.opendungeonkeeper.tools.convert.ArtResource;
+package toniarts.opendungeonkeeper.tools.convert.map;
 
 /**
- * Stub for the container class for the Doors.kwd
+ * Stub for the container class for the Trap
  * 
  *
  * @author Wizand Petteri Loisko
@@ -15,17 +13,14 @@ import toniarts.opendungeonkeeper.tools.convert.ArtResource;
  * 
  * Thank you https://github.com/werkt
  */
-public class Door {
-//struct DoorBlock {
+public class Trap {
 //  char name[32];
 //  ArtResource ref[5];
-//  uint8_t unk[164];
-//};
-    
-    
+//  uint8_t data[127];
+
     private String name;
     private ArtResource[] ref;
-    private byte[] unk;
+    private byte[] data;
 
     public String getName() {
         return name;
@@ -43,13 +38,14 @@ public class Door {
         this.ref = ref;
     }
 
-    public byte[] getUnk() {
-        return unk;
+    public byte[] getData() {
+        return data;
     }
 
-    public void setUnk(byte[] unk) {
-        this.unk = unk;
+    public void setData(byte[] data) {
+        this.data = data;
     }
+
     
     
 }

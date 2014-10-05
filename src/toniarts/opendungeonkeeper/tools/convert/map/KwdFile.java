@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package toniarts.opendungeonkeeper.tools.convert.kld;
+package toniarts.opendungeonkeeper.tools.convert.map;
 
 import java.io.File;
 import java.io.IOException;
