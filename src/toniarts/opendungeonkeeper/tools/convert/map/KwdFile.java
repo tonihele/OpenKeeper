@@ -9,14 +9,20 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
+import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Image;
+import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.ResourceType;
 
 /**
  * Reads a DK II map file, the KWD is the file name of the main map identifier,
  * reads the KLDs actually<br>
- * The file is LITTLE ENDIAN I might say<br>
+ * The files are LITTLE ENDIAN I might say<br>
+ * Some values are 3D coordinates or scale values presented in fixed point
+ * integers. They are automatically converted to floats (divided by 2^12 =
+ * 4096)<br>
  * Many parts adapted from C code by:
  * <li>George Gensure (werkt)</li>
  *
@@ -24,6 +30,7 @@ import toniarts.opendungeonkeeper.tools.convert.Utils;
  */
 public class KwdFile {
 
+    private static final float FIXED_POINT_DIVISION = 4096f;
     private Map[][] tiles;
     private int width;
     private int height;
@@ -219,7 +226,7 @@ public class KwdFile {
                 terrain.setTagged(readArtResource(rawTerrain));
                 terrain.setStringIds(readStringId(rawTerrain));
                 terrain.setUnk188(Utils.readUnsignedInteger(rawTerrain));
-                terrain.setLightHeight(Utils.readUnsignedInteger(rawTerrain));
+                terrain.setLightHeight(Utils.readUnsignedInteger(rawTerrain) / FIXED_POINT_DIVISION);
                 terrain.setFlags(Utils.readUnsignedInteger(rawTerrain));
                 terrain.setDamage(Utils.readUnsignedShort(rawTerrain));
                 terrain.setUnk196(Utils.readUnsignedShort(rawTerrain));
@@ -290,7 +297,6 @@ public class KwdFile {
         byte[] bytes = new byte[64];
         file.read(bytes);
         artResource.setName(Utils.bytesToString(bytes).trim());
-        //ArtResource.ArtSettings artSettings = new ArtResource.ArtSettings();
         int flags = Utils.readUnsignedInteger(file);
         bytes = new byte[12];
         file.read(bytes); // Depends on the type how these are interpreted?
@@ -300,11 +306,37 @@ public class KwdFile {
         short sometimesOne = (short) file.readUnsignedByte();
 
         // TODO: Map the types to the classes
+        // 0 = ?
         // 1 = image?
+        // 2 = ?
+        // 5 = ?
+        // 4 = ?
+        // 6 = ?
         // Debug
         System.out.println("Type: " + type);
         int param1 = Utils.readUnsignedInteger(bytes);
         System.out.println("Param1: " + param1);
+
+        ResourceType resourceType = null;
+        switch (type) {
+            case 1: { // Image
+                resourceType = artResource.new Image();
+                ((Image) resourceType).setWidth(Utils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)) / FIXED_POINT_DIVISION);
+                ((Image) resourceType).setHeight(Utils.readUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)) / FIXED_POINT_DIVISION);
+                ((Image) resourceType).setFrames(Utils.readUnsignedShort(Arrays.copyOfRange(bytes, 8, 10)));
+                break;
+            }
+        }
+
+        // Add the common values
+        if (resourceType != null) {
+            resourceType.setFlags(flags);
+            resourceType.setType(type);
+            resourceType.setStartAf(startAf);
+            resourceType.setEndAf(endAf);
+            resourceType.setSometimesOne(sometimesOne);
+        }
+        artResource.setSettings(resourceType);
 
         return artResource;
     }
