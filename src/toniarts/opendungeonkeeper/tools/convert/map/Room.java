@@ -58,7 +58,7 @@ public class Room {
     private ArtResource[] ref; // 11c
     private int unknown1; // 368 - very likely flags
     private int unknown2; // 36c
-    private int intensity; // 36e
+    private int torchIntensity; // 36e
     private int unknown3; // 370
     private int x374;
     private int x376;
@@ -66,7 +66,7 @@ public class Room {
     private int x37a;
     private int x37c;
     private int x37e;
-    private int unknown5; // 380
+    private float torchRadius; // 380
     private int[] effects; // 382
     private short roomId; // 392
     private short unknown7; // 393
@@ -109,12 +109,12 @@ public class Room {
         this.unknown2 = unknown2;
     }
 
-    public int getIntensity() {
-        return intensity;
+    public int getTorchIntensity() {
+        return torchIntensity;
     }
 
-    protected void setIntensity(int intensity) {
-        this.intensity = intensity;
+    protected void setTorchIntensity(int torchIntensity) {
+        this.torchIntensity = torchIntensity;
     }
 
     public int getUnknown3() {
@@ -173,12 +173,12 @@ public class Room {
         this.x37e = x37e;
     }
 
-    public int getUnknown5() {
-        return unknown5;
+    public float getTorchRadius() {
+        return torchRadius;
     }
 
-    protected void setUnknown5(int unknown5) {
-        this.unknown5 = unknown5;
+    protected void setTorchRadius(float torchRadius) {
+        this.torchRadius = torchRadius;
     }
 
     public int[] getEffects() {

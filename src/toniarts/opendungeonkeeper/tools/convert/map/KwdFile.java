@@ -514,7 +514,7 @@ public class KwdFile {
                 room.setRef(ref);
                 room.setUnknown1(Utils.readUnsignedInteger(rawRooms));
                 room.setUnknown2(Utils.readUnsignedShort(rawRooms));
-                room.setIntensity(Utils.readUnsignedShort(rawRooms));
+                room.setTorchIntensity(Utils.readUnsignedShort(rawRooms));
                 room.setUnknown3(Utils.readUnsignedInteger(rawRooms));
                 room.setX374(Utils.readUnsignedShort(rawRooms));
                 room.setX376(Utils.readUnsignedShort(rawRooms));
@@ -522,7 +522,7 @@ public class KwdFile {
                 room.setX37a(Utils.readUnsignedShort(rawRooms));
                 room.setX37c(Utils.readUnsignedShort(rawRooms));
                 room.setX37e(Utils.readUnsignedShort(rawRooms));
-                room.setUnknown5(Utils.readUnsignedShort(rawRooms));
+                room.setTorchRadius(Utils.readUnsignedShort(rawRooms) / FIXED_POINT_DIVISION);
                 int[] effects = new int[8];
                 for (int x = 0; x < effects.length; x++) {
                     effects[x] = Utils.readUnsignedShort(rawRooms);
