@@ -25,7 +25,7 @@ public class Trap {
         return name;
     }
 
-    public void setName(String name) {
+    protected void setName(String name) {
         this.name = name;
     }
 
@@ -33,7 +33,7 @@ public class Trap {
         return ref;
     }
 
-    public void setRef(ArtResource[] ref) {
+    protected void setRef(ArtResource[] ref) {
         this.ref = ref;
     }
 
@@ -41,7 +41,7 @@ public class Trap {
         return data;
     }
 
-    public void setData(short[] data) {
+    protected void setData(short[] data) {
         this.data = data;
     }
 }
