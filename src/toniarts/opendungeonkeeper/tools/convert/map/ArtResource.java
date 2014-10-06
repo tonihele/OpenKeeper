@@ -35,48 +35,48 @@ public class ArtResource {
     public abstract class ResourceType {
 
         private int flags; // 0
-        private byte type;
-        private byte startAf;
-        private byte endAf;
-        private byte sometimesOne;
+        private short type;
+        private short startAf;
+        private short endAf;
+        private short sometimesOne;
 
         public int getFlags() {
             return flags;
         }
 
-        public void setFlags(int flags) {
+        protected void setFlags(int flags) {
             this.flags = flags;
         }
 
-        public byte getType() {
+        public short getType() {
             return type;
         }
 
-        public void setType(byte type) {
+        protected void setType(short type) {
             this.type = type;
         }
 
-        public byte getStartAf() {
+        public short getStartAf() {
             return startAf;
         }
 
-        public void setStartAf(byte startAf) {
+        protected void setStartAf(short startAf) {
             this.startAf = startAf;
         }
 
-        public byte getEndAf() {
+        public short getEndAf() {
             return endAf;
         }
 
-        public void setEndAf(byte endAf) {
+        protected void setEndAf(short endAf) {
             this.endAf = endAf;
         }
 
-        public byte getSometimesOne() {
+        public short getSometimesOne() {
             return sometimesOne;
         }
 
-        public void setSometimesOne(byte sometimesOne) {
+        protected void setSometimesOne(short sometimesOne) {
             this.sometimesOne = sometimesOne;
         }
     }
@@ -87,23 +87,23 @@ public class ArtResource {
      */
     public class Image extends ResourceType {
 
-        private int width;
-        private int height;
+        private float width; // Fixed, scale
+        private float height; // Fixed, scale
         private int frames;
 
-        public int getWidth() {
+        public float getWidth() {
             return width;
         }
 
-        public void setWidth(int width) {
+        protected void setWidth(float width) {
             this.width = width;
         }
 
-        public int getHeight() {
+        public float getHeight() {
             return height;
         }
 
-        public void setHeight(int height) {
+        protected void setHeight(float height) {
             this.height = height;
         }
 
@@ -111,7 +111,7 @@ public class ArtResource {
             return frames;
         }
 
-        public void setFrames(int frames) {
+        protected void setFrames(int frames) {
             this.frames = frames;
         }
     }
