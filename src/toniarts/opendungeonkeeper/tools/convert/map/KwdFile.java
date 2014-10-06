@@ -309,8 +309,8 @@ public class KwdFile {
         // 0 = ?
         // 1 = image?
         // 2 = ?
-        // 5 = ?
         // 4 = ?
+        // 5 = ?
         // 6 = ?
         // Debug
         System.out.println("Type: " + type);
