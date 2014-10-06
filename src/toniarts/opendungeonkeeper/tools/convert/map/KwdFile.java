@@ -39,6 +39,7 @@ public class KwdFile {
     private HashMap<Short, Terrain> terrainTiles;
     private List<Door> doors;
     private List<Trap> traps;
+    private HashMap<Short, Room> rooms;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -63,6 +64,8 @@ public class KwdFile {
         // KeeperSpells
         // Objects
         // Rooms
+        readRooms(dkIIPath);
+
         // Shots
         // Terrain catalog
         readTerrain(dkIIPath);
@@ -472,6 +475,89 @@ public class KwdFile {
 
             //Fug
             throw new RuntimeException("Failed to read the file " + trapsFile + "!", e);
+        }
+    }
+
+    /**
+     * Reads the Rooms.kwd
+     *
+     * @param dkIIPath path to DK II data files (for filling up the catalogs)
+     * @throws RuntimeException reading may fail
+     */
+    private void readRooms(String dkIIPath) throws RuntimeException {
+
+        // Read the terrain catalog
+        File roomsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Rooms.kwd"));
+        try (RandomAccessFile rawRooms = new RandomAccessFile(roomsFile, "r")) {
+
+            // Terrain file has a 36 header
+            rawRooms.seek(20);
+            int roomsCount = Utils.readUnsignedInteger(rawRooms);
+
+            // The terrain file is just simple blocks until EOF
+            rawRooms.seek(36); // End of header
+            rawRooms.skipBytes(20); // I don't know what is in here
+
+            rooms = new HashMap<>(roomsCount);
+            for (int i = 0; i < roomsCount; i++) {
+                Room room = new Room();
+                byte[] bytes = new byte[32];
+                rawRooms.read(bytes);
+                room.setName(Utils.bytesToString(bytes).trim());
+                room.setGuiIcon(readArtResource(rawRooms));
+                room.setRoomIcon(readArtResource(rawRooms));
+                room.setComplete(readArtResource(rawRooms));
+                ArtResource[] ref = new ArtResource[7];
+                for (int x = 0; x < ref.length; x++) {
+                    ref[x] = readArtResource(rawRooms);
+                }
+                room.setRef(ref);
+                room.setUnknown1(Utils.readUnsignedInteger(rawRooms));
+                room.setUnknown2(Utils.readUnsignedShort(rawRooms));
+                room.setIntensity(Utils.readUnsignedShort(rawRooms));
+                room.setUnknown3(Utils.readUnsignedInteger(rawRooms));
+                room.setX374(Utils.readUnsignedShort(rawRooms));
+                room.setX376(Utils.readUnsignedShort(rawRooms));
+                room.setX378(Utils.readUnsignedShort(rawRooms));
+                room.setX37a(Utils.readUnsignedShort(rawRooms));
+                room.setX37c(Utils.readUnsignedShort(rawRooms));
+                room.setX37e(Utils.readUnsignedShort(rawRooms));
+                room.setUnknown5(Utils.readUnsignedShort(rawRooms));
+                int[] effects = new int[8];
+                for (int x = 0; x < effects.length; x++) {
+                    effects[x] = Utils.readUnsignedShort(rawRooms);
+                }
+                room.setEffects(effects);
+                room.setRoomId((short) rawRooms.readUnsignedByte());
+                room.setUnknown7((short) rawRooms.readUnsignedByte());
+                room.setTerrainId((short) rawRooms.readUnsignedByte());
+                room.setTileConstruction((short) rawRooms.readUnsignedByte());
+                room.setUnknown8((short) rawRooms.readUnsignedByte());
+                room.setTorchColor(new Color(rawRooms.readUnsignedByte(), rawRooms.readUnsignedByte(), rawRooms.readUnsignedByte()));
+                short[] objects = new short[8];
+                for (int x = 0; x < objects.length; x++) {
+                    objects[x] = (short) rawRooms.readUnsignedByte();
+                }
+                room.setObjects(objects);
+                bytes = new byte[32];
+                rawRooms.read(bytes);
+                room.setSoundCategory(Utils.bytesToString(bytes).trim());
+                room.setX3c2((short) rawRooms.readUnsignedByte());
+                room.setX3c3((short) rawRooms.readUnsignedByte());
+                room.setUnknown10(Utils.readUnsignedShort(rawRooms));
+                room.setUnknown11((short) rawRooms.readUnsignedByte());
+                room.setTorch(readArtResource(rawRooms));
+                room.setX41b((short) rawRooms.readUnsignedByte());
+                room.setX41c((short) rawRooms.readUnsignedByte());
+                room.setX41d(Utils.readShort(rawRooms));
+
+                // Add to the hash by the terrain ID
+                rooms.put(room.getRoomId(), room);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + roomsFile + "!", e);
         }
     }
 }
