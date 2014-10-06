@@ -4,276 +4,260 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
-
+import java.awt.Color;
 
 /**
  * Barely started placeholder for the container class for the Rooms
- * 
  *
- * @author Wizand Petteri Loisko
- * petteri.loisko@gmail.com
- * 
+ *
+ * @author Wizand Petteri Loisko petteri.loisko@gmail.com
+ *
  * Thank you https://github.com/werkt
  */
 public class Room {
-    private RoomBlock roomBlock;
 
-    public RoomBlock getRoomBlock() {
-        return roomBlock;
-    }
-
-    public void setRoomBlock(RoomBlock roomBlock) {
-        this.roomBlock = roomBlock;
-    }
-    
-    
-        
-}
-class RoomBlock {
-
-//struct RoomBlock {
-//  char name[32]; /* 0 */
-//  ArtResource gui_icon; /* 20 */
-//  ArtResource room_icon; /* 74 */
-//  ArtResource complete; /* c8 */
-//  ArtResource ref[7]; /* 11c */
-//  uint32_t unk1; /* 368 - very likely flags */
-//  uint16_t unk2; /* 36c */
-//  uint16_t intensity; /* 36e */
-//  uint32_t unk3; /* 370 */
-//  uint16_t x374;
-//  uint16_t x376;
-//  uint16_t x378;
-//  uint16_t x37a;
-//  uint16_t x37c;
-//  uint16_t x37e;
-//  uint16_t unk5; /* 380 */
-//  uint16_t effects[8]; /* 382 */
-//  uint8_t id; /* 392 */
-//  uint8_t unk7; /* 393 */
-//  uint8_t terrain; /* 394 */
-//  uint8_t tile_construction; /* 395 */
-//  uint8_t unk8; /* 396 */
-//  uint8_t torch_color[3]; /* 397 */
-//  uint8_t objects[8]; /* 39a */
-//  char sound_category[32]; /* 3a2 */
-//  uint8_t x3c2; /* 3c2 */
-//  uint8_t x3c3; /* 3c3 */
-//  uint16_t unk10; /* 3c4 */
-//  uint8_t unk11; /* 3c6 */
-//  ArtResource torch; /* 3c7 */
-//  uint8_t x41b; /* 41b */
-//  uint8_t x41c; /* 41c */
-//  short x41d; /* 41d */
-//};
-    
-  private String name; /* 0 */
-  private ArtResource gui_icon; /* 20 */
-  private ArtResource room_icon; /* 74 */
-  private ArtResource complete; /* c8 */
-  private ArtResource[] ref; /* 11c */
-  private int unk1; /* 368 - very likely flags */
-  private short unk2; /* 36c */
-  private short intensity; /* 36e */
-  private int unk3; /* 370 */
-  private short x374;
-  private short x376;
-  private short x378;
-  private short x37a;
-  private short x37c;
-  private short x37e;
-  private short unk5; /* 380 */
-  private short[] effects; /* 382 */
-  private short id; /* 392 */
-  private short unk7; /* 393 */
-  private short terrain; /* 394 */
-  private short tile_construction; /* 395 */
-  private short unk8; /* 396 */
-  private short[] torch_color; /* 397 */
-  private short[] objects; /* 39a */
-  private String sound_category; /* 3a2 */
-  private short x3c2; /* 3c2 */
-  private short x3c3; /* 3c3 */
-  private short unk10; /* 3c4 */
-  private short unk11; /* 3c6 */
-  private ArtResource torch; /* 3c7 */
-  private short x41b; /* 41b */
-  private short x41c; /* 41c */
-  short x41d; /* 41d */
+    //struct RoomBlock {
+    //  char name[32]; /* 0 */
+    //  ArtResource gui_icon; /* 20 */
+    //  ArtResource room_icon; /* 74 */
+    //  ArtResource complete; /* c8 */
+    //  ArtResource ref[7]; /* 11c */
+    //  uint32_t unk1; /* 368 - very likely flags */
+    //  uint16_t unk2; /* 36c */
+    //  uint16_t intensity; /* 36e */
+    //  uint32_t unk3; /* 370 */
+    //  uint16_t x374;
+    //  uint16_t x376;
+    //  uint16_t x378;
+    //  uint16_t x37a;
+    //  uint16_t x37c;
+    //  uint16_t x37e;
+    //  uint16_t unk5; /* 380 */
+    //  uint16_t effects[8]; /* 382 */
+    //  uint8_t id; /* 392 */
+    //  uint8_t unk7; /* 393 */
+    //  uint8_t terrain; /* 394 */
+    //  uint8_t tile_construction; /* 395 */
+    //  uint8_t unk8; /* 396 */
+    //  uint8_t torch_color[3]; /* 397 */
+    //  uint8_t objects[8]; /* 39a */
+    //  char sound_category[32]; /* 3a2 */
+    //  uint8_t x3c2; /* 3c2 */
+    //  uint8_t x3c3; /* 3c3 */
+    //  uint16_t unk10; /* 3c4 */
+    //  uint8_t unk11; /* 3c6 */
+    //  ArtResource torch; /* 3c7 */
+    //  uint8_t x41b; /* 41b */
+    //  uint8_t x41c; /* 41c */
+    //  short x41d; /* 41d */
+    //};
+    private String name; // 0
+    private ArtResource guiIcon; // 20
+    private ArtResource roomIcon; // 74
+    private ArtResource complete; // c8
+    private ArtResource[] ref; // 11c
+    private int unknown1; // 368 - very likely flags
+    private int unknown2; // 36c
+    private int intensity; // 36e
+    private int unknown3; // 370
+    private int x374;
+    private int x376;
+    private int x378;
+    private int x37a;
+    private int x37c;
+    private int x37e;
+    private int unknown5; // 380
+    private int[] effects; // 382
+    private short roomId; // 392
+    private short unknown7; // 393
+    private short terrainId; // 394
+    private short tileConstruction; // 395
+    private short unknown8; // 396
+    private Color torchColor; // 397
+    private short[] objects; // 39a
+    private String soundCategory; // 3a2
+    private short x3c2; // 3c2
+    private short x3c3; // 3c3
+    private int unknown10; // 3c4
+    private short unknown11; // 3c6
+    private ArtResource torch; // 3c7
+    private short x41b; // 41b
+    private short x41c; // 41c
+    private short x41d; // 41d
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
+    protected void setName(String name) {
         this.name = name;
     }
 
-    public int getUnk1() {
-        return unk1;
+    public int getUnknown1() {
+        return unknown1;
     }
 
-    public void setUnk1(int unk1) {
-        this.unk1 = unk1;
+    protected void setUnknown1(int unknown1) {
+        this.unknown1 = unknown1;
     }
 
-    public short getUnk2() {
-        return unk2;
+    public int getUnknown2() {
+        return unknown2;
     }
 
-    public void setUnk2(short unk2) {
-        this.unk2 = unk2;
+    protected void setUnknown2(int unknown2) {
+        this.unknown2 = unknown2;
     }
 
-    public short getIntensity() {
+    public int getIntensity() {
         return intensity;
     }
 
-    public void setIntensity(short intensity) {
+    protected void setIntensity(int intensity) {
         this.intensity = intensity;
     }
 
-    public int getUnk3() {
-        return unk3;
+    public int getUnknown3() {
+        return unknown3;
     }
 
-    public void setUnk3(int unk3) {
-        this.unk3 = unk3;
+    protected void setUnknown3(int unknown3) {
+        this.unknown3 = unknown3;
     }
 
-    public short getX374() {
+    public int getX374() {
         return x374;
     }
 
-    public void setX374(short x374) {
+    protected void setX374(int x374) {
         this.x374 = x374;
     }
 
-    public short getX376() {
+    public int getX376() {
         return x376;
     }
 
-    public void setX376(short x376) {
+    protected void setX376(int x376) {
         this.x376 = x376;
     }
 
-    public short getX378() {
+    public int getX378() {
         return x378;
     }
 
-    public void setX378(short x378) {
+    protected void setX378(int x378) {
         this.x378 = x378;
     }
 
-    public short getX37a() {
+    public int getX37a() {
         return x37a;
     }
 
-    public void setX37a(short x37a) {
+    protected void setX37a(int x37a) {
         this.x37a = x37a;
     }
 
-    public short getX37c() {
+    public int getX37c() {
         return x37c;
     }
 
-    public void setX37c(short x37c) {
+    protected void setX37c(int x37c) {
         this.x37c = x37c;
     }
 
-    public short getX37e() {
+    public int getX37e() {
         return x37e;
     }
 
-    public void setX37e(short x37e) {
+    protected void setX37e(int x37e) {
         this.x37e = x37e;
     }
 
-    public short getUnk5() {
-        return unk5;
+    public int getUnknown5() {
+        return unknown5;
     }
 
-    public void setUnk5(short unk5) {
-        this.unk5 = unk5;
+    protected void setUnknown5(int unknown5) {
+        this.unknown5 = unknown5;
     }
 
-    public short[] getEffects() {
+    public int[] getEffects() {
         return effects;
     }
 
-    public void setEffects(short[] effects) {
+    protected void setEffects(int[] effects) {
         this.effects = effects;
     }
 
-    public short getId() {
-        return id;
+    public short getRoomId() {
+        return roomId;
     }
 
-    public void setId(short id) {
-        this.id = id;
+    protected void setRoomId(short roomId) {
+        this.roomId = roomId;
     }
 
-    public short getUnk7() {
-        return unk7;
+    public short getUnknown7() {
+        return unknown7;
     }
 
-    public void setUnk7(short unk7) {
-        this.unk7 = unk7;
+    protected void setUnknown7(short unknown7) {
+        this.unknown7 = unknown7;
     }
 
-    public short getTerrain() {
-        return terrain;
+    public short getTerrainId() {
+        return terrainId;
     }
 
-    public void setTerrain(short terrain) {
-        this.terrain = terrain;
+    protected void setTerrainId(short terrain) {
+        this.terrainId = terrainId;
     }
 
-    public short getTile_construction() {
-        return tile_construction;
+    public short getTileConstruction() {
+        return tileConstruction;
     }
 
-    public void setTile_construction(short tile_construction) {
-        this.tile_construction = tile_construction;
+    protected void setTileConstruction(short tileConstruction) {
+        this.tileConstruction = tileConstruction;
     }
 
-    public short getUnk8() {
-        return unk8;
+    public short getUnknown8() {
+        return unknown8;
     }
 
-    public void setUnk8(short unk8) {
-        this.unk8 = unk8;
+    protected void setUnknown8(short unknown8) {
+        this.unknown8 = unknown8;
     }
 
-    public short[] getTorch_color() {
-        return torch_color;
+    public Color getTorchColor() {
+        return torchColor;
     }
 
-    public void setTorch_color(short[] torch_color) {
-        this.torch_color = torch_color;
+    protected void setTorchColor(Color torchColor) {
+        this.torchColor = torchColor;
     }
 
     public short[] getObjects() {
         return objects;
     }
 
-    public void setObjects(short[] objects) {
+    protected void setObjects(short[] objects) {
         this.objects = objects;
     }
 
-    public String getSound_category() {
-        return sound_category;
+    public String getSoundCategory() {
+        return soundCategory;
     }
 
-    public void setSound_category(String sound_category) {
-        this.sound_category = sound_category;
+    protected void setSoundCategory(String soundCategory) {
+        this.soundCategory = soundCategory;
     }
 
     public short getX3c2() {
         return x3c2;
     }
 
-    public void setX3c2(short x3c2) {
+    protected void setX3c2(short x3c2) {
         this.x3c2 = x3c2;
     }
 
@@ -281,31 +265,31 @@ class RoomBlock {
         return x3c3;
     }
 
-    public void setX3c3(short x3c3) {
+    protected void setX3c3(short x3c3) {
         this.x3c3 = x3c3;
     }
 
-    public short getUnk10() {
-        return unk10;
+    public int getUnknown10() {
+        return unknown10;
     }
 
-    public void setUnk10(short unk10) {
-        this.unk10 = unk10;
+    protected void setUnknown10(int unknown10) {
+        this.unknown10 = unknown10;
     }
 
-    public short getUnk11() {
-        return unk11;
+    public short getUnknown11() {
+        return unknown11;
     }
 
-    public void setUnk11(short unk11) {
-        this.unk11 = unk11;
+    protected void setUnknown11(short unknown11) {
+        this.unknown11 = unknown11;
     }
 
     public short getX41b() {
         return x41b;
     }
 
-    public void setX41b(short x41b) {
+    protected void setX41b(short x41b) {
         this.x41b = x41b;
     }
 
@@ -313,7 +297,7 @@ class RoomBlock {
         return x41c;
     }
 
-    public void setX41c(short x41c) {
+    protected void setX41c(short x41c) {
         this.x41c = x41c;
     }
 
@@ -321,31 +305,31 @@ class RoomBlock {
         return x41d;
     }
 
-    public void setX41d(short x41d) {
+    protected void setX41d(short x41d) {
         this.x41d = x41d;
     }
 
-    public ArtResource getGui_icon() {
-        return gui_icon;
+    public ArtResource getGuiIcon() {
+        return guiIcon;
     }
 
-    public void setGui_icon(ArtResource gui_icon) {
-        this.gui_icon = gui_icon;
+    protected void setGuiIcon(ArtResource guiIcon) {
+        this.guiIcon = guiIcon;
     }
 
-    public ArtResource getRoom_icon() {
-        return room_icon;
+    public ArtResource getRoomIcon() {
+        return roomIcon;
     }
 
-    public void setRoom_icon(ArtResource room_icon) {
-        this.room_icon = room_icon;
+    protected void setRoomIcon(ArtResource roomIcon) {
+        this.roomIcon = roomIcon;
     }
 
     public ArtResource getComplete() {
         return complete;
     }
 
-    public void setComplete(ArtResource complete) {
+    protected void setComplete(ArtResource complete) {
         this.complete = complete;
     }
 
@@ -353,7 +337,7 @@ class RoomBlock {
         return ref;
     }
 
-    public void setRef(ArtResource[] ref) {
+    protected void setRef(ArtResource[] ref) {
         this.ref = ref;
     }
 
@@ -361,10 +345,7 @@ class RoomBlock {
         return torch;
     }
 
-    public void setTorch(ArtResource torch) {
+    protected void setTorch(ArtResource torch) {
         this.torch = torch;
     }
-    
-  
-  
 }
