@@ -65,7 +65,7 @@ public class Terrain {
     private ArtResource tagged; // 11c
     private StringId stringIds; // 170
     private int unk188; // 188
-    private int lightHeight; // 18c
+    private float lightHeight; // 18c, fixed point
     private int flags; // 190
     private int damage; // 194
     private int unk196; // 196
@@ -113,11 +113,11 @@ public class Terrain {
         this.unk188 = unk188;
     }
 
-    public int getLightHeight() {
+    public float getLightHeight() {
         return lightHeight;
     }
 
-    protected void setLightHeight(int lightHeight) {
+    protected void setLightHeight(float lightHeight) {
         this.lightHeight = lightHeight;
     }
 
