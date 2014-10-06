@@ -32,7 +32,7 @@ public class ArtResource {
         this.settings = settings;
     }
 
-    public abstract class ResourceType {
+    public class ResourceType {
 
         private int flags; // 0
         private short type;
@@ -149,14 +149,14 @@ public class ArtResource {
 
         private int frames; //4
         private int fps; // 8
-        private short startDist; // c
-        private short endDist; // e
+        private int startDist; // c
+        private int endDist; // e
 
         public int getFrames() {
             return frames;
         }
 
-        public void setFrames(int frames) {
+        protected void setFrames(int frames) {
             this.frames = frames;
         }
 
@@ -164,23 +164,23 @@ public class ArtResource {
             return fps;
         }
 
-        public void setFps(int fps) {
+        protected void setFps(int fps) {
             this.fps = fps;
         }
 
-        public short getStartDist() {
+        public int getStartDist() {
             return startDist;
         }
 
-        public void setStartDist(short startDist) {
+        protected void setStartDist(int startDist) {
             this.startDist = startDist;
         }
 
-        public short getEndDist() {
+        public int getEndDist() {
             return endDist;
         }
 
-        public void setEndDist(short endDist) {
+        protected void setEndDist(int endDist) {
             this.endDist = endDist;
         }
     }

@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
+import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Animation;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Image;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.ResourceType;
 
@@ -306,18 +307,18 @@ public class KwdFile {
         short sometimesOne = (short) file.readUnsignedByte();
 
         // TODO: Map the types to the classes
-        // 0 = ?
+        // 0 = nothing, should be just the basic class?
         // 1 = image?
-        // 2 = ?
+        // 2 = terrain resource?
         // 4 = ?
         // 5 = ?
-        // 6 = ?
+        // 6 = animation?
         // Debug
         System.out.println("Type: " + type);
         int param1 = Utils.readUnsignedInteger(bytes);
         System.out.println("Param1: " + param1);
 
-        ResourceType resourceType = null;
+        ResourceType resourceType = artResource.new ResourceType();
         switch (type) {
             case 1: { // Image
                 resourceType = artResource.new Image();
@@ -326,16 +327,34 @@ public class KwdFile {
                 ((Image) resourceType).setFrames(Utils.readUnsignedShort(Arrays.copyOfRange(bytes, 8, 10)));
                 break;
             }
+            case 2: {
+                resourceType = artResource.new Mesh();
+                break;
+            }
+            case 4: {
+                resourceType = artResource.new Mesh();
+                break;
+            }
+            case 5: {
+                resourceType = artResource.new Mesh();
+                break;
+            }
+            case 6: {
+                resourceType = artResource.new Animation();
+                ((Animation) resourceType).setFrames(Utils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
+                ((Animation) resourceType).setFps(Utils.readUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)));
+                ((Animation) resourceType).setStartDist(Utils.readUnsignedShort(Arrays.copyOfRange(bytes, 8, 10)));
+                ((Animation) resourceType).setEndDist(Utils.readUnsignedShort(Arrays.copyOfRange(bytes, 10, 12)));
+                break;
+            }
         }
 
         // Add the common values
-        if (resourceType != null) {
-            resourceType.setFlags(flags);
-            resourceType.setType(type);
-            resourceType.setStartAf(startAf);
-            resourceType.setEndAf(endAf);
-            resourceType.setSometimesOne(sometimesOne);
-        }
+        resourceType.setFlags(flags);
+        resourceType.setType(type);
+        resourceType.setStartAf(startAf);
+        resourceType.setEndAf(endAf);
+        resourceType.setSometimesOne(sometimesOne);
         artResource.setSettings(resourceType);
 
         return artResource;
