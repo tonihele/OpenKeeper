@@ -27,7 +27,7 @@ public class Door {
         return name;
     }
 
-    public void setName(String name) {
+    protected void setName(String name) {
         this.name = name;
     }
 
@@ -35,7 +35,7 @@ public class Door {
         return ref;
     }
 
-    public void setRef(ArtResource[] ref) {
+    protected void setRef(ArtResource[] ref) {
         this.ref = ref;
     }
 
@@ -43,7 +43,7 @@ public class Door {
         return unknown;
     }
 
-    public void setUnknown(short[] unknown) {
+    protected void setUnknown(short[] unknown) {
         this.unknown = unknown;
     }
 }
