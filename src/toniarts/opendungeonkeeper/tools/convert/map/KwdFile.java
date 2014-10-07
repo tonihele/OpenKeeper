@@ -40,6 +40,11 @@ public class KwdFile {
     private List<Door> doors;
     private List<Trap> traps;
     private HashMap<Short, Room> rooms;
+    private String name;
+    private String description;
+    private String author;
+    private String email;
+    private String information;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -82,6 +87,9 @@ public class KwdFile {
      * @param file the KWD file to read
      */
     public void loadMap(File file) {
+
+        // Load some map info, nice to show
+        readMapInfo(file);
 
         // Read the requested MAP file
         readMapFile(file);
@@ -559,5 +567,66 @@ public class KwdFile {
             //Fug
             throw new RuntimeException("Failed to read the file " + roomsFile + "!", e);
         }
+    }
+
+    /**
+     * Reads the *.kwd
+     *
+     * @param file the original map KWD file
+     * @throws RuntimeException reading may fail
+     */
+    private void readMapInfo(File file) throws RuntimeException {
+
+        // Read the file
+        try (RandomAccessFile rawMapInfo = new RandomAccessFile(file, "r")) {
+
+            // The terrain file is just simple blocks until EOF
+            rawMapInfo.seek(36); // End of header
+            rawMapInfo.skipBytes(20); // I don't know what is in here
+
+            byte[] bytes = new byte[64 * 2];
+            rawMapInfo.read(bytes);
+            name = (Utils.bytesToStringUtf16(bytes).trim());
+
+            bytes = new byte[1024 * 2];
+            rawMapInfo.read(bytes);
+            description = (Utils.bytesToStringUtf16(bytes).trim());
+
+            bytes = new byte[64 * 2];
+            rawMapInfo.read(bytes);
+            author = (Utils.bytesToStringUtf16(bytes).trim());
+
+            bytes = new byte[64 * 2];
+            rawMapInfo.read(bytes);
+            email = (Utils.bytesToStringUtf16(bytes).trim());
+
+            bytes = new byte[1024 * 2];
+            rawMapInfo.read(bytes);
+            information = (Utils.bytesToStringUtf16(bytes).trim());
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + file + "!", e);
+        }
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getInformation() {
+        return information;
     }
 }
