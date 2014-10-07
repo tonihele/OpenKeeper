@@ -165,6 +165,17 @@ public class Utils {
     }
 
     /**
+     * Converts a byte array to a JAVA String<br>
+     * The byte array string is assumed UTF16 (wide strings in C), LITTLE ENDIAN
+     *
+     * @param bytes the bytearray to convert
+     * @return fresh String
+     */
+    public static String bytesToStringUtf16(byte[] bytes) {
+        return new String(bytes, Charset.forName("UTF_16LE"));
+    }
+
+    /**
      * Convert a byte to unsigned byte
      *
      * @param b byte
