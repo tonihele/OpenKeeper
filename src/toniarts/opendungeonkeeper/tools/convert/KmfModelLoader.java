@@ -19,6 +19,7 @@ import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.VertexBuffer.Type;
+import com.jme3.scene.control.LodControl;
 import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
 import java.io.BufferedOutputStream;
@@ -305,6 +306,10 @@ public class KmfModelLoader implements AssetLoader {
             //Create geometry
             Geometry geom = new Geometry(index + "", mesh);
 
+            //Add LOD control
+            LodControl lc = new LodControl();
+            geom.addControl(lc);
+
             // Material
             geom.setMaterial(materials.get(meshSprite.getMaterialIndex()));
             geom.updateModelBound();
@@ -504,6 +509,10 @@ public class KmfModelLoader implements AssetLoader {
 
             //Create geometry
             Geometry geom = new Geometry(index + "", mesh);
+
+            //Add LOD control
+            LodControl lc = new LodControl();
+            geom.addControl(lc);
 
             // Material
             geom.setMaterial(materials.get(animSprite.getMaterialIndex()));
