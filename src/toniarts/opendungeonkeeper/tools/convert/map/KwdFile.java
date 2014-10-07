@@ -580,7 +580,6 @@ public class KwdFile {
         // Read the file
         try (RandomAccessFile rawMapInfo = new RandomAccessFile(file, "r")) {
 
-            // The terrain file is just simple blocks until EOF
             rawMapInfo.seek(36); // End of header
             rawMapInfo.skipBytes(20); // I don't know what is in here
 
