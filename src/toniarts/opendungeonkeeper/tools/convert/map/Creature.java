@@ -168,7 +168,7 @@ public class Creature {
 //        uint32_t unk1545;
 //        };
     private String name; // 0
-    private ArtResource ref1; // 20
+    private ArtResource ref1[]; // 20
     private int unkcec; // cec
     private int unkcee; // cee
     private int unkcf2; // cf2
@@ -178,13 +178,13 @@ public class Creature {
     private int unkcfd; // cfd
     private int unkcff; // cff
     private int unkd01; // d01
-    private int unk2d; // d05
+    private int unk2d[]; // d05
     private String unkd17; // d17
     private int shuffleSpeed; // d37
-    private short unk2e; // d3b
+    private short unk2e[]; // d3b
     private ArtResource ref2; // d40
     private Light light; // d94
-    private Attraction attraction;
+    private Attraction attraction[];
     private int unkdbc; // dbc
     private int unkdc0; // dc0
     private Xdc4 xdc4[];
@@ -196,10 +196,10 @@ public class Creature {
     private Xe7c xe7c[];
     private Xe94 xe94;
     private int unkea0; // ea0
-    private int height; // ea4
+    private float height; // ea4
     private int unkea8; // ea8
     private int unk3ab; // eac
-    private int eyeHeight; // eb0
+    private float eyeHeight; // eb0
     private int speed; // eb4
     private int runSpeed; // eb8
     private int unk3ac; // ebc
@@ -218,7 +218,7 @@ public class Creature {
     private int range; // eec
     private int unkef0; // ef0
     private int unk3af; // ef4
-    private int meleeReStringge; // ef8
+    private int meleeRecharge; // ef8
     private int unkefc; // efc
     private int expForNextLevel; // f00
     private short unk3b[]; // f02
@@ -290,11 +290,11 @@ public class Creature {
         this.name = name;
     }
 
-    public ArtResource getRef1() {
+    public ArtResource[] getRef1() {
         return ref1;
     }
 
-    protected void setRef1(ArtResource ref1) {
+    protected void setRef1(ArtResource ref1[]) {
         this.ref1 = ref1;
     }
 
@@ -370,11 +370,11 @@ public class Creature {
         this.unkd01 = unkd01;
     }
 
-    public int getUnk2d() {
+    public int[] getUnk2d() {
         return unk2d;
     }
 
-    protected void setUnk2d(int unk2d) {
+    protected void setUnk2d(int[] unk2d) {
         this.unk2d = unk2d;
     }
 
@@ -394,11 +394,11 @@ public class Creature {
         this.shuffleSpeed = shuffleSpeed;
     }
 
-    public short getUnk2e() {
+    public short[] getUnk2e() {
         return unk2e;
     }
 
-    protected void setUnk2e(short unk2e) {
+    protected void setUnk2e(short[] unk2e) {
         this.unk2e = unk2e;
     }
 
@@ -418,11 +418,11 @@ public class Creature {
         this.light = light;
     }
 
-    public Attraction getAttraction() {
+    public Attraction[] getAttraction() {
         return attraction;
     }
 
-    protected void setAttraction(Attraction attraction) {
+    protected void setAttraction(Attraction[] attraction) {
         this.attraction = attraction;
     }
 
@@ -514,11 +514,11 @@ public class Creature {
         this.unkea0 = unkea0;
     }
 
-    public int getHeight() {
+    public float getHeight() {
         return height;
     }
 
-    protected void setHeight(int height) {
+    protected void setHeight(float height) {
         this.height = height;
     }
 
@@ -538,11 +538,11 @@ public class Creature {
         this.unk3ab = unk3ab;
     }
 
-    public int getEyeHeight() {
+    public float getEyeHeight() {
         return eyeHeight;
     }
 
-    protected void setEyeHeight(int eyeHeight) {
+    protected void setEyeHeight(float eyeHeight) {
         this.eyeHeight = eyeHeight;
     }
 
@@ -690,12 +690,12 @@ public class Creature {
         this.unk3af = unk3af;
     }
 
-    public int getMeleeReStringge() {
-        return meleeReStringge;
+    public int getMeleeRecharge() {
+        return meleeRecharge;
     }
 
-    protected void setMeleeReStringge(int meleeReStringge) {
-        this.meleeReStringge = meleeReStringge;
+    protected void setMeleeRecharge(int meleeRecharge) {
+        this.meleeRecharge = meleeRecharge;
     }
 
     public int getUnkefc() {
