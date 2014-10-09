@@ -12,10 +12,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import javax.vecmath.Vector3f;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Animation;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Image;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.ResourceType;
+import toniarts.opendungeonkeeper.tools.convert.map.Creature.Attraction;
+import toniarts.opendungeonkeeper.tools.convert.map.Creature.Unk7;
+import toniarts.opendungeonkeeper.tools.convert.map.Creature.X1323;
+import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xdc4;
+import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe0c;
+import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe14;
+import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe7c;
+import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe94;
 
 /**
  * Reads a DK II map file, the KWD is the file name of the main map identifier,
@@ -45,6 +54,7 @@ public class KwdFile {
     private String author;
     private String email;
     private String information;
+    private HashMap<Short, Creature> creatures;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -59,6 +69,8 @@ public class KwdFile {
         // It should be easy to support such, but I don't see the why
         // These are in /Data/editor/*.kwd
         // Creatures
+        readCreatures(dkIIPath);
+
         // CreatureSpells
         // Doors
         readDoors(dkIIPath);
@@ -448,7 +460,7 @@ public class KwdFile {
      */
     private void readTraps(String dkIIPath) throws RuntimeException {
 
-        // Read the doors catalog
+        // Read the traps catalog
         File trapsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Traps.kwd"));
         try (RandomAccessFile rawTraps = new RandomAccessFile(trapsFile, "r")) {
 
@@ -456,7 +468,7 @@ public class KwdFile {
             rawTraps.seek(20);
             int trapCount = Utils.readUnsignedInteger(rawTraps);
 
-            // The doors file is just simple blocks until EOF
+            // The traps file is just simple blocks until EOF
             rawTraps.seek(36); // End of header
             rawTraps.skipBytes(20); // I don't know what is in here
 
@@ -494,15 +506,15 @@ public class KwdFile {
      */
     private void readRooms(String dkIIPath) throws RuntimeException {
 
-        // Read the terrain catalog
+        // Read the rooms catalog
         File roomsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Rooms.kwd"));
         try (RandomAccessFile rawRooms = new RandomAccessFile(roomsFile, "r")) {
 
-            // Terrain file has a 36 header
+            // Room file has a 36 header
             rawRooms.seek(20);
             int roomsCount = Utils.readUnsignedInteger(rawRooms);
 
-            // The terrain file is just simple blocks until EOF
+            // The rooms file is just simple blocks until EOF
             rawRooms.seek(36); // End of header
             rawRooms.skipBytes(20); // I don't know what is in here
 
@@ -559,7 +571,7 @@ public class KwdFile {
                 room.setX41c((short) rawRooms.readUnsignedByte());
                 room.setX41d(Utils.readShort(rawRooms));
 
-                // Add to the hash by the terrain ID
+                // Add to the hash by the room ID
                 rooms.put(room.getRoomId(), room);
             }
         } catch (IOException e) {
@@ -627,5 +639,343 @@ public class KwdFile {
 
     public String getInformation() {
         return information;
+    }
+
+    /**
+     * Reads the Creatures.kwd
+     *
+     * @param dkIIPath path to DK II data files (for filling up the catalogs)
+     * @throws RuntimeException reading may fail
+     */
+    private void readCreatures(String dkIIPath) throws RuntimeException {
+
+        // Read the creatures catalog
+        File creaturesFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Creatures.kwd"));
+        try (RandomAccessFile rawCreatures = new RandomAccessFile(creaturesFile, "r")) {
+
+            // Creatures file has a 36 header
+            rawCreatures.seek(20);
+            int creaturesCount = Utils.readUnsignedInteger(rawCreatures);
+
+            // The creatures file is just simple blocks until EOF
+            rawCreatures.seek(36); // End of header
+            rawCreatures.skipBytes(20); // I don't know what is in here
+
+            creatures = new HashMap<>(creaturesCount);
+            for (int i = 0; i < creaturesCount; i++) {
+                Creature creature = new Creature();
+                byte[] bytes = new byte[32];
+                rawCreatures.read(bytes);
+                creature.setName(Utils.bytesToString(bytes).trim());
+                ArtResource[] ref1 = new ArtResource[39];
+                for (int x = 0; x < ref1.length; x++) {
+                    ref1[x] = readArtResource(rawCreatures);
+                }
+                creature.setRef1(ref1);
+                creature.setUnkcec(Utils.readUnsignedShort(rawCreatures));
+                creature.setUnkcee(Utils.readUnsignedInteger(rawCreatures));
+                creature.setUnkcf2(Utils.readUnsignedInteger(rawCreatures));
+                creature.setEditorOrder((short) rawCreatures.readUnsignedByte());
+                creature.setUnk2c(Utils.readUnsignedShort(rawCreatures));
+                creature.setShotDelay(Utils.readUnsignedInteger(rawCreatures));
+                creature.setUnkcfd(Utils.readUnsignedShort(rawCreatures));
+                creature.setUnkcff(Utils.readUnsignedShort(rawCreatures));
+                creature.setUnkd01(Utils.readUnsignedInteger(rawCreatures));
+                int[] unk2d = new int[9];
+                for (int x = 0; x < unk2d.length; x++) {
+                    unk2d[x] = Utils.readUnsignedShort(rawCreatures);
+                }
+                creature.setUnk2d(unk2d);
+                bytes = new byte[32];
+                rawCreatures.read(bytes);
+                creature.setUnkd17(Utils.bytesToString(bytes).trim());
+                creature.setShuffleSpeed(Utils.readUnsignedInteger(rawCreatures));
+                short[] unk2e = new short[5];
+                for (int x = 0; x < unk2e.length; x++) {
+                    unk2e[x] = (short) rawCreatures.readUnsignedByte();
+                }
+                creature.setUnk2e(unk2e);
+                creature.setRef2(readArtResource(rawCreatures));
+                creature.setLight(readLight(rawCreatures));
+                Attraction[] attractions = new Attraction[2];
+                for (int x = 0; x < attractions.length; x++) {
+                    Attraction attraction = creature.new Attraction();
+                    attraction.setPresent(Utils.readUnsignedInteger(rawCreatures));
+                    attraction.setRoomIdAndSize(Utils.readUnsignedInteger(rawCreatures));
+                    attractions[x] = attraction;
+                }
+                creature.setAttraction(attractions);
+                creature.setUnkdbc(Utils.readUnsignedInteger(rawCreatures));
+                creature.setUnkdc0(Utils.readUnsignedInteger(rawCreatures));
+                Xdc4[] xdc4s = new Xdc4[3];
+                for (int x = 0; x < xdc4s.length; x++) {
+                    Xdc4 xdc4 = creature.new Xdc4();
+                    xdc4.setX00(Utils.readUnsignedInteger(rawCreatures));
+                    xdc4.setX04(Utils.readUnsignedInteger(rawCreatures));
+                    xdc4.setX08(Utils.readUnsignedInteger(rawCreatures));
+                    xdc4.setX0c((short) rawCreatures.readUnsignedByte());
+                    xdc4.setX0d((short) rawCreatures.readUnsignedByte());
+                    xdc4.setX0e((short) rawCreatures.readUnsignedByte());
+                    xdc4.setX0f((short) rawCreatures.readUnsignedByte());
+                    xdc4.setX10(Utils.readUnsignedInteger(rawCreatures));
+                    xdc4.setX14((short) rawCreatures.readUnsignedByte());
+                    xdc4.setX15((short) rawCreatures.readUnsignedByte());
+                    xdc4.setX16((short) rawCreatures.readUnsignedByte());
+                    xdc4.setX17((short) rawCreatures.readUnsignedByte());
+                    xdc4s[x] = xdc4;
+                }
+                creature.setXdc4(xdc4s);
+                Xe0c[] xe0cs = new Xe0c[4];
+                for (int x = 0; x < xe0cs.length; x++) {
+                    Xe0c xe0c = creature.new Xe0c();
+                    xe0c.setX00((short) rawCreatures.readUnsignedByte());
+                    xe0c.setX01((short) rawCreatures.readUnsignedByte());
+                    xe0cs[x] = xe0c;
+                }
+                creature.setXe0c(xe0cs);
+                Xe14[] xe14s = new Xe14[3];
+                for (int x = 0; x < xe14s.length; x++) {
+                    Xe14 xe14 = creature.new Xe14();
+                    xe14.setX00(Utils.readUnsignedInteger(rawCreatures));
+                    xe14.setX04(Utils.readUnsignedShort(rawCreatures));
+                    xe14.setX06(Utils.readUnsignedShort(rawCreatures));
+                    xe14.setX08((short) rawCreatures.readUnsignedByte());
+                    xe14.setX09((short) rawCreatures.readUnsignedByte());
+                    xe14.setX0a((short) rawCreatures.readUnsignedByte());
+                    xe14.setX0b((short) rawCreatures.readUnsignedByte());
+                    xe14s[x] = xe14;
+                }
+                creature.setXe14(xe14s);
+                Xe14[] xe38s = new Xe14[2];
+                for (int x = 0; x < xe38s.length; x++) {
+                    Xe14 xe14 = creature.new Xe14();
+                    xe14.setX00(Utils.readUnsignedInteger(rawCreatures));
+                    xe14.setX04(Utils.readUnsignedShort(rawCreatures));
+                    xe14.setX06(Utils.readUnsignedShort(rawCreatures));
+                    xe14.setX08((short) rawCreatures.readUnsignedByte());
+                    xe14.setX09((short) rawCreatures.readUnsignedByte());
+                    xe14.setX0a((short) rawCreatures.readUnsignedByte());
+                    xe14.setX0b((short) rawCreatures.readUnsignedByte());
+                    xe38s[x] = xe14;
+                }
+                creature.setXe38(xe38s);
+                Xe14[] xe50s = new Xe14[3];
+                for (int x = 0; x < xe50s.length; x++) {
+                    Xe14 xe14 = creature.new Xe14();
+                    xe14.setX00(Utils.readUnsignedInteger(rawCreatures));
+                    xe14.setX04(Utils.readUnsignedShort(rawCreatures));
+                    xe14.setX06(Utils.readUnsignedShort(rawCreatures));
+                    xe14.setX08((short) rawCreatures.readUnsignedByte());
+                    xe14.setX09((short) rawCreatures.readUnsignedByte());
+                    xe14.setX0a((short) rawCreatures.readUnsignedByte());
+                    xe14.setX0b((short) rawCreatures.readUnsignedByte());
+                    xe50s[x] = xe14;
+                }
+                creature.setXe50(xe50s);
+                int[] xe74 = new int[2];
+                for (int x = 0; x < xe74.length; x++) {
+                    xe74[x] = Utils.readUnsignedInteger(rawCreatures);
+                }
+                creature.setXe74(xe74);
+                Xe7c[] xe7cs = new Xe7c[3];
+                for (int x = 0; x < xe7cs.length; x++) {
+                    Xe7c xe7c = creature.new Xe7c();
+                    xe7c.setX00(Utils.readUnsignedInteger(rawCreatures));
+                    xe7c.setX04(Utils.readUnsignedShort(rawCreatures));
+                    xe7c.setX06(Utils.readUnsignedShort(rawCreatures));
+                    xe7cs[x] = xe7c;
+                }
+                creature.setXe7c(xe7cs);
+                Xe94 xe94 = creature.new Xe94();
+                xe94.setX00(Utils.readUnsignedInteger(rawCreatures));
+                xe94.setX04(Utils.readUnsignedInteger(rawCreatures));
+                xe94.setX08(Utils.readUnsignedInteger(rawCreatures));
+                creature.setXe94(xe94);
+                creature.setUnkea0(Utils.readInteger(rawCreatures));
+                creature.setHeight(Utils.readInteger(rawCreatures) / FIXED_POINT_DIVISION);
+                creature.setUnkea8(Utils.readUnsignedInteger(rawCreatures));
+                creature.setUnk3ab(Utils.readUnsignedInteger(rawCreatures));
+                creature.setEyeHeight(Utils.readInteger(rawCreatures) / FIXED_POINT_DIVISION);
+                creature.setSpeed(Utils.readInteger(rawCreatures));
+                creature.setRunSpeed(Utils.readInteger(rawCreatures));
+                creature.setUnk3ac(Utils.readUnsignedInteger(rawCreatures));
+                creature.setTimeAwake(Utils.readUnsignedInteger(rawCreatures));
+                creature.setTimeSleep(Utils.readUnsignedInteger(rawCreatures));
+                creature.setUnkec8(Utils.readUnsignedInteger(rawCreatures));
+                creature.setUnkecc(Utils.readUnsignedInteger(rawCreatures));
+                creature.setUnked0(Utils.readUnsignedInteger(rawCreatures));
+                creature.setUnked4(Utils.readUnsignedInteger(rawCreatures));
+                creature.setUnked8(Utils.readUnsignedInteger(rawCreatures));
+                creature.setSlapFearlessDuration(Utils.readInteger(rawCreatures));
+                creature.setUnkee0(Utils.readInteger(rawCreatures));
+                creature.setUnkee4(Utils.readInteger(rawCreatures));
+                creature.setPossessionManaCost(Utils.readShort(rawCreatures));
+                creature.setOwnLandHealthIncrease(Utils.readShort(rawCreatures));
+                creature.setRange(Utils.readInteger(rawCreatures));
+                creature.setUnkef0(Utils.readUnsignedInteger(rawCreatures));
+                creature.setUnk3af(Utils.readUnsignedInteger(rawCreatures));
+                creature.setMeleeRecharge(Utils.readInteger(rawCreatures));
+                creature.setUnkefc(Utils.readUnsignedInteger(rawCreatures));
+                creature.setExpForNextLevel(Utils.readUnsignedShort(rawCreatures));
+                short[] unk3b = new short[2];
+                for (int x = 0; x < unk3b.length; x++) {
+                    unk3b[x] = (short) rawCreatures.readUnsignedByte();
+                }
+                creature.setUnk3b(unk3b);
+                creature.setExpPerSecond(Utils.readUnsignedShort(rawCreatures));
+                creature.setExpPerSecondTraining(Utils.readUnsignedShort(rawCreatures));
+                creature.setResearchPerSecond(Utils.readUnsignedShort(rawCreatures));
+                creature.setManufacturePerSecond(Utils.readUnsignedShort(rawCreatures));
+                creature.setHp(Utils.readUnsignedShort(rawCreatures));
+                creature.setHpFromChicken(Utils.readUnsignedShort(rawCreatures));
+                creature.setFear(Utils.readUnsignedShort(rawCreatures));
+                creature.setThreat(Utils.readUnsignedShort(rawCreatures));
+                creature.setMeleeDamage(Utils.readUnsignedShort(rawCreatures));
+                creature.setSlapDamage(Utils.readUnsignedShort(rawCreatures));
+                creature.setManaGenPrayer(Utils.readUnsignedShort(rawCreatures));
+                creature.setUnk3cb(Utils.readUnsignedShort(rawCreatures));
+                creature.setPay(Utils.readUnsignedShort(rawCreatures));
+                creature.setMaxGoldHeld(Utils.readUnsignedShort(rawCreatures));
+                creature.setUnk3cc(Utils.readUnsignedShort(rawCreatures));
+                creature.setDecomposeValue(Utils.readUnsignedShort(rawCreatures));
+                int[] unk3cd = new int[2];
+                for (int x = 0; x < unk3cd.length; x++) {
+                    unk3cd[x] = Utils.readUnsignedShort(rawCreatures);
+                }
+                creature.setUnk3cd(unk3cd);
+                creature.setAngerNoLair(Utils.readShort(rawCreatures));
+                creature.setAngerNoFood(Utils.readShort(rawCreatures));
+                creature.setAngerNoPay(Utils.readShort(rawCreatures));
+                creature.setAngerNoWork(Utils.readShort(rawCreatures));
+                creature.setAngerSlap(Utils.readShort(rawCreatures));
+                creature.setAngerInHand(Utils.readShort(rawCreatures));
+                creature.setInitialGoldHeld(Utils.readShort(rawCreatures));
+                int[] unk3ce = new int[3];
+                for (int x = 0; x < unk3ce.length; x++) {
+                    unk3ce[x] = Utils.readUnsignedShort(rawCreatures);
+                }
+                creature.setUnk3ce(unk3ce);
+                creature.setSlapEffectId(Utils.readUnsignedShort(rawCreatures));
+                creature.setDeathEffectId(Utils.readUnsignedShort(rawCreatures));
+                creature.setUnkf40(Utils.readUnsignedShort(rawCreatures));
+                short[] unk3d = new short[3];
+                for (int x = 0; x < unk3d.length; x++) {
+                    unk3d[x] = (short) rawCreatures.readUnsignedByte();
+                }
+                creature.setUnk3d(unk3d);
+                creature.setUnkf45((short) rawCreatures.readUnsignedByte());
+                short[] unk40 = new short[2];
+                for (int x = 0; x < unk40.length; x++) {
+                    unk40[x] = (short) rawCreatures.readUnsignedByte();
+                }
+                creature.setUnk40(unk40);
+                short[] unkf48 = new short[3];
+                for (int x = 0; x < unkf48.length; x++) {
+                    unkf48[x] = (short) rawCreatures.readUnsignedByte();
+                }
+                creature.setUnkf48(unkf48);
+                creature.setCreatureId((short) rawCreatures.readUnsignedByte());
+                short[] unk3ea = new short[3];
+                for (int x = 0; x < unk3ea.length; x++) {
+                    unk3ea[x] = (short) rawCreatures.readUnsignedByte();
+                }
+                creature.setUnk3ea(unk3ea);
+                creature.setUnhappyThreshold((short) rawCreatures.readUnsignedByte());
+                short[] unk3eb = new short[2];
+                for (int x = 0; x < unk3eb.length; x++) {
+                    unk3eb[x] = (short) rawCreatures.readUnsignedByte();
+                }
+                creature.setUnk3eb(unk3eb);
+                creature.setLairObjectId((short) rawCreatures.readUnsignedByte());
+                short[] unk3f = new short[3];
+                for (int x = 0; x < unk3f.length; x++) {
+                    unk3f[x] = (short) rawCreatures.readUnsignedByte();
+                }
+                creature.setUnk3f(unk3f);
+                bytes = new byte[32];
+                rawCreatures.read(bytes);
+                creature.setXname(Utils.bytesToString(bytes).trim());
+                creature.setMaterial((short) rawCreatures.readUnsignedByte());
+                creature.setReff77(readArtResource(rawCreatures));
+                creature.setUnkfcb(Utils.readUnsignedShort(rawCreatures));
+                creature.setUnk4(Utils.readUnsignedInteger(rawCreatures));
+                creature.setRef3(readArtResource(rawCreatures));
+                short[] unk5 = new short[2];
+                for (int x = 0; x < unk5.length; x++) {
+                    unk5[x] = (short) rawCreatures.readUnsignedByte();
+                }
+                creature.setUnk5(unk5);
+                creature.setRef4(readArtResource(rawCreatures));
+                creature.setUnk6(Utils.readUnsignedInteger(rawCreatures));
+                creature.setTortureHpChange(Utils.readShort(rawCreatures));
+                creature.setTortureMoodChange(Utils.readShort(rawCreatures));
+                ArtResource[] ref5 = new ArtResource[6];
+                for (int x = 0; x < ref5.length; x++) {
+                    ref5[x] = readArtResource(rawCreatures);
+                }
+                creature.setRef5(ref5);
+                Unk7[] unk7s = new Unk7[7];
+                for (int x = 0; x < unk7s.length; x++) {
+                    Unk7 unk7 = creature.new Unk7();
+                    unk7.setX00(Utils.readUnsignedInteger(rawCreatures));
+                    unk7.setX04(Utils.readUnsignedInteger(rawCreatures));
+                    unk7.setX08(Utils.readUnsignedInteger(rawCreatures));
+                    unk7s[x] = unk7;
+                }
+                creature.setUnk7(unk7s);
+                creature.setRef6(readArtResource(rawCreatures));
+                X1323[] x1323s = new X1323[48];
+                for (int x = 0; x < x1323s.length; x++) {
+                    X1323 x1323 = creature.new X1323();
+                    x1323.setX00(Utils.readUnsignedShort(rawCreatures));
+                    x1323.setX02(Utils.readUnsignedShort(rawCreatures));
+                    x1323s[x] = x1323;
+                }
+                creature.setX1323(x1323s);
+                ArtResource[] ref7 = new ArtResource[3];
+                for (int x = 0; x < ref7.length; x++) {
+                    ref7[x] = readArtResource(rawCreatures);
+                }
+                creature.setRef7(ref7);
+                creature.setUnk14df(Utils.readUnsignedShort(rawCreatures));
+                int[] x14e1 = new int[2];
+                for (int x = 0; x < x14e1.length; x++) {
+                    x14e1[x] = Utils.readUnsignedInteger(rawCreatures);
+                }
+                creature.setX14e1(x14e1);
+                int[] x14e9 = new int[2];
+                for (int x = 0; x < x14e9.length; x++) {
+                    x14e9[x] = Utils.readUnsignedInteger(rawCreatures);
+                }
+                creature.setX14e9(x14e9);
+                creature.setRef8(readArtResource(rawCreatures));
+                creature.setUnk1545(Utils.readUnsignedInteger(rawCreatures));
+
+                // Add to the hash by the creature ID
+                creatures.put(creature.getCreatureId(), creature);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + creaturesFile + "!", e);
+        }
+    }
+
+    /**
+     * Reads and parses an Light object from the current file location
+     *
+     * @param file the file stream to parse from
+     * @return a Light
+     */
+    private Light readLight(RandomAccessFile file) throws IOException {
+        Light light = new Light();
+
+        // Read the data
+        light.setmKPos(new Vector3f(Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION));
+        light.setRadius(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+        light.setFlags(Utils.readUnsignedInteger(file));
+        light.setColor(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte()));
+
+        return light;
     }
 }
