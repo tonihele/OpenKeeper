@@ -25,6 +25,7 @@ import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe0c;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe14;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe7c;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe94;
+import toniarts.opendungeonkeeper.tools.convert.map.Object;
 
 /**
  * Reads a DK II map file, the KWD is the file name of the main map identifier,
@@ -55,6 +56,7 @@ public class KwdFile {
     private String email;
     private String information;
     private HashMap<Short, Creature> creatures;
+    private HashMap<Short, Object> objects;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -80,6 +82,8 @@ public class KwdFile {
         // GlobalVariables
         // KeeperSpells
         // Objects
+        readObjects(dkIIPath);
+
         // Rooms
         readRooms(dkIIPath);
 
@@ -977,5 +981,81 @@ public class KwdFile {
         light.setColor(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte()));
 
         return light;
+    }
+
+    /**
+     * Reads the Objects.kwd
+     *
+     * @param dkIIPath path to DK II data files (for filling up the catalogs)
+     * @throws RuntimeException reading may fail
+     */
+    private void readObjects(String dkIIPath) throws RuntimeException {
+
+        // Read the objects catalog
+        File objectsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Objects.kwd"));
+        try (RandomAccessFile rawObjects = new RandomAccessFile(objectsFile, "r")) {
+
+            // Objects file has a 36 header
+            rawObjects.seek(20);
+            int objectsCount = Utils.readUnsignedInteger(rawObjects);
+
+            // The objects file is just simple blocks until EOF
+            rawObjects.seek(36); // End of header
+            rawObjects.skipBytes(20); // I don't know what is in here
+
+            objects = new HashMap<>(objectsCount);
+            for (int i = 0; i < objectsCount; i++) {
+                Object object = new Object();
+                byte[] bytes = new byte[32];
+                rawObjects.read(bytes);
+                object.setName(Utils.bytesToString(bytes).trim());
+                object.setMeshResource(readArtResource(rawObjects));
+                object.setGuiIconResource(readArtResource(rawObjects));
+                object.setInHandIconResource(readArtResource(rawObjects));
+                object.setInHandMeshResource(readArtResource(rawObjects));
+                object.setkUnknownResource(readArtResource(rawObjects));
+                ArtResource[] additionalResources = new ArtResource[4];
+                for (int x = 0; x < additionalResources.length; x++) {
+                    additionalResources[x] = readArtResource(rawObjects);
+                }
+                object.setAdditionalResources(additionalResources);
+                object.setLight(readLight(rawObjects));
+                object.setWidth(Utils.readUnsignedInteger(rawObjects) / FIXED_POINT_DIVISION);
+                object.setHeight(Utils.readUnsignedInteger(rawObjects) / FIXED_POINT_DIVISION);
+                object.setMass(Utils.readUnsignedInteger(rawObjects) / FIXED_POINT_DIVISION);
+                object.setUnknown1(Utils.readUnsignedInteger(rawObjects));
+                object.setUnknown2(Utils.readUnsignedInteger(rawObjects));
+                object.setMaterial((short) rawObjects.readUnsignedByte());
+                short[] unknown3 = new short[3];
+                for (int x = 0; x < unknown3.length; x++) {
+                    unknown3[x] = (short) rawObjects.readUnsignedByte();
+                }
+                object.setUnknown3(unknown3);
+                object.setFlags(Utils.readUnsignedInteger(rawObjects));
+                object.setHp(Utils.readUnsignedShort(rawObjects));
+                object.setUnknown4(Utils.readUnsignedShort(rawObjects));
+                object.setX34c(Utils.readUnsignedShort(rawObjects));
+                object.setX34e(Utils.readUnsignedShort(rawObjects));
+                object.setX350(Utils.readUnsignedShort(rawObjects));
+                object.setX352(Utils.readUnsignedShort(rawObjects));
+                object.setSlapEffect(Utils.readUnsignedShort(rawObjects));
+                object.setDeathEffect(Utils.readUnsignedShort(rawObjects));
+                object.setUnknown5(Utils.readUnsignedShort(rawObjects));
+                object.setObjectId((short) rawObjects.readUnsignedByte());
+                object.setUnknown6((short) rawObjects.readUnsignedByte());
+                object.setRoomCapacity((short) rawObjects.readUnsignedByte());
+                object.setUnknown7((short) rawObjects.readUnsignedByte());
+                bytes = new byte[32];
+                rawObjects.read(bytes);
+                object.setSoundCategory(Utils.bytesToString(bytes).trim());
+
+                // Add to the hash by the room ID
+                objects.put(object.getObjectId(), object);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + objectsFile + "!", e);
+        }
     }
 }
