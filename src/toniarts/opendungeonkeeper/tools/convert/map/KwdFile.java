@@ -16,6 +16,7 @@ import javax.vecmath.Vector3f;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Animation;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Image;
+import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Mesh;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.ResourceType;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Attraction;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Unk7;
@@ -338,7 +339,7 @@ public class KwdFile {
         // 1 = image?
         // 2 = terrain resource?
         // 4 = ?
-        // 5 = ?
+        // 5 = mesh?
         // 6 = animation?
         // Debug
         System.out.println("Type: " + type);
@@ -364,6 +365,8 @@ public class KwdFile {
             }
             case 5: {
                 resourceType = artResource.new Mesh();
+                ((Mesh) resourceType).setScale(Utils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)) / FIXED_POINT_DIVISION);
+                ((Mesh) resourceType).setFrames(Utils.readUnsignedShort(Arrays.copyOfRange(bytes, 4, 6)));
                 break;
             }
             case 6: {
