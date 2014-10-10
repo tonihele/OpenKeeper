@@ -121,22 +121,22 @@ public class ArtResource {
      */
     public class Mesh extends ResourceType {
 
-        private int scale;
-        private short frames;
+        private float scale;
+        private int frames;
 
-        public int getScale() {
+        public float getScale() {
             return scale;
         }
 
-        public void setScale(int scale) {
+        public void setScale(float scale) {
             this.scale = scale;
         }
 
-        public short getFrames() {
+        public int getFrames() {
             return frames;
         }
 
-        public void setFrames(short frames) {
+        public void setFrames(int frames) {
             this.frames = frames;
         }
     }
