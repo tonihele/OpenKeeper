@@ -33,8 +33,8 @@ import toniarts.opendungeonkeeper.tools.convert.map.Object;
  * reads the KLDs actually<br>
  * The files are LITTLE ENDIAN I might say<br>
  * Some values are 3D coordinates or scale values presented in fixed point
- * integers. They are automatically converted to floats (divided by 2^12 =
- * 4096)<br>
+ * integers. They are automatically converted to floats (divided by 2^12 = 4096
+ * or 2^16 = 65536)<br>
  * Many parts adapted from C code by:
  * <li>George Gensure (werkt)</li>
  *
@@ -43,6 +43,7 @@ import toniarts.opendungeonkeeper.tools.convert.map.Object;
 public class KwdFile {
 
     private static final float FIXED_POINT_DIVISION = 4096f;
+    private static final float FIXED_POINT5_DIVISION = 65536f;
     private Map[][] tiles;
     private int width;
     private int height;
@@ -60,6 +61,7 @@ public class KwdFile {
     private HashMap<Short, Object> objects;
     private List<CreatureSpell> creatureSpells;
     private HashMap<Integer, EffectElement> effectElements;
+    private HashMap<Integer, Effect> effects;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -86,6 +88,8 @@ public class KwdFile {
         readEffectElements(dkIIPath);
 
         // Effects
+        readEffects(dkIIPath);
+
         // GlobalVariables
         // KeeperSpells
         // Objects
@@ -95,6 +99,8 @@ public class KwdFile {
         readRooms(dkIIPath);
 
         // Shots
+        // Not much info available on this
+
         // Terrain catalog
         readTerrain(dkIIPath);
 
@@ -1138,10 +1144,8 @@ public class KwdFile {
                 effectElement.setName(Utils.bytesToString(bytes).trim());
                 effectElement.setArtResource(readArtResource(raweffectElements));
                 effectElement.setMass(Utils.readInteger(raweffectElements) / FIXED_POINT_DIVISION);
-                effectElement.setAirFriction(Utils.readUnsignedInteger(raweffectElements) / FIXED_POINT_DIVISION);
-
-                // Elasticy seems to be much higher that in the editor...??
-                effectElement.setElasticity(Utils.readUnsignedInteger(raweffectElements) / FIXED_POINT_DIVISION);
+                effectElement.setAirFriction(Utils.readUnsignedInteger(raweffectElements) / FIXED_POINT5_DIVISION);
+                effectElement.setElasticity(Utils.readUnsignedInteger(raweffectElements) / FIXED_POINT5_DIVISION);
                 effectElement.setMinSpeedXy(Utils.readInteger(raweffectElements) / FIXED_POINT_DIVISION);
                 effectElement.setMaxSpeedXy(Utils.readInteger(raweffectElements) / FIXED_POINT_DIVISION);
                 effectElement.setMinSpeedYz(Utils.readInteger(raweffectElements) / FIXED_POINT_DIVISION);
@@ -1170,6 +1174,85 @@ public class KwdFile {
 
             //Fug
             throw new RuntimeException("Failed to read the file " + effectElementsFile + "!", e);
+        }
+    }
+
+    /**
+     * Reads the Effects.kwd
+     *
+     * @param dkIIPath path to DK II data files (for filling up the catalogs)
+     * @throws RuntimeException reading may fail
+     */
+    private void readEffects(String dkIIPath) throws RuntimeException {
+
+        // Read the effects catalog
+        File effectsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Effects.kwd"));
+        try (RandomAccessFile raweffects = new RandomAccessFile(effectsFile, "r")) {
+
+            // Effects file has a 36 header
+            raweffects.seek(20);
+            int effectsCount = Utils.readUnsignedInteger(raweffects);
+
+            // The effects file is just simple blocks until EOF
+            raweffects.seek(36); // End of header
+            raweffects.skipBytes(20); // I don't know what is in here
+
+            effects = new HashMap<>(effectsCount);
+            for (int i = 0; i < effectsCount; i++) {
+                Effect effect = new Effect();
+                byte[] bytes = new byte[32];
+                raweffects.read(bytes);
+                effect.setName(Utils.bytesToString(bytes).trim());
+                effect.setArtResource(readArtResource(raweffects));
+                effect.setLight(readLight(raweffects));
+                effect.setMass(Utils.readInteger(raweffects) / FIXED_POINT_DIVISION);
+                effect.setAirFriction(Utils.readUnsignedInteger(raweffects) / FIXED_POINT5_DIVISION);
+                effect.setElasticity(Utils.readUnsignedInteger(raweffects) / FIXED_POINT5_DIVISION);
+                effect.setRadius(Utils.readUnsignedInteger(raweffects) / FIXED_POINT_DIVISION);
+                effect.setMinSpeedXy(Utils.readInteger(raweffects) / FIXED_POINT_DIVISION);
+                effect.setMaxSpeedXy(Utils.readInteger(raweffects) / FIXED_POINT_DIVISION);
+                effect.setMinSpeedYz(Utils.readInteger(raweffects) / FIXED_POINT_DIVISION);
+                effect.setMaxSpeedYz(Utils.readInteger(raweffects) / FIXED_POINT_DIVISION);
+                effect.setMinScale(Utils.readUnsignedInteger(raweffects) / FIXED_POINT_DIVISION);
+                effect.setMaxScale(Utils.readUnsignedInteger(raweffects) / FIXED_POINT_DIVISION);
+                effect.setFlags(Utils.readUnsignedInteger(raweffects));
+                effect.setEffectId(Utils.readUnsignedShort(raweffects));
+                effect.setMinHp(Utils.readUnsignedShort(raweffects));
+                effect.setMaxHp(Utils.readUnsignedShort(raweffects));
+                effect.setFadeDuration(Utils.readUnsignedShort(raweffects));
+                effect.setNextEffect(Utils.readUnsignedShort(raweffects));
+                effect.setDeathEffect(Utils.readUnsignedShort(raweffects));
+                effect.setHitSolidEffect(Utils.readUnsignedShort(raweffects));
+                effect.setHitWaterEffect(Utils.readUnsignedShort(raweffects));
+                effect.setHitLavaEffect(Utils.readUnsignedShort(raweffects));
+                int[] generateIds = new int[8];
+                for (int x = 0; x < generateIds.length; x++) {
+                    generateIds[x] = Utils.readUnsignedShort(raweffects);
+                }
+                effect.setGenerateIds(generateIds);
+                effect.setOuterOriginRange(Utils.readUnsignedShort(raweffects));
+                effect.setLowerHeightLimit(Utils.readUnsignedShort(raweffects));
+                effect.setUpperHeightLimit(Utils.readUnsignedShort(raweffects));
+                effect.setOrientationRange(Utils.readUnsignedShort(raweffects));
+                effect.setSpriteSpinRateRange(Utils.readUnsignedShort(raweffects));
+                effect.setWhirlpoolRate(Utils.readUnsignedShort(raweffects));
+                effect.setDirectionalSpread(Utils.readUnsignedShort(raweffects));
+                effect.setCircularPathRate(Utils.readUnsignedShort(raweffects));
+                effect.setInnerOriginRange(Utils.readUnsignedShort(raweffects));
+                effect.setGenerateRandomness(Utils.readUnsignedShort(raweffects));
+                effect.setMisc2(Utils.readUnsignedShort(raweffects));
+                effect.setMisc3(Utils.readUnsignedShort(raweffects));
+                effect.setUnknown1((short) raweffects.readUnsignedByte());
+                effect.setElementsPerTurn((short) raweffects.readUnsignedByte());
+                effect.setUnknown3(Utils.readUnsignedShort(raweffects));
+
+                // Add to the hash by the effect ID
+                effects.put(effect.getEffectId(), effect);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + effectsFile + "!", e);
         }
     }
 }
