@@ -62,6 +62,7 @@ public class KwdFile {
     private List<CreatureSpell> creatureSpells;
     private HashMap<Integer, EffectElement> effectElements;
     private HashMap<Integer, Effect> effects;
+    private HashMap<Short, KeeperSpell> keeperSpells;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -92,6 +93,8 @@ public class KwdFile {
 
         // GlobalVariables
         // KeeperSpells
+        readKeeperSpells(dkIIPath);
+
         // Objects
         readObjects(dkIIPath);
 
@@ -1187,64 +1190,64 @@ public class KwdFile {
 
         // Read the effects catalog
         File effectsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Effects.kwd"));
-        try (RandomAccessFile raweffects = new RandomAccessFile(effectsFile, "r")) {
+        try (RandomAccessFile rawEffects = new RandomAccessFile(effectsFile, "r")) {
 
             // Effects file has a 36 header
-            raweffects.seek(20);
-            int effectsCount = Utils.readUnsignedInteger(raweffects);
+            rawEffects.seek(20);
+            int effectsCount = Utils.readUnsignedInteger(rawEffects);
 
             // The effects file is just simple blocks until EOF
-            raweffects.seek(36); // End of header
-            raweffects.skipBytes(20); // I don't know what is in here
+            rawEffects.seek(36); // End of header
+            rawEffects.skipBytes(20); // I don't know what is in here
 
             effects = new HashMap<>(effectsCount);
             for (int i = 0; i < effectsCount; i++) {
                 Effect effect = new Effect();
                 byte[] bytes = new byte[32];
-                raweffects.read(bytes);
+                rawEffects.read(bytes);
                 effect.setName(Utils.bytesToString(bytes).trim());
-                effect.setArtResource(readArtResource(raweffects));
-                effect.setLight(readLight(raweffects));
-                effect.setMass(Utils.readInteger(raweffects) / FIXED_POINT_DIVISION);
-                effect.setAirFriction(Utils.readUnsignedInteger(raweffects) / FIXED_POINT5_DIVISION);
-                effect.setElasticity(Utils.readUnsignedInteger(raweffects) / FIXED_POINT5_DIVISION);
-                effect.setRadius(Utils.readUnsignedInteger(raweffects) / FIXED_POINT_DIVISION);
-                effect.setMinSpeedXy(Utils.readInteger(raweffects) / FIXED_POINT_DIVISION);
-                effect.setMaxSpeedXy(Utils.readInteger(raweffects) / FIXED_POINT_DIVISION);
-                effect.setMinSpeedYz(Utils.readInteger(raweffects) / FIXED_POINT_DIVISION);
-                effect.setMaxSpeedYz(Utils.readInteger(raweffects) / FIXED_POINT_DIVISION);
-                effect.setMinScale(Utils.readUnsignedInteger(raweffects) / FIXED_POINT_DIVISION);
-                effect.setMaxScale(Utils.readUnsignedInteger(raweffects) / FIXED_POINT_DIVISION);
-                effect.setFlags(Utils.readUnsignedInteger(raweffects));
-                effect.setEffectId(Utils.readUnsignedShort(raweffects));
-                effect.setMinHp(Utils.readUnsignedShort(raweffects));
-                effect.setMaxHp(Utils.readUnsignedShort(raweffects));
-                effect.setFadeDuration(Utils.readUnsignedShort(raweffects));
-                effect.setNextEffect(Utils.readUnsignedShort(raweffects));
-                effect.setDeathEffect(Utils.readUnsignedShort(raweffects));
-                effect.setHitSolidEffect(Utils.readUnsignedShort(raweffects));
-                effect.setHitWaterEffect(Utils.readUnsignedShort(raweffects));
-                effect.setHitLavaEffect(Utils.readUnsignedShort(raweffects));
+                effect.setArtResource(readArtResource(rawEffects));
+                effect.setLight(readLight(rawEffects));
+                effect.setMass(Utils.readInteger(rawEffects) / FIXED_POINT_DIVISION);
+                effect.setAirFriction(Utils.readUnsignedInteger(rawEffects) / FIXED_POINT5_DIVISION);
+                effect.setElasticity(Utils.readUnsignedInteger(rawEffects) / FIXED_POINT5_DIVISION);
+                effect.setRadius(Utils.readUnsignedInteger(rawEffects) / FIXED_POINT_DIVISION);
+                effect.setMinSpeedXy(Utils.readInteger(rawEffects) / FIXED_POINT_DIVISION);
+                effect.setMaxSpeedXy(Utils.readInteger(rawEffects) / FIXED_POINT_DIVISION);
+                effect.setMinSpeedYz(Utils.readInteger(rawEffects) / FIXED_POINT_DIVISION);
+                effect.setMaxSpeedYz(Utils.readInteger(rawEffects) / FIXED_POINT_DIVISION);
+                effect.setMinScale(Utils.readUnsignedInteger(rawEffects) / FIXED_POINT_DIVISION);
+                effect.setMaxScale(Utils.readUnsignedInteger(rawEffects) / FIXED_POINT_DIVISION);
+                effect.setFlags(Utils.readUnsignedInteger(rawEffects));
+                effect.setEffectId(Utils.readUnsignedShort(rawEffects));
+                effect.setMinHp(Utils.readUnsignedShort(rawEffects));
+                effect.setMaxHp(Utils.readUnsignedShort(rawEffects));
+                effect.setFadeDuration(Utils.readUnsignedShort(rawEffects));
+                effect.setNextEffect(Utils.readUnsignedShort(rawEffects));
+                effect.setDeathEffect(Utils.readUnsignedShort(rawEffects));
+                effect.setHitSolidEffect(Utils.readUnsignedShort(rawEffects));
+                effect.setHitWaterEffect(Utils.readUnsignedShort(rawEffects));
+                effect.setHitLavaEffect(Utils.readUnsignedShort(rawEffects));
                 int[] generateIds = new int[8];
                 for (int x = 0; x < generateIds.length; x++) {
-                    generateIds[x] = Utils.readUnsignedShort(raweffects);
+                    generateIds[x] = Utils.readUnsignedShort(rawEffects);
                 }
                 effect.setGenerateIds(generateIds);
-                effect.setOuterOriginRange(Utils.readUnsignedShort(raweffects));
-                effect.setLowerHeightLimit(Utils.readUnsignedShort(raweffects));
-                effect.setUpperHeightLimit(Utils.readUnsignedShort(raweffects));
-                effect.setOrientationRange(Utils.readUnsignedShort(raweffects));
-                effect.setSpriteSpinRateRange(Utils.readUnsignedShort(raweffects));
-                effect.setWhirlpoolRate(Utils.readUnsignedShort(raweffects));
-                effect.setDirectionalSpread(Utils.readUnsignedShort(raweffects));
-                effect.setCircularPathRate(Utils.readUnsignedShort(raweffects));
-                effect.setInnerOriginRange(Utils.readUnsignedShort(raweffects));
-                effect.setGenerateRandomness(Utils.readUnsignedShort(raweffects));
-                effect.setMisc2(Utils.readUnsignedShort(raweffects));
-                effect.setMisc3(Utils.readUnsignedShort(raweffects));
-                effect.setUnknown1((short) raweffects.readUnsignedByte());
-                effect.setElementsPerTurn((short) raweffects.readUnsignedByte());
-                effect.setUnknown3(Utils.readUnsignedShort(raweffects));
+                effect.setOuterOriginRange(Utils.readUnsignedShort(rawEffects));
+                effect.setLowerHeightLimit(Utils.readUnsignedShort(rawEffects));
+                effect.setUpperHeightLimit(Utils.readUnsignedShort(rawEffects));
+                effect.setOrientationRange(Utils.readUnsignedShort(rawEffects));
+                effect.setSpriteSpinRateRange(Utils.readUnsignedShort(rawEffects));
+                effect.setWhirlpoolRate(Utils.readUnsignedShort(rawEffects));
+                effect.setDirectionalSpread(Utils.readUnsignedShort(rawEffects));
+                effect.setCircularPathRate(Utils.readUnsignedShort(rawEffects));
+                effect.setInnerOriginRange(Utils.readUnsignedShort(rawEffects));
+                effect.setGenerateRandomness(Utils.readUnsignedShort(rawEffects));
+                effect.setMisc2(Utils.readUnsignedShort(rawEffects));
+                effect.setMisc3(Utils.readUnsignedShort(rawEffects));
+                effect.setUnknown1((short) rawEffects.readUnsignedByte());
+                effect.setElementsPerTurn((short) rawEffects.readUnsignedByte());
+                effect.setUnknown3(Utils.readUnsignedShort(rawEffects));
 
                 // Add to the hash by the effect ID
                 effects.put(effect.getEffectId(), effect);
@@ -1253,6 +1256,77 @@ public class KwdFile {
 
             //Fug
             throw new RuntimeException("Failed to read the file " + effectsFile + "!", e);
+        }
+    }
+
+    /**
+     * Reads the KeeperSpells.kwd
+     *
+     * @param dkIIPath path to DK II data files (for filling up the catalogs)
+     * @throws RuntimeException reading may fail
+     */
+    private void readKeeperSpells(String dkIIPath) throws RuntimeException {
+
+        // Read the keeper spells catalog
+        File keeperSpellsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("KeeperSpells.kwd"));
+        try (RandomAccessFile rawKeeperSpells = new RandomAccessFile(keeperSpellsFile, "r")) {
+
+            // Keeper spells file has a 36 header
+            rawKeeperSpells.seek(20);
+            int keeperSpellsCount = Utils.readUnsignedInteger(rawKeeperSpells);
+
+            // The keeper spells file is just simple blocks until EOF
+            rawKeeperSpells.seek(36); // End of header
+            rawKeeperSpells.skipBytes(20); // I don't know what is in here
+
+            keeperSpells = new HashMap<>(keeperSpellsCount);
+            for (int i = 0; i < keeperSpellsCount; i++) {
+                KeeperSpell keeperSpell = new KeeperSpell();
+                byte[] bytes = new byte[32];
+                rawKeeperSpells.read(bytes);
+                keeperSpell.setName(Utils.bytesToString(bytes).trim());
+                keeperSpell.setRef1(readArtResource(rawKeeperSpells));
+                keeperSpell.setRef3(readArtResource(rawKeeperSpells));
+                keeperSpell.setXc8(Utils.readInteger(rawKeeperSpells));
+                keeperSpell.setXcc(Utils.readInteger(rawKeeperSpells));
+                keeperSpell.setShotData1(Utils.readInteger(rawKeeperSpells));
+                keeperSpell.setShotData2(Utils.readInteger(rawKeeperSpells));
+                keeperSpell.setXd8(Utils.readUnsignedShort(rawKeeperSpells));
+                keeperSpell.setXda((short) rawKeeperSpells.readUnsignedByte());
+                keeperSpell.setXdb((short) rawKeeperSpells.readUnsignedByte());
+                keeperSpell.setXdc(Utils.readInteger(rawKeeperSpells));
+                keeperSpell.setXe0Unreferenced(Utils.readUnsignedShort(rawKeeperSpells));
+                keeperSpell.setManaDrain(Utils.readUnsignedShort(rawKeeperSpells));
+                keeperSpell.setXe4(Utils.readUnsignedShort(rawKeeperSpells));
+                keeperSpell.setXe6(Utils.readUnsignedShort(rawKeeperSpells));
+                keeperSpell.setXe8(Utils.readUnsignedShort(rawKeeperSpells));
+                keeperSpell.setXea(Utils.readUnsignedShort(rawKeeperSpells));
+                keeperSpell.setXec(Utils.readUnsignedShort(rawKeeperSpells));
+                keeperSpell.setKeeperSpellId((short) rawKeeperSpells.readUnsignedByte());
+                keeperSpell.setXef((short) rawKeeperSpells.readUnsignedByte());
+                keeperSpell.setXf0((short) rawKeeperSpells.readUnsignedByte());
+                bytes = new byte[32];
+                rawKeeperSpells.read(bytes);
+                keeperSpell.setYName(Utils.bytesToString(bytes).trim());
+                keeperSpell.setBonusRTime(Utils.readUnsignedShort(rawKeeperSpells));
+                keeperSpell.setBonusShotType((short) rawKeeperSpells.readUnsignedByte());
+                keeperSpell.setBonusShotData1(Utils.readInteger(rawKeeperSpells));
+                keeperSpell.setBonusShotData2(Utils.readInteger(rawKeeperSpells));
+                keeperSpell.setManaCost(Utils.readInteger(rawKeeperSpells));
+                keeperSpell.setRef2(readArtResource(rawKeeperSpells));
+                bytes = new byte[32];
+                rawKeeperSpells.read(bytes);
+                keeperSpell.setXName(Utils.bytesToString(bytes).trim());
+                keeperSpell.setX194((short) rawKeeperSpells.readUnsignedByte());
+                keeperSpell.setX195((short) rawKeeperSpells.readUnsignedByte());
+
+                // Add to the hash by the keeper spell ID
+                keeperSpells.put(keeperSpell.getKeeperSpellId(), keeperSpell);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + keeperSpellsFile + "!", e);
         }
     }
 }
