@@ -59,6 +59,7 @@ public class KwdFile {
     private HashMap<Short, Creature> creatures;
     private HashMap<Short, Object> objects;
     private List<CreatureSpell> creatureSpells;
+    private HashMap<Integer, EffectElement> effectElements;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -82,6 +83,8 @@ public class KwdFile {
         readDoors(dkIIPath);
 
         // EffectElemets
+        readEffectElements(dkIIPath);
+
         // Effects
         // GlobalVariables
         // KeeperSpells
@@ -1055,7 +1058,7 @@ public class KwdFile {
                 rawObjects.read(bytes);
                 object.setSoundCategory(Utils.bytesToString(bytes).trim());
 
-                // Add to the hash by the room ID
+                // Add to the hash by the object ID
                 objects.put(object.getObjectId(), object);
             }
         } catch (IOException e) {
@@ -1104,6 +1107,69 @@ public class KwdFile {
 
             //Fug
             throw new RuntimeException("Failed to read the file " + creatureSpellsFile + "!", e);
+        }
+    }
+
+    /**
+     * Reads the EffectElements.kwd
+     *
+     * @param dkIIPath path to DK II data files (for filling up the catalogs)
+     * @throws RuntimeException reading may fail
+     */
+    private void readEffectElements(String dkIIPath) throws RuntimeException {
+
+        // Read the effect elements catalog
+        File effectElementsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("EffectElements.kwd"));
+        try (RandomAccessFile raweffectElements = new RandomAccessFile(effectElementsFile, "r")) {
+
+            // Effect elements file has a 36 header
+            raweffectElements.seek(20);
+            int effectElementsCount = Utils.readUnsignedInteger(raweffectElements);
+
+            // The effect elements file is just simple blocks until EOF
+            raweffectElements.seek(36); // End of header
+            raweffectElements.skipBytes(20); // I don't know what is in here
+
+            effectElements = new HashMap<>(effectElementsCount);
+            for (int i = 0; i < effectElementsCount; i++) {
+                EffectElement effectElement = new EffectElement();
+                byte[] bytes = new byte[32];
+                raweffectElements.read(bytes);
+                effectElement.setName(Utils.bytesToString(bytes).trim());
+                effectElement.setArtResource(readArtResource(raweffectElements));
+                effectElement.setMass(Utils.readInteger(raweffectElements) / FIXED_POINT_DIVISION);
+                effectElement.setAirFriction(Utils.readUnsignedInteger(raweffectElements) / FIXED_POINT_DIVISION);
+
+                // Elasticy seems to be much higher that in the editor...??
+                effectElement.setElasticity(Utils.readUnsignedInteger(raweffectElements) / FIXED_POINT_DIVISION);
+                effectElement.setMinSpeedXy(Utils.readInteger(raweffectElements) / FIXED_POINT_DIVISION);
+                effectElement.setMaxSpeedXy(Utils.readInteger(raweffectElements) / FIXED_POINT_DIVISION);
+                effectElement.setMinSpeedYz(Utils.readInteger(raweffectElements) / FIXED_POINT_DIVISION);
+                effectElement.setMaxSpeedYz(Utils.readInteger(raweffectElements) / FIXED_POINT_DIVISION);
+                effectElement.setMinScale(Utils.readUnsignedInteger(raweffectElements) / FIXED_POINT_DIVISION);
+                effectElement.setMaxScale(Utils.readUnsignedInteger(raweffectElements) / FIXED_POINT_DIVISION);
+                effectElement.setScaleRatio(Utils.readUnsignedInteger(raweffectElements) / FIXED_POINT_DIVISION);
+                effectElement.setFlags(Utils.readUnsignedInteger(raweffectElements));
+                effectElement.setEffectElementId(Utils.readUnsignedShort(raweffectElements));
+                effectElement.setMinHp(Utils.readUnsignedShort(raweffectElements));
+                effectElement.setMaxHp(Utils.readUnsignedShort(raweffectElements));
+                effectElement.setDeathElement(Utils.readUnsignedShort(raweffectElements));
+                effectElement.setHitSolidElement(Utils.readUnsignedShort(raweffectElements));
+                effectElement.setHitWaterElement(Utils.readUnsignedShort(raweffectElements));
+                effectElement.setHitLavaElement(Utils.readUnsignedShort(raweffectElements));
+                effectElement.setColor(new Color(raweffectElements.readUnsignedByte(), raweffectElements.readUnsignedByte(), raweffectElements.readUnsignedByte()));
+                effectElement.setRandomColorIndex((short) raweffectElements.readUnsignedByte());
+                effectElement.setTableColorIndex((short) raweffectElements.readUnsignedByte());
+                effectElement.setFadePercentage((short) raweffectElements.readUnsignedByte());
+                effectElement.setNextEffect(Utils.readUnsignedShort(raweffectElements));
+
+                // Add to the hash by the effect element ID
+                effectElements.put(effectElement.getEffectElementId(), effectElement);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + effectElementsFile + "!", e);
         }
     }
 }
