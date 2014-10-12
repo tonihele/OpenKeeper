@@ -313,4 +313,9 @@ public class Object {
     protected void setSoundCategory(String soundCategory) {
         this.soundCategory = soundCategory;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

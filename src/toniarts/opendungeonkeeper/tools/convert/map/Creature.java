@@ -1194,6 +1194,11 @@ public class Creature {
         this.unk1545 = unk1545;
     }
 
+    @Override
+    public String toString() {
+        return name;
+    }
+
     public class Attraction {
 
         private int present; // dac

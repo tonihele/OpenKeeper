@@ -32,6 +32,11 @@ public class ArtResource {
         this.settings = settings;
     }
 
+    @Override
+    public String toString() {
+        return name;
+    }
+
     public class ResourceType {
 
         private int flags; // 0

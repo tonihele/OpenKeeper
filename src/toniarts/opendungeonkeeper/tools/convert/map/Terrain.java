@@ -400,4 +400,9 @@ public class Terrain {
     protected void setStringIds(StringId stringIds) {
         this.stringIds = stringIds;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

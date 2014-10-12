@@ -33,4 +33,9 @@ public class CreatureSpell {
     protected void setData(short[] data) {
         this.data = data;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

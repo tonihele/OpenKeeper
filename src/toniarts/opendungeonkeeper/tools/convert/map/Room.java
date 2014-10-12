@@ -348,4 +348,9 @@ public class Room {
     protected void setTorch(ArtResource torch) {
         this.torch = torch;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

@@ -46,4 +46,9 @@ public class Door {
     protected void setUnknown(short[] unknown) {
         this.unknown = unknown;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

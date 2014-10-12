@@ -265,4 +265,9 @@ public class EffectElement {
     protected void setNextEffect(int nextEffect) {
         this.nextEffect = nextEffect;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }
