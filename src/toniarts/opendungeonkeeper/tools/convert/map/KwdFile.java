@@ -126,8 +126,10 @@ public class KwdFile {
         // Read the requested MAP file
         readMapFile(file);
 
-        // Read the requested PLAYER file
-        readPlayerFile(file);
+        // Read the requested PLAYERS file
+        readPlayersFile(file);
+
+        // Read the requested THINGS
     }
 
     /**
@@ -196,7 +198,7 @@ public class KwdFile {
      * @param file the original map KWD file
      * @throws RuntimeException reading may fail
      */
-    private void readPlayerFile(File file) throws RuntimeException {
+    private void readPlayersFile(File file) throws RuntimeException {
 
         // Read the requested PLAYER file
         File playerFile = new File(file.toString().substring(0, file.toString().length() - 4).concat("Players.kld"));
