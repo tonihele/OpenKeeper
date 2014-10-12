@@ -58,6 +58,7 @@ public class KwdFile {
     private String information;
     private HashMap<Short, Creature> creatures;
     private HashMap<Short, Object> objects;
+    private List<CreatureSpell> creatureSpells;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -75,6 +76,8 @@ public class KwdFile {
         readCreatures(dkIIPath);
 
         // CreatureSpells
+        readCreatureSpells(dkIIPath);
+
         // Doors
         readDoors(dkIIPath);
 
@@ -1059,6 +1062,48 @@ public class KwdFile {
 
             //Fug
             throw new RuntimeException("Failed to read the file " + objectsFile + "!", e);
+        }
+    }
+
+    /**
+     * Reads the CreatureSpells.kwd
+     *
+     * @param dkIIPath path to DK II data files (for filling up the catalogs)
+     * @throws RuntimeException reading may fail
+     */
+    private void readCreatureSpells(String dkIIPath) throws RuntimeException {
+
+        // Read the creature spells catalog
+        File creatureSpellsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("CreatureSpells.kwd"));
+        try (RandomAccessFile rawCreatureSpells = new RandomAccessFile(creatureSpellsFile, "r")) {
+
+            // Creature spells file has a 36 header
+            rawCreatureSpells.seek(20);
+            int creatureSpellsCount = Utils.readUnsignedInteger(rawCreatureSpells);
+
+            // The creature spells file is just simple blocks until EOF
+            rawCreatureSpells.seek(36); // End of header
+            rawCreatureSpells.skipBytes(20); // I don't know what is in here
+
+            creatureSpells = new ArrayList<>(creatureSpellsCount);
+            for (int i = 0; i < creatureSpellsCount; i++) {
+                CreatureSpell creatureSpell = new CreatureSpell();
+                byte[] bytes = new byte[32];
+                rawCreatureSpells.read(bytes);
+                creatureSpell.setName(Utils.bytesToString(bytes).trim());
+                short[] data = new short[234];
+                for (int x = 0; x < data.length; x++) {
+                    data[x] = (short) rawCreatureSpells.readUnsignedByte();
+                }
+                creatureSpell.setData(data);
+
+                // Add to the list
+                creatureSpells.add(creatureSpell);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + creatureSpellsFile + "!", e);
         }
     }
 }
