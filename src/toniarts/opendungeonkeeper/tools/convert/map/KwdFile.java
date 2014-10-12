@@ -27,6 +27,13 @@ import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe14;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe7c;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe94;
 import toniarts.opendungeonkeeper.tools.convert.map.Object;
+import toniarts.opendungeonkeeper.tools.convert.map.Thing.ActionPoint;
+import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing03;
+import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing08;
+import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing08.HeroPartyData;
+import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing10;
+import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing11;
+import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing12;
 
 /**
  * Reads a DK II map file, the KWD is the file name of the main map identifier,
@@ -63,6 +70,7 @@ public class KwdFile {
     private HashMap<Integer, EffectElement> effectElements;
     private HashMap<Integer, Effect> effects;
     private HashMap<Short, KeeperSpell> keeperSpells;
+    private List<Thing> things;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -130,6 +138,7 @@ public class KwdFile {
         readPlayersFile(file);
 
         // Read the requested THINGS
+        readThingsFile(file);
     }
 
     /**
@@ -1329,6 +1338,214 @@ public class KwdFile {
 
             //Fug
             throw new RuntimeException("Failed to read the file " + keeperSpellsFile + "!", e);
+        }
+    }
+
+    /**
+     * Reads the *Things.kld
+     *
+     * @param file the original map KWD file
+     * @throws RuntimeException reading may fail
+     */
+    private void readThingsFile(File file) throws RuntimeException {
+
+        // Read the requested Things file
+        File thingsFile = new File(file.toString().substring(0, file.toString().length() - 4).concat("Things.kld"));
+        try (RandomAccessFile rawThings = new RandomAccessFile(thingsFile, "r")) {
+
+            // Things file has a 36 header
+            rawThings.seek(20);
+            int thingsCount = Utils.readUnsignedInteger(rawThings);
+
+            // The things file is just simple blocks until EOF
+            rawThings.seek(36); // End of header
+            rawThings.skipBytes(20); // I don't know what is in here
+
+            things = new ArrayList<>(thingsCount);
+            for (int i = 0; i < thingsCount; i++) {
+                Thing thing = new Thing() {
+                };
+                int[] thingTag = new int[2];
+                for (int x = 0; x < thingTag.length; x++) {
+                    thingTag[x] = Utils.readUnsignedInteger(rawThings);
+                }
+
+                // Figure out the type
+                switch (thingTag[0]) {
+                    case 194: {
+
+                        // Thing06
+                        rawThings.skipBytes(thingTag[1]);
+                        break;
+                    }
+                    case 195: {
+
+                        // Thing05
+                        rawThings.skipBytes(thingTag[1]);
+                        break;
+                    }
+                    case 196: {
+
+                        // Thing04
+                        rawThings.skipBytes(thingTag[1]);
+                        break;
+                    }
+                    case 197: {
+
+                        // ActionPoint
+                        thing = thing.new ActionPoint();
+                        ((ActionPoint) thing).setX00(Utils.readInteger(rawThings));
+                        ((ActionPoint) thing).setX04(Utils.readInteger(rawThings));
+                        ((ActionPoint) thing).setX08(Utils.readInteger(rawThings));
+                        ((ActionPoint) thing).setX0c(Utils.readInteger(rawThings));
+                        ((ActionPoint) thing).setX10(Utils.readInteger(rawThings));
+                        ((ActionPoint) thing).setX14(Utils.readUnsignedShort(rawThings));
+                        ((ActionPoint) thing).setId((short) rawThings.readUnsignedByte());
+                        ((ActionPoint) thing).setX17((short) rawThings.readUnsignedByte());
+                        byte[] bytes = new byte[32];
+                        rawThings.read(bytes);
+                        ((ActionPoint) thing).setName(Utils.bytesToString(bytes).trim());
+                        break;
+                    }
+                    case 198: {
+
+                        // Thing01
+                        rawThings.skipBytes(thingTag[1]);
+                        break;
+                    }
+                    case 199: {
+
+                        // Thing02
+                        rawThings.skipBytes(thingTag[1]);
+                        break;
+                    }
+                    case 200: {
+
+                        // Thing03
+                        thing = thing.new Thing03();
+                        ((Thing03) thing).setPos(new Vector3f(Utils.readInteger(rawThings) / FIXED_POINT_DIVISION, Utils.readInteger(rawThings) / FIXED_POINT_DIVISION, Utils.readInteger(rawThings) / FIXED_POINT_DIVISION));
+                        ((Thing03) thing).setX0c(Utils.readUnsignedShort(rawThings));
+                        ((Thing03) thing).setX0e((short) rawThings.readUnsignedByte());
+                        ((Thing03) thing).setX0f((short) rawThings.readUnsignedByte());
+                        ((Thing03) thing).setX10(Utils.readInteger(rawThings));
+                        ((Thing03) thing).setX14(Utils.readInteger(rawThings));
+                        ((Thing03) thing).setX18(Utils.readUnsignedShort(rawThings));
+                        ((Thing03) thing).setId((short) rawThings.readUnsignedByte());
+                        ((Thing03) thing).setX1b((short) rawThings.readUnsignedByte());
+                        break;
+                    }
+                    case 201: {
+
+                        // Thing08 -- not tested
+                        thing = thing.new Thing08();
+                        byte[] bytes = new byte[32];
+                        rawThings.read(bytes);
+                        ((Thing08) thing).setName(Utils.bytesToString(bytes).trim());
+                        ((Thing08) thing).setX20(Utils.readUnsignedShort(rawThings));
+                        ((Thing08) thing).setX22((short) rawThings.readUnsignedByte());
+                        ((Thing08) thing).setX23(Utils.readInteger(rawThings));
+                        ((Thing08) thing).setX27(Utils.readInteger(rawThings));
+                        HeroPartyData[] x2b = new HeroPartyData[16];
+                        for (int x = 0; x < x2b.length; x++) {
+                            HeroPartyData heroPartyData = ((Thing08) thing).new HeroPartyData();
+                            heroPartyData.setX00(Utils.readInteger(rawThings));
+                            heroPartyData.setX04(Utils.readInteger(rawThings));
+                            heroPartyData.setX08(Utils.readInteger(rawThings));
+                            heroPartyData.setGoldHeld(Utils.readUnsignedShort(rawThings));
+                            heroPartyData.setX0e((short) rawThings.readUnsignedByte());
+                            heroPartyData.setX0f((short) rawThings.readUnsignedByte());
+                            heroPartyData.setX10(Utils.readInteger(rawThings));
+                            heroPartyData.setInitialHealth(Utils.readInteger(rawThings));
+                            heroPartyData.setX18(Utils.readUnsignedShort(rawThings));
+                            heroPartyData.setX1a((short) rawThings.readUnsignedByte());
+                            heroPartyData.setX1b((short) rawThings.readUnsignedByte());
+                            heroPartyData.setX1c((short) rawThings.readUnsignedByte());
+                            heroPartyData.setX1d((short) rawThings.readUnsignedByte());
+                            heroPartyData.setX1e((short) rawThings.readUnsignedByte());
+                            heroPartyData.setX1f((short) rawThings.readUnsignedByte());
+                            x2b[x] = heroPartyData;
+                        }
+                        ((Thing08) thing).setX2b(x2b);
+                        break;
+                    }
+                    case 203: {
+
+                        // Thing10 -- not tested
+                        thing = thing.new Thing10();
+                        ((Thing10) thing).setX00(Utils.readInteger(rawThings));
+                        ((Thing10) thing).setX04(Utils.readInteger(rawThings));
+                        ((Thing10) thing).setX08(Utils.readInteger(rawThings));
+                        ((Thing10) thing).setX0c(Utils.readInteger(rawThings));
+                        ((Thing10) thing).setX10(Utils.readUnsignedShort(rawThings));
+                        ((Thing10) thing).setX12(Utils.readUnsignedShort(rawThings));
+                        int[] x14 = new int[4];
+                        for (int x = 0; x < x14.length; x++) {
+                            x14[x] = Utils.readUnsignedShort(rawThings);
+                        }
+                        ((Thing10) thing).setX14(x14);
+                        ((Thing10) thing).setX1c((short) rawThings.readUnsignedByte());
+                        ((Thing10) thing).setX1d((short) rawThings.readUnsignedByte());
+                        short[] pad = new short[6];
+                        for (int x = 0; x < pad.length; x++) {
+                            pad[x] = (short) rawThings.readUnsignedByte();
+                        }
+                        ((Thing10) thing).setPad(pad);
+                        break;
+                    }
+                    case 204: {
+
+                        // Thing11
+                        thing = thing.new Thing11();
+                        ((Thing11) thing).setX00(Utils.readInteger(rawThings));
+                        ((Thing11) thing).setX04(Utils.readInteger(rawThings));
+                        ((Thing11) thing).setX08(Utils.readInteger(rawThings));
+                        ((Thing11) thing).setX0c(Utils.readUnsignedShort(rawThings));
+                        ((Thing11) thing).setX0e((short) rawThings.readUnsignedByte());
+                        ((Thing11) thing).setX0f((short) rawThings.readUnsignedByte());
+                        ((Thing11) thing).setX10(Utils.readUnsignedShort(rawThings));
+                        ((Thing11) thing).setX12((short) rawThings.readUnsignedByte());
+                        ((Thing11) thing).setX13((short) rawThings.readUnsignedByte());
+                        break;
+                    }
+                    case 205: {
+
+                        // Thing12 -- not tested
+                        thing = thing.new Thing12();
+                        ((Thing12) thing).setX00(new Vector3f(Utils.readInteger(rawThings) / FIXED_POINT_DIVISION, Utils.readInteger(rawThings) / FIXED_POINT_DIVISION, Utils.readInteger(rawThings) / FIXED_POINT_DIVISION));
+                        ((Thing12) thing).setX0c(new Vector3f(Utils.readInteger(rawThings) / FIXED_POINT_DIVISION, Utils.readInteger(rawThings) / FIXED_POINT_DIVISION, Utils.readInteger(rawThings) / FIXED_POINT_DIVISION));
+                        ((Thing12) thing).setX18(new Vector3f(Utils.readInteger(rawThings) / FIXED_POINT_DIVISION, Utils.readInteger(rawThings) / FIXED_POINT_DIVISION, Utils.readInteger(rawThings) / FIXED_POINT_DIVISION));
+                        ((Thing12) thing).setX24(Utils.readInteger(rawThings));
+                        ((Thing12) thing).setX28(Utils.readInteger(rawThings));
+                        ((Thing12) thing).setX2c(Utils.readInteger(rawThings));
+                        ((Thing12) thing).setX30(Utils.readInteger(rawThings));
+                        ((Thing12) thing).setX34(Utils.readInteger(rawThings));
+                        ((Thing12) thing).setX38(Utils.readInteger(rawThings));
+                        ((Thing12) thing).setX3c(Utils.readInteger(rawThings));
+                        ((Thing12) thing).setX40(Utils.readInteger(rawThings));
+                        ((Thing12) thing).setX44(Utils.readInteger(rawThings));
+                        ((Thing12) thing).setX48(Utils.readInteger(rawThings));
+                        ((Thing12) thing).setX4c(Utils.readUnsignedShort(rawThings));
+                        ((Thing12) thing).setX4e(Utils.readUnsignedShort(rawThings));
+                        ((Thing12) thing).setX50(Utils.readUnsignedShort(rawThings));
+                        ((Thing12) thing).setX52((short) rawThings.readUnsignedByte());
+                        break;
+                    }
+                    default: {
+
+                        // Just skip the bytes
+                        rawThings.skipBytes(thingTag[1]);
+                    }
+                }
+
+                System.out.println(thingTag[0] + " type");
+
+                // Add to the list
+                things.add(thing);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + thingsFile + "!", e);
         }
     }
 }
