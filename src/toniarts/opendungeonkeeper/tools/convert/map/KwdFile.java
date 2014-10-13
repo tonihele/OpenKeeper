@@ -71,6 +71,7 @@ public class KwdFile {
     private HashMap<Integer, Effect> effects;
     private HashMap<Short, KeeperSpell> keeperSpells;
     private List<Thing> things;
+    private HashMap<Short, Shot> shots;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -110,7 +111,7 @@ public class KwdFile {
         readRooms(dkIIPath);
 
         // Shots
-        // Not much info available on this
+        readShots(dkIIPath);
 
         // Terrain catalog
         readTerrain(dkIIPath);
@@ -1546,6 +1547,50 @@ public class KwdFile {
 
             //Fug
             throw new RuntimeException("Failed to read the file " + thingsFile + "!", e);
+        }
+    }
+
+    /**
+     * Reads the Shots.kwd
+     *
+     * @param dkIIPath path to DK II data files (for filling up the catalogs)
+     * @throws RuntimeException reading may fail
+     */
+    private void readShots(String dkIIPath) throws RuntimeException {
+
+        // Read the shots catalog
+        File shotsFile = new File(dkIIPath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Shots.kwd"));
+        try (RandomAccessFile rawShots = new RandomAccessFile(shotsFile, "r")) {
+
+            // Shots file has a 36 header
+            rawShots.seek(20);
+            int shotsCount = Utils.readUnsignedInteger(rawShots);
+
+            // The shots file is just simple blocks until EOF
+            rawShots.seek(36); // End of header
+            rawShots.skipBytes(20); // I don't know what is in here
+
+            shots = new HashMap<>(shotsCount);
+            for (int i = 0; i < shotsCount; i++) {
+
+                // One shot is 239 bytes
+                Shot shot = new Shot();
+                byte[] bytes = new byte[32];
+                rawShots.read(bytes);
+                shot.setName(Utils.bytesToString(bytes).trim());
+
+                // The ID is probably a uint8 @ 190
+                rawShots.skipBytes(158);
+                shot.setShotId((short) rawShots.readUnsignedByte());
+                rawShots.skipBytes(48);
+
+                // Add to the hash by the shot ID
+                shots.put(shot.getShotId(), shot);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + shotsFile + "!", e);
         }
     }
 }
