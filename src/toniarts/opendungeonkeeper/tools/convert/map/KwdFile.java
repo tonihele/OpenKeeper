@@ -34,6 +34,8 @@ import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing08.HeroPartyData;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing10;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing11;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing12;
+import toniarts.opendungeonkeeper.tools.convert.map.Trigger.TriggerAction;
+import toniarts.opendungeonkeeper.tools.convert.map.Trigger.TriggerGeneric;
 
 /**
  * Reads a DK II map file, the KWD is the file name of the main map identifier,
@@ -72,6 +74,7 @@ public class KwdFile {
     private HashMap<Short, KeeperSpell> keeperSpells;
     private List<Thing> things;
     private HashMap<Short, Shot> shots;
+    private List<Trigger> triggers;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -138,8 +141,11 @@ public class KwdFile {
         // Read the requested PLAYERS file
         readPlayersFile(file);
 
-        // Read the requested THINGS
+        // Read the requested THINGS file
         readThingsFile(file);
+
+        // Read the requested TRIGGERS file
+        readTriggersFile(file);
     }
 
     /**
@@ -1591,6 +1597,96 @@ public class KwdFile {
 
             //Fug
             throw new RuntimeException("Failed to read the file " + shotsFile + "!", e);
+        }
+    }
+
+    /**
+     * Reads the *Triggers.kld
+     *
+     * @param file the original map KWD file
+     * @throws RuntimeException reading may fail
+     */
+    private void readTriggersFile(File file) throws RuntimeException {
+
+        // Read the requested Triggers file
+        File triggersFile = new File(file.toString().substring(0, file.toString().length() - 4).concat("Triggers.kld"));
+        try (RandomAccessFile rawTriggers = new RandomAccessFile(triggersFile, "r")) {
+
+            // Triggers file has a 40 byte header
+            rawTriggers.seek(20);
+
+            // A bit special, count is dw08 + x0c[0]
+            int triggerCount = Utils.readUnsignedInteger(rawTriggers) + Utils.readUnsignedInteger(rawTriggers);
+
+//            struct kwdHeader {
+//                unsigned int id;
+//                unsigned int size;
+//                union {
+//                struct {
+//                uint16_t w08;
+//                uint16_t w0a;
+//                } level;
+//                unsigned int dw08;
+//                };
+//                unsigned int x0c[7];
+//                };
+
+            // The triggers file is just simple blocks until EOF
+            rawTriggers.seek(40); // End of header
+            rawTriggers.skipBytes(20); // I don't know what is in here
+
+            triggers = new ArrayList<>(triggerCount);
+            for (int i = 0; i < triggerCount; i++) {
+                Trigger trigger = new Trigger() {
+                };
+                int[] triggerTag = new int[2];
+                for (int x = 0; x < triggerTag.length; x++) {
+                    triggerTag[x] = Utils.readUnsignedInteger(rawTriggers);
+                }
+
+                // Figure out the type
+                switch (triggerTag[0]) {
+                    case 213: {
+
+                        // TriggerGeneric
+                        trigger = trigger.new TriggerGeneric();
+                        ((TriggerGeneric) trigger).setX00(Utils.readInteger(rawTriggers));
+                        ((TriggerGeneric) trigger).setX04(Utils.readInteger(rawTriggers));
+                        ((TriggerGeneric) trigger).setX08(Utils.readUnsignedShort(rawTriggers));
+                        ((TriggerGeneric) trigger).setX0a(Utils.readUnsignedShort(rawTriggers));
+                        ((TriggerGeneric) trigger).setX0c(Utils.readUnsignedShort(rawTriggers));
+                        ((TriggerGeneric) trigger).setX0e((short) rawTriggers.readUnsignedByte());
+                        ((TriggerGeneric) trigger).setX0f((short) rawTriggers.readUnsignedByte());
+                        break;
+                    }
+                    case 214: {
+
+                        // TriggerAction
+                        trigger = trigger.new TriggerAction();
+                        ((TriggerAction) trigger).setX00(Utils.readInteger(rawTriggers));
+                        ((TriggerAction) trigger).setX04(Utils.readInteger(rawTriggers));
+                        ((TriggerAction) trigger).setX08(Utils.readUnsignedShort(rawTriggers));
+                        ((TriggerAction) trigger).setX0a(Utils.readUnsignedShort(rawTriggers));
+                        ((TriggerAction) trigger).setX0c(Utils.readUnsignedShort(rawTriggers));
+                        ((TriggerAction) trigger).setX0e((short) rawTriggers.readUnsignedByte());
+                        rawTriggers.skipBytes(1); // ????
+                        break;
+                    }
+                    default: {
+
+                        // Just skip the bytes
+                        rawTriggers.skipBytes(triggerTag[1]);
+                        System.out.println(triggerTag[0] + " type");
+                    }
+                }
+
+                // Add to the list
+                triggers.add(trigger);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + triggersFile + "!", e);
         }
     }
 }
