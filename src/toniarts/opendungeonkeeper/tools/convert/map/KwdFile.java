@@ -75,6 +75,7 @@ public class KwdFile {
     private List<Thing> things;
     private HashMap<Short, Shot> shots;
     private List<Trigger> triggers;
+    private List<Variable> variables;
 
     /**
      * Constructs a new KWD file reader<br>
@@ -146,6 +147,9 @@ public class KwdFile {
 
         // Read the requested TRIGGERS file
         readTriggersFile(file);
+
+        // Read the requested VARIABLES file
+        readVariablesFile(file);
     }
 
     /**
@@ -224,7 +228,7 @@ public class KwdFile {
             rawPlayer.seek(20);
             int playerCount = Utils.readUnsignedInteger(rawPlayer);
 
-            // The map file is just simple blocks until EOF
+            // The player file is just simple blocks until EOF
             rawPlayer.seek(36); // End of header
             rawPlayer.skipBytes(20); // I don't know what is in here
 
@@ -1687,6 +1691,44 @@ public class KwdFile {
 
             //Fug
             throw new RuntimeException("Failed to read the file " + triggersFile + "!", e);
+        }
+    }
+
+    /**
+     * Reads the *Variables.kld
+     *
+     * @param file the original map KWD file
+     * @throws RuntimeException reading may fail
+     */
+    private void readVariablesFile(File file) throws RuntimeException {
+
+        // Read the requested VARIABLES file
+        File variablesFile = new File(file.toString().substring(0, file.toString().length() - 4).concat("Variables.kld"));
+        try (RandomAccessFile rawVariable = new RandomAccessFile(variablesFile, "r")) {
+
+            // Variables file has a 36 header
+            rawVariable.seek(20);
+            int variableCount = Utils.readUnsignedInteger(rawVariable);
+
+            // The variables file is just simple blocks until EOF
+            rawVariable.seek(36); // End of header
+            rawVariable.skipBytes(20); // I don't know what is in here
+
+            variables = new ArrayList<>(variableCount);
+            for (int i = 0; i < variableCount; i++) {
+                Variable variable = new Variable();
+                variable.setX00(Utils.readInteger(rawVariable));
+                variable.setX04(Utils.readInteger(rawVariable));
+                variable.setX08(Utils.readInteger(rawVariable));
+                variable.setX0c(Utils.readInteger(rawVariable));
+
+                // Add to the list
+                variables.add(variable);
+            }
+        } catch (IOException e) {
+
+            //Fug
+            throw new RuntimeException("Failed to read the file " + variablesFile + "!", e);
         }
     }
 }
