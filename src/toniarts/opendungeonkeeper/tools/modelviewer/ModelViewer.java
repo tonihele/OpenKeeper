@@ -28,6 +28,8 @@ import com.jme3.shadow.EdgeFilteringMode;
 import com.jme3.util.TangentBinormalGenerator;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
+import de.lessvoid.nifty.controls.DropDown;
+import de.lessvoid.nifty.controls.DropDownSelectionChangedEvent;
 import de.lessvoid.nifty.controls.ListBox;
 import de.lessvoid.nifty.controls.ListBoxSelectionChangedEvent;
 import de.lessvoid.nifty.screen.Screen;
@@ -36,6 +38,9 @@ import de.lessvoid.nifty.spi.render.RenderFont;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -45,6 +50,9 @@ import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
 import toniarts.opendungeonkeeper.tools.convert.KmfAssetInfo;
 import toniarts.opendungeonkeeper.tools.convert.KmfModelLoader;
 import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
+import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
+import toniarts.opendungeonkeeper.tools.convert.map.Terrain;
+import toniarts.opendungeonkeeper.tools.convert.map.loader.TerrainLoader;
 
 /**
  * Simple model viewer
@@ -53,6 +61,20 @@ import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
  */
 public class ModelViewer extends SimpleApplication implements ScreenController {
 
+    public enum Types {
+
+        MODELS("Models"), TERRAIN("Terrain");
+        private String name;
+
+        private Types(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
     private static String dkIIFolder;
     private static boolean convertAssets = false;
     private Vector3f lightDir = new Vector3f(-1, -1, .5f).normalizeLocal();
@@ -62,6 +84,8 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private final File kmfModel;
     private final String name = "SelectedModel";
     private boolean wireframe = false;
+    private List<String> models;
+    private KwdFile kwdFile;
     private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
 
     public static void main(String[] args) {
@@ -203,35 +227,64 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
      * Fill the listbox with items. In this case with JustAnExampleModelClass.
      */
     public void fillModels() {
-        ListBox<String> listBox = (ListBox<String>) screen.findNiftyControl("modelListBox", ListBox.class);
+        ListBox listBox = getModelListBox();
 
-        //Find all the models
-        File f = new File(AssetsConverter.getAssetsFolder().concat(AssetsConverter.MODELS_FOLDER).concat(File.separator));
-        File[] files = f.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.toLowerCase().endsWith(".j3o");
+        if (models == null) {
+
+            //Find all the models
+            models = new ArrayList<>();
+            File f = new File(AssetsConverter.getAssetsFolder().concat(AssetsConverter.MODELS_FOLDER).concat(File.separator));
+            File[] files = f.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.toLowerCase().endsWith(".j3o");
+                }
+            });
+            Path path = new File(AssetsConverter.getAssetsFolder()).toPath();
+            for (File file : files) {
+                String key = path.relativize(file.toPath()).toString();
+                models.add(key.substring(0, key.length() - 4));
             }
-        });
-        Path path = new File(AssetsConverter.getAssetsFolder()).toPath();
-        for (File file : files) {
-            String key = path.relativize(file.toPath()).toString();
-            listBox.addItem(key.substring(0, key.length() - 4));
         }
 
-        // Sort
+        // Add & sort
+        listBox.addAllItems(models);
         listBox.sortAllItems();
     }
 
+    private void fillTerrain() {
+        KwdFile kwfFile = getKwdFile();
+        Collection<Terrain> terrains = kwfFile.getTerrainList();
+        getModelListBox().addAllItems(Arrays.asList(terrains.toArray()));
+    }
+
     @NiftyEventSubscriber(id = "modelListBox")
-    public void onListBoxSelectionChanged(final String id, final ListBoxSelectionChangedEvent<String> event) {
-        List<String> selection = event.getSelection();
+    public void onListBoxSelectionChanged(final String id, final ListBoxSelectionChangedEvent<Object> event) {
+        List<Object> selection = event.getSelection();
         if (selection.size() == 1) {
 
-            // Load the selected model
-            Node spat = (Node) this.getAssetManager().loadModel(selection.get(0).concat(".j3o").replaceAll(Matcher.quoteReplacement(File.separator), "/"));
-            setupModel(spat);
+            switch (getTypeDropDown().getSelection()) {
+                case MODELS: {
+
+                    // Load the selected model
+                    Node spat = (Node) this.getAssetManager().loadModel(((String) selection.get(0)).concat(".j3o").replaceAll(Matcher.quoteReplacement(File.separator), "/"));
+                    setupModel(spat);
+                    break;
+                }
+                case TERRAIN: {
+
+                    // Load the selected terrain
+                    Node spat = (Node) new TerrainLoader().load(this.getAssetManager(), (Terrain) selection.get(0));
+                    setupModel(spat);
+                    break;
+                }
+            }
         }
+    }
+
+    @NiftyEventSubscriber(id = "typeCombo")
+    public void onTypeChanged(final String id, final DropDownSelectionChangedEvent<Types> event) {
+        fillList(event.getSelection());
     }
 
     @Override
@@ -247,8 +300,8 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     public void bind(Nifty nifty, Screen screen) {
         this.screen = screen;
 
-        // Fill the models
-        fillModels();
+        // Fill types
+        fillTypes();
     }
 
     @Override
@@ -299,5 +352,67 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             channel.setAnim("anim");
             channel.setLoopMode(LoopMode.Loop);
         }
+    }
+
+    /**
+     * Fills in the different types of objects we have
+     */
+    private void fillTypes() {
+        DropDown<Types> dropDown = getTypeDropDown();
+        if (dkIIFolder != null) {
+            dropDown.addAllItems(Arrays.asList(Types.values()));
+        } else {
+            dropDown.addItem(Types.MODELS);
+        }
+
+        // Select the first one
+        dropDown.selectItemByIndex(0);
+        fillList(dropDown.getSelection());
+    }
+
+    /**
+     * Fill the list box with the objects of currently selected type
+     *
+     * @param type the selected type
+     */
+    private void fillList(Types type) {
+        getModelListBox().clear();
+        switch (type) {
+            case MODELS: {
+                fillModels();
+                break;
+            }
+            case TERRAIN: {
+                fillTerrain();
+                break;
+            }
+        }
+    }
+
+    /**
+     * Get the listbox holding the models
+     *
+     * @return the listbox
+     */
+    private ListBox getModelListBox() {
+        ListBox<Object> listBox = (ListBox<Object>) screen.findNiftyControl("modelListBox", ListBox.class);
+        return listBox;
+    }
+
+    /**
+     * Get the dropdown selection for type
+     *
+     * @return the dropdown
+     */
+    private DropDown<Types> getTypeDropDown() {
+        DropDown<Types> dropDown = (DropDown<Types>) screen.findNiftyControl("typeCombo", DropDown.class);
+        return dropDown;
+    }
+
+    private synchronized KwdFile getKwdFile() {
+        if (kwdFile == null) {
+            kwdFile = new KwdFile(dkIIFolder);
+        }
+        return kwdFile;
     }
 }
