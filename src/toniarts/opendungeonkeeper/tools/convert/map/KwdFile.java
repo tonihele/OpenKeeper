@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import javax.vecmath.Vector3f;
@@ -1730,5 +1731,14 @@ public class KwdFile {
             //Fug
             throw new RuntimeException("Failed to read the file " + variablesFile + "!", e);
         }
+    }
+
+    /**
+     * Get list of different terrain tiles
+     *
+     * @return list of terrain tiles
+     */
+    public Collection<Terrain> getTerrainList() {
+        return terrainTiles.values();
     }
 }
