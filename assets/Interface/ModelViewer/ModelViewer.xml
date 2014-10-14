@@ -8,7 +8,8 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="start" controller="toniarts.opendungeonkeeper.tools.modelviewer.ModelViewer">
         <layer id="layer" childLayout="horizontal">
-            <panel id="panel" height="95%" width="25%" align="left" valign="center" childLayout="center" visibleToMouse="true">
+            <panel id="panel" height="95%" width="25%" align="left" valign="center" childLayout="vertical" visibleToMouse="true">
+                <control id="typeCombo" name="dropDown" displayItems="5" />
                 <control id="modelListBox" name="listBox" forceSelection="true" vertical="optional" horizontal="optional" displayItems="20" selection="Single" />
             </panel>
         </layer>
