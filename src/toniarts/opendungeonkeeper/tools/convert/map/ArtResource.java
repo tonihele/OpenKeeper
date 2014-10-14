@@ -20,7 +20,7 @@ public class ArtResource {
         return name;
     }
 
-    public void setName(String name) {
+    protected void setName(String name) {
         this.name = name;
     }
 
@@ -28,7 +28,7 @@ public class ArtResource {
         return settings;
     }
 
-    public void setSettings(ResourceType settings) {
+    protected void setSettings(ResourceType settings) {
         this.settings = settings;
     }
 
