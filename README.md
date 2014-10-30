@@ -14,7 +14,8 @@ TODO
   - [x] Extract WAD files
     - [x] Support compression
   - [x] Read meshes (meshes.wad -> kmf)
-  - [ ] Read maps (kwd, kld)
+  - [x] Read maps (kwd, kld)
+    - [ ] Reverse-engineer the still unknown flags (some of the are not of use thou)
   - [ ] Read textures (EngineTextures.dat, what does the EngineTextures.wad file contain? - PNGs..)
     - [x] Names & entries
     - [ ] Texture compression
@@ -30,14 +31,15 @@ TODO
     - [x] Basic mesh conversion
     - [x] LOD
     - [x] Animations (**
-      - [ ] Integrate animations to the model itself
+      - [ ] Integrate animations to the model itself (maybe, have to see the prefered usage)
     - [x] Materials
       - [ ] All materials should exist only once, as JME material file
-  - [ ] Maps to our open map format (XML, xstream?)
+  - [ ] Maps to our open map format (XML, xstream?) `(***`
   - [ ] Sounds (MP2 is not supported by JME, either write support or convert to WAV/OGG, Xuggler?) (*
   - [ ] Video playes for DK format (*
   - [ ] Paths to JME MotionPaths?
   - [x] Cursors
+    - [x] Animated cursors
   - ?
 - [ ] Load maps to engine
 - [ ] Basic world interaction
@@ -50,6 +52,8 @@ TODO
 `(*` low priority
 
 `(**` vertex animations, we need our own animation control, JME doesn't support out of the box
+
+`(***` The map format is awfully complex and complete (rules, effects, etc. the whole game really), so better hold this off for a long time and use the originals
 
 Resources
 =========
