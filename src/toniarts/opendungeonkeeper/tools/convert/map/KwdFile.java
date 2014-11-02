@@ -11,6 +11,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import javax.vecmath.Vector3f;
@@ -54,6 +55,30 @@ import toniarts.opendungeonkeeper.tools.convert.map.Trigger.TriggerGeneric;
  */
 public class KwdFile {
 
+    public enum LevFlag {
+
+        UNKNOWN(0x0004), // unknown; always on in maps
+        ALWAYSIMPRISN(0x0008), // Always imprison enemies
+        ONESHOTHORNY(0x0010), // Set if one shot Horny spell is available
+        ISSECRETLVL(0x0020), // The map is Secret level
+        ISSPECIALLVL(0x0040), // The map is Special level
+        SHOWHEROKILLS(0x0080), // Display "Heroes killed" tally
+        AUTOOBJECTVBX(0x0100), // Automatic show objective box
+        HEARTMAKESGEM(0x0200), // Last heart generates Portal Gem
+        ISMULTIPLRLVL(0x0400), // The map is Multiplayer level
+        ISSKIRMISHLVL(0x0800), // The map is Skirmish level
+        FREEZEOPTIONS(0x1000), // Freeze game options
+        ISMPDLEVEL(0x2000); // The map is My Pet Dungeon level
+        private final int flagValue;
+
+        private LevFlag(int flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        public int getFlagValue() {
+            return flagValue;
+        }
+    };
     private static final float FIXED_POINT_DIVISION = 4096f;
     private static final float FIXED_POINT5_DIVISION = 65536f;
     // KWD data
@@ -103,7 +128,7 @@ public class KwdFile {
     private int ticksPerSec;
     private short x01184[];
     private String messages[];
-    private int lvflags;
+    private EnumSet<LevFlag> lvflags;
     private String speechStr;
     private short talismanPieces;
     private short rewardPrev[];
@@ -114,7 +139,7 @@ public class KwdFile {
     private int textPlotId;
     private int textDebriefId;
     private int textObjectvId;
-    private int x063c3;
+    private int x063c3; //this may be first text_subobjctv_id - not sure
     private int textSubobjctvId1;
     private int textSubobjctvId2;
     private int textSubobjctvId3;
@@ -747,7 +772,15 @@ public class KwdFile {
                 rawMapInfo.read(bytes);
                 messages[x] = Utils.bytesToStringUtf16(bytes).trim();
             }
-            lvflags = Utils.readUnsignedShort(rawMapInfo);
+            int flag = Utils.readUnsignedShort(rawMapInfo);
+            EnumSet lvflagsSet = EnumSet.noneOf(LevFlag.class);
+            for (LevFlag statusFlag : LevFlag.values()) {
+                int flagValue = statusFlag.getFlagValue();
+                if ((flagValue & flag) == flagValue) {
+                    lvflagsSet.add(statusFlag);
+                }
+            }
+            lvflags = lvflagsSet;
             bytes = new byte[32];
             rawMapInfo.read(bytes);
             speechStr = Utils.bytesToString(bytes).trim();
