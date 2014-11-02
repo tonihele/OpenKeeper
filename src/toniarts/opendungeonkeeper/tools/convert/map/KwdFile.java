@@ -47,6 +47,8 @@ import toniarts.opendungeonkeeper.tools.convert.map.Trigger.TriggerGeneric;
  * or 2^16 = 65536)<br>
  * Many parts adapted from C code by:
  * <li>George Gensure (werkt)</li>
+ * And another C code implementation by:
+ * <li>Thomasz Lis</li>
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -54,6 +56,80 @@ public class KwdFile {
 
     private static final float FIXED_POINT_DIVISION = 4096f;
     private static final float FIXED_POINT5_DIVISION = 65536f;
+    // KWD data
+//    struct LevelInfoBlock {
+//        ucs2le_t m_wsName[64]; /* 134 */
+//        ucs2le_t m_wsDescription[1024]; /* 1b4 */
+//        ucs2le_t m_wsAuthor[64]; /* 9b4 */
+//        ucs2le_t m_wsEmail[64]; /* a34 */
+//        ucs2le_t m_wsInformation[1024]; /* ab4 */
+//        uint16_t m_wShortId0;
+//        uint16_t m_wShortId1;
+//        uint8_t x01184[520];
+//        ucs2le_t m_wsUnknown0138c[20][512];
+//        uint16_t x0638c;
+//        char x0638e[32];
+//        uint8_t x063ae;
+//        uint8_t x063af[4];
+//        uint8_t x063b3[4];
+//        uint8_t x063b7;
+//        uint8_t x063b8;
+//        uint16_t x063b9;
+//        uint16_t x063bb;
+//        uint16_t x063bd;
+//        uint16_t x063bf;
+//        uint16_t x063c3;
+//        uint16_t x063c5;
+//        uint16_t x063c7;
+//        uint16_t x063c9;
+//        uint16_t x063ca;
+//        uint8_t x063cb[8];
+//        uint16_t x063d3[8];
+//        char x063e3[32];
+//        uint8_t x06403;
+//        uint8_t x06404;
+//        uint8_t x06405;
+//        uint8_t x06406;
+//        uint16_t x06407;
+//        uint16_t x06409[5];
+//        ucs2le_t x06413[32];
+//        };
+    private String name;
+    private String description;
+    private String author;
+    private String email;
+    private String information;
+    private int mWShortId0;
+    private int mWShortId1;
+    private short x01184[];
+    private String mWsUnknown0138c[];
+    private int x0638c;
+    private String x0638e;
+    private short x063ae;
+    private short x063af[];
+    private short x063b3[];
+    private short x063b7;
+    private short x063b8;
+    private int x063b9;
+    private int x063bb;
+    private int x063bd;
+    private int x063bf;
+    private int x063c3;
+    private int x063c5;
+    private int x063c7;
+    private int x063c9;
+    private int x063ca;
+    private short x063cb[];
+    private int x063d3[];
+    private String x063e3;
+    private short x06403;
+    private short x06404;
+    private short x06405;
+    private short x06406;
+    private int x06407;
+    private int x06409[];
+    private String x06413;
+    //
     private Map[][] tiles;
     private int width;
     private int height;
@@ -62,11 +138,6 @@ public class KwdFile {
     private List<Door> doors;
     private List<Trap> traps;
     private HashMap<Short, Room> rooms;
-    private String name;
-    private String description;
-    private String author;
-    private String email;
-    private String information;
     private HashMap<Short, Creature> creatures;
     private HashMap<Short, Object> objects;
     private List<CreatureSpell> creatureSpells;
@@ -642,23 +713,83 @@ public class KwdFile {
 
             byte[] bytes = new byte[64 * 2];
             rawMapInfo.read(bytes);
-            name = (Utils.bytesToStringUtf16(bytes).trim());
+            name = Utils.bytesToStringUtf16(bytes).trim();
 
             bytes = new byte[1024 * 2];
             rawMapInfo.read(bytes);
-            description = (Utils.bytesToStringUtf16(bytes).trim());
+            description = Utils.bytesToStringUtf16(bytes).trim();
 
             bytes = new byte[64 * 2];
             rawMapInfo.read(bytes);
-            author = (Utils.bytesToStringUtf16(bytes).trim());
+            author = Utils.bytesToStringUtf16(bytes).trim();
 
             bytes = new byte[64 * 2];
             rawMapInfo.read(bytes);
-            email = (Utils.bytesToStringUtf16(bytes).trim());
+            email = Utils.bytesToStringUtf16(bytes).trim();
 
             bytes = new byte[1024 * 2];
             rawMapInfo.read(bytes);
-            information = (Utils.bytesToStringUtf16(bytes).trim());
+            information = Utils.bytesToStringUtf16(bytes).trim();
+
+            mWShortId0 = Utils.readUnsignedShort(rawMapInfo);
+            mWShortId1 = Utils.readUnsignedShort(rawMapInfo);
+            x01184 = new short[520];
+            for (int x = 0; x < x01184.length; x++) {
+                x01184[x] = (short) rawMapInfo.readUnsignedByte();
+            }
+            mWsUnknown0138c = new String[512];
+            for (int x = 0; x < mWsUnknown0138c.length; x++) {
+                bytes = new byte[20 * 2];
+                rawMapInfo.read(bytes);
+                mWsUnknown0138c[x] = Utils.bytesToStringUtf16(bytes).trim();
+            }
+            x0638c = Utils.readUnsignedShort(rawMapInfo);
+            bytes = new byte[32];
+            rawMapInfo.read(bytes);
+            x0638e = Utils.bytesToString(bytes).trim();
+            x063ae = (short) rawMapInfo.readUnsignedByte();
+            x063af = new short[4];
+            for (int x = 0; x < x063af.length; x++) {
+                x063af[x] = (short) rawMapInfo.readUnsignedByte();
+            }
+            x063b3 = new short[4];
+            for (int x = 0; x < x063b3.length; x++) {
+                x063b3[x] = (short) rawMapInfo.readUnsignedByte();
+            }
+            x063b7 = (short) rawMapInfo.readUnsignedByte();
+            x063b8 = (short) rawMapInfo.readUnsignedByte();
+            x063b9 = Utils.readUnsignedShort(rawMapInfo);
+            x063bb = Utils.readUnsignedShort(rawMapInfo);
+            x063bd = Utils.readUnsignedShort(rawMapInfo);
+            x063bf = Utils.readUnsignedShort(rawMapInfo);
+            x063c3 = Utils.readUnsignedShort(rawMapInfo);
+            x063c5 = Utils.readUnsignedShort(rawMapInfo);
+            x063c7 = Utils.readUnsignedShort(rawMapInfo);
+            x063c9 = Utils.readUnsignedShort(rawMapInfo);
+            x063ca = Utils.readUnsignedShort(rawMapInfo);
+            x063cb = new short[8];
+            for (int x = 0; x < x063cb.length; x++) {
+                x063cb[x] = (short) rawMapInfo.readUnsignedByte();
+            }
+            x063d3 = new int[8];
+            for (int x = 0; x < x063d3.length; x++) {
+                x063d3[x] = Utils.readUnsignedShort(rawMapInfo);
+            }
+            bytes = new byte[32];
+            rawMapInfo.read(bytes);
+            x063e3 = Utils.bytesToString(bytes).trim();
+            x06403 = (short) rawMapInfo.readUnsignedByte();
+            x06404 = (short) rawMapInfo.readUnsignedByte();
+            x06405 = (short) rawMapInfo.readUnsignedByte();
+            x06406 = (short) rawMapInfo.readUnsignedByte();
+            x06407 = Utils.readUnsignedShort(rawMapInfo);
+            x06409 = new int[5];
+            for (int x = 0; x < x06409.length; x++) {
+                x06409[x] = Utils.readUnsignedShort(rawMapInfo);
+            }
+            bytes = new byte[32 * 2];
+            rawMapInfo.read(bytes);
+            x06413 = Utils.bytesToStringUtf16(bytes).trim();
         } catch (IOException e) {
 
             //Fug
