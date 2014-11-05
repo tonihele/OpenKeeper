@@ -10,10 +10,13 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.TimeZone;
 import javax.vecmath.Vector3f;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Animation;
@@ -158,6 +161,11 @@ public class KwdFile {
     private int speechPostlvlNews;
     private int speechPrelvlGenr;
     private String heroName;
+    //
+    private Date timestamp1;
+    private Date timestamp2;
+    private FilePath paths[];
+    private int unknown[];
     //
     private Map[][] tiles;
     private int width;
@@ -737,9 +745,19 @@ public class KwdFile {
         // Read the file
         try (RandomAccessFile rawMapInfo = new RandomAccessFile(file, "r")) {
 
-            rawMapInfo.seek(36); // End of header
-            rawMapInfo.skipBytes(20); // I don't know what is in here
+            rawMapInfo.seek(20); // End of header
 
+            //Additional header data
+            int pathCount = Utils.readUnsignedShort(rawMapInfo);
+            int unknownCount = Utils.readUnsignedShort(rawMapInfo);
+            rawMapInfo.skipBytes(4);
+
+            //Gather the timestamps
+            timestamp1 = readTimestamp(rawMapInfo);
+            timestamp2 = readTimestamp(rawMapInfo);
+            rawMapInfo.skipBytes(8);
+
+            //Property data
             byte[] bytes = new byte[64 * 2];
             rawMapInfo.read(bytes);
             name = Utils.bytesToStringUtf16(bytes).trim();
@@ -828,6 +846,23 @@ public class KwdFile {
             bytes = new byte[32 * 2];
             rawMapInfo.read(bytes);
             heroName = Utils.bytesToStringUtf16(bytes).trim();
+
+            // Paths and the unknown array
+            rawMapInfo.skipBytes(8);
+            paths = new FilePath[pathCount];
+            for (int x = 0; x < paths.length; x++) {
+                FilePath filePath = new FilePath();
+                filePath.setId(Utils.readUnsignedInteger(rawMapInfo));
+                filePath.setUnknown2(Utils.readInteger(rawMapInfo));
+                bytes = new byte[64];
+                rawMapInfo.read(bytes);
+                filePath.setPath(Utils.bytesToString(bytes).trim());
+                paths[x] = filePath;
+            }
+            unknown = new int[unknownCount];
+            for (int x = 0; x < unknown.length; x++) {
+                unknown[x] = Utils.readUnsignedShort(rawMapInfo);
+            }
         } catch (IOException e) {
 
             //Fug
@@ -1909,5 +1944,27 @@ public class KwdFile {
      */
     public Collection<Terrain> getTerrainList() {
         return terrainTiles.values();
+    }
+
+    /**
+     * Reads a DK2 style timestamp
+     *
+     * @param file the file to read from
+     * @return the date in current locale
+     * @throws IOException may fail
+     */
+    private Date readTimestamp(RandomAccessFile file) throws IOException {
+
+        // Dates are in UTC
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.set(Calendar.YEAR, Utils.readUnsignedShort(file));
+        cal.set(Calendar.DAY_OF_MONTH, file.readUnsignedByte());
+        cal.set(Calendar.MONTH, file.readUnsignedByte());
+        file.skipBytes(2);
+        cal.set(Calendar.HOUR_OF_DAY, file.readUnsignedByte());
+        cal.set(Calendar.MINUTE, file.readUnsignedByte());
+        cal.set(Calendar.SECOND, file.readUnsignedByte());
+        file.skipBytes(1);
+        return cal.getTime();
     }
 }
