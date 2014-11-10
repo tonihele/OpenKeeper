@@ -84,6 +84,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private final File kmfModel;
     private final String name = "SelectedModel";
     private boolean wireframe = false;
+    private boolean rotate = true;
     private List<String> models;
     private KwdFile kwdFile;
     private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
@@ -154,6 +155,10 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             if (name.equals("toggle wireframe") && !pressed) {
                 wireframe = !wireframe;
                 toggleWireframe();
+            } // Toggle rotation
+            else if (name.equals("toggle rotation") && !pressed) {
+                rotate = !rotate;
+                toggleRotate();
             }
         }
     };
@@ -162,12 +167,23 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         Spatial spat = rootNode.getChild(ModelViewer.this.name);
         if (spat != null) {
             spat.depthFirstTraversal(new SceneGraphVisitor() {
+                @Override
                 public void visit(Spatial spatial) {
                     if (spatial instanceof Geometry) {
                         ((Geometry) spatial).getMaterial().getAdditionalRenderState().setWireframe(wireframe);
                     }
                 }
             });
+        }
+    }
+
+    private void toggleRotate() {
+        Spatial spat = rootNode.getChild(ModelViewer.this.name);
+        if (spat != null) {
+            RotatorControl rotator = spat.getControl(RotatorControl.class);
+            if (rotator != null) {
+                rotator.setEnabled(rotate);
+            }
         }
     }
 
@@ -205,6 +221,10 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         // Wireframe
         inputManager.addMapping("toggle wireframe", new KeyTrigger(KeyInput.KEY_T));
         inputManager.addListener(actionListener, "toggle wireframe");
+
+        // Rotation
+        inputManager.addMapping("toggle rotation", new KeyTrigger(KeyInput.KEY_R));
+        inputManager.addListener(actionListener, "toggle rotation");
 
         setupLighting();
         setupFloor();
@@ -334,7 +354,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         spat.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 
         // Make it rotate
-        spat.addControl(new RotatorControl());
+        RotatorControl rotator = new RotatorControl();
+        rotator.setEnabled(rotate);
+        spat.addControl(rotator);
 
         // Remove the old model
         rootNode.detachChildNamed(name);
