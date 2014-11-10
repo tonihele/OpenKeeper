@@ -1,9 +1,11 @@
 Material Marble Floor : Common/MatDefs/Light/Lighting.j3md {
      MaterialParameters {
-        NormalMap : Repeat Textures/ModelViewer/FloorsMarble_normal.png
+        NormalMap : Flip Repeat Textures/ModelViewer/FloorsMarble_normal.png
         DiffuseMap : Repeat Textures/ModelViewer/FloorsMarble.jpg
         Shininess : 100.0
         Specular : 1.0 1.0 1.0 1.0
+        Ambient : 1.0 1.0 1.0 1.0
+        SpecularMap : Textures/ModelViewer/FloorsMarble_specular.png
      }
     AdditionalRenderState {
     }
