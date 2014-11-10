@@ -56,6 +56,7 @@ class LayerIDecoder implements FrameDecoder {
 
     }
 
+    @Override
     public void decodeFrame() throws DecoderException {
 
         num_subbands = header.number_of_subbands();
@@ -216,6 +217,7 @@ class LayerIDecoder implements FrameDecoder {
         /**
          *
          */
+        @Override
         public void read_allocation(Bitstream stream, Header header, Crc16 crc) throws DecoderException {
             if ((allocation = stream.get_bits(4)) == 15) {
                 // CGJ: catch this condition and throw appropriate exception
@@ -237,6 +239,7 @@ class LayerIDecoder implements FrameDecoder {
         /**
          *
          */
+        @Override
         public void read_scalefactor(Bitstream stream, Header header) {
             if (allocation != 0) {
                 scalefactor = scalefactors[stream.get_bits(6)];
@@ -246,6 +249,7 @@ class LayerIDecoder implements FrameDecoder {
         /**
          *
          */
+        @Override
         public boolean read_sampledata(Bitstream stream) {
             if (allocation != 0) {
                 sample = (float) (stream.get_bits(samplelength));
@@ -260,6 +264,7 @@ class LayerIDecoder implements FrameDecoder {
         /**
          *
          */
+        @Override
         public boolean put_next_sample(int channels, SynthesisFilter filter1, SynthesisFilter filter2) {
             if ((allocation != 0) && (channels != OutputChannels.RIGHT_CHANNEL)) {
                 float scaled_sample = (sample * factor + offset) * scalefactor;
@@ -286,6 +291,7 @@ class LayerIDecoder implements FrameDecoder {
         /**
          *
          */
+        @Override
         public void read_allocation(Bitstream stream, Header header, Crc16 crc) throws DecoderException {
             super.read_allocation(stream, header, crc);
         }
@@ -293,6 +299,7 @@ class LayerIDecoder implements FrameDecoder {
         /**
          *
          */
+        @Override
         public void read_scalefactor(Bitstream stream, Header header) {
             if (allocation != 0) {
                 scalefactor = scalefactors[stream.get_bits(6)];
@@ -303,6 +310,7 @@ class LayerIDecoder implements FrameDecoder {
         /**
          *
          */
+        @Override
         public boolean read_sampledata(Bitstream stream) {
             return super.read_sampledata(stream);
         }
@@ -310,6 +318,7 @@ class LayerIDecoder implements FrameDecoder {
         /**
          *
          */
+        @Override
         public boolean put_next_sample(int channels, SynthesisFilter filter1, SynthesisFilter filter2) {
             if (allocation != 0) {
                 sample = sample * factor + offset;		// requantization
@@ -351,6 +360,7 @@ class LayerIDecoder implements FrameDecoder {
         /**
          *
          */
+        @Override
         public void read_allocation(Bitstream stream, Header header, Crc16 crc) throws DecoderException {
             allocation = stream.get_bits(4);
             channel2_allocation = stream.get_bits(4);
@@ -373,6 +383,7 @@ class LayerIDecoder implements FrameDecoder {
         /**
          *
          */
+        @Override
         public void read_scalefactor(Bitstream stream, Header header) {
             if (allocation != 0) {
                 scalefactor = scalefactors[stream.get_bits(6)];
@@ -385,6 +396,7 @@ class LayerIDecoder implements FrameDecoder {
         /**
          *
          */
+        @Override
         public boolean read_sampledata(Bitstream stream) {
             boolean returnvalue = super.read_sampledata(stream);
             if (channel2_allocation != 0) {
@@ -396,6 +408,7 @@ class LayerIDecoder implements FrameDecoder {
         /**
          *
          */
+        @Override
         public boolean put_next_sample(int channels, SynthesisFilter filter1, SynthesisFilter filter2) {
             super.put_next_sample(channels, filter1, filter2);
             if ((channel2_allocation != 0) && (channels != OutputChannels.LEFT_CHANNEL)) {
