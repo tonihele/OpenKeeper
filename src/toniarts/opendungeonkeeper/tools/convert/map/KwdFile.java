@@ -172,7 +172,7 @@ public class KwdFile {
     private int height;
     private HashMap<Short, Player> players;
     private HashMap<Short, Terrain> terrainTiles;
-    private List<Door> doors;
+    private HashMap<Short, Door> doors;
     private List<Trap> traps;
     private HashMap<Short, Room> rooms;
     private HashMap<Short, Creature> creatures;
@@ -579,24 +579,54 @@ public class KwdFile {
             rawDoors.seek(36); // End of header
             rawDoors.skipBytes(20); // I don't know what is in here
 
-            doors = new ArrayList<>(doorCount);
+            doors = new HashMap<>(doorCount);
             for (int i = 0; i < doorCount; i++) {
                 Door door = new Door();
                 byte[] bytes = new byte[32];
                 rawDoors.read(bytes);
                 door.setName(Utils.bytesToString(bytes).trim());
-                ArtResource[] ref = new ArtResource[5];
+                ArtResource[] ref = new ArtResource[6];
                 for (int x = 0; x < ref.length; x++) {
                     ref[x] = readArtResource(rawDoors);
                 }
                 door.setRef(ref);
-                short[] unknown = new short[164];
-                for (int x = 0; x < unknown.length; x++) {
-                    unknown[x] = (short) rawDoors.readUnsignedByte();
+                door.setHeight(Utils.readUnsignedInteger(rawDoors) / FIXED_POINT_DIVISION);
+                door.setHealthGain(Utils.readUnsignedShort(rawDoors));
+                short[] unknown2 = new short[8];
+                for (int x = 0; x < unknown2.length; x++) {
+                    unknown2[x] = (short) rawDoors.readUnsignedByte();
                 }
-                door.setUnknown(unknown);
+                door.setUnknown2(unknown2);
+                door.setMaterial(Material.getValue((short) rawDoors.readUnsignedByte()));
+                short[] unknown25 = new short[5];
+                for (int x = 0; x < unknown25.length; x++) {
+                    unknown25[x] = (short) rawDoors.readUnsignedByte();
+                }
+                door.setUnknown25(unknown25);
+                door.setHealth(Utils.readUnsignedShort(rawDoors));
+                door.setGoldCost(Utils.readUnsignedShort(rawDoors));
+                short[] unknown3 = new short[2];
+                for (int x = 0; x < unknown3.length; x++) {
+                    unknown3[x] = (short) rawDoors.readUnsignedByte();
+                }
+                door.setUnknown3(unknown3);
+                door.setDeathEffectId(Utils.readUnsignedShort(rawDoors));
+                door.setManufToBuild(Utils.readUnsignedInteger(rawDoors));
+                door.setManaCost(Utils.readUnsignedShort(rawDoors));
+                short[] unknown5 = new short[10];
+                for (int x = 0; x < unknown5.length; x++) {
+                    unknown5[x] = (short) rawDoors.readUnsignedByte();
+                }
+                door.setUnknown5(unknown5);
+                door.setDoorId((short) rawDoors.readUnsignedByte());
+                door.setOrderInEditor((short) rawDoors.readUnsignedByte());
+                door.setManufCrateObjectId((short) rawDoors.readUnsignedByte());
+                door.setKeyObjectId((short) rawDoors.readUnsignedByte());
+                bytes = new byte[32];
+                rawDoors.read(bytes);
+                door.setxName(Utils.bytesToString(bytes).trim());
 
-                doors.add(door);
+                doors.put(door.getDoorId(), door);
             }
         } catch (IOException e) {
 
