@@ -1144,7 +1144,7 @@ public class KwdFile {
                 bytes = new byte[32];
                 rawCreatures.read(bytes);
                 creature.setXname(Utils.bytesToString(bytes).trim());
-                creature.setMaterial((short) rawCreatures.readUnsignedByte());
+                creature.setMaterial(Material.getValue(rawCreatures.readUnsignedByte()));
                 creature.setReff77(readArtResource(rawCreatures));
                 creature.setUnkfcb(Utils.readUnsignedShort(rawCreatures));
                 creature.setUnk4(Utils.readUnsignedInteger(rawCreatures));
@@ -1270,7 +1270,7 @@ public class KwdFile {
                 object.setMass(Utils.readUnsignedInteger(rawObjects) / FIXED_POINT_DIVISION);
                 object.setUnknown1(Utils.readUnsignedInteger(rawObjects));
                 object.setUnknown2(Utils.readUnsignedInteger(rawObjects));
-                object.setMaterial((short) rawObjects.readUnsignedByte());
+                object.setMaterial(Material.getValue(rawObjects.readUnsignedByte()));
                 short[] unknown3 = new short[3];
                 for (int x = 0; x < unknown3.length; x++) {
                     unknown3[x] = (short) rawObjects.readUnsignedByte();

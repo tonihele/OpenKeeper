@@ -261,7 +261,7 @@ public class Creature {
     private short lairObjectId; // f52
     private short unk3f[]; // f53
     private String xname; // f56
-    private short material; // f76
+    private Material material; // f76, armour type
     private ArtResource reff77; // f77
     private int unkfcb; // fcb
     private int unk4; // fcd
@@ -1034,11 +1034,11 @@ public class Creature {
         this.xname = xname;
     }
 
-    public short getMaterial() {
+    public Material getMaterial() {
         return material;
     }
 
-    protected void setMaterial(short material) {
+    protected void setMaterial(Material material) {
         this.material = material;
     }
 

@@ -56,7 +56,7 @@ public class Object {
     private float mass; // 334
     private int unknown1; // 338
     private int unknown2; // 33c
-    private short material; // 340
+    private Material material; // 340
     private short unknown3[]; // 341
     private int flags; // 344
     private int hp; // 348
@@ -178,11 +178,11 @@ public class Object {
         this.unknown2 = unknown2;
     }
 
-    public short getMaterial() {
+    public Material getMaterial() {
         return material;
     }
 
-    protected void setMaterial(short material) {
+    protected void setMaterial(Material material) {
         this.material = material;
     }
 
