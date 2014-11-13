@@ -31,6 +31,7 @@ import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe0c;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe14;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe7c;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe94;
+import toniarts.opendungeonkeeper.tools.convert.map.Door.DoorFlag;
 import toniarts.opendungeonkeeper.tools.convert.map.Object;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.ActionPoint;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing03;
@@ -58,7 +59,7 @@ import toniarts.opendungeonkeeper.tools.convert.map.Trigger.TriggerGeneric;
  */
 public class KwdFile {
 
-    public enum LevFlag {
+    public enum LevFlag implements IFlagEnum {
 
         UNKNOWN(0x0004), // unknown; always on in maps
         ALWAYSIMPRISN(0x0008), // Always imprison enemies
@@ -78,6 +79,7 @@ public class KwdFile {
             this.flagValue = flagValue;
         }
 
+        @Override
         public int getFlagValue() {
             return flagValue;
         }
@@ -599,11 +601,9 @@ public class KwdFile {
                 }
                 door.setUnknown2(unknown2);
                 door.setMaterial(Material.getValue((short) rawDoors.readUnsignedByte()));
-                short[] unknown25 = new short[5];
-                for (int x = 0; x < unknown25.length; x++) {
-                    unknown25[x] = (short) rawDoors.readUnsignedByte();
-                }
-                door.setUnknown25(unknown25);
+                door.setUnknown25((short) rawDoors.readUnsignedByte());
+                int flag = Utils.readUnsignedInteger(rawDoors);
+                door.setFlags(parseFlagValue(flag, DoorFlag.class));
                 door.setHealth(Utils.readUnsignedShort(rawDoors));
                 door.setGoldCost(Utils.readUnsignedShort(rawDoors));
                 short[] unknown3 = new short[2];
@@ -822,14 +822,7 @@ public class KwdFile {
                 messages[x] = Utils.bytesToStringUtf16(bytes).trim();
             }
             int flag = Utils.readUnsignedShort(rawMapInfo);
-            EnumSet lvflagsSet = EnumSet.noneOf(LevFlag.class);
-            for (LevFlag statusFlag : LevFlag.values()) {
-                int flagValue = statusFlag.getFlagValue();
-                if ((flagValue & flag) == flagValue) {
-                    lvflagsSet.add(statusFlag);
-                }
-            }
-            lvflags = lvflagsSet;
+            lvflags = parseFlagValue(flag, LevFlag.class);
             bytes = new byte[32];
             rawMapInfo.read(bytes);
             speechStr = Utils.bytesToString(bytes).trim();
@@ -1997,5 +1990,25 @@ public class KwdFile {
         cal.set(Calendar.SECOND, file.readUnsignedByte());
         file.skipBytes(1);
         return cal.getTime();
+    }
+
+    /**
+     * Parse a flag to enumeration set of given class
+     *
+     * @param flag the flag value
+     * @param enumeration the enumeration class<br>It is super important that it
+     * implements the IFlagEnum (I couldn't figure out how to correctly set
+     * generics here)
+     * @return the set
+     */
+    private EnumSet parseFlagValue(int flag, Class<? extends Enum> enumeration) {
+        EnumSet set = EnumSet.noneOf(enumeration);
+        for (Enum e : enumeration.getEnumConstants()) {
+            int flagValue = ((IFlagEnum) e).getFlagValue();
+            if ((flagValue & flag) == flagValue) {
+                set.add(e);
+            }
+        }
+        return set;
     }
 }

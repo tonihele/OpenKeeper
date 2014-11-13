@@ -4,6 +4,8 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import java.util.EnumSet;
+
 /**
  * Stub for the container class for the Doors.kwd
  *
@@ -19,6 +21,25 @@ public class Door {
 //  uint8_t unk[164];
 //};
 
+    /**
+     *
+     */
+    public enum DoorFlag implements IFlagEnum {
+
+        IS_SECRET(0x0020), // Secret
+        IS_BARRICADE(0x0040), // Barricade
+        IS_GOOD(0x0080); // Good (as in alignment)
+        private final int flagValue;
+
+        private DoorFlag(int flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public int getFlagValue() {
+            return flagValue;
+        }
+    };
     private String name;
     private ArtResource mesh;
     private ArtResource guiIcon;
@@ -30,7 +51,8 @@ public class Door {
     private int healthGain;
     private short[] unknown2; // 8
     private Material material;
-    private short[] unknown25; // 5
+    private short unknown25;
+    private EnumSet<DoorFlag> flags;
     private int health;
     private int goldCost;
     private short[] unknown3; // 2
@@ -136,12 +158,20 @@ public class Door {
         this.material = material;
     }
 
-    public short[] getUnknown25() {
+    public short getUnknown25() {
         return unknown25;
     }
 
-    protected void setUnknown25(short[] unknown25) {
+    protected void setUnknown25(short unknown25) {
         this.unknown25 = unknown25;
+    }
+
+    public EnumSet<DoorFlag> getFlags() {
+        return flags;
+    }
+
+    public void setFlags(EnumSet<DoorFlag> flags) {
+        this.flags = flags;
     }
 
     public int getHealth() {
