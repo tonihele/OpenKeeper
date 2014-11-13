@@ -60,7 +60,7 @@ public class Door {
         return mesh;
     }
 
-    public void setMesh(ArtResource mesh) {
+    protected void setMesh(ArtResource mesh) {
         this.mesh = mesh;
     }
 
@@ -68,7 +68,7 @@ public class Door {
         return guiIcon;
     }
 
-    public void setGuiIcon(ArtResource guiIcon) {
+    protected void setGuiIcon(ArtResource guiIcon) {
         this.guiIcon = guiIcon;
     }
 
@@ -76,7 +76,7 @@ public class Door {
         return editorIcon;
     }
 
-    public void setEditorIcon(ArtResource editorIcon) {
+    protected void setEditorIcon(ArtResource editorIcon) {
         this.editorIcon = editorIcon;
     }
 
@@ -84,7 +84,7 @@ public class Door {
         return flowerIcon;
     }
 
-    public void setFlowerIcon(ArtResource flowerIcon) {
+    protected void setFlowerIcon(ArtResource flowerIcon) {
         this.flowerIcon = flowerIcon;
     }
 
@@ -92,7 +92,7 @@ public class Door {
         return openResource;
     }
 
-    public void setOpenResource(ArtResource openResource) {
+    protected void setOpenResource(ArtResource openResource) {
         this.openResource = openResource;
     }
 
@@ -100,7 +100,7 @@ public class Door {
         return closeResource;
     }
 
-    public void setCloseResource(ArtResource closeResource) {
+    protected void setCloseResource(ArtResource closeResource) {
         this.closeResource = closeResource;
     }
 
@@ -196,7 +196,7 @@ public class Door {
         return tooltipStringId;
     }
 
-    public void setTooltipStringId(int tooltipStringId) {
+    protected void setTooltipStringId(int tooltipStringId) {
         this.tooltipStringId = tooltipStringId;
     }
 
@@ -204,7 +204,7 @@ public class Door {
         return nameStringId;
     }
 
-    public void setNameStringId(int nameStringId) {
+    protected void setNameStringId(int nameStringId) {
         this.nameStringId = nameStringId;
     }
 
@@ -212,7 +212,7 @@ public class Door {
         return generalDescriptionStringId;
     }
 
-    public void setGeneralDescriptionStringId(int generalDescriptionStringId) {
+    protected void setGeneralDescriptionStringId(int generalDescriptionStringId) {
         this.generalDescriptionStringId = generalDescriptionStringId;
     }
 
@@ -220,7 +220,7 @@ public class Door {
         return strengthStringId;
     }
 
-    public void setStrengthStringId(int strengthStringId) {
+    protected void setStrengthStringId(int strengthStringId) {
         this.strengthStringId = strengthStringId;
     }
 
@@ -228,7 +228,7 @@ public class Door {
         return weaknessStringId;
     }
 
-    public void setWeaknessStringId(int weaknessStringId) {
+    protected void setWeaknessStringId(int weaknessStringId) {
         this.weaknessStringId = weaknessStringId;
     }
 
