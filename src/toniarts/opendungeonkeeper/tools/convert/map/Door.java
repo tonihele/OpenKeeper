@@ -20,7 +20,12 @@ public class Door {
 //};
 
     private String name;
-    private ArtResource[] ref;
+    private ArtResource mesh;
+    private ArtResource guiIcon;
+    private ArtResource editorIcon; // ??
+    private ArtResource flowerIcon;
+    private ArtResource openResource;
+    private ArtResource closeResource;
     private float height; // Fixed point
     private int healthGain;
     private short[] unknown2; // 8
@@ -32,12 +37,16 @@ public class Door {
     private int deathEffectId;
     private int manufToBuild; // Maybe 4 bytes?
     private int manaCost;
-    private short[] unknown5; // 10
+    private int tooltipStringId;
+    private int nameStringId;
+    private int generalDescriptionStringId;
+    private int strengthStringId;
+    private int weaknessStringId;
     private short doorId;
     private short orderInEditor;
     private short manufCrateObjectId;
     private short keyObjectId;
-    private String xName;
+    private String soundGategory;
 
     public String getName() {
         return name;
@@ -47,12 +56,52 @@ public class Door {
         this.name = name;
     }
 
-    public ArtResource[] getRef() {
-        return ref;
+    public ArtResource getMesh() {
+        return mesh;
     }
 
-    protected void setRef(ArtResource[] ref) {
-        this.ref = ref;
+    public void setMesh(ArtResource mesh) {
+        this.mesh = mesh;
+    }
+
+    public ArtResource getGuiIcon() {
+        return guiIcon;
+    }
+
+    public void setGuiIcon(ArtResource guiIcon) {
+        this.guiIcon = guiIcon;
+    }
+
+    public ArtResource getEditorIcon() {
+        return editorIcon;
+    }
+
+    public void setEditorIcon(ArtResource editorIcon) {
+        this.editorIcon = editorIcon;
+    }
+
+    public ArtResource getFlowerIcon() {
+        return flowerIcon;
+    }
+
+    public void setFlowerIcon(ArtResource flowerIcon) {
+        this.flowerIcon = flowerIcon;
+    }
+
+    public ArtResource getOpenResource() {
+        return openResource;
+    }
+
+    public void setOpenResource(ArtResource openResource) {
+        this.openResource = openResource;
+    }
+
+    public ArtResource getCloseResource() {
+        return closeResource;
+    }
+
+    public void setCloseResource(ArtResource closeResource) {
+        this.closeResource = closeResource;
     }
 
     public float getHeight() {
@@ -143,12 +192,44 @@ public class Door {
         this.manaCost = manaCost;
     }
 
-    public short[] getUnknown5() {
-        return unknown5;
+    public int getTooltipStringId() {
+        return tooltipStringId;
     }
 
-    protected void setUnknown5(short[] unknown5) {
-        this.unknown5 = unknown5;
+    public void setTooltipStringId(int tooltipStringId) {
+        this.tooltipStringId = tooltipStringId;
+    }
+
+    public int getNameStringId() {
+        return nameStringId;
+    }
+
+    public void setNameStringId(int nameStringId) {
+        this.nameStringId = nameStringId;
+    }
+
+    public int getGeneralDescriptionStringId() {
+        return generalDescriptionStringId;
+    }
+
+    public void setGeneralDescriptionStringId(int generalDescriptionStringId) {
+        this.generalDescriptionStringId = generalDescriptionStringId;
+    }
+
+    public int getStrengthStringId() {
+        return strengthStringId;
+    }
+
+    public void setStrengthStringId(int strengthStringId) {
+        this.strengthStringId = strengthStringId;
+    }
+
+    public int getWeaknessStringId() {
+        return weaknessStringId;
+    }
+
+    public void setWeaknessStringId(int weaknessStringId) {
+        this.weaknessStringId = weaknessStringId;
     }
 
     public short getDoorId() {
@@ -183,12 +264,12 @@ public class Door {
         this.keyObjectId = keyObjectId;
     }
 
-    public String getxName() {
-        return xName;
+    public String getSoundGategory() {
+        return soundGategory;
     }
 
-    protected void setxName(String xName) {
-        this.xName = xName;
+    protected void setSoundGategory(String soundGategory) {
+        this.soundGategory = soundGategory;
     }
 
     @Override

@@ -585,11 +585,12 @@ public class KwdFile {
                 byte[] bytes = new byte[32];
                 rawDoors.read(bytes);
                 door.setName(Utils.bytesToString(bytes).trim());
-                ArtResource[] ref = new ArtResource[6];
-                for (int x = 0; x < ref.length; x++) {
-                    ref[x] = readArtResource(rawDoors);
-                }
-                door.setRef(ref);
+                door.setMesh(readArtResource(rawDoors));
+                door.setGuiIcon(readArtResource(rawDoors));
+                door.setEditorIcon(readArtResource(rawDoors));
+                door.setFlowerIcon(readArtResource(rawDoors));
+                door.setOpenResource(readArtResource(rawDoors));
+                door.setCloseResource(readArtResource(rawDoors));
                 door.setHeight(Utils.readUnsignedInteger(rawDoors) / FIXED_POINT_DIVISION);
                 door.setHealthGain(Utils.readUnsignedShort(rawDoors));
                 short[] unknown2 = new short[8];
@@ -613,18 +614,18 @@ public class KwdFile {
                 door.setDeathEffectId(Utils.readUnsignedShort(rawDoors));
                 door.setManufToBuild(Utils.readUnsignedInteger(rawDoors));
                 door.setManaCost(Utils.readUnsignedShort(rawDoors));
-                short[] unknown5 = new short[10];
-                for (int x = 0; x < unknown5.length; x++) {
-                    unknown5[x] = (short) rawDoors.readUnsignedByte();
-                }
-                door.setUnknown5(unknown5);
+                door.setTooltipStringId(Utils.readUnsignedShort(rawDoors));
+                door.setNameStringId(Utils.readUnsignedShort(rawDoors));
+                door.setGeneralDescriptionStringId(Utils.readUnsignedShort(rawDoors));
+                door.setStrengthStringId(Utils.readUnsignedShort(rawDoors));
+                door.setWeaknessStringId(Utils.readUnsignedShort(rawDoors));
                 door.setDoorId((short) rawDoors.readUnsignedByte());
                 door.setOrderInEditor((short) rawDoors.readUnsignedByte());
                 door.setManufCrateObjectId((short) rawDoors.readUnsignedByte());
                 door.setKeyObjectId((short) rawDoors.readUnsignedByte());
                 bytes = new byte[32];
                 rawDoors.read(bytes);
-                door.setxName(Utils.bytesToString(bytes).trim());
+                door.setSoundGategory(Utils.bytesToString(bytes).trim());
 
                 doors.put(door.getDoorId(), door);
             }
