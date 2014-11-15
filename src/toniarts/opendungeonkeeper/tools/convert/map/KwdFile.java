@@ -949,7 +949,7 @@ public class KwdFile {
                 creature.setUnkcec(Utils.readUnsignedShort(rawCreatures));
                 creature.setUnkcee(Utils.readUnsignedInteger(rawCreatures));
                 creature.setUnkcf2(Utils.readUnsignedInteger(rawCreatures));
-                creature.setEditorOrder((short) rawCreatures.readUnsignedByte());
+                creature.setOrderInEditor((short) rawCreatures.readUnsignedByte());
                 creature.setUnk2c(Utils.readUnsignedShort(rawCreatures));
                 creature.setShotDelay(Utils.readUnsignedInteger(rawCreatures) / FIXED_POINT_DIVISION);
                 creature.setOlhiEffectId(Utils.readUnsignedShort(rawCreatures));

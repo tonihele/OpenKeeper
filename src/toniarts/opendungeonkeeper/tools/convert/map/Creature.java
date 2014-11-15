@@ -11,7 +11,7 @@ import javax.vecmath.Vector3f;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Creature {
+public class Creature implements Comparable<Creature> {
 
     public enum AttackType {
 
@@ -311,7 +311,7 @@ public class Creature {
     private int unkcec; // cec
     private int unkcee; // cee
     private int unkcf2; // cf2
-    private short editorOrder; // cf6
+    private short orderInEditor; // cf6
     private int unk2c; // cf7
     private float shotDelay; // cf9
     private int olhiEffectId; // cfd, OLHI, wut?
@@ -469,12 +469,12 @@ public class Creature {
         this.unkcf2 = unkcf2;
     }
 
-    public short getEditorOrder() {
-        return editorOrder;
+    public short getOrderInEditor() {
+        return orderInEditor;
     }
 
-    protected void setEditorOrder(short editorOrder) {
-        this.editorOrder = editorOrder;
+    protected void setOrderInEditor(short orderInEditor) {
+        this.orderInEditor = orderInEditor;
     }
 
     public int getUnk2c() {
@@ -1408,6 +1408,11 @@ public class Creature {
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public int compareTo(Creature o) {
+        return Short.compare(orderInEditor, o.orderInEditor);
     }
 
     public class Attraction {
