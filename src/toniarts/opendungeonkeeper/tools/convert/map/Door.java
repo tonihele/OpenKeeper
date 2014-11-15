@@ -14,13 +14,13 @@ import java.util.EnumSet;
  *
  * Thank you https://github.com/werkt
  */
-public class Door {
+public class Door implements Comparable<Door> {
+
 //struct DoorBlock {
 //  char name[32];
 //  ArtResource ref[5];
 //  uint8_t unk[164];
 //};
-
     /**
      * Door flags
      */
@@ -305,5 +305,10 @@ public class Door {
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public int compareTo(Door o) {
+        return Short.compare(orderInEditor, o.orderInEditor);
     }
 }
