@@ -11,6 +11,45 @@ package toniarts.opendungeonkeeper.tools.convert.map;
  */
 public class Creature {
 
+    public enum AttackType {
+
+        NONE(0),
+        MELEE_BLADE(1),
+        MELEE_BLUNT(2),
+        MELEE_BODY(3),
+        FIRE(4),
+        MOVEMENT(5),
+        LIGHTNING(6),
+        GAS(7),
+        PROJECTILE(8),
+        ENHANCE_OTHER(9),
+        ENHANCE_SELF(10),
+        CLOSE_COMBAT(11),
+        GENERATION(12),
+        PHYSICAL_TRAP(13),
+        NON_LETHAL_TRAP(14),
+        MELEE_SCYTHE(15);
+
+        private AttackType(int id) {
+            this.id = id;
+        }
+
+        /**
+         * Get the attack type with ID
+         *
+         * @param id the id in map file
+         * @return AttackType
+         */
+        public static AttackType getValue(int id) {
+            for (AttackType attackType : AttackType.values()) {
+                if (attackType.id == id) {
+                    return attackType;
+                }
+            }
+            return AttackType.NONE;
+        }
+        private int id;
+    }
 //    struct CreatureBlock {
 //        char name[32]; /* 0 */
 //        ArtResource ref1[39]; /* 20 */
@@ -175,7 +214,7 @@ public class Creature {
     private short editorOrder; // cf6
     private int unk2c; // cf7
     private int shotDelay; // cf9
-    private int unkcfd; // cfd
+    private int olhiEffectId; // cfd, OLHI, wut?
     private int introductionStringId; // cff
     private int unkd01; // d01
     private int angerStringIdLair;
@@ -184,14 +223,15 @@ public class Creature {
     private int unk2d[]; // d05
     private String unkd17; // d17
     private float shuffleSpeed; // d37
+    private short cloneCreatureId;
     private short unk2e[]; // d3b
     private ArtResource ref2; // d40
     private Light light; // d94
-    private Attraction attraction[];
+    private Attraction attractions[];
     private int unkdbc; // dbc
     private int unkdc0; // dc0
     private Xdc4 xdc4[];
-    private Xe0c xe0c[];
+    private Resistance resistances[];
     private Xe14 xe14[];
     private Xe14 xe38[];
     private Xe14 xe50[];
@@ -250,7 +290,7 @@ public class Creature {
     private short angerSlap; // f30
     private short angerInHand; // f32
     private short initialGoldHeld; // f34
-    private int unk3ce; // f36
+    private int entranceEffectId; // f36
     private int generalDescriptionStringId; // f3c
     private int strengthStringId;
     private int weaknessStringId;
@@ -352,12 +392,12 @@ public class Creature {
         this.shotDelay = shotDelay;
     }
 
-    public int getUnkcfd() {
-        return unkcfd;
+    public int getOlhiEffectId() {
+        return olhiEffectId;
     }
 
-    protected void setUnkcfd(int unkcfd) {
-        this.unkcfd = unkcfd;
+    protected void setOlhiEffectId(int olhiEffectId) {
+        this.olhiEffectId = olhiEffectId;
     }
 
     public int getIntroductionStringId() {
@@ -424,6 +464,14 @@ public class Creature {
         this.shuffleSpeed = shuffleSpeed;
     }
 
+    public short getCloneCreatureId() {
+        return cloneCreatureId;
+    }
+
+    protected void setCloneCreatureId(short cloneCreatureId) {
+        this.cloneCreatureId = cloneCreatureId;
+    }
+
     public short[] getUnk2e() {
         return unk2e;
     }
@@ -448,12 +496,12 @@ public class Creature {
         this.light = light;
     }
 
-    public Attraction[] getAttraction() {
-        return attraction;
+    public Attraction[] getAttractions() {
+        return attractions;
     }
 
-    protected void setAttraction(Attraction[] attraction) {
-        this.attraction = attraction;
+    protected void setAttractions(Attraction[] attractions) {
+        this.attractions = attractions;
     }
 
     public int getUnkdbc() {
@@ -480,12 +528,12 @@ public class Creature {
         this.xdc4 = xdc4;
     }
 
-    public Xe0c[] getXe0c() {
-        return xe0c;
+    public Resistance[] getResistances() {
+        return resistances;
     }
 
-    protected void setXe0c(Xe0c[] xe0c) {
-        this.xe0c = xe0c;
+    protected void setResistances(Resistance[] resistances) {
+        this.resistances = resistances;
     }
 
     public Xe14[] getXe14() {
@@ -952,12 +1000,12 @@ public class Creature {
         this.initialGoldHeld = initialGoldHeld;
     }
 
-    public int getUnk3ce() {
-        return unk3ce;
+    public int getEntranceEffectId() {
+        return entranceEffectId;
     }
 
-    protected void setUnk3ce(int unk3ce) {
-        this.unk3ce = unk3ce;
+    protected void setEntranceEffectId(int entranceEffectId) {
+        this.entranceEffectId = entranceEffectId;
     }
 
     public int getGeneralDescriptionStringId() {
@@ -1396,25 +1444,25 @@ public class Creature {
         }
     }
 
-    public class Xe0c {
+    public class Resistance {
 
-        private short x00;
-        private short x01;
+        private AttackType attackType;
+        private short value;
 
-        public short getX00() {
-            return x00;
+        public AttackType getAttackType() {
+            return attackType;
         }
 
-        protected void setX00(short x00) {
-            this.x00 = x00;
+        protected void setAttackType(AttackType attackType) {
+            this.attackType = attackType;
         }
 
-        public short getX01() {
-            return x01;
+        public short getValue() {
+            return value;
         }
 
-        protected void setX01(short x01) {
-            this.x01 = x01;
+        protected void setValue(short value) {
+            this.value = value;
         }
     }
 

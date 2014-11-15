@@ -29,7 +29,6 @@ import toniarts.opendungeonkeeper.tools.convert.map.Creature.Attraction;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Unk7;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.X1323;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xdc4;
-import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe0c;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe14;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe7c;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe94;
@@ -954,7 +953,7 @@ public class KwdFile {
                 creature.setEditorOrder((short) rawCreatures.readUnsignedByte());
                 creature.setUnk2c(Utils.readUnsignedShort(rawCreatures));
                 creature.setShotDelay(Utils.readUnsignedInteger(rawCreatures));
-                creature.setUnkcfd(Utils.readUnsignedShort(rawCreatures));
+                creature.setOlhiEffectId(Utils.readUnsignedShort(rawCreatures));
                 creature.setIntroductionStringId(Utils.readUnsignedShort(rawCreatures));
                 creature.setUnkd01(Utils.readUnsignedInteger(rawCreatures));
                 creature.setAngerStringIdLair(Utils.readUnsignedShort(rawCreatures));
@@ -969,7 +968,8 @@ public class KwdFile {
                 rawCreatures.read(bytes);
                 creature.setUnkd17(Utils.bytesToString(bytes).trim());
                 creature.setShuffleSpeed(Utils.readUnsignedInteger(rawCreatures) / FIXED_POINT_DIVISION);
-                short[] unk2e = new short[5];
+                creature.setCreatureId((short) rawCreatures.readUnsignedByte());
+                short[] unk2e = new short[4];
                 for (int x = 0; x < unk2e.length; x++) {
                     unk2e[x] = (short) rawCreatures.readUnsignedByte();
                 }
@@ -984,7 +984,7 @@ public class KwdFile {
                     attraction.setRoomSize(Utils.readUnsignedShort(rawCreatures));
                     attractions[x] = attraction;
                 }
-                creature.setAttraction(attractions);
+                creature.setAttractions(attractions);
                 creature.setUnkdbc(Utils.readUnsignedInteger(rawCreatures));
                 creature.setUnkdc0(Utils.readUnsignedInteger(rawCreatures));
                 Xdc4[] xdc4s = new Xdc4[3];
@@ -1005,14 +1005,14 @@ public class KwdFile {
                     xdc4s[x] = xdc4;
                 }
                 creature.setXdc4(xdc4s);
-                Xe0c[] xe0cs = new Xe0c[4];
-                for (int x = 0; x < xe0cs.length; x++) {
-                    Xe0c xe0c = creature.new Xe0c();
-                    xe0c.setX00((short) rawCreatures.readUnsignedByte());
-                    xe0c.setX01((short) rawCreatures.readUnsignedByte());
-                    xe0cs[x] = xe0c;
+                Creature.Resistance[] resistances = new Creature.Resistance[4];
+                for (int x = 0; x < resistances.length; x++) {
+                    Creature.Resistance resistance = creature.new Resistance();
+                    resistance.setAttackType(Creature.AttackType.getValue((short) rawCreatures.readUnsignedByte()));
+                    resistance.setValue((short) rawCreatures.readUnsignedByte());
+                    resistances[x] = resistance;
                 }
-                creature.setXe0c(xe0cs);
+                creature.setResistances(resistances);
                 Xe14[] xe14s = new Xe14[3];
                 for (int x = 0; x < xe14s.length; x++) {
                     Xe14 xe14 = creature.new Xe14();
@@ -1127,7 +1127,7 @@ public class KwdFile {
                 creature.setAngerSlap(Utils.readShort(rawCreatures));
                 creature.setAngerInHand(Utils.readShort(rawCreatures));
                 creature.setInitialGoldHeld(Utils.readShort(rawCreatures));
-                creature.setUnk3ce(Utils.readUnsignedShort(rawCreatures));
+                creature.setEntranceEffectId(Utils.readUnsignedShort(rawCreatures));
                 creature.setGeneralDescriptionStringId(Utils.readUnsignedShort(rawCreatures));
                 creature.setStrengthStringId(Utils.readUnsignedShort(rawCreatures));
                 creature.setWeaknessStringId(Utils.readUnsignedShort(rawCreatures));
