@@ -93,6 +93,63 @@ public class Creature {
         }
         private int id;
     }
+
+    public enum JobClass {
+
+        ARTISAN(0),
+        THINKER(1),
+        FIGHTER(2),
+        SCOUT(3);
+
+        private JobClass(int id) {
+            this.id = id;
+        }
+
+        /**
+         * Get the fight style with ID
+         *
+         * @param id the id in map file
+         * @return JobClass
+         */
+        public static JobClass getValue(int id) {
+            for (JobClass jobClass : JobClass.values()) {
+                if (jobClass.id == id) {
+                    return jobClass;
+                }
+            }
+            return JobClass.ARTISAN;
+        }
+        private int id;
+    }
+
+    public enum FightStyle {
+
+        NON_FIGHTER(0),
+        BLITZER(1),
+        BLOCKER(2),
+        FLANKER(3),
+        SUPPORT(4);
+
+        private FightStyle(int id) {
+            this.id = id;
+        }
+
+        /**
+         * Get the fight style with ID
+         *
+         * @param id the id in map file
+         * @return FightStyle
+         */
+        public static FightStyle getValue(int id) {
+            for (FightStyle fightStyle : FightStyle.values()) {
+                if (fightStyle.id == id) {
+                    return fightStyle;
+                }
+            }
+            return FightStyle.NON_FIGHTER;
+        }
+        private int id;
+    }
 //    struct CreatureBlock {
 //        char name[32]; /* 0 */
 //        ArtResource ref1[39]; /* 20 */
@@ -263,7 +320,7 @@ public class Creature {
     private int angerStringIdLair;
     private int angerStringIdFood;
     private int angerStringIdPay;
-    private int unk2d[]; // d05
+    private int unk2d[]; // d05, probably the rest of anger text ids
     private String unkd17; // d17
     private float shuffleSpeed; // d37
     private short cloneCreatureId;
@@ -307,7 +364,8 @@ public class Creature {
     private float meleeRecharge; // ef8
     private int unkefc; // efc
     private int expForNextLevel; // f00
-    private short unk3b[]; // f02
+    private JobClass jobClass; // f02
+    private FightStyle fightStyle;
     private int expPerSecond; // f04
     private int expPerSecondTraining; // f06
     private int researchPerSecond; // f08
@@ -835,12 +893,20 @@ public class Creature {
         this.expForNextLevel = expForNextLevel;
     }
 
-    public short[] getUnk3b() {
-        return unk3b;
+    public JobClass getJobClass() {
+        return jobClass;
     }
 
-    protected void setUnk3b(short[] unk3b) {
-        this.unk3b = unk3b;
+    protected void setJobClass(JobClass jobClass) {
+        this.jobClass = jobClass;
+    }
+
+    public FightStyle getFightStyle() {
+        return fightStyle;
+    }
+
+    protected void setFightStyle(FightStyle fightStyle) {
+        this.fightStyle = fightStyle;
     }
 
     public int getExpPerSecond() {

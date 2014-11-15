@@ -1058,11 +1058,8 @@ public class KwdFile {
                 creature.setMeleeRecharge(Utils.readInteger(rawCreatures) / FIXED_POINT_DIVISION);
                 creature.setUnkefc(Utils.readUnsignedInteger(rawCreatures));
                 creature.setExpForNextLevel(Utils.readUnsignedShort(rawCreatures));
-                short[] unk3b = new short[2];
-                for (int x = 0; x < unk3b.length; x++) {
-                    unk3b[x] = (short) rawCreatures.readUnsignedByte();
-                }
-                creature.setUnk3b(unk3b);
+                creature.setJobClass(Creature.JobClass.getValue((short) rawCreatures.readUnsignedByte()));
+                creature.setFightStyle(Creature.FightStyle.getValue((short) rawCreatures.readUnsignedByte()));
                 creature.setExpPerSecond(Utils.readUnsignedShort(rawCreatures));
                 creature.setExpPerSecondTraining(Utils.readUnsignedShort(rawCreatures));
                 creature.setResearchPerSecond(Utils.readUnsignedShort(rawCreatures));
