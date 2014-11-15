@@ -4,6 +4,8 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import java.util.EnumSet;
+
 /**
  * Barely started placeholder for the container class for the ArtResource
  *
@@ -13,6 +15,64 @@ package toniarts.opendungeonkeeper.tools.convert.map;
  */
 public class ArtResource {
 
+    public enum ArtResourceFlag implements IFlagEnum {
+
+        PLAYER_COLOURED(0x0002),
+        ANIMATING_TEXTURE(0x0004),
+        HAS_START_ANIMATION(0x0008),
+        HAS_END_ANIMATION(0x0010),
+        RANDOM_START_FRAME(0x0020),
+        ORIGIN_AT_BOTTOM(0x0040),
+        DOESNT_LOOP(0x0080),
+        FLAT(0x0100),
+        DOESNT_USE_PROGRESSIVE_MESH(0x0200),
+        USE_ANIMATING_TEXTURE_FOR_SELECTION(0x10000),
+        PRELOAD(0x20000),
+        BLOOD(0x40000);
+        private final int flagValue;
+
+        private ArtResourceFlag(int flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public int getFlagValue() {
+            return flagValue;
+        }
+    };
+
+    public enum Type {
+
+        NONE(0),
+        SPRITE(1),
+        ALPHA(2),
+        ADDITIVE_ALPHA(3),
+        TERRAIN_MESH(4),
+        MESH(5),
+        ANIMATING_MESH(6),
+        PROCEDURAL_MESH(7),
+        MESH_COLLECTION(8);
+
+        private Type(int id) {
+            this.id = id;
+        }
+
+        /**
+         * Get the type with ID
+         *
+         * @param id the id in map file
+         * @return Type
+         */
+        public static Type getValue(int id) {
+            for (Type type : Type.values()) {
+                if (type.id == id) {
+                    return type;
+                }
+            }
+            return Type.NONE;
+        }
+        private final int id;
+    }
     private String name;
     private ResourceType settings;
 
@@ -39,25 +99,25 @@ public class ArtResource {
 
     public class ResourceType {
 
-        private int flags; // 0
-        private short type;
-        private short startAf;
-        private short endAf;
+        private EnumSet<ArtResourceFlag> flags; // 0
+        private Type type;
+        private short startAf; // Start animation frame
+        private short endAf; // End animation frame
         private short sometimesOne;
 
-        public int getFlags() {
+        public EnumSet<ArtResourceFlag> getFlags() {
             return flags;
         }
 
-        protected void setFlags(int flags) {
+        protected void setFlags(EnumSet<ArtResourceFlag> flags) {
             this.flags = flags;
         }
 
-        public short getType() {
+        public Type getType() {
             return type;
         }
 
-        protected void setType(short type) {
+        protected void setType(Type type) {
             this.type = type;
         }
 
@@ -133,7 +193,7 @@ public class ArtResource {
             return scale;
         }
 
-        public void setScale(float scale) {
+        protected void setScale(float scale) {
             this.scale = scale;
         }
 
@@ -141,7 +201,7 @@ public class ArtResource {
             return frames;
         }
 
-        public void setFrames(int frames) {
+        protected void setFrames(int frames) {
             this.frames = frames;
         }
     }
@@ -201,7 +261,7 @@ public class ArtResource {
             return id;
         }
 
-        public void setId(int id) {
+        protected void setId(int id) {
             this.id = id;
         }
     }
@@ -213,13 +273,13 @@ public class ArtResource {
 
         private int x00;
         private int x04;
-        private byte frames;
+        private short frames;
 
         public int getX00() {
             return x00;
         }
 
-        public void setX00(int x00) {
+        protected void setX00(int x00) {
             this.x00 = x00;
         }
 
@@ -227,15 +287,15 @@ public class ArtResource {
             return x04;
         }
 
-        public void setX04(int x04) {
+        protected void setX04(int x04) {
             this.x04 = x04;
         }
 
-        public byte getFrames() {
+        public short getFrames() {
             return frames;
         }
 
-        public void setFrames(byte frames) {
+        protected void setFrames(short frames) {
             this.frames = frames;
         }
     }

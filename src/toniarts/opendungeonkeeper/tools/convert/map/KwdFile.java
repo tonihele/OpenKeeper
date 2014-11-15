@@ -22,7 +22,9 @@ import toniarts.opendungeonkeeper.tools.convert.Utils;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Animation;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Image;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Mesh;
+import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Proc;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.ResourceType;
+import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.TerrainResource;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Attraction;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Unk7;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.X1323;
@@ -482,33 +484,29 @@ public class KwdFile {
         short endAf = (short) file.readUnsignedByte();
         short sometimesOne = (short) file.readUnsignedByte();
 
-        // TODO: Map the types to the classes
-        // 0 = nothing, should be just the basic class?
-        // 1 = image?
-        // 2 = terrain resource?
-        // 4 = ?
-        // 5 = mesh?
-        // 6 = animation?
         // Debug
-        System.out.println("Type: " + type);
-        int param1 = Utils.readUnsignedInteger(bytes);
-        System.out.println("Param1: " + param1);
+//        System.out.println("Name: " + artResource.getName());
+//        System.out.println("Type: " + type);
+//        System.out.println("Flag: " + flags);
 
+        // Mesh collection (type 8) has just the name, reference to GROP meshes probably
+        // And alphas and images probably share the same attributes
         ResourceType resourceType = artResource.new ResourceType();
         switch (type) {
-            case 1: { // Image
+            case 1:
+            case 2:
+            case 3: { // Images of different type
                 resourceType = artResource.new Image();
                 ((Image) resourceType).setWidth(Utils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)) / FIXED_POINT_DIVISION);
                 ((Image) resourceType).setHeight(Utils.readUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)) / FIXED_POINT_DIVISION);
                 ((Image) resourceType).setFrames(Utils.readUnsignedShort(Arrays.copyOfRange(bytes, 8, 10)));
                 break;
             }
-            case 2: {
-                resourceType = artResource.new Mesh();
-                break;
-            }
             case 4: {
-                resourceType = artResource.new Mesh();
+                resourceType = artResource.new TerrainResource();
+                ((TerrainResource) resourceType).setX00(Utils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
+                ((TerrainResource) resourceType).setX04(Utils.readUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)));
+                ((TerrainResource) resourceType).setFrames(bytes[9]);
                 break;
             }
             case 5: {
@@ -525,11 +523,16 @@ public class KwdFile {
                 ((Animation) resourceType).setEndDist(Utils.readUnsignedShort(Arrays.copyOfRange(bytes, 10, 12)));
                 break;
             }
+            case 7: {
+                resourceType = artResource.new Proc();
+                ((Proc) resourceType).setId(Utils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
+                break;
+            }
         }
 
         // Add the common values
-        resourceType.setFlags(flags);
-        resourceType.setType(type);
+        resourceType.setFlags(parseFlagValue(flags, ArtResource.ArtResourceFlag.class));
+        resourceType.setType(ArtResource.Type.getValue(type));
         resourceType.setStartAf(startAf);
         resourceType.setEndAf(endAf);
         resourceType.setSometimesOne(sometimesOne);
