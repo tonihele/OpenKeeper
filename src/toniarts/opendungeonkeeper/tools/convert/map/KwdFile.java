@@ -26,9 +26,9 @@ import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.Proc;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.ResourceType;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource.TerrainResource;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Attraction;
+import toniarts.opendungeonkeeper.tools.convert.map.Creature.Spell;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Unk7;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.X1323;
-import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xdc4;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe14;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe7c;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe94;
@@ -952,7 +952,7 @@ public class KwdFile {
                 creature.setUnkcf2(Utils.readUnsignedInteger(rawCreatures));
                 creature.setEditorOrder((short) rawCreatures.readUnsignedByte());
                 creature.setUnk2c(Utils.readUnsignedShort(rawCreatures));
-                creature.setShotDelay(Utils.readUnsignedInteger(rawCreatures));
+                creature.setShotDelay(Utils.readUnsignedInteger(rawCreatures) / FIXED_POINT_DIVISION);
                 creature.setOlhiEffectId(Utils.readUnsignedShort(rawCreatures));
                 creature.setIntroductionStringId(Utils.readUnsignedShort(rawCreatures));
                 creature.setUnkd01(Utils.readUnsignedInteger(rawCreatures));
@@ -987,24 +987,22 @@ public class KwdFile {
                 creature.setAttractions(attractions);
                 creature.setUnkdbc(Utils.readUnsignedInteger(rawCreatures));
                 creature.setUnkdc0(Utils.readUnsignedInteger(rawCreatures));
-                Xdc4[] xdc4s = new Xdc4[3];
-                for (int x = 0; x < xdc4s.length; x++) {
-                    Xdc4 xdc4 = creature.new Xdc4();
-                    xdc4.setX00(Utils.readUnsignedInteger(rawCreatures));
-                    xdc4.setX04(Utils.readUnsignedInteger(rawCreatures));
-                    xdc4.setX08(Utils.readUnsignedInteger(rawCreatures));
-                    xdc4.setX0c((short) rawCreatures.readUnsignedByte());
-                    xdc4.setX0d((short) rawCreatures.readUnsignedByte());
-                    xdc4.setX0e((short) rawCreatures.readUnsignedByte());
-                    xdc4.setX0f((short) rawCreatures.readUnsignedByte());
-                    xdc4.setX10(Utils.readUnsignedInteger(rawCreatures));
-                    xdc4.setX14((short) rawCreatures.readUnsignedByte());
-                    xdc4.setX15((short) rawCreatures.readUnsignedByte());
-                    xdc4.setX16((short) rawCreatures.readUnsignedByte());
-                    xdc4.setX17((short) rawCreatures.readUnsignedByte());
-                    xdc4s[x] = xdc4;
+                Spell[] spells = new Spell[3];
+                for (int x = 0; x < spells.length; x++) {
+                    Spell spell = creature.new Spell();
+                    spell.setShotOffset(new Vector3f(Utils.readUnsignedInteger(rawCreatures) / FIXED_POINT_DIVISION, Utils.readUnsignedInteger(rawCreatures) / FIXED_POINT_DIVISION, Utils.readUnsignedInteger(rawCreatures) / FIXED_POINT_DIVISION));
+                    spell.setX0c((short) rawCreatures.readUnsignedByte());
+                    spell.setPlayAnimation((short) rawCreatures.readUnsignedByte() == 1 ? true : false);
+                    spell.setX0e((short) rawCreatures.readUnsignedByte());
+                    spell.setX0f((short) rawCreatures.readUnsignedByte());
+                    spell.setShotDelay(Utils.readUnsignedInteger(rawCreatures) / FIXED_POINT_DIVISION);
+                    spell.setX14((short) rawCreatures.readUnsignedByte());
+                    spell.setX15((short) rawCreatures.readUnsignedByte());
+                    spell.setCreatureSpellId((short) rawCreatures.readUnsignedByte());
+                    spell.setLevelAvailable((short) rawCreatures.readUnsignedByte());
+                    spells[x] = spell;
                 }
-                creature.setXdc4(xdc4s);
+                creature.setSpells(spells);
                 Creature.Resistance[] resistances = new Creature.Resistance[4];
                 for (int x = 0; x < resistances.length; x++) {
                     Creature.Resistance resistance = creature.new Resistance();
@@ -1094,7 +1092,7 @@ public class KwdFile {
                 creature.setRange(Utils.readInteger(rawCreatures));
                 creature.setUnkef0(Utils.readUnsignedInteger(rawCreatures));
                 creature.setUnk3af(Utils.readUnsignedInteger(rawCreatures));
-                creature.setMeleeRecharge(Utils.readInteger(rawCreatures));
+                creature.setMeleeRecharge(Utils.readInteger(rawCreatures) / FIXED_POINT_DIVISION);
                 creature.setUnkefc(Utils.readUnsignedInteger(rawCreatures));
                 creature.setExpForNextLevel(Utils.readUnsignedShort(rawCreatures));
                 short[] unk3b = new short[2];

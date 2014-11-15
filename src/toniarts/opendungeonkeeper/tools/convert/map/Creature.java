@@ -4,6 +4,8 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import javax.vecmath.Vector3f;
+
 /**
  * Container class for Creatures.kwd
  *
@@ -213,7 +215,7 @@ public class Creature {
     private int unkcf2; // cf2
     private short editorOrder; // cf6
     private int unk2c; // cf7
-    private int shotDelay; // cf9
+    private float shotDelay; // cf9
     private int olhiEffectId; // cfd, OLHI, wut?
     private int introductionStringId; // cff
     private int unkd01; // d01
@@ -230,7 +232,7 @@ public class Creature {
     private Attraction attractions[];
     private int unkdbc; // dbc
     private int unkdc0; // dc0
-    private Xdc4 xdc4[];
+    private Spell spells[];
     private Resistance resistances[];
     private Xe14 xe14[];
     private Xe14 xe38[];
@@ -261,7 +263,7 @@ public class Creature {
     private int range; // eec
     private int unkef0; // ef0
     private int unk3af; // ef4
-    private int meleeRecharge; // ef8
+    private float meleeRecharge; // ef8
     private int unkefc; // efc
     private int expForNextLevel; // f00
     private short unk3b[]; // f02
@@ -384,11 +386,11 @@ public class Creature {
         this.unk2c = unk2c;
     }
 
-    public int getShotDelay() {
+    public float getShotDelay() {
         return shotDelay;
     }
 
-    protected void setShotDelay(int shotDelay) {
+    protected void setShotDelay(float shotDelay) {
         this.shotDelay = shotDelay;
     }
 
@@ -520,12 +522,12 @@ public class Creature {
         this.unkdc0 = unkdc0;
     }
 
-    public Xdc4[] getXdc4() {
-        return xdc4;
+    public Spell[] getSpells() {
+        return spells;
     }
 
-    protected void setXdc4(Xdc4[] xdc4) {
-        this.xdc4 = xdc4;
+    protected void setSpells(Spell[] spells) {
+        this.spells = spells;
     }
 
     public Resistance[] getResistances() {
@@ -768,11 +770,11 @@ public class Creature {
         this.unk3af = unk3af;
     }
 
-    public int getMeleeRecharge() {
+    public float getMeleeRecharge() {
         return meleeRecharge;
     }
 
-    protected void setMeleeRecharge(int meleeRecharge) {
+    protected void setMeleeRecharge(float meleeRecharge) {
         this.meleeRecharge = meleeRecharge;
     }
 
@@ -1332,43 +1334,25 @@ public class Creature {
         }
     }
 
-    public class Xdc4 { // bytes in these structs might be product of padding
+    public class Spell { // bytes in these structs might be product of padding
 
-        private int x00;
-        private int x04;
-        private int x08;
+        private Vector3f shotOffset;
         private short x0c;
-        private short x0d;
+        private boolean playAnimation;
         private short x0e;
         private short x0f;
-        private int x10;
+        private float shotDelay;
         private short x14;
         private short x15;
-        private short x16;
-        private short x17;
+        private short creatureSpellId;
+        private short levelAvailable;
 
-        public int getX00() {
-            return x00;
+        public Vector3f getShotOffset() {
+            return shotOffset;
         }
 
-        protected void setX00(int x00) {
-            this.x00 = x00;
-        }
-
-        public int getX04() {
-            return x04;
-        }
-
-        protected void setX04(int x04) {
-            this.x04 = x04;
-        }
-
-        public int getX08() {
-            return x08;
-        }
-
-        protected void setX08(int x08) {
-            this.x08 = x08;
+        protected void setShotOffset(Vector3f shotOffset) {
+            this.shotOffset = shotOffset;
         }
 
         public short getX0c() {
@@ -1379,12 +1363,12 @@ public class Creature {
             this.x0c = x0c;
         }
 
-        public short getX0d() {
-            return x0d;
+        public boolean isPlayAnimation() {
+            return playAnimation;
         }
 
-        protected void setX0d(short x0d) {
-            this.x0d = x0d;
+        protected void setPlayAnimation(boolean playAnimation) {
+            this.playAnimation = playAnimation;
         }
 
         public short getX0e() {
@@ -1403,12 +1387,12 @@ public class Creature {
             this.x0f = x0f;
         }
 
-        public int getX10() {
-            return x10;
+        public float getShotDelay() {
+            return shotDelay;
         }
 
-        protected void setX10(int x10) {
-            this.x10 = x10;
+        protected void setShotDelay(float shotDelay) {
+            this.shotDelay = shotDelay;
         }
 
         public short getX14() {
@@ -1427,20 +1411,20 @@ public class Creature {
             this.x15 = x15;
         }
 
-        public short getX16() {
-            return x16;
+        public short getCreatureSpellId() {
+            return creatureSpellId;
         }
 
-        protected void setX16(short x16) {
-            this.x16 = x16;
+        protected void setCreatureSpellId(short creatureSpellId) {
+            this.creatureSpellId = creatureSpellId;
         }
 
-        public short getX17() {
-            return x17;
+        public short getLevelAvailable() {
+            return levelAvailable;
         }
 
-        protected void setX17(short x17) {
-            this.x17 = x17;
+        protected void setLevelAvailable(short levelAvailable) {
+            this.levelAvailable = levelAvailable;
         }
     }
 
