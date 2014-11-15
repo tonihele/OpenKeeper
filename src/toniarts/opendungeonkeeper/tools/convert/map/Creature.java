@@ -52,6 +52,47 @@ public class Creature {
         }
         private int id;
     }
+
+    public enum JobType {
+
+        NONE(0),
+        SLEEP(1),
+        EAT(2),
+        RESEARCH(3),
+        TRAIN(4),
+        MANUFACTURE(5),
+        GUARD(6),
+        TORTURE(7),
+        PRAY(8),
+        DRINK(9),
+        LEAVE(10),
+        DESTROY_ENEMY_ROOMS(11),
+        TOLLING(12),
+        STEAL_ENEMY_GOLD(13),
+        SULK(15),
+        REBEL(16),
+        EXPLORE(24);
+
+        private JobType(int id) {
+            this.id = id;
+        }
+
+        /**
+         * Get the job type with ID
+         *
+         * @param id the id in map file
+         * @return JobType
+         */
+        public static JobType getValue(int id) {
+            for (JobType jobType : JobType.values()) {
+                if (jobType.id == id) {
+                    return jobType;
+                }
+            }
+            return JobType.NONE;
+        }
+        private int id;
+    }
 //    struct CreatureBlock {
 //        char name[32]; /* 0 */
 //        ArtResource ref1[39]; /* 20 */
@@ -234,10 +275,10 @@ public class Creature {
     private int unkdc0; // dc0
     private Spell spells[];
     private Resistance resistances[];
-    private Xe14 xe14[];
-    private Xe14 xe38[];
-    private Xe14 xe50[];
-    private int xe74[];
+    private JobPreference happyJobs[];
+    private JobPreference unhappyJobs[];
+    private JobPreference angryJobs[];
+    private JobType hateJobs[];
     private Xe7c xe7c[];
     private Xe94 xe94;
     private int unkea0; // ea0
@@ -538,36 +579,36 @@ public class Creature {
         this.resistances = resistances;
     }
 
-    public Xe14[] getXe14() {
-        return xe14;
+    public JobPreference[] getHappyJobs() {
+        return happyJobs;
     }
 
-    protected void setXe14(Xe14[] xe14) {
-        this.xe14 = xe14;
+    protected void setHappyJobs(JobPreference[] happyJobs) {
+        this.happyJobs = happyJobs;
     }
 
-    public Xe14[] getXe38() {
-        return xe38;
+    public JobPreference[] getUnhappyJobs() {
+        return unhappyJobs;
     }
 
-    protected void setXe38(Xe14[] xe38) {
-        this.xe38 = xe38;
+    protected void setUnhappyJobs(JobPreference[] unhappyJobs) {
+        this.unhappyJobs = unhappyJobs;
     }
 
-    public Xe14[] getXe50() {
-        return xe50;
+    public JobPreference[] getAngryJobs() {
+        return angryJobs;
     }
 
-    protected void setXe50(Xe14[] xe50) {
-        this.xe50 = xe50;
+    protected void setAngryJobs(JobPreference[] angryJobs) {
+        this.angryJobs = angryJobs;
     }
 
-    public int[] getXe74() {
-        return xe74;
+    public JobType[] getHateJobs() {
+        return hateJobs;
     }
 
-    protected void setXe74(int[] xe74) {
-        this.xe74 = xe74;
+    protected void setHateJobs(JobType[] hateJobs) {
+        this.hateJobs = hateJobs;
     }
 
     public Xe7c[] getXe7c() {
@@ -1450,46 +1491,46 @@ public class Creature {
         }
     }
 
-    public class Xe14 {
+    public class JobPreference {
 
-        private int x00;
-        private int x04;
-        private int x06;
-        private short x08;
+        private JobType jobType;
+        private int moodChange; // not tested
+        private int manaChange; // not tested
+        private short chance; // of happening, percentage
         private short x09;
         private short x0a;
         private short x0b;
 
-        public int getX00() {
-            return x00;
+        public JobType getJobType() {
+            return jobType;
         }
 
-        protected void setX00(int x00) {
-            this.x00 = x00;
+        protected void setJobType(JobType jobType) {
+            this.jobType = jobType;
         }
 
-        public int getX04() {
-            return x04;
+        public int getMoodChange() {
+            return moodChange;
         }
 
-        protected void setX04(int x04) {
-            this.x04 = x04;
+        protected void setMoodChange(int moodChange) {
+            this.moodChange = moodChange;
         }
 
-        public int getX06() {
-            return x06;
+        public int getManaChange() {
+            return manaChange;
         }
 
-        protected void setX06(int x06) {
-            this.x06 = x06;
+        protected void setManaChange(int manaChange) {
+            this.manaChange = manaChange;
         }
 
-        public short getX08() {
-            return x08;
+        public short getChance() {
+            return chance;
         }
 
-        protected void setX08(short x08) {
-            this.x08 = x08;
+        protected void setChance(short chance) {
+            this.chance = chance;
         }
 
         public short getX09() {

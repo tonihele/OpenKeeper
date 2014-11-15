@@ -29,7 +29,6 @@ import toniarts.opendungeonkeeper.tools.convert.map.Creature.Attraction;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Spell;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Unk7;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.X1323;
-import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe14;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe7c;
 import toniarts.opendungeonkeeper.tools.convert.map.Creature.Xe94;
 import toniarts.opendungeonkeeper.tools.convert.map.Door.DoorFlag;
@@ -1011,50 +1010,14 @@ public class KwdFile {
                     resistances[x] = resistance;
                 }
                 creature.setResistances(resistances);
-                Xe14[] xe14s = new Xe14[3];
-                for (int x = 0; x < xe14s.length; x++) {
-                    Xe14 xe14 = creature.new Xe14();
-                    xe14.setX00(Utils.readUnsignedInteger(rawCreatures));
-                    xe14.setX04(Utils.readUnsignedShort(rawCreatures));
-                    xe14.setX06(Utils.readUnsignedShort(rawCreatures));
-                    xe14.setX08((short) rawCreatures.readUnsignedByte());
-                    xe14.setX09((short) rawCreatures.readUnsignedByte());
-                    xe14.setX0a((short) rawCreatures.readUnsignedByte());
-                    xe14.setX0b((short) rawCreatures.readUnsignedByte());
-                    xe14s[x] = xe14;
+                creature.setHappyJobs(readJobPreferences(3, creature, rawCreatures));
+                creature.setUnhappyJobs(readJobPreferences(2, creature, rawCreatures));
+                creature.setAngryJobs(readJobPreferences(3, creature, rawCreatures));
+                Creature.JobType[] hateJobs = new Creature.JobType[2];
+                for (int x = 0; x < hateJobs.length; x++) {
+                    hateJobs[x] = Creature.JobType.getValue(Utils.readUnsignedInteger(rawCreatures));
                 }
-                creature.setXe14(xe14s);
-                Xe14[] xe38s = new Xe14[2];
-                for (int x = 0; x < xe38s.length; x++) {
-                    Xe14 xe14 = creature.new Xe14();
-                    xe14.setX00(Utils.readUnsignedInteger(rawCreatures));
-                    xe14.setX04(Utils.readUnsignedShort(rawCreatures));
-                    xe14.setX06(Utils.readUnsignedShort(rawCreatures));
-                    xe14.setX08((short) rawCreatures.readUnsignedByte());
-                    xe14.setX09((short) rawCreatures.readUnsignedByte());
-                    xe14.setX0a((short) rawCreatures.readUnsignedByte());
-                    xe14.setX0b((short) rawCreatures.readUnsignedByte());
-                    xe38s[x] = xe14;
-                }
-                creature.setXe38(xe38s);
-                Xe14[] xe50s = new Xe14[3];
-                for (int x = 0; x < xe50s.length; x++) {
-                    Xe14 xe14 = creature.new Xe14();
-                    xe14.setX00(Utils.readUnsignedInteger(rawCreatures));
-                    xe14.setX04(Utils.readUnsignedShort(rawCreatures));
-                    xe14.setX06(Utils.readUnsignedShort(rawCreatures));
-                    xe14.setX08((short) rawCreatures.readUnsignedByte());
-                    xe14.setX09((short) rawCreatures.readUnsignedByte());
-                    xe14.setX0a((short) rawCreatures.readUnsignedByte());
-                    xe14.setX0b((short) rawCreatures.readUnsignedByte());
-                    xe50s[x] = xe14;
-                }
-                creature.setXe50(xe50s);
-                int[] xe74 = new int[2];
-                for (int x = 0; x < xe74.length; x++) {
-                    xe74[x] = Utils.readUnsignedInteger(rawCreatures);
-                }
-                creature.setXe74(xe74);
+                creature.setHateJobs(hateJobs);
                 Xe7c[] xe7cs = new Xe7c[3];
                 for (int x = 0; x < xe7cs.length; x++) {
                     Xe7c xe7c = creature.new Xe7c();
@@ -1232,6 +1195,32 @@ public class KwdFile {
             //Fug
             throw new RuntimeException("Failed to read the file " + creaturesFile + "!", e);
         }
+    }
+
+    /**
+     * Read job preferences for a creature
+     *
+     * @param count amount of job preference records
+     * @param creature creature instance, just for creating a job preference
+     * instance
+     * @param file the file to read the data from
+     * @return job preferences
+     * @throws IOException may fail
+     */
+    private Creature.JobPreference[] readJobPreferences(int count, Creature creature, RandomAccessFile file) throws IOException {
+        Creature.JobPreference[] preferences = new Creature.JobPreference[count];
+        for (int x = 0; x < preferences.length; x++) {
+            Creature.JobPreference jobPreference = creature.new JobPreference();
+            jobPreference.setJobType(Creature.JobType.getValue(Utils.readUnsignedInteger(file)));
+            jobPreference.setMoodChange(Utils.readUnsignedShort(file));
+            jobPreference.setManaChange(Utils.readUnsignedShort(file));
+            jobPreference.setChance((short) file.readUnsignedByte());
+            jobPreference.setX09((short) file.readUnsignedByte());
+            jobPreference.setX0a((short) file.readUnsignedByte());
+            jobPreference.setX0b((short) file.readUnsignedByte());
+            preferences[x] = jobPreference;
+        }
+        return preferences;
     }
 
     /**
