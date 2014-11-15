@@ -176,11 +176,14 @@ public class Creature {
     private int unk2c; // cf7
     private int shotDelay; // cf9
     private int unkcfd; // cfd
-    private int unkcff; // cff
+    private int introductionStringId; // cff
     private int unkd01; // d01
+    private int angerStringIdLair;
+    private int angerStringIdFood;
+    private int angerStringIdPay;
     private int unk2d[]; // d05
     private String unkd17; // d17
-    private int shuffleSpeed; // d37
+    private float shuffleSpeed; // d37
     private short unk2e[]; // d3b
     private ArtResource ref2; // d40
     private Light light; // d94
@@ -200,8 +203,8 @@ public class Creature {
     private int unkea8; // ea8
     private int unk3ab; // eac
     private float eyeHeight; // eb0
-    private int speed; // eb4
-    private int runSpeed; // eb8
+    private float speed; // eb4
+    private float runSpeed; // eb8
     private int unk3ac; // ebc
     private int timeAwake; // ec0
     private int timeSleep; // ec4
@@ -238,7 +241,8 @@ public class Creature {
     private int maxGoldHeld; // f1e
     private int unk3cc; // f20
     private int decomposeValue; // f22
-    private int unk3cd[]; // f24
+    private int nameStringId;
+    private int tooltipStringId;
     private short angerNoLair; // f28
     private short angerNoFood; // f2a
     private short angerNoPay; // f2c
@@ -246,10 +250,12 @@ public class Creature {
     private short angerSlap; // f30
     private short angerInHand; // f32
     private short initialGoldHeld; // f34
-    private int unk3ce[]; // f36
-    private int slapEffectId; // f3c
-    private int deathEffectId; // f3e
-    private int unkf40; // f40
+    private int unk3ce; // f36
+    private int generalDescriptionStringId; // f3c
+    private int strengthStringId;
+    private int weaknessStringId;
+    private int slapEffectId; // f3e
+    private int deathEffectId; // f40
     private short unk3d[]; // f42
     private short unkf45; // f45
     private short unk40[]; // f46
@@ -260,7 +266,7 @@ public class Creature {
     private short unk3eb[]; // f50
     private short lairObjectId; // f52
     private short unk3f[]; // f53
-    private String xname; // f56
+    private String soundGategory; // f56
     private Material material; // f76, armour type
     private ArtResource reff77; // f77
     private int unkfcb; // fcb
@@ -276,7 +282,7 @@ public class Creature {
     private ArtResource ref6; // 12cf
     private X1323 x1323[];
     private ArtResource ref7[]; // 13e3
-    private int unk14df;
+    private int uniqueNameTextId;
     private int x14e1[]; // 14e1
     private int x14e9[]; // 14e9
     private ArtResource ref8; // 14f1
@@ -354,12 +360,12 @@ public class Creature {
         this.unkcfd = unkcfd;
     }
 
-    public int getUnkcff() {
-        return unkcff;
+    public int getIntroductionStringId() {
+        return introductionStringId;
     }
 
-    protected void setUnkcff(int unkcff) {
-        this.unkcff = unkcff;
+    protected void setIntroductionStringId(int introductionStringId) {
+        this.introductionStringId = introductionStringId;
     }
 
     public int getUnkd01() {
@@ -368,6 +374,30 @@ public class Creature {
 
     protected void setUnkd01(int unkd01) {
         this.unkd01 = unkd01;
+    }
+
+    public int getAngerStringIdLair() {
+        return angerStringIdLair;
+    }
+
+    protected void setAngerStringIdLair(int angerStringIdLair) {
+        this.angerStringIdLair = angerStringIdLair;
+    }
+
+    public int getAngerStringIdFood() {
+        return angerStringIdFood;
+    }
+
+    protected void setAngerStringIdFood(int angerStringIdFood) {
+        this.angerStringIdFood = angerStringIdFood;
+    }
+
+    public int getAngerStringIdPay() {
+        return angerStringIdPay;
+    }
+
+    protected void setAngerStringIdPay(int angerStringIdPay) {
+        this.angerStringIdPay = angerStringIdPay;
     }
 
     public int[] getUnk2d() {
@@ -386,11 +416,11 @@ public class Creature {
         this.unkd17 = unkd17;
     }
 
-    public int getShuffleSpeed() {
+    public float getShuffleSpeed() {
         return shuffleSpeed;
     }
 
-    protected void setShuffleSpeed(int shuffleSpeed) {
+    protected void setShuffleSpeed(float shuffleSpeed) {
         this.shuffleSpeed = shuffleSpeed;
     }
 
@@ -546,19 +576,19 @@ public class Creature {
         this.eyeHeight = eyeHeight;
     }
 
-    public int getSpeed() {
+    public float getSpeed() {
         return speed;
     }
 
-    protected void setSpeed(int speed) {
+    protected void setSpeed(float speed) {
         this.speed = speed;
     }
 
-    public int getRunSpeed() {
+    public float getRunSpeed() {
         return runSpeed;
     }
 
-    protected void setRunSpeed(int runSpeed) {
+    protected void setRunSpeed(float runSpeed) {
         this.runSpeed = runSpeed;
     }
 
@@ -850,12 +880,20 @@ public class Creature {
         this.decomposeValue = decomposeValue;
     }
 
-    public int[] getUnk3cd() {
-        return unk3cd;
+    public int getNameStringId() {
+        return nameStringId;
     }
 
-    protected void setUnk3cd(int[] unk3cd) {
-        this.unk3cd = unk3cd;
+    protected void setNameStringId(int nameStringId) {
+        this.nameStringId = nameStringId;
+    }
+
+    public int getTooltipStringId() {
+        return tooltipStringId;
+    }
+
+    protected void setTooltipStringId(int tooltipStringId) {
+        this.tooltipStringId = tooltipStringId;
     }
 
     public short getAngerNoLair() {
@@ -914,12 +952,36 @@ public class Creature {
         this.initialGoldHeld = initialGoldHeld;
     }
 
-    public int[] getUnk3ce() {
+    public int getUnk3ce() {
         return unk3ce;
     }
 
-    protected void setUnk3ce(int[] unk3ce) {
+    protected void setUnk3ce(int unk3ce) {
         this.unk3ce = unk3ce;
+    }
+
+    public int getGeneralDescriptionStringId() {
+        return generalDescriptionStringId;
+    }
+
+    protected void setGeneralDescriptionStringId(int generalDescriptionStringId) {
+        this.generalDescriptionStringId = generalDescriptionStringId;
+    }
+
+    public int getStrengthStringId() {
+        return strengthStringId;
+    }
+
+    protected void setStrengthStringId(int strengthStringId) {
+        this.strengthStringId = strengthStringId;
+    }
+
+    public int getWeaknessStringId() {
+        return weaknessStringId;
+    }
+
+    protected void setWeaknessStringId(int weaknessStringId) {
+        this.weaknessStringId = weaknessStringId;
     }
 
     public int getSlapEffectId() {
@@ -936,14 +998,6 @@ public class Creature {
 
     protected void setDeathEffectId(int deathEffectId) {
         this.deathEffectId = deathEffectId;
-    }
-
-    public int getUnkf40() {
-        return unkf40;
-    }
-
-    protected void setUnkf40(int unkf40) {
-        this.unkf40 = unkf40;
     }
 
     public short[] getUnk3d() {
@@ -1026,12 +1080,12 @@ public class Creature {
         this.unk3f = unk3f;
     }
 
-    public String getXname() {
-        return xname;
+    public String getSoundGategory() {
+        return soundGategory;
     }
 
-    protected void setXname(String xname) {
-        this.xname = xname;
+    protected void setSoundGategory(String soundGategory) {
+        this.soundGategory = soundGategory;
     }
 
     public Material getMaterial() {
@@ -1154,12 +1208,12 @@ public class Creature {
         this.ref7 = ref7;
     }
 
-    public int getUnk14df() {
-        return unk14df;
+    public int getUniqueNameTextId() {
+        return uniqueNameTextId;
     }
 
-    protected void setUnk14df(int unk14df) {
-        this.unk14df = unk14df;
+    protected void setUniqueNameTextId(int uniqueNameTextId) {
+        this.uniqueNameTextId = uniqueNameTextId;
     }
 
     public int[] getX14e1() {
@@ -1202,7 +1256,8 @@ public class Creature {
     public class Attraction {
 
         private int present; // dac
-        private int roomIdAndSize; // db0
+        private int roomId; // db0
+        private int roomSize;
 
         public int getPresent() {
             return present;
@@ -1212,12 +1267,20 @@ public class Creature {
             this.present = present;
         }
 
-        public int getRoomIdAndSize() {
-            return roomIdAndSize;
+        public int getRoomId() {
+            return roomId;
         }
 
-        protected void setRoomIdAndSize(int roomIdAndSize) {
-            this.roomIdAndSize = roomIdAndSize;
+        protected void setRoomId(int roomId) {
+            this.roomId = roomId;
+        }
+
+        public int getRoomSize() {
+            return roomSize;
+        }
+
+        protected void setRoomSize(int roomSize) {
+            this.roomSize = roomSize;
         }
     }
 

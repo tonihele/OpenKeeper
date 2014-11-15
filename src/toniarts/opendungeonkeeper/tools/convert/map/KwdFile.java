@@ -955,9 +955,12 @@ public class KwdFile {
                 creature.setUnk2c(Utils.readUnsignedShort(rawCreatures));
                 creature.setShotDelay(Utils.readUnsignedInteger(rawCreatures));
                 creature.setUnkcfd(Utils.readUnsignedShort(rawCreatures));
-                creature.setUnkcff(Utils.readUnsignedShort(rawCreatures));
+                creature.setIntroductionStringId(Utils.readUnsignedShort(rawCreatures));
                 creature.setUnkd01(Utils.readUnsignedInteger(rawCreatures));
-                int[] unk2d = new int[9];
+                creature.setAngerStringIdLair(Utils.readUnsignedShort(rawCreatures));
+                creature.setAngerStringIdFood(Utils.readUnsignedShort(rawCreatures));
+                creature.setAngerStringIdPay(Utils.readUnsignedShort(rawCreatures));
+                int[] unk2d = new int[6];
                 for (int x = 0; x < unk2d.length; x++) {
                     unk2d[x] = Utils.readUnsignedShort(rawCreatures);
                 }
@@ -965,7 +968,7 @@ public class KwdFile {
                 bytes = new byte[32];
                 rawCreatures.read(bytes);
                 creature.setUnkd17(Utils.bytesToString(bytes).trim());
-                creature.setShuffleSpeed(Utils.readUnsignedInteger(rawCreatures));
+                creature.setShuffleSpeed(Utils.readUnsignedInteger(rawCreatures) / FIXED_POINT_DIVISION);
                 short[] unk2e = new short[5];
                 for (int x = 0; x < unk2e.length; x++) {
                     unk2e[x] = (short) rawCreatures.readUnsignedByte();
@@ -977,7 +980,8 @@ public class KwdFile {
                 for (int x = 0; x < attractions.length; x++) {
                     Attraction attraction = creature.new Attraction();
                     attraction.setPresent(Utils.readUnsignedInteger(rawCreatures));
-                    attraction.setRoomIdAndSize(Utils.readUnsignedInteger(rawCreatures));
+                    attraction.setRoomId(Utils.readUnsignedShort(rawCreatures));
+                    attraction.setRoomSize(Utils.readUnsignedShort(rawCreatures));
                     attractions[x] = attraction;
                 }
                 creature.setAttraction(attractions);
@@ -1072,8 +1076,8 @@ public class KwdFile {
                 creature.setUnkea8(Utils.readUnsignedInteger(rawCreatures));
                 creature.setUnk3ab(Utils.readUnsignedInteger(rawCreatures));
                 creature.setEyeHeight(Utils.readInteger(rawCreatures) / FIXED_POINT_DIVISION);
-                creature.setSpeed(Utils.readInteger(rawCreatures));
-                creature.setRunSpeed(Utils.readInteger(rawCreatures));
+                creature.setSpeed(Utils.readInteger(rawCreatures) / FIXED_POINT_DIVISION);
+                creature.setRunSpeed(Utils.readInteger(rawCreatures) / FIXED_POINT_DIVISION);
                 creature.setUnk3ac(Utils.readUnsignedInteger(rawCreatures));
                 creature.setTimeAwake(Utils.readUnsignedInteger(rawCreatures));
                 creature.setTimeSleep(Utils.readUnsignedInteger(rawCreatures));
@@ -1114,11 +1118,8 @@ public class KwdFile {
                 creature.setMaxGoldHeld(Utils.readUnsignedShort(rawCreatures));
                 creature.setUnk3cc(Utils.readUnsignedShort(rawCreatures));
                 creature.setDecomposeValue(Utils.readUnsignedShort(rawCreatures));
-                int[] unk3cd = new int[2];
-                for (int x = 0; x < unk3cd.length; x++) {
-                    unk3cd[x] = Utils.readUnsignedShort(rawCreatures);
-                }
-                creature.setUnk3cd(unk3cd);
+                creature.setNameStringId(Utils.readUnsignedShort(rawCreatures));
+                creature.setTooltipStringId(Utils.readUnsignedShort(rawCreatures));
                 creature.setAngerNoLair(Utils.readShort(rawCreatures));
                 creature.setAngerNoFood(Utils.readShort(rawCreatures));
                 creature.setAngerNoPay(Utils.readShort(rawCreatures));
@@ -1126,14 +1127,12 @@ public class KwdFile {
                 creature.setAngerSlap(Utils.readShort(rawCreatures));
                 creature.setAngerInHand(Utils.readShort(rawCreatures));
                 creature.setInitialGoldHeld(Utils.readShort(rawCreatures));
-                int[] unk3ce = new int[3];
-                for (int x = 0; x < unk3ce.length; x++) {
-                    unk3ce[x] = Utils.readUnsignedShort(rawCreatures);
-                }
-                creature.setUnk3ce(unk3ce);
+                creature.setUnk3ce(Utils.readUnsignedShort(rawCreatures));
+                creature.setGeneralDescriptionStringId(Utils.readUnsignedShort(rawCreatures));
+                creature.setStrengthStringId(Utils.readUnsignedShort(rawCreatures));
+                creature.setWeaknessStringId(Utils.readUnsignedShort(rawCreatures));
                 creature.setSlapEffectId(Utils.readUnsignedShort(rawCreatures));
                 creature.setDeathEffectId(Utils.readUnsignedShort(rawCreatures));
-                creature.setUnkf40(Utils.readUnsignedShort(rawCreatures));
                 short[] unk3d = new short[3];
                 for (int x = 0; x < unk3d.length; x++) {
                     unk3d[x] = (short) rawCreatures.readUnsignedByte();
@@ -1170,7 +1169,7 @@ public class KwdFile {
                 creature.setUnk3f(unk3f);
                 bytes = new byte[32];
                 rawCreatures.read(bytes);
-                creature.setXname(Utils.bytesToString(bytes).trim());
+                creature.setSoundGategory(Utils.bytesToString(bytes).trim());
                 creature.setMaterial(Material.getValue(rawCreatures.readUnsignedByte()));
                 creature.setReff77(readArtResource(rawCreatures));
                 creature.setUnkfcb(Utils.readUnsignedShort(rawCreatures));
@@ -1213,7 +1212,7 @@ public class KwdFile {
                     ref7[x] = readArtResource(rawCreatures);
                 }
                 creature.setRef7(ref7);
-                creature.setUnk14df(Utils.readUnsignedShort(rawCreatures));
+                creature.setUniqueNameTextId(Utils.readUnsignedShort(rawCreatures));
                 int[] x14e1 = new int[2];
                 for (int x = 0; x < x14e1.length; x++) {
                     x14e1[x] = Utils.readUnsignedInteger(rawCreatures);
