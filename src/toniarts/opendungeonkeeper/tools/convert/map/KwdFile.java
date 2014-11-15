@@ -506,7 +506,7 @@ public class KwdFile {
                 resourceType = artResource.new TerrainResource();
                 ((TerrainResource) resourceType).setX00(Utils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
                 ((TerrainResource) resourceType).setX04(Utils.readUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)));
-                ((TerrainResource) resourceType).setFrames(bytes[9]);
+                ((TerrainResource) resourceType).setFrames(Utils.toUnsignedByte(bytes[8]));
                 break;
             }
             case 5: {
