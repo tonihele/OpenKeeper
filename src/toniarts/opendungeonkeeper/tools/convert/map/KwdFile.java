@@ -601,7 +601,7 @@ public class KwdFile {
                 }
                 door.setUnknown2(unknown2);
                 door.setMaterial(Material.getValue((short) rawDoors.readUnsignedByte()));
-                door.setUnknown25((short) rawDoors.readUnsignedByte());
+                door.setTrapTypeId((short) rawDoors.readUnsignedByte());
                 int flag = Utils.readUnsignedInteger(rawDoors);
                 door.setFlags(parseFlagValue(flag, DoorFlag.class));
                 door.setHealth(Utils.readUnsignedShort(rawDoors));

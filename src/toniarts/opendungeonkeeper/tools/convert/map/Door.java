@@ -22,7 +22,7 @@ public class Door {
 //};
 
     /**
-     *
+     * Door flags
      */
     public enum DoorFlag implements IFlagEnum {
 
@@ -51,7 +51,7 @@ public class Door {
     private int healthGain;
     private short[] unknown2; // 8
     private Material material;
-    private short unknown25;
+    private short trapTypeId;
     private EnumSet<DoorFlag> flags;
     private int health;
     private int goldCost;
@@ -65,7 +65,7 @@ public class Door {
     private int strengthStringId;
     private int weaknessStringId;
     private short doorId;
-    private short orderInEditor;
+    private short orderInEditor; // introductionIndex in editor
     private short manufCrateObjectId;
     private short keyObjectId;
     private String soundGategory;
@@ -158,12 +158,12 @@ public class Door {
         this.material = material;
     }
 
-    public short getUnknown25() {
-        return unknown25;
+    public short getTrapTypeId() {
+        return trapTypeId;
     }
 
-    protected void setUnknown25(short unknown25) {
-        this.unknown25 = unknown25;
+    protected void setTrapTypeId(short trapTypeId) {
+        this.trapTypeId = trapTypeId;
     }
 
     public EnumSet<DoorFlag> getFlags() {
