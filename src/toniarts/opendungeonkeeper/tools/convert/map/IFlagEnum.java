@@ -11,5 +11,5 @@ package toniarts.opendungeonkeeper.tools.convert.map;
  */
 public interface IFlagEnum {
 
-    public int getFlagValue();
+    public long getFlagValue();
 }

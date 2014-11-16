@@ -4,6 +4,7 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import java.util.EnumSet;
 import javax.vecmath.Vector3f;
 
 /**
@@ -12,6 +13,49 @@ import javax.vecmath.Vector3f;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class Creature implements Comparable<Creature> {
+
+    /**
+     * Creature flags
+     */
+    public enum CreatureFlag implements IFlagEnum {
+
+        IS_WORKER(1),
+        CAN_BE_PICKED_UP(2),
+        CAN_BE_SLAPPED(4),
+        ALWAYS_FLEE(8),
+        CAN_WALK_ON_WATER(16),
+        CAN_WALK_ON_LAVA(32),
+        IS_EVIL(128),
+        IS_IMMUNE_TO_TURNCOAT(512),
+        AVAILABLE_VIA_PORTAL(1024),
+        CAN_FLY(8192),
+        IS_HORNY(16384),
+        GENERATE_DEAD_BODY(32768),
+        CAN_BE_HYPNOTIZED(65536),
+        IS_IMMUNE_TO_CHICKEN(131072),
+        IS_FEARLESS(262144),
+        CAN_BE_ELECTROCUTED(524288),
+        NEED_BODY_FOR_FIGHT_IDLE(1048576),
+        TRAIN_WHEN_IDLE(2097152),
+        ONLY_ATTACKABLE_BY_HORNY(4194304),
+        CAN_BE_RESURECTED(8388608),
+        DOESNT_GET_ANGRY_WITH_ENEMIES(16777216),
+        FREES_FRIENDS_ON_JAILBREAK(33554432),
+        REVEALS_ADJACENT_TRAPS(67108864),
+        IS_UNIQUE(134217728),
+        MPD_RANDOM_INVADER(1073741824),
+        IS_MALE(2147483648l);
+        private final long flagValue;
+
+        private CreatureFlag(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
 
     public enum AttackType implements IValueEnum {
 
@@ -349,7 +393,7 @@ public class Creature implements Comparable<Creature> {
     private int unkef0; // ef0
     private int unk3af; // ef4
     private float meleeRecharge; // ef8
-    private int unkefc; // efc
+    private EnumSet<CreatureFlag> flags; // efc
     private int expForNextLevel; // f00
     private JobClass jobClass; // f02
     private FightStyle fightStyle;
@@ -906,12 +950,12 @@ public class Creature implements Comparable<Creature> {
         this.meleeRecharge = meleeRecharge;
     }
 
-    public int getUnkefc() {
-        return unkefc;
+    public EnumSet<CreatureFlag> getFlags() {
+        return flags;
     }
 
-    protected void setUnkefc(int unkefc) {
-        this.unkefc = unkefc;
+    protected void setFlags(EnumSet<CreatureFlag> flags) {
+        this.flags = flags;
     }
 
     public int getExpForNextLevel() {

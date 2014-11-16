@@ -29,14 +29,14 @@ public class Door implements Comparable<Door> {
         IS_SECRET(0x0020), // Secret
         IS_BARRICADE(0x0040), // Barricade
         IS_GOOD(0x0080); // Good (as in alignment)
-        private final int flagValue;
+        private final long flagValue;
 
-        private DoorFlag(int flagValue) {
+        private DoorFlag(long flagValue) {
             this.flagValue = flagValue;
         }
 
         @Override
-        public int getFlagValue() {
+        public long getFlagValue() {
             return flagValue;
         }
     };

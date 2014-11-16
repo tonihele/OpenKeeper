@@ -73,14 +73,14 @@ public class KwdFile {
         ISSKIRMISHLVL(0x0800), // The map is Skirmish level
         FREEZEOPTIONS(0x1000), // Freeze game options
         ISMPDLEVEL(0x2000); // The map is My Pet Dungeon level
-        private final int flagValue;
+        private final long flagValue;
 
-        private LevFlag(int flagValue) {
+        private LevFlag(long flagValue) {
             this.flagValue = flagValue;
         }
 
         @Override
-        public int getFlagValue() {
+        public long getFlagValue() {
             return flagValue;
         }
     };
@@ -1057,7 +1057,8 @@ public class KwdFile {
                 creature.setUnkef0(Utils.readUnsignedInteger(rawCreatures));
                 creature.setUnk3af(Utils.readUnsignedInteger(rawCreatures));
                 creature.setMeleeRecharge(Utils.readInteger(rawCreatures) / FIXED_POINT_DIVISION);
-                creature.setUnkefc(Utils.readUnsignedInteger(rawCreatures));
+                // The flags is actually very big, pushing the boundaries, a true uint32, need to -> long
+                creature.setFlags(parseFlagValue(Utils.readInteger(rawCreatures) & 0xFFFFFFFFL, Creature.CreatureFlag.class));
                 creature.setExpForNextLevel(Utils.readUnsignedShort(rawCreatures));
                 creature.setJobClass(parseEnum(rawCreatures.readUnsignedByte(), Creature.JobClass.class));
                 creature.setFightStyle(parseEnum(rawCreatures.readUnsignedByte(), Creature.FightStyle.class));
@@ -1986,10 +1987,10 @@ public class KwdFile {
      * generics here)
      * @return the set
      */
-    private EnumSet parseFlagValue(int flag, Class<? extends Enum> enumeration) {
+    private EnumSet parseFlagValue(long flag, Class<? extends Enum> enumeration) {
         EnumSet set = EnumSet.noneOf(enumeration);
         for (Enum e : enumeration.getEnumConstants()) {
-            int flagValue = ((IFlagEnum) e).getFlagValue();
+            long flagValue = ((IFlagEnum) e).getFlagValue();
             if ((flagValue & flag) == flagValue) {
                 set.add(e);
             }

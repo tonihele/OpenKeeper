@@ -29,14 +29,14 @@ public class ArtResource {
         USE_ANIMATING_TEXTURE_FOR_SELECTION(0x10000),
         PRELOAD(0x20000),
         BLOOD(0x40000);
-        private final int flagValue;
+        private final long flagValue;
 
-        private ArtResourceFlag(int flagValue) {
+        private ArtResourceFlag(long flagValue) {
             this.flagValue = flagValue;
         }
 
         @Override
-        public int getFlagValue() {
+        public long getFlagValue() {
             return flagValue;
         }
     };
