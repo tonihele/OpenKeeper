@@ -272,7 +272,7 @@ public class Creature implements Comparable<Creature> {
     private int unkcee; // cee
     private int unkcf2; // cf2
     private short orderInEditor; // cf6
-    private int unk2c; // cf7
+    private int angerStringIdGeneral; // cf7
     private float shotDelay; // cf9
     private int olhiEffectId; // cfd, OLHI, wut?
     private int introductionStringId; // cff
@@ -280,8 +280,13 @@ public class Creature implements Comparable<Creature> {
     private int angerStringIdLair;
     private int angerStringIdFood;
     private int angerStringIdPay;
-    private int unk2d[]; // d05, probably the rest of anger text ids
-    private String unkd17; // d17
+    private int angerStringIdWork;
+    private int angerStringIdSlap;
+    private int angerStringIdHeld;
+    private int angerStringIdLonely;
+    private int angerStringIdHatred;
+    private int angerStringIdTorture;
+    private String translationSoundGategory; // d17
     private float shuffleSpeed; // d37
     private short cloneCreatureId;
     private short unk2e[]; // d3b
@@ -437,12 +442,12 @@ public class Creature implements Comparable<Creature> {
         this.orderInEditor = orderInEditor;
     }
 
-    public int getUnk2c() {
-        return unk2c;
+    public int getAngerStringIdGeneral() {
+        return angerStringIdGeneral;
     }
 
-    protected void setUnk2c(int unk2c) {
-        this.unk2c = unk2c;
+    protected void setAngerStringIdGeneral(int angerStringIdGeneral) {
+        this.angerStringIdGeneral = angerStringIdGeneral;
     }
 
     public float getShotDelay() {
@@ -501,20 +506,60 @@ public class Creature implements Comparable<Creature> {
         this.angerStringIdPay = angerStringIdPay;
     }
 
-    public int[] getUnk2d() {
-        return unk2d;
+    public int getAngerStringIdWork() {
+        return angerStringIdWork;
     }
 
-    protected void setUnk2d(int[] unk2d) {
-        this.unk2d = unk2d;
+    protected void setAngerStringIdWork(int angerStringIdWork) {
+        this.angerStringIdWork = angerStringIdWork;
     }
 
-    public String getUnkd17() {
-        return unkd17;
+    public int getAngerStringIdSlap() {
+        return angerStringIdSlap;
     }
 
-    protected void setUnkd17(String unkd17) {
-        this.unkd17 = unkd17;
+    protected void setAngerStringIdSlap(int angerStringIdSlap) {
+        this.angerStringIdSlap = angerStringIdSlap;
+    }
+
+    public int getAngerStringIdHeld() {
+        return angerStringIdHeld;
+    }
+
+    protected void setAngerStringIdHeld(int angerStringIdHeld) {
+        this.angerStringIdHeld = angerStringIdHeld;
+    }
+
+    public int getAngerStringIdLonely() {
+        return angerStringIdLonely;
+    }
+
+    protected void setAngerStringIdLonely(int angerStringIdLonely) {
+        this.angerStringIdLonely = angerStringIdLonely;
+    }
+
+    public int getAngerStringIdHatred() {
+        return angerStringIdHatred;
+    }
+
+    protected void setAngerStringIdHatred(int angerStringIdHatred) {
+        this.angerStringIdHatred = angerStringIdHatred;
+    }
+
+    public int getAngerStringIdTorture() {
+        return angerStringIdTorture;
+    }
+
+    protected void setAngerStringIdTorture(int angerStringIdTorture) {
+        this.angerStringIdTorture = angerStringIdTorture;
+    }
+
+    public String getTranslationSoundGategory() {
+        return translationSoundGategory;
+    }
+
+    protected void setTranslationSoundGategory(String translationSoundGategory) {
+        this.translationSoundGategory = translationSoundGategory;
     }
 
     public float getShuffleSpeed() {

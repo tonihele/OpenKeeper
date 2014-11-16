@@ -950,7 +950,7 @@ public class KwdFile {
                 creature.setUnkcee(Utils.readUnsignedInteger(rawCreatures));
                 creature.setUnkcf2(Utils.readUnsignedInteger(rawCreatures));
                 creature.setOrderInEditor((short) rawCreatures.readUnsignedByte());
-                creature.setUnk2c(Utils.readUnsignedShort(rawCreatures));
+                creature.setAngerStringIdGeneral(Utils.readUnsignedShort(rawCreatures));
                 creature.setShotDelay(Utils.readUnsignedInteger(rawCreatures) / FIXED_POINT_DIVISION);
                 creature.setOlhiEffectId(Utils.readUnsignedShort(rawCreatures));
                 creature.setIntroductionStringId(Utils.readUnsignedShort(rawCreatures));
@@ -958,14 +958,15 @@ public class KwdFile {
                 creature.setAngerStringIdLair(Utils.readUnsignedShort(rawCreatures));
                 creature.setAngerStringIdFood(Utils.readUnsignedShort(rawCreatures));
                 creature.setAngerStringIdPay(Utils.readUnsignedShort(rawCreatures));
-                int[] unk2d = new int[6];
-                for (int x = 0; x < unk2d.length; x++) {
-                    unk2d[x] = Utils.readUnsignedShort(rawCreatures);
-                }
-                creature.setUnk2d(unk2d);
+                creature.setAngerStringIdWork(Utils.readUnsignedShort(rawCreatures));
+                creature.setAngerStringIdSlap(Utils.readUnsignedShort(rawCreatures));
+                creature.setAngerStringIdHeld(Utils.readUnsignedShort(rawCreatures));
+                creature.setAngerStringIdLonely(Utils.readUnsignedShort(rawCreatures));
+                creature.setAngerStringIdHatred(Utils.readUnsignedShort(rawCreatures));
+                creature.setAngerStringIdTorture(Utils.readUnsignedShort(rawCreatures));
                 bytes = new byte[32];
                 rawCreatures.read(bytes);
-                creature.setUnkd17(Utils.bytesToString(bytes).trim());
+                creature.setTranslationSoundGategory(Utils.bytesToString(bytes).trim());
                 creature.setShuffleSpeed(Utils.readUnsignedInteger(rawCreatures) / FIXED_POINT_DIVISION);
                 creature.setCreatureId((short) rawCreatures.readUnsignedByte());
                 short[] unk2e = new short[4];
