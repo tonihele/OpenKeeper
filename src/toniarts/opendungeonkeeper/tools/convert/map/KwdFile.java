@@ -2008,7 +2008,7 @@ public class KwdFile {
      */
     private <E extends Enum & IValueEnum> E parseEnum(int value, Class<E> enumeration) {
         for (E e : enumeration.getEnumConstants()) {
-            if (((IValueEnum) e).getValue() == value) {
+            if (e.getValue() == value) {
                 return e;
             }
         }
