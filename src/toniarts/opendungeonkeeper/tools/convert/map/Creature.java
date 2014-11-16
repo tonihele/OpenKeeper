@@ -110,6 +110,28 @@ public class Creature implements Comparable<Creature> {
         }
         private int id;
     }
+
+    public enum DeathFallDirection implements IValueEnum {
+
+        NORTH(0),
+        NORTH_EAST(1),
+        EAST(2),
+        SOUTH_EAST(3),
+        SOUTH(4),
+        SOUTH_WEST(5),
+        WEST(6),
+        NORTH_WEST(7);
+
+        private DeathFallDirection(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private int id;
+    }
 //    struct CreatureBlock {
 //        char name[32]; /* 0 */
 //        ArtResource ref1[39]; /* 20 */
@@ -371,7 +393,9 @@ public class Creature implements Comparable<Creature> {
     private short unhappyThreshold; // f4f
     private short unk3eb[]; // f50
     private short lairObjectId; // f52
-    private short unk3f[]; // f53
+    private short unk3f1; // f53
+    private DeathFallDirection deathFallDirection;
+    private short unk3f2;
     private String soundGategory; // f56
     private Material material; // f76, armour type
     private ArtResource reff77; // f77
@@ -1234,12 +1258,28 @@ public class Creature implements Comparable<Creature> {
         this.lairObjectId = lairObjectId;
     }
 
-    public short[] getUnk3f() {
-        return unk3f;
+    public short getUnk3f1() {
+        return unk3f1;
     }
 
-    protected void setUnk3f(short[] unk3f) {
-        this.unk3f = unk3f;
+    protected void setUnk3f1(short unk3f1) {
+        this.unk3f1 = unk3f1;
+    }
+
+    public DeathFallDirection getDeathFallDirection() {
+        return deathFallDirection;
+    }
+
+    protected void setDeathFallDirection(DeathFallDirection deathFallDirection) {
+        this.deathFallDirection = deathFallDirection;
+    }
+
+    public short getUnk3f2() {
+        return unk3f2;
+    }
+
+    protected void setUnk3f2(short unk3f2) {
+        this.unk3f2 = unk3f2;
     }
 
     public String getSoundGategory() {

@@ -1121,11 +1121,9 @@ public class KwdFile {
                 }
                 creature.setUnk3eb(unk3eb);
                 creature.setLairObjectId((short) rawCreatures.readUnsignedByte());
-                short[] unk3f = new short[3];
-                for (int x = 0; x < unk3f.length; x++) {
-                    unk3f[x] = (short) rawCreatures.readUnsignedByte();
-                }
-                creature.setUnk3f(unk3f);
+                creature.setUnk3f1((short) rawCreatures.readUnsignedByte());
+                creature.setDeathFallDirection(parseEnum(rawCreatures.readUnsignedByte(), Creature.DeathFallDirection.class));
+                creature.setUnk3f2((short) rawCreatures.readUnsignedByte());
                 bytes = new byte[32];
                 rawCreatures.read(bytes);
                 creature.setSoundGategory(Utils.bytesToString(bytes).trim());
