@@ -530,7 +530,7 @@ public class KwdFile {
 
         // Add the common values
         resourceType.setFlags(parseFlagValue(flags, ArtResource.ArtResourceFlag.class));
-        resourceType.setType(ArtResource.Type.getValue(type));
+        resourceType.setType(parseEnum(type, ArtResource.Type.class));
         resourceType.setStartAf(startAf);
         resourceType.setEndAf(endAf);
         resourceType.setSometimesOne(sometimesOne);
@@ -601,7 +601,7 @@ public class KwdFile {
                     unknown2[x] = (short) rawDoors.readUnsignedByte();
                 }
                 door.setUnknown2(unknown2);
-                door.setMaterial(Material.getValue((short) rawDoors.readUnsignedByte()));
+                door.setMaterial(parseEnum(rawDoors.readUnsignedByte(), Material.class));
                 door.setTrapTypeId((short) rawDoors.readUnsignedByte());
                 int flag = Utils.readUnsignedInteger(rawDoors);
                 door.setFlags(parseFlagValue(flag, DoorFlag.class));
@@ -1005,7 +1005,7 @@ public class KwdFile {
                 Creature.Resistance[] resistances = new Creature.Resistance[4];
                 for (int x = 0; x < resistances.length; x++) {
                     Creature.Resistance resistance = creature.new Resistance();
-                    resistance.setAttackType(Creature.AttackType.getValue((short) rawCreatures.readUnsignedByte()));
+                    resistance.setAttackType(parseEnum(rawCreatures.readUnsignedByte(), Creature.AttackType.class));
                     resistance.setValue((short) rawCreatures.readUnsignedByte());
                     resistances[x] = resistance;
                 }
@@ -1015,7 +1015,7 @@ public class KwdFile {
                 creature.setAngryJobs(readJobPreferences(3, creature, rawCreatures));
                 Creature.JobType[] hateJobs = new Creature.JobType[2];
                 for (int x = 0; x < hateJobs.length; x++) {
-                    hateJobs[x] = Creature.JobType.getValue(Utils.readUnsignedInteger(rawCreatures));
+                    hateJobs[x] = parseEnum(Utils.readUnsignedInteger(rawCreatures), Creature.JobType.class);
                 }
                 creature.setHateJobs(hateJobs);
                 Xe7c[] xe7cs = new Xe7c[3];
@@ -1058,8 +1058,8 @@ public class KwdFile {
                 creature.setMeleeRecharge(Utils.readInteger(rawCreatures) / FIXED_POINT_DIVISION);
                 creature.setUnkefc(Utils.readUnsignedInteger(rawCreatures));
                 creature.setExpForNextLevel(Utils.readUnsignedShort(rawCreatures));
-                creature.setJobClass(Creature.JobClass.getValue((short) rawCreatures.readUnsignedByte()));
-                creature.setFightStyle(Creature.FightStyle.getValue((short) rawCreatures.readUnsignedByte()));
+                creature.setJobClass(parseEnum(rawCreatures.readUnsignedByte(), Creature.JobClass.class));
+                creature.setFightStyle(parseEnum(rawCreatures.readUnsignedByte(), Creature.FightStyle.class));
                 creature.setExpPerSecond(Utils.readUnsignedShort(rawCreatures));
                 creature.setExpPerSecondTraining(Utils.readUnsignedShort(rawCreatures));
                 creature.setResearchPerSecond(Utils.readUnsignedShort(rawCreatures));
@@ -1128,7 +1128,7 @@ public class KwdFile {
                 bytes = new byte[32];
                 rawCreatures.read(bytes);
                 creature.setSoundGategory(Utils.bytesToString(bytes).trim());
-                creature.setMaterial(Material.getValue(rawCreatures.readUnsignedByte()));
+                creature.setMaterial(parseEnum(rawCreatures.readUnsignedByte(), Material.class));
                 creature.setReff77(readArtResource(rawCreatures));
                 creature.setUnkfcb(Utils.readUnsignedShort(rawCreatures));
                 creature.setUnk4(Utils.readUnsignedInteger(rawCreatures));
@@ -1208,7 +1208,7 @@ public class KwdFile {
         Creature.JobPreference[] preferences = new Creature.JobPreference[count];
         for (int x = 0; x < preferences.length; x++) {
             Creature.JobPreference jobPreference = creature.new JobPreference();
-            jobPreference.setJobType(Creature.JobType.getValue(Utils.readUnsignedInteger(file)));
+            jobPreference.setJobType(parseEnum(Utils.readUnsignedInteger(file), Creature.JobType.class));
             jobPreference.setMoodChange(Utils.readUnsignedShort(file));
             jobPreference.setManaChange(Utils.readUnsignedShort(file));
             jobPreference.setChance((short) file.readUnsignedByte());
@@ -1280,7 +1280,7 @@ public class KwdFile {
                 object.setMass(Utils.readUnsignedInteger(rawObjects) / FIXED_POINT_DIVISION);
                 object.setUnknown1(Utils.readUnsignedInteger(rawObjects));
                 object.setUnknown2(Utils.readUnsignedInteger(rawObjects));
-                object.setMaterial(Material.getValue(rawObjects.readUnsignedByte()));
+                object.setMaterial(parseEnum(rawObjects.readUnsignedByte(), Material.class));
                 short[] unknown3 = new short[3];
                 for (int x = 0; x < unknown3.length; x++) {
                     unknown3[x] = (short) rawObjects.readUnsignedByte();
@@ -1996,5 +1996,22 @@ public class KwdFile {
             }
         }
         return set;
+    }
+
+    /**
+     * Parses a value to a enum of a wanted enum class
+     *
+     * @param <E> The enumeration class
+     * @param value the id value
+     * @param enumeration the enumeration class
+     * @return Enum value, returns null if no enum is found with given value
+     */
+    private <E extends Enum & IValueEnum> E parseEnum(int value, Class<E> enumeration) {
+        for (E e : enumeration.getEnumConstants()) {
+            if (((IValueEnum) e).getValue() == value) {
+                return e;
+            }
+        }
+        return null;
     }
 }

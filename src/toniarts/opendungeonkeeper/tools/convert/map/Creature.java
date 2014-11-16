@@ -13,7 +13,7 @@ import javax.vecmath.Vector3f;
  */
 public class Creature implements Comparable<Creature> {
 
-    public enum AttackType {
+    public enum AttackType implements IValueEnum {
 
         NONE(0),
         MELEE_BLADE(1),
@@ -36,24 +36,14 @@ public class Creature implements Comparable<Creature> {
             this.id = id;
         }
 
-        /**
-         * Get the attack type with ID
-         *
-         * @param id the id in map file
-         * @return AttackType
-         */
-        public static AttackType getValue(int id) {
-            for (AttackType attackType : AttackType.values()) {
-                if (attackType.id == id) {
-                    return attackType;
-                }
-            }
-            return AttackType.NONE;
+        @Override
+        public int getValue() {
+            return id;
         }
         private int id;
     }
 
-    public enum JobType {
+    public enum JobType implements IValueEnum {
 
         NONE(0),
         SLEEP(1),
@@ -77,24 +67,14 @@ public class Creature implements Comparable<Creature> {
             this.id = id;
         }
 
-        /**
-         * Get the job type with ID
-         *
-         * @param id the id in map file
-         * @return JobType
-         */
-        public static JobType getValue(int id) {
-            for (JobType jobType : JobType.values()) {
-                if (jobType.id == id) {
-                    return jobType;
-                }
-            }
-            return JobType.NONE;
+        @Override
+        public int getValue() {
+            return id;
         }
         private int id;
     }
 
-    public enum JobClass {
+    public enum JobClass implements IValueEnum {
 
         ARTISAN(0),
         THINKER(1),
@@ -105,24 +85,14 @@ public class Creature implements Comparable<Creature> {
             this.id = id;
         }
 
-        /**
-         * Get the fight style with ID
-         *
-         * @param id the id in map file
-         * @return JobClass
-         */
-        public static JobClass getValue(int id) {
-            for (JobClass jobClass : JobClass.values()) {
-                if (jobClass.id == id) {
-                    return jobClass;
-                }
-            }
-            return JobClass.ARTISAN;
+        @Override
+        public int getValue() {
+            return id;
         }
         private int id;
     }
 
-    public enum FightStyle {
+    public enum FightStyle implements IValueEnum {
 
         NON_FIGHTER(0),
         BLITZER(1),
@@ -134,19 +104,9 @@ public class Creature implements Comparable<Creature> {
             this.id = id;
         }
 
-        /**
-         * Get the fight style with ID
-         *
-         * @param id the id in map file
-         * @return FightStyle
-         */
-        public static FightStyle getValue(int id) {
-            for (FightStyle fightStyle : FightStyle.values()) {
-                if (fightStyle.id == id) {
-                    return fightStyle;
-                }
-            }
-            return FightStyle.NON_FIGHTER;
+        @Override
+        public int getValue() {
+            return id;
         }
         private int id;
     }

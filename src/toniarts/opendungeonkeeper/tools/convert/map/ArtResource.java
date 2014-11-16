@@ -41,7 +41,7 @@ public class ArtResource {
         }
     };
 
-    public enum Type {
+    public enum Type implements IValueEnum {
 
         NONE(0),
         SPRITE(1),
@@ -57,19 +57,9 @@ public class ArtResource {
             this.id = id;
         }
 
-        /**
-         * Get the type with ID
-         *
-         * @param id the id in map file
-         * @return Type
-         */
-        public static Type getValue(int id) {
-            for (Type type : Type.values()) {
-                if (type.id == id) {
-                    return type;
-                }
-            }
-            return Type.NONE;
+        @Override
+        public int getValue() {
+            return id;
         }
         private final int id;
     }

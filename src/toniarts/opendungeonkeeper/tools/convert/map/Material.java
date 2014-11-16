@@ -9,7 +9,7 @@ package toniarts.opendungeonkeeper.tools.convert.map;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public enum Material {
+public enum Material implements IValueEnum {
 
     NONE(0),
     FLESH(1),
@@ -24,19 +24,9 @@ public enum Material {
         this.id = id;
     }
 
-    /**
-     * Get the material with ID
-     *
-     * @param id the id in map file
-     * @return Material
-     */
-    public static Material getValue(int id) {
-        for (Material material : Material.values()) {
-            if (material.id == id) {
-                return material;
-            }
-        }
-        return Material.NONE;
+    @Override
+    public int getValue() {
+        return id;
     }
     private int id;
 }
