@@ -877,7 +877,7 @@ public class KwdFile {
             paths = new FilePath[pathCount];
             for (int x = 0; x < paths.length; x++) {
                 FilePath filePath = new FilePath();
-                filePath.setId(Utils.readUnsignedInteger(rawMapInfo));
+                filePath.setId(parseEnum(Utils.readUnsignedInteger(rawMapInfo), MapDataTypeEnum.class));
                 filePath.setUnknown2(Utils.readInteger(rawMapInfo));
                 bytes = new byte[64];
                 rawMapInfo.read(bytes);

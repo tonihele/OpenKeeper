@@ -11,15 +11,15 @@ package toniarts.opendungeonkeeper.tools.convert.map;
  */
 public class FilePath {
 
-    private int id; // unsigned int
+    private MapDataTypeEnum id; // unsigned int
     private int unknown2;
     private String path; // 64
 
-    public int getId() {
+    public MapDataTypeEnum getId() {
         return id;
     }
 
-    protected void setId(int id) {
+    protected void setId(MapDataTypeEnum id) {
         this.id = id;
     }
 
