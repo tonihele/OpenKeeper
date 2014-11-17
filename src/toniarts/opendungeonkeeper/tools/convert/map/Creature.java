@@ -25,7 +25,7 @@ public class Creature implements Comparable<Creature> {
         ALWAYS_FLEE(8),
         CAN_WALK_ON_WATER(16),
         CAN_WALK_ON_LAVA(32),
-        IS_EVIL(128),
+        IS_EVIL(128), // Obviously otherwise it is good
         IS_IMMUNE_TO_TURNCOAT(512),
         AVAILABLE_VIA_PORTAL(1024),
         CAN_FLY(8192),
@@ -44,7 +44,7 @@ public class Creature implements Comparable<Creature> {
         REVEALS_ADJACENT_TRAPS(67108864),
         IS_UNIQUE(134217728),
         MPD_RANDOM_INVADER(1073741824),
-        IS_MALE(2147483648l);
+        IS_MALE(2147483648l);  // Obviously otherwise it is female
         private final long flagValue;
 
         private CreatureFlag(long flagValue) {
