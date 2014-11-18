@@ -61,18 +61,18 @@ public class KwdFile {
 
     public enum LevFlag implements IFlagEnum {
 
-        UNKNOWN(0x0004), // unknown; always on in maps
-        ALWAYSIMPRISN(0x0008), // Always imprison enemies
-        ONESHOTHORNY(0x0010), // Set if one shot Horny spell is available
-        ISSECRETLVL(0x0020), // The map is Secret level
-        ISSPECIALLVL(0x0040), // The map is Special level
-        SHOWHEROKILLS(0x0080), // Display "Heroes killed" tally
-        AUTOOBJECTVBX(0x0100), // Automatic show objective box
-        HEARTMAKESGEM(0x0200), // Last heart generates Portal Gem
-        ISMULTIPLRLVL(0x0400), // The map is Multiplayer level
-        ISSKIRMISHLVL(0x0800), // The map is Skirmish level
-        FREEZEOPTIONS(0x1000), // Freeze game options
-        ISMPDLEVEL(0x2000); // The map is My Pet Dungeon level
+        //UNKNOWN(0x0004), // unknown; always on in maps
+        ALWAYS_IMPRISON_ENEMIES(0x0008), // Always imprison enemies
+        ONE_SHOT_HORNY(0x0010), // Set if one shot Horny spell is available
+        IS_SECRET_LEVEL(0x0020), // The map is Secret level
+        IS_SPECIAL_LEVEL(0x0040), // The map is Special level
+        SHOW_HERO_KILLS(0x0080), // Display "Heroes killed" tally
+        AUTO_OBJECTIVE_BOX(0x0100), // Automatic show objective box
+        HEART_MAKES_GEM(0x0200), // Last heart generates Portal Gem
+        IS_MULTIPLAYER_LEVEL(0x0400), // The map is Multiplayer level
+        IS_SKIRMISH_LEVEL(0x0800), // The map is Skirmish level
+        FREEZE_OPTIONS(0x1000), // Freeze game options
+        IS_MY_PET_DUNGEON_LEVEL(0x2000); // The map is My Pet Dungeon level
         private final long flagValue;
 
         private LevFlag(long flagValue) {
