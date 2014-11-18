@@ -433,7 +433,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     private synchronized KwdFile getKwdFile() {
         if (kwdFile == null) {
-            kwdFile = new KwdFile(dkIIFolder);
+
+            // Read Alcatraz.kwd by default
+            kwdFile = new KwdFile(dkIIFolder, new File(dkIIFolder.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("Alcatraz.kwd")));
         }
         return kwdFile;
     }
