@@ -184,7 +184,7 @@ public class KwdFile {
     private int speechPrelvlGenr;
     private String heroName;
     //
-    private Date timestamp1;
+    private Date timestamp1; // Seem to be the same these two timeStamps, maybe checks?
     private Date timestamp2;
     private FilePath paths[];
     private int unknown[];
@@ -1351,6 +1351,10 @@ public class KwdFile {
         // Read the data
         light.setmKPos(new Vector3f(Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION));
         light.setRadius(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+
+        //NOTE: interestingly enough, here a uint8 sized flag is enough I think, and the editor seems to read uint16 for each color element
+        //      But I also think it might be a mistake in the editor/file format
+        //      Some lights seem to be logical with this structure.... so who knows
         light.setFlags(Utils.readUnsignedInteger(file));
         light.setColor(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte()));
 
