@@ -260,6 +260,7 @@ public class KwdFile {
             // See if the globals are present
             if (path.getId() == MapDataTypeEnum.GLOBALS) {
                 customOverrides = true;
+                logger.info("The map uses custom overrides!");
             }
 
             // Open the file
