@@ -1179,7 +1179,7 @@ public class KwdFile {
             creature.setUnk3af(Utils.readUnsignedInteger(file));
             creature.setMeleeRecharge(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             // The flags is actually very big, pushing the boundaries, a true uint32, need to -> long
-            creature.setFlags(parseFlagValue(Utils.readInteger(file) & 0xFFFFFFFFL, Creature.CreatureFlag.class));
+            creature.setFlags(parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Creature.CreatureFlag.class));
             creature.setExpForNextLevel(Utils.readUnsignedShort(file));
             creature.setJobClass(parseEnum(file.readUnsignedByte(), Creature.JobClass.class));
             creature.setFightStyle(parseEnum(file.readUnsignedByte(), Creature.FightStyle.class));
