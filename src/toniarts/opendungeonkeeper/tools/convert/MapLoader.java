@@ -28,7 +28,6 @@ public class MapLoader {
         }
 
         //Load the map
-        KwdFile kwd = new KwdFile(dataDirectory);
-        kwd.loadMap(new File(args[1]));
+        KwdFile kwd = new KwdFile(dataDirectory, new File(args[1]));
     }
 }
