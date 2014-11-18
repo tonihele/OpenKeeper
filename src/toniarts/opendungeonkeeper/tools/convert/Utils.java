@@ -11,6 +11,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Contains static helper methods
@@ -19,12 +20,28 @@ import java.util.List;
  */
 public class Utils {
 
+    private static final Logger logger = Logger.getLogger(Utils.class.getName());
+
+    /**
+     * Reads 4 bytes and converts it to JAVA int from LITTLE ENDIAN unsigned
+     * int<br>
+     * This method returns long, which means the value is sure to fit
+     *
+     * @param file the file to read from
+     * @return JAVA native long
+     * @throws IOException may fail
+     */
+    public static long readUnsignedIntegerAsLong(RandomAccessFile file) throws IOException {
+        return Utils.readInteger(file) & 0xFFFFFFFFL;
+    }
+
     /**
      * Reads 4 bytes and converts it to JAVA int from LITTLE ENDIAN unsigned int
      *
      * @param file the file to read from
      * @return JAVA native int
      * @throws IOException may fail
+     * @see #readUnsignedIntegerAsLong(java.io.RandomAccessFile)
      */
     public static int readUnsignedInteger(RandomAccessFile file) throws IOException {
         byte[] unsignedInt = new byte[4];
@@ -38,6 +55,7 @@ public class Utils {
      *
      * @param unsignedInt the byte array
      * @return JAVA native int
+     * @see #readUnsignedIntegerAsLong(java.io.RandomAccessFile)
      */
     public static int readUnsignedInteger(byte[] unsignedInt) {
         int result = readInteger(unsignedInt);
@@ -45,7 +63,7 @@ public class Utils {
 
             // Yes, this should be long, however, in our purpose this might be sufficient as int
             // Safety measure
-            throw new RuntimeException("Result is negative! Result: " + result + "!");
+            logger.warning("This unsigned integer doesn't fit to JAVA integer! Use a different method!");
         }
         return result;
     }
