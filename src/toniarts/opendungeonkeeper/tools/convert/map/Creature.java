@@ -43,7 +43,7 @@ public class Creature implements Comparable<Creature> {
         FREES_FRIENDS_ON_JAILBREAK(33554432),
         REVEALS_ADJACENT_TRAPS(67108864),
         IS_UNIQUE(134217728),
-        MPD_RANDOM_INVADER(1073741824),
+        MPD_RANDOM_INVADER(1073741824), // My Pet Dungeon?
         IS_MALE(2147483648l);  // Obviously otherwise it is female
         private final long flagValue;
 
