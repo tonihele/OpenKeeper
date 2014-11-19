@@ -356,6 +356,8 @@ public class Creature implements Comparable<Creature> {
     private float shuffleSpeed; // d37
     private short cloneCreatureId;
     private short unk2e[]; // d3b
+    private short introCameraPathIndex;
+    private short unk2e2;
     private ArtResource ref2; // d40
     private Light light; // d94
     private Attraction attractions[];
@@ -652,6 +654,22 @@ public class Creature implements Comparable<Creature> {
 
     protected void setUnk2e(short[] unk2e) {
         this.unk2e = unk2e;
+    }
+
+    public short getIntroCameraPathIndex() {
+        return introCameraPathIndex;
+    }
+
+    protected void setIntroCameraPathIndex(short introCameraPathIndex) {
+        this.introCameraPathIndex = introCameraPathIndex;
+    }
+
+    public short getUnk2e2() {
+        return unk2e2;
+    }
+
+    protected void setUnk2e2(short unk2e2) {
+        this.unk2e2 = unk2e2;
     }
 
     public ArtResource getRef2() {
@@ -1654,8 +1672,8 @@ public class Creature implements Comparable<Creature> {
     public class JobPreference {
 
         private JobType jobType;
-        private int moodChange; // not tested
-        private int manaChange; // not tested
+        private int moodChange;
+        private int manaChange;
         private short chance; // of happening, percentage
         private short x09;
         private short x0a;

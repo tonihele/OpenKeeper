@@ -5,6 +5,7 @@
 package toniarts.opendungeonkeeper.tools.convert.map;
 
 import java.awt.Color;
+import java.util.EnumSet;
 import javax.vecmath.Vector3f;
 
 /**
@@ -20,9 +21,28 @@ public class Light {
 //      unsigned char color[4]; /* bgr? */
 //      };
 
+    /**
+     * Light flags
+     */
+    public enum LightFlag implements IFlagEnum {
+
+        FLICKER(0x0002),
+        PULSE(0x0004),
+        PLAYER_COLOURED(0x0080);
+        private final long flagValue;
+
+        private LightFlag(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
     private Vector3f mKPos;
     private float radius;
-    private int flags;
+    private EnumSet<LightFlag> flags;
     private Color color;
 
     public Vector3f getmKPos() {
@@ -41,11 +61,11 @@ public class Light {
         this.radius = radius;
     }
 
-    public int getFlags() {
+    public EnumSet<LightFlag> getFlags() {
         return flags;
     }
 
-    protected void setFlags(int flags) {
+    protected void setFlags(EnumSet<LightFlag> flags) {
         this.flags = flags;
     }
 

@@ -1091,11 +1091,13 @@ public class KwdFile {
             creature.setTranslationSoundGategory(Utils.bytesToString(bytes).trim());
             creature.setShuffleSpeed(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             creature.setCreatureId((short) file.readUnsignedByte());
-            short[] unk2e = new short[4];
+            short[] unk2e = new short[2];
             for (int x = 0; x < unk2e.length; x++) {
                 unk2e[x] = (short) file.readUnsignedByte();
             }
             creature.setUnk2e(unk2e);
+            creature.setIntroCameraPathIndex((short) file.readUnsignedByte());
+            creature.setUnk2e2((short) file.readUnsignedByte());
             creature.setRef2(readArtResource(file));
             creature.setLight(readLight(file));
             Attraction[] attractions = new Attraction[2];
@@ -1353,10 +1355,10 @@ public class KwdFile {
         light.setmKPos(new Vector3f(Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION));
         light.setRadius(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
 
-        //NOTE: interestingly enough, here a uint8 sized flag is enough I think, and the editor seems to read uint16 for each color element
+        //NOTE: interestingly enough, here a uint8 sized flag is enough I think, and the editor seems to read 0-511 (9 bits, or probably 10 bits but the sign bit is always positive) for each color element
         //      But I also think it might be a mistake in the editor/file format
         //      Some lights seem to be logical with this structure.... so who knows
-        light.setFlags(Utils.readUnsignedInteger(file));
+        light.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), Light.LightFlag.class));
         light.setColor(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte()));
 
         return light;
