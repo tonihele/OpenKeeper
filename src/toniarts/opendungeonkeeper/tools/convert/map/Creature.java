@@ -43,6 +43,7 @@ public class Creature implements Comparable<Creature> {
         FREES_FRIENDS_ON_JAILBREAK(33554432),
         REVEALS_ADJACENT_TRAPS(67108864),
         IS_UNIQUE(134217728),
+        CAMERA_ROLLS_WHEN_TURNING(268435456), // 1st person movement flag
         MPD_RANDOM_INVADER(1073741824), // My Pet Dungeon?
         IS_MALE(2147483648l);  // Obviously otherwise it is female
         private final long flagValue;
@@ -355,14 +356,15 @@ public class Creature implements Comparable<Creature> {
     private String translationSoundGategory; // d17
     private float shuffleSpeed; // d37
     private short cloneCreatureId;
-    private short unk2e[]; // d3b
+    private short unk2e; // d3b
+    private short firstPersonWalkCycleScale; // Movement
     private short introCameraPathIndex;
     private short unk2e2;
     private ArtResource ref2; // d40
     private Light light; // d94
     private Attraction attractions[];
-    private int unkdbc; // dbc
-    private int unkdc0; // dc0
+    private float firstPersonWaddleScale; // dbc Movement
+    private float firstPersonOscillateScale; // dc0 Movement
     private Spell spells[];
     private Resistance resistances[];
     private JobPreference happyJobs[];
@@ -648,12 +650,20 @@ public class Creature implements Comparable<Creature> {
         this.cloneCreatureId = cloneCreatureId;
     }
 
-    public short[] getUnk2e() {
+    public short getUnk2e() {
         return unk2e;
     }
 
-    protected void setUnk2e(short[] unk2e) {
+    protected void setUnk2e(short unk2e) {
         this.unk2e = unk2e;
+    }
+
+    public short getFirstPersonWalkCycleScale() {
+        return firstPersonWalkCycleScale;
+    }
+
+    protected void setFirstPersonWalkCycleScale(short firstPersonWalkCycleScale) {
+        this.firstPersonWalkCycleScale = firstPersonWalkCycleScale;
     }
 
     public short getIntroCameraPathIndex() {
@@ -696,20 +706,20 @@ public class Creature implements Comparable<Creature> {
         this.attractions = attractions;
     }
 
-    public int getUnkdbc() {
-        return unkdbc;
+    public float getFirstPersonWaddleScale() {
+        return firstPersonWaddleScale;
     }
 
-    protected void setUnkdbc(int unkdbc) {
-        this.unkdbc = unkdbc;
+    protected void setFirstPersonWaddleScale(float firstPersonWaddleScale) {
+        this.firstPersonWaddleScale = firstPersonWaddleScale;
     }
 
-    public int getUnkdc0() {
-        return unkdc0;
+    public float getFirstPersonOscillateScale() {
+        return firstPersonOscillateScale;
     }
 
-    protected void setUnkdc0(int unkdc0) {
-        this.unkdc0 = unkdc0;
+    protected void setFirstPersonOscillateScale(float firstPersonOscillateScale) {
+        this.firstPersonOscillateScale = firstPersonOscillateScale;
     }
 
     public Spell[] getSpells() {

@@ -1091,11 +1091,8 @@ public class KwdFile {
             creature.setTranslationSoundGategory(Utils.bytesToString(bytes).trim());
             creature.setShuffleSpeed(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             creature.setCreatureId((short) file.readUnsignedByte());
-            short[] unk2e = new short[2];
-            for (int x = 0; x < unk2e.length; x++) {
-                unk2e[x] = (short) file.readUnsignedByte();
-            }
-            creature.setUnk2e(unk2e);
+            creature.setUnk2e((short) file.readUnsignedByte());
+            creature.setFirstPersonWalkCycleScale((short) file.readUnsignedByte());
             creature.setIntroCameraPathIndex((short) file.readUnsignedByte());
             creature.setUnk2e2((short) file.readUnsignedByte());
             creature.setRef2(readArtResource(file));
@@ -1109,8 +1106,8 @@ public class KwdFile {
                 attractions[x] = attraction;
             }
             creature.setAttractions(attractions);
-            creature.setUnkdbc(Utils.readUnsignedInteger(file));
-            creature.setUnkdc0(Utils.readUnsignedInteger(file));
+            creature.setFirstPersonWaddleScale(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            creature.setFirstPersonOscillateScale(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             Spell[] spells = new Spell[3];
             for (int x = 0; x < spells.length; x++) {
                 Spell spell = creature.new Spell();
