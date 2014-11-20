@@ -177,6 +177,42 @@ public class Creature implements Comparable<Creature> {
         }
         private int id;
     }
+
+    public enum Swipe implements IValueEnum {
+
+        BITE(1),
+        CLAW_SLASH(2),
+        CLUB_SMASH(3),
+        DARK_FGBS_SLASH(4),
+        KING_FGBS_SLASH(5),
+        LEFT_PUNCH(6),
+        RIGHT_PUNCH(7),
+        LEFT_SCYTHE_SLASH(8),
+        RIGHT_SCYTHE_SLASH(9),
+        MISTRESS_SLASH(10),
+        SMALL_SLASH(11),
+        STAFF_STRIKE(12),
+        SWORD_SLASH(13),
+        LIGHT_ARROW(14),
+        DARK_ARROW(15),
+        LEFT_BILE_SMASH(16),
+        RIGHT_BILE_SMASH(17),
+        HYPNOTISE(18),
+        LEFT_SMALL_PUNCH(19),
+        RIGHT_SMALL_PUNCH(20),
+        LEFT_KING_FGBS_SLASH(21),
+        RIGHT_KING_FGBS_SLASH(22);
+
+        private Swipe(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private int id;
+    }
 //    struct CreatureBlock {
 //        char name[32]; /* 0 */
 //        ArtResource ref1[39]; /* 20 */
@@ -432,8 +468,10 @@ public class Creature implements Comparable<Creature> {
     private int weaknessStringId;
     private int slapEffectId; // f3e
     private int deathEffectId; // f40
-    private short unk3d[]; // f42
-    private short unkf45; // f45
+    private Swipe melee1Swipe; // f42, Swipes, 1st person attacks
+    private Swipe melee2Swipe;
+    private short unk3d3;
+    private Swipe spellSwipe; // f45
     private short unk40[]; // f46
     private short unkf48[]; // f48
     private short creatureId; // f4b
@@ -450,8 +488,9 @@ public class Creature implements Comparable<Creature> {
     private int unkfcb; // fcb
     private int unk4; // fcd
     private ArtResource ref3; // fd1
-    private short unk5[]; // 1025
-    private ArtResource ref4; // 1027
+    private Swipe special1Swipe; // 1025
+    private Swipe special2Swipe;
+    private ArtResource firstPersonMeleeResource; // 1027
     private int unk6; // 107b
     private short tortureHpChange; // 107f
     private short tortureMoodChange; // 1081
@@ -1258,20 +1297,36 @@ public class Creature implements Comparable<Creature> {
         this.deathEffectId = deathEffectId;
     }
 
-    public short[] getUnk3d() {
-        return unk3d;
+    public Swipe getMelee1Swipe() {
+        return melee1Swipe;
     }
 
-    protected void setUnk3d(short[] unk3d) {
-        this.unk3d = unk3d;
+    protected void setMelee1Swipe(Swipe melee1Swipe) {
+        this.melee1Swipe = melee1Swipe;
     }
 
-    public short getUnkf45() {
-        return unkf45;
+    public Swipe getMelee2Swipe() {
+        return melee2Swipe;
     }
 
-    protected void setUnkf45(short unkf45) {
-        this.unkf45 = unkf45;
+    protected void setMelee2Swipe(Swipe melee2Swipe) {
+        this.melee2Swipe = melee2Swipe;
+    }
+
+    public short getUnk3d3() {
+        return unk3d3;
+    }
+
+    protected void setUnk3d3(short unk3d3) {
+        this.unk3d3 = unk3d3;
+    }
+
+    public Swipe getSpellSwipe() {
+        return spellSwipe;
+    }
+
+    protected void setSpellSwipe(Swipe spellSwipe) {
+        this.spellSwipe = spellSwipe;
     }
 
     public short[] getUnk40() {
@@ -1402,20 +1457,28 @@ public class Creature implements Comparable<Creature> {
         this.ref3 = ref3;
     }
 
-    public short[] getUnk5() {
-        return unk5;
+    public Swipe getSpecial1Swipe() {
+        return special1Swipe;
     }
 
-    protected void setUnk5(short[] unk5) {
-        this.unk5 = unk5;
+    public void setSpecial1Swipe(Swipe special1Swipe) {
+        this.special1Swipe = special1Swipe;
     }
 
-    public ArtResource getRef4() {
-        return ref4;
+    public Swipe getSpecial2Swipe() {
+        return special2Swipe;
     }
 
-    protected void setRef4(ArtResource ref4) {
-        this.ref4 = ref4;
+    public void setSpecial2Swipe(Swipe special2Swipe) {
+        this.special2Swipe = special2Swipe;
+    }
+
+    public ArtResource getFirstPersonMeleeResource() {
+        return firstPersonMeleeResource;
+    }
+
+    protected void setFirstPersonMeleeResource(ArtResource firstPersonMeleeResource) {
+        this.firstPersonMeleeResource = firstPersonMeleeResource;
     }
 
     public int getUnk6() {

@@ -1214,12 +1214,10 @@ public class KwdFile {
             creature.setWeaknessStringId(Utils.readUnsignedShort(file));
             creature.setSlapEffectId(Utils.readUnsignedShort(file));
             creature.setDeathEffectId(Utils.readUnsignedShort(file));
-            short[] unk3d = new short[3];
-            for (int x = 0; x < unk3d.length; x++) {
-                unk3d[x] = (short) file.readUnsignedByte();
-            }
-            creature.setUnk3d(unk3d);
-            creature.setUnkf45((short) file.readUnsignedByte());
+            creature.setMelee1Swipe(parseEnum((short) file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setMelee2Swipe(parseEnum((short) file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setUnk3d3((short) file.readUnsignedByte());
+            creature.setSpellSwipe(parseEnum((short) file.readUnsignedByte(), Creature.Swipe.class));
             short[] unk40 = new short[2];
             for (int x = 0; x < unk40.length; x++) {
                 unk40[x] = (short) file.readUnsignedByte();
@@ -1254,12 +1252,9 @@ public class KwdFile {
             creature.setUnkfcb(Utils.readUnsignedShort(file));
             creature.setUnk4(Utils.readUnsignedInteger(file));
             creature.setRef3(readArtResource(file));
-            short[] unk5 = new short[2];
-            for (int x = 0; x < unk5.length; x++) {
-                unk5[x] = (short) file.readUnsignedByte();
-            }
-            creature.setUnk5(unk5);
-            creature.setRef4(readArtResource(file));
+            creature.setSpecial1Swipe(parseEnum((short) file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setSpecial2Swipe(parseEnum((short) file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setFirstPersonMeleeResource(readArtResource(file));
             creature.setUnk6(Utils.readUnsignedInteger(file));
             creature.setTortureHpChange(Utils.readShort(file));
             creature.setTortureMoodChange(Utils.readShort(file));
