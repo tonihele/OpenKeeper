@@ -1091,7 +1091,7 @@ public class KwdFile {
             creature.setTranslationSoundGategory(Utils.bytesToString(bytes).trim());
             creature.setShuffleSpeed(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             creature.setCreatureId((short) file.readUnsignedByte());
-            creature.setUnk2e((short) file.readUnsignedByte());
+            creature.setFirstPersonGammaEffect(parseEnum(file.readUnsignedByte(), Creature.GammaEffect.class));
             creature.setFirstPersonWalkCycleScale((short) file.readUnsignedByte());
             creature.setIntroCameraPathIndex((short) file.readUnsignedByte());
             creature.setUnk2e2((short) file.readUnsignedByte());
@@ -1174,7 +1174,7 @@ public class KwdFile {
             creature.setUnkee4(Utils.readInteger(file));
             creature.setPossessionManaCost(Utils.readShort(file));
             creature.setOwnLandHealthIncrease(Utils.readShort(file));
-            creature.setRange(Utils.readInteger(file));
+            creature.setMeleeRange(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             creature.setUnkef0(Utils.readUnsignedInteger(file));
             creature.setUnk3af(Utils.readUnsignedInteger(file));
             creature.setMeleeRecharge(Utils.readInteger(file) / FIXED_POINT_DIVISION);
@@ -1214,15 +1214,12 @@ public class KwdFile {
             creature.setWeaknessStringId(Utils.readUnsignedShort(file));
             creature.setSlapEffectId(Utils.readUnsignedShort(file));
             creature.setDeathEffectId(Utils.readUnsignedShort(file));
-            creature.setMelee1Swipe(parseEnum((short) file.readUnsignedByte(), Creature.Swipe.class));
-            creature.setMelee2Swipe(parseEnum((short) file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setMelee1Swipe(parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setMelee2Swipe(parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
             creature.setUnk3d3((short) file.readUnsignedByte());
             creature.setSpellSwipe(parseEnum((short) file.readUnsignedByte(), Creature.Swipe.class));
-            short[] unk40 = new short[2];
-            for (int x = 0; x < unk40.length; x++) {
-                unk40[x] = (short) file.readUnsignedByte();
-            }
-            creature.setUnk40(unk40);
+            creature.setFirstPersonSpecialAbility1(parseEnum(file.readUnsignedByte(), Creature.SpecialAbility.class));
+            creature.setFirstPersonSpecialAbility2(parseEnum(file.readUnsignedByte(), Creature.SpecialAbility.class));
             short[] unkf48 = new short[3];
             for (int x = 0; x < unkf48.length; x++) {
                 unkf48[x] = (short) file.readUnsignedByte();
@@ -1235,11 +1232,8 @@ public class KwdFile {
             }
             creature.setUnk3ea(unk3ea);
             creature.setUnhappyThreshold((short) file.readUnsignedByte());
-            short[] unk3eb = new short[2];
-            for (int x = 0; x < unk3eb.length; x++) {
-                unk3eb[x] = (short) file.readUnsignedByte();
-            }
-            creature.setUnk3eb(unk3eb);
+            creature.setMeleeAttackType(parseEnum(file.readUnsignedByte(), Creature.AttackType.class));
+            creature.setUnk3eb2((short) file.readUnsignedByte());
             creature.setLairObjectId((short) file.readUnsignedByte());
             creature.setUnk3f1((short) file.readUnsignedByte());
             creature.setDeathFallDirection(parseEnum(file.readUnsignedByte(), Creature.DeathFallDirection.class));
@@ -1248,12 +1242,12 @@ public class KwdFile {
             file.read(bytes);
             creature.setSoundGategory(Utils.bytesToString(bytes).trim());
             creature.setMaterial(parseEnum(file.readUnsignedByte(), Material.class));
-            creature.setReff77(readArtResource(file));
+            creature.setFirstPersonFilterResource(readArtResource(file));
             creature.setUnkfcb(Utils.readUnsignedShort(file));
             creature.setUnk4(Utils.readUnsignedInteger(file));
             creature.setRef3(readArtResource(file));
-            creature.setSpecial1Swipe(parseEnum((short) file.readUnsignedByte(), Creature.Swipe.class));
-            creature.setSpecial2Swipe(parseEnum((short) file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setSpecial1Swipe(parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setSpecial2Swipe(parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
             creature.setFirstPersonMeleeResource(readArtResource(file));
             creature.setUnk6(Utils.readUnsignedInteger(file));
             creature.setTortureHpChange(Utils.readShort(file));
@@ -1292,11 +1286,8 @@ public class KwdFile {
                 x14e1[x] = Utils.readUnsignedInteger(file);
             }
             creature.setX14e1(x14e1);
-            int[] x14e9 = new int[2];
-            for (int x = 0; x < x14e9.length; x++) {
-                x14e9[x] = Utils.readUnsignedInteger(file);
-            }
-            creature.setX14e9(x14e9);
+            creature.setFirstPersonSpecialAbility1Count(Utils.readUnsignedInteger(file));
+            creature.setFirstPersonSpecialAbility2Count(Utils.readUnsignedInteger(file));
             creature.setRef8(readArtResource(file));
             creature.setUnk1545(Utils.readUnsignedInteger(file));
 

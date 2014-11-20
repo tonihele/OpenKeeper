@@ -213,6 +213,62 @@ public class Creature implements Comparable<Creature> {
         }
         private int id;
     }
+
+    public enum SpecialAbility implements IValueEnum {
+
+        NONE(0),
+        PICK_UP_WORKERS(1),
+        SNIPER_MODE(2),
+        TURN_TO_BAT(3),
+        FLY(4),
+        HYPNOTISE(5),
+        DISGUISE_N_STEAL(6),
+        PRAY(7),
+        PICK_LOCKS(8),
+        FEAR_ATTACK(9),
+        GHOST_POSESSION(10);
+
+        private SpecialAbility(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private int id;
+    }
+
+    public enum GammaEffect implements IValueEnum {
+
+        NORMAL(0),
+        VAMPIRE_RED(1),
+        DARK_ELF_PURPLE(2),
+        SKELETON_BLACK_N_WHITE(3),
+        SALAMANDER_INFRARED(4),
+        DARK_ANGER_BRIGHT_BLUE(5),
+        WHITEOUT(6),
+        BLACKOUT(7),
+        REDOUT(8),
+        DEATH_VIEW_HALF_RED(9),
+        MARTINS_TEST_1(10),
+        MARTINS_TEST_2(11),
+        MARTINS_TEST_3(12),
+        MARTINS_TEST_4(13),
+        FREEZE_VIEW_ONLY_BLUE(14),
+        MAIDEN(15),
+        GHOST(16);
+
+        private GammaEffect(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private int id;
+    }
 //    struct CreatureBlock {
 //        char name[32]; /* 0 */
 //        ArtResource ref1[39]; /* 20 */
@@ -392,7 +448,7 @@ public class Creature implements Comparable<Creature> {
     private String translationSoundGategory; // d17
     private float shuffleSpeed; // d37
     private short cloneCreatureId;
-    private short unk2e; // d3b
+    private GammaEffect firstPersonGammaEffect; // d3b
     private short firstPersonWalkCycleScale; // Movement
     private short introCameraPathIndex;
     private short unk2e2;
@@ -429,7 +485,7 @@ public class Creature implements Comparable<Creature> {
     private int unkee4; // ee4
     private short possessionManaCost; // ee8
     private short ownLandHealthIncrease; // eea
-    private int range; // eec
+    private float meleeRange; // eec
     private int unkef0; // ef0
     private int unk3af; // ef4
     private float meleeRecharge; // ef8
@@ -472,19 +528,21 @@ public class Creature implements Comparable<Creature> {
     private Swipe melee2Swipe;
     private short unk3d3;
     private Swipe spellSwipe; // f45
-    private short unk40[]; // f46
+    private SpecialAbility firstPersonSpecialAbility1; // f46, Special abilities, 1st person
+    private SpecialAbility firstPersonSpecialAbility2;
     private short unkf48[]; // f48
     private short creatureId; // f4b
     private short unk3ea[]; // f4c
     private short unhappyThreshold; // f4f
-    private short unk3eb[]; // f50
+    private AttackType meleeAttackType; // f50
+    private short unk3eb2;
     private short lairObjectId; // f52
     private short unk3f1; // f53
     private DeathFallDirection deathFallDirection;
     private short unk3f2;
     private String soundGategory; // f56
     private Material material; // f76, armour type
-    private ArtResource reff77; // f77
+    private ArtResource firstPersonFilterResource; // f77
     private int unkfcb; // fcb
     private int unk4; // fcd
     private ArtResource ref3; // fd1
@@ -501,7 +559,8 @@ public class Creature implements Comparable<Creature> {
     private ArtResource ref7[]; // 13e3
     private int uniqueNameTextId;
     private int x14e1[]; // 14e1
-    private int x14e9[]; // 14e9
+    private int firstPersonSpecialAbility1Count; // 14e9, available uses or something, not really sure
+    private int firstPersonSpecialAbility2Count;
     private ArtResource ref8; // 14f1
     private int unk1545;
 
@@ -689,12 +748,12 @@ public class Creature implements Comparable<Creature> {
         this.cloneCreatureId = cloneCreatureId;
     }
 
-    public short getUnk2e() {
-        return unk2e;
+    public GammaEffect getFirstPersonGammaEffect() {
+        return firstPersonGammaEffect;
     }
 
-    protected void setUnk2e(short unk2e) {
-        this.unk2e = unk2e;
+    protected void setFirstPersonGammaEffect(GammaEffect firstPersonGammaEffect) {
+        this.firstPersonGammaEffect = firstPersonGammaEffect;
     }
 
     public short getFirstPersonWalkCycleScale() {
@@ -985,12 +1044,12 @@ public class Creature implements Comparable<Creature> {
         this.ownLandHealthIncrease = ownLandHealthIncrease;
     }
 
-    public int getRange() {
-        return range;
+    public float getMeleeRange() {
+        return meleeRange;
     }
 
-    protected void setRange(int range) {
-        this.range = range;
+    protected void setMeleeRange(float meleeRange) {
+        this.meleeRange = meleeRange;
     }
 
     public int getUnkef0() {
@@ -1329,12 +1388,20 @@ public class Creature implements Comparable<Creature> {
         this.spellSwipe = spellSwipe;
     }
 
-    public short[] getUnk40() {
-        return unk40;
+    public SpecialAbility getFirstPersonSpecialAbility1() {
+        return firstPersonSpecialAbility1;
     }
 
-    protected void setUnk40(short[] unk40) {
-        this.unk40 = unk40;
+    protected void setFirstPersonSpecialAbility1(SpecialAbility firstPersonSpecialAbility1) {
+        this.firstPersonSpecialAbility1 = firstPersonSpecialAbility1;
+    }
+
+    public SpecialAbility getFirstPersonSpecialAbility2() {
+        return firstPersonSpecialAbility2;
+    }
+
+    protected void setFirstPersonSpecialAbility2(SpecialAbility firstPersonSpecialAbility2) {
+        this.firstPersonSpecialAbility2 = firstPersonSpecialAbility2;
     }
 
     public short[] getUnkf48() {
@@ -1369,12 +1436,20 @@ public class Creature implements Comparable<Creature> {
         this.unhappyThreshold = unhappyThreshold;
     }
 
-    public short[] getUnk3eb() {
-        return unk3eb;
+    public AttackType getMeleeAttackType() {
+        return meleeAttackType;
     }
 
-    protected void setUnk3eb(short[] unk3eb) {
-        this.unk3eb = unk3eb;
+    protected void setMeleeAttackType(AttackType meleeAttackType) {
+        this.meleeAttackType = meleeAttackType;
+    }
+
+    public short getUnk3eb2() {
+        return unk3eb2;
+    }
+
+    protected void setUnk3eb2(short unk3eb2) {
+        this.unk3eb2 = unk3eb2;
     }
 
     public short getLairObjectId() {
@@ -1425,12 +1500,12 @@ public class Creature implements Comparable<Creature> {
         this.material = material;
     }
 
-    public ArtResource getReff77() {
-        return reff77;
+    public ArtResource getFirstPersonFilterResource() {
+        return firstPersonFilterResource;
     }
 
-    protected void setReff77(ArtResource reff77) {
-        this.reff77 = reff77;
+    protected void setFirstPersonFilterResource(ArtResource firstPersonFilterResource) {
+        this.firstPersonFilterResource = firstPersonFilterResource;
     }
 
     public int getUnkfcb() {
@@ -1461,7 +1536,7 @@ public class Creature implements Comparable<Creature> {
         return special1Swipe;
     }
 
-    public void setSpecial1Swipe(Swipe special1Swipe) {
+    protected void setSpecial1Swipe(Swipe special1Swipe) {
         this.special1Swipe = special1Swipe;
     }
 
@@ -1469,7 +1544,7 @@ public class Creature implements Comparable<Creature> {
         return special2Swipe;
     }
 
-    public void setSpecial2Swipe(Swipe special2Swipe) {
+    protected void setSpecial2Swipe(Swipe special2Swipe) {
         this.special2Swipe = special2Swipe;
     }
 
@@ -1561,12 +1636,20 @@ public class Creature implements Comparable<Creature> {
         this.x14e1 = x14e1;
     }
 
-    public int[] getX14e9() {
-        return x14e9;
+    public int getFirstPersonSpecialAbility1Count() {
+        return firstPersonSpecialAbility1Count;
     }
 
-    protected void setX14e9(int[] x14e9) {
-        this.x14e9 = x14e9;
+    protected void setFirstPersonSpecialAbility1Count(int firstPersonSpecialAbility1Count) {
+        this.firstPersonSpecialAbility1Count = firstPersonSpecialAbility1Count;
+    }
+
+    public int getFirstPersonSpecialAbility2Count() {
+        return firstPersonSpecialAbility2Count;
+    }
+
+    protected void setFirstPersonSpecialAbility2Count(int firstPersonSpecialAbility2Count) {
+        this.firstPersonSpecialAbility2Count = firstPersonSpecialAbility2Count;
     }
 
     public ArtResource getRef8() {
