@@ -1095,7 +1095,7 @@ public class KwdFile {
             creature.setFirstPersonWalkCycleScale((short) file.readUnsignedByte());
             creature.setIntroCameraPathIndex((short) file.readUnsignedByte());
             creature.setUnk2e2((short) file.readUnsignedByte());
-            creature.setRef2(readArtResource(file));
+            creature.setPortraitResource(readArtResource(file));
             creature.setLight(readLight(file));
             Attraction[] attractions = new Attraction[2];
             for (int x = 0; x < attractions.length; x++) {
@@ -1288,7 +1288,7 @@ public class KwdFile {
             creature.setX14e1(x14e1);
             creature.setFirstPersonSpecialAbility1Count(Utils.readUnsignedInteger(file));
             creature.setFirstPersonSpecialAbility2Count(Utils.readUnsignedInteger(file));
-            creature.setRef8(readArtResource(file));
+            creature.setUniqueResource(readArtResource(file));
             creature.setUnk1545(Utils.readUnsignedInteger(file));
 
             // Add to the hash by the creature ID

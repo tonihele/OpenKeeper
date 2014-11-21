@@ -452,7 +452,7 @@ public class Creature implements Comparable<Creature> {
     private short firstPersonWalkCycleScale; // Movement
     private short introCameraPathIndex;
     private short unk2e2;
-    private ArtResource ref2; // d40
+    private ArtResource portraitResource; // d40
     private Light light; // d94
     private Attraction attractions[];
     private float firstPersonWaddleScale; // dbc Movement
@@ -561,7 +561,7 @@ public class Creature implements Comparable<Creature> {
     private int x14e1[]; // 14e1
     private int firstPersonSpecialAbility1Count; // 14e9, available uses or something, not really sure
     private int firstPersonSpecialAbility2Count;
-    private ArtResource ref8; // 14f1
+    private ArtResource uniqueResource; // 14f1
     private int unk1545;
 
     public String getName() {
@@ -780,12 +780,12 @@ public class Creature implements Comparable<Creature> {
         this.unk2e2 = unk2e2;
     }
 
-    public ArtResource getRef2() {
-        return ref2;
+    public ArtResource getPortraitResource() {
+        return portraitResource;
     }
 
-    protected void setRef2(ArtResource ref2) {
-        this.ref2 = ref2;
+    protected void setPortraitResource(ArtResource portraitResource) {
+        this.portraitResource = portraitResource;
     }
 
     public Light getLight() {
@@ -1652,12 +1652,12 @@ public class Creature implements Comparable<Creature> {
         this.firstPersonSpecialAbility2Count = firstPersonSpecialAbility2Count;
     }
 
-    public ArtResource getRef8() {
-        return ref8;
+    public ArtResource getUniqueResource() {
+        return uniqueResource;
     }
 
-    protected void setRef8(ArtResource ref8) {
-        this.ref8 = ref8;
+    protected void setUniqueResource(ArtResource uniqueResource) {
+        this.uniqueResource = uniqueResource;
     }
 
     public int getUnk1545() {
@@ -1676,6 +1676,28 @@ public class Creature implements Comparable<Creature> {
     @Override
     public int compareTo(Creature o) {
         return Short.compare(orderInEditor, o.orderInEditor);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 79 * hash + this.creatureId;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(java.lang.Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Creature other = (Creature) obj;
+        if (this.creatureId != other.creatureId) {
+            return false;
+        }
+        return true;
     }
 
     public class Attraction {
