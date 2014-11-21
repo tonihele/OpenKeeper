@@ -435,7 +435,7 @@ public class Creature implements Comparable<Creature> {
     private float shotDelay; // cf9
     private int olhiEffectId; // cfd, OLHI, wut?
     private int introductionStringId; // cff
-    private int perceptionRange; // d01, Fog of war
+    private float perceptionRange; // d01, Fog of war
     private int angerStringIdLair;
     private int angerStringIdFood;
     private int angerStringIdPay;
@@ -472,14 +472,14 @@ public class Creature implements Comparable<Creature> {
     private float eyeHeight; // eb0
     private float speed; // eb4
     private float runSpeed; // eb8
-    private int hungerRate; // ebc
+    private float hungerRate; // ebc
     private int timeAwake; // ec0
     private int timeSleep; // ec4
-    private int distanceCanSee; // ec8, tiles
-    private int distanceCanHear; // ecc, tiles
-    private int stunDuration; // ed0, seconds
-    private int guardDuration; // ed4, seconds
-    private int idleDuration; // ed8, seconds
+    private float distanceCanSee; // ec8, tiles
+    private float distanceCanHear; // ecc, tiles
+    private float stunDuration; // ed0, seconds
+    private float guardDuration; // ed4, seconds
+    private float idleDuration; // ed8, seconds
     private float slapFearlessDuration; // edc
     private int unkee0; // ee0
     private int unkee4; // ee4
@@ -487,7 +487,7 @@ public class Creature implements Comparable<Creature> {
     private short ownLandHealthIncrease; // eea
     private float meleeRange; // eec
     private int unkef0; // ef0
-    private int tortureTimeToConvert; // ef4, seconds
+    private float tortureTimeToConvert; // ef4, seconds
     private float meleeRecharge; // ef8
     private EnumSet<CreatureFlag> flags; // efc
     private int expForNextLevel; // f00
@@ -645,11 +645,11 @@ public class Creature implements Comparable<Creature> {
         this.introductionStringId = introductionStringId;
     }
 
-    public int getPerceptionRange() {
+    public float getPerceptionRange() {
         return perceptionRange;
     }
 
-    protected void setPerceptionRange(int perceptionRange) {
+    protected void setPerceptionRange(float perceptionRange) {
         this.perceptionRange = perceptionRange;
     }
 
@@ -941,11 +941,11 @@ public class Creature implements Comparable<Creature> {
         this.runSpeed = runSpeed;
     }
 
-    public int getHungerRate() {
+    public float getHungerRate() {
         return hungerRate;
     }
 
-    protected void setHungerRate(int hungerRate) {
+    protected void setHungerRate(float hungerRate) {
         this.hungerRate = hungerRate;
     }
 
@@ -965,43 +965,43 @@ public class Creature implements Comparable<Creature> {
         this.timeSleep = timeSleep;
     }
 
-    public int getDistanceCanSee() {
+    public float getDistanceCanSee() {
         return distanceCanSee;
     }
 
-    protected void setDistanceCanSee(int distanceCanSee) {
+    protected void setDistanceCanSee(float distanceCanSee) {
         this.distanceCanSee = distanceCanSee;
     }
 
-    public int getDistanceCanHear() {
+    public float getDistanceCanHear() {
         return distanceCanHear;
     }
 
-    protected void setDistanceCanHear(int distanceCanHear) {
+    protected void setDistanceCanHear(float distanceCanHear) {
         this.distanceCanHear = distanceCanHear;
     }
 
-    public int getStunDuration() {
+    public float getStunDuration() {
         return stunDuration;
     }
 
-    protected void setStunDuration(int stunDuration) {
+    protected void setStunDuration(float stunDuration) {
         this.stunDuration = stunDuration;
     }
 
-    public int getGuardDuration() {
+    public float getGuardDuration() {
         return guardDuration;
     }
 
-    protected void setGuardDuration(int guardDuration) {
+    protected void setGuardDuration(float guardDuration) {
         this.guardDuration = guardDuration;
     }
 
-    public int getIdleDuration() {
+    public float getIdleDuration() {
         return idleDuration;
     }
 
-    protected void setIdleDuration(int idleDuration) {
+    protected void setIdleDuration(float idleDuration) {
         this.idleDuration = idleDuration;
     }
 
@@ -1061,11 +1061,11 @@ public class Creature implements Comparable<Creature> {
         this.unkef0 = unkef0;
     }
 
-    public int getTortureTimeToConvert() {
+    public float getTortureTimeToConvert() {
         return tortureTimeToConvert;
     }
 
-    protected void setTortureTimeToConvert(int tortureTimeToConvert) {
+    protected void setTortureTimeToConvert(float tortureTimeToConvert) {
         this.tortureTimeToConvert = tortureTimeToConvert;
     }
 

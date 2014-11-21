@@ -1076,7 +1076,7 @@ public class KwdFile {
             creature.setShotDelay(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             creature.setOlhiEffectId(Utils.readUnsignedShort(file));
             creature.setIntroductionStringId(Utils.readUnsignedShort(file));
-            creature.setPerceptionRange(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
+            creature.setPerceptionRange(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             creature.setAngerStringIdLair(Utils.readUnsignedShort(file));
             creature.setAngerStringIdFood(Utils.readUnsignedShort(file));
             creature.setAngerStringIdPay(Utils.readUnsignedShort(file));
@@ -1161,14 +1161,14 @@ public class KwdFile {
             creature.setEyeHeight(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             creature.setSpeed(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             creature.setRunSpeed(Utils.readInteger(file) / FIXED_POINT_DIVISION);
-            creature.setHungerRate(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
+            creature.setHungerRate(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             creature.setTimeAwake(Utils.readUnsignedInteger(file));
             creature.setTimeSleep(Utils.readUnsignedInteger(file));
-            creature.setDistanceCanSee(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
-            creature.setDistanceCanHear(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
-            creature.setStunDuration(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
-            creature.setGuardDuration(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
-            creature.setIdleDuration(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
+            creature.setDistanceCanSee(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            creature.setDistanceCanHear(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            creature.setStunDuration(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            creature.setGuardDuration(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            creature.setIdleDuration(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             creature.setSlapFearlessDuration(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             creature.setUnkee0(Utils.readInteger(file));
             creature.setUnkee4(Utils.readInteger(file));
@@ -1176,7 +1176,7 @@ public class KwdFile {
             creature.setOwnLandHealthIncrease(Utils.readShort(file));
             creature.setMeleeRange(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             creature.setUnkef0(Utils.readUnsignedInteger(file));
-            creature.setTortureTimeToConvert(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
+            creature.setTortureTimeToConvert(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             creature.setMeleeRecharge(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             // The flags is actually very big, pushing the boundaries, a true uint32, need to -> long
             creature.setFlags(parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Creature.CreatureFlag.class));
