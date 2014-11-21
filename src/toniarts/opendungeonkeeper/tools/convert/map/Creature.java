@@ -435,7 +435,7 @@ public class Creature implements Comparable<Creature> {
     private float shotDelay; // cf9
     private int olhiEffectId; // cfd, OLHI, wut?
     private int introductionStringId; // cff
-    private int unkd01; // d01
+    private int perceptionRange; // d01, Fog of war
     private int angerStringIdLair;
     private int angerStringIdFood;
     private int angerStringIdPay;
@@ -472,22 +472,22 @@ public class Creature implements Comparable<Creature> {
     private float eyeHeight; // eb0
     private float speed; // eb4
     private float runSpeed; // eb8
-    private int unk3ac; // ebc
+    private int hungerRate; // ebc
     private int timeAwake; // ec0
     private int timeSleep; // ec4
-    private int unkec8; // ec8
-    private int unkecc; // ecc
-    private int unked0; // ed0
-    private int unked4; // ed4
-    private int unked8; // ed8
-    private int slapFearlessDuration; // edc
+    private int distanceCanSee; // ec8, tiles
+    private int distanceCanHear; // ecc, tiles
+    private int stunDuration; // ed0, seconds
+    private int guardDuration; // ed4, seconds
+    private int idleDuration; // ed8, seconds
+    private float slapFearlessDuration; // edc
     private int unkee0; // ee0
     private int unkee4; // ee4
     private short possessionManaCost; // ee8
     private short ownLandHealthIncrease; // eea
     private float meleeRange; // eec
     private int unkef0; // ef0
-    private int unk3af; // ef4
+    private int tortureTimeToConvert; // ef4, seconds
     private float meleeRecharge; // ef8
     private EnumSet<CreatureFlag> flags; // efc
     private int expForNextLevel; // f00
@@ -533,6 +533,7 @@ public class Creature implements Comparable<Creature> {
     private short unkf48[]; // f48
     private short creatureId; // f4b
     private short unk3ea[]; // f4c
+    private short hungerFill;
     private short unhappyThreshold; // f4f
     private AttackType meleeAttackType; // f50
     private short unk3eb2;
@@ -644,12 +645,12 @@ public class Creature implements Comparable<Creature> {
         this.introductionStringId = introductionStringId;
     }
 
-    public int getUnkd01() {
-        return unkd01;
+    public int getPerceptionRange() {
+        return perceptionRange;
     }
 
-    protected void setUnkd01(int unkd01) {
-        this.unkd01 = unkd01;
+    protected void setPerceptionRange(int perceptionRange) {
+        this.perceptionRange = perceptionRange;
     }
 
     public int getAngerStringIdLair() {
@@ -940,12 +941,12 @@ public class Creature implements Comparable<Creature> {
         this.runSpeed = runSpeed;
     }
 
-    public int getUnk3ac() {
-        return unk3ac;
+    public int getHungerRate() {
+        return hungerRate;
     }
 
-    protected void setUnk3ac(int unk3ac) {
-        this.unk3ac = unk3ac;
+    protected void setHungerRate(int hungerRate) {
+        this.hungerRate = hungerRate;
     }
 
     public int getTimeAwake() {
@@ -964,51 +965,51 @@ public class Creature implements Comparable<Creature> {
         this.timeSleep = timeSleep;
     }
 
-    public int getUnkec8() {
-        return unkec8;
+    public int getDistanceCanSee() {
+        return distanceCanSee;
     }
 
-    protected void setUnkec8(int unkec8) {
-        this.unkec8 = unkec8;
+    protected void setDistanceCanSee(int distanceCanSee) {
+        this.distanceCanSee = distanceCanSee;
     }
 
-    public int getUnkecc() {
-        return unkecc;
+    public int getDistanceCanHear() {
+        return distanceCanHear;
     }
 
-    protected void setUnkecc(int unkecc) {
-        this.unkecc = unkecc;
+    protected void setDistanceCanHear(int distanceCanHear) {
+        this.distanceCanHear = distanceCanHear;
     }
 
-    public int getUnked0() {
-        return unked0;
+    public int getStunDuration() {
+        return stunDuration;
     }
 
-    protected void setUnked0(int unked0) {
-        this.unked0 = unked0;
+    protected void setStunDuration(int stunDuration) {
+        this.stunDuration = stunDuration;
     }
 
-    public int getUnked4() {
-        return unked4;
+    public int getGuardDuration() {
+        return guardDuration;
     }
 
-    protected void setUnked4(int unked4) {
-        this.unked4 = unked4;
+    protected void setGuardDuration(int guardDuration) {
+        this.guardDuration = guardDuration;
     }
 
-    public int getUnked8() {
-        return unked8;
+    public int getIdleDuration() {
+        return idleDuration;
     }
 
-    protected void setUnked8(int unked8) {
-        this.unked8 = unked8;
+    protected void setIdleDuration(int idleDuration) {
+        this.idleDuration = idleDuration;
     }
 
-    public int getSlapFearlessDuration() {
+    public float getSlapFearlessDuration() {
         return slapFearlessDuration;
     }
 
-    protected void setSlapFearlessDuration(int slapFearlessDuration) {
+    protected void setSlapFearlessDuration(float slapFearlessDuration) {
         this.slapFearlessDuration = slapFearlessDuration;
     }
 
@@ -1060,12 +1061,12 @@ public class Creature implements Comparable<Creature> {
         this.unkef0 = unkef0;
     }
 
-    public int getUnk3af() {
-        return unk3af;
+    public int getTortureTimeToConvert() {
+        return tortureTimeToConvert;
     }
 
-    protected void setUnk3af(int unk3af) {
-        this.unk3af = unk3af;
+    protected void setTortureTimeToConvert(int tortureTimeToConvert) {
+        this.tortureTimeToConvert = tortureTimeToConvert;
     }
 
     public float getMeleeRecharge() {
@@ -1428,6 +1429,14 @@ public class Creature implements Comparable<Creature> {
         this.unk3ea = unk3ea;
     }
 
+    public short getHungerFill() {
+        return hungerFill;
+    }
+
+    protected void setHungerFill(short hungerFill) {
+        this.hungerFill = hungerFill;
+    }
+
     public short getUnhappyThreshold() {
         return unhappyThreshold;
     }
@@ -1736,7 +1745,7 @@ public class Creature implements Comparable<Creature> {
         private Vector3f shotOffset;
         private short x0c;
         private boolean playAnimation;
-        private short x0e;
+        private short x0e; // This is rather weird, this seems to change with the perception range value
         private short x0f;
         private float shotDelay;
         private short x14;

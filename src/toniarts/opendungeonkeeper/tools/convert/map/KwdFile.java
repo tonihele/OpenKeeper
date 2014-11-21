@@ -1076,7 +1076,7 @@ public class KwdFile {
             creature.setShotDelay(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             creature.setOlhiEffectId(Utils.readUnsignedShort(file));
             creature.setIntroductionStringId(Utils.readUnsignedShort(file));
-            creature.setUnkd01(Utils.readUnsignedInteger(file));
+            creature.setPerceptionRange(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
             creature.setAngerStringIdLair(Utils.readUnsignedShort(file));
             creature.setAngerStringIdFood(Utils.readUnsignedShort(file));
             creature.setAngerStringIdPay(Utils.readUnsignedShort(file));
@@ -1161,22 +1161,22 @@ public class KwdFile {
             creature.setEyeHeight(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             creature.setSpeed(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             creature.setRunSpeed(Utils.readInteger(file) / FIXED_POINT_DIVISION);
-            creature.setUnk3ac(Utils.readUnsignedInteger(file));
+            creature.setHungerRate(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
             creature.setTimeAwake(Utils.readUnsignedInteger(file));
             creature.setTimeSleep(Utils.readUnsignedInteger(file));
-            creature.setUnkec8(Utils.readUnsignedInteger(file));
-            creature.setUnkecc(Utils.readUnsignedInteger(file));
-            creature.setUnked0(Utils.readUnsignedInteger(file));
-            creature.setUnked4(Utils.readUnsignedInteger(file));
-            creature.setUnked8(Utils.readUnsignedInteger(file));
-            creature.setSlapFearlessDuration(Utils.readInteger(file));
+            creature.setDistanceCanSee(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
+            creature.setDistanceCanHear(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
+            creature.setStunDuration(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
+            creature.setGuardDuration(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
+            creature.setIdleDuration(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
+            creature.setSlapFearlessDuration(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             creature.setUnkee0(Utils.readInteger(file));
             creature.setUnkee4(Utils.readInteger(file));
             creature.setPossessionManaCost(Utils.readShort(file));
             creature.setOwnLandHealthIncrease(Utils.readShort(file));
             creature.setMeleeRange(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             creature.setUnkef0(Utils.readUnsignedInteger(file));
-            creature.setUnk3af(Utils.readUnsignedInteger(file));
+            creature.setTortureTimeToConvert(Utils.readInteger(file) / (int) FIXED_POINT_DIVISION); // Negative values make no sense, but we might as well read it like this (editor has it like this)
             creature.setMeleeRecharge(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             // The flags is actually very big, pushing the boundaries, a true uint32, need to -> long
             creature.setFlags(parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Creature.CreatureFlag.class));
@@ -1226,11 +1226,12 @@ public class KwdFile {
             }
             creature.setUnkf48(unkf48);
             creature.setCreatureId((short) file.readUnsignedByte());
-            short[] unk3ea = new short[3];
+            short[] unk3ea = new short[2];
             for (int x = 0; x < unk3ea.length; x++) {
                 unk3ea[x] = (short) file.readUnsignedByte();
             }
             creature.setUnk3ea(unk3ea);
+            creature.setHungerFill((short) file.readUnsignedByte());
             creature.setUnhappyThreshold((short) file.readUnsignedByte());
             creature.setMeleeAttackType(parseEnum(file.readUnsignedByte(), Creature.AttackType.class));
             creature.setUnk3eb2((short) file.readUnsignedByte());
