@@ -31,6 +31,8 @@ import toniarts.opendungeonkeeper.tools.convert.wad.WadFile;
  */
 public class AssetsConverter {
 
+    private final String dungeonKeeperFolder;
+    private final AssetManager assetManager;
     private static final String ASSETS_FOLDER = "assets";
     public static final String TEXTURES_FOLDER = "Textures";
     public static final String MODELS_FOLDER = "Models";
@@ -38,17 +40,16 @@ public class AssetsConverter {
     private static final boolean OVERWRITE_DATA = false; // Not exhausting your SDD :) or our custom graphics
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
 
-    private AssetsConverter() {
+    public AssetsConverter(String dungeonKeeperFolder, AssetManager assetManager) {
+        this.dungeonKeeperFolder = dungeonKeeperFolder;
+        this.assetManager = assetManager;
     }
 
     /**
      * Convert all the original DK II assets to our formats and copy to our
      * working folder
-     *
-     * @param dungeonKeeperFolder
-     * @param assetManager
      */
-    public static void convertAssets(String dungeonKeeperFolder, AssetManager assetManager) {
+    public void convertAssets() {
         String currentFolder = getCurrentFolder();
         logger.log(Level.INFO, "Starting asset convertion from DK II folder: " + dungeonKeeperFolder);
         logger.log(Level.INFO, "Current folder set to: " + currentFolder);
@@ -76,7 +77,7 @@ public class AssetsConverter {
      * @param dungeonKeeperFolder DK II main folder
      * @param destination Destination folder
      */
-    private static void convertTextures(String dungeonKeeperFolder, String destination) {
+    private void convertTextures(String dungeonKeeperFolder, String destination) {
         logger.log(Level.INFO, "Extracting textures to: " + destination);
 
         //Form the data path
@@ -120,7 +121,7 @@ public class AssetsConverter {
      * @param dungeonKeeperFolder DK II main folder
      * @param destination Destination folder
      */
-    private static void convertModels(String dungeonKeeperFolder, String destination, AssetManager assetManager) {
+    private void convertModels(String dungeonKeeperFolder, String destination, AssetManager assetManager) {
         logger.log(Level.INFO, "Extracting models to: " + destination);
 
         //Meshes are in the data folder, access the packed file
@@ -190,7 +191,7 @@ public class AssetsConverter {
      * @param destination destination directory
      * @throws RuntimeException May fail
      */
-    private static void convertModel(AssetManager assetManager, Entry<String, KmfFile> entry, String destination) throws RuntimeException {
+    private void convertModel(AssetManager assetManager, Entry<String, KmfFile> entry, String destination) throws RuntimeException {
 
         //Remove the file extension from the file
         KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(entry.getKey()), entry.getValue());
@@ -215,7 +216,7 @@ public class AssetsConverter {
      * @param dungeonKeeperFolder DK II main folder
      * @param destination Destination folder
      */
-    private static void convertMouseCursors(String dungeonKeeperFolder, String destination) {
+    private void convertMouseCursors(String dungeonKeeperFolder, String destination) {
         logger.log(Level.INFO, "Extracting mouse cursors to: " + destination);
 
         //Mouse cursors are PNG files in the Sprite.WAD
