@@ -215,21 +215,21 @@ public class KwdFile {
      * correctly sized, but they seem to load ok<br>
      * It is not empty padding, it is data, but what kind, I don't know
      */
-    private static final HashMap<MapDataTypeEnum, Long> ITEM_SIZES = new HashMap<>(MapDataTypeEnum.values().length);
+    private static final HashMap<MapDataTypeEnum, List<Long>> ITEM_SIZES = new HashMap<>(MapDataTypeEnum.values().length);
 
     static {
-        ITEM_SIZES.put(MapDataTypeEnum.CREATURES, 5449l);
-        ITEM_SIZES.put(MapDataTypeEnum.CREATURE_SPELLS, 266l);
-        ITEM_SIZES.put(MapDataTypeEnum.DOORS, 616l);
-        ITEM_SIZES.put(MapDataTypeEnum.EFFECTS, 246l);
-        ITEM_SIZES.put(MapDataTypeEnum.EFFECT_ELEMENTS, 182l);
-        ITEM_SIZES.put(MapDataTypeEnum.KEEPER_SPELLS, 406l);
-        ITEM_SIZES.put(MapDataTypeEnum.OBJECTS, 894l);
-        ITEM_SIZES.put(MapDataTypeEnum.PLAYERS, 205l);
-        ITEM_SIZES.put(MapDataTypeEnum.ROOMS, 1055l);
-        ITEM_SIZES.put(MapDataTypeEnum.SHOTS, 239l);
-        ITEM_SIZES.put(MapDataTypeEnum.TERRAIN, 552l);
-        ITEM_SIZES.put(MapDataTypeEnum.TRAPS, 579l);
+        ITEM_SIZES.put(MapDataTypeEnum.CREATURES, Arrays.asList(5449l, 5537l));
+        ITEM_SIZES.put(MapDataTypeEnum.CREATURE_SPELLS, Arrays.asList(266l));
+        ITEM_SIZES.put(MapDataTypeEnum.DOORS, Arrays.asList(616l));
+        ITEM_SIZES.put(MapDataTypeEnum.EFFECTS, Arrays.asList(246l));
+        ITEM_SIZES.put(MapDataTypeEnum.EFFECT_ELEMENTS, Arrays.asList(182l));
+        ITEM_SIZES.put(MapDataTypeEnum.KEEPER_SPELLS, Arrays.asList(406l));
+        ITEM_SIZES.put(MapDataTypeEnum.OBJECTS, Arrays.asList(894l));
+        ITEM_SIZES.put(MapDataTypeEnum.PLAYERS, Arrays.asList(205l));
+        ITEM_SIZES.put(MapDataTypeEnum.ROOMS, Arrays.asList(1055l));
+        ITEM_SIZES.put(MapDataTypeEnum.SHOTS, Arrays.asList(239l));
+        ITEM_SIZES.put(MapDataTypeEnum.TERRAIN, Arrays.asList(552l));
+        ITEM_SIZES.put(MapDataTypeEnum.TRAPS, Arrays.asList(579l));
     }
 
     /**
@@ -372,10 +372,10 @@ public class KwdFile {
     private void readFileContents(KwdHeader header, RandomAccessFile data) throws IOException {
 
         // Check the item size (just log)
-        Long wantedItemSize = ITEM_SIZES.get(header.getId());
+        List<Long> wantedItemSize = ITEM_SIZES.get(header.getId());
         if (wantedItemSize != null) {
-            if (wantedItemSize != header.getItemSize()) {
-                logger.log(Level.WARNING, "{0} item size is {1} and it should be {2}!", new java.lang.Object[]{header.getId(), header.getItemSize(), wantedItemSize});
+            if (!wantedItemSize.contains(header.getItemSize())) {
+                logger.log(Level.WARNING, "{0} item size is {1} and it should be something of the following {2}!", new java.lang.Object[]{header.getId(), header.getItemSize(), wantedItemSize});
             }
         }
 
@@ -1111,7 +1111,7 @@ public class KwdFile {
             Spell[] spells = new Spell[3];
             for (int x = 0; x < spells.length; x++) {
                 Spell spell = creature.new Spell();
-                spell.setShotOffset(new Vector3f(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION, Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION, Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION));
+                spell.setShotOffset(new Vector3f(Utils.readUnsignedIntegerAsLong(file) / FIXED_POINT_DIVISION, Utils.readUnsignedIntegerAsLong(file) / FIXED_POINT_DIVISION, Utils.readUnsignedIntegerAsLong(file) / FIXED_POINT_DIVISION));
                 spell.setX0c((short) file.readUnsignedByte());
                 spell.setPlayAnimation((short) file.readUnsignedByte() == 1 ? true : false);
                 spell.setX0e((short) file.readUnsignedByte());
@@ -1150,7 +1150,7 @@ public class KwdFile {
             }
             creature.setXe7c(xe7cs);
             Xe94 xe94 = creature.new Xe94();
-            xe94.setX00(Utils.readUnsignedInteger(file));
+            xe94.setX00(Utils.readUnsignedIntegerAsLong(file));
             xe94.setX04(Utils.readUnsignedInteger(file));
             xe94.setX08(Utils.readUnsignedInteger(file));
             creature.setXe94(xe94);
@@ -1262,7 +1262,7 @@ public class KwdFile {
             for (int x = 0; x < unk7s.length; x++) {
                 Unk7 unk7 = creature.new Unk7();
                 unk7.setX00(Utils.readUnsignedInteger(file));
-                unk7.setX04(Utils.readUnsignedInteger(file));
+                unk7.setX04(Utils.readUnsignedIntegerAsLong(file));
                 unk7.setX08(Utils.readUnsignedInteger(file));
                 unk7s[x] = unk7;
             }
@@ -1291,6 +1291,17 @@ public class KwdFile {
             creature.setFirstPersonSpecialAbility2Count(Utils.readUnsignedInteger(file));
             creature.setUniqueResource(readArtResource(file));
             creature.setUnk1545(Utils.readUnsignedInteger(file));
+
+            // The normal file stops here, but if it is the bigger one, continue
+            if (header.getItemSize() >= 5537l) {
+                short[] unknownExtraBytes = new short[80];
+                for (int x = 0; x < unknownExtraBytes.length; x++) {
+                    unknownExtraBytes[x] = (short) file.readUnsignedByte();
+                }
+                creature.setUnknownExtraBytes(unknownExtraBytes);
+                creature.setFlags2(parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Creature.CreatureFlag2.class));
+                creature.setUnknown(Utils.readUnsignedInteger(file));
+            }
 
             // Add to the hash by the creature ID
             creatures.put(creature.getCreatureId(), creature);

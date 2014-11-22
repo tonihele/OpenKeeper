@@ -58,6 +58,27 @@ public class Creature implements Comparable<Creature> {
         }
     };
 
+    /**
+     * Creature flags, extended
+     */
+    public enum CreatureFlag2 implements IFlagEnum {
+
+        IS_IMMUNE_TO_LIGHTNING(1),
+        IS_STONE_KNIGHT(2),
+        IS_EMOTIONLESS(4),
+        AVAILABLE_VIA_HERO_PORTAL(8);
+        private final long flagValue;
+
+        private CreatureFlag2(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
+
     public enum AttackType implements IValueEnum {
 
         NONE(0),
@@ -564,6 +585,10 @@ public class Creature implements Comparable<Creature> {
     private int firstPersonSpecialAbility2Count;
     private ArtResource uniqueResource; // 14f1
     private int unk1545;
+    // When the file is embedded in the globals, there is some extra stuff
+    private short unknownExtraBytes[]; // 80
+    private EnumSet<CreatureFlag2> flags2; // ???
+    private int unknown;
 
     public String getName() {
         return name;
@@ -1677,6 +1702,30 @@ public class Creature implements Comparable<Creature> {
         this.unk1545 = unk1545;
     }
 
+    public short[] getUnknownExtraBytes() {
+        return unknownExtraBytes;
+    }
+
+    protected void setUnknownExtraBytes(short[] unknownExtraBytes) {
+        this.unknownExtraBytes = unknownExtraBytes;
+    }
+
+    public EnumSet<CreatureFlag2> getFlags2() {
+        return flags2;
+    }
+
+    protected void setFlags2(EnumSet<CreatureFlag2> flags2) {
+        this.flags2 = flags2;
+    }
+
+    public int getUnknown() {
+        return unknown;
+    }
+
+    protected void setUnknown(int unknown) {
+        this.unknown = unknown;
+    }
+
     @Override
     public String toString() {
         return name;
@@ -1956,15 +2005,15 @@ public class Creature implements Comparable<Creature> {
 
     public class Xe94 {
 
-        private int x00;
+        private long x00;
         private int x04;
         private int x08;
 
-        public int getX00() {
+        public long getX00() {
             return x00;
         }
 
-        protected void setX00(int x00) {
+        protected void setX00(long x00) {
             this.x00 = x00;
         }
 
@@ -1988,7 +2037,7 @@ public class Creature implements Comparable<Creature> {
     public class Unk7 {
 
         private int x00;
-        private int x04;
+        private long x04;
         private int x08;
 
         public int getX00() {
@@ -1999,11 +2048,11 @@ public class Creature implements Comparable<Creature> {
             this.x00 = x00;
         }
 
-        public int getX04() {
+        public long getX04() {
             return x04;
         }
 
-        protected void setX04(int x04) {
+        protected void setX04(long x04) {
             this.x04 = x04;
         }
 
