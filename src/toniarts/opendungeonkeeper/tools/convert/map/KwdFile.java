@@ -199,7 +199,7 @@ public class KwdFile {
     private HashMap<Short, Room> rooms;
     private HashMap<Short, Creature> creatures;
     private HashMap<Short, Object> objects;
-    private List<CreatureSpell> creatureSpells;
+    private HashMap<Short, CreatureSpell> creatureSpells;
     private HashMap<Integer, EffectElement> effectElements;
     private HashMap<Integer, Effect> effects;
     private HashMap<Short, KeeperSpell> keeperSpells;
@@ -1436,21 +1436,44 @@ public class KwdFile {
 
         // Read the creature spells catalog
         logger.info("Reading creature spells!");
-        creatureSpells = new ArrayList<>(header.getItemCount());
+        creatureSpells = new HashMap<>(header.getItemCount());
         for (int i = 0; i < header.getItemCount(); i++) {
             long offset = file.getFilePointer();
             CreatureSpell creatureSpell = new CreatureSpell();
             byte[] bytes = new byte[32];
             file.read(bytes);
             creatureSpell.setName(Utils.bytesToString(bytes).trim());
-            short[] data = new short[234];
-            for (int x = 0; x < data.length; x++) {
-                data[x] = (short) file.readUnsignedByte();
+            creatureSpell.setEditorIcon(readArtResource(file));
+            creatureSpell.setGuiIcon(readArtResource(file));
+            creatureSpell.setShotData1(Utils.readUnsignedInteger(file));
+            creatureSpell.setShotData2(Utils.readUnsignedInteger(file));
+            creatureSpell.setRange(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            creatureSpell.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), CreatureSpell.CreatureSpellFlag.class));
+            short[] data2 = new short[2];
+            for (int x = 0; x < data2.length; x++) {
+                data2[x] = (short) file.readUnsignedByte();
             }
-            creatureSpell.setData(data);
+            creatureSpell.setData2(data2);
+            creatureSpell.setSoundEvent(Utils.readUnsignedShort(file));
+            creatureSpell.setNameStringId(Utils.readUnsignedShort(file));
+            creatureSpell.setTooltipStringId(Utils.readUnsignedShort(file));
+            creatureSpell.setGeneralDescriptionStringId(Utils.readUnsignedShort(file));
+            creatureSpell.setStrengthStringId(Utils.readUnsignedShort(file));
+            creatureSpell.setWeaknessStringId(Utils.readUnsignedShort(file));
+            creatureSpell.setCreatureSpellId((short) file.readUnsignedByte());
+            creatureSpell.setShotTypeId((short) file.readUnsignedByte());
+            creatureSpell.setAlternativeShotId((short) file.readUnsignedByte());
+            creatureSpell.setAlternativeRoomId((short) file.readUnsignedByte());
+            creatureSpell.setRechargeTime(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            creatureSpell.setAlternativeShot(parseEnum(file.readUnsignedByte(), CreatureSpell.AlternativeShot.class));
+            short[] data3 = new short[27];
+            for (int x = 0; x < data3.length; x++) {
+                data3[x] = (short) file.readUnsignedByte();
+            }
+            creatureSpell.setData3(data3);
 
             // Add to the list
-            creatureSpells.add(creatureSpell);
+            creatureSpells.put(creatureSpell.getCreatureSpellId(), creatureSpell);
 
             // Check file offset
             checkOffset(header, file, offset);
