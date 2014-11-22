@@ -7,9 +7,10 @@ package toniarts.opendungeonkeeper.tools.convert.map;
 import java.util.EnumSet;
 
 /**
- * Barely started placeholder for the container class for the ArtResource
+ * Placeholder for the container class for the ArtResource
  *
- * @author Wizand Petteri Loisko petteri.loisko@gmail.com
+ * @author Wizand Petteri Loisko <petteri.loisko@gmail.com>, Toni Helenius
+ * <helenius.toni@gmail.com>
  *
  * Thank you https://github.com/werkt
  */
