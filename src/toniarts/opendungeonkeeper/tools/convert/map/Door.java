@@ -311,4 +311,26 @@ public class Door implements Comparable<Door> {
     public int compareTo(Door o) {
         return Short.compare(orderInEditor, o.orderInEditor);
     }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 41 * hash + this.doorId;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(java.lang.Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Door other = (Door) obj;
+        if (this.doorId != other.doorId) {
+            return false;
+        }
+        return true;
+    }
 }
