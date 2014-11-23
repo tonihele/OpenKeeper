@@ -185,6 +185,15 @@ public class EngineTexturesFile implements Iterable<String> {
     }
 
     /**
+     * Get the number of texture entries
+     *
+     * @return texture entry count
+     */
+    public int getFileCount() {
+        return engineTextureEntries.size();
+    }
+
+    /**
      * Extract all the files to a given location
      *
      * @param destination destination directory
