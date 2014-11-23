@@ -192,7 +192,12 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         // Convert the assets
         if (convertAssets) {
-            AssetsConverter assetsConverter = new AssetsConverter(dkIIFolder, assetManager);
+            AssetsConverter assetsConverter = new AssetsConverter(dkIIFolder, assetManager) {
+                @Override
+                protected void updateStatus(Integer currentProgress, Integer totalProgress, AssetsConverter.ConvertProcess process) {
+                    //
+                }
+            };
             assetsConverter.convertAssets();
         }
 

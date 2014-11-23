@@ -29,8 +29,33 @@ import toniarts.opendungeonkeeper.tools.convert.wad.WadFile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class AssetsConverter {
+public abstract class AssetsConverter {
 
+    /**
+     * Processes are done in order
+     *
+     * @see ConvertProcess#getProcessNumber()
+     */
+    public enum ConvertProcess {
+
+        TEXTURES(1),
+        MODELS(2),
+        MOUSE_CURSORS(3);
+
+        private ConvertProcess(int processNumber) {
+            this.processNumber = processNumber;
+        }
+
+        public int getProcessNumber() {
+            return processNumber;
+        }
+
+        @Override
+        public String toString() {
+            return super.toString().replace('_', ' ');
+        }
+        private final int processNumber;
+    }
     private final String dungeonKeeperFolder;
     private final AssetManager assetManager;
     private static final String ASSETS_FOLDER = "assets";
@@ -44,6 +69,15 @@ public class AssetsConverter {
         this.dungeonKeeperFolder = dungeonKeeperFolder;
         this.assetManager = assetManager;
     }
+
+    /**
+     * Callback for updates
+     *
+     * @param currentProgress current progress, maybe null if not certain yet
+     * @param totalProgress total progress, maybe null if not certain yet
+     * @param process the process we are currently doing
+     */
+    protected abstract void updateStatus(Integer currentProgress, Integer totalProgress, ConvertProcess process);
 
     /**
      * Convert all the original DK II assets to our formats and copy to our
@@ -79,6 +113,7 @@ public class AssetsConverter {
      */
     private void convertTextures(String dungeonKeeperFolder, String destination) {
         logger.log(Level.INFO, "Extracting textures to: " + destination);
+        updateStatus(null, null, ConvertProcess.TEXTURES);
 
         //Form the data path
         String dataDirectory = dungeonKeeperFolder.concat("DK2TextureCache").concat(File.separator);
@@ -86,7 +121,11 @@ public class AssetsConverter {
         //Extract the textures
         EngineTexturesFile etFile = new EngineTexturesFile(new File(dataDirectory.concat("EngineTextures.dat")));
         Pattern pattern = Pattern.compile("(?<name>\\w+)MM(?<mipmaplevel>\\d{1})");
+        int i = 0;
+        int total = etFile.getFileCount();
         for (String textureFile : etFile) {
+            updateStatus(i, total, ConvertProcess.TEXTURES);
+            i++;
 
             //All are PNG files, and MipMap levels are present, we need only the
             //highest quality one, so don't bother extracting the other mipmap levels
@@ -123,17 +162,22 @@ public class AssetsConverter {
      */
     private void convertModels(String dungeonKeeperFolder, String destination, AssetManager assetManager) {
         logger.log(Level.INFO, "Extracting models to: " + destination);
+        updateStatus(null, null, ConvertProcess.MODELS);
 
         //Meshes are in the data folder, access the packed file
         WadFile wad = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("Meshes.WAD")));
         HashMap<String, KmfFile> kmfs = new HashMap<>();
         File tmpdir = new File(System.getProperty("java.io.tmpdir"));
+        int i = 0;
+        int total = wad.getWadFileEntryCount();
         for (final String entry : wad.getWadFileEntries()) {
             try {
+                updateStatus(i, total, ConvertProcess.MODELS);
 
                 // See if we already have this model
                 if (!OVERWRITE_DATA && new File(destination.concat(entry.substring(0, entry.length() - 4)).concat(".j3o")).exists()) {
                     logger.log(Level.INFO, "File " + entry + " already exists, skipping!");
+                    i++;
                     continue;
                 }
 
@@ -166,6 +210,7 @@ public class AssetsConverter {
 
                     // We can delete the file straight
                     f.delete();
+                    i++;
                 } else {
 
                     // For later processing
@@ -179,7 +224,9 @@ public class AssetsConverter {
 
         // And the groups (now they can be linked)
         for (Entry<String, KmfFile> entry : kmfs.entrySet()) {
+            updateStatus(i, total, ConvertProcess.MODELS);
             convertModel(assetManager, entry, destination);
+            i++;
         }
     }
 
@@ -218,10 +265,15 @@ public class AssetsConverter {
      */
     private void convertMouseCursors(String dungeonKeeperFolder, String destination) {
         logger.log(Level.INFO, "Extracting mouse cursors to: " + destination);
+        updateStatus(null, null, ConvertProcess.MOUSE_CURSORS);
 
         //Mouse cursors are PNG files in the Sprite.WAD
         WadFile wadFile = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("Sprite.WAD")));
+        int i = 0;
+        int total = wadFile.getWadFileEntryCount();
         for (String fileName : wadFile.getWadFileEntries()) {
+            updateStatus(i, total, ConvertProcess.MOUSE_CURSORS);
+            i++;
             if (fileName.toLowerCase().endsWith(".png")) {
 
                 //Extract the file
