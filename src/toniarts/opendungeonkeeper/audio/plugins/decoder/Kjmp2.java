@@ -36,6 +36,8 @@ import toniarts.opendungeonkeeper.tools.convert.Utils;
  */
 public class Kjmp2 {
 
+    public static final int KJMP2_MAX_FRAME_SIZE = 1440;  // The maximum size of a frame
+    public static final int KJMP2_SAMPLES_PER_FRAME = 1152;  // The number of samples per frame
     // Mode constants
     private final int STEREO = 0;
     private final int JOINT_STEREO = 1;
@@ -205,8 +207,6 @@ public class Kjmp2 {
 ////////////////////////////////////////////////////////////////////////////////
 // STATIC VARIABLES AND FUNCTIONS                                             //
 ////////////////////////////////////////////////////////////////////////////////
-    private static final int KJMP2_MAGIC = 0x32706D;
-    private boolean initialized = false;
     private int bitWindow;
     private int bitsInWindow;
     private ByteBuffer framePos;
@@ -228,40 +228,35 @@ public class Kjmp2 {
 ////////////////////////////////////////////////////////////////////////////////
 // INITIALIZATION                                                             //
 ////////////////////////////////////////////////////////////////////////////////
-    private final int n[][] = new int[64][32];  // N[i][j] as 8-bit fixed-point
+    private static final int n[][] = new int[64][32];  // N[i][j] as 8-bit fixed-point
 
-    public class Kjmp2Context {
+    static {
 
-        private int id;
-        private int v[][] = new int[2][1024];
-        private int vOffs;
-    };
-
-    public void kjmp2Init(Kjmp2Context mp2) {
-        int i, j;
-
-        // Check if global initialization is required
-        if (!initialized) {
-
-            // Compute N[i][j]
-            for (i = 0; i < 64; ++i) {
-                for (j = 0; j < 32; ++j) {
-                    n[i][j] = (int) (256.0 * Math.cos(((16 + i) * ((j << 1) + 1)) * 0.0490873852123405));
-                }
-            }
-            initialized = true;
-        }
-
-        // Perform local initialization: clean the context and put the magic in it
-        for (i = 0; i < 2; ++i) {
-            for (j = 1023; j >= 0; --j) {
-                mp2.v[i][j] = 0;
+        // Compute N[i][j]
+        for (int i = 0; i < 64; ++i) {
+            for (int j = 0; j < 32; ++j) {
+                n[i][j] = (int) (256.0 * Math.cos(((16 + i) * ((j << 1) + 1)) * 0.0490873852123405));
             }
         }
-        mp2.vOffs = 0;
-        mp2.id = KJMP2_MAGIC;
     }
 
+    /**
+     * A small class to hold the context of a single MP2 file
+     */
+    private class Kjmp2Context {
+
+        private int v[][] = new int[2][1024];
+        private int vOffs = 0;
+    };
+
+    /**
+     * Returns the sample rate of a MP2 stream.
+     *
+     * @param frame Points to at least the first three bytes of a frame from the
+     * stream.
+     * @return The sample rate of the stream in Hz, or zero if the stream isn't
+     * valid.
+     */
     public static int kjmp2GetSampleRate(
             byte[] frame) {
         if (frame == null) {
@@ -337,13 +332,28 @@ public class Kjmp2 {
 // FRAME DECODE FUNCTION                                                      //
 ////////////////////////////////////////////////////////////////////////////////
     private final QuantizerSpec allocation[][] = new QuantizerSpec[2][32];
-    private int scfsi[][] = new int[2][32];
-    private int scalefactor[][][] = new int[2][32][3];
-    private int sample[][][] = new int[2][32][3];
-    private int u[] = new int[512];
+    private final int scfsi[][] = new int[2][32];
+    private final int scalefactor[][][] = new int[2][32][3];
+    private final int sample[][][] = new int[2][32][3];
+    private final int u[] = new int[512];
+    private final Kjmp2Context mp2 = new Kjmp2Context();
 
+    /**
+     * Decode one frame of audio
+     *
+     * @param frame A pointer to the frame to decode. It *must* be a complete
+     * frame, because no error checking is done!
+     * @param pcm A pointer to the output PCM data. kjmp2_decode_frame() will
+     * always return 1152 (=KJMP2_SAMPLES_PER_FRAME) interleaved stereo samples
+     * in a native-endian 16-bit signed format. Even for mono streams, stereo
+     * output will be produced.
+     * @return The number of bytes in the current frame. In a valid stream,
+     * frame + kjmp2_decode_frame(..., frame, ...) will point to the next frame,
+     * if frames are consecutive in memory.<br>Note: pcm may be NULL. In this
+     * case, kjmp2DecodeFrame() will return the size of the frame without
+     * actually decoding it.
+     */
     public long kjmp2DecodeFrame(
-            Kjmp2Context mp2,
             byte[] frame,
             ShortBuffer pcm) {
         int bitRateIndexMinus1;
@@ -356,7 +366,7 @@ public class Kjmp2 {
         int tableIdx;
 
         // General sanity check
-        if (!initialized || mp2 == null || (mp2.id != KJMP2_MAGIC) || frame == null) {
+        if (frame == null) {
             return 0;
         }
 
