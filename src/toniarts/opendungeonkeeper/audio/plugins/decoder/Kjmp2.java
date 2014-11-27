@@ -30,7 +30,8 @@ import toniarts.opendungeonkeeper.tools.convert.Utils;
  * removed or altered from any source ** * distribution. **
  * *****************************************************************************
  *
- * Converted to JAVA code
+ * Converted to JAVA code<br>
+ * For each file you need its own Kjmp2 instance
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
