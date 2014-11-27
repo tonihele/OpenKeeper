@@ -5,6 +5,7 @@
 package toniarts.opendungeonkeeper.audio.plugins.decoder;
 
 import java.nio.ByteBuffer;
+import java.nio.ShortBuffer;
 import java.util.Arrays;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 
@@ -344,7 +345,7 @@ public class Kjmp2 {
     public long kjmp2DecodeFrame(
             Kjmp2Context mp2,
             byte[] frame,
-            ByteBuffer pcm) {
+            ShortBuffer pcm) {
         int bitRateIndexMinus1;
         int samplingFrequency;
         int paddingBit;
@@ -546,7 +547,7 @@ public class Kjmp2 {
                             if (sum > 32767) {
                                 sum = 32767;
                             }
-                            pcm.putShort((idx << 6) | (j << 1) | ch + pcm.position(), (short) sum);
+                            pcm.put(((idx << 6) | (j << 1) | ch) + pcm.position(), (short) sum);
                         }
                     } // End of synthesis channel loop
                 } // End of synthesis sub-block loop
