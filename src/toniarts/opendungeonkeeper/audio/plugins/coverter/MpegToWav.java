@@ -40,10 +40,6 @@ public class MpegToWav {
             /* 36 */ 'd', 'a', 't', 'a',
             /* 40 */ 0, 0, 0, 0, /* cksize */});
         header.order(ByteOrder.LITTLE_ENDIAN);
-        int rate, outBytes, bufsize, bufpos, in_offset, eof, desync;
-        byte buffer[] = new byte[MAX_BUFSIZE];
-        ByteBuffer samples = null;
-        Kjmp2 decoder = new Kjmp2();
 
         if (args.length < 2) {
             System.out.printf("Usage: <input.mp2> [<output.wav>]\n");
@@ -52,11 +48,12 @@ public class MpegToWav {
 
         try (FileInputStream fin = new FileInputStream(args[0])) {
 
+            byte buffer[] = new byte[MAX_BUFSIZE];
+            int bufsize = fin.read(buffer, 0, MAX_BUFSIZE);
+            int bufpos = 0;
+            int inOffset = 0;
 
-            bufsize = fin.read(buffer, 0, MAX_BUFSIZE);
-            in_offset = bufpos = 0;
-
-            rate = (bufsize > 4) ? Kjmp2.kjmp2GetSampleRate(buffer) : 0;
+            int rate = (bufsize > 4) ? Kjmp2.kjmp2GetSampleRate(buffer) : 0;
             if (rate == 0) {
                 System.out.printf("Input is not a valid MP2 audio file, exiting.\n");
                 return;
@@ -64,8 +61,13 @@ public class MpegToWav {
 
             try (RandomAccessFile fout = new RandomAccessFile(args[1], "rw")) {
 
+                // Init decoder
+                Kjmp2 decoder = new Kjmp2();
+
                 System.out.printf("Decoding %s into %s ...\n", args[0], args[1]);
-                eof = outBytes = desync = 0;
+                int eof = 0;
+                int outBytes = 0;
+                int desync = 0;
 
                 // Read the number of channels
                 decoder.kjmp2DecodeFrame(buffer, null);
@@ -78,18 +80,19 @@ public class MpegToWav {
                 header.putShort(22, (short) nOfCh);
                 fout.write(header.array());
 
+                // Output
+                ByteBuffer samples = ByteBuffer.allocate(KJMP2_SAMPLES_PER_FRAME * 2 * nOfCh);
+                samples.order(ByteOrder.LITTLE_ENDIAN);
+
                 while (eof == 0 || (bufsize > 4)) {
                     int bytes;
-
-                    samples = ByteBuffer.allocate(KJMP2_SAMPLES_PER_FRAME * 2 * nOfCh);
-                    samples.order(ByteOrder.LITTLE_ENDIAN);
 
                     if (eof == 0 && (bufsize < KJMP2_MAX_FRAME_SIZE)) {
                         buffer = Arrays.copyOfRange(buffer, bufpos, bufpos + bufsize + 1);
                         buffer = Arrays.copyOf(buffer, MAX_BUFSIZE);
 
                         bufpos = 0;
-                        in_offset += bufsize;
+                        inOffset += bufsize;
                         bytes = fin.read(buffer, bufsize, MAX_BUFSIZE - bufsize);
                         if (bytes > 0) {
                             bufsize += bytes;
@@ -100,7 +103,7 @@ public class MpegToWav {
                         bytes = (int) decoder.kjmp2DecodeFrame(Arrays.copyOfRange(buffer, bufpos, bufpos + KJMP2_MAX_FRAME_SIZE + 1), samples.asShortBuffer());
                         if ((bytes < 4) || (bytes > KJMP2_MAX_FRAME_SIZE) || (bytes > bufsize)) {
                             if (desync == 0) {
-                                System.out.printf("Stream error detected at file offset %d.\n", in_offset + bufpos);
+                                System.out.printf("Stream error detected at file offset %d.\n", inOffset + bufpos);
                             }
                             desync = bytes = 1;
                         } else {
