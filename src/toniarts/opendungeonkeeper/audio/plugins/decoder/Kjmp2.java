@@ -272,10 +272,10 @@ public class Kjmp2 {
         return sampleRates[(((Utils.toUnsignedByte(frame[1]) & 0x08) >> 1) ^ 4) // MPEG-1/2 switch
                 + ((Utils.toUnsignedByte(frame[2]) >> 2) & 3)];         // Actual rate
     }
+
 ////////////////////////////////////////////////////////////////////////////////
 // DECODE HELPER FUNCTIONS                                                    //
 ////////////////////////////////////////////////////////////////////////////////
-
     private QuantizerSpec readAllocation(int sb, int b2Table) {
         int tableIdx = quantLutStep3[b2Table][sb];
         tableIdx = quantLutStep4[tableIdx & 15][getBits(tableIdx >> 4)];
@@ -338,18 +338,18 @@ public class Kjmp2 {
     private final int sample[][][] = new int[2][32][3];
     private final int u[] = new int[512];
     private final Kjmp2Context mp2 = new Kjmp2Context();
+    private int mode;
 
     /**
      * Decode one frame of audio
      *
      * @param frame A pointer to the frame to decode. It *must* be a complete
      * frame, because no error checking is done!
-     * @param pcm A pointer to the output PCM data. kjmp2_decode_frame() will
-     * always return 1152 (=KJMP2_SAMPLES_PER_FRAME) interleaved stereo samples
-     * in a native-endian 16-bit signed format. Even for mono streams, stereo
-     * output will be produced.
+     * @param pcm A pointer to the output PCM data. kjmp2DecodeFrame() will
+     * always return 1152 (=KJMP2_SAMPLES_PER_FRAME) interleaved samples in a
+     * native-endian 16-bit signed format.
      * @return The number of bytes in the current frame. In a valid stream,
-     * frame + kjmp2_decode_frame(..., frame, ...) will point to the next frame,
+     * frame + kjmp2DecodeFrame(..., frame, ...) will point to the next frame,
      * if frames are consecutive in memory.<br>Note: pcm may be NULL. In this
      * case, kjmp2DecodeFrame() will return the size of the frame without
      * actually decoding it.
@@ -360,7 +360,6 @@ public class Kjmp2 {
         int bitRateIndexMinus1;
         int samplingFrequency;
         int paddingBit;
-        int mode;
         long frameSize;
         int bound, sblimit;
         int sb, ch, gr, part, idx, nch, i, j, sum;
@@ -522,7 +521,7 @@ public class Kjmp2 {
                     // Shifting step
                     mp2.vOffs = tableIdx = (mp2.vOffs - 64) & 1023;
 
-                    for (ch = 0; ch < 2; ++ch) {
+                    for (ch = 0; ch < (mode == MONO ? 1 : 2); ++ch) {
                         // Matrixing
                         for (i = 0; i < 64; ++i) {
                             sum = 0;
@@ -558,15 +557,24 @@ public class Kjmp2 {
                             if (sum > 32767) {
                                 sum = 32767;
                             }
-                            pcm.put(((idx << 6) | (j << 1) | ch) + pcm.position(), (short) sum);
+                            pcm.put(((mode == MONO ? idx << 5 : idx << 6) | (mode == MONO ? j : (j << 1)) | ch) + pcm.position(), (short) sum);
                         }
                     } // End of synthesis channel loop
                 } // End of synthesis sub-block loop
 
                 // Adjust PCM output pointer: decoded 3 * 32 = 96 stereo samples
-                pcm.position(pcm.position() + 192);
+                pcm.position(pcm.position() + (mode == MONO ? 96 : 192));
             } // Decoding of the granule finished
         }
         return frameSize;
+    }
+
+    /**
+     * Get the number of channels
+     *
+     * @return number of channels
+     */
+    public int getNumberOfChannels() {
+        return (mode == MONO ? 1 : 2);
     }
 }
