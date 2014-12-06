@@ -9,8 +9,16 @@ import com.jme3.asset.AssetManager;
 import com.jme3.export.binary.BinaryExporter;
 import com.jme3.scene.Node;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,6 +26,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.opendungeonkeeper.tools.convert.enginetextures.EngineTexturesFile;
 import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
+import toniarts.opendungeonkeeper.tools.convert.sdt.SdtFile;
 import toniarts.opendungeonkeeper.tools.convert.wad.WadFile;
 
 /**
@@ -40,7 +49,8 @@ public abstract class AssetsConverter {
 
         TEXTURES(1),
         MODELS(2),
-        MOUSE_CURSORS(3);
+        MOUSE_CURSORS(3),
+        MUSIC_AND_SOUNDS(4);
 
         private ConvertProcess(int processNumber) {
             this.processNumber = processNumber;
@@ -62,7 +72,8 @@ public abstract class AssetsConverter {
     public static final String TEXTURES_FOLDER = "Textures";
     public static final String MODELS_FOLDER = "Models";
     public static final String MOUSE_CURSORS_FOLDER = "Interface".concat(File.separator).concat("Cursors");
-    private static final boolean OVERWRITE_DATA = false; // Not exhausting your SDD :) or our custom graphics
+    public static final String SOUNDS_FOLDER = "Sounds";
+    private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
 
     public AssetsConverter(String dungeonKeeperFolder, AssetManager assetManager) {
@@ -85,8 +96,8 @@ public abstract class AssetsConverter {
      */
     public void convertAssets() {
         String currentFolder = getCurrentFolder();
-        logger.log(Level.INFO, "Starting asset convertion from DK II folder: " + dungeonKeeperFolder);
-        logger.log(Level.INFO, "Current folder set to: " + currentFolder);
+        logger.log(Level.INFO, "Starting asset convertion from DK II folder: {0}", dungeonKeeperFolder);
+        logger.log(Level.INFO, "Current folder set to: {0}", currentFolder);
 
         //Create an assets folder
         currentFolder = currentFolder.concat(ASSETS_FOLDER).concat(File.separator);
@@ -103,6 +114,9 @@ public abstract class AssetsConverter {
 
         //The mouse cursors
         convertMouseCursors(dungeonKeeperFolder, currentFolder.concat(MOUSE_CURSORS_FOLDER).concat(File.separator));
+
+        //The sound and music
+        convertSounds(dungeonKeeperFolder, currentFolder.concat(SOUNDS_FOLDER).concat(File.separator));
     }
 
     /**
@@ -112,7 +126,7 @@ public abstract class AssetsConverter {
      * @param destination Destination folder
      */
     private void convertTextures(String dungeonKeeperFolder, String destination) {
-        logger.log(Level.INFO, "Extracting textures to: " + destination);
+        logger.log(Level.INFO, "Extracting textures to: {0}", destination);
         updateStatus(null, null, ConvertProcess.TEXTURES);
 
         //Form the data path
@@ -141,7 +155,7 @@ public abstract class AssetsConverter {
                 } else if (!OVERWRITE_DATA && newFile.exists()) {
 
                     // Delete the extracted file
-                    logger.log(Level.INFO, "File " + newFile + " already exists, skipping!");
+                    logger.log(Level.INFO, "File {0} already exists, skipping!", newFile);
                     f.delete();
                     continue;
                 }
@@ -161,7 +175,7 @@ public abstract class AssetsConverter {
      * @param destination Destination folder
      */
     private void convertModels(String dungeonKeeperFolder, String destination, AssetManager assetManager) {
-        logger.log(Level.INFO, "Extracting models to: " + destination);
+        logger.log(Level.INFO, "Extracting models to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MODELS);
 
         //Meshes are in the data folder, access the packed file
@@ -176,7 +190,7 @@ public abstract class AssetsConverter {
 
                 // See if we already have this model
                 if (!OVERWRITE_DATA && new File(destination.concat(entry.substring(0, entry.length() - 4)).concat(".j3o")).exists()) {
-                    logger.log(Level.INFO, "File " + entry + " already exists, skipping!");
+                    logger.log(Level.INFO, "File {0} already exists, skipping!", entry);
                     i++;
                     continue;
                 }
@@ -264,7 +278,7 @@ public abstract class AssetsConverter {
      * @param destination Destination folder
      */
     private void convertMouseCursors(String dungeonKeeperFolder, String destination) {
-        logger.log(Level.INFO, "Extracting mouse cursors to: " + destination);
+        logger.log(Level.INFO, "Extracting mouse cursors to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MOUSE_CURSORS);
 
         //Mouse cursors are PNG files in the Sprite.WAD
@@ -279,6 +293,63 @@ public abstract class AssetsConverter {
                 //Extract the file
                 wadFile.extractFileData(fileName, destination);
             }
+        }
+    }
+
+    /**
+     * Extract and copy DK II sounds & music
+     *
+     * @param dungeonKeeperFolder DK II main folder
+     * @param destination Destination folder
+     */
+    private void convertSounds(String dungeonKeeperFolder, String destination) {
+        logger.log(Level.INFO, "Extracting sounds to: {0}", destination);
+        updateStatus(null, null, ConvertProcess.MUSIC_AND_SOUNDS);
+        String dataDirectory = dungeonKeeperFolder.concat("data").concat(File.separator).concat("sound").concat(File.separator).concat("sfx").concat(File.separator);
+
+        //Find all the sound files
+        final List<File> sdtFiles = new ArrayList<>();
+        File dataDir = new File(dataDirectory);
+        try {
+            Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+
+                    //Get all the SDT files
+                    if (attrs.isRegularFile() && file.getFileName().toString().toLowerCase().endsWith(".sdt")) {
+                        sdtFiles.add(file.toFile());
+                    }
+
+                    //Always continue
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException ex) {
+            String msg = "Failed to scan sounds folder " + dataDirectory + "!";
+            logger.log(Level.SEVERE, msg, ex);
+            throw new RuntimeException(msg, ex);
+        }
+
+        //Extract the sounds
+        // FIXME: We should try to figure out the map files, but at least merge the sound track files
+        int i = 0;
+        int total = sdtFiles.size();
+        for (File file : sdtFiles) {
+            updateStatus(i, total, ConvertProcess.MUSIC_AND_SOUNDS);
+            i++;
+
+            SdtFile sdt = new SdtFile(file);
+
+            //Get a relative path
+            Path relative = dataDir.toPath().relativize(file.toPath());
+            String dest = destination;
+            dest += relative.toString();
+
+            //Remove the actual file name
+            dest = dest.substring(0, dest.length() - file.toPath().getFileName().toString().length());
+
+            //Extract
+            sdt.extractFileData(dest);
         }
     }
 
