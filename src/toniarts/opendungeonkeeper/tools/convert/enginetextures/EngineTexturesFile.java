@@ -42,10 +42,9 @@ public class EngineTexturesFile implements Iterable<String> {
     private static final int CHESS_BOARD_GRID_SIZE = 8;
     private final File file;
     private final HashMap<String, EngineTextureEntry> engineTextureEntries;
-    private boolean decompressionInitialized = false;
     //Decompression stuff I don't understand
     /* external buffers and data to be supplied with sizes */
-    private int[] magic_input_table_6c10c0 = {0x2000, 0x1712, 0x187E, 0x1B37, 0x2000, 0x28BA, 0x3B21, 0x73FC, 0x1712,
+    private static final int[] magic_input_table_6c10c0 = {0x2000, 0x1712, 0x187E, 0x1B37, 0x2000, 0x28BA, 0x3B21, 0x73FC, 0x1712,
         0x10A2, 0x11A8, 0x139F, 0x1712, 0x1D5D, 0x2AA1, 0x539F, 0x187E, 0x11A8,
         0x12BF, 0x14D4, 0x187E, 0x1F2C, 0x2D41, 0x58C5, 0x1B37, 0x139F, 0x14D4,
         0x1725, 0x1B37, 0x22A3, 0x3249, 0x62A3, 0x2000, 0x1712, 0x187E, 0x1B37,
@@ -54,7 +53,7 @@ public class EngineTexturesFile implements Iterable<String> {
         0x6D41, 0x0D650, 0x73FC, 0x539F, 0x58C5, 0x62A3, 0x73FC, 0x939F, 0x0D650,
         0x1A463
     };
-    private short[] jump_table_7af4e0 = {0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2,
+    private static final short[] jump_table_7af4e0 = {0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2,
         0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2,
         0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2,
         0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2,
@@ -78,7 +77,7 @@ public class EngineTexturesFile implements Iterable<String> {
         0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x55, 0x55,
         0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x66, 0x66, 0x66, 0x66, 0x77,
         0x77, 0x88, 0x0};
-    private int[] dc_control_table_7af0e0 = {
+    private static final int[] dc_control_table_7af0e0 = {
         0x00000000, 0x0000003f, 0x00000037, 0x0000003e,
         0x0000003d, 0x00000036, 0x0000002f, 0x00000027,
         0x0000002e, 0x00000035, 0x0000003c, 0x0000003b,
@@ -143,8 +142,21 @@ public class EngineTexturesFile implements Iterable<String> {
         0x00100e02, 0x00100d02, 0x00100c02, 0x00102001,
         0x00101f01, 0x00101e01, 0x00101d01, 0x00101c01
     }; //Unsigned, hmm, 007AF0E4
-    private int[] magic_output_table = new int[64]; /* magic values computed from magic input */
+    private static final int[] magic_output_table = new int[64]; /* magic values computed from magic input */
 
+
+    // Initialize the magic_output_table
+    static {
+        int i;
+        int d, a;
+
+        for (i = 0; i < 64; i++) {
+            d = (magic_input_table_6c10c0[i] & 0xfffe0000) >> 3;
+            a = (magic_input_table_6c10c0[i] & 0x0001ffff) << 3;
+
+            magic_output_table[i] = d + a;
+        }
+    }
     private long bs[];//Unsigned
     private long bs_index;//Unsigned
     private long bs_red = 0;//Unsigned
@@ -398,8 +410,11 @@ public class EngineTexturesFile implements Iterable<String> {
      */
     private BufferedImage decompressTexture(long[] buf, EngineTextureEntry engineTextureEntry) {
         BufferedImage img = new BufferedImage(engineTextureEntry.getResX(), engineTextureEntry.getResY(), BufferedImage.TYPE_INT_ARGB);
-        dd_init();
+
+        // Decompress the texture
         byte[] pixels = dd_texture(buf, engineTextureEntry.getResX() * (32 / 8)/*(bpp / 8 = bytes per pixel)*/, engineTextureEntry.getResX(), engineTextureEntry.getResY());
+
+        // Draw the image, pixel by pixel
         for (int x = 0; x < engineTextureEntry.getResX(); x++) {
             for (int y = 0; y < engineTextureEntry.getResY(); y++) {
                 int base = engineTextureEntry.getResX() * y * 4 + x * 4;
@@ -412,22 +427,6 @@ public class EngineTexturesFile implements Iterable<String> {
             }
         }
         return img;
-    }
-
-    /* must be called prior to calling dd_texture */
-    private void dd_init() {
-        if (!decompressionInitialized) {
-            int i;
-            int d, a;
-
-            for (i = 0; i < 64; i++) {
-                d = (magic_input_table_6c10c0[i] & 0xfffe0000) >> 3;
-                a = (magic_input_table_6c10c0[i] & 0x0001ffff) << 3;
-
-                magic_output_table[i] = d + a;
-            }
-            decompressionInitialized = true;
-        }
     }
 
     private byte[] dd_texture(long[] buf,
