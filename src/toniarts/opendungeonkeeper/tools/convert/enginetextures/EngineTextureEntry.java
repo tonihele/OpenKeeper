@@ -17,7 +17,7 @@ public class EngineTextureEntry {
     private int size;
     private int sResX;
     private int sResY;
-    private int unknown; // Compression identifier?
+    private boolean alphaFlag;
     private long dataStartLocation;
 
     public int getResX() {
@@ -60,12 +60,12 @@ public class EngineTextureEntry {
         this.sResY = sResY;
     }
 
-    public int getUnknown() {
-        return unknown;
+    public boolean isAlphaFlag() {
+        return alphaFlag;
     }
 
-    protected void setUnknown(int unknown) {
-        this.unknown = unknown;
+    protected void setAlphaFlag(boolean alphaFlag) {
+        this.alphaFlag = alphaFlag;
     }
 
     protected long getDataStartLocation() {

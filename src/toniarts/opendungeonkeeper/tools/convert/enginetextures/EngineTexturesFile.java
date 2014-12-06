@@ -219,7 +219,7 @@ public class EngineTexturesFile implements Iterable<String> {
                     entry.setsResX(Utils.readUnsignedShort(rawTextures));
                     entry.setsResY(Utils.readUnsignedShort(rawTextures));
                     entry.setDataStartLocation(rawTextures.getFilePointer());
-                    entry.setUnknown(Utils.readUnsignedInteger(rawTextures));
+                    entry.setAlphaFlag(Utils.readUnsignedInteger(rawTextures) >> 7 != 0);
 
                     //Put the entry to the hash
                     engineTextureEntries.put(name, entry);
@@ -305,7 +305,7 @@ public class EngineTexturesFile implements Iterable<String> {
         if (!overwrite && destinationFile.exists()) {
 
             //Skip
-            logger.log(Level.INFO, "File " + destinationFile + " already exists, skipping!");
+            logger.log(Level.INFO, "File {0} already exists, skipping!", destinationFile);
             return destinationFile;
         }
         Path destinationFolder = destinationFile.toPath();
@@ -339,7 +339,7 @@ public class EngineTexturesFile implements Iterable<String> {
         try {
 
             //We should decompress the texture
-            BufferedImage image = null;
+            BufferedImage image;
             if (DECOMPRESSION_ENABLED) {
 
                 //Seek to the file we want and read it
@@ -497,12 +497,9 @@ public class EngineTexturesFile implements Iterable<String> {
                     value |= 0xff000000;
                 }
                 out.putInt(out.position() + i * 4, value);
-                //memcpy( & out[i * 4],  & value, sizeof(value));
             }
             out.position(Math.min(out.limit(), out.position() + stride));
-            //out += stride;
             inp.position(inp.position() + 64);
-            //inp += 64;
         }
     }
 
@@ -545,11 +542,9 @@ public class EngineTexturesFile implements Iterable<String> {
             bs_index = prepare_decompress((int) bs_red, bs_pos);
             for (i = 0; i < 8; i++) {
                 decompress_func1(IntBuffer.wrap(decompress2_chunk, i * 8, decompress2_chunk.length - i * 8), IntBuffer.wrap(decompress3_chunk, i, decompress3_chunk.length - i));
-                //decompress_func1( & decompress2_chunk[i * 8],  & decompress3_chunk[i]);
             }
             for (i = 0; i < 8; i++) {
                 decompress_func2(IntBuffer.wrap(decompress3_chunk, i * 9, decompress3_chunk.length - i * 9), IntBuffer.wrap(decompress4_chunk, i * 64, decompress4_chunk.length - i * 64));
-                //decompress_func2( & decompress3_chunk[i * 9],  & decompress4_chunk[i * 64]);
             }
         }
 
@@ -588,12 +583,9 @@ public class EngineTexturesFile implements Iterable<String> {
             bs_index = prepare_decompress((int) bs_green, bs_pos);
             for (i = 0; i < 8; i++) {
                 decompress_func1(IntBuffer.wrap(decompress2_chunk, i * 8, decompress2_chunk.length - i * 8), IntBuffer.wrap(decompress3_chunk, i, decompress3_chunk.length - i));
-//                decompress_func1( & decompress2_chunk[i * 8],  & decompress3_chunk[i]);
             }
             for (i = 0; i < 8; i++) {
                 decompress_func2(IntBuffer.wrap(decompress3_chunk, i * 9, decompress3_chunk.length - i * 9), IntBuffer.wrap(decompress4_chunk, i * 64 + 9, decompress4_chunk.length - (i * 64 + 9)));
-//                decompress_func2( & decompress3_chunk[i * 9],
-//                         & decompress4_chunk[i * 64 + 9]);
             }
         }
 
@@ -632,12 +624,9 @@ public class EngineTexturesFile implements Iterable<String> {
             bs_index = prepare_decompress((int) bs_blue, bs_pos);
             for (i = 0; i < 8; i++) {
                 decompress_func1(IntBuffer.wrap(decompress2_chunk, i * 8, decompress2_chunk.length - i * 8), IntBuffer.wrap(decompress3_chunk, i, decompress3_chunk.length - i));
-//                decompress_func1( & decompress2_chunk[i * 8],  & decompress3_chunk[i]);
             }
             for (i = 0; i < 8; i++) {
                 decompress_func2(IntBuffer.wrap(decompress3_chunk, i * 9, decompress3_chunk.length - i * 9), IntBuffer.wrap(decompress4_chunk, i * 64 + 18, decompress4_chunk.length - (i * 64 + 18)));
-//                decompress_func2( & decompress3_chunk[i * 9],
-//                         & decompress4_chunk[i * 64 + 18]);
             }
         }
 
@@ -679,12 +668,9 @@ public class EngineTexturesFile implements Iterable<String> {
             bs_index = prepare_decompress((int) bs_alpha, bs_pos);
             for (i = 0; i < 8; i++) {
                 decompress_func1(IntBuffer.wrap(decompress2_chunk, i * 8, decompress2_chunk.length - i * 8), IntBuffer.wrap(decompress3_chunk, i, decompress3_chunk.length - i));
-//                decompress_func1( & decompress2_chunk[i * 8],  & decompress3_chunk[i]);
             }
             for (i = 0; i < 8; i++) {
                 decompress_func2(IntBuffer.wrap(decompress3_chunk, i * 9, decompress3_chunk.length - i * 9), IntBuffer.wrap(decompress4_chunk, i * 64 + 27, decompress4_chunk.length - (i * 64 + 27)));
-//                decompress_func2( & decompress3_chunk[i * 9],
-//                         & decompress4_chunk[i * 64 + 27]);
             }
         }
     }
@@ -721,8 +707,6 @@ public class EngineTexturesFile implements Iterable<String> {
 
         decompress2_chunk[0] = value * magic_output_table[0];
         Arrays.fill(decompress2_chunk, 1, decompress2_chunk.length, 0);
-        //memset( & decompress2_chunk[1], 0,
-        //        sizeof(decompress2_chunk) - sizeof(uint32_t));
 
         while (true) {
             if (!areWeDone) {
@@ -739,7 +723,6 @@ public class EngineTexturesFile implements Iterable<String> {
                     areWeDone = false;
                     if ((control_word & 0xff00) == 0x4100) {
                         return pos + (control_word >> 16);
-                        //goto done;
                     }
                     if ((control_word & 0xff00) > 0x4100) {
                         int unk14;
@@ -790,48 +773,38 @@ public class EngineTexturesFile implements Iterable<String> {
                 control_word = dc_control_table_7af0e0[72 + index];
                 areWeDone = true;
                 continue;
-//                goto are_we_done;
             } else if (index >= 0x400) {
                 index >>= 7;
                 control_word = dc_control_table_7af0e0[128 + index];
                 areWeDone = true;
                 continue;
-//                goto are_we_done;
             } else if (index >= 0x200) {
                 index >>= 5;
                 control_word = dc_control_table_7af0e0[128 + index];
                 areWeDone = true;
                 continue;
-//                goto are_we_done;
             } else if (index >= 0x100) {
                 index >>= 4;
                 control_word = dc_control_table_7af0e0[144 + index];
                 areWeDone = true;
                 continue;
-//                goto are_we_done;
             } else if (index >= 0x80) {
                 index >>= 3;
                 control_word = dc_control_table_7af0e0[160 + index];
                 areWeDone = true;
                 continue;
-//                goto are_we_done;
             } else if (index >= 0x40) {
                 index >>= 2;
                 control_word = dc_control_table_7af0e0[176 + index];
                 areWeDone = true;
                 continue;
-//                goto are_we_done;
             } else if (index >= 0x20) {
                 index >>= 1;
                 control_word = dc_control_table_7af0e0[192 + index];
                 areWeDone = true;
                 continue;
-//                goto are_we_done;
             }
         }
-        //done:
-        //return pos + (control_word >> 16);
-//        return 0;
     }
 
     private void decompress_func1(IntBuffer in, IntBuffer out) {
@@ -874,7 +847,6 @@ public class EngineTexturesFile implements Iterable<String> {
         sa = a;
         rx = sa;
         rx *= norm_7af038;
-        a = (int) rx;
         d = (int) (rx >> 32);
 
         b = in.get(in.position() + 6);
@@ -899,7 +871,6 @@ public class EngineTexturesFile implements Iterable<String> {
         sa = a;
         rx = sa;
         rx *= norm_7af038;
-        a = (int) rx;
         d = (int) (rx >> 32);
 
         d += d;
@@ -940,7 +911,6 @@ public class EngineTexturesFile implements Iterable<String> {
         sa = a;
         rx = sa;
         rx *= norm_7af038;
-        a = (int) rx;
         d = (int) (rx >> 32);
 
         b = in.get(in.position() + 6);
@@ -965,7 +935,6 @@ public class EngineTexturesFile implements Iterable<String> {
         sa = a;
         rx = sa;
         rx *= norm_7af038;
-        a = (int) rx;
         d = (int) (rx >> 32);
 
         d += d;
