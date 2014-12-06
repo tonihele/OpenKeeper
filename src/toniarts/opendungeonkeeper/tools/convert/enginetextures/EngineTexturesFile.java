@@ -77,34 +77,70 @@ public class EngineTexturesFile implements Iterable<String> {
         0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x55, 0x55,
         0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x66, 0x66, 0x66, 0x66, 0x77,
         0x77, 0x88, 0x0};
-    private int[] dc_control_table_7af0e0 = {0x3F, 0x0, 0x37, 0x0, 0x3E, 0x0, 0x3D, 0x0,
-        0x36, 0x0, 0x2F, 0x0, 0x27, 0x0, 0x2E, 0x0,
-        0x35, 0x0, 0x3C, 0x0, 0x3B, 0x0, 0x34, 0x0,
-        0x2D, 0x0, 0x26, 0x0, 0x1F, 0x0, 0x17, 0x0,
-        0x1E, 0x0, 0x25, 0x0, 0x2C, 0x0, 0x33, 0x0,
-        0x3A, 0x0, 0x39, 0x0, 0x32, 0x0, 0x2B, 0x0,
-        0x24, 0x0, 0x1D, 0x0, 0x16, 0x0, 0x0F, 0x0,
-        0x7, 0x0, 0x0E, 0x0, 0x15, 0x0, 0x1C, 0x0,
-        0x23, 0x0, 0x2A, 0x0, 0x31, 0x0, 0x38, 0x0,
-        0x30, 0x0, 0x29, 0x0, 0x22, 0x0, 0x1B, 0x0,
-        0x14, 0x0, 0x0D, 0x0, 0x6, 0x0, 0x5, 0x0,
-        0x0C, 0x0, 0x13, 0x0, 0x1A, 0x0, 0x21, 0x0,
-        0x28, 0x0, 0x20, 0x0, 0x19, 0x0, 0x12, 0x0,
-        0x0B, 0x0, 0x4, 0x0, 0x3, 0x0, 0x0A, 0x0,
-        0x11, 0x0, 0x18, 0x0, 0x10, 0x0, 0x9, 0x0,
-        0x2, 0x0, 0x1, 0x0, 0x8, 0x0, 0x102, 0x4,
-        0x301, 0x4, 0x201, 0x3, 0x201, 0x3, 0x4100, 0x2,
-        0x4100, 0x2, 0x4100, 0x2, 0x4100, 0x2, 0x101, 0x2,
-        0x101, 0x2, 0x101, 0x2, 0x101, 0x2, 0x4200, 0x6,
-        0x4200, 0x6, 0x4200, 0x6, 0x4200, 0x6, 0x302, 0x7,
-        0x302, 0x7, 0x0A01, 0x7, 0x0A01, 0x7, 0x104, 0x7,
-        0x104, 0x7, 0x901, 0x7, 0x901, 0x7, 0x801, 0x6,
-        0x801, 0x6, 0x801, 0x6, 0x801, 0x6, 0x701, 0x6,
-        0x701, 0x6, 0x701, 0x6, 0x701, 0x6, 0x202, 0x6,
-        0x202, 0x6, 0x202, 0x6, 0x202, 0x6, 0x601, 0x6,
-        0x601, 0x6, 0x601, 0x6, 0x601, 0x6, 0x0E01, 0x8,
-        0x106, 0x8, 0x0D01, 0x8, 0x0C01, 0x8, 0x402, 0x8,
-        0x203, 0x8, 0x105, 0x8, 0x0B01, 0x8, 0x103, 0x5
+    private int[] dc_control_table_7af0e0 = {
+        0x00000000, 0x0000003f, 0x00000037, 0x0000003e,
+        0x0000003d, 0x00000036, 0x0000002f, 0x00000027,
+        0x0000002e, 0x00000035, 0x0000003c, 0x0000003b,
+        0x00000034, 0x0000002d, 0x00000026, 0x0000001f,
+        0x00000017, 0x0000001e, 0x00000025, 0x0000002c,
+        0x00000033, 0x0000003a, 0x00000039, 0x00000032,
+        0x0000002b, 0x00000024, 0x0000001d, 0x00000016,
+        0x0000000f, 0x00000007, 0x0000000e, 0x00000015,
+        0x0000001c, 0x00000023, 0x0000002a, 0x00000031,
+        0x00000038, 0x00000030, 0x00000029, 0x00000022,
+        0x0000001b, 0x00000014, 0x0000000d, 0x00000006,
+        0x00000005, 0x0000000c, 0x00000013, 0x0000001a,
+        0x00000021, 0x00000028, 0x00000020, 0x00000019,
+        0x00000012, 0x0000000b, 0x00000004, 0x00000003,
+        0x0000000a, 0x00000011, 0x00000018, 0x00000010,
+        /* 60 */
+        0x00000009, 0x00000002, 0x00000001, 0x00000008,
+        0x00040102, 0x00040301, 0x00030201, 0x00030201,
+        0x00024100, 0x00024100, 0x00024100, 0x00024100,
+        /* 72 */
+        0x00020101, 0x00020101, 0x00020101, 0x00020101,
+        0x00064200, 0x00064200, 0x00064200, 0x00064200,
+        0x00070302, 0x00070302, 0x00070a01, 0x00070a01,
+        0x00070104, 0x00070104, 0x00070901, 0x00070901,
+        0x00060801, 0x00060801, 0x00060801, 0x00060801,
+        0x00060701, 0x00060701, 0x00060701, 0x00060701,
+        0x00060202, 0x00060202, 0x00060202, 0x00060202,
+        0x00060601, 0x00060601, 0x00060601, 0x00060601,
+        0x00080e01, 0x00080106, 0x00080d01, 0x00080c01,
+        0x00080402, 0x00080203, 0x00080105, 0x00080b01,
+        0x00050103, 0x00050103, 0x00050103, 0x00050103,
+        0x00050103, 0x00050103, 0x00050103, 0x00050103,
+        0x00050501, 0x00050501, 0x00050501, 0x00050501,
+        0x00050501, 0x00050501, 0x00050501, 0x00050501,
+        /* 128 */
+        0x00050401, 0x00050401, 0x00050401, 0x00050401,
+        0x00050401, 0x00050401, 0x00050401, 0x00050401,
+        0x000a1101, 0x000a0602, 0x000a0107, 0x000a0303,
+        0x000a0204, 0x000a1001, 0x000a0f01, 0x000a0502,
+        /* 144 */
+        0x000c010b, 0x000c0902, 0x000c0503, 0x000c010a,
+        0x000c0304, 0x000c0802, 0x000c1601, 0x000c1501,
+        0x000c0109, 0x000c1401, 0x000c1301, 0x000c0205,
+        0x000c0403, 0x000c0108, 0x000c0702, 0x000c1201,
+        /* 160 */
+        0x000d0b02, 0x000d0a02, 0x000d0603, 0x000d0404,
+        0x000d0305, 0x000d0207, 0x000d0206, 0x000d010f,
+        0x000d010e, 0x000d010d, 0x000d010c, 0x000d1b01,
+        0x000d1a01, 0x000d1901, 0x000d1801, 0x000d1701,
+        /* 176 */
+        0x000e011f, 0x000e011e, 0x000e011d, 0x000e011c,
+        0x000e011b, 0x000e011a, 0x000e0119, 0x000e0118,
+        0x000e0117, 0x000e0116, 0x000e0115, 0x000e0114,
+        0x000e0113, 0x000e0112, 0x000e0111, 0x000e0110,
+        /* 192 */
+        0x000f0128, 0x000f0127, 0x000f0126, 0x000f0125,
+        0x000f0124, 0x000f0123, 0x000f0122, 0x000f0121,
+        0x000f0120, 0x000f020e, 0x000f020d, 0x000f020c,
+        0x000f020b, 0x000f020a, 0x000f0209, 0x000f0208,
+        0x00100212, 0x00100211, 0x00100210, 0x0010020f,
+        0x00100703, 0x00101102, 0x00101002, 0x00100f02,
+        0x00100e02, 0x00100d02, 0x00100c02, 0x00102001,
+        0x00101f01, 0x00101e01, 0x00101d01, 0x00101c01
     }; //Unsigned, hmm, 007AF0E4
     private int[] magic_output_table = new int[64]; /* magic values computed from magic input */
 
@@ -383,6 +419,8 @@ public class EngineTexturesFile implements Iterable<String> {
                 decompress_block(out, stride);
             }
         }
+        out.rewind();
+        System.out.print(out.asShortBuffer().get());
         return out.asShortBuffer().array();
     }
 
@@ -416,13 +454,13 @@ public class EngineTexturesFile implements Iterable<String> {
                 b = inp.get(inp.position() + i + 9);
                 a = inp.get(inp.position() + i + 27);
                 d = float_7af014 * (g - float_7af004) + float_7af008 * (r - float_7af000) + double_7af048;
-                xr = (long) (d + (d > 0 ? 0.5f : -0.5f));
+                xr = (long) (d + (d > 0 ? 0.5f : -0.5f)) & 0xFFFFFFFFL;
                 ir = (int) xr;
                 d = float_7af018 * (b - float_7af004) + float_7af008 * (r - float_7af000) + double_7af048;
-                xg = (long) (d + (d > 0 ? 0.5f : -0.5f));
+                xg = (long) (d + (d > 0 ? 0.5f : -0.5f)) & 0xFFFFFFFFL;
                 ig = (int) xg;
                 d = float_7af010 * (b - float_7af004) + float_7af00c * (g - float_7af004) + float_7af008 * (r - float_7af000) + double_7af048;
-                xb = (long) (d + (d > 0 ? 0.5f : -0.5f));
+                xb = (long) (d + (d > 0 ? 0.5f : -0.5f)) & 0xFFFFFFFFL;
                 ib = (int) xb;
 
                 value = clamp(ir >> 16, 0, 255);
@@ -436,7 +474,7 @@ public class EngineTexturesFile implements Iterable<String> {
                 out.putInt(out.position() + i * 4, value);
                 //memcpy( & out[i * 4],  & value, sizeof(value));
             }
-            out.position(out.position() + stride);
+            out.position(Math.min(out.limit(), out.position() + stride));
             //out += stride;
             inp.position(inp.position() + 64);
             //inp += 64;
@@ -637,14 +675,14 @@ public class EngineTexturesFile implements Iterable<String> {
     }
 
     private long bs_read(int pos, int bits) {
-        int w1, w2;
+        long w1, w2;
         int word_index;
         int shamt;
 
         word_index = pos >> 5;
         shamt = pos & 0x1f;
-        w1 = (int) bs[word_index] << shamt;
-        w2 = shamt != 0 ? (int) bs[word_index + 1] >> (32 - shamt) : 0;
+        w1 = (bs[word_index] << shamt) & 0xFFFFFFFFL;
+        w2 = shamt != 0 && word_index + 1 < bs.length ? ((bs[word_index + 1]) >> (32 - shamt)) & 0xFFFFFFFFL : 0;
         w1 |= w2;
         w1 >>= (32 - bits);
 
@@ -661,8 +699,7 @@ public class EngineTexturesFile implements Iterable<String> {
         //memset( & decompress2_chunk[1], 0,
         //        sizeof(decompress2_chunk) - sizeof(uint32_t));
 
-        loop:
-        {
+        while (true) {
             if (!areWeDone) {
                 xindex = index = (int) bs_read(pos, 17);
             }
@@ -676,6 +713,7 @@ public class EngineTexturesFile implements Iterable<String> {
                 {
                     areWeDone = false;
                     if ((control_word & 0xff00) == 0x4100) {
+                        System.out.println(pos + (control_word >> 16));
                         return pos + (control_word >> 16);
                         //goto done;
                     }
@@ -720,56 +758,56 @@ public class EngineTexturesFile implements Iterable<String> {
                         pos += rem;
                     }
                     out_index = dc_control_table_7af0e0[magic_index + 1];
-                    decompress2_chunk[out_index] = (control_word) * magic_output_table[out_index];
-                    break loop;
+                    decompress2_chunk[out_index] = ((short) control_word) * magic_output_table[out_index];
+                    continue;
                 }
             } else if (index >= 0x800) {
                 index >>= 9;
                 control_word = dc_control_table_7af0e0[72 + index];
                 areWeDone = true;
-                break loop;
+                continue;
 //                goto are_we_done;
             } else if (index >= 0x400) {
                 index >>= 7;
                 control_word = dc_control_table_7af0e0[128 + index];
                 areWeDone = true;
-                break loop;
+                continue;
 //                goto are_we_done;
             } else if (index >= 0x200) {
                 index >>= 5;
                 control_word = dc_control_table_7af0e0[128 + index];
                 areWeDone = true;
-                break loop;
+                continue;
 //                goto are_we_done;
             } else if (index >= 0x100) {
                 index >>= 4;
                 control_word = dc_control_table_7af0e0[144 + index];
                 areWeDone = true;
-                break loop;
+                continue;
 //                goto are_we_done;
             } else if (index >= 0x80) {
                 index >>= 3;
                 control_word = dc_control_table_7af0e0[160 + index];
                 areWeDone = true;
-                break loop;
+                continue;
 //                goto are_we_done;
             } else if (index >= 0x40) {
                 index >>= 2;
                 control_word = dc_control_table_7af0e0[176 + index];
                 areWeDone = true;
-                break loop;
+                continue;
 //                goto are_we_done;
             } else if (index >= 0x20) {
                 index >>= 1;
                 control_word = dc_control_table_7af0e0[192 + index];
                 areWeDone = true;
-                break loop;
+                continue;
 //                goto are_we_done;
             }
         }
         //done:
         //return pos + (control_word >> 16);
-        return 0;
+//        return 0;
     }
 
     private void decompress_func1(IntBuffer in, IntBuffer out) {
@@ -824,9 +862,9 @@ public class EngineTexturesFile implements Iterable<String> {
         c += d;
         d += i;
         i += p;
-        sc = c;
-        sd = d;
-        si = i;
+        sc = c & 0xFFFFFFFFL;
+        sd = d & 0xFFFFFFFFL;
+        si = i & 0xFFFFFFFFL;
         c = in.get(in.position() + 0);
         d = in.get(in.position() + 4);
         s = b + a;
@@ -890,9 +928,9 @@ public class EngineTexturesFile implements Iterable<String> {
         c += d;
         d += i;
         i += p;
-        sc = c;
-        sd = d;
-        si = i;
+        sc = c & 0xFFFFFFFFL;
+        sd = d & 0xFFFFFFFFL;
+        si = i & 0xFFFFFFFFL;
         c = in.get(in.position() + 0);
         d = in.get(in.position() + 4);
         s = b + a;
