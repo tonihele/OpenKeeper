@@ -1,12 +1,14 @@
 package toniarts.opendungeonkeeper;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Box;
 import com.jme3.system.AppSettings;
+import com.jme3.system.JmeSystem;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -17,6 +19,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
+import toniarts.opendungeonkeeper.audio.plugins.MP2Loader;
 import toniarts.opendungeonkeeper.setup.DKConverter;
 import toniarts.opendungeonkeeper.setup.DKFolderSelector;
 import toniarts.opendungeonkeeper.setup.IFrameClosingBehavior;
@@ -100,7 +103,10 @@ public class Main extends SimpleApplication {
 
             // Convert
             setLookNFeel();
-            DKConverter frame = new DKConverter(dkIIFolder, app.getAssetManager()) {
+            AssetManager assetManager = JmeSystem.newAssetManager(
+                    Thread.currentThread().getContextClassLoader()
+                    .getResource("com/jme3/asset/Desktop.cfg")); // Get temporary asset manager instance since we not yet have one ourselves
+            DKConverter frame = new DKConverter(dkIIFolder, assetManager) {
                 @Override
                 protected void continueOk() {
                     app.settings.putInteger(CONVERSION_VERSION_KEY, CONVERSION_VERSION);
@@ -258,6 +264,11 @@ public class Main extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
+
+        // Asset loaders
+        //Sound
+        this.getAssetManager().registerLoader(MP2Loader.class, "mp2");
+
         Box b = new Box(1, 1, 1);
         Geometry geom = new Geometry("Box", b);
 
@@ -314,8 +325,9 @@ public class Main extends SimpleApplication {
 //
 //        //Sound
 //        this.getAssetManager().registerLoader(MP2Loader.class, "mp2");
-//        audioSource = new AudioNode(assetManager, "Sounds/horng014.mp2", false);
+//        AudioNode audioSource = new AudioNode(assetManager, "Sounds/horng014.mp2", false);
 //        audioSource.setLooping(false);
+//        audioSource.play();
     }
 
     @Override
