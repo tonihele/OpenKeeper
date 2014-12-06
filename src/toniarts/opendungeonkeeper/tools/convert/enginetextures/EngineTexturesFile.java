@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -37,7 +38,7 @@ import toniarts.opendungeonkeeper.tools.convert.Utils;
 public class EngineTexturesFile implements Iterable<String> {
 
     private static final Logger logger = Logger.getLogger(EngineTexturesFile.class.getName());
-    private static final boolean DECOMPRESSION_ENABLED = false;
+    private static final boolean DECOMPRESSION_ENABLED = true;
     private static final int CHESS_BOARD_GRID_SIZE = 8;
     private final File file;
     private final HashMap<String, EngineTextureEntry> engineTextureEntries;
@@ -325,30 +326,31 @@ public class EngineTexturesFile implements Iterable<String> {
 
         try {
 
-            //Seek to the file we want and read it
-            rawTextures.seek(engineTextureEntry.getDataStartLocation());
-            int count = (engineTextureEntry.getSize() - 4) / 4;
-            long[] buf = new long[count]; // -4 since 2x shorts belongs to the size, but our start location is past those
-            for (int i = 0; i < count; i++) {
-                buf[i] = Utils.readUnsignedIntegerAsLong(rawTextures);
-            }
-
-            result = new ByteArrayOutputStream();
-
             //We should decompress the texture
+            BufferedImage image = null;
             if (DECOMPRESSION_ENABLED) {
-                dd_init();
-                dd_texture(buf, engineTextureEntry.getResX() * (32 / 8), engineTextureEntry.getResX(), engineTextureEntry.getResY());
+
+                //Seek to the file we want and read it
+                rawTextures.seek(engineTextureEntry.getDataStartLocation());
+                int count = (engineTextureEntry.getSize() - 4) / 4; // -4 since 2x shorts belongs to the size, but our start location is past those
+                long[] buf = new long[count];
+                for (int i = 0; i < count; i++) {
+                    buf[i] = Utils.readUnsignedIntegerAsLong(rawTextures);
+                }
+
+                // Use the monstrous decompression routine
+                image = decompressTexture(buf, engineTextureEntry);
             } else {
 
                 //Use our chess board texture
-                ImageIO.write(generateChessBoard(engineTextureEntry), "png", result);
+                image = generateChessBoard(engineTextureEntry);
             }
-
+            result = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", result);
         } catch (Exception e) {
 
             //Fug
-            throw new RuntimeException("Faile to read the WAD file!", e);
+            throw new RuntimeException("Faile to read the engine texture file!", e);
         }
 
         return result;
@@ -387,6 +389,31 @@ public class EngineTexturesFile implements Iterable<String> {
         return img;
     }
 
+    /**
+     * Decompresses the texture from given entry
+     *
+     * @param buf the compressed texture data read as uint32 items
+     * @param engineTextureEntry the texture entry
+     * @return
+     */
+    private BufferedImage decompressTexture(long[] buf, EngineTextureEntry engineTextureEntry) {
+        BufferedImage img = new BufferedImage(engineTextureEntry.getResX(), engineTextureEntry.getResY(), BufferedImage.TYPE_INT_ARGB);
+        dd_init();
+        byte[] pixels = dd_texture(buf, engineTextureEntry.getResX() * (32 / 8)/*(bpp / 8 = bytes per pixel)*/, engineTextureEntry.getResX(), engineTextureEntry.getResY());
+        for (int x = 0; x < engineTextureEntry.getResX(); x++) {
+            for (int y = 0; y < engineTextureEntry.getResY(); y++) {
+                int base = engineTextureEntry.getResX() * y * 4 + x * 4;
+                int r = Utils.toUnsignedByte(pixels[base]);
+                int g = Utils.toUnsignedByte(pixels[base + 1]);
+                int b = Utils.toUnsignedByte(pixels[base + 2]);
+                int a = Utils.toUnsignedByte(pixels[base + 3]);
+                int col = (a << 24) | (r << 16) | (g << 8) | b;
+                img.setRGB(x, y, col);
+            }
+        }
+        return img;
+    }
+
     /* must be called prior to calling dd_texture */
     private void dd_init() {
         if (!decompressionInitialized) {
@@ -403,11 +430,12 @@ public class EngineTexturesFile implements Iterable<String> {
         }
     }
 
-    private short[] dd_texture(long[] buf,
+    private byte[] dd_texture(long[] buf,
             int stride, int width, int height) {
         short flag;
         int x, y;
         ByteBuffer out = ByteBuffer.allocate(width * height * 4);
+        out.order(ByteOrder.LITTLE_ENDIAN);
 
         initialize_dd(Arrays.copyOfRange(buf, 1, buf.length));
         flag = new Long(buf[0]).byteValue(); //
@@ -419,9 +447,7 @@ public class EngineTexturesFile implements Iterable<String> {
                 decompress_block(out, stride);
             }
         }
-        out.rewind();
-        System.out.print(out.asShortBuffer().get());
-        return out.asShortBuffer().array();
+        return out.array();
     }
 
     private void initialize_dd(long[] buf) {
@@ -713,7 +739,6 @@ public class EngineTexturesFile implements Iterable<String> {
                 {
                     areWeDone = false;
                     if ((control_word & 0xff00) == 0x4100) {
-                        System.out.println(pos + (control_word >> 16));
                         return pos + (control_word >> 16);
                         //goto done;
                     }
