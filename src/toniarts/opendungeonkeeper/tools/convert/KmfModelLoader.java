@@ -9,6 +9,7 @@ import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoader;
 import com.jme3.asset.ModelKey;
+import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
@@ -152,7 +153,8 @@ public class KmfModelLoader implements AssetLoader {
                     //Fix the texture entry
                     texture = textureFixes.get(texture);
                 }
-                Texture tex = assetInfo.getManager().loadTexture(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png"));
+                TextureKey textureKey = new TextureKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png"), false);
+                Texture tex = assetInfo.getManager().loadTexture(textureKey);
                 material.setTexture("DiffuseMap", tex);
                 material.setColor("Specular", ColorRGBA.Orange); // Dungeons are lit only with fire...? Experimental
                 material.setColor("Diffuse", ColorRGBA.White); // Experimental
