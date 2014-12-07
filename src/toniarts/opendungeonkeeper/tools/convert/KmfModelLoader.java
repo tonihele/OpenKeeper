@@ -11,9 +11,11 @@ import com.jme3.asset.AssetLoader;
 import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
+import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.AssetLinkNode;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
@@ -153,6 +155,8 @@ public class KmfModelLoader implements AssetLoader {
                     if (engineTextureEntry != null && engineTextureEntry.isAlphaFlag()) {
                         material.setBoolean("UseAlpha", true);
                         material.setFloat("AlphaDiscardThreshold", 0.1f);
+                        material.setTransparent(true);
+                        material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
                     }
                 }
 
@@ -515,6 +519,9 @@ public class KmfModelLoader implements AssetLoader {
 
             // Material
             geom.setMaterial(materials.get(animSprite.getMaterialIndex()));
+            if (geom.getMaterial().isTransparent()) {
+                geom.setQueueBucket(RenderQueue.Bucket.Transparent);
+            }
             geom.updateModelBound();
 
             //Attach the geometry to the node
