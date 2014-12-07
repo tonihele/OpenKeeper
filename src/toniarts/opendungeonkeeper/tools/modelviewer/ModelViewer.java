@@ -75,7 +75,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             return name;
         }
     }
-    private static String dkIIFolder;
+    private final String dkIIFolder;
     private static boolean convertAssets = false;
     private Vector3f lightDir = new Vector3f(-1, -1, .5f).normalizeLocal();
     private DirectionalLight dl;
@@ -95,16 +95,16 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         if (convertAssets && args.length != 1 && !new File(args[0]).exists()) {
             throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter! Second parameter is the extraction target folder!");
         }
-        dkIIFolder = args[0];
 
-        ModelViewer app = new ModelViewer(null);
+        ModelViewer app = new ModelViewer(null, args[0]);
         app.start();
     }
 
-    public ModelViewer(File kmfModel) {
+    public ModelViewer(File kmfModel, String dkIIFolder) {
         super();
 
         this.kmfModel = kmfModel;
+        this.dkIIFolder = dkIIFolder;
     }
 
     public void setupLighting() {
@@ -240,7 +240,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             try {
                 KmfFile kmf = new KmfFile(kmfModel);
                 KmfModelLoader loader = new KmfModelLoader();
-                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf);
+                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf, AssetsConverter.getEngineTexturesFile(dkIIFolder));
                 Node node = (Node) loader.load(asset);
                 setupModel(node);
             } catch (Exception e) {
