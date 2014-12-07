@@ -39,6 +39,8 @@ import java.util.logging.Logger;
 import toniarts.opendungeonkeeper.animation.Pose;
 import toniarts.opendungeonkeeper.animation.PoseTrack;
 import toniarts.opendungeonkeeper.animation.PoseTrack.PoseFrame;
+import toniarts.opendungeonkeeper.tools.convert.enginetextures.EngineTextureEntry;
+import toniarts.opendungeonkeeper.tools.convert.enginetextures.EngineTexturesFile;
 import toniarts.opendungeonkeeper.tools.convert.kmf.Anim;
 import toniarts.opendungeonkeeper.tools.convert.kmf.AnimSprite;
 import toniarts.opendungeonkeeper.tools.convert.kmf.AnimVertex;
@@ -77,8 +79,12 @@ public class KmfModelLoader implements AssetLoader {
     }
 
     public static void main(final String[] args) throws IOException {
-//        Main main = new Main();
-//        main.start();
+
+        //Take Dungeon Keeper 2 root folder as parameter
+        if (args.length != 2 && !new File(args[0]).exists()) {
+            throw new RuntimeException("Please provide Dungeon Keeper II root folder as a first parameter! Second parameter is the actual model file!");
+        }
+
         AssetInfo ai = new AssetInfo(/*main.getAssetManager()*/null, null) {
             @Override
             public InputStream openStream() {
@@ -98,39 +104,18 @@ public class KmfModelLoader implements AssetLoader {
             }
         };
 
-        ModelViewer app = new ModelViewer(new File(args[0]));
+        ModelViewer app = new ModelViewer(new File(args[1]), args[0]);
         app.start();
-
-//        KmfModelLoader kmfModelLoader = new KmfModelLoader();
-//        Node n = (Node) kmfModelLoader.load(ai);
-//
-//        //Export
-//        BinaryExporter exporter = BinaryExporter.getInstance();
-//        File file = new File(args[0]);
-//        String path = args[0].substring(0, args[0].length() - file.toPath().getFileName().toString().length());
-//        file = new File(path + "converted" + File.separator + file.toPath().getFileName().toString() + ".j3o");
-//        exporter.save(n, file);
-
-//        Load all KMF files
-//        File f = new File(path);
-//        File[] files = f.listFiles(new FilenameFilter() {
-//            @Override
-//            public boolean accept(File dir, String name) {
-//                return name.toLowerCase().endsWith(".kmf");
-//            }
-//        });
-//        for (File kmf : files) {
-//            KmfFile kmfFile = new KmfFile(kmf);
-//            System.out.println(kmf + " is of type " + kmfFile.getType());
-//        }
     }
 
     @Override
     public Object load(AssetInfo assetInfo) throws IOException {
 
-        KmfFile kmfFile = null;
+        KmfFile kmfFile;
+        EngineTexturesFile engineTextureFile = null;
         if (assetInfo instanceof KmfAssetInfo) {
             kmfFile = ((KmfAssetInfo) assetInfo).getKmfFile();
+            engineTextureFile = ((KmfAssetInfo) assetInfo).getEngineTexturesFile();
         } else {
             kmfFile = new KmfFile(inputStreamToFile(assetInfo.openStream(), assetInfo.getKey().getName()));
         }
@@ -153,12 +138,24 @@ public class KmfModelLoader implements AssetLoader {
                     //Fix the texture entry
                     texture = textureFixes.get(texture);
                 }
+
+                //Load up the texture and create the material
                 TextureKey textureKey = new TextureKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png"), false);
                 Texture tex = assetInfo.getManager().loadTexture(textureKey);
                 material.setTexture("DiffuseMap", tex);
                 material.setColor("Specular", ColorRGBA.Orange); // Dungeons are lit only with fire...? Experimental
                 material.setColor("Diffuse", ColorRGBA.White); // Experimental
                 material.setFloat("Shininess", 128 * mat.getBrightness()); // Use the brightness as shininess... Experimental
+
+                // If we have an instance of engine texture file, check the alpha
+                if (engineTextureFile != null) {
+                    EngineTextureEntry engineTextureEntry = engineTextureFile.getEntry(texture + "MM0");
+                    if (engineTextureEntry != null && engineTextureEntry.isAlphaFlag()) {
+                        material.setBoolean("UseAlpha", true);
+                        material.setFloat("AlphaDiscardThreshold", 0.1f);
+                    }
+                }
+
                 materials.put(i, material);
                 i++;
             }
