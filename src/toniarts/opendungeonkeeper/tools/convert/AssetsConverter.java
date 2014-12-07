@@ -128,12 +128,7 @@ public abstract class AssetsConverter {
     private void convertTextures(String dungeonKeeperFolder, String destination) {
         logger.log(Level.INFO, "Extracting textures to: {0}", destination);
         updateStatus(null, null, ConvertProcess.TEXTURES);
-
-        //Form the data path
-        String dataDirectory = dungeonKeeperFolder.concat("DK2TextureCache").concat(File.separator);
-
-        //Extract the textures
-        EngineTexturesFile etFile = new EngineTexturesFile(new File(dataDirectory.concat("EngineTextures.dat")));
+        EngineTexturesFile etFile = getEngineTexturesFile(dungeonKeeperFolder);
         Pattern pattern = Pattern.compile("(?<name>\\w+)MM(?<mipmaplevel>\\d{1})");
         int i = 0;
         int total = etFile.getFileCount();
@@ -178,6 +173,9 @@ public abstract class AssetsConverter {
         logger.log(Level.INFO, "Extracting models to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MODELS);
 
+        // Get the engine textures catalog
+        EngineTexturesFile engineTexturesFile = getEngineTexturesFile(dungeonKeeperFolder);
+
         //Meshes are in the data folder, access the packed file
         WadFile wad = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("Meshes.WAD")));
         HashMap<String, KmfFile> kmfs = new HashMap<>();
@@ -220,7 +218,7 @@ public abstract class AssetsConverter {
                         public KmfFile setValue(KmfFile value) {
                             throw new UnsupportedOperationException("Plz, don't do this!");
                         }
-                    }, destination);
+                    }, destination, engineTexturesFile);
 
                     // We can delete the file straight
                     f.delete();
@@ -239,7 +237,7 @@ public abstract class AssetsConverter {
         // And the groups (now they can be linked)
         for (Entry<String, KmfFile> entry : kmfs.entrySet()) {
             updateStatus(i, total, ConvertProcess.MODELS);
-            convertModel(assetManager, entry, destination);
+            convertModel(assetManager, entry, destination, engineTexturesFile);
             i++;
         }
     }
@@ -252,10 +250,10 @@ public abstract class AssetsConverter {
      * @param destination destination directory
      * @throws RuntimeException May fail
      */
-    private void convertModel(AssetManager assetManager, Entry<String, KmfFile> entry, String destination) throws RuntimeException {
+    private void convertModel(AssetManager assetManager, Entry<String, KmfFile> entry, String destination, EngineTexturesFile engineTexturesFile) throws RuntimeException {
 
         //Remove the file extension from the file
-        KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(entry.getKey()), entry.getValue());
+        KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(entry.getKey()), entry.getValue(), engineTexturesFile);
         KmfModelLoader kmfModelLoader = new KmfModelLoader();
         try {
             Node n = (Node) kmfModelLoader.load(ai);
@@ -373,5 +371,21 @@ public abstract class AssetsConverter {
      */
     public static String getAssetsFolder() {
         return getCurrentFolder().concat(ASSETS_FOLDER).concat(File.separator);
+    }
+
+    /**
+     * Loads up an instance of the engine textures catalog
+     *
+     * @param dungeonKeeperFolder DK II folder
+     * @return EngineTextures catalog
+     */
+    public static EngineTexturesFile getEngineTexturesFile(String dungeonKeeperFolder) {
+
+        //Form the data path
+        String dataDirectory = dungeonKeeperFolder.concat("DK2TextureCache").concat(File.separator);
+
+        //Extract the textures
+        EngineTexturesFile etFile = new EngineTexturesFile(new File(dataDirectory.concat("EngineTextures.dat")));
+        return etFile;
     }
 }
