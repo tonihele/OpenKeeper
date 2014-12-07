@@ -306,16 +306,8 @@ public class KmfModelLoader implements AssetLoader {
 
             mesh.updateBound();
 
-            //Create geometry
-            Geometry geom = new Geometry(index + "", mesh);
-
-            //Add LOD control
-            LodControl lc = new LodControl();
-            geom.addControl(lc);
-
-            // Material
-            geom.setMaterial(materials.get(meshSprite.getMaterialIndex()));
-            geom.updateModelBound();
+            // Create geometry
+            Geometry geom = createGeometry(index, mesh, materials, meshSprite.getMaterialIndex());
 
             //Attach the geometry to the node
             node.attachChild(geom);
@@ -510,19 +502,8 @@ public class KmfModelLoader implements AssetLoader {
 
             mesh.updateBound();
 
-            //Create geometry
-            Geometry geom = new Geometry(index + "", mesh);
-
-            //Add LOD control
-            LodControl lc = new LodControl();
-            geom.addControl(lc);
-
-            // Material
-            geom.setMaterial(materials.get(animSprite.getMaterialIndex()));
-            if (geom.getMaterial().isTransparent()) {
-                geom.setQueueBucket(RenderQueue.Bucket.Transparent);
-            }
-            geom.updateModelBound();
+            // Create geometry
+            Geometry geom = createGeometry(index, mesh, materials, animSprite.getMaterialIndex());
 
             //Attach the geometry to the node
             node.attachChild(geom);
@@ -551,5 +532,35 @@ public class KmfModelLoader implements AssetLoader {
 
         //Attach the node to the root
         root.attachChild(node);
+    }
+
+    /**
+     * Creates a geometry from the given mesh, applies material and LOD control
+     * to it
+     *
+     * @param index mesh index (just for naming)
+     * @param mesh the mesh
+     * @param materials list of materials
+     * @param materialIndex the material index
+     * @return
+     */
+    private Geometry createGeometry(int index, Mesh mesh, HashMap<Integer, Material> materials, int materialIndex) {
+
+        //Create geometry
+        Geometry geom = new Geometry(index + "", mesh);
+
+        //Add LOD control
+        LodControl lc = new LodControl();
+        geom.addControl(lc);
+
+        // Material
+        geom.setMaterial(materials.get(materialIndex));
+        if (geom.getMaterial().isTransparent()) {
+            geom.setQueueBucket(RenderQueue.Bucket.Transparent);
+        }
+
+        geom.updateModelBound();
+
+        return geom;
     }
 }
