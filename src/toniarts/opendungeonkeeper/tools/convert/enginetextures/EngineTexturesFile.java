@@ -163,7 +163,6 @@ public class EngineTexturesFile implements Iterable<String> {
     private long bs_green = 0;//Unsigned
     private long bs_blue = 0;//Unsigned
     private long bs_alpha = 0;//Unsigned
-    private long alpha_flag = 0; //Unsigned
     private int[] decompress2_chunk = new int[256]; /* buffers */
 
     private int[] decompress3_chunk = new int[288];
@@ -215,11 +214,11 @@ public class EngineTexturesFile implements Iterable<String> {
                     EngineTextureEntry entry = new EngineTextureEntry();
                     entry.setResX(Utils.readUnsignedInteger(rawTextures));
                     entry.setResY(Utils.readUnsignedInteger(rawTextures));
-                    entry.setSize(Utils.readUnsignedInteger(rawTextures));
+                    entry.setSize(Utils.readUnsignedInteger(rawTextures) - 8); // - 8 since the size is from here now on
                     entry.setsResX(Utils.readUnsignedShort(rawTextures));
                     entry.setsResY(Utils.readUnsignedShort(rawTextures));
-                    entry.setDataStartLocation(rawTextures.getFilePointer());
                     entry.setAlphaFlag(Utils.readUnsignedInteger(rawTextures) >> 7 != 0);
+                    entry.setDataStartLocation(rawTextures.getFilePointer());
 
                     //Put the entry to the hash
                     engineTextureEntries.put(name, entry);
@@ -344,7 +343,7 @@ public class EngineTexturesFile implements Iterable<String> {
 
                 //Seek to the file we want and read it
                 rawTextures.seek(engineTextureEntry.getDataStartLocation());
-                int count = (engineTextureEntry.getSize() - 4) / 4; // -4 since 2x shorts belongs to the size, but our start location is past those
+                int count = (engineTextureEntry.getSize()) / 4;
                 long[] buf = new long[count];
                 for (int i = 0; i < count; i++) {
                     buf[i] = Utils.readUnsignedIntegerAsLong(rawTextures);
@@ -412,7 +411,7 @@ public class EngineTexturesFile implements Iterable<String> {
         BufferedImage img = new BufferedImage(engineTextureEntry.getResX(), engineTextureEntry.getResY(), BufferedImage.TYPE_INT_ARGB);
 
         // Decompress the texture
-        byte[] pixels = dd_texture(buf, engineTextureEntry.getResX() * (32 / 8)/*(bpp / 8 = bytes per pixel)*/, engineTextureEntry.getResX(), engineTextureEntry.getResY());
+        byte[] pixels = dd_texture(buf, engineTextureEntry.getResX() * (32 / 8)/*(bpp / 8 = bytes per pixel)*/, engineTextureEntry.getResX(), engineTextureEntry.getResY(), engineTextureEntry.isAlphaFlag());
 
         // Draw the image, pixel by pixel
         for (int x = 0; x < engineTextureEntry.getResX(); x++) {
@@ -429,21 +428,17 @@ public class EngineTexturesFile implements Iterable<String> {
         return img;
     }
 
-    private byte[] dd_texture(long[] buf,
-            int stride, int width, int height) {
-        short flag;
+    private byte[] dd_texture(long[] buf, int stride, int width, int height, boolean alphaFlag) {
         int x, y;
         ByteBuffer out = ByteBuffer.allocate(width * height * 4);
         out.order(ByteOrder.LITTLE_ENDIAN);
 
-        initialize_dd(Arrays.copyOfRange(buf, 1, buf.length));
-        flag = new Long(buf[0]).byteValue(); //
-        alpha_flag = flag >> 7;
+        initialize_dd(buf);
 
         for (y = 0; y < height; y += 8) {
             for (x = 0; x < width; x += 8) {
                 out.position(y * stride + x * 4);
-                decompress_block(out, stride);
+                decompress_block(out, stride, alphaFlag);
             }
         }
         return out.array();
@@ -458,7 +453,7 @@ public class EngineTexturesFile implements Iterable<String> {
         bs_alpha = 0;
     }
 
-    private void decompress_block(ByteBuffer out, int stride) {
+    private void decompress_block(ByteBuffer out, int stride, boolean alphaFlag) {
         IntBuffer inp;
         double d;
         long xr, xg, xb;
@@ -468,7 +463,7 @@ public class EngineTexturesFile implements Iterable<String> {
         float r, g, b;
         int i, j;
 
-        decompress();
+        decompress(alphaFlag);
 
         inp = IntBuffer.wrap(decompress4_chunk);
         for (j = 0; j < 8; j++) {
@@ -491,7 +486,7 @@ public class EngineTexturesFile implements Iterable<String> {
                 value = clamp(ir >> 16, 0, 255);
                 value |= clamp(ig >> 16, 0, 255) << 16;
                 value |= clamp(ib >> 16, 0, 255) << 8;
-                if (alpha_flag != 0) {
+                if (alphaFlag) {
                     value |= clamp(a >> 16, 0, 255) << 24;
                 } else {
                     value |= 0xff000000;
@@ -503,7 +498,7 @@ public class EngineTexturesFile implements Iterable<String> {
         }
     }
 
-    private void decompress() {
+    private void decompress(boolean alphaFlag) {
         int jt_index, jt_value;
         int bs_pos = (int) bs_index;
         int value;
@@ -633,7 +628,7 @@ public class EngineTexturesFile implements Iterable<String> {
         bs_pos = (int) bs_index;
 
         /* alpha */
-        if (alpha_flag == 0) {
+        if (!alphaFlag) {
             return;
         }
         value = 0;
