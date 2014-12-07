@@ -79,6 +79,7 @@ public class KmfModelLoader implements AssetLoader {
         textureFixes.put("3dMap_secretL2", "3dMap_SecretL2");
         textureFixes.put("WARLOCKback", "WarlockBack");
     }
+    private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
 
     public static void main(final String[] args) throws IOException {
 
@@ -100,7 +101,7 @@ public class KmfModelLoader implements AssetLoader {
                     };
                     return new FileInputStream(file);
                 } catch (FileNotFoundException ex) {
-                    Logger.getLogger(KmfModelLoader.class.getName()).log(Level.SEVERE, null, ex);
+                    logger.log(Level.SEVERE, null, ex);
                 }
                 return null;
             }
@@ -151,12 +152,18 @@ public class KmfModelLoader implements AssetLoader {
 
                 // If we have an instance of engine texture file, check the alpha
                 if (engineTextureFile != null) {
-                    EngineTextureEntry engineTextureEntry = engineTextureFile.getEntry(texture + "MM0");
+                    String textureEntry = texture.concat("MM0");
+                    EngineTextureEntry engineTextureEntry = engineTextureFile.getEntry(textureEntry);
                     if (engineTextureEntry != null && engineTextureEntry.isAlphaFlag()) {
                         material.setBoolean("UseAlpha", true);
                         material.setFloat("AlphaDiscardThreshold", 0.1f);
                         material.setTransparent(true);
                         material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+                        logger.log(Level.INFO, "Texture entry {0} has alpha!", textureEntry);
+                    } else if (engineTextureEntry == null) {
+
+                        // Just log
+                        logger.log(Level.WARNING, "Texture entry {0} not found from the engine textures!", textureEntry);
                     }
                 }
 
