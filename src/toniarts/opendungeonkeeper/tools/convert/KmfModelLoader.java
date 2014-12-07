@@ -145,6 +145,7 @@ public class KmfModelLoader implements AssetLoader {
                 //Load up the texture and create the material
                 TextureKey textureKey = new TextureKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png"), false);
                 Texture tex = assetInfo.getManager().loadTexture(textureKey);
+                material.setReceivesShadows(true);
                 material.setTexture("DiffuseMap", tex);
                 material.setColor("Specular", ColorRGBA.Orange); // Dungeons are lit only with fire...? Experimental
                 material.setColor("Diffuse", ColorRGBA.White); // Experimental
@@ -159,6 +160,13 @@ public class KmfModelLoader implements AssetLoader {
                         material.setFloat("AlphaDiscardThreshold", 0.1f);
                         material.setTransparent(true);
                         material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+
+                        // There are some hints on the rendering on the texture names (ie. #add#FalloffMM0)
+                        if (textureEntry.toLowerCase().contains("#add#")) {
+                            material.getAdditionalRenderState().setDepthWrite(false);
+                            material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.AlphaAdditive);
+                            material.setReceivesShadows(false);
+                        }
                         logger.log(Level.INFO, "Texture entry {0} has alpha!", textureEntry);
                     } else if (engineTextureEntry == null) {
 
@@ -564,6 +572,11 @@ public class KmfModelLoader implements AssetLoader {
         geom.setMaterial(materials.get(materialIndex));
         if (geom.getMaterial().isTransparent()) {
             geom.setQueueBucket(RenderQueue.Bucket.Transparent);
+        }
+
+        // The receive shadows flag is used to turn the shadows completely off
+        if (!geom.getMaterial().isReceivesShadows()) {
+            geom.setShadowMode(RenderQueue.ShadowMode.Off);
         }
 
         geom.updateModelBound();
