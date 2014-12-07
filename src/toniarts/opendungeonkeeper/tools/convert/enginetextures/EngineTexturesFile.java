@@ -969,4 +969,14 @@ public class EngineTexturesFile implements Iterable<String> {
     public Iterator<String> iterator() {
         return engineTextureEntries.keySet().iterator();
     }
+
+    /**
+     * Gets a texture entry by the texture key
+     *
+     * @param texture the texture key
+     * @return the texture entry
+     */
+    public EngineTextureEntry getEntry(String texture) {
+        return engineTextureEntries.get(texture);
+    }
 }
