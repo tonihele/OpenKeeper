@@ -73,6 +73,7 @@ public abstract class AssetsConverter {
     public static final String MODELS_FOLDER = "Models";
     public static final String MOUSE_CURSORS_FOLDER = "Interface".concat(File.separator).concat("Cursors");
     public static final String SOUNDS_FOLDER = "Sounds";
+    public static final String MATERIALS_FOLDER = "Materials";
     private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
 
@@ -253,7 +254,7 @@ public abstract class AssetsConverter {
     private void convertModel(AssetManager assetManager, Entry<String, KmfFile> entry, String destination, EngineTexturesFile engineTexturesFile) throws RuntimeException {
 
         //Remove the file extension from the file
-        KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(entry.getKey()), entry.getValue(), engineTexturesFile);
+        KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(entry.getKey()), entry.getValue(), engineTexturesFile, true);
         KmfModelLoader kmfModelLoader = new KmfModelLoader();
         try {
             Node n = (Node) kmfModelLoader.load(ai);
