@@ -80,6 +80,8 @@ public class KmfModelLoader implements AssetLoader {
         textureFixes.put("WARLOCKback", "WarlockBack");
     }
     private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
+    /* Already saved materials are stored here */
+    private static HashMap<toniarts.opendungeonkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
 
     public static void main(final String[] args) throws IOException {
 
@@ -116,9 +118,11 @@ public class KmfModelLoader implements AssetLoader {
 
         KmfFile kmfFile;
         EngineTexturesFile engineTextureFile = null;
+//        boolean generateMaterialFile = false;
         if (assetInfo instanceof KmfAssetInfo) {
             kmfFile = ((KmfAssetInfo) assetInfo).getKmfFile();
             engineTextureFile = ((KmfAssetInfo) assetInfo).getEngineTexturesFile();
+//            generateMaterialFile = ((KmfAssetInfo) assetInfo).isGenerateMaterialFile();
         } else {
             kmfFile = new KmfFile(inputStreamToFile(assetInfo.openStream(), assetInfo.getKey().getName()));
         }
@@ -134,7 +138,21 @@ public class KmfModelLoader implements AssetLoader {
             HashMap<Integer, Material> materials = new HashMap(kmfFile.getMaterials().size());
             int i = 0;
             for (toniarts.opendungeonkeeper.tools.convert.kmf.Material mat : kmfFile.getMaterials()) {
-                Material material = new Material(assetInfo.getManager(), "Common/MatDefs/Light/Lighting.j3md");
+                Material material;
+
+                // See if the material is found already on the cache
+//                if (generateMaterialFile) {
+//                    String materialKey = materialCache.get(mat);
+//                    if (materialKey != null) {
+//                        material = assetInfo.getManager().loadMaterial(materialKey);
+//                        materials.put(i, material);
+//                        i++;
+//                        continue;
+//                    }
+//                }
+
+                // Create the material
+                material = new Material(assetInfo.getManager(), "Common/MatDefs/Light/Lighting.j3md");
                 String texture = mat.getTextures().get(0);
                 if (textureFixes.containsKey(texture)) {
 
@@ -174,6 +192,21 @@ public class KmfModelLoader implements AssetLoader {
                         logger.log(Level.WARNING, "Texture entry {0} not found from the engine textures!", textureEntry);
                     }
                 }
+
+                // See if we should save the material
+//                if (generateMaterialFile) {
+//                    String materialKey = AssetsConverter.MATERIALS_FOLDER.concat("/").concat(mat.getName()).concat(".j3m");
+//                    String materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(mat.getName()).concat(".j3m"));
+////                    EditableMaterialFile editableMaterialFile = new EditableMaterialFile();
+////                    File file = new File(materialLocation);
+////                    exporter.save(material, file);
+//                    material.setName(mat.getName());
+//                    material.setKey(new MaterialKey(materialKey));
+//                    BinaryExporter exporter = BinaryExporter.getInstance();
+//                    exporter.processBinarySavable(material);
+//                    material.write(exporter);
+//                    materialCache.put(mat, materialKey);
+//                }
 
                 materials.put(i, material);
                 i++;
