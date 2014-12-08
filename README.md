@@ -16,7 +16,7 @@ TODO
   - [x] Read meshes (meshes.wad -> kmf)
   - [x] Read maps (kwd, kld)
     - [ ] Reverse-engineer the still unknown flags (some of the are not of use thou)
-  - [ ] Read textures (EngineTextures.dat, what does the EngineTextures.wad file contain? - PNGs..)
+  - [x] Read textures
     - [x] Names & entries
     - [x] Texture compression
   - [x] Read sounds
@@ -37,6 +37,7 @@ TODO
       - [ ] Animation data is perfect, but our implementation of the vertex animation distorts the animations and stores too much data (every frame is a key frame)
     - [x] Materials
       - [ ] All materials should exist only once, as JME material file
+      - [ ] EngineTextures.wad needs to be extracted
   - [ ] Maps to our open map format (XML, xstream?) `(***`
   - [ ] Sounds (MP2 is not supported by JME)
     - [x] MP2 decoding
