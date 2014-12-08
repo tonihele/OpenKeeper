@@ -20,8 +20,6 @@ TODO
     - [x] Names & entries
     - [x] Texture compression
   - [x] Read sounds
-    - [ ] Merge the sound tracks
-    - [ ] Decide what to do with the MAP files
   - [ ] Read cutscenes (*
   - [ ] Read paths
     - [x] Read paths (paths.wad -> kcs)
@@ -42,6 +40,8 @@ TODO
   - [ ] Sounds (MP2 is not supported by JME)
     - [x] MP2 decoding
     - [ ] Finish up the MP2 asset loader
+    - [ ] Merge the sound tracks
+    - [ ] Decide what to do with the MAP files
   - [ ] Video playes for DK format (*
   - [ ] Paths to JME MotionPaths?
   - [x] Cursors
