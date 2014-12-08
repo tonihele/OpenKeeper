@@ -21,11 +21,14 @@ public class KmfAssetInfo extends AssetInfo {
 
     private final KmfFile kmfFile;
     private final EngineTexturesFile engineTexturesFile;
+    private final boolean generateMaterialFile;
 
-    public KmfAssetInfo(AssetManager manager, AssetKey key, KmfFile kmfFile, EngineTexturesFile engineTexturesFile) {
+    public KmfAssetInfo(AssetManager manager, AssetKey key, KmfFile kmfFile, EngineTexturesFile engineTexturesFile, boolean generateMaterialFile) {
         super(manager, key);
+
         this.kmfFile = kmfFile;
         this.engineTexturesFile = engineTexturesFile;
+        this.generateMaterialFile = generateMaterialFile;
     }
 
     @Override
@@ -39,5 +42,9 @@ public class KmfAssetInfo extends AssetInfo {
 
     public EngineTexturesFile getEngineTexturesFile() {
         return engineTexturesFile;
+    }
+
+    public boolean isGenerateMaterialFile() {
+        return generateMaterialFile;
     }
 }
