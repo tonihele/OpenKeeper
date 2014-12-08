@@ -240,7 +240,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             try {
                 KmfFile kmf = new KmfFile(kmfModel);
                 KmfModelLoader loader = new KmfModelLoader();
-                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf, AssetsConverter.getEngineTexturesFile(dkIIFolder));
+                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf, AssetsConverter.getEngineTexturesFile(dkIIFolder), false);
                 Node node = (Node) loader.load(asset);
                 setupModel(node);
             } catch (Exception e) {
