@@ -354,13 +354,13 @@ public class Kjmp2 {
      * case, kjmp2DecodeFrame() will return the size of the frame without
      * actually decoding it.
      */
-    public long kjmp2DecodeFrame(
+    public int kjmp2DecodeFrame(
             byte[] frame,
             ShortBuffer pcm) {
         int bitRateIndexMinus1;
         int samplingFrequency;
         int paddingBit;
-        long frameSize;
+        int frameSize;
         int bound, sblimit;
         int sb, ch, gr, part, idx, nch, i, j, sum;
         int tableIdx;
