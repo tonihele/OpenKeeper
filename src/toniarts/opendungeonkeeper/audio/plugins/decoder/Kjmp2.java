@@ -339,6 +339,7 @@ public class Kjmp2 {
     private final int u[] = new int[512];
     private final Kjmp2Context mp2 = new Kjmp2Context();
     private int mode;
+    private int samplingFrequency;
 
     /**
      * Decode one frame of audio
@@ -358,7 +359,6 @@ public class Kjmp2 {
             byte[] frame,
             ShortBuffer pcm) {
         int bitRateIndexMinus1;
-        int samplingFrequency;
         int paddingBit;
         int frameSize;
         int bound, sblimit;
@@ -576,5 +576,14 @@ public class Kjmp2 {
      */
     public int getNumberOfChannels() {
         return (mode == MONO ? 1 : 2);
+    }
+
+    /**
+     * Get the sample rate
+     *
+     * @return sample rate of the file
+     */
+    public int kjmp2GetSampleRate() {
+        return sampleRates[samplingFrequency];
     }
 }
