@@ -5,122 +5,150 @@
 package toniarts.opendungeonkeeper.audio.plugins;
 
 import com.jme3.asset.AssetInfo;
-import com.jme3.asset.AssetKey;
-import com.jme3.audio.plugins.WAVLoader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import com.jme3.asset.AssetLoader;
+import com.jme3.audio.AudioBuffer;
+import com.jme3.audio.AudioData;
+import com.jme3.audio.AudioKey;
+import com.jme3.audio.AudioStream;
+import com.jme3.util.BufferUtils;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javazoom.jl.converter.Converter;
-import javazoom.jl.decoder.JavaLayerException;
-import toniarts.opendungeonkeeper.audio.plugins.coverter.WaveFileObuffer;
-import toniarts.opendungeonkeeper.audio.plugins.decoder.Bitstream;
-import toniarts.opendungeonkeeper.audio.plugins.decoder.BitstreamException;
-import toniarts.opendungeonkeeper.audio.plugins.decoder.Decoder;
-import toniarts.opendungeonkeeper.audio.plugins.decoder.Header;
-import toniarts.opendungeonkeeper.audio.plugins.decoder.Obuffer;
+import toniarts.opendungeonkeeper.audio.plugins.decoder.Kjmp2;
 
 /**
- * Converts MP2/MP3 files to WAV on the fly, uses the previously converted files
- * from temp cache
+ * Plays MP2 files
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MP2Loader extends WAVLoader {
+public class MP2Loader implements AssetLoader {
 
-    private final static HashMap<AssetKey, File> convertedAssets = new HashMap<>();
-    private final static Object lock = new Object();
+    private static final Logger logger = Logger.getLogger(MP2Loader.class.getName());
+    private static final int KJMP2_MAX_FRAME_SIZE = 1440;
+    private static final int MAX_BUFSIZE = 1000 * KJMP2_MAX_FRAME_SIZE;
+    private static final int KJMP2_SAMPLES_PER_FRAME = 1152;
+    private boolean readStream = false;
+    private AudioBuffer audioBuffer;
+    private AudioStream audioStream;
+    private AudioData audioData;
+    private int bytesPerSec;
+    private float duration;
 
-    public static void main(String[] args) throws JavaLayerException, FileNotFoundException, BitstreamException {
-        Decoder decoder = new Decoder();
-        Bitstream stream = new Bitstream(new FileInputStream("C:\\temp\\OpenDungeonKeeper\\sounds\\speech_horny\\horng014.mp2"));
-        int frameCount = Integer.MAX_VALUE;
+    private void readDataChunkForBuffer(InputStream is, int bufSize, byte[] buffer, int numberOfChannels, Kjmp2 decoder) throws IOException {
 
-        int frame = 0;
-        Obuffer output = null;
-        try {
-            for (; frame < frameCount; ++frame) {
-                try {
-                    Header header = stream.readFrame();
-                    if (header == null) {
-                        break;
-                    }
+        boolean eof = false;
+        int bufpos = 0;
+        int inOffset = 0;
+        boolean desync = false;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        while (!eof || (bufSize > 4)) {
+            int bytes;
 
-//						progressListener.readFrame(frame, header);
+            // Output
+            ByteBuffer samples = ByteBuffer.allocate(KJMP2_SAMPLES_PER_FRAME * 2 * numberOfChannels);
+            samples.order(ByteOrder.LITTLE_ENDIAN);
 
-                    if (output == null) {
-                        // REVIEW: Incorrect functionality.
-                        // the decoder should provide decoded
-                        // frequency and channels output as it may differ from
-                        // the source (e.g. when downmixing stereo to mono.)
-                        int channels = (header.mode() == Header.SINGLE_CHANNEL) ? 1 : 2;
-                        int freq = header.frequency();
-                        output = new WaveFileObuffer(channels, freq, "C:\\temp\\OpenDungeonKeeper\\sounds\\speech_horny\\horng014.wav");
-                        decoder.setOutputBuffer(output);
-                    }
+            if (!eof && (bufSize < KJMP2_MAX_FRAME_SIZE)) {
+                buffer = Arrays.copyOfRange(buffer, bufpos, bufpos + bufSize + 1);
+                buffer = Arrays.copyOf(buffer, MAX_BUFSIZE);
 
-                    Obuffer decoderOutput = decoder.decodeFrame(header, stream);
-
-                    // REVIEW: the way the output buffer is set
-                    // on the decoder is a bit dodgy. Even though
-                    // this exception should never happen, we test to be sure.
-//						if (decoderOutput!=output)
-//							throw new InternalError("Output buffers are different.");
-
-
-//						progressListener.decodedFrame(frame, header, output);
-
-                    stream.closeFrame();
-
-                } catch (Exception ex) {
+                bufpos = 0;
+                inOffset += bufSize;
+                bytes = is.read(buffer, bufSize, MAX_BUFSIZE - bufSize);
+                if (bytes > 0) {
+                    bufSize += bytes;
+                } else {
+                    eof = true;
                 }
+            } else {
+                bytes = (int) decoder.kjmp2DecodeFrame(Arrays.copyOfRange(buffer, bufpos, bufpos + KJMP2_MAX_FRAME_SIZE + 1), samples.asShortBuffer());
+                if ((bytes < 4) || (bytes > KJMP2_MAX_FRAME_SIZE) || (bytes > bufSize)) {
+                    if (desync) {
+                        logger.log(Level.WARNING, "Stream error detected at file offset {0}{1}!", new Object[]{inOffset, bufpos});
+                    }
+                    desync = true;
+                    bytes = 1;
+                } else {
+                    baos.write(samples.array());
+                    desync = false;
+                }
+                bufSize -= bytes;
+                bufpos += bytes;
+            }
+        }
+        audioBuffer.updateData(BufferUtils.createByteBuffer(baos.toByteArray()));
+    }
+
+    private void readDataChunkForStream(InputStream is, int bufSize, byte[] buffer, Kjmp2 kjmp2) throws IOException {
+        throw new RuntimeException("Streaming not supported!");
+//        audioStream.updateData(in, duration);
+    }
+
+    private AudioData load(InputStream inputStream, boolean stream) throws IOException {
+
+        // Load the MPx file
+        byte buffer[] = new byte[KJMP2_MAX_FRAME_SIZE * 100];
+
+        readStream = stream;
+        if (readStream) {
+            audioStream = new AudioStream();
+            audioData = audioStream;
+        } else {
+            audioBuffer = new AudioBuffer();
+            audioData = audioBuffer;
+        }
+        try {
+
+            // Create new KJMP2 instance
+            Kjmp2 kjmp2 = new Kjmp2();
+
+            // Read a frame
+            int bufSize = inputStream.read(buffer);
+            int frameSize = kjmp2.kjmp2DecodeFrame(buffer, null);
+            if (frameSize == 0) {
+
+                // Invalid header
+                throw new IOException("Not a valid MP2 file!");
             }
 
-        } finally {
-            if (output != null) {
-                output.close();
+            // Setup audio
+            audioData.setupFormat(kjmp2.getNumberOfChannels(), 16, kjmp2.kjmp2GetSampleRate());
+
+            // Read the file
+            while (true) {
+                if (readStream) {
+                    readDataChunkForStream(inputStream, bufSize, buffer, kjmp2);
+                } else {
+                    readDataChunkForBuffer(inputStream, bufSize, buffer, kjmp2.getNumberOfChannels(), kjmp2);
+                }
+                return audioData;
             }
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, null, ex);
+            throw new IOException("Failed to read a frame!");
         }
     }
 
     @Override
-    public Object load(final AssetInfo assetInfo) throws IOException {
-        AssetInfo newAssetInfo = new AssetInfo(assetInfo.getManager(), assetInfo.getKey()) {
-            @Override
-            public InputStream openStream() {
-
-                //See if we have the asset already converted
-                if (!convertedAssets.containsKey(key) || !convertedAssets.get(key).exists()) {
-                    synchronized (lock) {
-                        if (!convertedAssets.containsKey(key) || !convertedAssets.get(key).exists()) {
-
-                            //Convert!
-                            Converter c = new Converter();
-                            try (InputStream inputStream = assetInfo.openStream()) {
-                                File tempFile = File.createTempFile(key.getName().replaceAll("/", "_"), ".wav");
-                                c.convert(inputStream, tempFile.toString(), null, null);
-                                tempFile.deleteOnExit();
-
-                                //Add it to our converted list
-                                convertedAssets.put(key, tempFile);
-                            } catch (Exception ex) {
-                                Logger.getLogger(MP2Loader.class.getName()).log(Level.SEVERE, "Failed to convert the resource!", ex);
-                            }
-                        }
-                    }
-                }
-                try {
-                    return new FileInputStream(convertedAssets.get(key));
-                } catch (FileNotFoundException ex) {
-                    Logger.getLogger(MP2Loader.class.getName()).log(Level.SEVERE, "Failed to open resource!", ex);
-                    return null;
-                }
+    public Object load(AssetInfo info) throws IOException {
+        AudioData data;
+        InputStream inputStream = null;
+        try {
+            inputStream = info.openStream();
+            data = load(inputStream, ((AudioKey) info.getKey()).isStream());
+            if (data instanceof AudioStream) {
+                inputStream = null;
             }
-        };
-        return super.load(newAssetInfo);
+            return data;
+        } finally {
+            if (inputStream != null) {
+                inputStream.close();
+            }
+        }
     }
 }
