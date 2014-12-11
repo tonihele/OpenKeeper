@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.opendungeonkeeper.audio.plugins.decoder.Kjmp2;
+import toniarts.opendungeonkeeper.tools.convert.Utils;
 
 /**
  * Plays MP2 files
@@ -36,8 +37,85 @@ public class MP2Loader implements AssetLoader {
     private AudioBuffer audioBuffer;
     private AudioStream audioStream;
     private AudioData audioData;
-    private int bytesPerSec;
-    private float duration;
+
+    /**
+     * Masks the real input stream to decode the MP2
+     */
+    private class MP2Stream extends InputStream {
+
+        private final InputStream is;
+        private int bufSize;
+        private byte[] buffer;
+        private final Kjmp2 decoder;
+        private boolean eof = false;
+        private int bufpos = 0;
+        private int inOffset = 0;
+        private boolean desync = false;
+        private final ByteBuffer samples;
+
+        public MP2Stream(InputStream is, int bufSize, byte[] buffer, int numberOfChannels, Kjmp2 decoder) {
+            this.is = is;
+            this.bufSize = bufSize;
+            this.buffer = buffer;
+            this.decoder = decoder;
+            samples = ByteBuffer.allocate(KJMP2_SAMPLES_PER_FRAME * 2 * numberOfChannels);
+            samples.order(ByteOrder.LITTLE_ENDIAN);
+            samples.position(samples.limit());
+        }
+
+        @Override
+        public int read() throws IOException {
+
+            if (samples.position() == samples.limit() && (!eof || bufSize > 4)) {
+                int bytes;
+
+                if (!eof && (bufSize < KJMP2_MAX_FRAME_SIZE)) {
+                    buffer = Arrays.copyOfRange(buffer, bufpos, bufpos + bufSize + 1);
+                    buffer = Arrays.copyOf(buffer, MAX_BUFSIZE);
+
+                    bufpos = 0;
+                    inOffset += bufSize;
+                    bytes = is.read(buffer, bufSize, MAX_BUFSIZE - bufSize);
+                    if (bytes > 0) {
+                        bufSize += bytes;
+                    } else {
+                        eof = true;
+                    }
+                }
+
+                if (!eof) {
+
+                    // Rewind and gather more
+                    samples.clear();
+
+                    bytes = (int) decoder.kjmp2DecodeFrame(Arrays.copyOfRange(buffer, bufpos, bufpos + KJMP2_MAX_FRAME_SIZE + 1), samples.asShortBuffer());
+                    if ((bytes < 4) || (bytes > KJMP2_MAX_FRAME_SIZE) || (bytes > bufSize)) {
+                        if (desync) {
+                            logger.log(Level.WARNING, "Stream error detected at file offset {0}{1}!", new Object[]{inOffset, bufpos});
+                        }
+                        desync = true;
+                        bytes = 1;
+                    } else {
+                        desync = false;
+                    }
+                    bufSize -= bytes;
+                    bufpos += bytes;
+                }
+            }
+
+            // Check exit
+            if (samples.position() != samples.limit()) {
+                return Utils.toUnsignedByte(samples.get());
+            } else {
+                return -1;
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            is.close();
+        }
+    }
 
     private void readDataChunkForBuffer(InputStream is, int bufSize, byte[] buffer, int numberOfChannels, Kjmp2 decoder) throws IOException {
 
@@ -84,9 +162,8 @@ public class MP2Loader implements AssetLoader {
         audioBuffer.updateData(BufferUtils.createByteBuffer(baos.toByteArray()));
     }
 
-    private void readDataChunkForStream(InputStream is, int bufSize, byte[] buffer, Kjmp2 kjmp2) throws IOException {
-        throw new RuntimeException("Streaming not supported!");
-//        audioStream.updateData(in, duration);
+    private void readDataChunkForStream(InputStream is, int bufSize, byte[] buffer, int numberOfChannels, Kjmp2 kjmp2) throws IOException {
+        audioStream.updateData(new MP2Stream(is, bufSize, buffer, numberOfChannels, kjmp2), 0);
     }
 
     private AudioData load(InputStream inputStream, boolean stream) throws IOException {
@@ -117,14 +194,15 @@ public class MP2Loader implements AssetLoader {
             }
 
             // Setup audio
-            audioData.setupFormat(kjmp2.getNumberOfChannels(), 16, kjmp2.kjmp2GetSampleRate());
+            int numberOfChannels = kjmp2.getNumberOfChannels();
+            audioData.setupFormat(numberOfChannels, 16, kjmp2.kjmp2GetSampleRate());
 
             // Read the file
             while (true) {
                 if (readStream) {
-                    readDataChunkForStream(inputStream, bufSize, buffer, kjmp2);
+                    readDataChunkForStream(inputStream, bufSize, buffer, numberOfChannels, kjmp2);
                 } else {
-                    readDataChunkForBuffer(inputStream, bufSize, buffer, kjmp2.getNumberOfChannels(), kjmp2);
+                    readDataChunkForBuffer(inputStream, bufSize, buffer, numberOfChannels, kjmp2);
                 }
                 return audioData;
             }
