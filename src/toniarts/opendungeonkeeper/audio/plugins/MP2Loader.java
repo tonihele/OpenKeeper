@@ -39,7 +39,9 @@ public class MP2Loader implements AssetLoader {
     private AudioData audioData;
 
     /**
-     * Masks the real input stream to decode the MP2
+     * Masks the real input stream to decode the MP2<br>
+     * FIXME: Somehow the last read repeats a bit, even if I fill the rest of
+     * buffer with zeroes or synchronize, dunno
      */
     private class MP2Stream extends InputStream {
 
@@ -83,7 +85,7 @@ public class MP2Loader implements AssetLoader {
                     }
                 }
 
-                if (!eof) {
+                if (bufSize > 4) {
 
                     // Rewind and gather more
                     samples.clear();
