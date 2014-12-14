@@ -78,6 +78,7 @@ public class MpegToWav {
                 rate <<= nOfCh;
                 header.putInt(28, rate);
                 header.putShort(22, (short) nOfCh);
+                header.putShort(32, (short) (nOfCh * 16 / 8));
                 fout.write(header.array());
 
                 // Output
