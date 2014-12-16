@@ -39,7 +39,7 @@ TODO
   - [ ] Maps to our open map format (XML, xstream?) `(***`
   - [ ] Sounds (MP2 is not supported by JME)
     - [x] MP2 decoding
-    - [ ] Finish up the MP2 asset loader
+    - [x] Finish up the MP2 asset loader
     - [ ] Merge the sound tracks
     - [ ] Decide what to do with the MAP files
   - [ ] Video playes for DK format (*
