@@ -92,6 +92,14 @@ public final class Pose implements Savable, Cloneable {
         }
     }
 
+    public Vector3f[] getOffsets() {
+        return offsets;
+    }
+
+    public int[] getIndices() {
+        return indices;
+    }
+
     /**
      * This method creates a clone of the current object.
      *
