@@ -94,12 +94,14 @@ public final class PoseTrack implements Track {
             }
         }
 
+        @Override
         public void write(JmeExporter e) throws IOException {
             OutputCapsule out = e.getCapsule(this);
             out.write(poses, "poses", null);
             out.write(weights, "weights", null);
         }
 
+        @Override
         public void read(JmeImporter i) throws IOException {
             InputCapsule in = i.getCapsule(this);
             weights = in.readFloatArray("weights", null);
@@ -124,17 +126,13 @@ public final class PoseTrack implements Track {
     public PoseTrack() {
     }
 
-    private void applyFrame(Mesh target, int frameIndex, float weight) {
+    private void applyFrame(Mesh target, int frameIndex) {
         PoseFrame frame = frames[frameIndex];
         VertexBuffer pb = target.getBuffer(Type.Position);
         for (int i = 0; i < frame.poses.length / 2; i++) {
-//
-//            Pose pose = frame.poses[i];
-//            float poseWeight = frame.weights[i] * weight;
-//
-//            pose.apply(poseWeight, (FloatBuffer) pb.getData());
+
             // Poses come in pairs of two [startPose] + [endPose], weight tells us how close we are to the end
-            // The poses must have the same vertices in the same order
+            // The pose pair must have the same vertices in the same order
             applyPose(frame.poses[i * 2], frame.poses[i * 2 + 1], frame.weights[i * 2 + 1], (FloatBuffer) pb.getData());
         }
 
@@ -185,9 +183,9 @@ public final class PoseTrack implements Track {
         pb.put(bpb).clear();
 
         if (time < times[0]) {
-            applyFrame(target, 0, weight);
+            applyFrame(target, 0);
         } else if (time > times[times.length - 1]) {
-            applyFrame(target, times.length - 1, weight);
+            applyFrame(target, times.length - 1);
         } else {
             int startFrame = 0;
             for (int i = 0; i < times.length; i++) {
@@ -197,9 +195,7 @@ public final class PoseTrack implements Track {
             }
 
             int endFrame = startFrame + 1;
-            float blend = (time - times[startFrame]) / (times[endFrame] - times[startFrame]);
-            //       applyFrame(target, startFrame, blend * weight);
-            applyFrame(target, endFrame, 1.0f);//(1f – blend) * weight);
+            applyFrame(target, endFrame);
         }
     }
 
