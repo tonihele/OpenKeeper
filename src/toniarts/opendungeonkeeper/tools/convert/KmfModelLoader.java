@@ -388,11 +388,15 @@ public class KmfModelLoader implements AssetLoader {
 
             // Animation
 
-            // Poses for each frame
-            HashMap<Integer, List<Pose>> poses = new HashMap<>(anim.getFrames() - 1);
+            // Poses for each key frame (aproximate that 1/3 is a key frame, pessimistic)
+            HashMap<Integer, HashMap<FrameInfo, List<Pose>>> poses = new HashMap<>(anim.getFrames() / 3);
 
-            HashMap<Integer, List<Integer>> frameIndices = new HashMap<>(anim.getFrames() - 1);
-            HashMap<Integer, List<Vector3f>> frameOffsets = new HashMap<>(anim.getFrames() - 1);
+            // Pose indices and indice offsets for each pose
+            HashMap<Integer, HashMap<FrameInfo, List<Integer>>> frameIndices = new HashMap<>(anim.getFrames() / 3);
+            HashMap<Integer, HashMap<FrameInfo, List<Vector3f>>> frameOffsets = new HashMap<>(anim.getFrames() / 3);
+
+            // For each frame, we need the previous key frame (pose) and the next, and the weights, for the pose frames
+            HashMap<Integer, List<FrameInfo>> frameInfos = new HashMap<>(anim.getFrames());
 
             //
 
@@ -406,11 +410,15 @@ public class KmfModelLoader implements AssetLoader {
             int i = 0;
             for (AnimVertex animVertex : animSprite.getVertices()) {
 
+                // Bind Pose
                 javax.vecmath.Vector3f baseCoord = null;
+
+                // Keep the last frame for creating the target pose
+                FrameInfo previousFrame = null;
 
                 //Go through every frame
 //                System.out.println("Indice: " + i);
-                for (int frame = 0; frame < anim.getFrames() - 1; frame++) {
+                for (int frame = 0; frame < anim.getFrames(); frame++) {
 
 //                    System.out.println("Frame: " + frame);
 
@@ -425,10 +433,13 @@ public class KmfModelLoader implements AssetLoader {
                     javax.vecmath.Vector3f coord = anim.getGeometries().get(geomIndex).getGeometry();
 
 //                    System.out.println(frameBase + " -> " + nextFrameBase);
+//                    System.out.println(geomFactor);
+//                    System.out.println("Real framebase: " + ((frame >> 7) * 128 + frameBase));
 
                     // Store the frame zero coord
                     if (frame == 0) {
                         baseCoord = coord;
+//                        continue;
                     }
 
                     // The next coordinate
@@ -440,15 +451,57 @@ public class KmfModelLoader implements AssetLoader {
 
                     //Add if it has moved
 //                    if (!interpCoord.equals(coord)) {
-                    if (!frameIndices.containsKey(frame)) {
-                        frameIndices.put(frame, new ArrayList<Integer>());
+
+                    // Create frame info
+                    int lastPose = ((frame >> 7) * 128 + frameBase);
+                    int nextPose = ((frame >> 7) * 128 + nextFrameBase);
+                    if (!frameInfos.containsKey(frame)) {
+                        frameInfos.put(frame, new ArrayList<FrameInfo>());
                     }
-                    if (!frameOffsets.containsKey(frame)) {
-                        frameOffsets.put(frame, new ArrayList<Vector3f>());
+                    FrameInfo frameInfo = new FrameInfo(lastPose, nextPose, geomFactor);
+                    if (!frameInfos.get(frame).contains(frameInfo)) {
+                        frameInfos.get(frame).add(frameInfo);
                     }
-                    frameIndices.get(frame).add(i);
-                    frameOffsets.get(frame).add(new Vector3f(interpCoord.x, interpCoord.y, interpCoord.z));
-//                    }
+
+                    // Only make poses from key frames
+                    if (frame == lastPose || frame == nextPose) {
+                        if (!frameIndices.containsKey(frame)) {
+                            frameIndices.put(frame, new HashMap<FrameInfo, List<Integer>>());
+                        }
+                        if (!frameOffsets.containsKey(frame)) {
+                            frameOffsets.put(frame, new HashMap<FrameInfo, List<Vector3f>>());
+                        }
+                        if (frameIndices.get(frame).get(frameInfo) == null) {
+                            frameIndices.get(frame).put(frameInfo, new ArrayList<Integer>());
+                        }
+                        if (frameOffsets.get(frame).get(frameInfo) == null) {
+                            frameOffsets.get(frame).put(frameInfo, new ArrayList<Vector3f>());
+                        }
+                        frameIndices.get(frame).get(frameInfo).add(i);
+                        frameOffsets.get(frame).get(frameInfo).add(new Vector3f(coord.x, coord.y, coord.z));
+                        // frameOffsets.get(frame).add(new Vector3f(interpCoord.x, interpCoord.y, interpCoord.z));
+                    }
+
+                    // Add the pose target, we are in the last frame of the frame target
+                    if (previousFrame != null && !frameInfo.equals(previousFrame)) {
+                        if (!frameIndices.containsKey(frame)) {
+                            frameIndices.put(frame, new HashMap<FrameInfo, List<Integer>>());
+                        }
+                        if (!frameOffsets.containsKey(frame)) {
+                            frameOffsets.put(frame, new HashMap<FrameInfo, List<Vector3f>>());
+                        }
+                        if (frameIndices.get(frame).get(previousFrame) == null) {
+                            frameIndices.get(frame).put(previousFrame, new ArrayList<Integer>());
+                        }
+                        if (frameOffsets.get(frame).get(previousFrame) == null) {
+                            frameOffsets.get(frame).put(previousFrame, new ArrayList<Vector3f>());
+                        }
+                        frameIndices.get(frame).get(previousFrame).add(i);
+                        frameOffsets.get(frame).get(previousFrame).add(new Vector3f(coord.x, coord.y, coord.z));
+                    }
+
+                    // Set the last frame
+                    previousFrame = frameInfo;
                 }
 
 //                System.out.println("GEOM index: " + geomIndex);
@@ -469,42 +522,85 @@ public class KmfModelLoader implements AssetLoader {
             }
 
             // We have all the animation vertices from a single pose
-            for (int frame = 0; frame < anim.getFrames() - 1; frame++) {
-                if (!poses.containsKey(frame)) {
-                    poses.put(frame, new ArrayList<Pose>());
+            for (int frame = 0; frame < anim.getFrames(); frame++) {
+                if (frameIndices.containsKey(frame) && !poses.containsKey(frame)) {
+                    poses.put(frame, new HashMap<FrameInfo, List<Pose>>());
                 }
                 if (frameIndices.containsKey(frame)) {
-                    List<Integer> list = frameIndices.get(frame);
-                    int[] array = new int[list.size()];
-                    for (int integer = 0; integer < list.size(); integer++) {
-                        array[integer] = list.get(integer);
+                    for (Entry<FrameInfo, List<Integer>> entry : frameIndices.get(frame).entrySet()) {
+                        List<Integer> list = entry.getValue();
+                        int[] array = new int[list.size()];
+                        for (int integer = 0; integer < list.size(); integer++) {
+                            array[integer] = list.get(integer);
+                        }
+                        Pose p = new Pose(index + "", index, frameOffsets.get(frame).get(entry.getKey()).toArray(new Vector3f[frameOffsets.get(frame).get(entry.getKey()).size()]), array);
+                        if (!poses.get(frame).containsKey(entry.getKey())) {
+                            poses.get(frame).put(entry.getKey(), new ArrayList<Pose>());
+                        }
+                        poses.get(frame).get(entry.getKey()).add(p);
                     }
-                    Pose p = new Pose(index + "", index, frameOffsets.get(frame).toArray(new Vector3f[frameOffsets.get(frame).size()]), array);
-                    poses.get(frame).add(p);
-                } else {
+                } /*else {
 
-                    // This mesh is not going to move on this frame, contruct an empty pose
-                    Pose p = new Pose(index + "", index, new Vector3f[0], new int[0]);
-                    poses.get(frame).add(p);
-                }
+                 // This mesh is not going to move on this frame, contruct an empty pose
+                 Pose p = new Pose(index + "", index, new Vector3f[0], new int[0]);
+                 poses.get(frame).add(p);
+                 }*/
             }
 
-            // More animation, create the pose frames by the mesh index
-            List<PoseFrame> frameList = new ArrayList<>(anim.getFrames() - 1);
-            for (int frame = 0; frame < anim.getFrames() - 1; frame++) {
-                if (!poses.containsKey(frame)) {
-                    continue;
-                }
-                List<Pose> posesList = poses.get(frame);
+            // More animation, create the pose frames by the frame, mesh index specific
+            List<PoseFrame> frameList = new ArrayList<>(anim.getFrames());
+            for (int frame = 0; frame < anim.getFrames(); frame++) {
+//                if (!poses.containsKey(frame)) {
+//                    continue;
+//                }
+//                List<Pose> posesList = poses.get(frame);
 
                 // Create the weight array, I don't know, just make everything 1f
-                float[] weights = new float[posesList.size()];
-                for (int x = 0; x < posesList.size(); x++) {
-                    weights[x] = 1.0f;
-                }
+//                float[] weights = new float[posesList.size()];
+//                for (int x = 0; x < posesList.size(); x++) {
+//                    weights[x] = 1.0f;
+//                }
 
-                // Create and add the frame
-                PoseFrame f = new PoseFrame(posesList.toArray(new Pose[poses.get(frame).size()]), weights);
+                // Create and add the frame, the frame has previous key frame, and the next one + the weight of current frame
+//                List<FrameInfo> frameInfo = frameInfos.get(frame);
+//                Pose[] poseList = new Pose[frameInfo.size() * 2];
+//                float[] weightList = new float[frameInfo.size() * 2];
+//                for (int x = 0; x < frameInfo.size(); x++) {
+//                    poseList[x] = ;
+//                }
+
+// Loop through all the frame infos here
+                Pose[] p = new Pose[frameInfos.get(frame).size() * 2];
+                float[] weights = new float[frameInfos.get(frame).size() * 2];
+                int x = 0;
+                for (FrameInfo frameInfo : frameInfos.get(frame)) {
+
+                    if (frameInfo.nextPoseFrame < frameInfo.previousPoseFrame) {
+                        continue; // Huh?, last frame effect
+                    }
+
+//                    System.out.println(frameInfo.previousPoseFrame + " -> " + frameInfo.nextPoseFrame);
+//                    if (frameInfo.nextPoseFrame == 512) {
+//                        System.out.println(frameInfo.nextPoseFrame);
+//                    }
+
+                    // The poses, always the start and the end
+                    p[x * 2] = poses.get(frameInfo.previousPoseFrame).get(frameInfo).get(0); // FIXME: Always just one, not a list...
+                    p[x * 2 + 1] = poses.get(frameInfo.nextPoseFrame).get(frameInfo).get(0); // FIXME: Always just one, not a list...
+
+                    // Weights
+//                    weights[x * 2] = (float) frame / frameInfo.nextPoseFrame;
+//                    weights[x * 2 + 1] = (float) (frameInfo.nextPoseFrame - frame) / frameInfo.nextPoseFrame;
+                    weights[x * 2] = frameInfo.weight;
+                    weights[x * 2 + 1] = frameInfo.weight;
+                    //1 - frameInfo.weight;
+
+//                FrameInfo frameInfo = frameInfos.get(frame).get(0);
+//                PoseFrame f = new PoseFrame(new Pose[]{poses.get(frameInfo.getPreviousPoseFrame()).get(0), poses.get(frameInfo.nextPoseFrame).get(0)}, new float[]{(float) frame / frameInfo.nextPoseFrame, (float) (frameInfo.nextPoseFrame - frame) / frameInfo.nextPoseFrame});
+//                frameList.add(f);
+                    x++;
+                }
+                PoseFrame f = new PoseFrame(p, weights);
                 frameList.add(f);
             }
             frames.put(index, frameList);
@@ -615,5 +711,56 @@ public class KmfModelLoader implements AssetLoader {
         geom.updateModelBound();
 
         return geom;
+    }
+
+    private class FrameInfo {
+
+        private final int previousPoseFrame;
+        private final int nextPoseFrame;
+        private final float weight;
+
+        public FrameInfo(int previousPoseFrame, int nextPoseFrame, float weight) {
+            this.previousPoseFrame = previousPoseFrame;
+            this.nextPoseFrame = nextPoseFrame;
+            this.weight = weight;
+        }
+
+        public int getPreviousPoseFrame() {
+            return previousPoseFrame;
+        }
+
+        public int getNextPoseFrame() {
+            return nextPoseFrame;
+        }
+
+        public float getWeight() {
+            return weight;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 79 * hash + this.previousPoseFrame;
+            hash = 79 * hash + this.nextPoseFrame;
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final FrameInfo other = (FrameInfo) obj;
+            if (this.previousPoseFrame != other.previousPoseFrame) {
+                return false;
+            }
+            if (this.nextPoseFrame != other.nextPoseFrame) {
+                return false;
+            }
+            return true;
+        }
     }
 }
