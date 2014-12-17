@@ -97,6 +97,7 @@ public final class Pose implements Savable, Cloneable {
         }
     }
 
+    @Override
     public void write(JmeExporter e) throws IOException {
         OutputCapsule out = e.getCapsule(this);
         out.write(name, "name", "");
@@ -104,6 +105,7 @@ public final class Pose implements Savable, Cloneable {
         out.write(indices, "indices", null);
     }
 
+    @Override
     public void read(JmeImporter i) throws IOException {
         InputCapsule in = i.getCapsule(this);
         name = in.readString("name", "");
