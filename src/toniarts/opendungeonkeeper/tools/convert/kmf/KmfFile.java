@@ -393,12 +393,14 @@ public class KmfFile {
         checkHeader(rawKmf, KMF_MESH_GEOM);
         rawKmf.skipBytes(4);
         List<AnimGeom> geometries = new ArrayList<>(geomCount);
+        AnimGeom geom = null;
         for (int i = 0; i < geomCount; i++) {
+
             //10 bits, BITS, yes BITS, per coordinate (Z, Y, X) = 30 bits (2 last bits can be thrown away)
             // ^ so read 4 bytes
             // + 1 byte for frame base
             int coordinates = Utils.readUnsignedInteger(rawKmf);
-            AnimGeom geom = new AnimGeom();
+            geom = new AnimGeom();
 
             float x = (((coordinates >> 20) & 0x3ff) - 0x200) / 511.0f;
             float y = (((coordinates >> 10) & 0x3ff) - 0x200) / 511.0f;
@@ -411,6 +413,10 @@ public class KmfFile {
             geom.setFrameBase(Utils.toUnsignedByte(rawKmf.readByte()));
             geometries.add(geom);
         }
+
+        // For interpolation purposes add the last one again
+        geometries.add(geom);
+
         a.setGeometries(geometries);
 
         //Sprite offsets
