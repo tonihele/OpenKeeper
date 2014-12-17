@@ -33,6 +33,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -442,8 +443,9 @@ public class KmfModelLoader implements AssetLoader {
                         frameInfos.put(frame, new ArrayList<FrameInfo>());
                     }
                     FrameInfo frameInfo = new FrameInfo(lastPose, nextPose, geomFactor);
-                    if (!frameInfos.get(frame).contains(frameInfo)) {
-                        frameInfos.get(frame).add(frameInfo);
+                    int x = Collections.binarySearch(frameInfos.get(frame), frameInfo);
+                    if (x < 0) {
+                        frameInfos.get(frame).add(~x, frameInfo);
                     }
 
                     // Only make poses from key frames
@@ -493,8 +495,9 @@ public class KmfModelLoader implements AssetLoader {
                         frameOffsets.get(frame).get(fi).add(new Vector3f(coord.x, coord.y, coord.z));
 
                         // Also add to the frame infos (otherwise it will never be applied fully with weight 1.0)
-                        if (!frameInfos.get(frame).contains(fi)) {
-                            frameInfos.get(frame).add(fi);
+                        x = Collections.binarySearch(frameInfos.get(frame), fi);
+                        if (x < 0) {
+                            frameInfos.get(frame).add(~x, fi);
                         }
                     }
 
@@ -671,7 +674,7 @@ public class KmfModelLoader implements AssetLoader {
      * A frame info identifies an vertex transition, it has the start and the
      * end pose frame indexes (key frames) which will identify it
      */
-    private class FrameInfo {
+    private class FrameInfo implements Comparable<FrameInfo> {
 
         private final int previousPoseFrame;
         private final int nextPoseFrame;
@@ -719,6 +722,17 @@ public class KmfModelLoader implements AssetLoader {
                 return false;
             }
             return true;
+        }
+
+        @Override
+        public int compareTo(FrameInfo o) {
+            int result = Integer.compare(previousPoseFrame, o.previousPoseFrame);
+            if (result == 0) {
+
+                // It is up to the second key then
+                result = Integer.compare(nextPoseFrame, o.nextPoseFrame);
+            }
+            return result;
         }
     }
 }
