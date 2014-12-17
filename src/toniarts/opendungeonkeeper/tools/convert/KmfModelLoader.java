@@ -388,8 +388,9 @@ public class KmfModelLoader implements AssetLoader {
 
             // Animation
 
-            // Poses for each key frame (aproximate that 1/3 is a key frame, pessimistic)
-            HashMap<Integer, HashMap<FrameInfo, List<Pose>>> poses = new HashMap<>(anim.getFrames() / 3);
+            // Poses for each key frame (aproximate that every 1/3 is a key frame, pessimistic)
+            // Note that a key frame may not have all the vertices
+            HashMap<Integer, HashMap<FrameInfo, Pose>> poses = new HashMap<>(anim.getFrames() / 3);
 
             // Pose indices and indice offsets for each pose
             HashMap<Integer, HashMap<FrameInfo, List<Integer>>> frameIndices = new HashMap<>(anim.getFrames() / 3);
@@ -417,10 +418,7 @@ public class KmfModelLoader implements AssetLoader {
                 FrameInfo previousFrame = null;
 
                 //Go through every frame
-//                System.out.println("Indice: " + i);
                 for (int frame = 0; frame < anim.getFrames(); frame++) {
-
-//                    System.out.println("Frame: " + frame);
 
                     //Vertice
                     int geomBase = anim.getItab()[frame >> 7][animVertex.getItabIndex()];
@@ -432,25 +430,10 @@ public class KmfModelLoader implements AssetLoader {
                     float geomFactor = (float) ((frame & 0x7f) - frameBase) / (float) (nextFrameBase - frameBase);
                     javax.vecmath.Vector3f coord = anim.getGeometries().get(geomIndex).getGeometry();
 
-//                    System.out.println(frameBase + " -> " + nextFrameBase);
-//                    System.out.println(geomFactor);
-//                    System.out.println("Real framebase: " + ((frame >> 7) * 128 + frameBase));
-
                     // Store the frame zero coord
                     if (frame == 0) {
                         baseCoord = coord;
-//                        continue;
                     }
-
-                    // The next coordinate
-                    javax.vecmath.Vector3f nextCoord = anim.getGeometries().get(geomIndex + 1).getGeometry();
-                    javax.vecmath.Vector3f interpCoord = new javax.vecmath.Vector3f(nextCoord);
-                    interpCoord.sub(coord);
-                    interpCoord.scale(geomFactor);
-                    interpCoord.add(coord);
-
-                    //Add if it has moved
-//                    if (!interpCoord.equals(coord)) {
 
                     // Create frame info
                     int lastPose = ((frame >> 7) * 128 + frameBase);
@@ -471,6 +454,13 @@ public class KmfModelLoader implements AssetLoader {
                         if (!frameOffsets.containsKey(frame)) {
                             frameOffsets.put(frame, new HashMap<FrameInfo, List<Vector3f>>());
                         }
+
+                        if (frame == nextPose) { // Last frame
+
+                            // Create a new frameInfo with weight as 1
+                            frameInfo = new FrameInfo(frameInfo.previousPoseFrame, frameInfo.nextPoseFrame, 1f);
+                        }
+
                         if (frameIndices.get(frame).get(frameInfo) == null) {
                             frameIndices.get(frame).put(frameInfo, new ArrayList<Integer>());
                         }
@@ -479,7 +469,6 @@ public class KmfModelLoader implements AssetLoader {
                         }
                         frameIndices.get(frame).get(frameInfo).add(i);
                         frameOffsets.get(frame).get(frameInfo).add(new Vector3f(coord.x, coord.y, coord.z));
-                        // frameOffsets.get(frame).add(new Vector3f(interpCoord.x, interpCoord.y, interpCoord.z));
                     }
 
                     // Add the pose target, we are in the last frame of the frame target
@@ -490,24 +479,28 @@ public class KmfModelLoader implements AssetLoader {
                         if (!frameOffsets.containsKey(frame)) {
                             frameOffsets.put(frame, new HashMap<FrameInfo, List<Vector3f>>());
                         }
-                        if (frameIndices.get(frame).get(previousFrame) == null) {
-                            frameIndices.get(frame).put(previousFrame, new ArrayList<Integer>());
+
+                        // Create a new frameInfo with weight as 1
+                        FrameInfo fi = new FrameInfo(previousFrame.previousPoseFrame, previousFrame.nextPoseFrame, 1f);
+
+                        if (frameIndices.get(frame).get(fi) == null) {
+                            frameIndices.get(frame).put(fi, new ArrayList<Integer>());
                         }
-                        if (frameOffsets.get(frame).get(previousFrame) == null) {
-                            frameOffsets.get(frame).put(previousFrame, new ArrayList<Vector3f>());
+                        if (frameOffsets.get(frame).get(fi) == null) {
+                            frameOffsets.get(frame).put(fi, new ArrayList<Vector3f>());
                         }
-                        frameIndices.get(frame).get(previousFrame).add(i);
-                        frameOffsets.get(frame).get(previousFrame).add(new Vector3f(coord.x, coord.y, coord.z));
+                        frameIndices.get(frame).get(fi).add(i);
+                        frameOffsets.get(frame).get(fi).add(new Vector3f(coord.x, coord.y, coord.z));
+
+                        // Also add to the frame infos (otherwise it will never be applied fully with weight 1.0)
+                        if (!frameInfos.get(frame).contains(fi)) {
+                            frameInfos.get(frame).add(fi);
+                        }
                     }
 
                     // Set the last frame
                     previousFrame = frameInfo;
                 }
-
-//                System.out.println("GEOM index: " + geomIndex);
-//                System.out.println("Framebase: " + anim.getGeometries().get(geomIndex).getFrameBase());
-//                javax.vecmath.Vector3f v = anim.getGeometries().get(geomIndex).getGeometry();
-//                System.out.println(coord);
                 vertices[i] = new Vector3f(baseCoord.x, baseCoord.y, baseCoord.z);
 
                 //Texture coordinate
@@ -524,7 +517,7 @@ public class KmfModelLoader implements AssetLoader {
             // We have all the animation vertices from a single pose
             for (int frame = 0; frame < anim.getFrames(); frame++) {
                 if (frameIndices.containsKey(frame) && !poses.containsKey(frame)) {
-                    poses.put(frame, new HashMap<FrameInfo, List<Pose>>());
+                    poses.put(frame, new HashMap<FrameInfo, Pose>());
                 }
                 if (frameIndices.containsKey(frame)) {
                     for (Entry<FrameInfo, List<Integer>> entry : frameIndices.get(frame).entrySet()) {
@@ -534,42 +527,16 @@ public class KmfModelLoader implements AssetLoader {
                             array[integer] = list.get(integer);
                         }
                         Pose p = new Pose(index + "", frameOffsets.get(frame).get(entry.getKey()).toArray(new Vector3f[frameOffsets.get(frame).get(entry.getKey()).size()]), array);
-                        if (!poses.get(frame).containsKey(entry.getKey())) {
-                            poses.get(frame).put(entry.getKey(), new ArrayList<Pose>());
-                        }
-                        poses.get(frame).get(entry.getKey()).add(p);
+                        poses.get(frame).put(entry.getKey(), p);
                     }
-                } /*else {
-
-                 // This mesh is not going to move on this frame, contruct an empty pose
-                 Pose p = new Pose(index + "", index, new Vector3f[0], new int[0]);
-                 poses.get(frame).add(p);
-                 }*/
+                }
             }
 
             // More animation, create the pose frames by the frame, mesh index specific
             List<PoseFrame> frameList = new ArrayList<>(anim.getFrames());
             for (int frame = 0; frame < anim.getFrames(); frame++) {
-//                if (!poses.containsKey(frame)) {
-//                    continue;
-//                }
-//                List<Pose> posesList = poses.get(frame);
 
-                // Create the weight array, I don't know, just make everything 1f
-//                float[] weights = new float[posesList.size()];
-//                for (int x = 0; x < posesList.size(); x++) {
-//                    weights[x] = 1.0f;
-//                }
-
-                // Create and add the frame, the frame has previous key frame, and the next one + the weight of current frame
-//                List<FrameInfo> frameInfo = frameInfos.get(frame);
-//                Pose[] poseList = new Pose[frameInfo.size() * 2];
-//                float[] weightList = new float[frameInfo.size() * 2];
-//                for (int x = 0; x < frameInfo.size(); x++) {
-//                    poseList[x] = ;
-//                }
-
-// Loop through all the frame infos here
+                // Loop through all the frame infos here
                 Pose[] p = new Pose[frameInfos.get(frame).size() * 2];
                 float[] weights = new float[frameInfos.get(frame).size() * 2];
                 int x = 0;
@@ -579,25 +546,13 @@ public class KmfModelLoader implements AssetLoader {
                         continue; // Huh?, last frame effect
                     }
 
-//                    System.out.println(frameInfo.previousPoseFrame + " -> " + frameInfo.nextPoseFrame);
-//                    if (frameInfo.nextPoseFrame == 512) {
-//                        System.out.println(frameInfo.nextPoseFrame);
-//                    }
-
                     // The poses, always the start and the end
-                    p[x * 2] = poses.get(frameInfo.previousPoseFrame).get(frameInfo).get(0); // FIXME: Always just one, not a list...
-                    p[x * 2 + 1] = poses.get(frameInfo.nextPoseFrame).get(frameInfo).get(0); // FIXME: Always just one, not a list...
+                    p[x * 2] = poses.get(frameInfo.previousPoseFrame).get(frameInfo);
+                    p[x * 2 + 1] = poses.get(frameInfo.nextPoseFrame).get(frameInfo);
 
                     // Weights
-//                    weights[x * 2] = (float) frame / frameInfo.nextPoseFrame;
-//                    weights[x * 2 + 1] = (float) (frameInfo.nextPoseFrame - frame) / frameInfo.nextPoseFrame;
                     weights[x * 2] = frameInfo.weight;
                     weights[x * 2 + 1] = frameInfo.weight;
-                    //1 - frameInfo.weight;
-
-//                FrameInfo frameInfo = frameInfos.get(frame).get(0);
-//                PoseFrame f = new PoseFrame(new Pose[]{poses.get(frameInfo.getPreviousPoseFrame()).get(0), poses.get(frameInfo.nextPoseFrame).get(0)}, new float[]{(float) frame / frameInfo.nextPoseFrame, (float) (frameInfo.nextPoseFrame - frame) / frameInfo.nextPoseFrame});
-//                frameList.add(f);
                     x++;
                 }
                 PoseFrame f = new PoseFrame(p, weights);
@@ -713,6 +668,10 @@ public class KmfModelLoader implements AssetLoader {
         return geom;
     }
 
+    /**
+     * A frame info identifies an vertex transition, it has the start and the
+     * end pose frame indexes (key frames) which will identify it
+     */
     private class FrameInfo {
 
         private final int previousPoseFrame;
