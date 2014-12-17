@@ -133,7 +133,7 @@ public final class PoseTrack implements Track {
 
             // Poses come in pairs of two [startPose] + [endPose], weight tells us how close we are to the end
             // The pose pair must have the same vertices in the same order
-            applyPose(frame.poses[i * 2], frame.poses[i * 2 + 1], frame.weights[i * 2 + 1], (FloatBuffer) pb.getData());
+            applyPose(frame.poses[i * 2], frame.poses[i * 2 + 1], frame.weights[i], (FloatBuffer) pb.getData());
         }
 
         // force to re-upload data to gpu

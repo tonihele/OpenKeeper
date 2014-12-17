@@ -538,7 +538,7 @@ public class KmfModelLoader implements AssetLoader {
 
                 // Loop through all the frame infos here
                 Pose[] p = new Pose[frameInfos.get(frame).size() * 2];
-                float[] weights = new float[frameInfos.get(frame).size() * 2];
+                float[] weights = new float[frameInfos.get(frame).size()];
                 int x = 0;
                 for (FrameInfo frameInfo : frameInfos.get(frame)) {
 
@@ -551,8 +551,7 @@ public class KmfModelLoader implements AssetLoader {
                     p[x * 2 + 1] = poses.get(frameInfo.nextPoseFrame).get(frameInfo);
 
                     // Weights
-                    weights[x * 2] = frameInfo.weight;
-                    weights[x * 2 + 1] = frameInfo.weight;
+                    weights[x] = frameInfo.weight;
                     x++;
                 }
                 PoseFrame f = new PoseFrame(p, weights);
