@@ -533,7 +533,7 @@ public class KmfModelLoader implements AssetLoader {
                         for (int integer = 0; integer < list.size(); integer++) {
                             array[integer] = list.get(integer);
                         }
-                        Pose p = new Pose(index + "", index, frameOffsets.get(frame).get(entry.getKey()).toArray(new Vector3f[frameOffsets.get(frame).get(entry.getKey()).size()]), array);
+                        Pose p = new Pose(index + "", frameOffsets.get(frame).get(entry.getKey()).toArray(new Vector3f[frameOffsets.get(frame).get(entry.getKey()).size()]), array);
                         if (!poses.get(frame).containsKey(entry.getKey())) {
                             poses.get(frame).put(entry.getKey(), new ArrayList<Pose>());
                         }
