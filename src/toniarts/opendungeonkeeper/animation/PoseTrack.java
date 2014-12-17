@@ -35,12 +35,14 @@ import com.jme3.animation.AnimChannel;
 import com.jme3.animation.AnimControl;
 import com.jme3.animation.Track;
 import com.jme3.export.*;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.VertexBuffer.Type;
+import com.jme3.util.BufferUtils;
 import com.jme3.util.TempVars;
 import java.io.IOException;
 import java.nio.FloatBuffer;
@@ -125,15 +127,46 @@ public final class PoseTrack implements Track {
     private void applyFrame(Mesh target, int frameIndex, float weight) {
         PoseFrame frame = frames[frameIndex];
         VertexBuffer pb = target.getBuffer(Type.Position);
-        for (int i = 0; i < frame.poses.length; i++) {
-            Pose pose = frame.poses[i];
-            float poseWeight = frame.weights[i] * weight;
-
-            pose.apply(poseWeight, (FloatBuffer) pb.getData());
+        for (int i = 0; i < frame.poses.length / 2; i++) {
+//
+//            Pose pose = frame.poses[i];
+//            float poseWeight = frame.weights[i] * weight;
+//
+//            pose.apply(poseWeight, (FloatBuffer) pb.getData());
+            // Poses come in pairs of two [startPose] + [endPose], weight tells us how close we are to the end
+            // The poses must have the same vertices in the same order
+            applyPose(frame.poses[i * 2], frame.poses[i * 2 + 1], frame.weights[i * 2 + 1], (FloatBuffer) pb.getData());
         }
 
         // force to re-upload data to gpu
         pb.updateData(pb.getData());
+    }
+
+    /**
+     * Applies pose for this frame
+     *
+     * @param startPose starting pose for the vertices
+     * @param endPose ending pose for the vertices
+     * @param weight weight on which to apply the interpolation
+     * @param vertexBuffer the vertex buffer
+     */
+    private void applyPose(Pose startPose, Pose endPose, float weight, FloatBuffer vertexBuffer) {
+        int[] startingIndices = startPose.getIndices();
+        Vector3f interpOffset = new Vector3f();
+        for (int i = 0; i < startingIndices.length; i++) {
+            int vertIndex = startingIndices[i];
+            Vector3f startOffset = startPose.getOffsets()[i];
+            Vector3f endOffset = endPose.getOffsets()[i];
+
+            // Interpolate
+            interpOffset.set(endOffset);
+            interpOffset.subtractLocal(startOffset);
+            interpOffset.multLocal(weight);
+            interpOffset.addLocal(startOffset);
+
+            // Write modified vertex
+            BufferUtils.setInBuffer(interpOffset, vertexBuffer, vertIndex);
+        }
     }
 
     @Override
