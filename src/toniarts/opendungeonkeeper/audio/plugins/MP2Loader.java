@@ -40,8 +40,8 @@ public class MP2Loader implements AssetLoader {
 
     /**
      * Masks the real input stream to decode the MP2<br>
-     * FIXME: Somehow the last read repeats a bit, even if I fill the rest of
-     * buffer with zeroes or synchronize, dunno
+     * The last read repeats a bit, that is a known issue:
+     * http://hub.jmonkeyengine.org/forum/topic/streaming-audio-with-audionode-plays-ending-wrongly/
      */
     private class MP2Stream extends InputStream {
 
