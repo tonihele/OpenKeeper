@@ -164,11 +164,7 @@ public class MaterialExporter implements JmeExporter {
             if (prop == null) {
                 prop = new MaterialProperty();
                 prop.setName(matParam.getName());
-                if (matParam.getValue() != null) {
-                    prop.setValue(matParam.getValueAsString());
-                } else {
-                    prop.setValue("");
-                }
+                prop.setValue("");
                 materialParameters.put(prop.getName(), prop);
             }
             prop.setType(matParam.getVarType().toString());
