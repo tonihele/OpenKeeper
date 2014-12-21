@@ -9,9 +9,9 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Box;
 import com.jme3.system.AppSettings;
 import com.jme3.system.JmeSystem;
+import java.awt.Image;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -160,16 +160,9 @@ public class Main extends SimpleApplication {
         dkIIFolder = setup.getString(DKII_FOLDER_KEY);
         conversionDone = setup.getBoolean(CONVERSION_DONE_KEY);
         conversionVersion = setup.getInteger(CONVERSION_VERSION_KEY);
-        try {
 
-            // The icons
-            setup.setIcons(new BufferedImage[]{ImageIO.read(CursorFactory.class.getResource("icons/odk256.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/odk128.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/odk32.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/odk16.png"))});
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, "Failed to load the application icons!", ex);
-        }
+        // The icons
+        setup.setIcons(getApplicationIcons());
 
         app.settings = setup;
     }
@@ -341,6 +334,23 @@ public class Main extends SimpleApplication {
 //        AudioNode audioSource = new AudioNode(assetManager, "Sounds/test.wav", false);
 //        audioSource.setLooping(false);
 //        audioSource.play();
+    }
+
+    /**
+     * Get the application icons
+     *
+     * @return array of application icons
+     */
+    public static Image[] getApplicationIcons() {
+        try {
+            return new Image[]{ImageIO.read(CursorFactory.class.getResource("icons/odk256.png")),
+                ImageIO.read(CursorFactory.class.getResource("icons/odk128.png")),
+                ImageIO.read(CursorFactory.class.getResource("icons/odk32.png")),
+                ImageIO.read(CursorFactory.class.getResource("icons/odk16.png"))};
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Failed to load the application icons!", ex);
+        }
+        return null;
     }
 
     @Override
