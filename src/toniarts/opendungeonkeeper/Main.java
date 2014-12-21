@@ -11,6 +11,7 @@ import com.jme3.system.AppSettings;
 import com.jme3.system.JmeSystem;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -18,8 +19,10 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import toniarts.opendungeonkeeper.audio.plugins.MP2Loader;
+import toniarts.opendungeonkeeper.gui.CursorFactory;
 import toniarts.opendungeonkeeper.setup.DKConverter;
 import toniarts.opendungeonkeeper.setup.DKFolderSelector;
 import toniarts.opendungeonkeeper.setup.IFrameClosingBehavior;
@@ -157,6 +160,16 @@ public class Main extends SimpleApplication {
         dkIIFolder = setup.getString(DKII_FOLDER_KEY);
         conversionDone = setup.getBoolean(CONVERSION_DONE_KEY);
         conversionVersion = setup.getInteger(CONVERSION_VERSION_KEY);
+        try {
+
+            // The icons
+            setup.setIcons(new BufferedImage[]{ImageIO.read(CursorFactory.class.getResource("icons/odk256.png")),
+                ImageIO.read(CursorFactory.class.getResource("icons/odk128.png")),
+                ImageIO.read(CursorFactory.class.getResource("icons/odk32.png")),
+                ImageIO.read(CursorFactory.class.getResource("icons/odk16.png"))});
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Failed to load the application icons!", ex);
+        }
 
         app.settings = setup;
     }
@@ -325,7 +338,7 @@ public class Main extends SimpleApplication {
 //
 //        //Sound
 //        this.getAssetManager().registerLoader(MP2Loader.class, "mp2");
-//        AudioNode audioSource = new AudioNode(assetManager, "Sounds/horng014.mp2", false);
+//        AudioNode audioSource = new AudioNode(assetManager, "Sounds/test.wav", false);
 //        audioSource.setLooping(false);
 //        audioSource.play();
     }
