@@ -5,6 +5,7 @@
 package toniarts.opendungeonkeeper.setup;
 
 import java.awt.event.WindowEvent;
+import java.util.Arrays;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import toniarts.opendungeonkeeper.Main;
@@ -24,6 +25,7 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
         initComponents();
 
         statusIcon.setVisible(false);
+        setIconImages(Arrays.asList(Main.getApplicationIcons()));
     }
 
     /**
@@ -172,6 +174,7 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
 
         /* Create and display the dialog */
         java.awt.EventQueue.invokeLater(new Runnable() {
+            @Override
             public void run() {
                 DKFolderSelector dialog = new DKFolderSelector() {
                     @Override

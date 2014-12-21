@@ -7,7 +7,9 @@ package toniarts.opendungeonkeeper.setup;
 import com.jme3.asset.AssetManager;
 import java.awt.event.WindowEvent;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import javax.swing.JOptionPane;
+import toniarts.opendungeonkeeper.Main;
 import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
 
 /**
@@ -28,6 +30,7 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
 
         this.dungeonKeeperFolder = dungeonKeeperFolder;
         this.assetManager = assetManager;
+        setIconImages(Arrays.asList(Main.getApplicationIcons()));
     }
 
     /**
@@ -131,6 +134,7 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
 
         /* Create and display the form */
         java.awt.EventQueue.invokeAndWait(new Runnable() {
+            @Override
             public void run() {
                 new DKConverter(null, null) {
                     @Override

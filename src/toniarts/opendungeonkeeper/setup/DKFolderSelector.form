@@ -55,7 +55,7 @@
                   <Component id="statusIcon" min="-2" max="-2" attributes="0"/>
                   <Component id="selectFolderButton" min="-2" max="-2" attributes="0"/>
               </Group>
-              <EmptySpace pref="31" max="32767" attributes="0"/>
+              <EmptySpace pref="17" max="32767" attributes="0"/>
               <Group type="103" groupAlignment="3" attributes="0">
                   <Component id="exitButton" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="continueButton" alignment="3" min="-2" max="-2" attributes="0"/>
