@@ -392,7 +392,7 @@ public class KmfFile {
         //KMSH/ANIM/SPRS/GEOM
         checkHeader(rawKmf, KMF_MESH_GEOM);
         rawKmf.skipBytes(4);
-        List<AnimGeom> geometries = new ArrayList<>(geomCount);
+        List<AnimGeom> geometries = new ArrayList<>(geomCount + 1);
         AnimGeom geom = null;
         for (int i = 0; i < geomCount; i++) {
 
