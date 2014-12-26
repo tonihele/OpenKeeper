@@ -8,6 +8,7 @@ import com.jme3.animation.AnimControl;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoader;
+import com.jme3.asset.MaterialKey;
 import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
@@ -53,6 +54,7 @@ import toniarts.opendungeonkeeper.tools.convert.kmf.MeshSprite;
 import toniarts.opendungeonkeeper.tools.convert.kmf.MeshVertex;
 import toniarts.opendungeonkeeper.tools.convert.kmf.Triangle;
 import toniarts.opendungeonkeeper.tools.convert.kmf.Uv;
+import toniarts.opendungeonkeeper.tools.convert.material.MaterialExporter;
 import toniarts.opendungeonkeeper.tools.modelviewer.ModelViewer;
 
 /**
@@ -119,11 +121,11 @@ public class KmfModelLoader implements AssetLoader {
 
         KmfFile kmfFile;
         EngineTexturesFile engineTextureFile = null;
-//        boolean generateMaterialFile = false;
+        boolean generateMaterialFile = false;
         if (assetInfo instanceof KmfAssetInfo) {
             kmfFile = ((KmfAssetInfo) assetInfo).getKmfFile();
             engineTextureFile = ((KmfAssetInfo) assetInfo).getEngineTexturesFile();
-//            generateMaterialFile = ((KmfAssetInfo) assetInfo).isGenerateMaterialFile();
+            generateMaterialFile = ((KmfAssetInfo) assetInfo).isGenerateMaterialFile();
         } else {
             kmfFile = new KmfFile(inputStreamToFile(assetInfo.openStream(), assetInfo.getKey().getName()));
         }
@@ -139,21 +141,9 @@ public class KmfModelLoader implements AssetLoader {
             HashMap<Integer, Material> materials = new HashMap(kmfFile.getMaterials().size());
             int i = 0;
             for (toniarts.opendungeonkeeper.tools.convert.kmf.Material mat : kmfFile.getMaterials()) {
-                Material material;
+                Material material = null;
 
-                // See if the material is found already on the cache
-//                if (generateMaterialFile) {
-//                    String materialKey = materialCache.get(mat);
-//                    if (materialKey != null) {
-//                        material = assetInfo.getManager().loadMaterial(materialKey);
-//                        materials.put(i, material);
-//                        i++;
-//                        continue;
-//                    }
-//                }
-
-                // Create the material
-                material = new Material(assetInfo.getManager(), "Common/MatDefs/Light/Lighting.j3md");
+                // Get the texture
                 String texture = mat.getTextures().get(0);
                 if (textureFixes.containsKey(texture)) {
 
@@ -161,14 +151,54 @@ public class KmfModelLoader implements AssetLoader {
                     texture = textureFixes.get(texture);
                 }
 
+                // See if the material is found already on the cache
+                String materialLocation = null;
+                String materialKey = null;
+                String fileName;
+                if (generateMaterialFile) {
+                    materialKey = materialCache.get(mat);
+                    if (materialKey != null) {
+                        material = assetInfo.getManager().loadMaterial(materialKey);
+                        setMaterialFlags(material, engineTextureFile, texture);
+                        materials.put(i, material);
+                        i++;
+                        continue;
+                    } else {
+
+                        // Ok, it it not in the cache yet, but maybe it has been already generated, so use it and update the defaults in it
+                        fileName = Utils.stripFileName(mat.getName());
+                        materialKey = AssetsConverter.MATERIALS_FOLDER.concat("/").concat(fileName).concat(".j3m");
+                        materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(fileName).concat(".j3m"));
+
+                        // See if it exists
+                        File file = new File(materialLocation).getCanonicalFile();
+                        if (file.exists()) {
+                            if (!file.getName().equals(fileName.concat(".j3m"))) {
+
+                                // Case sensitivity issue
+                                materialKey = AssetsConverter.MATERIALS_FOLDER.concat("/").concat(file.getName());
+                                materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(file.getName()));
+                            }
+                            material = assetInfo.getManager().loadMaterial(materialKey);
+                        }
+                    }
+                }
+
+                // Create the material
+                if (material == null) {
+                    material = new Material(assetInfo.getManager(), "Common/MatDefs/Light/Lighting.j3md");
+                }
+
                 //Load up the texture and create the material
                 TextureKey textureKey = new TextureKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png"), false);
                 Texture tex = assetInfo.getManager().loadTexture(textureKey);
-                material.setReceivesShadows(true);
                 material.setTexture("DiffuseMap", tex);
                 material.setColor("Specular", ColorRGBA.Orange); // Dungeons are lit only with fire...? Experimental
                 material.setColor("Diffuse", ColorRGBA.White); // Experimental
                 material.setFloat("Shininess", 128 * mat.getBrightness()); // Use the brightness as shininess... Experimental
+
+                // Set some flags
+                setMaterialFlags(material, engineTextureFile, texture);
 
                 // If we have an instance of engine texture file, check the alpha
                 if (engineTextureFile != null) {
@@ -177,14 +207,12 @@ public class KmfModelLoader implements AssetLoader {
                     if (engineTextureEntry != null && engineTextureEntry.isAlphaFlag()) {
                         material.setBoolean("UseAlpha", true);
                         material.setFloat("AlphaDiscardThreshold", 0.1f);
-                        material.setTransparent(true);
                         material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
 
                         // There are some hints on the rendering on the texture names (ie. #add#FalloffMM0)
                         if (textureEntry.toLowerCase().contains("#add#")) {
                             material.getAdditionalRenderState().setDepthWrite(false);
                             material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.AlphaAdditive);
-                            material.setReceivesShadows(false);
                         }
                         logger.log(Level.INFO, "Texture entry {0} has alpha!", textureEntry);
                     } else if (engineTextureEntry == null) {
@@ -195,19 +223,19 @@ public class KmfModelLoader implements AssetLoader {
                 }
 
                 // See if we should save the material
-//                if (generateMaterialFile) {
-//                    String materialKey = AssetsConverter.MATERIALS_FOLDER.concat("/").concat(mat.getName()).concat(".j3m");
-//                    String materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(mat.getName()).concat(".j3m"));
-////                    EditableMaterialFile editableMaterialFile = new EditableMaterialFile();
-////                    File file = new File(materialLocation);
-////                    exporter.save(material, file);
-//                    material.setName(mat.getName());
-//                    material.setKey(new MaterialKey(materialKey));
-//                    BinaryExporter exporter = BinaryExporter.getInstance();
-//                    exporter.processBinarySavable(material);
-//                    material.write(exporter);
-//                    materialCache.put(mat, materialKey);
-//                }
+                if (generateMaterialFile) {
+
+                    // Set the material so that it realizes that it is a J3M file
+                    material.setName(mat.getName());
+                    material.setKey(new MaterialKey(materialKey));
+
+                    // Save
+                    MaterialExporter exporter = new MaterialExporter();
+                    exporter.save(material, new File(materialLocation));
+
+                    // Put to cache
+                    materialCache.put(mat, materialKey);
+                }
 
                 materials.put(i, material);
                 i++;
@@ -668,6 +696,30 @@ public class KmfModelLoader implements AssetLoader {
         geom.updateModelBound();
 
         return geom;
+    }
+
+    /**
+     * Set some flags on the material that do not get saved
+     *
+     * @param material material to modify
+     * @param engineTextureFile EngineTexturesFile entry to extract some info
+     */
+    private void setMaterialFlags(Material material, EngineTexturesFile engineTextureFile, String texture) {
+        material.setReceivesShadows(true);
+
+        // If we have an instance of engine texture file, check the alpha
+        if (engineTextureFile != null) {
+            String textureEntry = texture.concat("MM0");
+            EngineTextureEntry engineTextureEntry = engineTextureFile.getEntry(textureEntry);
+            if (engineTextureEntry != null && engineTextureEntry.isAlphaFlag()) {
+                material.setTransparent(true);
+
+                // There are some hints on the rendering on the texture names (ie. #add#FalloffMM0)
+                if (textureEntry.toLowerCase().contains("#add#")) {
+                    material.setReceivesShadows(false);
+                }
+            }
+        }
     }
 
     /**
