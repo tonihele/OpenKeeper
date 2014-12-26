@@ -268,4 +268,15 @@ public class Utils {
         //Zero out all bits but the right chunk
         return n & mask;
     }
+
+    /**
+     * Strip file name clean from any illegal characters, replaces the illegal
+     * characters with an underscore
+     *
+     * @param fileName the file name to be stripped
+     * @return returns stripped down file name
+     */
+    public static String stripFileName(String fileName) {
+        return fileName.replaceAll("[[^a-zA-Z0-9][\\.]]", "_");
+    }
 }
