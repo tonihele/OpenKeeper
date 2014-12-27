@@ -1561,7 +1561,7 @@ public class KwdFile {
             effect.setMaxSpeedYz(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             effect.setMinScale(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             effect.setMaxScale(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            effect.setFlags(Utils.readUnsignedInteger(file));
+            effect.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), Effect.EffectFlag.class));
             effect.setEffectId(Utils.readUnsignedShort(file));
             effect.setMinHp(Utils.readUnsignedShort(file));
             effect.setMaxHp(Utils.readUnsignedShort(file));
@@ -1571,9 +1571,12 @@ public class KwdFile {
             effect.setHitSolidEffect(Utils.readUnsignedShort(file));
             effect.setHitWaterEffect(Utils.readUnsignedShort(file));
             effect.setHitLavaEffect(Utils.readUnsignedShort(file));
-            int[] generateIds = new int[8];
-            for (int x = 0; x < generateIds.length; x++) {
-                generateIds[x] = Utils.readUnsignedShort(file);
+            List<Integer> generateIds = new ArrayList<>(8);
+            for (int x = 0; x < 8; x++) {
+                int id = Utils.readUnsignedShort(file);
+                if (id > 0) {
+                    generateIds.add(id);
+                }
             }
             effect.setGenerateIds(generateIds);
             effect.setOuterOriginRange(Utils.readUnsignedShort(file));
@@ -1588,7 +1591,7 @@ public class KwdFile {
             effect.setGenerateRandomness(Utils.readUnsignedShort(file));
             effect.setMisc2(Utils.readUnsignedShort(file));
             effect.setMisc3(Utils.readUnsignedShort(file));
-            effect.setUnknown1((short) file.readUnsignedByte());
+            effect.setGenerationType(parseEnum((short) file.readUnsignedByte(), Effect.GenerationType.class));
             effect.setElementsPerTurn((short) file.readUnsignedByte());
             effect.setUnknown3(Utils.readUnsignedShort(file));
 
