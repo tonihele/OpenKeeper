@@ -9,7 +9,7 @@ package toniarts.opendungeonkeeper.tools.convert.map;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KeeperSpell {
+public class KeeperSpell implements Comparable<KeeperSpell> {
 
 //    struct KeeperSpellBlock {
 //        char name[32];
@@ -45,35 +45,35 @@ public class KeeperSpell {
 //        uint8_t x195;
 //        };
     private String name;
-    private ArtResource ref1;
-    private ArtResource ref3;
+    private ArtResource guiIcon;
+    private ArtResource editorIcon; // ??
     private int xc8;
     private int xcc;
     private int shotData1;
     private int shotData2;
-    private int xd8;
+    private int researchTime;
     private short xda;
-    private short xdb;
+    private short orderInEditor; // introductionIndex in editor;
     private int xdc;
     private int xe0Unreferenced; // e0
     private int manaDrain;
-    private int xe4;
-    private int xe6;
-    private int xe8;
+    private int tooltipStringId;
+    private int nameStringId;
+    private int generalDescriptionTextId;
     private int xea;
-    private int xec;
+    private int weaknessTextId;
     private short keeperSpellId; // ee
     private short xef;
     private short xf0;
-    private String yName; // xf1
+    private String soundGategory; // xf1
     // Bonus update
     private int bonusRTime;
     private short bonusShotType;
     private int bonusShotData1;
     private int bonusShotData2;
     private int manaCost;
-    private ArtResource ref2; // 120
-    private String xName; // 174
+    private ArtResource bonusIcon; // 120
+    private String soundGategoryGui; // 174
     private short x194;
     private short x195;
 
@@ -85,20 +85,20 @@ public class KeeperSpell {
         this.name = name;
     }
 
-    public ArtResource getRef1() {
-        return ref1;
+    public ArtResource getGuiIcon() {
+        return guiIcon;
     }
 
-    protected void setRef1(ArtResource ref1) {
-        this.ref1 = ref1;
+    protected void setGuiIcon(ArtResource guiIcon) {
+        this.guiIcon = guiIcon;
     }
 
-    public ArtResource getRef3() {
-        return ref3;
+    public ArtResource getEditorIcon() {
+        return editorIcon;
     }
 
-    protected void setRef3(ArtResource ref3) {
-        this.ref3 = ref3;
+    protected void setEditorIcon(ArtResource editorIcon) {
+        this.editorIcon = editorIcon;
     }
 
     public int getXc8() {
@@ -133,12 +133,12 @@ public class KeeperSpell {
         this.shotData2 = shotData2;
     }
 
-    public int getXd8() {
-        return xd8;
+    public int getResearchTime() {
+        return researchTime;
     }
 
-    protected void setXd8(int xd8) {
-        this.xd8 = xd8;
+    protected void setResearchTime(int researchTime) {
+        this.researchTime = researchTime;
     }
 
     public short getXda() {
@@ -149,12 +149,12 @@ public class KeeperSpell {
         this.xda = xda;
     }
 
-    public short getXdb() {
-        return xdb;
+    public short getOrderInEditor() {
+        return orderInEditor;
     }
 
-    protected void setXdb(short xdb) {
-        this.xdb = xdb;
+    protected void setOrderInEditor(short orderInEditor) {
+        this.orderInEditor = orderInEditor;
     }
 
     public int getXdc() {
@@ -181,28 +181,28 @@ public class KeeperSpell {
         this.manaDrain = manaDrain;
     }
 
-    public int getXe4() {
-        return xe4;
+    public int getTooltipStringId() {
+        return tooltipStringId;
     }
 
-    protected void setXe4(int xe4) {
-        this.xe4 = xe4;
+    protected void setTooltipStringId(int tooltipStringId) {
+        this.tooltipStringId = tooltipStringId;
     }
 
-    public int getXe6() {
-        return xe6;
+    public int getNameStringId() {
+        return nameStringId;
     }
 
-    protected void setXe6(int xe6) {
-        this.xe6 = xe6;
+    protected void setNameStringId(int nameStringId) {
+        this.nameStringId = nameStringId;
     }
 
-    public int getXe8() {
-        return xe8;
+    public int getGeneralDescriptionTextId() {
+        return generalDescriptionTextId;
     }
 
-    protected void setXe8(int xe8) {
-        this.xe8 = xe8;
+    protected void setGeneralDescriptionTextId(int generalDescriptionTextId) {
+        this.generalDescriptionTextId = generalDescriptionTextId;
     }
 
     public int getXea() {
@@ -213,12 +213,12 @@ public class KeeperSpell {
         this.xea = xea;
     }
 
-    public int getXec() {
-        return xec;
+    public int getWeaknessTextId() {
+        return weaknessTextId;
     }
 
-    protected void setXec(int xec) {
-        this.xec = xec;
+    protected void setWeaknessTextId(int weaknessTextId) {
+        this.weaknessTextId = weaknessTextId;
     }
 
     public short getKeeperSpellId() {
@@ -245,12 +245,12 @@ public class KeeperSpell {
         this.xf0 = xf0;
     }
 
-    public String getYName() {
-        return yName;
+    public String getSoundGategory() {
+        return soundGategory;
     }
 
-    protected void setYName(String yName) {
-        this.yName = yName;
+    protected void setSoundGategory(String soundGategory) {
+        this.soundGategory = soundGategory;
     }
 
     public int getBonusRTime() {
@@ -293,20 +293,20 @@ public class KeeperSpell {
         this.manaCost = manaCost;
     }
 
-    public ArtResource getRef2() {
-        return ref2;
+    public ArtResource getBonusIcon() {
+        return bonusIcon;
     }
 
-    protected void setRef2(ArtResource ref2) {
-        this.ref2 = ref2;
+    protected void setBonusIcon(ArtResource bonusIcon) {
+        this.bonusIcon = bonusIcon;
     }
 
-    public String getXName() {
-        return xName;
+    public String getSoundGategoryGui() {
+        return soundGategoryGui;
     }
 
-    protected void setXName(String xName) {
-        this.xName = xName;
+    protected void setSoundGategoryGui(String soundGategoryGui) {
+        this.soundGategoryGui = soundGategoryGui;
     }
 
     public short getX194() {
@@ -328,5 +328,32 @@ public class KeeperSpell {
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public int compareTo(KeeperSpell o) {
+        return Short.compare(orderInEditor, o.orderInEditor);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 29 * hash + this.keeperSpellId;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(java.lang.Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final KeeperSpell other = (KeeperSpell) obj;
+        if (this.keeperSpellId != other.keeperSpellId) {
+            return false;
+        }
+        return true;
     }
 }
