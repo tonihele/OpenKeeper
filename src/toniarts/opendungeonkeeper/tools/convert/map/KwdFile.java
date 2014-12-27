@@ -1509,7 +1509,7 @@ public class KwdFile {
             effectElement.setMinScale(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             effectElement.setMaxScale(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             effectElement.setScaleRatio(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            effectElement.setFlags(Utils.readUnsignedInteger(file));
+            effectElement.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), EffectElement.EffectElementFlag.class));
             effectElement.setEffectElementId(Utils.readUnsignedShort(file));
             effectElement.setMinHp(Utils.readUnsignedShort(file));
             effectElement.setMaxHp(Utils.readUnsignedShort(file));

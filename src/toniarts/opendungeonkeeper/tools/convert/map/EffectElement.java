@@ -5,6 +5,7 @@
 package toniarts.opendungeonkeeper.tools.convert.map;
 
 import java.awt.Color;
+import java.util.EnumSet;
 
 /**
  * Container class for EffectElements.kwd
@@ -13,6 +14,30 @@ import java.awt.Color;
  */
 public class EffectElement {
 
+    /**
+     * Effect element flags
+     */
+    public enum EffectElementFlag implements IFlagEnum {
+
+        DIES_WHEN_HIT_SOLID(0x0001),
+        SHRINKS(0x0002),
+        EXPANDS(0x0004),
+        FADES(0x0008),
+        DIRECTIONAL_FRICTION(0x0010),
+        CAN_BE_DISTURBED(0x0020),
+        ROTATE_TO_MOVEMENT_DIRECTION(0x0040),
+        ALWAYS_TRIGGER(0x0200);
+        private final long flagValue;
+
+        private EffectElementFlag(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
 //    struct EffectElementBlock {
 //        char m_sName[32];
 //        ArtResource m_kArtResource;
@@ -52,7 +77,7 @@ public class EffectElement {
     private float minScale; // 90
     private float maxScale; // 94
     private float scaleRatio; // 98
-    private int flags; // 9c
+    private EnumSet<EffectElementFlag> flags; // 9c
     private int effectElementId; // a0
     private int minHp; // a2
     private int maxHp; // a4
@@ -162,11 +187,11 @@ public class EffectElement {
         this.scaleRatio = scaleRatio;
     }
 
-    public int getFlags() {
+    public EnumSet<EffectElementFlag> getFlags() {
         return flags;
     }
 
-    protected void setFlags(int flags) {
+    protected void setFlags(EnumSet<EffectElementFlag> flags) {
         this.flags = flags;
     }
 
