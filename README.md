@@ -32,10 +32,10 @@ TODO
     - [x] LOD
     - [x] Animations (**
       - [ ] Integrate animations to the model itself (maybe, have to see the prefered usage)
-      - [ ] Animation data is perfect, but our implementation of the vertex animation distorts the animations and stores too much data (every frame is a key frame)
+      - [x] Animation data is perfect, but our implementation of the vertex animation distorts the animations and stores too much data (every frame is a key frame)
     - [x] Materials
-      - [ ] All materials should exist only once, as JME material file
-      - [ ] EngineTextures.wad needs to be extracted
+      - [x] All materials should exist only once, as JME material file
+      - [ ] EngineTextures.wad needs to be extracted <- does it? Seems just duplicates, maybe only few additions
   - [ ] Maps to our open map format (XML, xstream?) `(***`
   - [ ] Sounds (MP2 is not supported by JME)
     - [x] MP2 decoding
