@@ -12,7 +12,7 @@ import java.util.EnumSet;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EffectElement {
+public class EffectElement implements Comparable<EffectElement> {
 
     /**
      * Effect element flags
@@ -294,5 +294,32 @@ public class EffectElement {
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public int compareTo(EffectElement o) {
+        return Integer.compare(effectElementId, o.effectElementId);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 67 * hash + this.effectElementId;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(java.lang.Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final EffectElement other = (EffectElement) obj;
+        if (this.effectElementId != other.effectElementId) {
+            return false;
+        }
+        return true;
     }
 }
