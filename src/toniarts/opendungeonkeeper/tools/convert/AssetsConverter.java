@@ -17,9 +17,11 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -96,6 +98,7 @@ public abstract class AssetsConverter {
      * working folder
      */
     public void convertAssets() {
+        Date start = new Date();
         String currentFolder = getCurrentFolder();
         logger.log(Level.INFO, "Starting asset convertion from DK II folder: {0}", dungeonKeeperFolder);
         logger.log(Level.INFO, "Current folder set to: {0}", currentFolder);
@@ -118,6 +121,10 @@ public abstract class AssetsConverter {
 
         //The sound and music
         convertSounds(dungeonKeeperFolder, currentFolder.concat(SOUNDS_FOLDER).concat(File.separator));
+
+        // Log the time taken
+        long duration = new Date().getTime() - start.getTime();
+        logger.log(Level.INFO, "Conversion took {0} seconds!", TimeUnit.SECONDS.convert(duration, TimeUnit.MILLISECONDS));
     }
 
     /**
