@@ -12,7 +12,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Effect {
+public class Effect implements Comparable<Effect> {
 
     /**
      * Effect flags
@@ -480,5 +480,32 @@ public class Effect {
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public int compareTo(Effect o) {
+        return Integer.compare(effectId, o.effectId);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 59 * hash + this.effectId;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(java.lang.Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Effect other = (Effect) obj;
+        if (this.effectId != other.effectId) {
+            return false;
+        }
+        return true;
     }
 }
