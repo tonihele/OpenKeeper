@@ -4,12 +4,80 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import java.util.EnumSet;
+import java.util.List;
+
 /**
  * Container class for Effects.kwd
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class Effect {
+
+    /**
+     * Effect flags
+     */
+    public enum EffectFlag implements IFlagEnum {
+
+        DIE_WHEN_HIT_SOLID(0x0001),
+        SHRINK(0x0002),
+        EXPAND(0x0004),
+        DIRECTIONAL_FRICTION(0x0010),
+        EXPAND_THEN_SHRINK(0x0020),
+        GENERATE_EFFECTS(0x0040), // Generate types
+        GENERATE_EFFECT_ELEMENTS(0x0080), // Generate types
+        PASS_ON_VELOCITY(0x0100),
+        UNIFORM_DISTRIBUTION(0x0200), // Generate types
+        RANDOM_DISTRIBUTION(0x0400), // Generate types
+        FADE_IN(0x0800),
+        FADE_OUT(0x1000),
+        FADE_IN_OUT(0x2000),
+        USE_GENERATION_SCALE(0x4000),
+        ALWAYS_TRIGGER(0x8000);
+        private final long flagValue;
+
+        private EffectFlag(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
+
+    public enum GenerationType implements IValueEnum {
+
+        NONE(0),
+        DEFAULT(1),
+        ADJACENT_EXPLOSION(2),
+        STORM(3),
+        CUBE_GEN(4),
+        EXPLOSION_2(5),
+        SPRAY(6),
+        EXPLOSION(7),
+        SPIRAL(8),
+        EVERYTHING(9),
+        CHICKEN_SLAP(10),
+        DIG(11),
+        SMOKE_PUFF(12),
+        FIRE(13),
+        GOLD_COST(14),
+        TEST_0(15),
+        TEST_1(16),
+        TEST_2(17),
+        TEST_3(18);
+
+        private GenerationType(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private int id;
+    }
 //    struct EffectBlock {
 //        char m_sName[32];
 //        ArtResource m_kArtResource;
@@ -54,7 +122,6 @@ public class Effect {
 //        uint8_t elements_per_turn; /* f3 */
 //        uint16_t unknown3; /* f4 pad? */
 //        };
-
     private String name;
     private ArtResource artResource;
     private Light light;
@@ -68,7 +135,7 @@ public class Effect {
     private float maxSpeedYz; // a8 same
     private float minScale; // ac same
     private float maxScale; // b0 same
-    private int flags; // b4
+    private EnumSet<EffectFlag> flags; // b4
     private int effectId; // b8
     private int minHp; // ba number of particles emitted in sequence
     private int maxHp; // bc
@@ -79,7 +146,8 @@ public class Effect {
     private int hitSolidEffect; // c4
     private int hitWaterEffect; // c6
     private int hitLavaEffect; // c8
-    private int generateIds[]; // ca elements or effects, depending on flags
+    // This is all generation data
+    private List<Integer> generateIds; // ca elements or effects, depending on flags
     private int outerOriginRange; // da
     private int lowerHeightLimit; // dc
     private int upperHeightLimit; // de
@@ -92,7 +160,8 @@ public class Effect {
     private int generateRandomness; // ec
     private int misc2; // ee
     private int misc3;
-    private short unknown1; // f2
+    private GenerationType generationType; // f2
+    // End of generation data
     private short elementsPerTurn; // f3
     private int unknown3; // f4 pad?
 
@@ -200,11 +269,11 @@ public class Effect {
         this.maxScale = maxScale;
     }
 
-    public int getFlags() {
+    public EnumSet<EffectFlag> getFlags() {
         return flags;
     }
 
-    protected void setFlags(int flags) {
+    protected void setFlags(EnumSet<EffectFlag> flags) {
         this.flags = flags;
     }
 
@@ -280,11 +349,11 @@ public class Effect {
         this.hitLavaEffect = hitLavaEffect;
     }
 
-    public int[] getGenerateIds() {
+    public List<Integer> getGenerateIds() {
         return generateIds;
     }
 
-    protected void setGenerateIds(int[] generateIds) {
+    protected void setGenerateIds(List<Integer> generateIds) {
         this.generateIds = generateIds;
     }
 
@@ -384,12 +453,12 @@ public class Effect {
         this.misc3 = misc3;
     }
 
-    public short getUnknown1() {
-        return unknown1;
+    public GenerationType getGenerationType() {
+        return generationType;
     }
 
-    protected void setUnknown1(short unknown1) {
-        this.unknown1 = unknown1;
+    protected void setGenerationType(GenerationType generationType) {
+        this.generationType = generationType;
     }
 
     public short getElementsPerTurn() {
