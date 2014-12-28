@@ -4,13 +4,57 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import java.util.EnumSet;
+import toniarts.opendungeonkeeper.tools.convert.map.Object;
+
 /**
  * Container class for Objects.kwd
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Object {
+public class Object implements Comparable<Object> {
 
+    /**
+     * Object flags
+     */
+    public enum ObjectFlag implements IFlagEnum {
+
+        DIE_OVER_TIME(0x0000001),
+        DIE_OVER_TIME_IF_NOT_IN_ROOM(0x0000002),
+        OBJECT_TYPE_SPECIAL(0x0000004),
+        OBJECT_TYPE_SPELL_BOOK(0x0000008),
+        OBJECT_TYPE_CRATE(0x0000010),
+        OBJECT_TYPE_LAIR(0x0000020),
+        OBJECT_TYPE_GOLD(0x0000040),
+        OBJECT_TYPE_FOOD(0x0000080),
+        CAN_BE_PICKED_UP(0x0000100),
+        CAN_BE_SLAPPED(0x0000200),
+        DIE_WHEN_SLAPPED(0x0000400),
+        OBJECT_TYPE_LEVEL_GEM(0x0001000),
+        CAN_BE_DROPPED_ON_ANY_LAND(0x0002000),
+        OBSTACLE(0x0004000),
+        BOUNCE(0x0008000),
+        BOULDER_CAN_ROLL_THROUGH(0x0010000),
+        BOULDER_DESTROYS(0x0020000),
+        PILLAR(0x0040000),
+        DOOR_KEY(0x0100000),
+        DAMAGEABLE(0x0200000),
+        HIGHLIGHTABLE(0x0400000),
+        PLACEABLE(0x0800000),
+        FIRST_PERSON_OBSTACLE(0x1000000),
+        SOLID_OBSTACLE(0x2000000),
+        CAST_SHADOWS(0x4000000);
+        private final long flagValue;
+
+        private ObjectFlag(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
 //    struct ObjectBlock {
 //        char name[32]; /* 0 */
 //        ArtResource kMeshResource; /* 20 */
@@ -58,20 +102,20 @@ public class Object {
     private int unknown2; // 33c
     private Material material; // 340
     private short unknown3[]; // 341
-    private int flags; // 344
+    private EnumSet<ObjectFlag> flags; // 344
     private int hp; // 348
     private int unknown4;
     private int x34c;
     private int x34e;
-    private int x350;
-    private int x352; // 34a
-    private int slapEffect; // 354
-    private int deathEffect; // 356
+    private int tooltipStringId;
+    private int nameStringId; // 34a
+    private int slapEffectId; // 354
+    private int deathEffectId; // 356
     private int unknown5; // 358
     private short objectId; // 35a
     private short unknown6; // 35b
     private short roomCapacity; // 35c
-    private short unknown7; // 35d
+    private short pickUpPriority; // 35d
     private String soundCategory; // 35e
 
     public String getName() {
@@ -194,11 +238,11 @@ public class Object {
         this.unknown3 = unknown3;
     }
 
-    public int getFlags() {
+    public EnumSet<ObjectFlag> getFlags() {
         return flags;
     }
 
-    protected void setFlags(int flags) {
+    protected void setFlags(EnumSet<ObjectFlag> flags) {
         this.flags = flags;
     }
 
@@ -234,36 +278,36 @@ public class Object {
         this.x34e = x34e;
     }
 
-    public int getX350() {
-        return x350;
+    public int getTooltipStringId() {
+        return tooltipStringId;
     }
 
-    protected void setX350(int x350) {
-        this.x350 = x350;
+    protected void setTooltipStringId(int tooltipStringId) {
+        this.tooltipStringId = tooltipStringId;
     }
 
-    public int getX352() {
-        return x352;
+    public int getNameStringId() {
+        return nameStringId;
     }
 
-    protected void setX352(int x352) {
-        this.x352 = x352;
+    protected void setNameStringId(int nameStringId) {
+        this.nameStringId = nameStringId;
     }
 
-    public int getSlapEffect() {
-        return slapEffect;
+    public int getSlapEffectId() {
+        return slapEffectId;
     }
 
-    protected void setSlapEffect(int slapEffect) {
-        this.slapEffect = slapEffect;
+    protected void setSlapEffectId(int slapEffectId) {
+        this.slapEffectId = slapEffectId;
     }
 
-    public int getDeathEffect() {
-        return deathEffect;
+    public int getDeathEffectId() {
+        return deathEffectId;
     }
 
-    protected void setDeathEffect(int deathEffect) {
-        this.deathEffect = deathEffect;
+    protected void setDeathEffectId(int deathEffectId) {
+        this.deathEffectId = deathEffectId;
     }
 
     public int getUnknown5() {
@@ -298,12 +342,12 @@ public class Object {
         this.roomCapacity = roomCapacity;
     }
 
-    public short getUnknown7() {
-        return unknown7;
+    public short getPickUpPriority() {
+        return pickUpPriority;
     }
 
-    protected void setUnknown7(short unknown7) {
-        this.unknown7 = unknown7;
+    protected void setPickUpPriority(short pickUpPriority) {
+        this.pickUpPriority = pickUpPriority;
     }
 
     public String getSoundCategory() {
@@ -317,5 +361,32 @@ public class Object {
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        return Short.compare(objectId, o.objectId);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 23 * hash + this.objectId;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(java.lang.Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Object other = (Object) obj;
+        if (this.objectId != other.objectId) {
+            return false;
+        }
+        return true;
     }
 }

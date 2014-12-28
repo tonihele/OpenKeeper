@@ -1399,20 +1399,20 @@ public class KwdFile {
                 unknown3[x] = (short) file.readUnsignedByte();
             }
             object.setUnknown3(unknown3);
-            object.setFlags(Utils.readUnsignedInteger(file));
+            object.setFlags(parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Object.ObjectFlag.class));
             object.setHp(Utils.readUnsignedShort(file));
             object.setUnknown4(Utils.readUnsignedShort(file));
             object.setX34c(Utils.readUnsignedShort(file));
             object.setX34e(Utils.readUnsignedShort(file));
-            object.setX350(Utils.readUnsignedShort(file));
-            object.setX352(Utils.readUnsignedShort(file));
-            object.setSlapEffect(Utils.readUnsignedShort(file));
-            object.setDeathEffect(Utils.readUnsignedShort(file));
+            object.setTooltipStringId(Utils.readUnsignedShort(file));
+            object.setNameStringId(Utils.readUnsignedShort(file));
+            object.setSlapEffectId(Utils.readUnsignedShort(file));
+            object.setDeathEffectId(Utils.readUnsignedShort(file));
             object.setUnknown5(Utils.readUnsignedShort(file));
             object.setObjectId((short) file.readUnsignedByte());
             object.setUnknown6((short) file.readUnsignedByte());
             object.setRoomCapacity((short) file.readUnsignedByte());
-            object.setUnknown7((short) file.readUnsignedByte());
+            object.setPickUpPriority((short) file.readUnsignedByte());
             bytes = new byte[32];
             file.read(bytes);
             object.setSoundCategory(Utils.bytesToString(bytes).trim());
