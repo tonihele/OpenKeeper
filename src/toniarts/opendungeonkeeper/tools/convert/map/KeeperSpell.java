@@ -11,6 +11,21 @@ package toniarts.opendungeonkeeper.tools.convert.map;
  */
 public class KeeperSpell implements Comparable<KeeperSpell> {
 
+    public enum HandAnimId implements IValueEnum {
+
+        NULL(0),
+        POINT(1);
+
+        private HandAnimId(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private int id;
+    }
 //    struct KeeperSpellBlock {
 //        char name[32];
 //        ArtResource ref1;
@@ -59,23 +74,23 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
     private int manaDrain;
     private int tooltipStringId;
     private int nameStringId;
-    private int generalDescriptionTextId;
-    private int xea;
-    private int weaknessTextId;
+    private int generalDescriptionStringId;
+    private int strengthStringId;
+    private int weaknessStringId;
     private short keeperSpellId; // ee
     private short xef;
     private short xf0;
     private String soundGategory; // xf1
     // Bonus update
     private int bonusRTime;
-    private short bonusShotType;
+    private short bonusShotTypeId; // Shot
     private int bonusShotData1;
     private int bonusShotData2;
     private int manaCost;
     private ArtResource bonusIcon; // 120
     private String soundGategoryGui; // 174
-    private short x194;
-    private short x195;
+    private HandAnimId handAnimId;
+    private HandAnimId noGoHandAnimId;
 
     public String getName() {
         return name;
@@ -197,28 +212,28 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
         this.nameStringId = nameStringId;
     }
 
-    public int getGeneralDescriptionTextId() {
-        return generalDescriptionTextId;
+    public int getGeneralDescriptionStringId() {
+        return generalDescriptionStringId;
     }
 
-    protected void setGeneralDescriptionTextId(int generalDescriptionTextId) {
-        this.generalDescriptionTextId = generalDescriptionTextId;
+    protected void setGeneralDescriptionStringId(int generalDescriptionStringId) {
+        this.generalDescriptionStringId = generalDescriptionStringId;
     }
 
-    public int getXea() {
-        return xea;
+    public int getStrengthStringId() {
+        return strengthStringId;
     }
 
-    protected void setXea(int xea) {
-        this.xea = xea;
+    protected void setStrengthStringId(int strengthStringId) {
+        this.strengthStringId = strengthStringId;
     }
 
-    public int getWeaknessTextId() {
-        return weaknessTextId;
+    public int getWeaknessStringId() {
+        return weaknessStringId;
     }
 
-    protected void setWeaknessTextId(int weaknessTextId) {
-        this.weaknessTextId = weaknessTextId;
+    protected void setWeaknessStringId(int weaknessStringId) {
+        this.weaknessStringId = weaknessStringId;
     }
 
     public short getKeeperSpellId() {
@@ -261,12 +276,12 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
         this.bonusRTime = bonusRTime;
     }
 
-    public short getBonusShotType() {
-        return bonusShotType;
+    public short getBonusShotTypeId() {
+        return bonusShotTypeId;
     }
 
-    protected void setBonusShotType(short bonusShotType) {
-        this.bonusShotType = bonusShotType;
+    protected void setBonusShotTypeId(short bonusShotTypeId) {
+        this.bonusShotTypeId = bonusShotTypeId;
     }
 
     public int getBonusShotData1() {
@@ -309,20 +324,20 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
         this.soundGategoryGui = soundGategoryGui;
     }
 
-    public short getX194() {
-        return x194;
+    public HandAnimId getHandAnimId() {
+        return handAnimId;
     }
 
-    protected void setX194(short x194) {
-        this.x194 = x194;
+    protected void setHandAnimId(HandAnimId handAnimId) {
+        this.handAnimId = handAnimId;
     }
 
-    public short getX195() {
-        return x195;
+    public HandAnimId getNoGoHandAnimId() {
+        return noGoHandAnimId;
     }
 
-    protected void setX195(short x195) {
-        this.x195 = x195;
+    protected void setNoGoHandAnimId(HandAnimId noGoHandAnimId) {
+        this.noGoHandAnimId = noGoHandAnimId;
     }
 
     @Override

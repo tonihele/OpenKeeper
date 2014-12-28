@@ -1513,15 +1513,15 @@ public class KwdFile {
             effectElement.setEffectElementId(Utils.readUnsignedShort(file));
             effectElement.setMinHp(Utils.readUnsignedShort(file));
             effectElement.setMaxHp(Utils.readUnsignedShort(file));
-            effectElement.setDeathElement(Utils.readUnsignedShort(file));
-            effectElement.setHitSolidElement(Utils.readUnsignedShort(file));
-            effectElement.setHitWaterElement(Utils.readUnsignedShort(file));
-            effectElement.setHitLavaElement(Utils.readUnsignedShort(file));
+            effectElement.setDeathElementId(Utils.readUnsignedShort(file));
+            effectElement.setHitSolidElementId(Utils.readUnsignedShort(file));
+            effectElement.setHitWaterElementId(Utils.readUnsignedShort(file));
+            effectElement.setHitLavaElementId(Utils.readUnsignedShort(file));
             effectElement.setColor(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte()));
             effectElement.setRandomColorIndex((short) file.readUnsignedByte());
             effectElement.setTableColorIndex((short) file.readUnsignedByte());
             effectElement.setFadePercentage((short) file.readUnsignedByte());
-            effectElement.setNextEffect(Utils.readUnsignedShort(file));
+            effectElement.setNextEffectId(Utils.readUnsignedShort(file));
 
             // Add to the hash by the effect element ID
             effectElements.put(effectElement.getEffectElementId(), effectElement);
@@ -1566,11 +1566,11 @@ public class KwdFile {
             effect.setMinHp(Utils.readUnsignedShort(file));
             effect.setMaxHp(Utils.readUnsignedShort(file));
             effect.setFadeDuration(Utils.readUnsignedShort(file));
-            effect.setNextEffect(Utils.readUnsignedShort(file));
-            effect.setDeathEffect(Utils.readUnsignedShort(file));
-            effect.setHitSolidEffect(Utils.readUnsignedShort(file));
-            effect.setHitWaterEffect(Utils.readUnsignedShort(file));
-            effect.setHitLavaEffect(Utils.readUnsignedShort(file));
+            effect.setNextEffectId(Utils.readUnsignedShort(file));
+            effect.setDeathEffectId(Utils.readUnsignedShort(file));
+            effect.setHitSolidEffectId(Utils.readUnsignedShort(file));
+            effect.setHitWaterEffectId(Utils.readUnsignedShort(file));
+            effect.setHitLavaEffectId(Utils.readUnsignedShort(file));
             List<Integer> generateIds = new ArrayList<>(8);
             for (int x = 0; x < 8; x++) {
                 int id = Utils.readUnsignedShort(file);
@@ -1635,9 +1635,9 @@ public class KwdFile {
             keeperSpell.setManaDrain(Utils.readUnsignedShort(file));
             keeperSpell.setTooltipStringId(Utils.readUnsignedShort(file));
             keeperSpell.setNameStringId(Utils.readUnsignedShort(file));
-            keeperSpell.setGeneralDescriptionTextId(Utils.readUnsignedShort(file));
-            keeperSpell.setXea(Utils.readUnsignedShort(file));
-            keeperSpell.setWeaknessTextId(Utils.readUnsignedShort(file));
+            keeperSpell.setGeneralDescriptionStringId(Utils.readUnsignedShort(file));
+            keeperSpell.setStrengthStringId(Utils.readUnsignedShort(file));
+            keeperSpell.setWeaknessStringId(Utils.readUnsignedShort(file));
             keeperSpell.setKeeperSpellId((short) file.readUnsignedByte());
             keeperSpell.setXef((short) file.readUnsignedByte());
             keeperSpell.setXf0((short) file.readUnsignedByte());
@@ -1645,7 +1645,7 @@ public class KwdFile {
             file.read(bytes);
             keeperSpell.setSoundGategory(Utils.bytesToString(bytes).trim());
             keeperSpell.setBonusRTime(Utils.readUnsignedShort(file));
-            keeperSpell.setBonusShotType((short) file.readUnsignedByte());
+            keeperSpell.setBonusShotTypeId((short) file.readUnsignedByte());
             keeperSpell.setBonusShotData1(Utils.readInteger(file));
             keeperSpell.setBonusShotData2(Utils.readInteger(file));
             keeperSpell.setManaCost(Utils.readInteger(file));
@@ -1653,8 +1653,8 @@ public class KwdFile {
             bytes = new byte[32];
             file.read(bytes);
             keeperSpell.setSoundGategoryGui(Utils.bytesToString(bytes).trim());
-            keeperSpell.setX194((short) file.readUnsignedByte());
-            keeperSpell.setX195((short) file.readUnsignedByte());
+            keeperSpell.setHandAnimId(parseEnum((short) file.readUnsignedByte(), KeeperSpell.HandAnimId.class));
+            keeperSpell.setNoGoHandAnimId(parseEnum((short) file.readUnsignedByte(), KeeperSpell.HandAnimId.class));
 
             // Add to the hash by the keeper spell ID
             keeperSpells.put(keeperSpell.getKeeperSpellId(), keeperSpell);
@@ -2061,6 +2061,7 @@ public class KwdFile {
     private void checkOffset(KwdHeader header, RandomAccessFile file, long offset) throws IOException {
         long wantedOffset = offset + header.getItemSize();
         if (file.getFilePointer() != wantedOffset) {
+            logger.log(Level.WARNING, "Record size differs from expected! File offset is {0} and should be {1}!", new java.lang.Object[]{file.getFilePointer(), wantedOffset});
             file.seek(wantedOffset);
         }
     }
