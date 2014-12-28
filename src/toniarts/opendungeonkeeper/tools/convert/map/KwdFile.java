@@ -1382,17 +1382,20 @@ public class KwdFile {
             object.setInHandIconResource(readArtResource(file));
             object.setInHandMeshResource(readArtResource(file));
             object.setkUnknownResource(readArtResource(file));
-            ArtResource[] additionalResources = new ArtResource[4];
-            for (int x = 0; x < additionalResources.length; x++) {
-                additionalResources[x] = readArtResource(file);
+            List<ArtResource> additionalResources = new ArrayList<>(4);
+            for (int x = 0; x < 4; x++) {
+                ArtResource resource = readArtResource(file);
+                if (resource != null) {
+                    additionalResources.add(resource);
+                }
             }
             object.setAdditionalResources(additionalResources);
             object.setLight(readLight(file));
             object.setWidth(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             object.setHeight(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             object.setMass(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            object.setUnknown1(Utils.readUnsignedInteger(file));
-            object.setUnknown2(Utils.readUnsignedInteger(file));
+            object.setSpeed(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            object.setAirFriction(Utils.readUnsignedInteger(file) / FIXED_POINT5_DIVISION);
             object.setMaterial(parseEnum(file.readUnsignedByte(), Material.class));
             short[] unknown3 = new short[3];
             for (int x = 0; x < unknown3.length; x++) {
@@ -1401,16 +1404,16 @@ public class KwdFile {
             object.setUnknown3(unknown3);
             object.setFlags(parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Object.ObjectFlag.class));
             object.setHp(Utils.readUnsignedShort(file));
-            object.setUnknown4(Utils.readUnsignedShort(file));
+            object.setMaxAngle(Utils.readUnsignedShort(file));
             object.setX34c(Utils.readUnsignedShort(file));
             object.setX34e(Utils.readUnsignedShort(file));
             object.setTooltipStringId(Utils.readUnsignedShort(file));
             object.setNameStringId(Utils.readUnsignedShort(file));
             object.setSlapEffectId(Utils.readUnsignedShort(file));
             object.setDeathEffectId(Utils.readUnsignedShort(file));
-            object.setUnknown5(Utils.readUnsignedShort(file));
+            object.setMiscEffectId(Utils.readUnsignedShort(file));
             object.setObjectId((short) file.readUnsignedByte());
-            object.setUnknown6((short) file.readUnsignedByte());
+            object.setStartState(parseEnum((short) file.readUnsignedByte(), Object.State.class));
             object.setRoomCapacity((short) file.readUnsignedByte());
             object.setPickUpPriority((short) file.readUnsignedByte());
             bytes = new byte[32];

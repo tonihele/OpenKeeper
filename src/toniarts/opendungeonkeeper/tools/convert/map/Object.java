@@ -5,6 +5,7 @@
 package toniarts.opendungeonkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import java.util.List;
 import toniarts.opendungeonkeeper.tools.convert.map.Object;
 
 /**
@@ -55,6 +56,84 @@ public class Object implements Comparable<Object> {
             return flagValue;
         }
     };
+
+    public enum State implements IValueEnum {
+
+        NONE(0),
+        BEING_DROPPED(1),
+        BEING_SLAPPED(2),
+        PRISON_ARRIVE(3),
+        TEMPLE_ARRIVE(4),
+        GOLD_ARRIVE(5),
+        HATCHERY_ARRIVE(6),
+        LAIR_ARRIVE(7),
+        PECKING(8),
+        MOVE_TO(9),
+        WANDER(10),
+        WANDER_WITHIN_PLAYER(11),
+        CREATE_CALL_TO_ARMS(12),
+        CALL_TO_ARMS(13),
+        RESEND_CALL_TO_ARMS(14),
+        DESTROY_CALL_TO_ARMS(15),
+        DO_NOTHING(16),
+        BOULDER(17),
+        SPINNING(18),
+        DESTROY_CALL_TO_ARMS_COPY(19),
+        DESTROY_CALL_TO_ARMS_COPY_INIT(20),
+        ROTATE(21),
+        BEING_PICKED_UP(22),
+        DODGE(23),
+        FREE_CHICKEN(24),
+        ESCAPE_FROM_FIGHT(25),
+        ACTIVATE_ANIM(26),
+        WORKSHOP_ARRIVE(27),
+        KICKED(28),
+        SHAKE(29),
+        TORTURE_WHEEL_SPIN(30),
+        GOLD_PROCESS(31),
+        HATCHING(32),
+        FLARE(33),
+        TOMBSTONE_SCALE_UP(34),
+        TOMBSTONE_SCALE_DOWN(35),
+        SPECIAL(36),
+        HEART_CONSTRUCTION(37),
+        DESTRUCTOR(38),
+        MANA_VAULT(39),
+        TORTURE_COALS(40), // Coals, not a typo?
+        THREAT_BURN(41),
+        IDLE_EFFECT(42),
+        FRONTEND_LEVEL_GEM(43),
+        PRISON_DOOR_OPEN(44),
+        PRISON_DOOR_CLOSE(45),
+        OPEN_PRISON_DOOR_BAR(46),
+        CLOSE_PRISON_DOOR_BAR(47),
+        PLAY_WIN_ANIM_INDICATOR_TO_SMILES(48),
+        PLAY_WIN_ANIM_INDICATOR_TO_MONEY(49),
+        PORTAL_GEM(50),
+        MY_PET_DUNGEON_LEVEL_INDICATOR(51),
+        ENTRANCE_ARRIVE(52),
+        SPELL_BOOK_IDLE(53),
+        MPD_LEVEL_UP(54), // My Pet Dungeon
+        MPD_LEVEL_DOWN(55), // My Pet Dungeon
+        JACK_IN_THE_BOX(56),
+        CRYPT_DANCER(57),
+        CRYPT_SPECIAL_DANCER(58),
+        GEM_CHALLENGE_JEWEL(59),
+        PLINTH(60),
+        SPECIAL_PLINTH(61),
+        DROP_OFF_POINT(62),
+        GEM_EXIT_POINT(63);
+
+        private State(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private int id;
+    }
 //    struct ObjectBlock {
 //        char name[32]; /* 0 */
 //        ArtResource kMeshResource; /* 20 */
@@ -93,27 +172,27 @@ public class Object implements Comparable<Object> {
     private ArtResource inHandIconResource; // c8
     private ArtResource inHandMeshResource; // 11c
     private ArtResource unknownResource; // 170
-    private ArtResource additionalResources[]; // 1c4
+    private List<ArtResource> additionalResources; // 1c4
     private Light light; // 314
     private float width; // 32c fixed 0x1000
     private float height; // 330
     private float mass; // 334
-    private int unknown1; // 338
-    private int unknown2; // 33c
+    private float speed; // 338
+    private float airFriction; // 33c
     private Material material; // 340
     private short unknown3[]; // 341
     private EnumSet<ObjectFlag> flags; // 344
     private int hp; // 348
-    private int unknown4;
+    private int maxAngle;
     private int x34c;
     private int x34e;
     private int tooltipStringId;
     private int nameStringId; // 34a
     private int slapEffectId; // 354
     private int deathEffectId; // 356
-    private int unknown5; // 358
+    private int miscEffectId; // 358
     private short objectId; // 35a
-    private short unknown6; // 35b
+    private State startState; // 35b
     private short roomCapacity; // 35c
     private short pickUpPriority; // 35d
     private String soundCategory; // 35e
@@ -166,11 +245,11 @@ public class Object implements Comparable<Object> {
         this.unknownResource = unknownResource;
     }
 
-    public ArtResource[] getAdditionalResources() {
+    public List<ArtResource> getAdditionalResources() {
         return additionalResources;
     }
 
-    protected void setAdditionalResources(ArtResource[] additionalResources) {
+    protected void setAdditionalResources(List<ArtResource> additionalResources) {
         this.additionalResources = additionalResources;
     }
 
@@ -206,20 +285,20 @@ public class Object implements Comparable<Object> {
         this.mass = mass;
     }
 
-    public int getUnknown1() {
-        return unknown1;
+    public float getSpeed() {
+        return speed;
     }
 
-    protected void setUnknown1(int unknown1) {
-        this.unknown1 = unknown1;
+    protected void setSpeed(float speed) {
+        this.speed = speed;
     }
 
-    public int getUnknown2() {
-        return unknown2;
+    public float getAirFriction() {
+        return airFriction;
     }
 
-    protected void setUnknown2(int unknown2) {
-        this.unknown2 = unknown2;
+    protected void setAirFriction(float airFriction) {
+        this.airFriction = airFriction;
     }
 
     public Material getMaterial() {
@@ -254,12 +333,12 @@ public class Object implements Comparable<Object> {
         this.hp = hp;
     }
 
-    public int getUnknown4() {
-        return unknown4;
+    public int getMaxAngle() {
+        return maxAngle;
     }
 
-    protected void setUnknown4(int unknown4) {
-        this.unknown4 = unknown4;
+    protected void setMaxAngle(int maxAngle) {
+        this.maxAngle = maxAngle;
     }
 
     public int getX34c() {
@@ -310,12 +389,12 @@ public class Object implements Comparable<Object> {
         this.deathEffectId = deathEffectId;
     }
 
-    public int getUnknown5() {
-        return unknown5;
+    public int getMiscEffectId() {
+        return miscEffectId;
     }
 
-    protected void setUnknown5(int unknown5) {
-        this.unknown5 = unknown5;
+    protected void setMiscEffectId(int miscEffectId) {
+        this.miscEffectId = miscEffectId;
     }
 
     public short getObjectId() {
@@ -326,12 +405,12 @@ public class Object implements Comparable<Object> {
         this.objectId = objectId;
     }
 
-    public short getUnknown6() {
-        return unknown6;
+    public State getStartState() {
+        return startState;
     }
 
-    protected void setUnknown6(short unknown6) {
-        this.unknown6 = unknown6;
+    protected void setStartState(State startState) {
+        this.startState = startState;
     }
 
     public short getRoomCapacity() {
