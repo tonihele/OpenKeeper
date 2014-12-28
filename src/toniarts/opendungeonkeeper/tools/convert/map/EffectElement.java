@@ -81,15 +81,15 @@ public class EffectElement implements Comparable<EffectElement> {
     private int effectElementId; // a0
     private int minHp; // a2
     private int maxHp; // a4
-    private int deathElement; // a6
-    private int hitSolidElement; // a8
-    private int hitWaterElement; // aa
-    private int hitLavaElement; // ac
+    private int deathElementId; // a6, EffectElementId
+    private int hitSolidElementId; // a8, EffectElementId
+    private int hitWaterElementId; // aa, EffectElementId
+    private int hitLavaElementId; // ac, EffectElementId
     private Color color; // ae
     private short randomColorIndex; // b1
     private short tableColorIndex; // b2
     private short fadePercentage; // b3
-    private int nextEffect; // b4
+    private int nextEffectId; // b4
 
     public String getName() {
         return name;
@@ -219,36 +219,36 @@ public class EffectElement implements Comparable<EffectElement> {
         this.maxHp = maxHp;
     }
 
-    public int getDeathElement() {
-        return deathElement;
+    public int getDeathElementId() {
+        return deathElementId;
     }
 
-    protected void setDeathElement(int deathElement) {
-        this.deathElement = deathElement;
+    protected void setDeathElementId(int deathElementId) {
+        this.deathElementId = deathElementId;
     }
 
-    public int getHitSolidElement() {
-        return hitSolidElement;
+    public int getHitSolidElementId() {
+        return hitSolidElementId;
     }
 
-    protected void setHitSolidElement(int hitSolidElement) {
-        this.hitSolidElement = hitSolidElement;
+    protected void setHitSolidElementId(int hitSolidElementId) {
+        this.hitSolidElementId = hitSolidElementId;
     }
 
-    public int getHitWaterElement() {
-        return hitWaterElement;
+    public int getHitWaterElementId() {
+        return hitWaterElementId;
     }
 
-    protected void setHitWaterElement(int hitWaterElement) {
-        this.hitWaterElement = hitWaterElement;
+    protected void setHitWaterElementId(int hitWaterElementId) {
+        this.hitWaterElementId = hitWaterElementId;
     }
 
-    public int getHitLavaElement() {
-        return hitLavaElement;
+    public int getHitLavaElementId() {
+        return hitLavaElementId;
     }
 
-    protected void setHitLavaElement(int hitLavaElement) {
-        this.hitLavaElement = hitLavaElement;
+    protected void setHitLavaElementId(int hitLavaElementId) {
+        this.hitLavaElementId = hitLavaElementId;
     }
 
     public Color getColor() {
@@ -283,12 +283,12 @@ public class EffectElement implements Comparable<EffectElement> {
         this.fadePercentage = fadePercentage;
     }
 
-    public int getNextEffect() {
-        return nextEffect;
+    public int getNextEffectId() {
+        return nextEffectId;
     }
 
-    protected void setNextEffect(int nextEffect) {
-        this.nextEffect = nextEffect;
+    protected void setNextEffectId(int nextEffectId) {
+        this.nextEffectId = nextEffectId;
     }
 
     @Override
