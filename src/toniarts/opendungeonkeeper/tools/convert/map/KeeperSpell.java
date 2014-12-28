@@ -4,6 +4,8 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import java.util.EnumSet;
+
 /**
  * Container class for KeeperSpells.kwd
  *
@@ -11,12 +13,74 @@ package toniarts.opendungeonkeeper.tools.convert.map;
  */
 public class KeeperSpell implements Comparable<KeeperSpell> {
 
+    /**
+     * Keeper spell flags
+     */
+    public enum KeeperSpellFlag implements IFlagEnum {
+
+        CREATE_WORKER(0x0002),
+        ATTACKING(0x0004),
+        DEFENSIVE(0x0008),
+        DONT_CAST_ON_CREATURES(0x0010);
+        private final long flagValue;
+
+        private KeeperSpellFlag(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
+
     public enum HandAnimId implements IValueEnum {
 
         NULL(0),
         POINT(1);
 
         private HandAnimId(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private int id;
+    }
+
+    public enum CastRule implements IValueEnum {
+
+        NONE(0),
+        OWN_LAND(1),
+        OWN_AND_NEUTRAL_LAND(2),
+        ENEMY_LAND(3),
+        ANY_LAND(4),
+        ANYWHERE(5);
+
+        private CastRule(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private int id;
+    }
+
+    public enum TargetRule implements IValueEnum {
+
+        NONE(0),
+        OWN_CREATURES(1),
+        ENEMY_CREATURES(2),
+        ALL_CREATURES(3),
+        LAND(4),
+        ALL(5),
+        POSESSION(6);
+
+        private TargetRule(int id) {
             this.id = id;
         }
 
@@ -63,13 +127,13 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
     private ArtResource guiIcon;
     private ArtResource editorIcon; // ??
     private int xc8;
-    private int xcc;
+    private float rechargeTime; // In turns??
     private int shotData1;
     private int shotData2;
     private int researchTime;
-    private short xda;
+    private TargetRule targetRule;
     private short orderInEditor; // introductionIndex in editor;
-    private int xdc;
+    private EnumSet<KeeperSpellFlag> flags;
     private int xe0Unreferenced; // e0
     private int manaDrain;
     private int tooltipStringId;
@@ -78,8 +142,8 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
     private int strengthStringId;
     private int weaknessStringId;
     private short keeperSpellId; // ee
-    private short xef;
-    private short xf0;
+    private CastRule castRule;
+    private short shotTypeId; // Shot
     private String soundGategory; // xf1
     // Bonus update
     private int bonusRTime;
@@ -124,12 +188,12 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
         this.xc8 = xc8;
     }
 
-    public int getXcc() {
-        return xcc;
+    public float getRechargeTime() {
+        return rechargeTime;
     }
 
-    protected void setXcc(int xcc) {
-        this.xcc = xcc;
+    protected void setRechargeTime(float rechargeTime) {
+        this.rechargeTime = rechargeTime;
     }
 
     public int getShotData1() {
@@ -156,12 +220,12 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
         this.researchTime = researchTime;
     }
 
-    public short getXda() {
-        return xda;
+    public TargetRule getTargetRule() {
+        return targetRule;
     }
 
-    protected void setXda(short xda) {
-        this.xda = xda;
+    protected void setTargetRule(TargetRule targetRule) {
+        this.targetRule = targetRule;
     }
 
     public short getOrderInEditor() {
@@ -172,12 +236,12 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
         this.orderInEditor = orderInEditor;
     }
 
-    public int getXdc() {
-        return xdc;
+    public EnumSet<KeeperSpellFlag> getFlags() {
+        return flags;
     }
 
-    protected void setXdc(int xdc) {
-        this.xdc = xdc;
+    protected void setFlags(EnumSet<KeeperSpellFlag> flags) {
+        this.flags = flags;
     }
 
     public int getXe0Unreferenced() {
@@ -244,20 +308,20 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
         this.keeperSpellId = keeperSpellId;
     }
 
-    public short getXef() {
-        return xef;
+    public CastRule getCastRule() {
+        return castRule;
     }
 
-    protected void setXef(short xef) {
-        this.xef = xef;
+    protected void setCastRule(CastRule castRule) {
+        this.castRule = castRule;
     }
 
-    public short getXf0() {
-        return xf0;
+    public short getShotTypeId() {
+        return shotTypeId;
     }
 
-    protected void setXf0(short xf0) {
-        this.xf0 = xf0;
+    protected void setShotTypeId(short shotTypeId) {
+        this.shotTypeId = shotTypeId;
     }
 
     public String getSoundGategory() {

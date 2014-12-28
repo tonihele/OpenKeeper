@@ -1624,13 +1624,13 @@ public class KwdFile {
             keeperSpell.setGuiIcon(readArtResource(file));
             keeperSpell.setEditorIcon(readArtResource(file));
             keeperSpell.setXc8(Utils.readInteger(file));
-            keeperSpell.setXcc(Utils.readInteger(file));
+            keeperSpell.setRechargeTime(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             keeperSpell.setShotData1(Utils.readInteger(file));
             keeperSpell.setShotData2(Utils.readInteger(file));
             keeperSpell.setResearchTime(Utils.readUnsignedShort(file));
-            keeperSpell.setXda((short) file.readUnsignedByte());
+            keeperSpell.setTargetRule(parseEnum((short) file.readUnsignedByte(), KeeperSpell.TargetRule.class));
             keeperSpell.setOrderInEditor((short) file.readUnsignedByte());
-            keeperSpell.setXdc(Utils.readInteger(file));
+            keeperSpell.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), KeeperSpell.KeeperSpellFlag.class));
             keeperSpell.setXe0Unreferenced(Utils.readUnsignedShort(file));
             keeperSpell.setManaDrain(Utils.readUnsignedShort(file));
             keeperSpell.setTooltipStringId(Utils.readUnsignedShort(file));
@@ -1639,8 +1639,8 @@ public class KwdFile {
             keeperSpell.setStrengthStringId(Utils.readUnsignedShort(file));
             keeperSpell.setWeaknessStringId(Utils.readUnsignedShort(file));
             keeperSpell.setKeeperSpellId((short) file.readUnsignedByte());
-            keeperSpell.setXef((short) file.readUnsignedByte());
-            keeperSpell.setXf0((short) file.readUnsignedByte());
+            keeperSpell.setCastRule(parseEnum((short) file.readUnsignedByte(), KeeperSpell.CastRule.class));
+            keeperSpell.setShotTypeId((short) file.readUnsignedByte());
             bytes = new byte[32];
             file.read(bytes);
             keeperSpell.setSoundGategory(Utils.bytesToString(bytes).trim());
