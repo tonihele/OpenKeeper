@@ -141,11 +141,11 @@ public class Effect implements Comparable<Effect> {
     private int maxHp; // bc
     private int fadeDuration; // be
 // might be a repeatable block
-    private int nextEffect; // c0
-    private int deathEffect; // c2
-    private int hitSolidEffect; // c4
-    private int hitWaterEffect; // c6
-    private int hitLavaEffect; // c8
+    private int nextEffectId; // c0
+    private int deathEffectId; // c2
+    private int hitSolidEffectId; // c4
+    private int hitWaterEffectId; // c6
+    private int hitLavaEffectId; // c8
     // This is all generation data
     private List<Integer> generateIds; // ca elements or effects, depending on flags
     private int outerOriginRange; // da
@@ -309,44 +309,44 @@ public class Effect implements Comparable<Effect> {
         this.fadeDuration = fadeDuration;
     }
 
-    public int getNextEffect() {
-        return nextEffect;
+    public int getNextEffectId() {
+        return nextEffectId;
     }
 
-    protected void setNextEffect(int nextEffect) {
-        this.nextEffect = nextEffect;
+    protected void setNextEffectId(int nextEffectId) {
+        this.nextEffectId = nextEffectId;
     }
 
-    public int getDeathEffect() {
-        return deathEffect;
+    public int getDeathEffectId() {
+        return deathEffectId;
     }
 
-    protected void setDeathEffect(int deathEffect) {
-        this.deathEffect = deathEffect;
+    protected void setDeathEffectId(int deathEffectId) {
+        this.deathEffectId = deathEffectId;
     }
 
-    public int getHitSolidEffect() {
-        return hitSolidEffect;
+    public int getHitSolidEffectId() {
+        return hitSolidEffectId;
     }
 
-    protected void setHitSolidEffect(int hitSolidEffect) {
-        this.hitSolidEffect = hitSolidEffect;
+    protected void setHitSolidEffectId(int hitSolidEffectId) {
+        this.hitSolidEffectId = hitSolidEffectId;
     }
 
-    public int getHitWaterEffect() {
-        return hitWaterEffect;
+    public int getHitWaterEffectId() {
+        return hitWaterEffectId;
     }
 
-    protected void setHitWaterEffect(int hitWaterEffect) {
-        this.hitWaterEffect = hitWaterEffect;
+    protected void setHitWaterEffectId(int hitWaterEffectId) {
+        this.hitWaterEffectId = hitWaterEffectId;
     }
 
-    public int getHitLavaEffect() {
-        return hitLavaEffect;
+    public int getHitLavaEffectId() {
+        return hitLavaEffectId;
     }
 
-    protected void setHitLavaEffect(int hitLavaEffect) {
-        this.hitLavaEffect = hitLavaEffect;
+    protected void setHitLavaEffectId(int hitLavaEffectId) {
+        this.hitLavaEffectId = hitLavaEffectId;
     }
 
     public List<Integer> getGenerateIds() {
