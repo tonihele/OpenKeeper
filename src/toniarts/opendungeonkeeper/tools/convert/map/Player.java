@@ -239,17 +239,17 @@ public class Player implements Comparable<Player> {
     private boolean ai; // x04, I suspect that this is AI = 1, Human player = 0
     // All AI related parameters
     private AIType aiType; // x08, byte
-    private short speed; // Misc
-    private short openness; // Misc, percentage
-    private short removeCallToArmsIfTotalCreaturesLessThan; // Battles
-    private short buildLostRoomAfterSeconds; // Rooms
+    private short speed; // Misc, byte
+    private short openness; // Misc, byte, percentage
+    private short removeCallToArmsIfTotalCreaturesLessThan; // Battles, byte
+    private short buildLostRoomAfterSeconds; // Rooms, byte
     private short unknown1[]; // 3 bytes
     private boolean createEmptyAreasWhenIdle; // Rooms, hmm int
     private boolean buildBiggerLairAfterClaimingPortal; // Rooms, hmm int
     private boolean sellCapturedRoomsIfLowOnGold; // Rooms, hmm int
     private short minTimeBeforePlacingResearchedRoom; // Rooms
-    private short defaultSize; // Rooms, in square tiles
-    private short tilesLeftBetweenRooms; // Rooms
+    private short defaultSize; // Rooms, byte, in square tiles
+    private short tilesLeftBetweenRooms; // Rooms, byte
     private Distance distanceBetweenRoomsThatShouldBeCloseMan; // Rooms, byte
     private CorridorStyle corridorStyle; // Rooms, byte
     private RoomExpandPolicy whenMoreSpaceInRoomRequired; // Rooms, byte
