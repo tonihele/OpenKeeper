@@ -192,10 +192,8 @@ public class Shot implements Comparable<Shot> {
     private float airFriction;
     private float mass;
     private float speed; // Fixed point int
-    private int data1; // Unsigned short
-    private short unknown1[]; // 2
-    private int data2; // Unsigned short
-    private short unknown2[]; // 2
+    private int data1; // Unsigned short, the 2 bytes following are either padding etc. but zero
+    private int data2; // Unsigned short, the 2 bytes following are either padding etc. but zero
     private EnumSet<ShotProcessFlag> shotProcessFlags; // Int
     private float radius; // Fixed point int
     private EnumSet<ShotFlag> flags; // Int
@@ -279,28 +277,12 @@ public class Shot implements Comparable<Shot> {
         this.data1 = data1;
     }
 
-    public short[] getUnknown1() {
-        return unknown1;
-    }
-
-    protected void setUnknown1(short[] unknown1) {
-        this.unknown1 = unknown1;
-    }
-
     public int getData2() {
         return data2;
     }
 
     protected void setData2(int data2) {
         this.data2 = data2;
-    }
-
-    public short[] getUnknown2() {
-        return unknown2;
-    }
-
-    protected void setUnknown2(short[] unknown2) {
-        this.unknown2 = unknown2;
     }
 
     public EnumSet<ShotProcessFlag> getShotProcessFlags() {

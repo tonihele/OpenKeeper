@@ -1978,18 +1978,8 @@ public class KwdFile {
             shot.setAirFriction(Utils.readUnsignedInteger(file) / FIXED_POINT5_DIVISION);
             shot.setMass(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             shot.setSpeed(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            shot.setData1(Utils.readShort(file));
-            short[] unknown1 = new short[2];
-            for (int x = 0; x < unknown1.length; x++) {
-                unknown1[x] = (short) file.readUnsignedByte();
-            }
-            shot.setUnknown1(unknown1);
-            shot.setData2(Utils.readShort(file));
-            short[] unknown2 = new short[2];
-            for (int x = 0; x < unknown2.length; x++) {
-                unknown2[x] = (short) file.readUnsignedByte();
-            }
-            shot.setUnknown2(unknown2);
+            shot.setData1(Utils.readUnsignedInteger(file));
+            shot.setData2(Utils.readUnsignedInteger(file));
             shot.setShotProcessFlags(parseFlagValue(Utils.readUnsignedInteger(file), Shot.ShotProcessFlag.class));
             shot.setRadius(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             shot.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), Shot.ShotFlag.class));
