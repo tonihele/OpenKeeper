@@ -924,51 +924,59 @@ public class KwdFile {
             file.read(bytes);
             room.setName(Utils.bytesToString(bytes).trim());
             room.setGuiIcon(readArtResource(file));
-            room.setRoomIcon(readArtResource(file));
-            room.setComplete(readArtResource(file));
-            ArtResource[] ref = new ArtResource[7];
-            for (int x = 0; x < ref.length; x++) {
-                ref[x] = readArtResource(file);
-            }
-            room.setRef(ref);
-            room.setUnknown1(Utils.readUnsignedInteger(file));
+            room.setEditorIcon(readArtResource(file));
+            room.setCompleteResource(readArtResource(file));
+            room.setStraightResource(readArtResource(file));
+            room.setInsideCornerResource(readArtResource(file));
+            room.setUnknownResource(readArtResource(file));
+            room.setOutsideCornerResource(readArtResource(file));
+            room.setWallResource(readArtResource(file));
+            room.setCapResource(readArtResource(file));
+            room.setCeilingResource(readArtResource(file));
+            room.setCeilingHeight(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             room.setUnknown2(Utils.readUnsignedShort(file));
             room.setTorchIntensity(Utils.readUnsignedShort(file));
-            room.setUnknown3(Utils.readUnsignedInteger(file));
-            room.setX374(Utils.readUnsignedShort(file));
-            room.setX376(Utils.readUnsignedShort(file));
-            room.setX378(Utils.readUnsignedShort(file));
-            room.setX37a(Utils.readUnsignedShort(file));
-            room.setX37c(Utils.readUnsignedShort(file));
-            room.setX37e(Utils.readUnsignedShort(file));
+            room.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), Room.RoomFlag.class));
+            room.setTooltipStringId(Utils.readUnsignedShort(file));
+            room.setNameStringId(Utils.readUnsignedShort(file));
+            room.setCost(Utils.readUnsignedShort(file));
+            room.setFightEffectId(Utils.readUnsignedShort(file));
+            room.setGeneralDescriptionStringId(Utils.readUnsignedShort(file));
+            room.setStrengthStringId(Utils.readUnsignedShort(file));
             room.setTorchRadius(Utils.readUnsignedShort(file) / FIXED_POINT_DIVISION);
-            int[] effects = new int[8];
-            for (int x = 0; x < effects.length; x++) {
-                effects[x] = Utils.readUnsignedShort(file);
+            List<Integer> effects = new ArrayList<>(8);
+            for (int x = 0; x < 8; x++) {
+                int effectId = Utils.readUnsignedShort(file);
+                if (effectId > 0) {
+                    effects.add(effectId);
+                }
             }
             room.setEffects(effects);
             room.setRoomId((short) file.readUnsignedByte());
             room.setUnknown7((short) file.readUnsignedByte());
             room.setTerrainId((short) file.readUnsignedByte());
-            room.setTileConstruction((short) file.readUnsignedByte());
-            room.setUnknown8((short) file.readUnsignedByte());
-            room.setTorchColor(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte()));
-            short[] objects = new short[8];
-            for (int x = 0; x < objects.length; x++) {
-                objects[x] = (short) file.readUnsignedByte();
+            room.setTileConstruction(parseEnum((short) file.readUnsignedByte(), Room.TileConstruction.class));
+            room.setCreatedCreatureId((short) file.readUnsignedByte());
+            room.setTorchColor(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte())); // This is the editor is rather weird
+            List<Short> objects = new ArrayList<>(8);
+            for (int x = 0; x < 8; x++) {
+                short objectId = (short) file.readUnsignedByte();
+                if (objectId > 0) {
+                    objects.add(objectId);
+                }
             }
             room.setObjects(objects);
             bytes = new byte[32];
             file.read(bytes);
             room.setSoundCategory(Utils.bytesToString(bytes).trim());
-            room.setX3c2((short) file.readUnsignedByte());
+            room.setOrderInEditor((short) file.readUnsignedByte());
             room.setX3c3((short) file.readUnsignedByte());
             room.setUnknown10(Utils.readUnsignedShort(file));
             room.setUnknown11((short) file.readUnsignedByte());
             room.setTorch(readArtResource(file));
-            room.setX41b((short) file.readUnsignedByte());
-            room.setX41c((short) file.readUnsignedByte());
-            room.setX41d(Utils.readShort(file));
+            room.setRecommendedSizeX((short) file.readUnsignedByte());
+            room.setRecommendedSizeY((short) file.readUnsignedByte());
+            room.setHealthGain(Utils.readShort(file));
 
             // Add to the hash by the room ID
             rooms.put(room.getRoomId(), room);

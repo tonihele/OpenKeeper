@@ -5,17 +5,73 @@
 package toniarts.opendungeonkeeper.tools.convert.map;
 
 import java.awt.Color;
+import java.util.EnumSet;
+import java.util.List;
 
 /**
- * Barely started placeholder for the container class for the Rooms
- *
+ * Container class for the Rooms
  *
  * @author Wizand Petteri Loisko petteri.loisko@gmail.com
  *
  * Thank you https://github.com/werkt
  */
-public class Room {
+public class Room implements Comparable<Room> {
 
+    /**
+     * Room flags
+     */
+    public enum RoomFlag implements IFlagEnum {
+
+        PLACEABLE_ON_WATER(0x0001),
+        PLACEABLE_ON_LAVA(0x0002),
+        PLACEABLE_ON_LAND(0x0004),
+        HAS_WALLS(0x0008),
+        CENTRE(0x0010), // Placement
+        SPECIAL_TILES(0x0020), // Placement
+        NORMAL_TILES(0x0040), // Placement
+        BUILDABLE(0x0080),
+        SPECIAL_WALLS(0x0100), // Placement
+        UNKNOWN(0x0200),
+        HAS_FLAME(0x1000),
+        IS_GOOD(0x2000);
+        private final long flagValue;
+
+        private RoomFlag(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
+
+    public enum TileConstruction implements IValueEnum {
+
+        COMPLETE(1),
+        QUAD(2),
+        _3_BY_3(3),
+        _3_BY_3_ROTATED(4),
+        NORMAL(5),
+        CENTER_POOL(6),
+        DOUBLE_QUAD(7),
+        _5_BY_5_ROTATED(8),
+        HERO_GATE(9),
+        HERO_GATE_TILE(10),
+        HERO_GATE_2_BY_2(11),
+        HERO_GATE_FRONT_END(12),
+        HERO_GATE_3_BY_1(13);
+
+        private TileConstruction(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private int id;
+    }
     //struct RoomBlock {
     //  char name[32]; /* 0 */
     //  ArtResource gui_icon; /* 20 */
@@ -53,37 +109,43 @@ public class Room {
     //};
     private String name; // 0
     private ArtResource guiIcon; // 20
-    private ArtResource roomIcon; // 74
-    private ArtResource complete; // c8
-    private ArtResource[] ref; // 11c
-    private int unknown1; // 368 - very likely flags
+    private ArtResource editorIcon; // 74
+    private ArtResource completeResource; // c8
+    private ArtResource straightResource; // 11c
+    private ArtResource insideCornerResource;
+    private ArtResource unknownResource;
+    private ArtResource outsideCornerResource;
+    private ArtResource wallResource;
+    private ArtResource capResource; // Capture?
+    private ArtResource ceilingResource;
+    private float ceilingHeight; // 368 - very likely flags
     private int unknown2; // 36c
     private int torchIntensity; // 36e
-    private int unknown3; // 370
-    private int x374;
-    private int x376;
-    private int x378;
-    private int x37a;
-    private int x37c;
-    private int x37e;
+    private EnumSet<RoomFlag> flags; // 370
+    private int tooltipStringId;
+    private int nameStringId;
+    private int cost;
+    private int fightEffectId;
+    private int generalDescriptionStringId;
+    private int strengthStringId;
     private float torchRadius; // 380
-    private int[] effects; // 382
+    private List<Integer> effects; // 382, in editor there are just 6
     private short roomId; // 392
     private short unknown7; // 393
     private short terrainId; // 394
-    private short tileConstruction; // 395
-    private short unknown8; // 396
+    private TileConstruction tileConstruction; // 395
+    private short createdCreatureId; // 396
     private Color torchColor; // 397
-    private short[] objects; // 39a
+    private List<Short> objects; // 39a, in editor there are just 6
     private String soundCategory; // 3a2
-    private short x3c2; // 3c2
+    private short orderInEditor; // 3c2
     private short x3c3; // 3c3
     private int unknown10; // 3c4
     private short unknown11; // 3c6
     private ArtResource torch; // 3c7
-    private short x41b; // 41b
-    private short x41c; // 41c
-    private short x41d; // 41d
+    private short recommendedSizeX; // 41b
+    private short recommendedSizeY; // 41c
+    private short healthGain; // 41d
 
     public String getName() {
         return name;
@@ -93,12 +155,12 @@ public class Room {
         this.name = name;
     }
 
-    public int getUnknown1() {
-        return unknown1;
+    public float getCeilingHeight() {
+        return ceilingHeight;
     }
 
-    protected void setUnknown1(int unknown1) {
-        this.unknown1 = unknown1;
+    protected void setCeilingHeight(float ceilingHeight) {
+        this.ceilingHeight = ceilingHeight;
     }
 
     public int getUnknown2() {
@@ -117,60 +179,60 @@ public class Room {
         this.torchIntensity = torchIntensity;
     }
 
-    public int getUnknown3() {
-        return unknown3;
+    public EnumSet<RoomFlag> getFlags() {
+        return flags;
     }
 
-    protected void setUnknown3(int unknown3) {
-        this.unknown3 = unknown3;
+    protected void setFlags(EnumSet<RoomFlag> flags) {
+        this.flags = flags;
     }
 
-    public int getX374() {
-        return x374;
+    public int getTooltipStringId() {
+        return tooltipStringId;
     }
 
-    protected void setX374(int x374) {
-        this.x374 = x374;
+    protected void setTooltipStringId(int tooltipStringId) {
+        this.tooltipStringId = tooltipStringId;
     }
 
-    public int getX376() {
-        return x376;
+    public int getNameStringId() {
+        return nameStringId;
     }
 
-    protected void setX376(int x376) {
-        this.x376 = x376;
+    protected void setNameStringId(int nameStringId) {
+        this.nameStringId = nameStringId;
     }
 
-    public int getX378() {
-        return x378;
+    public int getCost() {
+        return cost;
     }
 
-    protected void setX378(int x378) {
-        this.x378 = x378;
+    protected void setCost(int cost) {
+        this.cost = cost;
     }
 
-    public int getX37a() {
-        return x37a;
+    public int getFightEffectId() {
+        return fightEffectId;
     }
 
-    protected void setX37a(int x37a) {
-        this.x37a = x37a;
+    protected void setFightEffectId(int fightEffectId) {
+        this.fightEffectId = fightEffectId;
     }
 
-    public int getX37c() {
-        return x37c;
+    public int getGeneralDescriptionStringId() {
+        return generalDescriptionStringId;
     }
 
-    protected void setX37c(int x37c) {
-        this.x37c = x37c;
+    protected void setGeneralDescriptionStringId(int generalDescriptionStringId) {
+        this.generalDescriptionStringId = generalDescriptionStringId;
     }
 
-    public int getX37e() {
-        return x37e;
+    public int getStrengthStringId() {
+        return strengthStringId;
     }
 
-    protected void setX37e(int x37e) {
-        this.x37e = x37e;
+    protected void setStrengthStringId(int strengthStringId) {
+        this.strengthStringId = strengthStringId;
     }
 
     public float getTorchRadius() {
@@ -181,11 +243,11 @@ public class Room {
         this.torchRadius = torchRadius;
     }
 
-    public int[] getEffects() {
+    public List<Integer> getEffects() {
         return effects;
     }
 
-    protected void setEffects(int[] effects) {
+    protected void setEffects(List<Integer> effects) {
         this.effects = effects;
     }
 
@@ -209,24 +271,24 @@ public class Room {
         return terrainId;
     }
 
-    protected void setTerrainId(short terrain) {
+    protected void setTerrainId(short terrainId) {
         this.terrainId = terrainId;
     }
 
-    public short getTileConstruction() {
+    public TileConstruction getTileConstruction() {
         return tileConstruction;
     }
 
-    protected void setTileConstruction(short tileConstruction) {
+    protected void setTileConstruction(TileConstruction tileConstruction) {
         this.tileConstruction = tileConstruction;
     }
 
-    public short getUnknown8() {
-        return unknown8;
+    public short getCreatedCreatureId() {
+        return createdCreatureId;
     }
 
-    protected void setUnknown8(short unknown8) {
-        this.unknown8 = unknown8;
+    protected void setCreatedCreatureId(short createdCreatureId) {
+        this.createdCreatureId = createdCreatureId;
     }
 
     public Color getTorchColor() {
@@ -237,11 +299,11 @@ public class Room {
         this.torchColor = torchColor;
     }
 
-    public short[] getObjects() {
+    public List<Short> getObjects() {
         return objects;
     }
 
-    protected void setObjects(short[] objects) {
+    protected void setObjects(List<Short> objects) {
         this.objects = objects;
     }
 
@@ -253,12 +315,12 @@ public class Room {
         this.soundCategory = soundCategory;
     }
 
-    public short getX3c2() {
-        return x3c2;
+    public short getOrderInEditor() {
+        return orderInEditor;
     }
 
-    protected void setX3c2(short x3c2) {
-        this.x3c2 = x3c2;
+    protected void setOrderInEditor(short orderInEditor) {
+        this.orderInEditor = orderInEditor;
     }
 
     public short getX3c3() {
@@ -285,28 +347,28 @@ public class Room {
         this.unknown11 = unknown11;
     }
 
-    public short getX41b() {
-        return x41b;
+    public short getRecommendedSizeX() {
+        return recommendedSizeX;
     }
 
-    protected void setX41b(short x41b) {
-        this.x41b = x41b;
+    protected void setRecommendedSizeX(short recommendedSizeX) {
+        this.recommendedSizeX = recommendedSizeX;
     }
 
-    public short getX41c() {
-        return x41c;
+    public short getRecommendedSizeY() {
+        return recommendedSizeY;
     }
 
-    protected void setX41c(short x41c) {
-        this.x41c = x41c;
+    protected void setRecommendedSizeY(short recommendedSizeY) {
+        this.recommendedSizeY = recommendedSizeY;
     }
 
-    public short getX41d() {
-        return x41d;
+    public short getHealthGain() {
+        return healthGain;
     }
 
-    protected void setX41d(short x41d) {
-        this.x41d = x41d;
+    protected void setHealthGain(short healthGain) {
+        this.healthGain = healthGain;
     }
 
     public ArtResource getGuiIcon() {
@@ -317,28 +379,76 @@ public class Room {
         this.guiIcon = guiIcon;
     }
 
-    public ArtResource getRoomIcon() {
-        return roomIcon;
+    public ArtResource getEditorIcon() {
+        return editorIcon;
     }
 
-    protected void setRoomIcon(ArtResource roomIcon) {
-        this.roomIcon = roomIcon;
+    protected void setEditorIcon(ArtResource editorIcon) {
+        this.editorIcon = editorIcon;
     }
 
-    public ArtResource getComplete() {
-        return complete;
+    public ArtResource getCompleteResource() {
+        return completeResource;
     }
 
-    protected void setComplete(ArtResource complete) {
-        this.complete = complete;
+    protected void setCompleteResource(ArtResource completeResource) {
+        this.completeResource = completeResource;
     }
 
-    public ArtResource[] getRef() {
-        return ref;
+    public ArtResource getStraightResource() {
+        return straightResource;
     }
 
-    protected void setRef(ArtResource[] ref) {
-        this.ref = ref;
+    protected void setStraightResource(ArtResource straightResource) {
+        this.straightResource = straightResource;
+    }
+
+    public ArtResource getInsideCornerResource() {
+        return insideCornerResource;
+    }
+
+    protected void setInsideCornerResource(ArtResource insideCornerResource) {
+        this.insideCornerResource = insideCornerResource;
+    }
+
+    public ArtResource getUnknownResource() {
+        return unknownResource;
+    }
+
+    protected void setUnknownResource(ArtResource unknownResource) {
+        this.unknownResource = unknownResource;
+    }
+
+    public ArtResource getOutsideCornerResource() {
+        return outsideCornerResource;
+    }
+
+    protected void setOutsideCornerResource(ArtResource outsideCornerResource) {
+        this.outsideCornerResource = outsideCornerResource;
+    }
+
+    public ArtResource getWallResource() {
+        return wallResource;
+    }
+
+    protected void setWallResource(ArtResource wallResource) {
+        this.wallResource = wallResource;
+    }
+
+    public ArtResource getCapResource() {
+        return capResource;
+    }
+
+    protected void setCapResource(ArtResource capResource) {
+        this.capResource = capResource;
+    }
+
+    public ArtResource getCeilingResource() {
+        return ceilingResource;
+    }
+
+    protected void setCeilingResource(ArtResource ceilingResource) {
+        this.ceilingResource = ceilingResource;
     }
 
     public ArtResource getTorch() {
@@ -352,5 +462,32 @@ public class Room {
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public int compareTo(Room o) {
+        return Short.compare(orderInEditor, o.orderInEditor);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 19 * hash + this.roomId;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(java.lang.Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Room other = (Room) obj;
+        if (this.roomId != other.roomId) {
+            return false;
+        }
+        return true;
     }
 }
