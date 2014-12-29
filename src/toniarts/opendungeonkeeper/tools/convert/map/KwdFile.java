@@ -700,7 +700,8 @@ public class KwdFile {
     }
 
     /**
-     * Reads and parses an ArtResource object from the current file location
+     * Reads and parses an ArtResource object from the current file location (84
+     * bytes)
      *
      * @param file the file stream to parse from
      * @return an ArtResource
@@ -1428,7 +1429,8 @@ public class KwdFile {
     }
 
     /**
-     * Reads and parses an Light object from the current file location
+     * Reads and parses an Light object from the current file location (24
+     * bytes)
      *
      * @param file the file stream to parse from
      * @return a Light
@@ -1971,11 +1973,49 @@ public class KwdFile {
             byte[] bytes = new byte[32];
             file.read(bytes);
             shot.setName(Utils.bytesToString(bytes).trim());
+            shot.setMeshResource(readArtResource(file));
 
-            // The ID is probably a uint8 @ 190
-            file.skipBytes(158);
+            short[] unknown1 = new short[32];
+            for (int x = 0; x < unknown1.length; x++) {
+                unknown1[x] = (short) file.readUnsignedByte();
+            }
+            shot.setUnknown1(unknown1);
+            shot.setSpeed(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            shot.setData1(Utils.readShort(file));
+            short[] unknown2 = new short[10];
+            for (int x = 0; x < unknown2.length; x++) {
+                unknown2[x] = (short) file.readUnsignedByte();
+            }
+            shot.setUnknown2(unknown2);
+            shot.setRadius(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            short[] unknown3 = new short[20];
+            for (int x = 0; x < unknown3.length; x++) {
+                unknown3[x] = (short) file.readUnsignedByte();
+            }
+            shot.setUnknown3(unknown3);
+            shot.setHealth(Utils.readUnsignedShort(file));
             shot.setShotId((short) file.readUnsignedByte());
-            file.skipBytes(48);
+            short[] unknown4 = new short[6];
+            for (int x = 0; x < unknown4.length; x++) {
+                unknown4[x] = (short) file.readUnsignedByte();
+            }
+            shot.setUnknown4(unknown4);
+            shot.setDamageType(parseEnum((short) file.readUnsignedByte(), Shot.DamageType.class));
+            shot.setCollideType(parseEnum((short) file.readUnsignedByte(), Shot.CollideType.class));
+            short[] unknown5 = new short[2];
+            for (int x = 0; x < unknown5.length; x++) {
+                unknown5[x] = (short) file.readUnsignedByte();
+            }
+            shot.setUnknown5(unknown5);
+            bytes = new byte[32];
+            file.read(bytes);
+            shot.setSoundCategory(Utils.bytesToString(bytes).trim());
+            shot.setThreat(Utils.readUnsignedShort(file));
+            short[] unknown6 = new short[4];
+            for (int x = 0; x < unknown6.length; x++) {
+                unknown6[x] = (short) file.readUnsignedByte();
+            }
+            shot.setUnknown6(unknown6);
 
             // Add to the hash by the shot ID
             shots.put(shot.getShotId(), shot);
