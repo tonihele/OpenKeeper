@@ -1974,48 +1974,50 @@ public class KwdFile {
             file.read(bytes);
             shot.setName(Utils.bytesToString(bytes).trim());
             shot.setMeshResource(readArtResource(file));
-
-            short[] unknown1 = new short[32];
+            shot.setLight(readLight(file));
+            shot.setAirFriction(Utils.readUnsignedInteger(file) / FIXED_POINT5_DIVISION);
+            shot.setMass(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            shot.setSpeed(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            shot.setData1(Utils.readShort(file));
+            short[] unknown1 = new short[2];
             for (int x = 0; x < unknown1.length; x++) {
                 unknown1[x] = (short) file.readUnsignedByte();
             }
             shot.setUnknown1(unknown1);
-            shot.setSpeed(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            shot.setData1(Utils.readShort(file));
-            short[] unknown2 = new short[10];
+            shot.setData2(Utils.readShort(file));
+            short[] unknown2 = new short[2];
             for (int x = 0; x < unknown2.length; x++) {
                 unknown2[x] = (short) file.readUnsignedByte();
             }
             shot.setUnknown2(unknown2);
+            shot.setShotProcessFlags(parseFlagValue(Utils.readUnsignedInteger(file), Shot.ShotProcessFlag.class));
             shot.setRadius(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            short[] unknown3 = new short[20];
-            for (int x = 0; x < unknown3.length; x++) {
-                unknown3[x] = (short) file.readUnsignedByte();
-            }
-            shot.setUnknown3(unknown3);
+            shot.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), Shot.ShotFlag.class));
+            shot.setGeneralEffectId(Utils.readUnsignedShort(file));
+            shot.setCreationEffectId(Utils.readUnsignedShort(file));
+            shot.setDeathEffectId(Utils.readUnsignedShort(file));
+            shot.setTimedEffectId(Utils.readUnsignedShort(file));
+            shot.setHitSolidEffectId(Utils.readUnsignedShort(file));
+            shot.setHitLavaEffectId(Utils.readUnsignedShort(file));
+            shot.setHitWaterEffect(Utils.readUnsignedShort(file));
+            shot.setHitThingEffectId(Utils.readUnsignedShort(file));
             shot.setHealth(Utils.readUnsignedShort(file));
             shot.setShotId((short) file.readUnsignedByte());
-            short[] unknown4 = new short[6];
-            for (int x = 0; x < unknown4.length; x++) {
-                unknown4[x] = (short) file.readUnsignedByte();
-            }
-            shot.setUnknown4(unknown4);
+            shot.setDeathShotId((short) file.readUnsignedByte());
+            shot.setTimedDelay((short) file.readUnsignedByte());
+            shot.setHitSolidShotId((short) file.readUnsignedByte());
+            shot.setHitLavaShotId((short) file.readUnsignedByte());
+            shot.setHitWaterShotId((short) file.readUnsignedByte());
+            shot.setHitThingShotId((short) file.readUnsignedByte());
             shot.setDamageType(parseEnum((short) file.readUnsignedByte(), Shot.DamageType.class));
             shot.setCollideType(parseEnum((short) file.readUnsignedByte(), Shot.CollideType.class));
-            short[] unknown5 = new short[2];
-            for (int x = 0; x < unknown5.length; x++) {
-                unknown5[x] = (short) file.readUnsignedByte();
-            }
-            shot.setUnknown5(unknown5);
+            shot.setProcessType(parseEnum((short) file.readUnsignedByte(), Shot.ProcessType.class));
+            shot.setAttackCategory(parseEnum((short) file.readUnsignedByte(), Shot.AttackCategory.class));
             bytes = new byte[32];
             file.read(bytes);
             shot.setSoundCategory(Utils.bytesToString(bytes).trim());
             shot.setThreat(Utils.readUnsignedShort(file));
-            short[] unknown6 = new short[4];
-            for (int x = 0; x < unknown6.length; x++) {
-                unknown6[x] = (short) file.readUnsignedByte();
-            }
-            shot.setUnknown6(unknown6);
+            shot.setBurnDuration(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
 
             // Add to the hash by the shot ID
             shots.put(shot.getShotId(), shot);
