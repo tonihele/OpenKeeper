@@ -11,7 +11,8 @@ import java.util.List;
 /**
  * Container class for the Rooms
  *
- * @author Wizand Petteri Loisko petteri.loisko@gmail.com
+ * @author Wizand Petteri Loisko petteri.loisko@gmail.com, Toni Helenius
+ * <helenius.toni@gmail.com>
  *
  * Thank you https://github.com/werkt
  */

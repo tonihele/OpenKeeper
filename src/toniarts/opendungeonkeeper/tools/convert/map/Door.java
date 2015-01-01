@@ -9,8 +9,8 @@ import java.util.EnumSet;
 /**
  * Stub for the container class for the Doors.kwd
  *
- *
- * @author Wizand Petteri Loisko petteri.loisko@gmail.com
+ * @author Wizand Petteri Loisko petteri.loisko@gmail.com, Toni Helenius
+ * <helenius.toni@gmail.com>
  *
  * Thank you https://github.com/werkt
  */
