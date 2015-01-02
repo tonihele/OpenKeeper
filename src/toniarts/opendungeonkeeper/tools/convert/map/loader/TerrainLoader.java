@@ -24,10 +24,10 @@ public class TerrainLoader implements ILoader<Terrain> {
         Node root = new Node(object.getName());
 
         // Add the top
-        root.attachChild(assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + object.getTop().getName() + ".j3o"));
+        root.attachChild(assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + object.getTopResource().getName() + ".j3o"));
 
         // The sides
-        Spatial side = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + object.getSide().getName() + ".j3o");
+        Spatial side = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + object.getSideResource().getName() + ".j3o");
         root.attachChild(side);
 
         return root;
