@@ -888,16 +888,26 @@ public class KwdFile {
             byte[] bytes = new byte[32];
             file.read(bytes);
             trap.setName(Utils.bytesToString(bytes).trim());
-            ArtResource[] ref = new ArtResource[5];
-            for (int x = 0; x < ref.length; x++) {
-                ref[x] = readArtResource(file);
+            trap.setMeshResource(readArtResource(file));
+            trap.setGuiIcon(readArtResource(file));
+            trap.setEditorIcon(readArtResource(file));
+            trap.setFlowerIcon(readArtResource(file));
+            trap.setFireResource(readArtResource(file));
+            trap.setHeight(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            trap.setRechargeTime(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            short[] unknown1 = new short[67];
+            for (int x = 0; x < unknown1.length; x++) {
+                unknown1[x] = (short) file.readUnsignedByte();
             }
-            trap.setRef(ref);
-            short[] data = new short[127];
-            for (int x = 0; x < data.length; x++) {
-                data[x] = (short) file.readUnsignedByte();
+            trap.setUnknown1(unknown1);
+            bytes = new byte[32];
+            file.read(bytes);
+            trap.setSoundCategory(Utils.bytesToString(bytes).trim());
+            short[] unknown2 = new short[20];
+            for (int x = 0; x < unknown2.length; x++) {
+                unknown2[x] = (short) file.readUnsignedByte();
             }
-            trap.setData(data);
+            trap.setUnknown2(unknown2);
 
             traps.add(trap);
 
