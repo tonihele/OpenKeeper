@@ -4,6 +4,8 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import java.util.EnumSet;
+import java.util.List;
 import javax.vecmath.Vector3f;
 
 /**
@@ -24,64 +26,85 @@ public abstract class Thing {
 //        uint8_t x17;
 //        char name[32]; /* 18 */
 //        };
-    public class ActionPoint extends Thing {
+    public static class ActionPoint extends Thing implements Comparable<ActionPoint> {
 
-        private int x00;
-        private int x04;
-        private int x08;
-        private int x0c;
-        private int x10;
-        private int x14;
+        /**
+         * ActionPoint flags
+         */
+        public enum ActionPointFlag implements IFlagEnum {
+
+            HERO_LAIR(0x001),
+            UNKNOWN(0x004),
+            REVEAL_THROUGH_FOG_OF_WALL(0x010),
+            TOOL_BOX(0x020),
+            IGNORE_SOLID(0x040);
+            private final long flagValue;
+
+            private ActionPointFlag(long flagValue) {
+                this.flagValue = flagValue;
+            }
+
+            @Override
+            public long getFlagValue() {
+                return flagValue;
+            }
+        };
+        private int startX; // 0-based coordinate
+        private int startY; // 0-based coordinate
+        private int endX; // 0-based coordinate
+        private int endY; // 0-based coordinate
+        private int waitDelay;
+        private EnumSet<ActionPointFlag> flags;
         private short id; // 16
-        private short x17;
-        private String name; // 18
+        private short nextWaypointId; // Is always another ActionPoint?
+        private String name; // 18 <- Always just shit
 
-        public int getX00() {
-            return x00;
+        public int getStartX() {
+            return startX;
         }
 
-        protected void setX00(int x00) {
-            this.x00 = x00;
+        protected void setStartX(int startX) {
+            this.startX = startX;
         }
 
-        public int getX04() {
-            return x04;
+        public int getStartY() {
+            return startY;
         }
 
-        protected void setX04(int x04) {
-            this.x04 = x04;
+        protected void setStartY(int startY) {
+            this.startY = startY;
         }
 
-        public int getX08() {
-            return x08;
+        public int getEndX() {
+            return endX;
         }
 
-        protected void setX08(int x08) {
-            this.x08 = x08;
+        protected void setEndX(int endX) {
+            this.endX = endX;
         }
 
-        public int getX0c() {
-            return x0c;
+        public int getEndY() {
+            return endY;
         }
 
-        protected void setX0c(int x0c) {
-            this.x0c = x0c;
+        protected void setEndY(int endY) {
+            this.endY = endY;
         }
 
-        public int getX10() {
-            return x10;
+        public int getWaitDelay() {
+            return waitDelay;
         }
 
-        protected void setX10(int x10) {
-            this.x10 = x10;
+        protected void setWaitDelay(int waitDelay) {
+            this.waitDelay = waitDelay;
         }
 
-        public int getX14() {
-            return x14;
+        public EnumSet<ActionPointFlag> getFlags() {
+            return flags;
         }
 
-        protected void setX14(int x14) {
-            this.x14 = x14;
+        protected void setFlags(EnumSet<ActionPointFlag> flags) {
+            this.flags = flags;
         }
 
         public short getId() {
@@ -92,12 +115,12 @@ public abstract class Thing {
             this.id = id;
         }
 
-        public short getX17() {
-            return x17;
+        public short getNextWaypointId() {
+            return nextWaypointId;
         }
 
-        protected void setX17(short x17) {
-            this.x17 = x17;
+        protected void setNextWaypointId(short nextWaypointId) {
+            this.nextWaypointId = nextWaypointId;
         }
 
         public String getName() {
@@ -110,7 +133,34 @@ public abstract class Thing {
 
         @Override
         public String toString() {
-            return name;
+            return "[ID " + id + "] Action Point " + id + " [" + (startX + 1) + "," + (startY + 1) + "] - [" + (endX + 1) + "," + (endY + 1) + "]";
+        }
+
+        @Override
+        public int compareTo(ActionPoint o) {
+            return Short.compare(id, o.id);
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 73 * hash + this.id;
+            return hash;
+        }
+
+        @Override
+        public boolean equals(java.lang.Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final ActionPoint other = (ActionPoint) obj;
+            if (this.id != other.id) {
+                return false;
+            }
+            return true;
         }
     }
 
@@ -125,7 +175,7 @@ public abstract class Thing {
 //        uint8_t id; /* 1a */
 //        uint8_t x1b; /* player id */
 //        };
-    public class Thing03 extends Thing {
+    public static class Thing03 extends Thing {
 
         private Vector3f pos;
         private int x0c;
@@ -223,7 +273,7 @@ public abstract class Thing {
 //        uint8_t x12;
 //        uint8_t x13;
 //        };
-    public class Thing11 extends Thing {
+    public static class Thing11 extends Thing {
 
         private int x00;
         private int x04;
@@ -327,7 +377,7 @@ public abstract class Thing {
 //        uint8_t x52;
 //        };
 
-    public class Thing12 extends Thing {
+    public static class Thing12 extends Thing {
 
         private Vector3f x00;
         private Vector3f x0c;
@@ -492,14 +542,37 @@ public abstract class Thing {
 //    int32_t x27;
 //    HeroPartyData x2b[16];
 //    };
-    public class Thing08 extends Thing {
+    public static class HeroParty extends Thing implements Comparable<HeroParty> {
 
-        private String name;
+        public enum Objective implements IValueEnum {
+
+            DESTROY_ROOMS(11),
+            DESTROY_WALLS(12),
+            STEAL_GOLD(13),
+            STEAL_SPELLS(14),
+            STEAL_MAFUFACTURE_CRATES(17),
+            KILL_CREATURES(18),
+            KILL_PLAYER(19),
+            WAIT(22),
+            SEND_TO_ACTION_POINT(23),
+            JAIL_BREAK(27);
+
+            private Objective(int id) {
+                this.id = id;
+            }
+
+            @Override
+            public int getValue() {
+                return id;
+            }
+            private int id;
+        }
+        private String name; // Always shit
         private int x20;
-        private short x22;
+        private short id; // I assume, autoincremental 0-based
         private int x23; // these two are unreferenced...
         private int x27;
-        HeroPartyData x2b[];
+        private List<HeroPartyData> heroPartyMembers; // 16 at max
 
         public String getName() {
             return name;
@@ -517,12 +590,12 @@ public abstract class Thing {
             this.x20 = x20;
         }
 
-        public short getX22() {
-            return x22;
+        public short getId() {
+            return id;
         }
 
-        protected void setX22(short x22) {
-            this.x22 = x22;
+        protected void setId(short id) {
+            this.id = id;
         }
 
         public int getX23() {
@@ -541,17 +614,44 @@ public abstract class Thing {
             this.x27 = x27;
         }
 
-        public HeroPartyData[] getX2b() {
-            return x2b;
+        public List<HeroPartyData> getHeroPartyMembers() {
+            return heroPartyMembers;
         }
 
-        protected void setX2b(HeroPartyData[] x2b) {
-            this.x2b = x2b;
+        protected void setHeroPartyMembers(List<HeroPartyData> heroPartyMembers) {
+            this.heroPartyMembers = heroPartyMembers;
         }
 
         @Override
         public String toString() {
-            return name;
+            return "Hero Party " + (id + 1);
+        }
+
+        @Override
+        public int compareTo(HeroParty o) {
+            return Short.compare(id, o.id);
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 5;
+            hash = 71 * hash + this.id;
+            return hash;
+        }
+
+        @Override
+        public boolean equals(java.lang.Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final HeroParty other = (HeroParty) obj;
+            if (this.id != other.id) {
+                return false;
+            }
+            return true;
         }
 
 //        struct HeroPartyData {
@@ -571,20 +671,23 @@ public abstract class Thing {
 //            uint8_t x1e;
 //            uint8_t x1f;
 //            };
+        /**
+         * Represents the party members
+         */
         public class HeroPartyData {
 
             private int x00;
             private int x04;
             private int x08;
             private int goldHeld;
-            private short x0e; // level
+            private short level; // level
             private short x0f;
-            private int x10;
+            private int objectiveTargetActionPointId;
             private int initialHealth;
             private int x18; // trigger root
-            private short x1a;
-            private short x1b;
-            private short x1c;
+            private short objectiveTargetPlayerId;
+            private Objective objective;
+            private short creatureId;
             private short x1d;
             private short x1e;
             private short x1f;
@@ -621,12 +724,12 @@ public abstract class Thing {
                 this.goldHeld = goldHeld;
             }
 
-            public short getX0e() {
-                return x0e;
+            public short getLevel() {
+                return level;
             }
 
-            protected void setX0e(short x0e) {
-                this.x0e = x0e;
+            protected void setLevel(short level) {
+                this.level = level;
             }
 
             public short getX0f() {
@@ -637,12 +740,12 @@ public abstract class Thing {
                 this.x0f = x0f;
             }
 
-            public int getX10() {
-                return x10;
+            public int getObjectiveTargetActionPointId() {
+                return objectiveTargetActionPointId;
             }
 
-            protected void setX10(int x10) {
-                this.x10 = x10;
+            protected void setObjectiveTargetActionPointId(int objectiveTargetActionPointId) {
+                this.objectiveTargetActionPointId = objectiveTargetActionPointId;
             }
 
             public int getInitialHealth() {
@@ -661,28 +764,28 @@ public abstract class Thing {
                 this.x18 = x18;
             }
 
-            public short getX1a() {
-                return x1a;
+            public short getObjectiveTargetPlayerId() {
+                return objectiveTargetPlayerId;
             }
 
-            protected void setX1a(short x1a) {
-                this.x1a = x1a;
+            protected void setObjectiveTargetPlayerId(short objectiveTargetPlayerId) {
+                this.objectiveTargetPlayerId = objectiveTargetPlayerId;
             }
 
-            public short getX1b() {
-                return x1b;
+            public Objective getObjective() {
+                return objective;
             }
 
-            protected void setX1b(short x1b) {
-                this.x1b = x1b;
+            protected void setObjective(Objective objective) {
+                this.objective = objective;
             }
 
-            public short getX1c() {
-                return x1c;
+            public short getCreatureId() {
+                return creatureId;
             }
 
-            protected void setX1c(short x1c) {
-                this.x1c = x1c;
+            protected void setCreatureId(short creatureId) {
+                this.creatureId = creatureId;
             }
 
             public short getX1d() {
@@ -723,7 +826,7 @@ public abstract class Thing {
 //        uint8_t x1d;
 //        uint8_t pad[6];
 //        };
-    public class Thing10 extends Thing {
+    public static class Thing10 extends Thing {
 
         private int x00;
         private int x04;

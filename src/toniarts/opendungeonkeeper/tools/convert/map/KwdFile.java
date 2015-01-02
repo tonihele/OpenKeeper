@@ -54,9 +54,10 @@ import static toniarts.opendungeonkeeper.tools.convert.map.MapDataTypeEnum.TRIGG
 import static toniarts.opendungeonkeeper.tools.convert.map.MapDataTypeEnum.VARIABLES;
 import toniarts.opendungeonkeeper.tools.convert.map.Object;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.ActionPoint;
+import toniarts.opendungeonkeeper.tools.convert.map.Thing.ActionPoint.ActionPointFlag;
+import toniarts.opendungeonkeeper.tools.convert.map.Thing.HeroParty;
+import toniarts.opendungeonkeeper.tools.convert.map.Thing.HeroParty.HeroPartyData;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing03;
-import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing08;
-import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing08.HeroPartyData;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing10;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing11;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing12;
@@ -1814,8 +1815,7 @@ public class KwdFile {
         logger.info("Reading things!");
         things = new ArrayList<>(header.getItemCount());
         for (int i = 0; i < header.getItemCount(); i++) {
-            Thing thing = new Thing() {
-            };
+            Thing thing = null;
             int[] thingTag = new int[2];
             for (int x = 0; x < thingTag.length; x++) {
                 thingTag[x] = Utils.readUnsignedInteger(file);
@@ -1844,15 +1844,15 @@ public class KwdFile {
                 case 197: {
 
                     // ActionPoint
-                    thing = thing.new ActionPoint();
-                    ((ActionPoint) thing).setX00(Utils.readInteger(file));
-                    ((ActionPoint) thing).setX04(Utils.readInteger(file));
-                    ((ActionPoint) thing).setX08(Utils.readInteger(file));
-                    ((ActionPoint) thing).setX0c(Utils.readInteger(file));
-                    ((ActionPoint) thing).setX10(Utils.readInteger(file));
-                    ((ActionPoint) thing).setX14(Utils.readUnsignedShort(file));
+                    thing = new ActionPoint();
+                    ((ActionPoint) thing).setStartX(Utils.readInteger(file));
+                    ((ActionPoint) thing).setStartY(Utils.readInteger(file));
+                    ((ActionPoint) thing).setEndX(Utils.readInteger(file));
+                    ((ActionPoint) thing).setEndY(Utils.readInteger(file));
+                    ((ActionPoint) thing).setWaitDelay(Utils.readUnsignedShort(file));
+                    ((ActionPoint) thing).setFlags(parseFlagValue(Utils.readInteger(file), ActionPointFlag.class));
                     ((ActionPoint) thing).setId((short) file.readUnsignedByte());
-                    ((ActionPoint) thing).setX17((short) file.readUnsignedByte());
+                    ((ActionPoint) thing).setNextWaypointId((short) file.readUnsignedByte());
                     byte[] bytes = new byte[32];
                     file.read(bytes);
                     ((ActionPoint) thing).setName(Utils.bytesToString(bytes).trim());
@@ -1873,7 +1873,7 @@ public class KwdFile {
                 case 200: {
 
                     // Thing03
-                    thing = thing.new Thing03();
+                    thing = new Thing03();
                     ((Thing03) thing).setPos(new Vector3f(Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION));
                     ((Thing03) thing).setX0c(Utils.readUnsignedShort(file));
                     ((Thing03) thing).setX0e((short) file.readUnsignedByte());
@@ -1887,42 +1887,46 @@ public class KwdFile {
                 }
                 case 201: {
 
-                    // Thing08 -- not tested
-                    thing = thing.new Thing08();
+                    // HeroParty
+                    thing = new HeroParty();
                     byte[] bytes = new byte[32];
                     file.read(bytes);
-                    ((Thing08) thing).setName(Utils.bytesToString(bytes).trim());
-                    ((Thing08) thing).setX20(Utils.readUnsignedShort(file));
-                    ((Thing08) thing).setX22((short) file.readUnsignedByte());
-                    ((Thing08) thing).setX23(Utils.readInteger(file));
-                    ((Thing08) thing).setX27(Utils.readInteger(file));
-                    HeroPartyData[] x2b = new HeroPartyData[16];
-                    for (int x = 0; x < x2b.length; x++) {
-                        HeroPartyData heroPartyData = ((Thing08) thing).new HeroPartyData();
+                    ((HeroParty) thing).setName(Utils.bytesToString(bytes).trim());
+                    ((HeroParty) thing).setX20(Utils.readUnsignedShort(file));
+                    ((HeroParty) thing).setId((short) file.readUnsignedByte());
+                    ((HeroParty) thing).setX23(Utils.readInteger(file));
+                    ((HeroParty) thing).setX27(Utils.readInteger(file));
+                    List<HeroPartyData> heroPartyMembers = new ArrayList<>(16);
+                    for (int x = 0; x < 16; x++) {
+                        HeroPartyData heroPartyData = ((HeroParty) thing).new HeroPartyData();
                         heroPartyData.setX00(Utils.readInteger(file));
                         heroPartyData.setX04(Utils.readInteger(file));
                         heroPartyData.setX08(Utils.readInteger(file));
                         heroPartyData.setGoldHeld(Utils.readUnsignedShort(file));
-                        heroPartyData.setX0e((short) file.readUnsignedByte());
+                        heroPartyData.setLevel((short) file.readUnsignedByte());
                         heroPartyData.setX0f((short) file.readUnsignedByte());
-                        heroPartyData.setX10(Utils.readInteger(file));
+                        heroPartyData.setObjectiveTargetActionPointId(Utils.readInteger(file));
                         heroPartyData.setInitialHealth(Utils.readInteger(file));
                         heroPartyData.setX18(Utils.readUnsignedShort(file));
-                        heroPartyData.setX1a((short) file.readUnsignedByte());
-                        heroPartyData.setX1b((short) file.readUnsignedByte());
-                        heroPartyData.setX1c((short) file.readUnsignedByte());
+                        heroPartyData.setObjectiveTargetPlayerId((short) file.readUnsignedByte());
+                        heroPartyData.setObjective(parseEnum((short) file.readUnsignedByte(), Thing.HeroParty.Objective.class));
+                        heroPartyData.setCreatureId((short) file.readUnsignedByte());
                         heroPartyData.setX1d((short) file.readUnsignedByte());
                         heroPartyData.setX1e((short) file.readUnsignedByte());
                         heroPartyData.setX1f((short) file.readUnsignedByte());
-                        x2b[x] = heroPartyData;
+
+                        // If creature id is 0, it is safe to say this is not a valid entry
+                        if (heroPartyData.getCreatureId() > 0) {
+                            heroPartyMembers.add(heroPartyData);
+                        }
                     }
-                    ((Thing08) thing).setX2b(x2b);
+                    ((HeroParty) thing).setHeroPartyMembers(heroPartyMembers);
                     break;
                 }
                 case 203: {
 
                     // Thing10 -- not tested
-                    thing = thing.new Thing10();
+                    thing = new Thing10();
                     ((Thing10) thing).setX00(Utils.readInteger(file));
                     ((Thing10) thing).setX04(Utils.readInteger(file));
                     ((Thing10) thing).setX08(Utils.readInteger(file));
@@ -1946,7 +1950,7 @@ public class KwdFile {
                 case 204: {
 
                     // Thing11
-                    thing = thing.new Thing11();
+                    thing = new Thing11();
                     ((Thing11) thing).setX00(Utils.readInteger(file));
                     ((Thing11) thing).setX04(Utils.readInteger(file));
                     ((Thing11) thing).setX08(Utils.readInteger(file));
@@ -1961,7 +1965,7 @@ public class KwdFile {
                 case 205: {
 
                     // Thing12 -- not tested
-                    thing = thing.new Thing12();
+                    thing = new Thing12();
                     ((Thing12) thing).setX00(new Vector3f(Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION));
                     ((Thing12) thing).setX0c(new Vector3f(Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION));
                     ((Thing12) thing).setX18(new Vector3f(Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION));
