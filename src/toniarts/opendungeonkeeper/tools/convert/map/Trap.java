@@ -4,6 +4,7 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import java.util.EnumSet;
 import javax.vecmath.Vector3f;
 
 /**
@@ -16,10 +17,58 @@ import javax.vecmath.Vector3f;
  * Thank you https://github.com/werkt
  */
 public class Trap implements Comparable<Trap> {
+
+    /**
+     * Trap flags
+     */
+    public enum TrapFlag implements IFlagEnum {
+
+        REVEAL_WHEN_FIRED(0x00002),
+        UNKNOWN1(0x00008),
+        DISARMABLE(0x00010),
+        INVISIBLE(0x00020),
+        TRACK_NEAREST_TARGET(0x00080),
+        REQUIRE_MANA(0x00100),
+        LOOP_FIRE_ANIMATION(0x00200),
+        UNKNOWN2(0x00400),
+        GUARD_POST(0x00800),
+        OBSTACLE(0x01000),
+        DOOR_TRAP(0x02000),
+        IS_GOOD(0x08000),
+        FIRST_PERSON_OBSTACLE(0x10000),
+        SOLID_OBSTACLE(0x20000);
+        private final long flagValue;
+
+        private TrapFlag(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
+
+    public enum TriggerType implements IValueEnum {
+
+        NONE(0),
+        LINE_OF_SIGHT(1),
+        PRESSURE(2),
+        TRIGGER(3);
+
+        private TriggerType(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private int id;
+    }
 //  char name[32];
 //  ArtResource ref[5];
 //  uint8_t data[127];
-
     private String name;
     private ArtResource meshResource;
     private ArtResource guiIcon;
@@ -30,7 +79,32 @@ public class Trap implements Comparable<Trap> {
     private float rechargeTime;
     private float chargeTime;
     private float threatDuration;
-    private short[] unknown1; // 59
+    private int manaCostToFire; // 4 bytes?
+    private float idleEffectDelay;
+    private int triggerData; // 2 bytes maybe enough, but 4 bytes is safe as well
+    private int shotData1; // 2 bytes maybe enough, but 4 bytes is safe as well
+    private int shotData2; // 2 bytes maybe enough, but 4 bytes is safe as well
+    private short unknown3[]; // 2
+    private int threat; // Short
+    private EnumSet<TrapFlag> flags; // 4-bytes
+    private int health; // Short
+    private int manaCost; // Short
+    private int powerlessEffectId; // Short
+    private int idleEffectId; // Short
+    private int deathEffectId; // Short
+    private int manufToBuild; // Short
+    private int generalDescriptionStringId;
+    private int strengthStringId;
+    private int weaknessStringId;
+    private int manaUsage; // Short
+    private short unknown4[]; // 2
+    private int tooltipStringId;
+    private int nameStringId;
+    private short unknown5;
+    private TriggerType triggerType;
+    private short trapId;
+    private short shotTypeId;
+    private short manufCrateObjectId;
     private String soundCategory;
     private Material material;
     private short orderInEditor; // Byte
@@ -119,12 +193,212 @@ public class Trap implements Comparable<Trap> {
         this.threatDuration = threatDuration;
     }
 
-    public short[] getUnknown1() {
-        return unknown1;
+    public int getManaCostToFire() {
+        return manaCostToFire;
     }
 
-    protected void setUnknown1(short[] unknown1) {
-        this.unknown1 = unknown1;
+    protected void setManaCostToFire(int manaCostToFire) {
+        this.manaCostToFire = manaCostToFire;
+    }
+
+    public float getIdleEffectDelay() {
+        return idleEffectDelay;
+    }
+
+    protected void setIdleEffectDelay(float idleEffectDelay) {
+        this.idleEffectDelay = idleEffectDelay;
+    }
+
+    public int getTriggerData() {
+        return triggerData;
+    }
+
+    protected void setTriggerData(int triggerData) {
+        this.triggerData = triggerData;
+    }
+
+    public int getShotData1() {
+        return shotData1;
+    }
+
+    protected void setShotData1(int shotData1) {
+        this.shotData1 = shotData1;
+    }
+
+    public int getShotData2() {
+        return shotData2;
+    }
+
+    protected void setShotData2(int shotData2) {
+        this.shotData2 = shotData2;
+    }
+
+    public short[] getUnknown3() {
+        return unknown3;
+    }
+
+    protected void setUnknown3(short[] unknown3) {
+        this.unknown3 = unknown3;
+    }
+
+    public int getThreat() {
+        return threat;
+    }
+
+    protected void setThreat(int threat) {
+        this.threat = threat;
+    }
+
+    public EnumSet<TrapFlag> getFlags() {
+        return flags;
+    }
+
+    protected void setFlags(EnumSet<TrapFlag> flags) {
+        this.flags = flags;
+    }
+
+    public int getHealth() {
+        return health;
+    }
+
+    protected void setHealth(int health) {
+        this.health = health;
+    }
+
+    public int getManaCost() {
+        return manaCost;
+    }
+
+    protected void setManaCost(int manaCost) {
+        this.manaCost = manaCost;
+    }
+
+    public int getPowerlessEffectId() {
+        return powerlessEffectId;
+    }
+
+    protected void setPowerlessEffectId(int powerlessEffectId) {
+        this.powerlessEffectId = powerlessEffectId;
+    }
+
+    public int getIdleEffectId() {
+        return idleEffectId;
+    }
+
+    protected void setIdleEffectId(int idleEffectId) {
+        this.idleEffectId = idleEffectId;
+    }
+
+    public int getDeathEffectId() {
+        return deathEffectId;
+    }
+
+    protected void setDeathEffectId(int deathEffectId) {
+        this.deathEffectId = deathEffectId;
+    }
+
+    public int getManufToBuild() {
+        return manufToBuild;
+    }
+
+    protected void setManufToBuild(int manufToBuild) {
+        this.manufToBuild = manufToBuild;
+    }
+
+    public int getGeneralDescriptionStringId() {
+        return generalDescriptionStringId;
+    }
+
+    protected void setGeneralDescriptionStringId(int generalDescriptionStringId) {
+        this.generalDescriptionStringId = generalDescriptionStringId;
+    }
+
+    public int getStrengthStringId() {
+        return strengthStringId;
+    }
+
+    protected void setStrengthStringId(int strengthStringId) {
+        this.strengthStringId = strengthStringId;
+    }
+
+    public int getWeaknessStringId() {
+        return weaknessStringId;
+    }
+
+    protected void setWeaknessStringId(int weaknessStringId) {
+        this.weaknessStringId = weaknessStringId;
+    }
+
+    public int getManaUsage() {
+        return manaUsage;
+    }
+
+    protected void setManaUsage(int manaUsage) {
+        this.manaUsage = manaUsage;
+    }
+
+    public short[] getUnknown4() {
+        return unknown4;
+    }
+
+    protected void setUnknown4(short[] unknown4) {
+        this.unknown4 = unknown4;
+    }
+
+    public int getTooltipStringId() {
+        return tooltipStringId;
+    }
+
+    protected void setTooltipStringId(int tooltipStringId) {
+        this.tooltipStringId = tooltipStringId;
+    }
+
+    public int getNameStringId() {
+        return nameStringId;
+    }
+
+    protected void setNameStringId(int nameStringId) {
+        this.nameStringId = nameStringId;
+    }
+
+    public short getUnknown5() {
+        return unknown5;
+    }
+
+    protected void setUnknown5(short unknown5) {
+        this.unknown5 = unknown5;
+    }
+
+    public TriggerType getTriggerType() {
+        return triggerType;
+    }
+
+    protected void setTriggerType(TriggerType triggerType) {
+        this.triggerType = triggerType;
+    }
+
+    public short getTrapId() {
+        return trapId;
+    }
+
+    protected void setTrapId(short trapId) {
+        this.trapId = trapId;
+    }
+
+    public short getShotTypeId() {
+        return shotTypeId;
+    }
+
+    protected void setShotTypeId(short shotTypeId) {
+        this.shotTypeId = shotTypeId;
+    }
+
+    public short getManufCrateObjectId() {
+        return manufCrateObjectId;
+    }
+
+    protected void setManufCrateObjectId(short manufCrateObjectId) {
+        this.manufCrateObjectId = manufCrateObjectId;
     }
 
     public String getSoundCategory() {
@@ -191,5 +465,27 @@ public class Trap implements Comparable<Trap> {
     @Override
     public int compareTo(Trap o) {
         return Short.compare(orderInEditor, o.orderInEditor);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 97 * hash + this.trapId;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(java.lang.Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Trap other = (Trap) obj;
+        if (this.trapId != other.trapId) {
+            return false;
+        }
+        return true;
     }
 }

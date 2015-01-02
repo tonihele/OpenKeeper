@@ -195,7 +195,7 @@ public class KwdFile {
     private HashMap<Short, Player> players;
     private HashMap<Short, Terrain> terrainTiles;
     private HashMap<Short, Door> doors;
-    private List<Trap> traps;
+    private HashMap<Short, Trap> traps;
     private HashMap<Short, Room> rooms;
     private HashMap<Short, Creature> creatures;
     private HashMap<Short, Object> objects;
@@ -881,7 +881,7 @@ public class KwdFile {
 
         // Read the traps catalog
         logger.info("Reading traps!");
-        traps = new ArrayList<>(header.getItemCount());
+        traps = new HashMap<>(header.getItemCount());
         for (int i = 0; i < header.getItemCount(); i++) {
             long offset = file.getFilePointer();
             Trap trap = new Trap();
@@ -897,15 +897,43 @@ public class KwdFile {
             trap.setRechargeTime(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             trap.setChargeTime(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             trap.setThreatDuration(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            short[] unknown1 = new short[59];
-            for (int x = 0; x < unknown1.length; x++) {
-                unknown1[x] = (short) file.readUnsignedByte();
+            trap.setManaCostToFire(Utils.readUnsignedInteger(file));
+            trap.setIdleEffectDelay(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            trap.setTriggerData(Utils.readUnsignedInteger(file));
+            trap.setShotData1(Utils.readUnsignedInteger(file));
+            trap.setShotData2(Utils.readUnsignedInteger(file));
+            short[] unknown3 = new short[2];
+            for (int x = 0; x < unknown3.length; x++) {
+                unknown3[x] = (short) file.readUnsignedByte();
             }
-            trap.setUnknown1(unknown1);
+            trap.setUnknown3(unknown3);
+            trap.setThreat(Utils.readUnsignedShort(file));
+            trap.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), Trap.TrapFlag.class));
+            trap.setHealth(Utils.readUnsignedShort(file));
+            trap.setManaCost(Utils.readUnsignedShort(file));
+            trap.setPowerlessEffectId(Utils.readUnsignedShort(file));
+            trap.setIdleEffectId(Utils.readUnsignedShort(file));
+            trap.setDeathEffectId(Utils.readUnsignedShort(file));
+            trap.setManufToBuild(Utils.readUnsignedShort(file));
+            trap.setGeneralDescriptionStringId(Utils.readUnsignedShort(file));
+            trap.setStrengthStringId(Utils.readUnsignedShort(file));
+            trap.setWeaknessStringId(Utils.readUnsignedShort(file));
+            trap.setManaUsage(Utils.readUnsignedShort(file));
+            short[] unknown4 = new short[2];
+            for (int x = 0; x < unknown4.length; x++) {
+                unknown4[x] = (short) file.readUnsignedByte();
+            }
+            trap.setUnknown4(unknown4);
+            trap.setTooltipStringId(Utils.readUnsignedShort(file));
+            trap.setNameStringId(Utils.readUnsignedShort(file));
+            trap.setUnknown5((short) file.readUnsignedByte());
+            trap.setTriggerType(parseEnum((short) file.readUnsignedByte(), Trap.TriggerType.class));
+            trap.setTrapId((short) file.readUnsignedByte());
+            trap.setShotTypeId((short) file.readUnsignedByte());
+            trap.setManufCrateObjectId((short) file.readUnsignedByte());
             bytes = new byte[32];
             file.read(bytes);
             trap.setSoundCategory(Utils.bytesToString(bytes).trim());
-
             trap.setMaterial(parseEnum((short) file.readUnsignedByte(), Material.class));
             trap.setOrderInEditor((short) file.readUnsignedByte());
             trap.setShotOffset(new Vector3f(Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION));
@@ -913,7 +941,7 @@ public class KwdFile {
             trap.setUnknown2(file.readUnsignedShort());
             trap.setHealthGain(Utils.readUnsignedShort(file));
 
-            traps.add(trap);
+            traps.put(trap.getTrapId(), trap);
 
             // Check file offset
             checkOffset(header, file, offset);
