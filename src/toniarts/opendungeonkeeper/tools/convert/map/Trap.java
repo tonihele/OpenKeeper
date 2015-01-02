@@ -4,6 +4,8 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import javax.vecmath.Vector3f;
+
 /**
  * Container class for the Trap
  *
@@ -13,7 +15,7 @@ package toniarts.opendungeonkeeper.tools.convert.map;
  *
  * Thank you https://github.com/werkt
  */
-public class Trap {
+public class Trap implements Comparable<Trap> {
 //  char name[32];
 //  ArtResource ref[5];
 //  uint8_t data[127];
@@ -26,9 +28,16 @@ public class Trap {
     private ArtResource fireResource;
     private float height;
     private float rechargeTime;
-    private short[] unknown1; // 67
+    private float chargeTime;
+    private float threatDuration;
+    private short[] unknown1; // 59
     private String soundCategory;
-    private short[] unknown2; // 20
+    private Material material;
+    private short orderInEditor; // Byte
+    private Vector3f shotOffset; // 4 bytes fixed point, x - y - z
+    private float shotDelay; // Short
+    private int unknown2; // Short
+    private int healthGain; // Short
 
     public String getName() {
         return name;
@@ -94,6 +103,22 @@ public class Trap {
         this.rechargeTime = rechargeTime;
     }
 
+    public float getChargeTime() {
+        return chargeTime;
+    }
+
+    protected void setChargeTime(float chargeTime) {
+        this.chargeTime = chargeTime;
+    }
+
+    public float getThreatDuration() {
+        return threatDuration;
+    }
+
+    protected void setThreatDuration(float threatDuration) {
+        this.threatDuration = threatDuration;
+    }
+
     public short[] getUnknown1() {
         return unknown1;
     }
@@ -110,16 +135,61 @@ public class Trap {
         this.soundCategory = soundCategory;
     }
 
-    public short[] getUnknown2() {
+    public Material getMaterial() {
+        return material;
+    }
+
+    protected void setMaterial(Material material) {
+        this.material = material;
+    }
+
+    public short getOrderInEditor() {
+        return orderInEditor;
+    }
+
+    protected void setOrderInEditor(short orderInEditor) {
+        this.orderInEditor = orderInEditor;
+    }
+
+    public Vector3f getShotOffset() {
+        return shotOffset;
+    }
+
+    protected void setShotOffset(Vector3f shotOffset) {
+        this.shotOffset = shotOffset;
+    }
+
+    public float getShotDelay() {
+        return shotDelay;
+    }
+
+    protected void setShotDelay(float shotDelay) {
+        this.shotDelay = shotDelay;
+    }
+
+    public int getUnknown2() {
         return unknown2;
     }
 
-    protected void setUnknown2(short[] unknown2) {
+    protected void setUnknown2(int unknown2) {
         this.unknown2 = unknown2;
+    }
+
+    public int getHealthGain() {
+        return healthGain;
+    }
+
+    protected void setHealthGain(int healthGain) {
+        this.healthGain = healthGain;
     }
 
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public int compareTo(Trap o) {
+        return Short.compare(orderInEditor, o.orderInEditor);
     }
 }

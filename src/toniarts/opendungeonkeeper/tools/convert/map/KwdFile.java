@@ -895,7 +895,9 @@ public class KwdFile {
             trap.setFireResource(readArtResource(file));
             trap.setHeight(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             trap.setRechargeTime(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            short[] unknown1 = new short[67];
+            trap.setChargeTime(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            trap.setThreatDuration(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
+            short[] unknown1 = new short[59];
             for (int x = 0; x < unknown1.length; x++) {
                 unknown1[x] = (short) file.readUnsignedByte();
             }
@@ -903,11 +905,13 @@ public class KwdFile {
             bytes = new byte[32];
             file.read(bytes);
             trap.setSoundCategory(Utils.bytesToString(bytes).trim());
-            short[] unknown2 = new short[20];
-            for (int x = 0; x < unknown2.length; x++) {
-                unknown2[x] = (short) file.readUnsignedByte();
-            }
-            trap.setUnknown2(unknown2);
+
+            trap.setMaterial(parseEnum((short) file.readUnsignedByte(), Material.class));
+            trap.setOrderInEditor((short) file.readUnsignedByte());
+            trap.setShotOffset(new Vector3f(Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION));
+            trap.setShotDelay(Utils.readUnsignedShort(file) / FIXED_POINT_DIVISION);
+            trap.setUnknown2(file.readUnsignedShort());
+            trap.setHealthGain(Utils.readUnsignedShort(file));
 
             traps.add(trap);
 
