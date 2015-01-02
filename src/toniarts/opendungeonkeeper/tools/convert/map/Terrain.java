@@ -5,18 +5,56 @@
 package toniarts.opendungeonkeeper.tools.convert.map;
 
 import java.awt.Color;
+import java.util.EnumSet;
 
 /**
- * Barely started placeholder for the container class for the Terrain &
- * TerrainBlock
+ * Container class for the Terrain & TerrainBlock
  *
- *
- * @author Wizand Petteri Loisko petteri.loisko@gmail.com
+ * @author Wizand Petteri Loisko petteri.loisko@gmail.com, Toni Helenius
+ * <helenius.toni@gmail.com>
  *
  * Thank you https://github.com/werkt
  */
-public class Terrain {
+public class Terrain implements Comparable<Terrain> {
 
+    /**
+     * Terrain flags
+     */
+    public enum TerrainFlag implements IFlagEnum {
+
+        SOLID(0x00000001),
+        IMPENETRABLE(0x00000002),
+        OWNABLE(0x00000004),
+        TAGGABLE(0x00000008),
+        ATTACKABLE(0x00000020),
+        TORCH(0x00000040), // has torch?
+        WATER(0x00000080),
+        LAVA(0x00000100),
+        ALWAYS_EXPLORED(0x00000200),
+        PLAYER_COLOURED_PATH(0x00000400),
+        PLAYER_COLOURED_WALL(0x00000800),
+        CONSTRUCTION_TYPE_WATER(0x00001000),
+        CONSTRUCTION_TYPE_QUAD(0x00002000),
+        UNEXPLORE_IF_DUG_BY_ANOTHER_PLAYER(0x00004000),
+        FILL_INABLE(0x00008000),
+        ALLOW_ROOM_WALLS(0x00010000),
+        DECAY(0x00020000),
+        RANDOM_TEXTURE(0x00040000),
+        DWARF_CAN_DIG_THROUGH(0x00800000),
+        REVEAL_THROUGH_FOG_OF_WAR(0x01000000),
+        TERRAIN_LIGHT(0x10000000),
+        AMBIENT_LIGHT(0x20000000);
+        private final long flagValue;
+
+        private TerrainFlag(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
     //
     // struct Terrain { char name[32]; /* 0
     //
@@ -59,27 +97,27 @@ public class Terrain {
     //  uint32_t unk224; /* 224 */
     //};
     private String name;
-    private ArtResource complete; // 20
-    private ArtResource side; // 74
-    private ArtResource top; // c8
-    private ArtResource tagged; // 11c
+    private ArtResource completeResource; // 20
+    private ArtResource sideResource; // 74
+    private ArtResource topResource; // c8
+    private ArtResource taggedTopResource; // 11c
     private StringId stringIds; // 170
-    private int unk188; // 188
+    private float depth; // 188
     private float lightHeight; // 18c, fixed point
-    private int flags; // 190
+    private EnumSet<TerrainFlag> flags; // 190
     private int damage; // 194
     private int unk196; // 196
     private int unk198; // 198
     private int goldValue; // 19a
     private int manaGain; // 19c
     private int maxManaGain; // 19e
-    private int unk1a0; // 1a0
-    private int unk1a2; // 1a2
-    private int unk1a4; // 1a4
-    private int unk1a6; // 1a6
-    private int unk1a8; // 1a8
-    private int unk1aa; // 1aa
-    private int unk1ac; // 1ac
+    private int tooltipStringId; // 1a0
+    private int nameStringId; // 1a2
+    private int maxHealthEffectId; // 1a4
+    private int destroyedEffectId; // 1a6
+    private int generalDescriptionStringId; // 1a8
+    private int strengthStringId; // 1aa
+    private int weaknessStringId; // 1ac
     private int[] unk1ae; // 1ae
     private short wibbleH; // 1ce
     private short[] leanH; // 1cf
@@ -87,14 +125,14 @@ public class Terrain {
     private short[] leanV; // 1d3
     private short terrainId; // 1d6
     private int startingHealth; // 1d7
-    private short maxHealthType; // 1d9
-    private short destroyedType; // 1da
+    private short maxHealthTypeTerrainId; // 1d9
+    private short destroyedTypeTerrainId; // 1da
     private Color terrainLight; // 1db
     private short textureFrames; // 1de
-    private String str1; // 1df
+    private String soundCategory; // 1df
     private int maxHealth; // 1ff
     private Color ambientLight; // 201
-    private String str2; // 204
+    private String soundCategoryFirstPerson; // 204
     private int unk224; // 224
 
     public String getName() {
@@ -105,12 +143,12 @@ public class Terrain {
         this.name = name;
     }
 
-    public int getUnk188() {
-        return unk188;
+    public float getDepth() {
+        return depth;
     }
 
-    protected void setUnk188(int unk188) {
-        this.unk188 = unk188;
+    protected void setDepth(float depth) {
+        this.depth = depth;
     }
 
     public float getLightHeight() {
@@ -121,11 +159,11 @@ public class Terrain {
         this.lightHeight = lightHeight;
     }
 
-    public int getFlags() {
+    public EnumSet<TerrainFlag> getFlags() {
         return flags;
     }
 
-    protected void setFlags(int flags) {
+    protected void setFlags(EnumSet<TerrainFlag> flags) {
         this.flags = flags;
     }
 
@@ -177,60 +215,60 @@ public class Terrain {
         this.maxManaGain = maxManaGain;
     }
 
-    public int getUnk1a0() {
-        return unk1a0;
+    public int getTooltipStringId() {
+        return tooltipStringId;
     }
 
-    protected void setUnk1a0(int unk1a0) {
-        this.unk1a0 = unk1a0;
+    protected void setTooltipStringId(int tooltipStringId) {
+        this.tooltipStringId = tooltipStringId;
     }
 
-    public int getUnk1a2() {
-        return unk1a2;
+    public int getNameStringId() {
+        return nameStringId;
     }
 
-    protected void setUnk1a2(int unk1a2) {
-        this.unk1a2 = unk1a2;
+    protected void setNameStringId(int nameStringId) {
+        this.nameStringId = nameStringId;
     }
 
-    public int getUnk1a4() {
-        return unk1a4;
+    public int getMaxHealthEffectId() {
+        return maxHealthEffectId;
     }
 
-    protected void setUnk1a4(int unk1a4) {
-        this.unk1a4 = unk1a4;
+    protected void setMaxHealthEffectId(int maxHealthEffectId) {
+        this.maxHealthEffectId = maxHealthEffectId;
     }
 
-    public int getUnk1a6() {
-        return unk1a6;
+    public int getDestroyedEffectId() {
+        return destroyedEffectId;
     }
 
-    protected void setUnk1a6(int unk1a6) {
-        this.unk1a6 = unk1a6;
+    protected void setDestroyedEffectId(int destroyedEffectId) {
+        this.destroyedEffectId = destroyedEffectId;
     }
 
-    public int getUnk1a8() {
-        return unk1a8;
+    public int getGeneralDescriptionStringId() {
+        return generalDescriptionStringId;
     }
 
-    protected void setUnk1a8(int unk1a8) {
-        this.unk1a8 = unk1a8;
+    protected void setGeneralDescriptionStringId(int generalDescriptionStringId) {
+        this.generalDescriptionStringId = generalDescriptionStringId;
     }
 
-    public int getUnk1aa() {
-        return unk1aa;
+    public int getStrengthStringId() {
+        return strengthStringId;
     }
 
-    protected void setUnk1aa(int unk1aa) {
-        this.unk1aa = unk1aa;
+    protected void setStrengthStringId(int strengthStringId) {
+        this.strengthStringId = strengthStringId;
     }
 
-    public int getUnk1ac() {
-        return unk1ac;
+    public int getWeaknessStringId() {
+        return weaknessStringId;
     }
 
-    protected void setUnk1ac(int unk1ac) {
-        this.unk1ac = unk1ac;
+    protected void setWeaknessStringId(int weaknessStringId) {
+        this.weaknessStringId = weaknessStringId;
     }
 
     public int[] getUnk1ae() {
@@ -289,20 +327,20 @@ public class Terrain {
         this.startingHealth = startingHealth;
     }
 
-    public short getMaxHealthType() {
-        return maxHealthType;
+    public short getMaxHealthTypeTerrainId() {
+        return maxHealthTypeTerrainId;
     }
 
-    protected void setMaxHealthType(short maxHealthType) {
-        this.maxHealthType = maxHealthType;
+    protected void setMaxHealthTypeTerrainId(short maxHealthTypeTerrainId) {
+        this.maxHealthTypeTerrainId = maxHealthTypeTerrainId;
     }
 
-    public short getDestroyedType() {
-        return destroyedType;
+    public short getDestroyedTypeTerrainId() {
+        return destroyedTypeTerrainId;
     }
 
-    protected void setDestroyedType(short destroyedType) {
-        this.destroyedType = destroyedType;
+    protected void setDestroyedTypeTerrainId(short destroyedTypeTerrainId) {
+        this.destroyedTypeTerrainId = destroyedTypeTerrainId;
     }
 
     public Color getTerrainLight() {
@@ -321,12 +359,12 @@ public class Terrain {
         this.textureFrames = textureFrames;
     }
 
-    public String getStr1() {
-        return str1;
+    public String getSoundCategory() {
+        return soundCategory;
     }
 
-    protected void setStr1(String str1) {
-        this.str1 = str1;
+    protected void setSoundCategory(String soundCategory) {
+        this.soundCategory = soundCategory;
     }
 
     public int getMaxHealth() {
@@ -345,12 +383,12 @@ public class Terrain {
         this.ambientLight = ambientLight;
     }
 
-    public String getStr2() {
-        return str2;
+    public String getSoundCategoryFirstPerson() {
+        return soundCategoryFirstPerson;
     }
 
-    protected void setStr2(String str2) {
-        this.str2 = str2;
+    protected void setSoundCategoryFirstPerson(String soundCategoryFirstPerson) {
+        this.soundCategoryFirstPerson = soundCategoryFirstPerson;
     }
 
     public int getUnk224() {
@@ -361,36 +399,36 @@ public class Terrain {
         this.unk224 = unk224;
     }
 
-    public ArtResource getComplete() {
-        return complete;
+    public ArtResource getCompleteResource() {
+        return completeResource;
     }
 
-    protected void setComplete(ArtResource complete) {
-        this.complete = complete;
+    protected void setCompleteResource(ArtResource completeResource) {
+        this.completeResource = completeResource;
     }
 
-    public ArtResource getSide() {
-        return side;
+    public ArtResource getSideResource() {
+        return sideResource;
     }
 
-    protected void setSide(ArtResource side) {
-        this.side = side;
+    protected void setSideResource(ArtResource sideResource) {
+        this.sideResource = sideResource;
     }
 
-    public ArtResource getTop() {
-        return top;
+    public ArtResource getTopResource() {
+        return topResource;
     }
 
-    protected void setTop(ArtResource top) {
-        this.top = top;
+    protected void setTopResource(ArtResource topResource) {
+        this.topResource = topResource;
     }
 
-    public ArtResource getTagged() {
-        return tagged;
+    public ArtResource getTaggedTopResource() {
+        return taggedTopResource;
     }
 
-    protected void setTagged(ArtResource tagged) {
-        this.tagged = tagged;
+    protected void setTaggedTopResource(ArtResource taggedTopResource) {
+        this.taggedTopResource = taggedTopResource;
     }
 
     public StringId getStringIds() {
@@ -404,5 +442,32 @@ public class Terrain {
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public int compareTo(Terrain o) {
+        return Short.compare(terrainId, o.terrainId);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 79 * hash + this.terrainId;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(java.lang.Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Terrain other = (Terrain) obj;
+        if (this.terrainId != other.terrainId) {
+            return false;
+        }
+        return true;
     }
 }
