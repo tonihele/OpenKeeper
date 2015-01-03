@@ -2213,6 +2213,15 @@ public class KwdFile {
     }
 
     /**
+     * Get list of different objects
+     *
+     * @return list of objects
+     */
+    public Collection<Object> getObjectList() {
+        return objects.values();
+    }
+
+    /**
      * Get the player with the specified ID
      *
      * @param id the id of player
