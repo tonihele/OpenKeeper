@@ -57,7 +57,6 @@ import toniarts.opendungeonkeeper.tools.convert.map.Thing.ActionPoint;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.ActionPoint.ActionPointFlag;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.HeroParty;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.HeroParty.HeroPartyData;
-import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing03;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing10;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing11;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing12;
@@ -1861,8 +1860,13 @@ public class KwdFile {
                 }
                 case 198: {
 
-                    // Thing01
-                    file.skipBytes(thingTag[1]);
+                    // Neutral creature
+                    thing = new Thing.NeutralCreature();
+                    short unknown1[] = new short[24];
+                    for (int x = 0; x < unknown1.length; x++) {
+                        unknown1[x] = (short) file.readUnsignedByte();
+                    }
+                    ((Thing.NeutralCreature) thing).setUnknown1(unknown1);
                     break;
                 }
                 case 199: {
@@ -1873,17 +1877,19 @@ public class KwdFile {
                 }
                 case 200: {
 
-                    // Thing03
-                    thing = new Thing03();
-                    ((Thing03) thing).setPos(new Vector3f(Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION));
-                    ((Thing03) thing).setX0c(Utils.readUnsignedShort(file));
-                    ((Thing03) thing).setX0e((short) file.readUnsignedByte());
-                    ((Thing03) thing).setX0f((short) file.readUnsignedByte());
-                    ((Thing03) thing).setX10(Utils.readInteger(file));
-                    ((Thing03) thing).setX14(Utils.readInteger(file));
-                    ((Thing03) thing).setX18(Utils.readUnsignedShort(file));
-                    ((Thing03) thing).setId((short) file.readUnsignedByte());
-                    ((Thing03) thing).setX1b((short) file.readUnsignedByte());
+                    // Creature
+                    thing = new Thing.Creature();
+                    ((Thing.Creature) thing).setPosX(Utils.readInteger(file));
+                    ((Thing.Creature) thing).setPosY(Utils.readInteger(file));
+                    ((Thing.Creature) thing).setPosZ(Utils.readInteger(file));
+                    ((Thing.Creature) thing).setGoldHeld(Utils.readUnsignedShort(file));
+                    ((Thing.Creature) thing).setLevel((short) file.readUnsignedByte());
+                    ((Thing.Creature) thing).setFlags(parseFlagValue((short) file.readUnsignedByte(), Thing.Creature.CreatureFlag.class));
+                    ((Thing.Creature) thing).setInitialHealth(Utils.readInteger(file));
+                    ((Thing.Creature) thing).setX14(Utils.readInteger(file));
+                    ((Thing.Creature) thing).setX18(Utils.readUnsignedShort(file));
+                    ((Thing.Creature) thing).setCreatureId((short) file.readUnsignedByte());
+                    ((Thing.Creature) thing).setPlayerId((short) file.readUnsignedByte());
                     break;
                 }
                 case 201: {
@@ -1922,6 +1928,17 @@ public class KwdFile {
                         }
                     }
                     ((HeroParty) thing).setHeroPartyMembers(heroPartyMembers);
+                    break;
+                }
+                case 202: {
+
+                    // Dead body
+                    thing = new Thing.DeadBody();
+                    short unknown1[] = new short[16];
+                    for (int x = 0; x < unknown1.length; x++) {
+                        unknown1[x] = (short) file.readUnsignedByte();
+                    }
+                    ((Thing.DeadBody) thing).setUnknown1(unknown1);
                     break;
                 }
                 case 203: {

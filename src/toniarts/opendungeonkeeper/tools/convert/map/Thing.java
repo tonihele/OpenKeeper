@@ -175,56 +175,95 @@ public abstract class Thing {
 //        uint8_t id; /* 1a */
 //        uint8_t x1b; /* player id */
 //        };
-    public static class Thing03 extends Thing {
+    public static class Creature extends Thing {
 
-        private Vector3f pos;
-        private int x0c;
-        private short x0e; // level
-        private short x0f; // likely flags
-        private int x10;
+        /**
+         * Creature flags
+         */
+        public enum CreatureFlag implements IFlagEnum {
+
+            WILL_FIGHT(0x001),
+            WILL_BE_ATTACKED(0x008),
+            FREE_FRIENDS_ON_JAIL_BREAK(0x020),
+            ACT_AS_DROPPED(0x040),
+            START_AS_DYING(0x080);
+            private final long flagValue;
+
+            private CreatureFlag(long flagValue) {
+                this.flagValue = flagValue;
+            }
+
+            @Override
+            public long getFlagValue() {
+                return flagValue;
+            }
+        };
+        private int posX; // 0-based coordinate
+        private int posY; // 0-based coordinate
+        private int posZ; // ???
+        private int goldHeld; // Percent
+        private short level; // level
+        private EnumSet<CreatureFlag> flags; // Short, likely flags
+        private int initialHealth; // Percent
         private int x14;
         private int x18;
-        private short id; // 1a
-        private short x1b; // player id
+        private short creatureId; // 1a
+        private short playerId; // player id
 
-        public Vector3f getPos() {
-            return pos;
+        public int getPosX() {
+            return posX;
         }
 
-        protected void setPos(Vector3f pos) {
-            this.pos = pos;
+        protected void setPosX(int posX) {
+            this.posX = posX;
         }
 
-        public int getX0c() {
-            return x0c;
+        public int getPosY() {
+            return posY;
         }
 
-        protected void setX0c(int x0c) {
-            this.x0c = x0c;
+        protected void setPosY(int posY) {
+            this.posY = posY;
         }
 
-        public short getX0e() {
-            return x0e;
+        public int getPosZ() {
+            return posZ;
         }
 
-        protected void setX0e(short x0e) {
-            this.x0e = x0e;
+        protected void setPosZ(int posZ) {
+            this.posZ = posZ;
         }
 
-        public short getX0f() {
-            return x0f;
+        public int getGoldHeld() {
+            return goldHeld;
         }
 
-        protected void setX0f(short x0f) {
-            this.x0f = x0f;
+        protected void setGoldHeld(int goldHeld) {
+            this.goldHeld = goldHeld;
         }
 
-        public int getX10() {
-            return x10;
+        public short getLevel() {
+            return level;
         }
 
-        protected void setX10(int x10) {
-            this.x10 = x10;
+        protected void setLevel(short level) {
+            this.level = level;
+        }
+
+        public EnumSet<CreatureFlag> getFlags() {
+            return flags;
+        }
+
+        protected void setFlags(EnumSet<CreatureFlag> flags) {
+            this.flags = flags;
+        }
+
+        public int getInitialHealth() {
+            return initialHealth;
+        }
+
+        protected void setInitialHealth(int initialHealth) {
+            this.initialHealth = initialHealth;
         }
 
         public int getX14() {
@@ -243,20 +282,20 @@ public abstract class Thing {
             this.x18 = x18;
         }
 
-        public short getId() {
-            return id;
+        public short getCreatureId() {
+            return creatureId;
         }
 
-        protected void setId(short id) {
-            this.id = id;
+        protected void setCreatureId(short creatureId) {
+            this.creatureId = creatureId;
         }
 
-        public short getX1b() {
-            return x1b;
+        public short getPlayerId() {
+            return playerId;
         }
 
-        protected void setX1b(short x1b) {
-            this.x1b = x1b;
+        protected void setPlayerId(short playerId) {
+            this.playerId = playerId;
         }
     }
 
@@ -917,6 +956,32 @@ public abstract class Thing {
 
         protected void setPad(short[] pad) {
             this.pad = pad;
+        }
+    }
+
+    public static class DeadBody extends Thing {
+
+        private short unknown1[]; // 16
+
+        public short[] getUnknown1() {
+            return unknown1;
+        }
+
+        protected void setUnknown1(short[] unknown1) {
+            this.unknown1 = unknown1;
+        }
+    }
+
+    public static class NeutralCreature extends Thing {
+
+        private short unknown1[]; // 24
+
+        public short[] getUnknown1() {
+            return unknown1;
+        }
+
+        protected void setUnknown1(short[] unknown1) {
+            this.unknown1 = unknown1;
         }
     }
 }
