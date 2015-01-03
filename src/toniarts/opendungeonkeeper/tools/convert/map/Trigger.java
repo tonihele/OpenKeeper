@@ -72,21 +72,57 @@ public abstract class Trigger {
             LEAVES(14), // Event, This creature is
             STUNNED(15), // Event, This creature is
             DYING(16), // Event, This creature is
+            PLAYER_CREATURES(19), // Player
+            PLAYER_HAPPY_CREATURES(20), // Player
+            PLAYER_ANGRY_CREATURES(21), // Player
+            PLAYER_CREATURES_KILLED(22), // Player
+            PLAYER_KILLS_CREATURES(23), // Player
+            PLAYER_ROOM_SLAPS(24), // Player
+            PLAYER_ROOMS(25), // Player
+            PLAYER_ROOM_SIZE(26), // Player
+            PLAYER_DOORS(27), // Player
+            PLAYER_TRAPS(28), // Player
+            PLAYER_KEEPER_SPELL(29), // Player
+            PLAYER_GOLD(30), // Player
+            PLAYER_GOLD_MINED(31), // Player
+            PLAYER_MANA(32), // Player
+            PLAYER_DESTROYS(33), // Player
             TIME(34), // Attribute, This level's...
             CREATURES(35), // Attribute, This level's...
             HEALTH(36), // Attribute, This creature's...
             GOLD_HELD(37), // Attribute, This creature's...
+            CONGREGATE_IN(39), // Action point
+            CLAIM_PART_OF(40), // Action point
+            CLAIM_ALL_OF(41), // Action point
+            SLAP_TYPES(43), // Action point
             PARTY_CREATED(43), // Party
             MEMBERS_KILLED(44), // Party
             MEMBERS_CAPTURED(45), // Party
             PAY_DAY(46), // Event, This level's...
+            PLAYER_KILLED(47), // Event, This player's...
             EXPERIENCE_LEVEL(49), // Attribute, This creature's...
+            PLAYER_CREATURES_AT_LEVEL(52), // Player
+            BUTTON_PRESSED(53), // GUI
             HUNGER_SATED(54), // Event, This creature is
             PICKS_UP_PORTAL_GEM(55), // Event, This creature is
+            DUNGEON_BREACHED(56), // Event, This player's...
+            ENEMY_BREACHED(57), // Event, This player's...
+            CREATURE_PICKED_UP(58), // Event, This player's...
+            CREATURE_DROPPED(59), // Event, This player's...
+            CREATURE_SLAPPED(60), // Event, This player's...
+            CREATURE_SACKED(61), // Event, This player's...
+            TAG_PART_OF(62), // Action point
             SACKED(63), // Event, This creature is
             MEMBERS_INCAPACITATED(64), // Party
             PICKED_UP(65), // Event, This creature is
-            PLAYED(67); // Attribute, This level's...
+            PLAYED(67), // Attribute, This level's...
+            PLAYER_ROOM_FURNITURE(68), // Player
+            TAG_ALL_OF(69), // Action point
+            POSESSED_CREATURE_ENTERS(70), // Action point
+            PLAYER_SLAPS(71), // Player
+            TRANSITION_ENDS(72), // GUI
+            PLAYER_CREATURES_GROUPED(73), // Player
+            PLAYER_CREATURES_DYING(74); // Player
 
             private TargetType(int id) {
                 this.id = id;
