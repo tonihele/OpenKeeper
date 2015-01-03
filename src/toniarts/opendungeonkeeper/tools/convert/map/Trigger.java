@@ -4,6 +4,8 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map;
 
+import java.util.EnumSet;
+
 /**
  * Container class for *Triggers.kld
  *
@@ -279,8 +281,34 @@ public abstract class Trigger {
             }
             private final int id;
         }
+
+        public enum FlagTargetValueActionType implements IFlagEnum {
+
+            VALUE(0x002, null), // Use value
+            TARGET(0x002, null), // Use flag
+            EQUAL(0x008, "="),
+            PLUS(0x010, "+"),
+            MINUS(0x020, "-");
+
+            private FlagTargetValueActionType(int flagValue, String description) {
+                this.flagValue = flagValue;
+                this.description = description;
+            }
+
+            @Override
+            public long getFlagValue() {
+                return flagValue;
+            }
+
+            @Override
+            public String toString() {
+                return description;
+            }
+            private final int flagValue;
+            private final String description;
+        }
         private short actionTargetId; // For creatures, creature ID; create hero party, hero party ID; for flags, flag # + 1
-        private short playerId;
+        private short playerId; // For flags, this has a special meaning
         private short creatureLevel;
         private short unknown2; // Is this the type of the action? Nope, seen 41 & 43
         private int actionTargetValue1; // Short, at least with creatures this is x coordinate, also seems to be the ID of the action point for hero party, with flags this is the value
@@ -356,6 +384,16 @@ public abstract class Trigger {
             this.actionType = actionType;
         }
 
+        /**
+         * For flags, the player ID serves another purpose, it means how the
+         * flag value is processed
+         *
+         * @return the action to peform on this flag with the value
+         */
+        private EnumSet<FlagTargetValueActionType> getFlagTargetValueActionTypes() {
+            return KwdFile.parseFlagValue(playerId, FlagTargetValueActionType.class);
+        }
+
         @Override
         public String toString() {
             String result = actionType.toString();
@@ -364,7 +402,15 @@ public abstract class Trigger {
             } else if (actionType == ActionType.CREATE_HERO_PARTY) {
                 result += " " + (actionTargetId + 1) + " at AP " + actionTargetValue1;
             } else if (actionType == ActionType.FLAG) {
-                result += " " + (actionTargetId + 1) + " = " + actionTargetValue1;
+                EnumSet<FlagTargetValueActionType> flagTargetValueActionTypes = getFlagTargetValueActionTypes();
+                String operation = null;
+                for (FlagTargetValueActionType type : flagTargetValueActionTypes) {
+                    operation = type.toString(); // Not very elegant
+                    if (operation != null) {
+                        break;
+                    }
+                }
+                result += " " + (actionTargetId + 1) + " = " + (flagTargetValueActionTypes.contains(FlagTargetValueActionType.EQUAL) ? "" : actionType.toString() + " " + (actionTargetId + 1) + " " + operation + " ") + (flagTargetValueActionTypes.contains(FlagTargetValueActionType.VALUE) ? actionTargetValue1 : actionType.toString() + " " + (actionTargetValue1 + 1));
             }
             return result;
         }

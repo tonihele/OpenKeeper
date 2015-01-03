@@ -2219,7 +2219,7 @@ public class KwdFile {
      * generics here)
      * @return the set
      */
-    private EnumSet parseFlagValue(long flag, Class<? extends Enum> enumeration) {
+    protected static EnumSet parseFlagValue(long flag, Class<? extends Enum> enumeration) {
         EnumSet set = EnumSet.noneOf(enumeration);
         for (Enum e : enumeration.getEnumConstants()) {
             long flagValue = ((IFlagEnum) e).getFlagValue();
@@ -2238,7 +2238,7 @@ public class KwdFile {
      * @param enumeration the enumeration class
      * @return Enum value, returns null if no enum is found with given value
      */
-    private <E extends Enum & IValueEnum> E parseEnum(int value, Class<E> enumeration) {
+    static protected <E extends Enum & IValueEnum> E parseEnum(int value, Class<E> enumeration) {
         for (E e : enumeration.getEnumConstants()) {
             if (e.getValue() == value) {
                 return e;
