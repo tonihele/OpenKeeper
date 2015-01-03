@@ -2087,8 +2087,11 @@ public class KwdFile {
                 case 213: {
 
                     // TriggerGeneric
-                    trigger = new TriggerGeneric();
-                    ((TriggerGeneric) trigger).setTargetValueComparison(parseEnum(Utils.readInteger(file), TriggerGeneric.ComparisonType.class));
+                    trigger = new TriggerGeneric(this);
+                    ((TriggerGeneric) trigger).setTargetValueComparison(parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                    ((TriggerGeneric) trigger).setTargetFlagId((short) file.readUnsignedByte());
+                    ((TriggerGeneric) trigger).setTargetValueType(parseEnum((short) file.readUnsignedByte(), TriggerGeneric.TargetValueType.class));
+                    ((TriggerGeneric) trigger).setTargetValueFlagId((short) file.readUnsignedByte());
                     ((TriggerGeneric) trigger).setTargetValue(Utils.readInteger(file));
                     ((TriggerGeneric) trigger).setId(Utils.readUnsignedShort(file));
                     ((TriggerGeneric) trigger).setX0a(Utils.readUnsignedShort(file));
@@ -2100,12 +2103,19 @@ public class KwdFile {
                 case 214: {
 
                     // TriggerAction
-                    trigger = new TriggerAction();
-                    short[] unknown1 = new short[16];
+                    trigger = new TriggerAction(this);
+                    ((TriggerAction) trigger).setActionTargetId((short) file.readUnsignedByte());
+                    ((TriggerAction) trigger).setPlayerId((short) file.readUnsignedByte());
+                    ((TriggerAction) trigger).setCreatureLevel((short) file.readUnsignedByte());
+                    ((TriggerAction) trigger).setUnknown2((short) file.readUnsignedByte());
+                    ((TriggerAction) trigger).setActionTargetValue1(Utils.readUnsignedShort(file));
+                    ((TriggerAction) trigger).setActionTargetValue2(Utils.readUnsignedShort(file));
+                    short[] unknown1 = new short[6];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();
                     }
                     ((TriggerAction) trigger).setUnknown1(unknown1);
+                    ((TriggerAction) trigger).setActionType(parseEnum(Utils.readUnsignedShort(file), TriggerAction.ActionType.class));
                     break;
                 }
                 default: {
@@ -2156,6 +2166,26 @@ public class KwdFile {
      */
     public Collection<Terrain> getTerrainList() {
         return terrainTiles.values();
+    }
+
+    /**
+     * Get the player with the specified ID
+     *
+     * @param id the id of player
+     * @return the player
+     */
+    public Player getPlayer(short id) {
+        return players.get(id);
+    }
+
+    /**
+     * Get the creature with the specified ID
+     *
+     * @param id the id of creature
+     * @return the creature
+     */
+    public Creature getCreature(short id) {
+        return creatures.get(id);
     }
 
     /**

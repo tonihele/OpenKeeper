@@ -11,6 +11,16 @@ package toniarts.opendungeonkeeper.tools.convert.map;
  */
 public abstract class Trigger {
 
+    private static KwdFile kwdFile; // For to strings
+
+    public Trigger(KwdFile kwdFile) {
+        Trigger.kwdFile = kwdFile;
+    }
+
+    /**
+     * This the actual trigger, all TriggerActions need to be owned (triggered)
+     * by these
+     */
     public static class TriggerGeneric extends Trigger {
 
         public enum ComparisonType implements IValueEnum {
@@ -44,6 +54,7 @@ public abstract class Trigger {
         public enum TargetType implements IValueEnum {
 
             NONE(0),
+            FLAG(1),
             CREATED(3), // Event, This creature is
             KILLED(4), // Event, This creature is
             SLAPPED(5), // Event, This creature is
@@ -90,6 +101,23 @@ public abstract class Trigger {
             }
             private final int id;
         }
+
+        public enum TargetValueType implements IValueEnum {
+
+            VALUE(0), // Use the value
+            VALUE1(1), // This isn't quite right, but this means use the value
+            FLAG(2); // As in flag value
+
+            private TargetValueType(int id) {
+                this.id = id;
+            }
+
+            @Override
+            public int getValue() {
+                return id;
+            }
+            private final int id;
+        }
 //    struct TriggerBlock {
 //        int x00;
 //        int x04;
@@ -100,6 +128,9 @@ public abstract class Trigger {
 //        uint8_t x0f;
 //        };
         private ComparisonType targetValueComparison; // Target comparison type
+        private short targetFlagId;
+        private TargetValueType targetValueType; // targetValueComparison is just byte for sure
+        private short targetValueFlagId;
         private int targetValue; // Target value
         private int id; // I assume so
         private int x0a;
@@ -107,12 +138,40 @@ public abstract class Trigger {
         private TargetType target;
         private short repeatTimes; // Repeat x times, 255 = always
 
+        public TriggerGeneric(KwdFile kwdFile) {
+            super(kwdFile);
+        }
+
         public ComparisonType getTargetValueComparison() {
             return targetValueComparison;
         }
 
         protected void setTargetValueComparison(ComparisonType targetValueComparison) {
             this.targetValueComparison = targetValueComparison;
+        }
+
+        public short getTargetFlagId() {
+            return targetFlagId;
+        }
+
+        protected void setTargetFlagId(short targetFlagId) {
+            this.targetFlagId = targetFlagId;
+        }
+
+        public TargetValueType getTargetValueType() {
+            return targetValueType;
+        }
+
+        protected void setTargetValueType(TargetValueType targetValueType) {
+            this.targetValueType = targetValueType;
+        }
+
+        public short getTargetValueFlagId() {
+            return targetValueFlagId;
+        }
+
+        protected void setTargetValueFlagId(short targetValueFlagId) {
+            this.targetValueFlagId = targetValueFlagId;
         }
 
         public int getTargetValue() {
@@ -165,7 +224,7 @@ public abstract class Trigger {
 
         @Override
         public String toString() {
-            return "When " + target + (targetValueComparison != ComparisonType.NONE ? " " + targetValueComparison + " " + targetValue : "");
+            return "When " + target + (target == TargetType.FLAG ? " " + (targetFlagId + 1) : "") + (targetValueComparison != ComparisonType.NONE ? " " + targetValueComparison + " " + (targetValueType == TargetValueType.FLAG ? "Flag " + (targetValueFlagId + 1) : targetValue) : "");
         }
 
         @Override
@@ -193,7 +252,93 @@ public abstract class Trigger {
 
     public static class TriggerAction extends Trigger {
 
-        private short unknown1[]; // 16
+        public enum ActionType implements IValueEnum {
+
+            NONE(0),
+            CREATE_CREATURE(1),
+            FLAG(7),
+            CREATE_HERO_PARTY(14);
+
+            private ActionType(int id) {
+                this.id = id;
+            }
+
+            @Override
+            public int getValue() {
+                return id;
+            }
+
+            @Override
+            public String toString() {
+                String[] splitted = name().split("_");
+                String result = "";
+                for (String s : splitted) {
+                    result = result.concat(" ").concat(s.substring(0, 1).toUpperCase()).concat(s.substring(1).toLowerCase());
+                }
+                return result.trim();
+            }
+            private final int id;
+        }
+        private short actionTargetId; // For creatures, creature ID; create hero party, hero party ID; for flags, flag # + 1
+        private short playerId;
+        private short creatureLevel;
+        private short unknown2; // Is this the type of the action? Nope, seen 41 & 43
+        private int actionTargetValue1; // Short, at least with creatures this is x coordinate, also seems to be the ID of the action point for hero party, with flags this is the value
+        private int actionTargetValue2; // Short, at least with creatures y coordinate
+        private short unknown1[]; // 6
+        private ActionType actionType; // Short, probably just a byte...
+
+        public TriggerAction(KwdFile kwdFile) {
+            super(kwdFile);
+        }
+
+        public short getActionTargetId() {
+            return actionTargetId;
+        }
+
+        protected void setActionTargetId(short actionTargetId) {
+            this.actionTargetId = actionTargetId;
+        }
+
+        public short getPlayerId() {
+            return playerId;
+        }
+
+        protected void setPlayerId(short playerId) {
+            this.playerId = playerId;
+        }
+
+        public short getCreatureLevel() {
+            return creatureLevel;
+        }
+
+        protected void setCreatureLevel(short creatureLevel) {
+            this.creatureLevel = creatureLevel;
+        }
+
+        public short getUnknown2() {
+            return unknown2;
+        }
+
+        protected void setUnknown2(short unknown2) {
+            this.unknown2 = unknown2;
+        }
+
+        public int getActionTargetValue1() {
+            return actionTargetValue1;
+        }
+
+        protected void setActionTargetValue1(int actionTargetValue1) {
+            this.actionTargetValue1 = actionTargetValue1;
+        }
+
+        public int getActionTargetValue2() {
+            return actionTargetValue2;
+        }
+
+        protected void setActionTargetValue2(int actionTargetValue2) {
+            this.actionTargetValue2 = actionTargetValue2;
+        }
 
         public short[] getUnknown1() {
             return unknown1;
@@ -201,6 +346,27 @@ public abstract class Trigger {
 
         protected void setUnknown1(short[] unknown1) {
             this.unknown1 = unknown1;
+        }
+
+        public ActionType getActionType() {
+            return actionType;
+        }
+
+        protected void setActionType(ActionType actionType) {
+            this.actionType = actionType;
+        }
+
+        @Override
+        public String toString() {
+            String result = actionType.toString();
+            if (actionType == ActionType.CREATE_CREATURE) {
+                result += " " + kwdFile.getCreature(actionTargetId) + " [" + creatureLevel + "] [" + (actionTargetValue1 + 1) + "," + (actionTargetValue2 + 1) + "] [" + kwdFile.getPlayer(playerId) + "]";
+            } else if (actionType == ActionType.CREATE_HERO_PARTY) {
+                result += " " + (actionTargetId + 1) + " at AP " + actionTargetValue1;
+            } else if (actionType == ActionType.FLAG) {
+                result += " " + (actionTargetId + 1) + " = " + actionTargetValue1;
+            }
+            return result;
         }
     }
 }
