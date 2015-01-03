@@ -35,7 +35,7 @@ public abstract class Thing {
 
             HERO_LAIR(0x001),
             UNKNOWN(0x004),
-            REVEAL_THROUGH_FOG_OF_WALL(0x010),
+            REVEAL_THROUGH_FOG_OF_WAR(0x010),
             TOOL_BOX(0x020),
             IGNORE_SOLID(0x040);
             private final long flagValue;
