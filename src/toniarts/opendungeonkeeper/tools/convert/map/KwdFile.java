@@ -57,7 +57,6 @@ import toniarts.opendungeonkeeper.tools.convert.map.Thing.ActionPoint;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.ActionPoint.ActionPointFlag;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.HeroParty;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.HeroParty.HeroPartyData;
-import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing10;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing12;
 import toniarts.opendungeonkeeper.tools.convert.map.Trigger.TriggerAction;
 import toniarts.opendungeonkeeper.tools.convert.map.Trigger.TriggerGeneric;
@@ -1957,26 +1956,29 @@ public class KwdFile {
                 }
                 case 203: {
 
-                    // Thing10 -- not tested
-                    thing = new Thing10();
-                    ((Thing10) thing).setX00(Utils.readInteger(file));
-                    ((Thing10) thing).setX04(Utils.readInteger(file));
-                    ((Thing10) thing).setX08(Utils.readInteger(file));
-                    ((Thing10) thing).setX0c(Utils.readInteger(file));
-                    ((Thing10) thing).setX10(Utils.readUnsignedShort(file));
-                    ((Thing10) thing).setX12(Utils.readUnsignedShort(file));
-                    int[] x14 = new int[4];
-                    for (int x = 0; x < x14.length; x++) {
-                        x14[x] = Utils.readUnsignedShort(file);
+                    // Effect generator
+                    thing = new Thing.EffectGenerator();
+                    ((Thing.EffectGenerator) thing).setPosX(Utils.readInteger(file));
+                    ((Thing.EffectGenerator) thing).setPosY(Utils.readInteger(file));
+                    ((Thing.EffectGenerator) thing).setX08(Utils.readInteger(file));
+                    ((Thing.EffectGenerator) thing).setX0c(Utils.readInteger(file));
+                    ((Thing.EffectGenerator) thing).setX10(Utils.readUnsignedShort(file));
+                    ((Thing.EffectGenerator) thing).setX12(Utils.readUnsignedShort(file));
+                    List<Integer> effectIds = new ArrayList<>(4);
+                    for (int x = 0; x < 4; x++) {
+                        int effectId = Utils.readUnsignedShort(file);
+                        if (effectId > 0) {
+                            effectIds.add(effectId);
+                        }
                     }
-                    ((Thing10) thing).setX14(x14);
-                    ((Thing10) thing).setX1c((short) file.readUnsignedByte());
-                    ((Thing10) thing).setX1d((short) file.readUnsignedByte());
+                    ((Thing.EffectGenerator) thing).setEffectIds(effectIds);
+                    ((Thing.EffectGenerator) thing).setFrequency((short) file.readUnsignedByte());
+                    ((Thing.EffectGenerator) thing).setId((short) file.readUnsignedByte());
                     short[] pad = new short[6];
                     for (int x = 0; x < pad.length; x++) {
                         pad[x] = (short) file.readUnsignedByte();
                     }
-                    ((Thing10) thing).setPad(pad);
+                    ((Thing.EffectGenerator) thing).setPad(pad);
                     break;
                 }
                 case 204: {

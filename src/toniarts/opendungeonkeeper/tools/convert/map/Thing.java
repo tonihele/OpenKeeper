@@ -901,33 +901,33 @@ public abstract class Thing {
 //        uint8_t x1d;
 //        uint8_t pad[6];
 //        };
-    public static class Thing10 extends Thing {
+    public static class EffectGenerator extends Thing {
 
-        private int x00;
-        private int x04;
+        private int posX; // 0-based coordinate
+        private int posY; // 0-based coordinate
         private int x08;
         private int x0c;
         private int x10;
         private int x12;
-        private int x14[];
-        private short x1c;
-        private short x1d;
+        private List<Integer> effectIds; // 4
+        private short frequency;
+        private short id;
         private short pad[];
 
-        public int getX00() {
-            return x00;
+        public int getPosX() {
+            return posX;
         }
 
-        protected void setX00(int x00) {
-            this.x00 = x00;
+        protected void setPosX(int posX) {
+            this.posX = posX;
         }
 
-        public int getX04() {
-            return x04;
+        public int getPosY() {
+            return posY;
         }
 
-        protected void setX04(int x04) {
-            this.x04 = x04;
+        protected void setPosY(int posY) {
+            this.posY = posY;
         }
 
         public int getX08() {
@@ -962,28 +962,28 @@ public abstract class Thing {
             this.x12 = x12;
         }
 
-        public int[] getX14() {
-            return x14;
+        public List<Integer> getEffectIds() {
+            return effectIds;
         }
 
-        protected void setX14(int[] x14) {
-            this.x14 = x14;
+        protected void setEffectIds(List<Integer> effectIds) {
+            this.effectIds = effectIds;
         }
 
-        public short getX1c() {
-            return x1c;
+        public short getFrequency() {
+            return frequency;
         }
 
-        protected void setX1c(short x1c) {
-            this.x1c = x1c;
+        protected void setFrequency(short frequency) {
+            this.frequency = frequency;
         }
 
-        public short getX1d() {
-            return x1d;
+        public short getId() {
+            return id;
         }
 
-        protected void setX1d(short x1d) {
-            this.x1d = x1d;
+        protected void setId(short id) {
+            this.id = id;
         }
 
         public short[] getPad() {
