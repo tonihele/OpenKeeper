@@ -319,6 +319,7 @@ public abstract class Thing {
             PORTAL(12),
             DUNGEON_HEART(14),
             HERO_GATE_2X2(33),
+            UNKNOWN(34), // ??, in the 3D menu
             HERO_GATE_3X1(37),
             HERO_PORTAL(40);
 
