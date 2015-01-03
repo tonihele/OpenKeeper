@@ -312,32 +312,50 @@ public abstract class Thing {
 //        uint8_t x12;
 //        uint8_t x13;
 //        };
-    public static class Thing11 extends Thing {
+    public static class Room extends Thing {
 
-        private int x00;
-        private int x04;
+        public enum RoomType implements IValueEnum {
+
+            PORTAL(12),
+            DUNGEON_HEART(14),
+            HERO_GATE_2X2(33),
+            HERO_GATE_3X1(37),
+            HERO_PORTAL(40);
+
+            private RoomType(int id) {
+                this.id = id;
+            }
+
+            @Override
+            public int getValue() {
+                return id;
+            }
+            private final int id;
+        }
+        private int posX; // 0-based coordinate
+        private int posY; // 0-based coordinate
         private int x08;
         private int x0c;
         private short x0e;
         private short x0f; // maybe padding
-        private int x10;
-        private short x12;
-        private short x13;
+        private int initialHealth; // Percentage
+        private RoomType roomType; // 14 dh, 12 portal, 33 hero gate 2x2, 37 hero gate 3x1, 40 hero portal
+        private short playerId;
 
-        public int getX00() {
-            return x00;
+        public int getPosX() {
+            return posX;
         }
 
-        protected void setX00(int x00) {
-            this.x00 = x00;
+        protected void setPosX(int posX) {
+            this.posX = posX;
         }
 
-        public int getX04() {
-            return x04;
+        public int getPosY() {
+            return posY;
         }
 
-        protected void setX04(int x04) {
-            this.x04 = x04;
+        protected void setPosY(int posY) {
+            this.posY = posY;
         }
 
         public int getX08() {
@@ -372,28 +390,28 @@ public abstract class Thing {
             this.x0f = x0f;
         }
 
-        public int getX10() {
-            return x10;
+        public int getInitialHealth() {
+            return initialHealth;
         }
 
-        protected void setX10(int x10) {
-            this.x10 = x10;
+        protected void setInitialHealth(int initialHealth) {
+            this.initialHealth = initialHealth;
         }
 
-        public short getX12() {
-            return x12;
+        public RoomType getRoomType() {
+            return roomType;
         }
 
-        protected void setX12(short x12) {
-            this.x12 = x12;
+        protected void setRoomType(RoomType roomType) {
+            this.roomType = roomType;
         }
 
-        public short getX13() {
-            return x13;
+        public short getPlayerId() {
+            return playerId;
         }
 
-        protected void setX13(short x13) {
-            this.x13 = x13;
+        protected void setPlayerId(short playerId) {
+            this.playerId = playerId;
         }
     }
 //    struct Thing12Block {
@@ -975,6 +993,45 @@ public abstract class Thing {
     public static class NeutralCreature extends Thing {
 
         private short unknown1[]; // 24
+
+        public short[] getUnknown1() {
+            return unknown1;
+        }
+
+        protected void setUnknown1(short[] unknown1) {
+            this.unknown1 = unknown1;
+        }
+    }
+
+    public static class Door extends Thing {
+
+        private short unknown1[]; // 20
+
+        public short[] getUnknown1() {
+            return unknown1;
+        }
+
+        protected void setUnknown1(short[] unknown1) {
+            this.unknown1 = unknown1;
+        }
+    }
+
+    public static class Object extends Thing {
+
+        private short unknown1[]; // 24
+
+        public short[] getUnknown1() {
+            return unknown1;
+        }
+
+        protected void setUnknown1(short[] unknown1) {
+            this.unknown1 = unknown1;
+        }
+    }
+
+    public static class Trap extends Thing {
+
+        private short unknown1[]; // 16
 
         public short[] getUnknown1() {
             return unknown1;

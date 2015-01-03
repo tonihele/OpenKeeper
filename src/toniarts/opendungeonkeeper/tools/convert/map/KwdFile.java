@@ -58,7 +58,6 @@ import toniarts.opendungeonkeeper.tools.convert.map.Thing.ActionPoint.ActionPoin
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.HeroParty;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.HeroParty.HeroPartyData;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing10;
-import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing11;
 import toniarts.opendungeonkeeper.tools.convert.map.Thing.Thing12;
 import toniarts.opendungeonkeeper.tools.convert.map.Trigger.TriggerAction;
 import toniarts.opendungeonkeeper.tools.convert.map.Trigger.TriggerGeneric;
@@ -1825,20 +1824,35 @@ public class KwdFile {
             switch (thingTag[0]) {
                 case 194: {
 
-                    // Thing06
-                    file.skipBytes(thingTag[1]);
+                    // Object (door & trap crates, objects...)
+                    thing = new Thing.Object();
+                    short unknown1[] = new short[24];
+                    for (int x = 0; x < unknown1.length; x++) {
+                        unknown1[x] = (short) file.readUnsignedByte();
+                    }
+                    ((Thing.Object) thing).setUnknown1(unknown1);
                     break;
                 }
                 case 195: {
 
-                    // Thing05
-                    file.skipBytes(thingTag[1]);
+                    // Trap
+                    thing = new Thing.Trap();
+                    short unknown1[] = new short[16];
+                    for (int x = 0; x < unknown1.length; x++) {
+                        unknown1[x] = (short) file.readUnsignedByte();
+                    }
+                    ((Thing.Trap) thing).setUnknown1(unknown1);
                     break;
                 }
                 case 196: {
 
-                    // Thing04
-                    file.skipBytes(thingTag[1]);
+                    // Door
+                    thing = new Thing.Door();
+                    short unknown1[] = new short[20];
+                    for (int x = 0; x < unknown1.length; x++) {
+                        unknown1[x] = (short) file.readUnsignedByte();
+                    }
+                    ((Thing.Door) thing).setUnknown1(unknown1);
                     break;
                 }
                 case 197: {
@@ -1967,17 +1981,17 @@ public class KwdFile {
                 }
                 case 204: {
 
-                    // Thing11
-                    thing = new Thing11();
-                    ((Thing11) thing).setX00(Utils.readInteger(file));
-                    ((Thing11) thing).setX04(Utils.readInteger(file));
-                    ((Thing11) thing).setX08(Utils.readInteger(file));
-                    ((Thing11) thing).setX0c(Utils.readUnsignedShort(file));
-                    ((Thing11) thing).setX0e((short) file.readUnsignedByte());
-                    ((Thing11) thing).setX0f((short) file.readUnsignedByte());
-                    ((Thing11) thing).setX10(Utils.readUnsignedShort(file));
-                    ((Thing11) thing).setX12((short) file.readUnsignedByte());
-                    ((Thing11) thing).setX13((short) file.readUnsignedByte());
+                    // Room
+                    thing = new Thing.Room();
+                    ((Thing.Room) thing).setPosX(Utils.readInteger(file));
+                    ((Thing.Room) thing).setPosY(Utils.readInteger(file));
+                    ((Thing.Room) thing).setX08(Utils.readInteger(file));
+                    ((Thing.Room) thing).setX0c(Utils.readUnsignedShort(file));
+                    ((Thing.Room) thing).setX0e((short) file.readUnsignedByte());
+                    ((Thing.Room) thing).setX0f((short) file.readUnsignedByte());
+                    ((Thing.Room) thing).setInitialHealth(Utils.readUnsignedShort(file));
+                    ((Thing.Room) thing).setRoomType(parseEnum((short) file.readUnsignedByte(), Thing.Room.RoomType.class));
+                    ((Thing.Room) thing).setPlayerId((short) file.readUnsignedByte());
                     break;
                 }
                 case 205: {
