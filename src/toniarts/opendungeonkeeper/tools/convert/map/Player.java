@@ -36,7 +36,7 @@ public class Player implements Comparable<Player> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum Distance implements IValueEnum {
@@ -52,7 +52,7 @@ public class Player implements Comparable<Player> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum CorridorStyle implements IValueEnum {
@@ -69,7 +69,7 @@ public class Player implements Comparable<Player> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum RoomExpandPolicy implements IValueEnum {
@@ -86,7 +86,7 @@ public class Player implements Comparable<Player> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum DoorUsagePolicy implements IValueEnum {
@@ -103,7 +103,7 @@ public class Player implements Comparable<Player> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum BreachRoomPolicy implements IValueEnum {
@@ -121,7 +121,7 @@ public class Player implements Comparable<Player> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum DigToPolicy implements IValueEnum {
@@ -139,7 +139,7 @@ public class Player implements Comparable<Player> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum CreatureDisposalPolicy implements IValueEnum {
@@ -155,7 +155,7 @@ public class Player implements Comparable<Player> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum SightOfEvilUsagePolicy implements IValueEnum {
@@ -172,7 +172,7 @@ public class Player implements Comparable<Player> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum CallToArmsUsagePolicy implements IValueEnum {
@@ -189,7 +189,7 @@ public class Player implements Comparable<Player> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum MoveToResearchPolicy implements IValueEnum {
@@ -206,7 +206,7 @@ public class Player implements Comparable<Player> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum ImprisonedCreatureFatePolicy implements IValueEnum {
@@ -224,7 +224,7 @@ public class Player implements Comparable<Player> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
     //
     // struct Player

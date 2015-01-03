@@ -64,7 +64,7 @@ public class Trap implements Comparable<Trap> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 //  char name[32];
 //  ArtResource ref[5];

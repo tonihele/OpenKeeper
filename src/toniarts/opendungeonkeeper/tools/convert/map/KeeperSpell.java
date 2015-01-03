@@ -47,7 +47,7 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum CastRule implements IValueEnum {
@@ -67,7 +67,7 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum TargetRule implements IValueEnum {
@@ -88,7 +88,7 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 //    struct KeeperSpellBlock {
 //        char name[32];

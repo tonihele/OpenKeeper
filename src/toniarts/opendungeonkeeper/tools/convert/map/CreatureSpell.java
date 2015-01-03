@@ -55,7 +55,7 @@ public class CreatureSpell implements Comparable<CreatureSpell> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 //    struct CreatureSpellBlock {
 //        char name[32];

@@ -76,7 +76,7 @@ public class Effect implements Comparable<Effect> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 //    struct EffectBlock {
 //        char m_sName[32];

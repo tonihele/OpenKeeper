@@ -132,7 +132,7 @@ public class Object implements Comparable<Object> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 //    struct ObjectBlock {
 //        char name[32]; /* 0 */

@@ -85,7 +85,7 @@ public class Shot implements Comparable<Shot> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum CollideType implements IValueEnum {
@@ -104,7 +104,7 @@ public class Shot implements Comparable<Shot> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum ProcessType implements IValueEnum {
@@ -158,7 +158,7 @@ public class Shot implements Comparable<Shot> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum AttackCategory implements IValueEnum {
@@ -184,7 +184,7 @@ public class Shot implements Comparable<Shot> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
     private String name;
     private ArtResource meshResource;

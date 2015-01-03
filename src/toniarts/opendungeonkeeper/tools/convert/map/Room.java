@@ -71,7 +71,7 @@ public class Room implements Comparable<Room> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
     //struct RoomBlock {
     //  char name[32]; /* 0 */

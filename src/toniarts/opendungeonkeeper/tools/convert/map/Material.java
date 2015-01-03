@@ -28,5 +28,5 @@ public enum Material implements IValueEnum {
     public int getValue() {
         return id;
     }
-    private int id;
+    private final int id;
 }

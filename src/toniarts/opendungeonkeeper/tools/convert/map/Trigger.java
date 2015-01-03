@@ -88,7 +88,7 @@ public abstract class Trigger {
                 }
                 return result.trim();
             }
-            private int id;
+            private final int id;
         }
 //    struct TriggerBlock {
 //        int x00;

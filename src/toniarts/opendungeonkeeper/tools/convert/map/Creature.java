@@ -106,7 +106,7 @@ public class Creature implements Comparable<Creature> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum JobType implements IValueEnum {
@@ -155,7 +155,7 @@ public class Creature implements Comparable<Creature> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum FightStyle implements IValueEnum {
@@ -174,7 +174,7 @@ public class Creature implements Comparable<Creature> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum DeathFallDirection implements IValueEnum {
@@ -196,7 +196,7 @@ public class Creature implements Comparable<Creature> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum Swipe implements IValueEnum {
@@ -232,7 +232,7 @@ public class Creature implements Comparable<Creature> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum SpecialAbility implements IValueEnum {
@@ -257,7 +257,7 @@ public class Creature implements Comparable<Creature> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 
     public enum GammaEffect implements IValueEnum {
@@ -288,7 +288,7 @@ public class Creature implements Comparable<Creature> {
         public int getValue() {
             return id;
         }
-        private int id;
+        private final int id;
     }
 //    struct CreatureBlock {
 //        char name[32]; /* 0 */

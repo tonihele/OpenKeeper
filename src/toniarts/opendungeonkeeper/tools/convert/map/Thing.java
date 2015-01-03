@@ -565,7 +565,7 @@ public abstract class Thing {
             public int getValue() {
                 return id;
             }
-            private int id;
+            private final int id;
         }
         private String name; // Always shit
         private int x20;
