@@ -332,11 +332,29 @@ public abstract class Thing {
             }
             private final int id;
         }
+
+        public enum Direction implements IValueEnum {
+
+            NORTH(0),
+            EAST(2),
+            SOUTH(4),
+            WEST(6);
+
+            private Direction(int id) {
+                this.id = id;
+            }
+
+            @Override
+            public int getValue() {
+                return id;
+            }
+            private final int id;
+        }
         private int posX; // 0-based coordinate
         private int posY; // 0-based coordinate
         private int x08;
         private int x0c;
-        private short x0e;
+        private Direction direction; // Hero gates have direction
         private short x0f; // maybe padding
         private int initialHealth; // Percentage
         private RoomType roomType; // 14 dh, 12 portal, 33 hero gate 2x2, 37 hero gate 3x1, 40 hero portal
@@ -374,12 +392,12 @@ public abstract class Thing {
             this.x0c = x0c;
         }
 
-        public short getX0e() {
-            return x0e;
+        public Direction getDirection() {
+            return direction;
         }
 
-        protected void setX0e(short x0e) {
-            this.x0e = x0e;
+        protected void setDirection(Direction direction) {
+            this.direction = direction;
         }
 
         public short getX0f() {

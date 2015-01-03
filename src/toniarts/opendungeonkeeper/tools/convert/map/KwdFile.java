@@ -1987,7 +1987,7 @@ public class KwdFile {
                     ((Thing.Room) thing).setPosY(Utils.readInteger(file));
                     ((Thing.Room) thing).setX08(Utils.readInteger(file));
                     ((Thing.Room) thing).setX0c(Utils.readUnsignedShort(file));
-                    ((Thing.Room) thing).setX0e((short) file.readUnsignedByte());
+                    ((Thing.Room) thing).setDirection(parseEnum((short) file.readUnsignedByte(), Thing.Room.Direction.class));
                     ((Thing.Room) thing).setX0f((short) file.readUnsignedByte());
                     ((Thing.Room) thing).setInitialHealth(Utils.readUnsignedShort(file));
                     ((Thing.Room) thing).setRoomType(parseEnum((short) file.readUnsignedByte(), Thing.Room.RoomType.class));
