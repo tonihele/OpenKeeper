@@ -2076,8 +2076,7 @@ public class KwdFile {
         logger.info("Reading triggers!");
         triggers = new ArrayList<>(header.getItemCount());
         for (int i = 0; i < header.getItemCount(); i++) {
-            Trigger trigger = new Trigger() {
-            };
+            Trigger trigger = null;
             int[] triggerTag = new int[2];
             for (int x = 0; x < triggerTag.length; x++) {
                 triggerTag[x] = Utils.readUnsignedInteger(file);
@@ -2088,27 +2087,25 @@ public class KwdFile {
                 case 213: {
 
                     // TriggerGeneric
-                    trigger = trigger.new TriggerGeneric();
-                    ((TriggerGeneric) trigger).setX00(Utils.readInteger(file));
-                    ((TriggerGeneric) trigger).setX04(Utils.readInteger(file));
-                    ((TriggerGeneric) trigger).setX08(Utils.readUnsignedShort(file));
+                    trigger = new TriggerGeneric();
+                    ((TriggerGeneric) trigger).setTargetValueComparison(parseEnum(Utils.readInteger(file), TriggerGeneric.ComparisonType.class));
+                    ((TriggerGeneric) trigger).setTargetValue(Utils.readInteger(file));
+                    ((TriggerGeneric) trigger).setId(Utils.readUnsignedShort(file));
                     ((TriggerGeneric) trigger).setX0a(Utils.readUnsignedShort(file));
                     ((TriggerGeneric) trigger).setX0c(Utils.readUnsignedShort(file));
-                    ((TriggerGeneric) trigger).setX0e((short) file.readUnsignedByte());
-                    ((TriggerGeneric) trigger).setX0f((short) file.readUnsignedByte());
+                    ((TriggerGeneric) trigger).setTarget(parseEnum((short) file.readUnsignedByte(), TriggerGeneric.TargetType.class));
+                    ((TriggerGeneric) trigger).setRepeatTimes((short) file.readUnsignedByte());
                     break;
                 }
                 case 214: {
 
                     // TriggerAction
-                    trigger = trigger.new TriggerAction();
-                    ((TriggerAction) trigger).setX00(Utils.readInteger(file));
-                    ((TriggerAction) trigger).setX04(Utils.readInteger(file));
-                    ((TriggerAction) trigger).setX08(Utils.readUnsignedShort(file));
-                    ((TriggerAction) trigger).setX0a(Utils.readUnsignedShort(file));
-                    ((TriggerAction) trigger).setX0c(Utils.readUnsignedShort(file));
-                    ((TriggerAction) trigger).setX0e((short) file.readUnsignedByte());
-                    file.skipBytes(1); // ????
+                    trigger = new TriggerAction();
+                    short[] unknown1 = new short[16];
+                    for (int x = 0; x < unknown1.length; x++) {
+                        unknown1[x] = (short) file.readUnsignedByte();
+                    }
+                    ((TriggerAction) trigger).setUnknown1(unknown1);
                     break;
                 }
                 default: {
