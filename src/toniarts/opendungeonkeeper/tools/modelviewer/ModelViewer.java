@@ -52,6 +52,7 @@ import toniarts.opendungeonkeeper.tools.convert.KmfModelLoader;
 import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
 import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
 import toniarts.opendungeonkeeper.tools.convert.map.Terrain;
+import toniarts.opendungeonkeeper.tools.convert.map.loader.ObjectLoader;
 import toniarts.opendungeonkeeper.tools.convert.map.loader.TerrainLoader;
 
 /**
@@ -63,7 +64,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     public enum Types {
 
-        MODELS("Models"), TERRAIN("Terrain");
+        MODELS("Models"), TERRAIN("Terrain"), OBJECTS("Objects");
         private String name;
 
         private Types(String name) {
@@ -284,6 +285,12 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         getModelListBox().addAllItems(Arrays.asList(terrains.toArray()));
     }
 
+    private void fillObjects() {
+        KwdFile kwfFile = getKwdFile();
+        Collection<toniarts.opendungeonkeeper.tools.convert.map.Object> objects = kwfFile.getObjectList();
+        getModelListBox().addAllItems(Arrays.asList(objects.toArray()));
+    }
+
     @NiftyEventSubscriber(id = "modelListBox")
     public void onListBoxSelectionChanged(final String id, final ListBoxSelectionChangedEvent<Object> event) {
         List<Object> selection = event.getSelection();
@@ -301,6 +308,13 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
                     // Load the selected terrain
                     Node spat = (Node) new TerrainLoader().load(this.getAssetManager(), (Terrain) selection.get(0));
+                    setupModel(spat);
+                    break;
+                }
+                case OBJECTS: {
+
+                    // Load the selected object
+                    Node spat = (Node) new ObjectLoader().load(this.getAssetManager(), (toniarts.opendungeonkeeper.tools.convert.map.Object) selection.get(0));
                     setupModel(spat);
                     break;
                 }
@@ -412,6 +426,10 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             }
             case TERRAIN: {
                 fillTerrain();
+                break;
+            }
+            case OBJECTS: {
+                fillObjects();
                 break;
             }
         }
