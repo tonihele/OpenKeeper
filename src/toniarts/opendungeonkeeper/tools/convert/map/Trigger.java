@@ -57,6 +57,7 @@ public abstract class Trigger {
 
             NONE(0),
             FLAG(1),
+            TIMER(2),
             CREATED(3), // Event, This creature is
             KILLED(4), // Event, This creature is
             SLAPPED(5), // Event, This creature is
@@ -226,7 +227,7 @@ public abstract class Trigger {
 
         @Override
         public String toString() {
-            return "When " + target + (target == TargetType.FLAG ? " " + (targetFlagId + 1) : "") + (targetValueComparison != ComparisonType.NONE ? " " + targetValueComparison + " " + (targetValueType == TargetValueType.FLAG ? "Flag " + (targetValueFlagId + 1) : targetValue) : "");
+            return "When " + target + (target == TargetType.FLAG || target == TargetType.TIMER ? " " + (targetFlagId + 1) : "") + (targetValueComparison != ComparisonType.NONE ? " " + targetValueComparison + " " + (targetValueType == TargetValueType.FLAG ? target + " " + (targetValueFlagId + 1) : targetValue) : "");
         }
 
         @Override
@@ -256,10 +257,20 @@ public abstract class Trigger {
 
         public enum ActionType implements IValueEnum {
 
-            NONE(0),
+            MAKE_DOOR(0),
             CREATE_CREATURE(1),
+            MAKE_ROOM(6), // Or trap??? Or keeper spell ???
             FLAG(7),
-            CREATE_HERO_PARTY(14);
+            INITIALIZE_TIMER(8),
+            CREATE_HERO_PARTY(14),
+            SET_ALLIANCE(18),
+            ALTER(22),
+            COLLAPSE_HERO_GATE(32),
+            SET_CREATURE_MOODS(44),
+            SET_SYSTEM_MESSAGES(45),
+            CHANGE_ROOM_OWNER(49),
+            SET_SLAPS_LIMIT(50),
+            SET_TIMER_SPEECH(51);
 
             private ActionType(int id) {
                 this.id = id;
@@ -313,7 +324,9 @@ public abstract class Trigger {
         private short unknown2; // Is this the type of the action? Nope, seen 41 & 43
         private int actionTargetValue1; // Short, at least with creatures this is x coordinate, also seems to be the ID of the action point for hero party, with flags this is the value
         private int actionTargetValue2; // Short, at least with creatures y coordinate
-        private short unknown1[]; // 6
+        private int flags1;
+        private int flags2;
+        private short unknown1[]; // 2
         private ActionType actionType; // Short, probably just a byte...
 
         public TriggerAction(KwdFile kwdFile) {
@@ -368,6 +381,22 @@ public abstract class Trigger {
             this.actionTargetValue2 = actionTargetValue2;
         }
 
+        public int getFlags1() {
+            return flags1;
+        }
+
+        protected void setFlags1(int flags1) {
+            this.flags1 = flags1;
+        }
+
+        public int getFlags2() {
+            return flags2;
+        }
+
+        protected void setFlags2(int flags2) {
+            this.flags2 = flags2;
+        }
+
         public short[] getUnknown1() {
             return unknown1;
         }
@@ -411,6 +440,8 @@ public abstract class Trigger {
                     }
                 }
                 result += " " + (actionTargetId + 1) + " = " + (flagTargetValueActionTypes.contains(FlagTargetValueActionType.EQUAL) ? "" : actionType.toString() + " " + (actionTargetId + 1) + " " + operation + " ") + (flagTargetValueActionTypes.contains(FlagTargetValueActionType.VALUE) ? actionTargetValue1 : actionType.toString() + " " + (actionTargetValue1 + 1));
+            } else if (actionType == ActionType.INITIALIZE_TIMER) {
+                result += " " + (actionTargetId + 1);
             }
             return result;
         }
