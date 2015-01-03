@@ -1820,6 +1820,7 @@ public class KwdFile {
             for (int x = 0; x < thingTag.length; x++) {
                 thingTag[x] = Utils.readUnsignedInteger(file);
             }
+            long offset = file.getFilePointer();
 
             // Figure out the type
             switch (thingTag[0]) {
@@ -1989,6 +1990,7 @@ public class KwdFile {
 
                     // Just skip the bytes
                     file.skipBytes(thingTag[1]);
+                    logger.log(Level.WARNING, "Unsupported thing type {0}!", thingTag[0]);
                 }
             }
 
@@ -1996,6 +1998,9 @@ public class KwdFile {
 
             // Add to the list
             things.add(thing);
+
+            // Check file offset
+            checkOffset(thingTag[1], file, offset);
         }
     }
 
@@ -2081,6 +2086,7 @@ public class KwdFile {
             for (int x = 0; x < triggerTag.length; x++) {
                 triggerTag[x] = Utils.readUnsignedInteger(file);
             }
+            long offset = file.getFilePointer();
 
             // Figure out the type
             switch (triggerTag[0]) {
@@ -2110,7 +2116,9 @@ public class KwdFile {
                     ((TriggerAction) trigger).setUnknown2((short) file.readUnsignedByte());
                     ((TriggerAction) trigger).setActionTargetValue1(Utils.readUnsignedShort(file));
                     ((TriggerAction) trigger).setActionTargetValue2(Utils.readUnsignedShort(file));
-                    short[] unknown1 = new short[6];
+                    ((TriggerAction) trigger).setFlags1(Utils.readUnsignedShort(file));
+                    ((TriggerAction) trigger).setFlags2(Utils.readUnsignedShort(file));
+                    short[] unknown1 = new short[2];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();
                     }
@@ -2122,12 +2130,15 @@ public class KwdFile {
 
                     // Just skip the bytes
                     file.skipBytes(triggerTag[1]);
-                    System.out.println(triggerTag[0] + " type");
+                    logger.log(Level.WARNING, "Unsupported trigger type {0}!", triggerTag[0]);
                 }
             }
 
             // Add to the list
             triggers.add(trigger);
+
+            // Check file offset
+            checkOffset(triggerTag[1], file, offset);
         }
     }
 
@@ -2250,14 +2261,33 @@ public class KwdFile {
     /**
      * Not all the data types are of the length that suits us, do our best to
      * ignore it<br>
-     * Skips the file to the correct position after an item is read
+     * Skips the file to the correct position after an item is read<br>
+     * <b>Use this with the common types!</b>
      *
+     * @see #checkOffset(long, java.io.RandomAccessFile, long)
      * @param header the header
      * @param file the file
      * @param offset the file offset before the last item was read
      */
     private void checkOffset(KwdHeader header, RandomAccessFile file, long offset) throws IOException {
-        long wantedOffset = offset + header.getItemSize();
+        checkOffset(header.getItemSize(), file, offset);
+    }
+
+    /**
+     * Not all the data types are of the length that suits us, do our best to
+     * ignore it<br>
+     * Skips the file to the correct position after an item is read<br>
+     * <b>Use this directly with Things & Triggers!</b>
+     *
+     * @see
+     * #checkOffset(toniarts.opendungeonkeeper.tools.convert.map.KwdFile.KwdHeader,
+     * java.io.RandomAccessFile, long)
+     * @param itemSize the item size
+     * @param file the file
+     * @param offset the file offset before the last item was read
+     */
+    private void checkOffset(long itemSize, RandomAccessFile file, long offset) throws IOException {
+        long wantedOffset = offset + itemSize;
         if (file.getFilePointer() != wantedOffset) {
             logger.log(Level.WARNING, "Record size differs from expected! File offset is {0} and should be {1}!", new java.lang.Object[]{file.getFilePointer(), wantedOffset});
             file.seek(wantedOffset);
