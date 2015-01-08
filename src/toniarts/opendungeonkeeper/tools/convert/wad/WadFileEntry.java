@@ -12,20 +12,26 @@ package toniarts.opendungeonkeeper.tools.convert.wad;
  */
 public class WadFileEntry {
 
+    public enum WadFileEntryType {
+
+        NOT_COMPRESSED, // 0
+        COMPRESSED, // 4
+        UNKOWN;
+    }
     private int unk1;
     private int nameOffset;
     private int nameSize;
     private int offset;
     private int compressedSize;
-    private int type;
-    private int size;
+    private WadFileEntryType type;
+    private int size; // Uncompressed
     private int[] unknown2 = new int[3];
 
     public int getUnk1() {
         return unk1;
     }
 
-    public void setUnk1(int unk1) {
+    protected void setUnk1(int unk1) {
         this.unk1 = unk1;
     }
 
@@ -33,7 +39,7 @@ public class WadFileEntry {
         return nameOffset;
     }
 
-    public void setNameOffset(int nameOffset) {
+    protected void setNameOffset(int nameOffset) {
         this.nameOffset = nameOffset;
     }
 
@@ -41,7 +47,7 @@ public class WadFileEntry {
         return nameSize;
     }
 
-    public void setNameSize(int nameSize) {
+    protected void setNameSize(int nameSize) {
         this.nameSize = nameSize;
     }
 
@@ -49,7 +55,7 @@ public class WadFileEntry {
         return offset;
     }
 
-    public void setOffset(int offset) {
+    protected void setOffset(int offset) {
         this.offset = offset;
     }
 
@@ -57,15 +63,15 @@ public class WadFileEntry {
         return compressedSize;
     }
 
-    public void setCompressedSize(int compressedSize) {
+    protected void setCompressedSize(int compressedSize) {
         this.compressedSize = compressedSize;
     }
 
-    public int getType() {
+    public WadFileEntryType getType() {
         return type;
     }
 
-    public void setType(int type) {
+    protected void setType(WadFileEntryType type) {
         this.type = type;
     }
 
@@ -73,7 +79,7 @@ public class WadFileEntry {
         return size;
     }
 
-    public void setSize(int size) {
+    protected void setSize(int size) {
         this.size = size;
     }
 
@@ -81,7 +87,7 @@ public class WadFileEntry {
         return unknown2;
     }
 
-    public void setUnknown2(int[] unknown2) {
+    protected void setUnknown2(int[] unknown2) {
         this.unknown2 = unknown2;
     }
 
@@ -91,9 +97,7 @@ public class WadFileEntry {
      * @return true if the file entry is compressed
      */
     boolean isCompressed() {
-
-        //Or figure out from the type? Type 4?
-        return size != 0;
+        return (type == WadFileEntryType.COMPRESSED);
     }
 
     @Override

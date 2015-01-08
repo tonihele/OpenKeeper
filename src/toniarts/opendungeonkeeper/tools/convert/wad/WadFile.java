@@ -62,8 +62,8 @@ public class WadFile {
             rawWad.seek(0x48);
 
             int files = Utils.readUnsignedInteger(rawWad);
-            int name_offset = Utils.readUnsignedInteger(rawWad);
-            int name_size = Utils.readUnsignedInteger(rawWad);
+            int nameOffset = Utils.readUnsignedInteger(rawWad);
+            int nameSize = Utils.readUnsignedInteger(rawWad);
             int unknown = Utils.readUnsignedInteger(rawWad);
 
             //Loop through the file count
@@ -75,7 +75,20 @@ public class WadFile {
                 wadInfo.setNameSize(Utils.readUnsignedInteger(rawWad));
                 wadInfo.setOffset(Utils.readUnsignedInteger(rawWad));
                 wadInfo.setCompressedSize(Utils.readUnsignedInteger(rawWad));
-                wadInfo.setType(Utils.readUnsignedInteger(rawWad));
+                int typeIndex = Utils.readUnsignedInteger(rawWad);
+                switch (typeIndex) {
+                    case 0: {
+                        wadInfo.setType(WadFileEntry.WadFileEntryType.NOT_COMPRESSED);
+                        break;
+                    }
+                    case 4: {
+                        wadInfo.setType(WadFileEntry.WadFileEntryType.COMPRESSED);
+                        break;
+                    }
+                    default: {
+                        wadInfo.setType(WadFileEntry.WadFileEntryType.UNKOWN);
+                    }
+                }
                 wadInfo.setSize(Utils.readUnsignedInteger(rawWad));
                 int[] unknown2 = new int[3];
                 unknown2[0] = Utils.readUnsignedInteger(rawWad);
@@ -86,8 +99,8 @@ public class WadFile {
             }
 
             //Read the file names and put them to a hashmap
-            rawWad.seek(name_offset);
-            byte[] nameArray = new byte[name_size];
+            rawWad.seek(nameOffset);
+            byte[] nameArray = new byte[nameSize];
             rawWad.read(nameArray);
             int offset = 0;
             wadFileEntries = new HashMap<>(files);
