@@ -15,11 +15,11 @@ public class SdtFileEntry {
     private int size;
     private int unknown1;
     private int unknown2;
-    private int unknown3;
+    private int nSamples;
     private int unknown4;
     private long dataOffset;
 
-    protected int getIndexSize() {
+    public int getIndexSize() {
         return indexSize;
     }
 
@@ -27,7 +27,7 @@ public class SdtFileEntry {
         this.indexSize = indexSize;
     }
 
-    protected int getSize() {
+    public int getSize() {
         return size;
     }
 
@@ -35,7 +35,7 @@ public class SdtFileEntry {
         this.size = size;
     }
 
-    protected int getUnknown1() {
+    public int getUnknown1() {
         return unknown1;
     }
 
@@ -43,7 +43,7 @@ public class SdtFileEntry {
         this.unknown1 = unknown1;
     }
 
-    protected int getUnknown2() {
+    public int getUnknown2() {
         return unknown2;
     }
 
@@ -51,15 +51,15 @@ public class SdtFileEntry {
         this.unknown2 = unknown2;
     }
 
-    protected int getUnknown3() {
-        return unknown3;
+    public int getnSamples() {
+        return nSamples;
     }
 
-    protected void setUnknown3(int unknown3) {
-        this.unknown3 = unknown3;
+    protected void setnSamples(int nSamples) {
+        this.nSamples = nSamples;
     }
 
-    protected int getUnknown4() {
+    public int getUnknown4() {
         return unknown4;
     }
 
@@ -67,7 +67,7 @@ public class SdtFileEntry {
         this.unknown4 = unknown4;
     }
 
-    protected long getDataOffset() {
+    public long getDataOffset() {
         return dataOffset;
     }
 

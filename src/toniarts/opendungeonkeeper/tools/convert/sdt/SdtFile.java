@@ -66,7 +66,7 @@ public class SdtFile {
                 String filename = Utils.bytesToString(nameBytes).trim();
                 entry.setUnknown1(Utils.readUnsignedInteger(rawSdt));
                 entry.setUnknown2(Utils.readUnsignedInteger(rawSdt));
-                entry.setUnknown3(Utils.readUnsignedInteger(rawSdt));
+                entry.setnSamples(Utils.readUnsignedInteger(rawSdt));
                 entry.setUnknown4(Utils.readUnsignedInteger(rawSdt));
                 entry.setDataOffset(rawSdt.getFilePointer());
 
