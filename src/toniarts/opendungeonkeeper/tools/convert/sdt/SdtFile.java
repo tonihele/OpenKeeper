@@ -10,7 +10,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 
 /**
@@ -199,5 +201,19 @@ public class SdtFile {
             }
         }
         return filename;
+    }
+
+    /**
+     * Get list of different objects
+     *
+     * @return list of objects
+     */
+    public List<String> getFileNamesList() {
+        return Arrays.asList(sdtFileEntries.keySet().toArray(new String[sdtFileEntries.size()]));
+    }
+
+    @Override
+    public String toString() {
+        return file.getName();
     }
 }
