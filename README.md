@@ -41,7 +41,7 @@ TODO
     - [x] MP2 decoding
     - [x] Finish up the MP2 asset loader
     - [ ] Merge the sound tracks
-    - [ ] Decide what to do with the MAP files
+    - [ ] Decide what to do with the MAP files (playback events)
   - [ ] Video playes for DK format (*
   - [ ] Paths to JME MotionPaths?
   - [x] Cursors
