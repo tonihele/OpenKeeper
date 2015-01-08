@@ -319,7 +319,7 @@ public abstract class Thing {
             PORTAL(12),
             DUNGEON_HEART(14),
             HERO_GATE_2X2(33),
-            UNKNOWN(34), // ??, in the 3D menu
+            HERO_GATE_FRONT_END(34), // ??, in the 3D menu
             HERO_GATE_3X1(37),
             HERO_PORTAL(40);
 
@@ -431,6 +431,11 @@ public abstract class Thing {
 
         protected void setPlayerId(short playerId) {
             this.playerId = playerId;
+        }
+
+        @Override
+        public String toString() {
+            return roomType + " [" + (posX + 1) + "," + (posY + 1) + "]";
         }
     }
 //    struct Thing12Block {
