@@ -28,7 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.opendungeonkeeper.tools.convert.enginetextures.EngineTexturesFile;
 import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
-import toniarts.opendungeonkeeper.tools.convert.sdt.SdtFile;
+import toniarts.opendungeonkeeper.tools.convert.sound.SdtFile;
 import toniarts.opendungeonkeeper.tools.convert.wad.WadFile;
 
 /**
