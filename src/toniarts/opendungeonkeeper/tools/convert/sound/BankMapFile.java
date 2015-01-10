@@ -25,6 +25,7 @@ public class BankMapFile {
     private final short unknown1[]; // 20
     private final int unknown2;
     //
+    private final File file;
     private final List<BankMapFileEntry> bankMapFileEntries;
     private final List<String> soundArchiveEntries;
 
@@ -34,6 +35,7 @@ public class BankMapFile {
      * @param file the *Bank.map file to read
      */
     public BankMapFile(File file) {
+        this.file = file;
 
         //Read the file
         try (RandomAccessFile rawMap = new RandomAccessFile(file, "r")) {
@@ -55,7 +57,7 @@ public class BankMapFile {
                 //    long unknown04;
                 //    char unknown08[3];
                 BankMapFileEntry entry = new BankMapFileEntry();
-                entry.setUnknown1(Utils.readUnsignedInteger(rawMap));
+                entry.setUnknown1(Utils.readUnsignedIntegerAsLong(rawMap));
                 entry.setUnknown2(Utils.readUnsignedInteger(rawMap));
                 short[] unknown3 = new short[3];
                 for (int x = 0; x < unknown3.length; x++) {
@@ -83,5 +85,10 @@ public class BankMapFile {
             //Fug
             throw new RuntimeException("Failed to open the file " + file + "!", e);
         }
+    }
+
+    @Override
+    public String toString() {
+        return file.getName();
     }
 }

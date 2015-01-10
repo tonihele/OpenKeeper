@@ -11,15 +11,15 @@ package toniarts.opendungeonkeeper.tools.convert.sound;
  */
 class BankMapFileEntry {
 
-    private int unknown1;
+    private long unknown1;
     private int unknown2;
     private short unknown3[]; // 3
 
-    public int getUnknown1() {
+    public long getUnknown1() {
         return unknown1;
     }
 
-    protected void setUnknown1(int unknown1) {
+    protected void setUnknown1(long unknown1) {
         this.unknown1 = unknown1;
     }
 
