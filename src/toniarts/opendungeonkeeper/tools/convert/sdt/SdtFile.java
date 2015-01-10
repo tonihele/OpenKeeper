@@ -33,7 +33,7 @@ public class SdtFile {
      * Constructs a new Sdt file reader<br>
      * Reads the SDT file structure
      *
-     * @param file the wad file to read
+     * @param file the sdt file to read
      */
     public SdtFile(File file) {
         this.file = file;
