@@ -17,8 +17,8 @@ public class Variable {
 //        int x08;
 //        int x0c;
 //        };
-    private int x00;
-    private int x04;
+    private int x00; // Some kind of ID, but there are duplicates
+    private int value;
     private int x08;
     private int x0c;
 
@@ -30,12 +30,12 @@ public class Variable {
         this.x00 = x00;
     }
 
-    public int getX04() {
-        return x04;
+    public int getValue() {
+        return value;
     }
 
-    protected void setX04(int x04) {
-        this.x04 = x04;
+    protected void setValue(int value) {
+        this.value = value;
     }
 
     public int getX08() {
