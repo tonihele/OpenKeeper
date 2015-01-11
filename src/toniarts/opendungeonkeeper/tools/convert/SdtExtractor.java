@@ -13,7 +13,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
-import toniarts.opendungeonkeeper.tools.convert.sdt.SdtFile;
+import toniarts.opendungeonkeeper.tools.convert.sound.SdtFile;
 
 /**
  * Simple class to extract all the files from given SDT to given location
