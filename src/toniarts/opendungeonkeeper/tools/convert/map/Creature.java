@@ -201,6 +201,7 @@ public class Creature implements Comparable<Creature> {
 
     public enum Swipe implements IValueEnum {
 
+        NONE(0),
         BITE(1),
         CLAW_SLASH(2),
         CLUB_SMASH(3),
