@@ -850,6 +850,12 @@ public class KwdFile {
         resourceType.setSometimesOne(sometimesOne);
 
         artResource.setSettings(resourceType);
+
+        // If it has no name or the type is not known, return null
+        if (artResource.getName().isEmpty() || resourceType.getType() == null) {
+            return null;
+        }
+
         return artResource;
     }
 
@@ -2314,6 +2320,20 @@ public class KwdFile {
      */
     public Creature getCreature(short id) {
         return creatures.get(id);
+    }
+
+    public Map[][] getTiles() {
+        return tiles;
+    }
+
+    /**
+     * Get the terrain with the specified ID
+     *
+     * @param id the id of terrain
+     * @return the terrain
+     */
+    public Terrain getTerrain(short id) {
+        return terrainTiles.get(id);
     }
 
     /**
