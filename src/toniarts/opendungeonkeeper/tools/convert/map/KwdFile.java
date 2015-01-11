@@ -102,6 +102,79 @@ public class KwdFile {
             return flagValue;
         }
     };
+
+    public enum TextTable implements IValueEnum {
+
+        NONE(0),
+        LEVEL_1(1),
+        LEVEL_2(2),
+        LEVEL_3(3),
+        LEVEL_4(4),
+        LEVEL_5(5),
+        LEVEL_6A(6),
+        LEVEL_6B(7),
+        LEVEL_7(8),
+        LEVEL_8(9),
+        LEVEL_9(10),
+        LEVEL_10(11),
+        LEVEL_11A(12),
+        LEVEL_11B(13),
+        LEVEL_11C(14),
+        LEVEL_12(15),
+        LEVEL_13(16),
+        LEVEL_14(17),
+        LEVEL_15A(18),
+        LEVEL_15B(19),
+        LEVEL_16(20),
+        LEVEL_17(21),
+        LEVEL_18(22),
+        LEVEL_19(23),
+        LEVEL_20(24),
+        MULTI_PLAYER_1(25),
+        MY_PET_DUNGEON_1(26),
+        SECRET_1(27),
+        SECRET_2(28),
+        SECRET_3(29),
+        SECRET_4(30),
+        SECRET_5(31),
+        DEMO_1(32),
+        DEMO_2(33),
+        DEMO_3(34),
+        MY_PET_DUNGEON_2(35),
+        MY_PET_DUNGEON_3(36),
+        MY_PET_DUNGEON_4(37),
+        MY_PET_DUNGEON_5(38),
+        MY_PET_DUNGEON_6(39),
+        MULTI_PLAYER_2(41),
+        MULTI_PLAYER_3(42),
+        MULTI_PLAYER_4(43),
+        MULTI_PLAYER_5(44),
+        MULTI_PLAYER_6(45),
+        MULTI_PLAYER_7(46),
+        MULTI_PLAYER_8(47),
+        MULTI_PLAYER_9(48),
+        MULTI_PLAYER_10(49),
+        MULTI_PLAYER_11(50),
+        MULTI_PLAYER_12(51),
+        MULTI_PLAYER_13(52),
+        MULTI_PLAYER_14(53),
+        MULTI_PLAYER_15(54),
+        MULTI_PLAYER_16(55),
+        MULTI_PLAYER_17(56),
+        MULTI_PLAYER_18(57),
+        MULTI_PLAYER_19(58),
+        MULTI_PLAYER_20(59);
+
+        private TextTable(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private final int id;
+    }
     private static final float FIXED_POINT_DIVISION = 4096f;
     private static final float FIXED_POINT5_DIVISION = 65536f;
     // KWD data
@@ -157,7 +230,7 @@ public class KwdFile {
     private short rewardPrev[];
     private short rewardNext[];
     private short soundTrack;
-    private short textTableId;
+    private TextTable textTableId;
     private int textTitleId;
     private int textPlotId;
     private int textDebriefId;
@@ -378,7 +451,7 @@ public class KwdFile {
         }
 
         // Handle all the cases (we kinda skip the globals with this logic, so no need)
-        // All readers must read the whole data they inted to read
+        // All readers must read the whole data they intend to read
         switch (header.getId()) {
             case CREATURES: {
                 readCreatures(header, data);
@@ -1098,7 +1171,7 @@ public class KwdFile {
                 rewardNext[x] = (short) rawMapInfo.readUnsignedByte();
             }
             soundTrack = (short) rawMapInfo.readUnsignedByte();
-            textTableId = (short) rawMapInfo.readUnsignedByte();
+            textTableId = parseEnum((short) rawMapInfo.readUnsignedByte(), TextTable.class);
             textTitleId = Utils.readUnsignedShort(rawMapInfo);
             textPlotId = Utils.readUnsignedShort(rawMapInfo);
             textDebriefId = Utils.readUnsignedShort(rawMapInfo);
@@ -2193,8 +2266,10 @@ public class KwdFile {
         }
         for (int i = 0; i < header.getItemCount(); i++) {
             Variable variable = new Variable();
-            variable.setX00(Utils.readInteger(file));
-            variable.setX04(Utils.readInteger(file));
+            int id = Utils.readInteger(file);
+            logger.info("Id = " + id);
+            variable.setX00(id);
+            variable.setValue(Utils.readInteger(file));
             variable.setX08(Utils.readInteger(file));
             variable.setX0c(Utils.readInteger(file));
 
@@ -2297,6 +2372,7 @@ public class KwdFile {
                 return e;
             }
         }
+        logger.log(Level.WARNING, "Value {0} not specified for enum class {1}!", new java.lang.Object[]{value, enumeration.getName()});
         return null;
     }
 
