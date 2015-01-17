@@ -93,7 +93,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     public static void main(String[] args) {      
         //Take Dungeon Keeper 2 root folder as parameter
-        if (convertAssets && args.length != 1 && !new File(args[0]).exists()) {
+        if (convertAssets || args.length != 1 || !new File(args[0]).exists()) {
             throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter! Second parameter is the extraction target folder!");
         }
 
