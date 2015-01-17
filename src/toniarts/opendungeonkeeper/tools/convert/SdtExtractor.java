@@ -25,7 +25,7 @@ public class SdtExtractor {
     public static void main(String[] args) throws IOException {
 
         //Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 2 && !new File(args[0]).exists()) {
+        if (args.length != 2 || !new File(args[0]).exists()) {
             throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter! Second parameter is the extraction target folder!");
         }
 
