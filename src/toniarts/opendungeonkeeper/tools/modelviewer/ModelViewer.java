@@ -52,6 +52,7 @@ import toniarts.opendungeonkeeper.tools.convert.KmfModelLoader;
 import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
 import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
 import toniarts.opendungeonkeeper.tools.convert.map.Terrain;
+import toniarts.opendungeonkeeper.tools.convert.map.loader.MapLoader;
 import toniarts.opendungeonkeeper.tools.convert.map.loader.ObjectLoader;
 import toniarts.opendungeonkeeper.tools.convert.map.loader.TerrainLoader;
 
@@ -61,10 +62,9 @@ import toniarts.opendungeonkeeper.tools.convert.map.loader.TerrainLoader;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class ModelViewer extends SimpleApplication implements ScreenController {
-
     public enum Types {
 
-        MODELS("Models"), TERRAIN("Terrain"), OBJECTS("Objects");
+        MODELS("Models"), TERRAIN("Terrain"), OBJECTS("Objects"), MAPS("Maps");
         private String name;
 
         private Types(String name) {
@@ -87,11 +87,11 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private boolean wireframe = false;
     private boolean rotate = true;
     private List<String> models;
+    private List<String> maps;
     private KwdFile kwdFile;
     private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
 
-    public static void main(String[] args) {
-
+    public static void main(String[] args) {      
         //Take Dungeon Keeper 2 root folder as parameter
         if (convertAssets && args.length != 1 && !new File(args[0]).exists()) {
             throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter! Second parameter is the extraction target folder!");
@@ -243,7 +243,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 KmfModelLoader loader = new KmfModelLoader();
                 KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf, AssetsConverter.getEngineTexturesFile(dkIIFolder), false);
                 Node node = (Node) loader.load(asset);
-                setupModel(node);
+                setupModel(node, false);
             } catch (Exception e) {
                 logger.log(Level.SEVERE, "Failed to handle: " + kmfModel, e);
             }
@@ -252,30 +252,30 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     /**
      * Fill the listbox with items. In this case with JustAnExampleModelClass.
-     */
-    public void fillModels() {
+     */   
+    public void fillWithFiles(List<String> object, final String directory, final String extension) {
         ListBox listBox = getModelListBox();
 
-        if (models == null) {
+        if (object == null) {
 
             //Find all the models
-            models = new ArrayList<>();
-            File f = new File(AssetsConverter.getAssetsFolder().concat(AssetsConverter.MODELS_FOLDER).concat(File.separator));
+            object = new ArrayList<>();
+            File f = new File(directory);
             File[] files = f.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
-                    return name.toLowerCase().endsWith(".j3o");
+                    return name.toLowerCase().endsWith(".".concat(extension));
                 }
             });
             Path path = new File(AssetsConverter.getAssetsFolder()).toPath();
             for (File file : files) {
                 String key = path.relativize(file.toPath()).toString();
-                models.add(key.substring(0, key.length() - 4));
+                object.add(key.substring(0, key.length() - 4));
             }
         }
 
         // Add & sort
-        listBox.addAllItems(models);
+        listBox.addAllItems(object);
         listBox.sortAllItems();
     }
 
@@ -301,21 +301,30 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
                     // Load the selected model
                     Node spat = (Node) this.getAssetManager().loadModel(((String) selection.get(0)).concat(".j3o").replaceAll(Matcher.quoteReplacement(File.separator), "/"));
-                    setupModel(spat);
+                    setupModel(spat, false);
                     break;
                 }
                 case TERRAIN: {
 
                     // Load the selected terrain
                     Node spat = (Node) new TerrainLoader().load(this.getAssetManager(), (Terrain) selection.get(0));
-                    setupModel(spat);
+                    setupModel(spat, false);
+                    break;
+                }
+                case MAPS: {
+
+                    // Load the selected terrain
+                    String file = ((String) selection.get(0)).concat(".kwd").replaceAll(Matcher.quoteReplacement(File.separator), "/");
+                    KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(file)));
+                    Node spat = (Node) new MapLoader().load(this.getAssetManager(), kwd);
+                    setupModel(spat, true);
                     break;
                 }
                 case OBJECTS: {
 
                     // Load the selected object
                     Node spat = (Node) new ObjectLoader().load(this.getAssetManager(), (toniarts.opendungeonkeeper.tools.convert.map.Object) selection.get(0));
-                    setupModel(spat);
+                    setupModel(spat, false);
                     break;
                 }
             }
@@ -352,31 +361,35 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     public void onEndScreen() {
     }
 
-    private void setupModel(Node spat) {
+    private void setupModel(Node spat, boolean isMap) {
         spat.setName(name);
 
-        // Reset the game translation and scale
-        for (Spatial subSpat : spat.getChildren()) {
-            subSpat.setLocalScale(1);
-            subSpat.setLocalTranslation(0, 0, 0);
+        if (!isMap) {
+            // Reset the game translation and scale
+            for (Spatial subSpat : spat.getChildren()) {
+                subSpat.setLocalScale(1);
+                subSpat.setLocalTranslation(0, 0, 0);
+            }
+
+            // Make it bigger and move
+            spat.scale(10);
+            spat.setLocalTranslation(10, 25, 30);     
+
+            // Rotate it
+            Quaternion quat = new Quaternion();
+            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(1, 0, 0));
+            spat.rotate(quat);
+            
+            // Make it rotate
+            RotatorControl rotator = new RotatorControl();
+            rotator.setEnabled(rotate);
+            spat.addControl(rotator);
+        } else {
+            spat.setLocalTranslation(-20, 21, -20);
         }
-
-        // Make it bigger and move
-        spat.scale(10);
-        spat.setLocalTranslation(10, 25, 30);
-
-        // Rotate it
-        Quaternion quat = new Quaternion();
-        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(1, 0, 0));
-        spat.rotate(quat);
-
+        
         // Shadows
         spat.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
-
-        // Make it rotate
-        RotatorControl rotator = new RotatorControl();
-        rotator.setEnabled(rotate);
-        spat.addControl(rotator);
 
         // Remove the old model
         rootNode.detachChildNamed(name);
@@ -421,11 +434,15 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         getModelListBox().clear();
         switch (type) {
             case MODELS: {
-                fillModels();
+                fillWithFiles(models, AssetsConverter.getAssetsFolder().concat(AssetsConverter.MODELS_FOLDER).concat(File.separator), "j3o");
                 break;
             }
             case TERRAIN: {
                 fillTerrain();
+                break;
+            }
+            case MAPS: {
+                fillWithFiles(maps, dkIIFolder.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("maps"), "kwd");
                 break;
             }
             case OBJECTS: {
