@@ -1,0 +1,9 @@
+/nbproject/private/
+/build/
+*.png
+*.j3m
+*.j3o
+*.mp2
+*.wav
+odk.properties
+*.dll
