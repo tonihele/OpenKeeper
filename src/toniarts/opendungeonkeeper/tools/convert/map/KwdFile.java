@@ -1904,7 +1904,9 @@ public class KwdFile {
 
                     // Object (door & trap crates, objects...)
                     thing = new Thing.Object();
-                    short unknown1[] = new short[24];
+                    ((Thing.Object) thing).setPosX(Utils.readInteger(file));
+                    ((Thing.Object) thing).setPosY(Utils.readInteger(file));
+                    short unknown1[] = new short[16];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();
                     }
@@ -1915,7 +1917,9 @@ public class KwdFile {
 
                     // Trap
                     thing = new Thing.Trap();
-                    short unknown1[] = new short[16];
+                    ((Thing.Trap) thing).setPosX(Utils.readInteger(file));
+                    ((Thing.Trap) thing).setPosY(Utils.readInteger(file));
+                    short unknown1[] = new short[8];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();
                     }
@@ -1926,7 +1930,9 @@ public class KwdFile {
 
                     // Door
                     thing = new Thing.Door();
-                    short unknown1[] = new short[20];
+                    ((Thing.Door) thing).setPosX(Utils.readInteger(file));
+                    ((Thing.Door) thing).setPosY(Utils.readInteger(file));
+                    short unknown1[] = new short[12];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();
                     }
@@ -1963,8 +1969,15 @@ public class KwdFile {
                 }
                 case 199: {
 
-                    // Thing02
-                    file.skipBytes(thingTag[1]);
+                    // Good creature
+                    thing = new Thing.GoodCreature();
+                    ((Thing.GoodCreature) thing).setPosX(Utils.readInteger(file));
+                    ((Thing.GoodCreature) thing).setPosY(Utils.readInteger(file));
+                    short unknown1[] = new short[24];
+                    for (int x = 0; x < unknown1.length; x++) {
+                        unknown1[x] = (short) file.readUnsignedByte();
+                    }
+                    ((Thing.GoodCreature) thing).setUnknown1(unknown1);
                     break;
                 }
                 case 200: {

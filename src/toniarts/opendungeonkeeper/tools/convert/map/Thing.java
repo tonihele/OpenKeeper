@@ -1029,7 +1029,25 @@ public abstract class Thing {
 
     public static class Door extends Thing {
 
-        private short unknown1[]; // 20
+        private int posX; // 0-based coordinate
+        private int posY; // 0-based coordinate
+        private short unknown1[]; // 12
+
+        public int getPosX() {
+            return posX;
+        }
+
+        protected void setPosX(int posX) {
+            this.posX = posX;
+        }
+
+        public int getPosY() {
+            return posY;
+        }
+
+        protected void setPosY(int posY) {
+            this.posY = posY;
+        }
 
         public short[] getUnknown1() {
             return unknown1;
@@ -1042,7 +1060,25 @@ public abstract class Thing {
 
     public static class Object extends Thing {
 
-        private short unknown1[]; // 24
+        private int posX; // 0-based coordinate
+        private int posY; // 0-based coordinate
+        private short unknown1[]; // 16
+
+        public int getPosX() {
+            return posX;
+        }
+
+        protected void setPosX(int posX) {
+            this.posX = posX;
+        }
+
+        public int getPosY() {
+            return posY;
+        }
+
+        protected void setPosY(int posY) {
+            this.posY = posY;
+        }
 
         public short[] getUnknown1() {
             return unknown1;
@@ -1055,7 +1091,56 @@ public abstract class Thing {
 
     public static class Trap extends Thing {
 
-        private short unknown1[]; // 16
+        private int posX; // 0-based coordinate
+        private int posY; // 0-based coordinate
+        private short unknown1[]; // 8
+
+        public int getPosX() {
+            return posX;
+        }
+
+        protected void setPosX(int posX) {
+            this.posX = posX;
+        }
+
+        public int getPosY() {
+            return posY;
+        }
+
+        protected void setPosY(int posY) {
+            this.posY = posY;
+        }
+
+        public short[] getUnknown1() {
+            return unknown1;
+        }
+
+        protected void setUnknown1(short[] unknown1) {
+            this.unknown1 = unknown1;
+        }
+    }
+
+    public static class GoodCreature extends Thing {
+
+        private int posX; // 0-based coordinate
+        private int posY; // 0-based coordinate
+        private short unknown1[]; // 24
+
+        public int getPosX() {
+            return posX;
+        }
+
+        protected void setPosX(int posX) {
+            this.posX = posX;
+        }
+
+        public int getPosY() {
+            return posY;
+        }
+
+        protected void setPosY(int posY) {
+            this.posY = posY;
+        }
 
         public short[] getUnknown1() {
             return unknown1;
