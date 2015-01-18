@@ -62,6 +62,7 @@ import toniarts.opendungeonkeeper.tools.convert.map.loader.TerrainLoader;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class ModelViewer extends SimpleApplication implements ScreenController {
+
     public enum Types {
 
         MODELS("Models"), TERRAIN("Terrain"), OBJECTS("Objects"), MAPS("Maps");
@@ -91,7 +92,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private KwdFile kwdFile;
     private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
 
-    public static void main(String[] args) {      
+    public static void main(String[] args) {
         //Take Dungeon Keeper 2 root folder as parameter
         if (convertAssets && args.length != 1 && !new File(args[0]).exists()) {
             throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter! Second parameter is the extraction target folder!");
@@ -251,9 +252,16 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     }
 
     /**
-     * Fill the listbox with items. In this case with JustAnExampleModelClass.
-     */   
-    public void fillWithFiles(List<String> object, final String directory, final String extension) {
+     * Fill the listbox with items
+     *
+     * @param object list of objects (cached)
+     * @param rootDirectory the root directory (i.e. DK II dir or the dev dir),
+     * must be relative to the actual directory of where the objects are
+     * gathered
+     * @param directory the actual directory where the objects are get
+     * @param extension the file extension of the objects wanted
+     */
+    public void fillWithFiles(List<String> object, final String rootDirectory, final String directory, final String extension) {
         ListBox listBox = getModelListBox();
 
         if (object == null) {
@@ -267,7 +275,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     return name.toLowerCase().endsWith(".".concat(extension));
                 }
             });
-            Path path = new File(AssetsConverter.getAssetsFolder()).toPath();
+            Path path = new File(rootDirectory).toPath();
             for (File file : files) {
                 String key = path.relativize(file.toPath()).toString();
                 object.add(key.substring(0, key.length() - 4));
@@ -373,13 +381,13 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
             // Make it bigger and move
             spat.scale(10);
-            spat.setLocalTranslation(10, 25, 30);     
+            spat.setLocalTranslation(10, 25, 30);
 
             // Rotate it
             Quaternion quat = new Quaternion();
             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(1, 0, 0));
             spat.rotate(quat);
-            
+
             // Make it rotate
             RotatorControl rotator = new RotatorControl();
             rotator.setEnabled(rotate);
@@ -387,7 +395,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         } else {
             spat.setLocalTranslation(-20, 21, -20);
         }
-        
+
         // Shadows
         spat.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 
@@ -434,7 +442,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         getModelListBox().clear();
         switch (type) {
             case MODELS: {
-                fillWithFiles(models, AssetsConverter.getAssetsFolder().concat(AssetsConverter.MODELS_FOLDER).concat(File.separator), "j3o");
+                fillWithFiles(models, AssetsConverter.getAssetsFolder(), AssetsConverter.getAssetsFolder().concat(AssetsConverter.MODELS_FOLDER).concat(File.separator), "j3o");
                 break;
             }
             case TERRAIN: {
@@ -442,7 +450,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 break;
             }
             case MAPS: {
-                fillWithFiles(maps, dkIIFolder.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("maps"), "kwd");
+                fillWithFiles(maps, dkIIFolder, dkIIFolder.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("maps"), "kwd");
                 break;
             }
             case OBJECTS: {
