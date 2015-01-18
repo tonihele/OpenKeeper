@@ -321,7 +321,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 }
                 case MAPS: {
 
-                    // Load the selected terrain
+                    // Load the selected map
                     String file = ((String) selection.get(0)).concat(".kwd").replaceAll(Matcher.quoteReplacement(File.separator), "/");
                     KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(file)));
                     Node spat = (Node) new MapLoader().load(this.getAssetManager(), kwd);
