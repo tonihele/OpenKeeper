@@ -78,7 +78,6 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         }
     }
     private final String dkIIFolder;
-    private static boolean convertAssets = false;
     private Vector3f lightDir = new Vector3f(-1, -1, .5f).normalizeLocal();
     private DirectionalLight dl;
     private Nifty nifty;
@@ -94,8 +93,8 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     public static void main(String[] args) {
         //Take Dungeon Keeper 2 root folder as parameter
-        if (convertAssets && args.length != 1 && !new File(args[0]).exists()) {
-            throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter! Second parameter is the extraction target folder!");
+        if (args.length != 1 || !new File(args[0]).exists()) {
+            throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter!");
         }
 
         ModelViewer app = new ModelViewer(null, args[0]);
@@ -191,18 +190,6 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     @Override
     public void simpleInitApp() {
-
-        // Convert the assets
-        if (convertAssets) {
-            AssetsConverter assetsConverter = new AssetsConverter(dkIIFolder, assetManager) {
-                @Override
-                protected void updateStatus(Integer currentProgress, Integer totalProgress, AssetsConverter.ConvertProcess process) {
-                    //
-                }
-            };
-            assetsConverter.convertAssets();
-        }
-
         // The GUI
         NiftyJmeDisplay niftyDisplay = new NiftyJmeDisplay(assetManager,
                 inputManager,
