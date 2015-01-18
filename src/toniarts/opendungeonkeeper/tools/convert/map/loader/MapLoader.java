@@ -15,6 +15,7 @@ import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource;
 import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
 import toniarts.opendungeonkeeper.tools.convert.map.Map;
+import toniarts.opendungeonkeeper.tools.convert.map.Room;
 import toniarts.opendungeonkeeper.tools.convert.map.Terrain;
 
 /**
@@ -182,6 +183,10 @@ public class MapLoader implements ILoader<KwdFile> {
                         floor.move(x * TILE_SIZE_X, y * TILE_SIZE_Y, -1f);
                         root.attachChild(floor);
                     }
+                } else {
+
+                    // All is null, a room perhaps
+                    Room room = object.getRoomByTerrain(terrain.getTerrainId());
                 }
             }
         }
