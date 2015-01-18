@@ -268,6 +268,7 @@ public class KwdFile {
     private HashMap<Short, Door> doors;
     private HashMap<Short, Trap> traps;
     private HashMap<Short, Room> rooms;
+    private HashMap<Short, Room> roomsByTerrainId; // Maps have rooms by the terrain ID
     private HashMap<Short, Creature> creatures;
     private HashMap<Short, Object> objects;
     private HashMap<Short, CreatureSpell> creatureSpells;
@@ -1037,6 +1038,7 @@ public class KwdFile {
         // Read the rooms catalog
         logger.info("Reading rooms!");
         rooms = new HashMap<>(header.getItemCount());
+        roomsByTerrainId = new HashMap<>(header.getItemCount());
         for (int i = 0; i < header.getItemCount(); i++) {
             long offset = file.getFilePointer();
             Room room = new Room();
@@ -1100,6 +1102,9 @@ public class KwdFile {
 
             // Add to the hash by the room ID
             rooms.put(room.getRoomId(), room);
+
+            // And by the terrain ID
+            roomsByTerrainId.put(room.getTerrainId(), room);
 
             // Check file offset
             checkOffset(header, file, offset);
@@ -2350,6 +2355,16 @@ public class KwdFile {
     }
 
     /**
+     * Get the room with the specified terrain ID
+     *
+     * @param id the id of terrain
+     * @return the room associated with the terrain ID
+     */
+    public Room getRoomByTerrain(short id) {
+        return roomsByTerrainId.get(id);
+    }
+
+    /**
      * Reads a DK2 style timestamp
      *
      * @param file the file to read from
@@ -2443,6 +2458,11 @@ public class KwdFile {
             logger.log(Level.WARNING, "Record size differs from expected! File offset is {0} and should be {1}!", new java.lang.Object[]{file.getFilePointer(), wantedOffset});
             file.seek(wantedOffset);
         }
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 
     /**
