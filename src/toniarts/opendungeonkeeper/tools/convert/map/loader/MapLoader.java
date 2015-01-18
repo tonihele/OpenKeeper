@@ -134,9 +134,48 @@ public class MapLoader implements ILoader<KwdFile> {
                     if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)) {
 
                         // The bed
-                        Spatial floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "3" + ".j3o");
-                        floor.move(x * TILE_SIZE_X, y * TILE_SIZE_Y, -1f);
+
+                        // Figure out which peace by seeing the neighbours
+                        boolean waterN = hasSameTile(tiles, x, y - 1, terrain);
+                        boolean waterNE = hasSameTile(tiles, x + 1, y - 1, terrain);
+                        boolean waterE = hasSameTile(tiles, x + 1, y, terrain);
+                        boolean waterSE = hasSameTile(tiles, x + 1, y + 1, terrain);
+                        boolean waterS = hasSameTile(tiles, x, y + 1, terrain);
+                        boolean waterSW = hasSameTile(tiles, x - 1, y + 1, terrain);
+                        boolean waterW = hasSameTile(tiles, x - 1, y, terrain);
+                        boolean waterNW = hasSameTile(tiles, x - 1, y - 1, terrain);
+
+                        Spatial floor = null;
+                        if (!waterNE && !waterE && !waterSE && waterN && waterS && waterW) {
+                            floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o");
+                            Quaternion quat = new Quaternion();
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                            floor.rotate(quat);
+                            floor.move(0, 0, -1.15f);
+                        } else if (!waterNW && !waterW && !waterSW && waterN && waterS && waterE) {
+                            floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o");
+                            Quaternion quat = new Quaternion();
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                            floor.rotate(quat);
+                            floor.move(0, 0, -1.15f);
+                        } else if (!waterNW && !waterN && !waterNW && waterE && waterW && waterS) {
+                            floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o");
+                            Quaternion quat = new Quaternion();
+                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+                            floor.rotate(quat);
+                            floor.move(0, 0, -1.15f);
+                        } else if (!waterSW && !waterS && !waterSW && waterE && waterW && waterN) {
+                            floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o");
+                            floor.move(0, 0, -1.15f);
+                        } else { // Just a seabed
+                            floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "3" + ".j3o");
+                            floor.move(0, 0, -1.33f);
+                        }
+
+                        floor.move(x * TILE_SIZE_X, y * TILE_SIZE_Y, 0);
                         root.attachChild(floor);
+
+                        ////
                     } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
                     } else {
                         Spatial floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + ".j3o");
@@ -215,5 +254,23 @@ public class MapLoader implements ILoader<KwdFile> {
             }
         }
         return null;
+    }
+
+    /**
+     * Compares the given terrain tile to terrain tile at the given coordinates
+     *
+     * @param tiles the tiles
+     * @param x the x
+     * @param y the y
+     * @param terrain terrain tile to compare with
+     * @return are the tiles same
+     */
+    private boolean hasSameTile(Map[][] tiles, int x, int y, Terrain terrain) {
+
+        // Check for out of bounds
+        if (x < 0 || x >= tiles.length || y < 0 || y >= tiles[x].length) {
+            return false;
+        }
+        return tiles[x][y].getTerrainId() == terrain.getTerrainId();
     }
 }
