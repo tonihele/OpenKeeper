@@ -2390,15 +2390,13 @@ public class KwdFile {
      * Parse a flag to enumeration set of given class
      *
      * @param flag the flag value
-     * @param enumeration the enumeration class<br>It is super important that it
-     * implements the IFlagEnum (I couldn't figure out how to correctly set
-     * generics here)
+     * @param enumeration the enumeration class
      * @return the set
      */
-    protected static EnumSet parseFlagValue(long flag, Class<? extends Enum> enumeration) {
-        EnumSet set = EnumSet.noneOf(enumeration);
-        for (Enum e : enumeration.getEnumConstants()) {
-            long flagValue = ((IFlagEnum) e).getFlagValue();
+    protected static <E extends Enum<E> & IFlagEnum> EnumSet<E> parseFlagValue(long flag, Class<E> enumeration) {
+        EnumSet<E> set = EnumSet.noneOf(enumeration);
+        for (E e : enumeration.getEnumConstants()) {
+            long flagValue = e.getFlagValue();
             if ((flagValue & flag) == flagValue) {
                 set.add(e);
             }
@@ -2414,7 +2412,7 @@ public class KwdFile {
      * @param enumeration the enumeration class
      * @return Enum value, returns null if no enum is found with given value
      */
-    static protected <E extends Enum & IValueEnum> E parseEnum(int value, Class<E> enumeration) {
+    protected static <E extends Enum & IValueEnum> E parseEnum(int value, Class<E> enumeration) {
         for (E e : enumeration.getEnumConstants()) {
             if (e.getValue() == value) {
                 return e;
