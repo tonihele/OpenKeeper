@@ -8,6 +8,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -79,6 +80,7 @@ public class MapLoader implements ILoader<KwdFile> {
                         ceiling = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o");
                     }
                     ceiling.move(x * TILE_SIZE_X, y * TILE_SIZE_Y, (ceilingResource.equals(terrain.getCompleteResource()) ? -0.7f : 0));
+                    ceiling.setShadowMode(RenderQueue.ShadowMode.Off); // Ceilings never cast or receive, only thing above them would be picked up creatures, and they are solid
                     root.attachChild(ceiling);
 
                     // See the wall status
@@ -174,6 +176,7 @@ public class MapLoader implements ILoader<KwdFile> {
                         }
 
                         floor.move(x * TILE_SIZE_X, y * TILE_SIZE_Y, 0);
+                        floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
                         root.attachChild(floor);
 
                         ////
@@ -181,6 +184,7 @@ public class MapLoader implements ILoader<KwdFile> {
                     } else {
                         Spatial floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + ".j3o");
                         floor.move(x * TILE_SIZE_X, y * TILE_SIZE_Y, -1f);
+                        floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
                         root.attachChild(floor);
                     }
                 } else {
@@ -246,6 +250,7 @@ public class MapLoader implements ILoader<KwdFile> {
         // Move the ceiling to a correct tile
         if (wall != null) {
             wall.move(x * TILE_SIZE_X, y * TILE_SIZE_Y, 0);
+            wall.setShadowMode(RenderQueue.ShadowMode.CastAndReceive); // Walls cast and receive shadows
             root.attachChild(wall);
         }
     }
