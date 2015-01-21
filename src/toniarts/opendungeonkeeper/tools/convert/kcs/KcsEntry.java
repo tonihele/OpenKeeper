@@ -4,7 +4,7 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.kcs;
 
-import javax.vecmath.Vector3f;
+import com.jme3.math.Vector3f;
 
 /**
  * Stores the KCS file entry structure

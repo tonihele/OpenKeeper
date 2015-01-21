@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
-import javax.vecmath.Vector3f;
+import com.jme3.math.Vector3f;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 
 /**
