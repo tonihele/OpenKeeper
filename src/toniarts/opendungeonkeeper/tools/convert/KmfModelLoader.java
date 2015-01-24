@@ -43,6 +43,7 @@ import java.util.logging.Logger;
 import toniarts.opendungeonkeeper.animation.Pose;
 import toniarts.opendungeonkeeper.animation.PoseTrack;
 import toniarts.opendungeonkeeper.animation.PoseTrack.PoseFrame;
+import static toniarts.opendungeonkeeper.tools.convert.KmfModelLoader.inputStreamToFile;
 import toniarts.opendungeonkeeper.tools.convert.enginetextures.EngineTextureEntry;
 import toniarts.opendungeonkeeper.tools.convert.enginetextures.EngineTexturesFile;
 import toniarts.opendungeonkeeper.tools.convert.kmf.Anim;
@@ -409,8 +410,14 @@ public class KmfModelLoader implements AssetLoader {
         node.setLocalScale(anim.getCubeScale());
         node.setLocalTranslation(new Vector3f(anim.getPos().x, anim.getPos().y, anim.getPos().z));
 
-        // PoseFrames for each mesh index
-        HashMap<Integer, List<PoseFrame>> frames = new HashMap<>(anim.getSprites().size());
+        // Create pose tracks for each mesh index
+        List<PoseTrack> poseTracks = new ArrayList<>(anim.getSprites().size());
+
+        // Create times (same for each pose track)
+        float[] times = new float[anim.getFrames()];
+        for (int i = 0; i < anim.getFrames(); i++) {
+            times[i] = (i + 1) / 30f;
+        }
 
         int index = 0;
         for (AnimSprite animSprite : anim.getSprites()) {
@@ -419,14 +426,14 @@ public class KmfModelLoader implements AssetLoader {
 
             // Poses for each key frame (aproximate that every 1/3 is a key frame, pessimistic)
             // Note that a key frame may not have all the vertices
-            HashMap<Integer, HashMap<FrameInfo, Pose>> poses = new HashMap<>(anim.getFrames() / 3);
+            HashMap<Integer, HashMap<KmfModelLoader.FrameInfo, Pose>> poses = new HashMap<>(anim.getFrames() / 3);
 
             // Pose indices and indice offsets for each pose
-            HashMap<Integer, HashMap<FrameInfo, List<Integer>>> frameIndices = new HashMap<>(anim.getFrames() / 3);
-            HashMap<Integer, HashMap<FrameInfo, List<Vector3f>>> frameOffsets = new HashMap<>(anim.getFrames() / 3);
+            HashMap<Integer, HashMap<KmfModelLoader.FrameInfo, List<Integer>>> frameIndices = new HashMap<>(anim.getFrames() / 3);
+            HashMap<Integer, HashMap<KmfModelLoader.FrameInfo, List<Vector3f>>> frameOffsets = new HashMap<>(anim.getFrames() / 3);
 
             // For each frame, we need the previous key frame (pose) and the next, and the weights, for the pose frames
-            HashMap<Integer, List<FrameInfo>> frameInfos = new HashMap<>(anim.getFrames());
+            HashMap<Integer, List<KmfModelLoader.FrameInfo>> frameInfos = new HashMap<>(anim.getFrames());
 
             //
 
@@ -444,7 +451,7 @@ public class KmfModelLoader implements AssetLoader {
                 javax.vecmath.Vector3f baseCoord = null;
 
                 // Keep the last frame for creating the target pose
-                FrameInfo previousFrame = null;
+                KmfModelLoader.FrameInfo previousFrame = null;
 
                 //Go through every frame
                 for (int frame = 0; frame < anim.getFrames(); frame++) {
@@ -468,9 +475,9 @@ public class KmfModelLoader implements AssetLoader {
                     int lastPose = ((frame >> 7) * 128 + frameBase);
                     int nextPose = ((frame >> 7) * 128 + nextFrameBase);
                     if (!frameInfos.containsKey(frame)) {
-                        frameInfos.put(frame, new ArrayList<FrameInfo>());
+                        frameInfos.put(frame, new ArrayList<KmfModelLoader.FrameInfo>());
                     }
-                    FrameInfo frameInfo = new FrameInfo(lastPose, nextPose, geomFactor);
+                    KmfModelLoader.FrameInfo frameInfo = new KmfModelLoader.FrameInfo(lastPose, nextPose, geomFactor);
                     int x = Collections.binarySearch(frameInfos.get(frame), frameInfo);
                     if (x < 0) {
                         frameInfos.get(frame).add(~x, frameInfo);
@@ -479,16 +486,16 @@ public class KmfModelLoader implements AssetLoader {
                     // Only make poses from key frames
                     if (frame == lastPose || frame == nextPose) {
                         if (!frameIndices.containsKey(frame)) {
-                            frameIndices.put(frame, new HashMap<FrameInfo, List<Integer>>());
+                            frameIndices.put(frame, new HashMap<KmfModelLoader.FrameInfo, List<Integer>>());
                         }
                         if (!frameOffsets.containsKey(frame)) {
-                            frameOffsets.put(frame, new HashMap<FrameInfo, List<Vector3f>>());
+                            frameOffsets.put(frame, new HashMap<KmfModelLoader.FrameInfo, List<Vector3f>>());
                         }
 
                         if (frame == nextPose) { // Last frame
 
                             // Create a new frameInfo with weight as 1
-                            frameInfo = new FrameInfo(frameInfo.previousPoseFrame, frameInfo.nextPoseFrame, 1f);
+                            frameInfo = new KmfModelLoader.FrameInfo(frameInfo.previousPoseFrame, frameInfo.nextPoseFrame, 1f);
                         }
 
                         if (frameIndices.get(frame).get(frameInfo) == null) {
@@ -504,14 +511,14 @@ public class KmfModelLoader implements AssetLoader {
                     // Add the pose target, we are in the last frame of the frame target
                     if (previousFrame != null && !frameInfo.equals(previousFrame)) {
                         if (!frameIndices.containsKey(frame)) {
-                            frameIndices.put(frame, new HashMap<FrameInfo, List<Integer>>());
+                            frameIndices.put(frame, new HashMap<KmfModelLoader.FrameInfo, List<Integer>>());
                         }
                         if (!frameOffsets.containsKey(frame)) {
-                            frameOffsets.put(frame, new HashMap<FrameInfo, List<Vector3f>>());
+                            frameOffsets.put(frame, new HashMap<KmfModelLoader.FrameInfo, List<Vector3f>>());
                         }
 
                         // Create a new frameInfo with weight as 1
-                        FrameInfo fi = new FrameInfo(previousFrame.previousPoseFrame, previousFrame.nextPoseFrame, 1f);
+                        KmfModelLoader.FrameInfo fi = new KmfModelLoader.FrameInfo(previousFrame.previousPoseFrame, previousFrame.nextPoseFrame, 1f);
 
                         if (frameIndices.get(frame).get(fi) == null) {
                             frameIndices.get(frame).put(fi, new ArrayList<Integer>());
@@ -548,16 +555,21 @@ public class KmfModelLoader implements AssetLoader {
             // We have all the animation vertices from a single pose
             for (int frame = 0; frame < anim.getFrames(); frame++) {
                 if (frameIndices.containsKey(frame) && !poses.containsKey(frame)) {
-                    poses.put(frame, new HashMap<FrameInfo, Pose>());
+                    poses.put(frame, new HashMap<KmfModelLoader.FrameInfo, Pose>());
                 }
                 if (frameIndices.containsKey(frame)) {
-                    for (Entry<FrameInfo, List<Integer>> entry : frameIndices.get(frame).entrySet()) {
+                    for (Entry<KmfModelLoader.FrameInfo, List<Integer>> entry : frameIndices.get(frame).entrySet()) {
+
+                        if (entry.getKey().nextPoseFrame < entry.getKey().previousPoseFrame) {
+                            continue; // Huh?, last frame effect
+                        }
+
                         List<Integer> list = entry.getValue();
                         int[] array = new int[list.size()];
                         for (int integer = 0; integer < list.size(); integer++) {
                             array[integer] = list.get(integer);
                         }
-                        Pose p = new Pose(index + "", frameOffsets.get(frame).get(entry.getKey()).toArray(new Vector3f[frameOffsets.get(frame).get(entry.getKey()).size()]), array);
+                        Pose p = new Pose(index + ": " + frame + ", " + entry.getKey().previousPoseFrame + " - " + entry.getKey().nextPoseFrame, frameOffsets.get(frame).get(entry.getKey()).toArray(new Vector3f[frameOffsets.get(frame).get(entry.getKey()).size()]), array);
                         poses.get(frame).put(entry.getKey(), p);
                     }
                 }
@@ -571,7 +583,7 @@ public class KmfModelLoader implements AssetLoader {
                 Pose[] p = new Pose[frameInfos.get(frame).size() * 2];
                 float[] weights = new float[frameInfos.get(frame).size()];
                 int x = 0;
-                for (FrameInfo frameInfo : frameInfos.get(frame)) {
+                for (KmfModelLoader.FrameInfo frameInfo : frameInfos.get(frame)) {
 
                     if (frameInfo.nextPoseFrame < frameInfo.previousPoseFrame) {
                         continue; // Huh?, last frame effect
@@ -588,7 +600,10 @@ public class KmfModelLoader implements AssetLoader {
                 PoseFrame f = new PoseFrame(p, weights);
                 frameList.add(f);
             }
-            frames.put(index, frameList);
+
+            // Create a pose track for this mesh
+            PoseTrack poseTrack = new PoseTrack(index, times, frameList.toArray(new PoseFrame[frameList.size()]));
+            poseTracks.add(poseTrack);
 
             // Triangles, we have LODs here
             VertexBuffer[] lodLevels = new VertexBuffer[animSprite.getTriangles().size()];
@@ -637,19 +652,6 @@ public class KmfModelLoader implements AssetLoader {
             //Attach the geometry to the node
             node.attachChild(geom);
             index++;
-        }
-
-        // Create times
-        float[] times = new float[anim.getFrames()];
-        for (int i = 0; i < anim.getFrames(); i++) {
-            times[i] = (i + 1) / 30f;
-        }
-
-        // Create pose tracks for each mesh index
-        List<PoseTrack> poseTracks = new ArrayList<>(frames.size());
-        for (Entry<Integer, List<PoseFrame>> entry : frames.entrySet()) {
-            PoseTrack poseTrack = new PoseTrack(entry.getKey(), times, entry.getValue().toArray(new PoseFrame[entry.getValue().size()]));
-            poseTracks.add(poseTrack);
         }
 
         // Create the animation itself and attach the animation
@@ -726,7 +728,7 @@ public class KmfModelLoader implements AssetLoader {
      * A frame info identifies an vertex transition, it has the start and the
      * end pose frame indexes (key frames) which will identify it
      */
-    private class FrameInfo implements Comparable<FrameInfo> {
+    private class FrameInfo implements Comparable<KmfModelLoader.FrameInfo> {
 
         private final int previousPoseFrame;
         private final int nextPoseFrame;
@@ -766,7 +768,7 @@ public class KmfModelLoader implements AssetLoader {
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            final FrameInfo other = (FrameInfo) obj;
+            final KmfModelLoader.FrameInfo other = (KmfModelLoader.FrameInfo) obj;
             if (this.previousPoseFrame != other.previousPoseFrame) {
                 return false;
             }
@@ -777,7 +779,7 @@ public class KmfModelLoader implements AssetLoader {
         }
 
         @Override
-        public int compareTo(FrameInfo o) {
+        public int compareTo(KmfModelLoader.FrameInfo o) {
             int result = Integer.compare(previousPoseFrame, o.previousPoseFrame);
             if (result == 0) {
 
