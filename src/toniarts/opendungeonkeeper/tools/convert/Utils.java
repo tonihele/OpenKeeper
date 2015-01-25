@@ -4,7 +4,6 @@
  */
 package toniarts.opendungeonkeeper.tools.convert;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -12,10 +11,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Contains static helper methods
@@ -282,23 +278,5 @@ public class Utils {
      */
     public static String stripFileName(String fileName) {
         return fileName.replaceAll("[[^a-zA-Z0-9][\\.]]", "_");
-    }
-
-    /**
-     * Returns case sensitive and valid asset key for loading the given asset
-     *
-     * @param asset the asset key, i.e. Textures\GUI/wrongCase.png
-     * @return fully qualified and working asset key
-     */
-    public static String getCanonicalAssetKey(String asset) {
-        asset = asset.replaceAll("[/\\\\]", Matcher.quoteReplacement(File.separator));
-        String assetsFolder = AssetsConverter.getAssetsFolder();
-        try {
-            File file = new File(assetsFolder.concat(asset)).getCanonicalFile();
-            return file.getPath().substring(assetsFolder.length()).replaceAll(Pattern.quote(File.separator), "/");
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Can not locate asset " + asset + "!", e);
-            return asset;
-        }
     }
 }
