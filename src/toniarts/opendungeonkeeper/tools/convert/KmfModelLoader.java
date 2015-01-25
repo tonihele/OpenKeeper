@@ -71,18 +71,18 @@ public class KmfModelLoader implements AssetLoader {
         textureFixes = new HashMap<>();
         textureFixes.put("Goblinbak", "GoblinBack");
         textureFixes.put("Goblin2", "GoblinFront");
+        textureFixes.put("Knightfrnt", "KnightFrnt");
+        textureFixes.put("skeleton", "Skeleton");
+        textureFixes.put("3dMap_secretL1+3", "3dMap_SecretL1+3");
+        textureFixes.put("Level17_castle", "Level17_Castle");
+        textureFixes.put("gui\\Traps\\Alarm", "GUI/Traps/alarm");
+        textureFixes.put("3dMap_secretL4+5", "3dMap_SecretL4+5");
+        textureFixes.put("ThiefBack", "THIEFback");
+        textureFixes.put("ThiefFront", "THIEFfront");
+        textureFixes.put("StoneKnightFrnt", "StoneKnightfrnt");
+        textureFixes.put("3dMap_secretL2", "3dMap_SecretL2");
+        textureFixes.put("WARLOCKback", "WarlockBack");
     }
-    /**
-     * If the material has multiple texture options, the material is named
-     * &lt;material&gt;&lt;this suffix&gt;&lt;texture index&gt;. Texture index
-     * is 0-based
-     */
-    public static final String MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR = "_";
-    /**
-     * If this user meta data is found from the geometry, it has alternative
-     * material possibilities
-     */
-    public static final String MATERIAL_ALTERNATIVE_TEXTURES_COUNT = "AlternativeTextureCount";
     private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
     /* Already saved materials are stored here */
     private static HashMap<toniarts.opendungeonkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
@@ -137,7 +137,7 @@ public class KmfModelLoader implements AssetLoader {
         if (kmfFile.getType() == KmfFile.Type.MESH || kmfFile.getType() == KmfFile.Type.ANIM) {
 
             // Get the materials first
-            HashMap<Integer, List<Material>> materials = getMaterials(kmfFile, generateMaterialFile, assetInfo, engineTextureFile);
+            HashMap<Integer, Material> materials = getMaterials(kmfFile, generateMaterialFile, assetInfo, engineTextureFile);
 
             //
             // The meshes
@@ -207,7 +207,7 @@ public class KmfModelLoader implements AssetLoader {
      * @param materials materials map
      * @param root the root node
      */
-    private void handleMesh(toniarts.opendungeonkeeper.tools.convert.kmf.Mesh sourceMesh, HashMap<Integer, List<Material>> materials, Node root) {
+    private void handleMesh(toniarts.opendungeonkeeper.tools.convert.kmf.Mesh sourceMesh, HashMap<Integer, Material> materials, Node root) {
 
         //Source mesh is node
         Node node = new Node(sourceMesh.getName());
@@ -300,7 +300,7 @@ public class KmfModelLoader implements AssetLoader {
      * @param materials materials map
      * @param root the root node
      */
-    private void handleAnim(Anim anim, HashMap<Integer, List<Material>> materials, Node root) {
+    private void handleAnim(Anim anim, HashMap<Integer, Material> materials, Node root) {
 
         //Source mesh is node
         Node node = new Node(anim.getName());
@@ -572,7 +572,7 @@ public class KmfModelLoader implements AssetLoader {
      * @param materialIndex the material index
      * @return
      */
-    private Geometry createGeometry(int index, Mesh mesh, HashMap<Integer, List<Material>> materials, int materialIndex) {
+    private Geometry createGeometry(int index, Mesh mesh, HashMap<Integer, Material> materials, int materialIndex) {
 
         //Create geometry
         Geometry geom = new Geometry(index + "", mesh);
@@ -581,8 +581,8 @@ public class KmfModelLoader implements AssetLoader {
         LodControl lc = new LodControl();
         geom.addControl(lc);
 
-        // Material, set the first
-        geom.setMaterial(materials.get(materialIndex).get(0));
+        // Material
+        geom.setMaterial(materials.get(materialIndex));
         if (geom.getMaterial().isTransparent()) {
             geom.setQueueBucket(RenderQueue.Bucket.Transparent);
         }
@@ -592,12 +592,6 @@ public class KmfModelLoader implements AssetLoader {
             geom.setShadowMode(RenderQueue.ShadowMode.Off);
         }
 
-        // If we have multiple materials to choose from, tag them to the geometry
-        if (materials.get(materialIndex).size() > 1) {
-            geom.setUserData(MATERIAL_ALTERNATIVE_TEXTURES_COUNT, materials.get(materialIndex).size());
-        }
-
-        // Update bounds
         geom.updateModelBound();
 
         return geom;
@@ -638,19 +632,23 @@ public class KmfModelLoader implements AssetLoader {
      * @return returns materials by the material index
      * @throws IOException may fail
      */
-    private HashMap<Integer, List<Material>> getMaterials(KmfFile kmfFile, boolean generateMaterialFile, AssetInfo assetInfo, EngineTexturesFile engineTextureFile) throws IOException {
+    private HashMap<Integer, Material> getMaterials(KmfFile kmfFile, boolean generateMaterialFile, AssetInfo assetInfo, EngineTexturesFile engineTextureFile) throws IOException {
 
         //
         // Create the materials
         //
-        HashMap<Integer, List<Material>> materials = new HashMap(kmfFile.getMaterials().size());
+        HashMap<Integer, Material> materials = new HashMap(kmfFile.getMaterials().size());
         int i = 0;
         for (toniarts.opendungeonkeeper.tools.convert.kmf.Material mat : kmfFile.getMaterials()) {
             Material material = null;
 
-            // Get the texture, the first one
-            // There is a list of possible alternative textures
+            // Get the texture
             String texture = mat.getTextures().get(0);
+            if (textureFixes.containsKey(texture)) {
+
+                //Fix the texture entry
+                texture = textureFixes.get(texture);
+            }
 
             // See if the material is found already on the cache
             String materialLocation = null;
@@ -660,33 +658,14 @@ public class KmfModelLoader implements AssetLoader {
                 materialKey = materialCache.get(mat);
                 if (materialKey != null) {
                     material = assetInfo.getManager().loadMaterial(materialKey);
-                    if (textureFixes.containsKey(texture)) {
-
-                        //Fix the texture entry
-                        texture = textureFixes.get(texture);
-                    }
                     setMaterialFlags(material, engineTextureFile, texture);
-                    List<Material> materialList = new ArrayList<>(mat.getTextures().size());
-                    materialList.add(material);
-
-                    // If we have multiple textures, we can just fake them, we just need the count really
-                    if (mat.getTextures().size() > 1) {
-                        materialList.add(material); // Fake it
-                    }
-
-                    materials.put(i, materialList);
+                    materials.put(i, material);
                     i++;
                     continue;
                 } else {
 
                     // Ok, it it not in the cache yet, but maybe it has been already generated, so use it and update the defaults in it
                     fileName = Utils.stripFileName(mat.getName());
-
-                    // If there are multiple texture options, add a suffix to the material file name
-                    if (mat.getTextures().size() > 1) {
-                        fileName = fileName.concat(MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR).concat("0");
-                    }
-
                     materialKey = AssetsConverter.MATERIALS_FOLDER.concat("/").concat(fileName).concat(".j3m");
                     materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(fileName).concat(".j3m"));
 
@@ -710,7 +689,8 @@ public class KmfModelLoader implements AssetLoader {
             }
 
             //Load up the texture and create the material
-            Texture tex = loadTexture(texture, assetInfo);
+            TextureKey textureKey = new TextureKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png"), false);
+            Texture tex = assetInfo.getManager().loadTexture(textureKey);
             material.setTexture("DiffuseMap", tex);
             material.setColor("Specular", ColorRGBA.Orange); // Dungeons are lit only with fire...? Experimental
             material.setColor("Diffuse", ColorRGBA.White); // Experimental
@@ -741,71 +721,25 @@ public class KmfModelLoader implements AssetLoader {
                 }
             }
 
-            // Add material to list and create the possible alternatives
-            List<Material> materialList = new ArrayList<>(mat.getTextures().size());
-            materialList.add(material);
-            for (int k = 1; k < mat.getTextures().size(); k++) {
-
-                // Get the texture
-                Texture alternativeTex = loadTexture(mat.getTextures().get(k), assetInfo);
-
-                // Clone the original material, set texture and add to list
-                Material alternativeMaterial = material.clone();
-                alternativeMaterial.setTexture("DiffuseMap", alternativeTex);
-                materialList.add(alternativeMaterial);
-            }
-
-            // See if we should save the materials
+            // See if we should save the material
             if (generateMaterialFile) {
-                for (int k = 0; k < materialList.size(); k++) {
 
-                    Material m = materialList.get(k);
+                // Set the material so that it realizes that it is a J3M file
+                material.setName(mat.getName());
+                material.setKey(new MaterialKey(materialKey));
 
-                    // If there are multiple textures / material options, alter the key and location
-                    if (materialList.size() > 1) {
-                        materialKey = materialKey.substring(0, materialKey.lastIndexOf(MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR) + 1).concat(k + "").concat(materialKey.substring(materialKey.lastIndexOf(".")));
-                        materialLocation = materialLocation.substring(0, materialLocation.lastIndexOf(MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR) + 1).concat(k + "").concat(materialLocation.substring(materialLocation.lastIndexOf(".")));
-                    }
+                // Save
+                MaterialExporter exporter = new MaterialExporter();
+                exporter.save(material, new File(materialLocation));
 
-                    // Set the material so that it realizes that it is a J3M file
-                    m.setName(mat.getName());
-                    m.setKey(new MaterialKey(materialKey));
-
-                    // Save
-                    MaterialExporter exporter = new MaterialExporter();
-                    exporter.save(m, new File(materialLocation));
-
-                    // Put the first one to the cache
-                    if (k == 0) {
-                        materialCache.put(mat, materialKey);
-                    }
-                }
+                // Put to cache
+                materialCache.put(mat, materialKey);
             }
 
-            materials.put(i, materialList);
+            materials.put(i, material);
             i++;
         }
         return materials;
-    }
-
-    /**
-     * Loads a JME texture of the texture name
-     *
-     * @param texture the texture name
-     * @param assetInfo the assetInfo
-     * @return texture file
-     */
-    private Texture loadTexture(String texture, AssetInfo assetInfo) {
-
-        // Load the texture
-        if (textureFixes.containsKey(texture)) {
-
-            //Fix the texture entry
-            texture = textureFixes.get(texture);
-        }
-        TextureKey textureKey = new TextureKey(Utils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png")), false);
-        Texture tex = assetInfo.getManager().loadTexture(textureKey);
-        return tex;
     }
 
     /**
