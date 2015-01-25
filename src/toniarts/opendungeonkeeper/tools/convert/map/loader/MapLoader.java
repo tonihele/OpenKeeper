@@ -5,14 +5,18 @@
 package toniarts.opendungeonkeeper.tools.convert.map.loader;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.material.Material;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.BatchNode;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
+import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
+import toniarts.opendungeonkeeper.tools.convert.KmfModelLoader;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource;
 import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
 import toniarts.opendungeonkeeper.tools.convert.map.Map;
@@ -78,6 +82,9 @@ public class MapLoader implements ILoader<KwdFile> {
                         ceiling.setLocalScale(2, 2, 1);
                     } else {
                         ceiling = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o");
+                        if (terrain.getFlags().contains(Terrain.TerrainFlag.RANDOM_TEXTURE)) {
+                            setRandomTexture(assetManager, ceiling);
+                        }
                     }
                     ceiling.move(x * TILE_SIZE_X, y * TILE_SIZE_Y, (ceilingResource.equals(terrain.getCompleteResource()) ? -0.7f : 0));
                     ceiling.setShadowMode(RenderQueue.ShadowMode.Off); // Ceilings never cast or receive, only thing above them would be picked up creatures, and they are solid
@@ -282,5 +289,35 @@ public class MapLoader implements ILoader<KwdFile> {
             return false;
         }
         return tiles[x][y].getTerrainId() == terrain.getTerrainId();
+    }
+
+    /**
+     * Sets random material (from the list) to all the geometries that have been
+     * tagged for this in this spatial
+     *
+     * @param assetManager the asset manager
+     * @param spatial the spatial
+     */
+    private void setRandomTexture(final AssetManager assetManager, Spatial spatial) {
+
+        // Check the data on geometry
+        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                Integer texCount = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
+                if (texCount != null) {
+                    int tex = FastMath.rand.nextInt(texCount);
+                    if (tex != 0) { // 0 is the default anyway
+                        Geometry g = (Geometry) spatial;
+                        Material m = g.getMaterial();
+                        String asset = m.getAssetName();
+
+                        // Load new material
+                        Material newMaterial = assetManager.loadMaterial(asset.substring(0, asset.lastIndexOf(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR) + 1).concat(tex + ".j3m"));
+                        g.setMaterial(newMaterial);
+                    }
+                }
+            }
+        });
     }
 }
