@@ -26,6 +26,7 @@ import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.scene.control.LodControl;
 import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
+import com.jme3.util.TangentBinormalGenerator;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -278,6 +279,7 @@ public class KmfModelLoader implements AssetLoader {
             mesh.setLodLevels(lodLevels);
             mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
+            mesh.setStatic();
 
             mesh.updateBound();
 
@@ -540,6 +542,7 @@ public class KmfModelLoader implements AssetLoader {
             mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
             mesh.setBuffer(Type.BindPoseNormal, 3, BufferUtils.createFloatBuffer(normals));
+            mesh.setStreamed();
 
             mesh.updateBound();
 
@@ -599,6 +602,11 @@ public class KmfModelLoader implements AssetLoader {
 
         // Update bounds
         geom.updateModelBound();
+
+        // If the material has a normal map, generate tangents
+        if (geom.getMaterial().getTextureParam("NormalMap") != null || geom.getMaterial().getTextureParam("ParallaxMap") != null) {
+            TangentBinormalGenerator.generate(mesh);
+        }
 
         return geom;
     }
