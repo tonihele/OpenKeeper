@@ -19,6 +19,7 @@ import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
@@ -83,15 +84,24 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private Nifty nifty;
     private Screen screen;
     private final File kmfModel;
-    private final String name = "SelectedModel";
     private boolean wireframe = false;
     private boolean rotate = true;
+    private boolean showNormals = false;
     private List<String> models;
     private List<String> maps;
     private KwdFile kwdFile;
+    /**
+     * The node name for the model (that is attached to the root)
+     */
+    private static final String NODE_NAME = "SelectedModel";
+    private static final String NODE_NAME_NORMALS = "Normals";
+    private static final String KEY_MAPPING_SHOW_NORMALS = "show normals";
+    private static final String KEY_MAPPING_TOGGLE_WIREFRAME = "toggle wireframe";
+    private static final String KEY_MAPPING_TOGGLE_ROTATION = "toggle rotation";
     private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
 
     public static void main(String[] args) {
+
         //Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 1 || !new File(args[0]).exists()) {
             throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter!");
@@ -153,19 +163,23 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         public void onAction(String name, boolean pressed, float tpf) {
 
             // Toggle wireframe
-            if (name.equals("toggle wireframe") && !pressed) {
+            if (KEY_MAPPING_TOGGLE_WIREFRAME.equals(name) && !pressed) {
                 wireframe = !wireframe;
                 toggleWireframe();
             } // Toggle rotation
-            else if (name.equals("toggle rotation") && !pressed) {
+            else if (KEY_MAPPING_TOGGLE_ROTATION.equals(name) && !pressed) {
                 rotate = !rotate;
                 toggleRotate();
+            } // Normals
+            else if (KEY_MAPPING_SHOW_NORMALS.equals(name) && !pressed) {
+                showNormals = !showNormals;
+                toggleShowNormals();
             }
         }
     };
 
     private void toggleWireframe() {
-        Spatial spat = rootNode.getChild(ModelViewer.this.name);
+        Spatial spat = rootNode.getChild(ModelViewer.NODE_NAME);
         if (spat != null) {
             spat.depthFirstTraversal(new SceneGraphVisitor() {
                 @Override
@@ -179,7 +193,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     }
 
     private void toggleRotate() {
-        Spatial spat = rootNode.getChild(ModelViewer.this.name);
+        Spatial spat = rootNode.getChild(ModelViewer.NODE_NAME);
         if (spat != null) {
             RotatorControl rotator = spat.getControl(RotatorControl.class);
             if (rotator != null) {
@@ -188,8 +202,44 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         }
     }
 
+    private void toggleShowNormals() {
+        Spatial spat = rootNode.getChild(ModelViewer.NODE_NAME);
+
+        if (spat != null && spat instanceof Node) {
+
+            // See if it already has the normal meshes generated
+            Node normals = (Node) ((Node) spat).getChild(ModelViewer.NODE_NAME_NORMALS);
+            if (normals != null) {
+                normals.setCullHint(showNormals ? Spatial.CullHint.Never : Spatial.CullHint.Always);
+            } else if (showNormals) {
+
+                // Generate
+                final Node nodeNormals = new Node(ModelViewer.NODE_NAME_NORMALS);
+
+                spat.depthFirstTraversal(new SceneGraphVisitor() {
+                    @Override
+                    public void visit(Spatial spatial) {
+                        if (spatial instanceof Geometry) {
+                            Geometry g = (Geometry) spatial;
+                            Mesh normalMesh = TangentBinormalGenerator.genNormalLines(g.getMesh(), 0.1f);
+                            Geometry normalGeometry = new Geometry(g.getName() + "Normal", normalMesh);
+                            Material mat = new Material(assetManager,
+                                    "Common/MatDefs/Misc/Unshaded.j3md");
+                            mat.setColor("Color", ColorRGBA.Red);
+                            normalGeometry.setMaterial(mat);
+                            nodeNormals.attachChild(normalGeometry);
+                        }
+                    }
+                });
+                nodeNormals.setCullHint(Spatial.CullHint.Never);
+                ((Node) spat).attachChild(nodeNormals);
+            }
+        }
+    }
+
     @Override
     public void simpleInitApp() {
+
         // The GUI
         NiftyJmeDisplay niftyDisplay = new NiftyJmeDisplay(assetManager,
                 inputManager,
@@ -214,12 +264,16 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.Cursor.POINTER, assetManager));
 
         // Wireframe
-        inputManager.addMapping("toggle wireframe", new KeyTrigger(KeyInput.KEY_T));
-        inputManager.addListener(actionListener, "toggle wireframe");
+        inputManager.addMapping(KEY_MAPPING_TOGGLE_WIREFRAME, new KeyTrigger(KeyInput.KEY_T));
+        inputManager.addListener(actionListener, KEY_MAPPING_TOGGLE_WIREFRAME);
 
         // Rotation
-        inputManager.addMapping("toggle rotation", new KeyTrigger(KeyInput.KEY_R));
-        inputManager.addListener(actionListener, "toggle rotation");
+        inputManager.addMapping(KEY_MAPPING_TOGGLE_ROTATION, new KeyTrigger(KeyInput.KEY_R));
+        inputManager.addListener(actionListener, KEY_MAPPING_TOGGLE_ROTATION);
+
+        // Normals
+        inputManager.addMapping(KEY_MAPPING_SHOW_NORMALS, new KeyTrigger(KeyInput.KEY_N));
+        inputManager.addListener(actionListener, KEY_MAPPING_SHOW_NORMALS);
 
         setupLighting();
         setupFloor();
@@ -356,10 +410,11 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     public void onEndScreen() {
     }
 
-    private void setupModel(Node spat, boolean isMap) {
-        spat.setName(name);
+    private void setupModel(final Node spat, boolean isMap) {
+        spat.setName(NODE_NAME);
 
         if (!isMap) {
+
             // Reset the game translation and scale
             for (Spatial subSpat : spat.getChildren()) {
                 subSpat.setLocalScale(1);
@@ -387,13 +442,16 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         spat.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 
         // Remove the old model
-        rootNode.detachChildNamed(name);
+        rootNode.detachChildNamed(NODE_NAME);
 
         // Attach the new model
         rootNode.attachChild(spat);
 
         // Wireframe status
         toggleWireframe();
+
+        // Normals status
+        toggleShowNormals();
 
         // Animate!
         AnimControl animControl = (AnimControl) spat.getChild(0).getControl(AnimControl.class);
