@@ -154,7 +154,7 @@ public class Utils {
      * Reads 4 bytes and converts it to JAVA int from LITTLE ENDIAN unsigned int
      *
      * @param file the file to read from
-     * @return JAVA native int
+     * @return JAVA native float
      * @throws IOException may fail
      */
     public static float readFloat(RandomAccessFile file) throws IOException {
@@ -168,7 +168,7 @@ public class Utils {
      * a byte array
      *
      * @param unsignedInt the byte array
-     * @return JAVA native int
+     * @return JAVA native float
      */
     public static float readFloat(byte[] f) {
         ByteBuffer buffer = ByteBuffer.wrap(f);
