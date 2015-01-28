@@ -151,7 +151,7 @@ public class Utils {
     }
 
     /**
-     * Reads 4 bytes and converts it to JAVA int from LITTLE ENDIAN unsigned int
+     * Reads 4 bytes and converts it to JAVA float from LITTLE ENDIAN float
      *
      * @param file the file to read from
      * @return JAVA native float
@@ -164,8 +164,8 @@ public class Utils {
     }
 
     /**
-     * Converts 4 bytes to JAVA int from LITTLE ENDIAN unsigned int presented by
-     * a byte array
+     * Converts 4 bytes to JAVA float from LITTLE ENDIAN float presented by a
+     * byte array
      *
      * @param unsignedInt the byte array
      * @return JAVA native float
