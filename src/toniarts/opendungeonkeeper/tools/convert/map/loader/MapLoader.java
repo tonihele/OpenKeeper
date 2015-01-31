@@ -57,31 +57,10 @@ public class MapLoader implements ILoader<KwdFile> {
                     // Ceiling
                     String modelName = ceilingResource.getName();
 
-                    // Naming...
-                    if (modelName.equals("CLAIMED TOP")) {
-                        modelName = "Claimed Top";
-                    }
-
-                    // If ownable, playerId is first
-                    if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-                        modelName += tile.getPlayerId();
-                    }
-
-                    // If this resource is type complete, it needs to be parsed together from tiles
+                    // If this resource is type quad, parse it together
                     Spatial ceiling;
                     if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
-
-                        // 2x2
-                        ceiling = new Node();
-//                        modelName += "_" + 1;
-                        for (int i = 0; i < 2; i++) {
-                            for (int k = 0; k < 2; k++) {
-                                Spatial ceilingPart = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + "_" + ((k % 2) + 1) + ".j3o", false);
-                                ceilingPart.move((i - 1) * TILE_WIDTH, (k - 1) * TILE_WIDTH, 0);
-                                ((Node) ceiling).attachChild(ceilingPart);
-                            }
-                        }
-                        ceiling.setLocalScale(0.5f, 0.5f, 1);
+                        ceiling = constructTerrainQuad(tiles, terrain, tile, x, y, assetManager, modelName);
                     } else {
                         ceiling = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o", false);
 
@@ -242,6 +221,11 @@ public class MapLoader implements ILoader<KwdFile> {
 
                         ////
                     } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
+                        String modelName = floorResource.getName();
+                        Spatial floor = constructTerrainQuad(tiles, terrain, tile, x, y, assetManager, modelName);
+                        floor.move(x * TILE_WIDTH, y * TILE_WIDTH, 0);
+                        floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
+                        root.attachChild(floor);
                     } else {
                         Spatial floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + ".j3o", false);
                         floor.move(x * TILE_WIDTH, y * TILE_WIDTH, 0);
@@ -414,5 +398,146 @@ public class MapLoader implements ILoader<KwdFile> {
             }
         });
         return spatial;
+    }
+
+    /**
+     * Constructs a quad tile type (2x2 pieces forms one tile), i.e. claimed top
+     * and floor
+     *
+     * @param tiles the tiles
+     * @param terrain the terrain
+     * @param tile the tile
+     * @param x x
+     * @param y y
+     * @param assetManager the asset manager instance
+     * @param modelName the model name to load
+     * @return the loaded model
+     */
+    private Spatial constructTerrainQuad(Map[][] tiles, final Terrain terrain, Map tile, int x, int y, final AssetManager assetManager, String modelName) {
+        if ("CLAIMED TOP".equals(modelName)) {
+            modelName = "Claimed Top";
+        } else if ("CLAIMED FLOOR".equals(modelName)) {
+            modelName = "Claimed Floor";
+        }
+
+        // If ownable, playerId is first
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+            modelName += tile.getPlayerId();
+        }
+
+        // It needs to be parsed together from tiles
+
+        // Figure out which peace by seeing the neighbours
+        boolean N = hasSameTile(tiles, x, y - 1, terrain);
+        boolean NE = hasSameTile(tiles, x + 1, y - 1, terrain);
+        boolean E = hasSameTile(tiles, x + 1, y, terrain);
+        boolean SE = hasSameTile(tiles, x + 1, y + 1, terrain);
+        boolean S = hasSameTile(tiles, x, y + 1, terrain);
+        boolean SW = hasSameTile(tiles, x - 1, y + 1, terrain);
+        boolean W = hasSameTile(tiles, x - 1, y, terrain);
+        boolean NW = hasSameTile(tiles, x - 1, y - 1, terrain);
+
+        // 2x2
+        Spatial model = new Node();
+        for (int i = 0; i < 2; i++) {
+            for (int k = 0; k < 2; k++) {
+
+                int pieceNumber = 0;
+                Quaternion quat = null;
+                Vector3f movement = null;
+
+                // Determine the piece
+                if (i == 0 && k == 0) { // North west corner
+                    if (N && W && NW) {
+                        pieceNumber = 3;
+                    } else if (!N && W && NW) {
+                        pieceNumber = 0;
+                    } else if (!NW && N && W) {
+                        pieceNumber = 2;
+                    } else if (!N && !NW && !W) {
+                        pieceNumber = 1;
+                    } else if (!W && NW && N) {
+                        pieceNumber = 4;
+                    } else if (!W && !NW && N) {
+                        pieceNumber = 4;
+                    } else {
+                        pieceNumber = 0;
+                    }
+                    quat = new Quaternion();
+                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, -1));
+                    movement = new Vector3f(-TILE_WIDTH, -TILE_WIDTH, 0);
+                } else if (i == 1 && k == 0) { // North east corner
+                    if (N && E && NE) {
+                        pieceNumber = 3;
+                    } else if (!N && E && NE) {
+                        pieceNumber = 4;
+                    } else if (!NE && N && E) {
+                        pieceNumber = 2;
+                    } else if (!N && !NE && !E) {
+                        pieceNumber = 1;
+                    } else if (!E && NE && N) {
+                        pieceNumber = 0;
+                    } else if (!E && !NE && N) {
+                        pieceNumber = 0;
+                    } else {
+                        pieceNumber = 4;
+                    }
+                    quat = new Quaternion();
+                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                    movement = new Vector3f(0, -TILE_WIDTH, 0);
+                } else if (i == 0 && k == 1) { // South west corner
+                    if (S && W && SW) {
+                        pieceNumber = 3;
+                    } else if (!S && W && SW) {
+                        pieceNumber = 4;
+                    } else if (!SW && S && W) {
+                        pieceNumber = 2;
+                    } else if (!S && !SW && !W) {
+                        pieceNumber = 1;
+                    } else if (!W && SW && S) {
+                        pieceNumber = 0;
+                    } else if (!W && !SW && S) {
+                        pieceNumber = 0;
+                    } else {
+                        pieceNumber = 4;
+                    }
+                    quat = new Quaternion();
+                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                    movement = new Vector3f(-TILE_WIDTH, 0, 0);
+                } else if (i == 1 && k == 1) { // South east corner
+                    if (S && E && SE) {
+                        pieceNumber = 3;
+                    } else if (!S && E && SE) {
+                        pieceNumber = 0;
+                    } else if (!SE && S && E) {
+                        pieceNumber = 2;
+                    } else if (!S && !SE && !E) {
+                        pieceNumber = 1;
+                    } else if (!E && SE && S) {
+                        pieceNumber = 4;
+                    } else if (!E && !SE && S) {
+                        pieceNumber = 4;
+                    } else {
+                        pieceNumber = 0;
+                    }
+                }
+
+                // Load the piece
+                Spatial part = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + "_" + pieceNumber + ".j3o", false);
+                if (quat != null) {
+                    part.rotate(quat);
+                }
+                if (movement != null) {
+                    part.move(movement);
+                }
+                part.move((i - 1) * TILE_WIDTH, (k - 1) * TILE_WIDTH, 0);
+                ((Node) model).attachChild(part);
+            }
+        }
+
+        // Scale down to one grid
+        model.setLocalScale(0.5f, 0.5f, 1);
+
+        return model;
     }
 }
