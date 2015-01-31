@@ -158,34 +158,86 @@ public class MapLoader implements ILoader<KwdFile> {
                         boolean waterNW = hasSameTile(tiles, x - 1, y - 1, terrain);
 
                         Spatial floor = null;
-                        if (!waterNE && !waterE && !waterSE && waterN && waterS && waterW) {
+
+                        //Sides
+                        if (!waterE && waterS && waterSW && waterW && waterNW && waterN) {
                             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
                             Quaternion quat = new Quaternion();
                             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
                             floor.rotate(quat);
                             floor.move(0, -TILE_WIDTH, 0);
-                        } else if (!waterNW && !waterW && !waterSW && waterN && waterS && waterE) {
+                        } else if (!waterS && waterW && waterNW && waterN && waterNE && waterE) {
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
+                        } else if (!waterW && waterN && waterNE && waterE && waterSE && waterS) {
                             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
                             Quaternion quat = new Quaternion();
                             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
                             floor.rotate(quat);
                             floor.move(-TILE_WIDTH, 0, 0);
-                        } else if (!waterNW && !waterN && !waterNW && waterE && waterW && waterS) {
+//                        } else if (!waterSW && !waterS && !waterSE && waterE && waterW && waterN) {
+                        } else if (!waterN && waterE && waterSE && waterS && waterSW && waterW) {
                             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
                             Quaternion quat = new Quaternion();
                             quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
                             floor.rotate(quat);
                             floor.move(-TILE_WIDTH, -TILE_WIDTH, 0);
-                        } else if (!waterSW && !waterS && !waterSW && waterE && waterW && waterN) {
-                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
-                            floor.move(0, 0, 0f);
-                        } else { // Just a seabed
+                        } //
+                        // Just one corner
+                        else if (!waterSW && waterS && waterSE && waterE && waterW && waterN && waterNE && waterNW) {
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "2" + ".j3o", false);
+                            Quaternion quat = new Quaternion();
+                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+                            floor.rotate(quat);
+                            floor.move(-TILE_WIDTH, -TILE_WIDTH, 0);
+                        } else if (!waterNE && waterS && waterSE && waterE && waterW && waterN && waterSW && waterNW) {
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "2" + ".j3o", false);
+                        } else if (!waterSE && waterS && waterSW && waterE && waterW && waterN && waterNE && waterNW) {
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "2" + ".j3o", false);
+                            Quaternion quat = new Quaternion();
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                            floor.rotate(quat);
+                            floor.move(-TILE_WIDTH, 0, 0);
+                        } else if (!waterNW && waterS && waterSW && waterE && waterW && waterN && waterNE && waterSE) {
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "2" + ".j3o", false);
+                            Quaternion quat = new Quaternion();
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                            floor.rotate(quat);
+                            floor.move(0, -TILE_WIDTH, 0);
+                        } //
+                        // Land corner
+                        else if (!waterN && !waterNW && !waterW && waterS && waterSE && waterE) {
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "1" + ".j3o", false);
+                            Quaternion quat = new Quaternion();
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                            floor.rotate(quat);
+                            floor.move(-TILE_WIDTH, 0, 0f);
+                        } else if (!waterN && !waterNE && !waterE && waterSW && waterS && waterW) {
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "1" + ".j3o", false);
+                            Quaternion quat = new Quaternion();
+                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+                            floor.rotate(quat);
+                            floor.move(-TILE_WIDTH, -TILE_WIDTH, 0f);
+                        } else if (!waterS && !waterSE && !waterE && waterN && waterW && waterNW) {
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "1" + ".j3o", false);
+                            Quaternion quat = new Quaternion();
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                            floor.rotate(quat);
+                            floor.move(0, -TILE_WIDTH, 0f);
+                        } else if (!waterS && !waterSW && !waterW && waterN && waterNE && waterE) {
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "1" + ".j3o", false);
+                        }//
+                        // Just a seabed
+                        else if (waterS && waterSW && waterW && waterSE && waterN && waterNE && waterE && waterNW) { // Just a seabed
                             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "3" + ".j3o", false);
+                        } else {
+                            loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "4" + ".j3o", false);
                         }
 
-                        floor.move(x * TILE_WIDTH, y * TILE_WIDTH, WATER_DEPTH);
-                        floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
-                        root.attachChild(floor);
+                        if (floor != null) {
+                            floor.move(x * TILE_WIDTH, y * TILE_WIDTH, WATER_DEPTH);
+                            floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
+                            root.attachChild(floor);
+                        }
 
                         ////
                     } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
