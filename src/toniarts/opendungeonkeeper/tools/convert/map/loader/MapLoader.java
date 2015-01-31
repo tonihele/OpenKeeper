@@ -5,6 +5,7 @@
 package toniarts.opendungeonkeeper.tools.convert.map.loader;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.bounding.BoundingBox;
 import com.jme3.material.Material;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
@@ -30,8 +31,9 @@ import toniarts.opendungeonkeeper.tools.convert.map.Terrain;
  */
 public class MapLoader implements ILoader<KwdFile> {
 
-    private final static float TILE_SIZE_X = 0.7f;
-    private final static float TILE_SIZE_Y = 0.7f;
+    private final static float TILE_WIDTH = 0.70f; // Impenetrable rock top is just little over this, "x & y", square
+    private final static float TILE_HEIGHT = 0.70f; // Impenetrable rock wall is just little over this, "z", ground level is at 0
+    private final static float WATER_DEPTH = 0.25f;
     private KwdFile kwdFile;
 
     @Override
@@ -74,19 +76,20 @@ public class MapLoader implements ILoader<KwdFile> {
 //                        modelName += "_" + 1;
                         for (int i = 0; i < 2; i++) {
                             for (int k = 0; k < 2; k++) {
-                                Spatial ceilingPart = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + "_" + ((k % 2) + 1) + ".j3o");
-                                ceilingPart.move(i * 0.175f - 0.0875f, k * 0.175f - 0.0875f, 0);
+                                Spatial ceilingPart = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + "_" + ((k % 2) + 1) + ".j3o", false);
+                                ceilingPart.move((i - 1) * TILE_WIDTH, (k - 1) * TILE_WIDTH, 0);
                                 ((Node) ceiling).attachChild(ceilingPart);
                             }
                         }
-                        ceiling.setLocalScale(2, 2, 1);
+                        ceiling.setLocalScale(0.5f, 0.5f, 1);
                     } else {
-                        ceiling = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o");
+                        ceiling = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o", false);
+
                         if (terrain.getFlags().contains(Terrain.TerrainFlag.RANDOM_TEXTURE)) {
                             setRandomTexture(assetManager, ceiling);
                         }
                     }
-                    ceiling.move(x * TILE_SIZE_X, y * TILE_SIZE_Y, (ceilingResource.equals(terrain.getCompleteResource()) ? -0.7f : 0));
+                    ceiling.move(x * TILE_WIDTH, y * TILE_WIDTH, -TILE_HEIGHT);
                     ceiling.setShadowMode(RenderQueue.ShadowMode.Off); // Ceilings never cast or receive, only thing above them would be picked up creatures, and they are solid
                     root.attachChild(ceiling);
 
@@ -95,27 +98,26 @@ public class MapLoader implements ILoader<KwdFile> {
                     // North
                     ArtResource wallNorth = getWallNorth(x, y, tiles, terrain);
                     if (wallNorth != null) {
-                        Spatial wall = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + wallNorth.getName() + ".j3o");
-                        wall.move(0, 0.5f, -0.5f);
+                        Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallNorth.getName() + ".j3o", true);
+                        wall.move(0, -TILE_WIDTH, 0);
                         addWall(wall, root, x, y);
                     }
 
                     // South
                     ArtResource wallSouth = getWallSouth(x, y, tiles, terrain);
                     if (wallSouth != null) {
-                        Spatial wall = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + wallSouth.getName() + ".j3o");
-                        wall.move(0, -0.5f, -0.5f);
+                        Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallSouth.getName() + ".j3o", true);
                         Quaternion quat = new Quaternion();
                         quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
                         wall.rotate(quat);
+                        wall.move(-TILE_WIDTH, 0, 0);
                         addWall(wall, root, x, y);
                     }
 
                     // East
                     ArtResource wallEast = getWallEast(x, y, tiles, terrain);
                     if (wallEast != null) {
-                        Spatial wall = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + wallEast.getName() + ".j3o");
-                        wall.move(-0.5f, 0, -0.5f);
+                        Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallEast.getName() + ".j3o", true);
                         Quaternion quat = new Quaternion();
                         quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
                         wall.rotate(quat);
@@ -125,11 +127,11 @@ public class MapLoader implements ILoader<KwdFile> {
                     // West
                     ArtResource wallWest = getWallWest(x, y, tiles, terrain);
                     if (wallWest != null) {
-                        Spatial wall = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + wallWest.getName() + ".j3o");
-                        wall.move(0.5f, 0, -0.5f);
+                        Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallWest.getName() + ".j3o", true);
                         Quaternion quat = new Quaternion();
                         quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
                         wall.rotate(quat);
+                        wall.move(-TILE_WIDTH, -TILE_WIDTH, 0);
                         addWall(wall, root, x, y);
                     }
 
@@ -157,40 +159,39 @@ public class MapLoader implements ILoader<KwdFile> {
 
                         Spatial floor = null;
                         if (!waterNE && !waterE && !waterSE && waterN && waterS && waterW) {
-                            floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o");
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
                             Quaternion quat = new Quaternion();
                             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
                             floor.rotate(quat);
-                            floor.move(0, 0, -1.15f);
+                            floor.move(0, -TILE_WIDTH, 0);
                         } else if (!waterNW && !waterW && !waterSW && waterN && waterS && waterE) {
-                            floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o");
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
                             Quaternion quat = new Quaternion();
                             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
                             floor.rotate(quat);
-                            floor.move(0, 0, -1.15f);
+                            floor.move(-TILE_WIDTH, 0, 0);
                         } else if (!waterNW && !waterN && !waterNW && waterE && waterW && waterS) {
-                            floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o");
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
                             Quaternion quat = new Quaternion();
                             quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
                             floor.rotate(quat);
-                            floor.move(0, 0, -1.15f);
+                            floor.move(-TILE_WIDTH, -TILE_WIDTH, 0);
                         } else if (!waterSW && !waterS && !waterSW && waterE && waterW && waterN) {
-                            floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o");
-                            floor.move(0, 0, -1.15f);
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
+                            floor.move(0, 0, 0f);
                         } else { // Just a seabed
-                            floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "3" + ".j3o");
-                            floor.move(0, 0, -1.33f);
+                            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "3" + ".j3o", false);
                         }
 
-                        floor.move(x * TILE_SIZE_X, y * TILE_SIZE_Y, 0);
+                        floor.move(x * TILE_WIDTH, y * TILE_WIDTH, WATER_DEPTH);
                         floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
                         root.attachChild(floor);
 
                         ////
                     } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
                     } else {
-                        Spatial floor = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + ".j3o");
-                        floor.move(x * TILE_SIZE_X, y * TILE_SIZE_Y, -1f);
+                        Spatial floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + ".j3o", false);
+                        floor.move(x * TILE_WIDTH, y * TILE_WIDTH, 0);
                         floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
                         root.attachChild(floor);
                     }
@@ -256,7 +257,7 @@ public class MapLoader implements ILoader<KwdFile> {
 
         // Move the ceiling to a correct tile
         if (wall != null) {
-            wall.move(x * TILE_SIZE_X, y * TILE_SIZE_Y, 0);
+            wall.move(x * TILE_WIDTH, y * TILE_WIDTH, 0);
             wall.setShadowMode(RenderQueue.ShadowMode.CastAndReceive); // Walls cast and receive shadows
             root.attachChild(wall);
         }
@@ -319,5 +320,46 @@ public class MapLoader implements ILoader<KwdFile> {
                 }
             }
         });
+    }
+
+    /**
+     * Loads the given asset and resets its scale and translation to match our
+     * give grid
+     *
+     * @param assetManager the asset manager
+     * @param asset the name and location of the asset (asset key)
+     * @param wall is this wall? Used to distinquish between sea levels and
+     * walls
+     * @return the asset loaded & ready to rock
+     */
+    private static Spatial loadAsset(final AssetManager assetManager, final String asset, final boolean wall) {
+        Spatial spatial = assetManager.loadModel(asset);
+
+        // Set the transform and scale to our scale and 0 the transform
+        spatial.breadthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (spatial instanceof Node && spatial.getParent() != null) {
+                    Node n = (Node) spatial;
+
+                    // "Reset"
+                    n.setLocalTranslation(0, 0, 0);
+                    n.setLocalScale(1f);
+
+                    // Adjust the size
+                    BoundingBox worldBound = (BoundingBox) n.getWorldBound();
+                    float xExtent = worldBound.getXExtent() * 2;
+                    float yExtent = worldBound.getYExtent() * 2;
+                    float zExtent = worldBound.getZExtent() * 2;
+                    n.scale((xExtent != 0 ? TILE_WIDTH / xExtent : 1f), (yExtent != 0 ? TILE_WIDTH / yExtent : 1f), (zExtent != 0 ? (wall ? TILE_HEIGHT : WATER_DEPTH) / zExtent : 1f));
+
+                    // Set the translation so that everything moves similarly
+                    worldBound = (BoundingBox) n.getWorldBound();
+                    Vector3f boundCenter = worldBound.getCenter();
+                    n.setLocalTranslation(0 - boundCenter.x - worldBound.getXExtent(), 0 - boundCenter.y - worldBound.getYExtent(), 0 - boundCenter.z - worldBound.getZExtent());
+                }
+            }
+        });
+        return spatial;
     }
 }
