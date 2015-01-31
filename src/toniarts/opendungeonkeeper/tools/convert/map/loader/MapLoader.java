@@ -414,8 +414,10 @@ public class MapLoader implements ILoader<KwdFile> {
      * @return the loaded model
      */
     private Spatial constructTerrainQuad(Map[][] tiles, final Terrain terrain, Map tile, int x, int y, final AssetManager assetManager, String modelName) {
+        boolean ceiling = false;
         if ("CLAIMED TOP".equals(modelName)) {
             modelName = "Claimed Top";
+            ceiling = true;
         } else if ("CLAIMED FLOOR".equals(modelName)) {
             modelName = "Claimed Floor";
         }
@@ -428,14 +430,15 @@ public class MapLoader implements ILoader<KwdFile> {
         // It needs to be parsed together from tiles
 
         // Figure out which peace by seeing the neighbours
-        boolean N = hasSameTile(tiles, x, y - 1, terrain);
-        boolean NE = hasSameTile(tiles, x + 1, y - 1, terrain);
-        boolean E = hasSameTile(tiles, x + 1, y, terrain);
-        boolean SE = hasSameTile(tiles, x + 1, y + 1, terrain);
-        boolean S = hasSameTile(tiles, x, y + 1, terrain);
-        boolean SW = hasSameTile(tiles, x - 1, y + 1, terrain);
-        boolean W = hasSameTile(tiles, x - 1, y, terrain);
-        boolean NW = hasSameTile(tiles, x - 1, y - 1, terrain);
+        // This is slightly different with the top
+        boolean N = (hasSameTile(tiles, x, y - 1, terrain) || (ceiling && getCeilingResource(kwdFile.getTerrain(tiles[x][y - 1].getTerrainId())) != null));
+        boolean NE = (hasSameTile(tiles, x + 1, y - 1, terrain) || (ceiling && getCeilingResource(kwdFile.getTerrain(tiles[x + 1][y - 1].getTerrainId())) != null));
+        boolean E = (hasSameTile(tiles, x + 1, y, terrain) || (ceiling && getCeilingResource(kwdFile.getTerrain(tiles[x + 1][y].getTerrainId())) != null));
+        boolean SE = (hasSameTile(tiles, x + 1, y + 1, terrain) || (ceiling && getCeilingResource(kwdFile.getTerrain(tiles[x + 1][y + 1].getTerrainId())) != null));
+        boolean S = (hasSameTile(tiles, x, y + 1, terrain) || (ceiling && getCeilingResource(kwdFile.getTerrain(tiles[x][y + 1].getTerrainId())) != null));
+        boolean SW = (hasSameTile(tiles, x - 1, y + 1, terrain) || (ceiling && getCeilingResource(kwdFile.getTerrain(tiles[x - 1][y + 1].getTerrainId())) != null));
+        boolean W = (hasSameTile(tiles, x - 1, y, terrain) || (ceiling && getCeilingResource(kwdFile.getTerrain(tiles[x - 1][y].getTerrainId())) != null));
+        boolean NW = (hasSameTile(tiles, x - 1, y - 1, terrain) || (ceiling && getCeilingResource(kwdFile.getTerrain(tiles[x - 1][y - 1].getTerrainId())) != null));
 
         // 2x2
         Spatial model = new Node();
