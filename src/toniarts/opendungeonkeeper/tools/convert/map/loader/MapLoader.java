@@ -229,12 +229,13 @@ public class MapLoader implements ILoader<KwdFile> {
                         // Just a seabed
                         else if (waterS && waterSW && waterW && waterSE && waterN && waterNE && waterE && waterNW) { // Just a seabed
                             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "3" + ".j3o", false);
+                            floor.move(0, 0, WATER_DEPTH); // Water bed is flat
                         } else {
                             loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "4" + ".j3o", false);
                         }
 
                         if (floor != null) {
-                            floor.move(x * TILE_WIDTH, y * TILE_WIDTH, WATER_DEPTH);
+                            floor.move(x * TILE_WIDTH, y * TILE_WIDTH, 0);
                             floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
                             root.attachChild(floor);
                         }
@@ -408,7 +409,7 @@ public class MapLoader implements ILoader<KwdFile> {
                     // Set the translation so that everything moves similarly
                     worldBound = (BoundingBox) n.getWorldBound();
                     Vector3f boundCenter = worldBound.getCenter();
-                    n.setLocalTranslation(0 - boundCenter.x - worldBound.getXExtent(), 0 - boundCenter.y - worldBound.getYExtent(), 0 - boundCenter.z - worldBound.getZExtent());
+                    n.setLocalTranslation(0 - boundCenter.x - worldBound.getXExtent(), 0 - boundCenter.y - worldBound.getYExtent(), 0 - boundCenter.z - (wall ? worldBound.getZExtent() : -worldBound.getZExtent()));
                 }
             }
         });
