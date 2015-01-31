@@ -90,6 +90,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private List<String> models;
     private List<String> maps;
     private KwdFile kwdFile;
+    private Node floorGeom;
     /**
      * The node name for the model (that is attached to the root)
      */
@@ -118,7 +119,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         this.dkIIFolder = dkIIFolder;
     }
 
-    public void setupLighting() {
+    private void setupLighting() {
 
         // To make shadows, sun
         dl = new DirectionalLight();
@@ -141,10 +142,10 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         getViewPort().addProcessor(dlsr);
     }
 
-    public void setupFloor() {
+    private void setupFloor() {
         Material mat = assetManager.loadMaterial("Materials/ModelViewer/FloorMarble.j3m");
 
-        Node floorGeom = new Node("floorGeom");
+        floorGeom = new Node("floorGeom");
         Quad q = new Quad(100, 100);
         q.scaleTextureCoordinates(new Vector2f(10, 10));
         Geometry g = new Geometry("geom", q);
@@ -437,6 +438,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         } else {
             spat.setLocalTranslation(-20, 21, -20);
         }
+
+        // Hide the floor on maps
+        floorGeom.setCullHint(!isMap ? Spatial.CullHint.Never : Spatial.CullHint.Always);
 
         // Shadows
         spat.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
