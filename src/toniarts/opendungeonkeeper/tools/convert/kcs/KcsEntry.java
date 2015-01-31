@@ -13,58 +13,58 @@ import javax.vecmath.Vector3f;
  */
 public class KcsEntry {
 
-    private Vector3f unknown1;
-    private Vector3f unknown2;
-    private Vector3f unknown3;
-    private Vector3f unknown4;
-    private float unknown5;
-    private float unknown6;
+    private Vector3f position;
+    private Vector3f direction;
+    private Vector3f left;
+    private Vector3f up;
+    private int unknown1;
+    private int unknown2;
 
-    public Vector3f getUnknown1() {
+    public Vector3f getPosition() {
+        return position;
+    }
+
+    protected void setPosition(Vector3f position) {
+        this.position = position;
+    }
+
+    public Vector3f getDirection() {
+        return direction;
+    }
+
+    protected void setDirection(Vector3f direction) {
+        this.direction = direction;
+    }
+
+    public Vector3f getLeft() {
+        return left;
+    }
+
+    protected void setLeft(Vector3f left) {
+        this.left = left;
+    }
+
+    public Vector3f getUp() {
+        return up;
+    }
+
+    protected void setUp(Vector3f up) {
+        this.up = up;
+    }
+
+    public int getUnknown1() {
         return unknown1;
     }
 
-    protected void setUnknown1(Vector3f unknown1) {
+    protected void setUnknown1(int unknown1) {
         this.unknown1 = unknown1;
     }
 
-    public Vector3f getUnknown2() {
+    public int getUnknown2() {
         return unknown2;
     }
 
-    protected void setUnknown2(Vector3f unknown2) {
+    protected void setUnknown2(int unknown2) {
         this.unknown2 = unknown2;
-    }
-
-    public Vector3f getUnknown3() {
-        return unknown3;
-    }
-
-    protected void setUnknown3(Vector3f unknown3) {
-        this.unknown3 = unknown3;
-    }
-
-    public Vector3f getUnknown4() {
-        return unknown4;
-    }
-
-    protected void setUnknown4(Vector3f unknown4) {
-        this.unknown4 = unknown4;
-    }
-
-    public float getUnknown5() {
-        return unknown5;
-    }
-
-    protected void setUnknown5(float unknown5) {
-        this.unknown5 = unknown5;
-    }
-
-    public float getUnknown6() {
-        return unknown6;
-    }
-
-    protected void setUnknown6(float unknown6) {
-        this.unknown6 = unknown6;
     }
 }
