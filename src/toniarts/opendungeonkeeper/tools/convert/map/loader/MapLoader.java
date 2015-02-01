@@ -136,7 +136,7 @@ public class MapLoader implements ILoader<KwdFile> {
                         boolean waterW = hasSameTile(tiles, x - 1, y, terrain);
                         boolean waterNW = hasSameTile(tiles, x - 1, y - 1, terrain);
 
-                        Spatial floor = null;
+                        Spatial floor;
 
                         //Sides
                         if (!waterE && waterS && waterSW && waterW && waterNW && waterN) {
@@ -209,15 +209,120 @@ public class MapLoader implements ILoader<KwdFile> {
                         else if (waterS && waterSW && waterW && waterSE && waterN && waterNE && waterE && waterNW) { // Just a seabed
                             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "3" + ".j3o", false);
                             floor.move(0, 0, WATER_DEPTH); // Water bed is flat
-                        } else {
-                            loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "4" + ".j3o", false);
-                        }
+                        }//
+                        // We have only the one tilers left, they need to be constructed similar to quads, but unfortunately not just the same
+                        else {
 
-                        if (floor != null) {
-                            floor.move(x * TILE_WIDTH, y * TILE_WIDTH, 0);
-                            floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
-                            root.attachChild(floor);
+                            // 2x2
+                            floor = new Node();
+                            for (int i = 0; i < 2; i++) {
+                                for (int k = 0; k < 2; k++) {
+
+                                    int pieceNumber = 7;
+                                    Quaternion quat = null;
+                                    Vector3f movement = null;
+
+                                    // Determine the piece
+                                    if (i == 0 && k == 0) { // North west corner
+                                        if (!waterN && waterW) { // Side
+                                            pieceNumber = 4;
+                                            quat = new Quaternion();
+                                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, -1));
+                                            movement = new Vector3f(-TILE_WIDTH, -TILE_WIDTH, 0);
+                                        } else if (!waterW && waterN) { // Side
+                                            pieceNumber = 4;
+                                            quat = new Quaternion();
+                                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                                            movement = new Vector3f(-TILE_WIDTH, 0, 0);
+                                        } else if (!waterNW && waterN && waterW) { // Corner surrounded by water
+                                            pieceNumber = 6;
+                                            quat = new Quaternion();
+                                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                                            movement = new Vector3f(0, -TILE_WIDTH, 0);
+                                        } else if (!waterN && !waterNW && !waterW) { // Corner surrounded by land
+                                            pieceNumber = 5;
+                                            quat = new Quaternion();
+                                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                                            movement = new Vector3f(-TILE_WIDTH, 0, 0);
+                                        }
+                                    } else if (i == 1 && k == 0) { // North east corner
+                                        if (!waterN && waterE) { // Side
+                                            pieceNumber = 4;
+                                            quat = new Quaternion();
+                                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, -1));
+                                            movement = new Vector3f(-TILE_WIDTH, -TILE_WIDTH, 0);
+                                        } else if (!waterE && waterN) { // Side
+                                            pieceNumber = 4;
+                                            quat = new Quaternion();
+                                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                                            movement = new Vector3f(0, -TILE_WIDTH, 0);
+                                        } else if (!waterNE && waterN && waterE) { // Corner surrounded by water
+                                            pieceNumber = 6;
+                                        } else if (!waterN && !waterNE && !waterE) { // Corner surrounded by land
+                                            pieceNumber = 5;
+                                            quat = new Quaternion();
+                                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+                                            movement = new Vector3f(-TILE_WIDTH, -TILE_WIDTH, 0);
+                                        }
+                                    } else if (i == 0 && k == 1) { // South west corner
+                                        if (!waterS && waterW) { // Side
+                                            pieceNumber = 4;
+                                        } else if (!waterW && waterS) { // Side
+                                            pieceNumber = 4;
+                                            quat = new Quaternion();
+                                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                                            movement = new Vector3f(-TILE_WIDTH, 0, 0);
+                                        } else if (!waterSW && waterS && waterW) { // Corner surrounded by water
+                                            pieceNumber = 6;
+                                            quat = new Quaternion();
+                                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+                                            movement = new Vector3f(-TILE_WIDTH, -TILE_WIDTH, 0);
+                                        } else if (!waterS && !waterSW && !waterW) { // Corner surrounded by land
+                                            pieceNumber = 5;
+                                        }
+                                    } else if (i == 1 && k == 1) { // South east corner
+                                        if (!waterS && waterE) { // Side
+                                            pieceNumber = 4;
+                                        } else if (!waterE && waterS) { // Side
+                                            pieceNumber = 4;
+                                            quat = new Quaternion();
+                                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                                            movement = new Vector3f(0, -TILE_WIDTH, 0);
+                                        } else if (!waterSE && waterS && waterE) { // Corner surrounded by water
+                                            pieceNumber = 6;
+                                            quat = new Quaternion();
+                                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                                            movement = new Vector3f(-TILE_WIDTH, 0, 0);
+                                        } else if (!waterS && !waterSE && !waterE) { // Corner surrounded by land
+                                            pieceNumber = 5;
+                                            quat = new Quaternion();
+                                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                                            movement = new Vector3f(0, -TILE_WIDTH, 0);
+                                        }
+                                    }
+
+                                    // Load the piece
+                                    Spatial part = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + pieceNumber + ".j3o", false);
+                                    if (quat != null) {
+                                        part.rotate(quat);
+                                    }
+                                    if (movement != null) {
+                                        part.move(movement);
+                                    }
+                                    part.move((i - 1) * TILE_WIDTH, (k - 1) * TILE_WIDTH, (pieceNumber == 7 ? WATER_DEPTH : 0));
+                                    ((Node) floor).attachChild(part);
+                                }
+                            }
+
+                            // Scale down to one grid
+                            floor.setLocalScale(0.5f, 0.5f, 1);
                         }
+                        //
+
+                        // Finally add it
+                        floor.move(x * TILE_WIDTH, y * TILE_WIDTH, 0);
+                        floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
+                        root.attachChild(floor);
 
                         ////
                     } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
