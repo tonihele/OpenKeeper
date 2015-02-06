@@ -84,8 +84,8 @@ public class StrFile {
                 offsets.add(Utils.readUnsignedInteger(rawStr));
             }
             
-            ArrayList<Integer> offsetsCopy = new ArrayList<>(offsets);
-            // Offsets in some languages (like german) are not sorted!
+            // Make a copy because offsets in some languages (like german) are not sorted!
+            List<Integer> offsetsCopy = new ArrayList<>(offsets);
             Collections.sort(offsetsCopy);
             
             // Decode the entries
@@ -93,8 +93,8 @@ public class StrFile {
             for (int i = 0; i < offsetsCount; i++) {
                 // Seek to the data and read it
                 rawStr.seek(offsets.get(i) + STR_HEADER_SIZE);
-                int j = Arrays.binarySearch(offsetsCopy.toArray(), offsets.get(i));
-                int dataLength = (int) (j < offsets.size() - 1 ? offsetsCopy.get(j + 1) - offsets.get(i) : rawStr.length() - offsets.get(i) - STR_HEADER_SIZE);
+                int j = Collections.binarySearch(offsetsCopy, offsets.get(i));
+                int dataLength = (int) (j < offsetsCopy.size() - 1 ? offsetsCopy.get(j + 1) - offsets.get(i) : rawStr.length() - offsets.get(i) - STR_HEADER_SIZE);
                                     
                 byte[] data = new byte[dataLength];
                 int dataRead = rawStr.read(data);
