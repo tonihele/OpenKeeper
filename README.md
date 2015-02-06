@@ -29,6 +29,7 @@ TODO
     - [x] Read paths (paths.wad -> kcs)
     - [ ] Understand paths
   - [x] Read cursors
+  - [x] Read the GUI texts
   - ?
 - [ ] Conversion of formats
   - [ ] Meshes to JMonkeyEngine j3o
@@ -50,6 +51,7 @@ TODO
   - [ ] Paths to JME MotionPaths?
   - [x] Cursors
     - [x] Animated cursors
+  - [x] GUI texts
   - ?
 - [ ] Load maps to engine
 - [ ] Basic world interaction
