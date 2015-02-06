@@ -274,8 +274,18 @@ public class StrFile {
      *
      * @return set of entries
      */
-    public Set<Entry<Integer, String>> getEntries() {
+    public Set<Entry<Integer, String>> getEntriesAsSet() {
         return entries.entrySet();
+    }
+
+    /**
+     * Get the mapped entries<br>
+     * The entries are returned in order (by the id) for your inconvenience
+     *
+     * @return the entries
+     */
+    public LinkedHashMap<Integer, String> getEntries() {
+        return entries;
     }
 
     /**
