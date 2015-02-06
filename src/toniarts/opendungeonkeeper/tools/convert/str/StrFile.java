@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -81,7 +82,9 @@ public class StrFile {
             for (int i = 0; i < offsetsCount; i++) {
                 offsets.add(Utils.readUnsignedInteger(rawStr));
             }
-
+            // Offsets in some languages (like german) are not sorted!
+            Collections.sort(offsets);
+            
             // Decode the entries
             entries = new LinkedHashMap<>(offsetsCount);
             for (int i = 0; i < offsetsCount; i++) {
