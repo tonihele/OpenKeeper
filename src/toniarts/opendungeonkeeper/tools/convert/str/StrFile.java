@@ -56,8 +56,8 @@ public class StrFile {
      * useful for batch runs, no need to read the code page all over again<br>
      * Reads the STR file structure
      *
-     * @param codePage
-     * @param file
+     * @param codePage the code page
+     * @param file the str file to read
      */
     public StrFile(CharBuffer codePage, File file) {
         this.codePage = codePage;
