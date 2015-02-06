@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -82,16 +83,19 @@ public class StrFile {
             for (int i = 0; i < offsetsCount; i++) {
                 offsets.add(Utils.readUnsignedInteger(rawStr));
             }
+            
+            ArrayList<Integer> offsetsCopy = new ArrayList<>(offsets);
             // Offsets in some languages (like german) are not sorted!
-            Collections.sort(offsets);
+            Collections.sort(offsetsCopy);
             
             // Decode the entries
             entries = new LinkedHashMap<>(offsetsCount);
             for (int i = 0; i < offsetsCount; i++) {
-
                 // Seek to the data and read it
                 rawStr.seek(offsets.get(i) + STR_HEADER_SIZE);
-                int dataLength = (int) (i < offsets.size() - 1 ? offsets.get(i + 1) - offsets.get(i) : rawStr.length() - offsets.get(i) - STR_HEADER_SIZE);
+                int j = Arrays.binarySearch(offsetsCopy.toArray(), offsets.get(i));
+                int dataLength = (int) (j < offsets.size() - 1 ? offsetsCopy.get(j + 1) - offsets.get(i) : rawStr.length() - offsets.get(i) - STR_HEADER_SIZE);
+                                    
                 byte[] data = new byte[dataLength];
                 int dataRead = rawStr.read(data);
                 if (dataRead < dataLength) {
