@@ -18,3 +18,4 @@ odk.properties
 !/assets/Interface/Fonts/*.png
 !/assets/Materials/ModelViewer/*.j3m
 !/assets/Textures/ModelViewer/*.png
+!/assets/Textures/ModelViewer/*.jpg
