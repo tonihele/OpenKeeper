@@ -1,9 +1,20 @@
 /nbproject/private/
 /build/
+# property file which holds the configuration
+odk.properties
 *.png
 *.j3m
 *.j3o
 *.mp2
 *.wav
-odk.properties
 *.dll
+*.dict
+*.444
+*.bmp
+*.gif
+*.psd
+*.dat
+# include custom made assets
+!/assets/Interface/Fonts/*.png
+!/assets/Materials/ModelViewer/*.j3m
+!/assets/Textures/ModelViewer/*.png
