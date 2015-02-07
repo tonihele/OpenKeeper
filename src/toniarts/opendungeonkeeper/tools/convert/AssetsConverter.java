@@ -148,8 +148,11 @@ public abstract class AssetsConverter {
         updateStatus(null, null, ConvertProcess.TEXTURES);
         EngineTexturesFile etFile = getEngineTexturesFile(dungeonKeeperFolder);
         Pattern pattern = Pattern.compile("(?<name>\\w+)MM(?<mipmaplevel>\\d{1})");
+        WadFile frontEnd = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("FrontEnd.WAD")));
+        WadFile engineTextures = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("EngineTextures.WAD")));
         int i = 0;
-        int total = etFile.getFileCount();
+        int total = etFile.getFileCount() + frontEnd.getWadFileEntries().size() + engineTextures.getWadFileEntries().size();
+
         for (String textureFile : etFile) {
             updateStatus(i, total, ConvertProcess.TEXTURES);
             i++;
@@ -179,6 +182,9 @@ public abstract class AssetsConverter {
                 etFile.extractFileData(textureFile, destination, OVERWRITE_DATA);
             }
         }
+
+        extractTextureContainer(i, total, frontEnd, destination);
+        extractTextureContainer(i, total, engineTextures, destination);
     }
 
     /**
@@ -471,6 +477,23 @@ public abstract class AssetsConverter {
                 logger.log(Level.SEVERE, msg, ex);
                 throw new RuntimeException(msg, ex);
             }
+        }
+    }
+
+    /**
+     * Extracts the wad files and updates the progress bar
+     *
+     * @param i current entry number
+     * @param total total entry number
+     * @param wad wad file
+     * @param destination destination directory
+     */
+    private void extractTextureContainer(int i, int total, WadFile wad, String destination) {
+        for (final String entry : wad.getWadFileEntries()) {
+            updateStatus(i, total, ConvertProcess.TEXTURES);
+            i++;
+
+            wad.extractFileData(entry, destination);
         }
     }
 }
