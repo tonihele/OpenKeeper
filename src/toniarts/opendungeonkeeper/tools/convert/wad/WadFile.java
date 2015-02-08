@@ -12,7 +12,7 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 
@@ -29,9 +29,10 @@ import toniarts.opendungeonkeeper.tools.convert.Utils;
 public class WadFile {
 
     private final File file;
-    private final HashMap<String, WadFileEntry> wadFileEntries;
+    private final LinkedHashMap<String, WadFileEntry> wadFileEntries;
     private static final String WAD_HEADER_IDENTIFIER = "DWFB";
     private static final int WAD_HEADER_VERSION = 2;
+    private String subdir = "";
 
     /**
      * Constructs a new Wad file reader<br>
@@ -103,7 +104,7 @@ public class WadFile {
             byte[] nameArray = new byte[nameSize];
             rawWad.read(nameArray);
             int offset = 0;
-            wadFileEntries = new HashMap<>(files);
+            wadFileEntries = new LinkedHashMap<>(files);
             for (WadFileEntry entry : entries) {
                 wadFileEntries.put(Utils.bytesToString(Arrays.copyOfRange(nameArray, offset, offset + entry.getNameSize())).trim(), entry);
                 offset += entry.getNameSize();
@@ -149,7 +150,7 @@ public class WadFile {
         } catch (Exception e) {
 
             //Fug
-            throw new RuntimeException("Faile to read the WAD file!", e);
+            throw new RuntimeException("Failed to read the WAD file!", e);
         }
     }
 
@@ -167,7 +168,16 @@ public class WadFile {
         if (!dest.endsWith(File.separator)) {
             dest = dest.concat(File.separator);
         }
-        File destinationFolder = new File(dest);
+
+        String mkdir = dest;
+        if (fileName.contains(File.separator)) {
+            this.subdir = fileName.substring(0, fileName.lastIndexOf(File.separator) + 1);
+            mkdir += this.subdir;
+        } else {
+            dest += this.subdir;
+        }
+
+        File destinationFolder = new File(mkdir);
         destinationFolder.mkdirs();
         dest = dest.concat(fileName);
 
@@ -194,7 +204,7 @@ public class WadFile {
         } catch (Exception e) {
 
             //Fug
-            throw new RuntimeException("Faile to read the WAD file!", e);
+            throw new RuntimeException("Failed to read the WAD file!", e);
         }
     }
 
@@ -233,7 +243,7 @@ public class WadFile {
         } catch (Exception e) {
 
             //Fug
-            throw new RuntimeException("Faile to read the WAD file!", e);
+            throw new RuntimeException("Failed to read the WAD file!", e);
         }
 
         return result;
@@ -253,7 +263,7 @@ public class WadFile {
         } catch (Exception e) {
 
             //Fug
-            throw new RuntimeException("Faile to read the WAD file!", e);
+            throw new RuntimeException("Failed to read the WAD file!", e);
         }
     }
 
