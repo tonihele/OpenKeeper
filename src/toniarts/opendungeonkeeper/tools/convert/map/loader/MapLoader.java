@@ -627,7 +627,7 @@ public class MapLoader implements ILoader<KwdFile> {
                             quat = new Quaternion();
                             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
                             movement = new Vector3f(0, -TILE_WIDTH, 0);
-                        } else if (!waterN && !waterNW && !waterW) { // Corner surrounded by land
+                        } else if (!waterN && !waterW) { // Corner surrounded by land
                             pieceNumber = 5;
                             quat = new Quaternion();
                             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
@@ -646,7 +646,7 @@ public class MapLoader implements ILoader<KwdFile> {
                             movement = new Vector3f(0, -TILE_WIDTH, 0);
                         } else if (!waterNE && waterN && waterE) { // Corner surrounded by water
                             pieceNumber = 6;
-                        } else if (!waterN && !waterNE && !waterE) { // Corner surrounded by land
+                        } else if (!waterN && !waterE) { // Corner surrounded by land
                             pieceNumber = 5;
                             quat = new Quaternion();
                             quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
@@ -665,7 +665,7 @@ public class MapLoader implements ILoader<KwdFile> {
                             quat = new Quaternion();
                             quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
                             movement = new Vector3f(-TILE_WIDTH, -TILE_WIDTH, 0);
-                        } else if (!waterS && !waterSW && !waterW) { // Corner surrounded by land
+                        } else if (!waterS && !waterW) { // Corner surrounded by land
                             pieceNumber = 5;
                         }
                     } else if (i == 1 && k == 1) { // South east corner
@@ -681,7 +681,7 @@ public class MapLoader implements ILoader<KwdFile> {
                             quat = new Quaternion();
                             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
                             movement = new Vector3f(-TILE_WIDTH, 0, 0);
-                        } else if (!waterS && !waterSE && !waterE) { // Corner surrounded by land
+                        } else if (!waterS && !waterE) { // Corner surrounded by land
                             pieceNumber = 5;
                             quat = new Quaternion();
                             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
