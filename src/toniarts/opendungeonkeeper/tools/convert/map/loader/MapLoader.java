@@ -234,7 +234,7 @@ public class MapLoader implements ILoader<KwdFile> {
 
         // If ownable, playerId is first
         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-            modelName += tile.getPlayerId();
+            modelName += tile.getPlayerId() - 1;
         }
 
         // It needs to be parsed together from tiles
