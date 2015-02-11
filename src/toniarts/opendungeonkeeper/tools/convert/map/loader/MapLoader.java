@@ -267,7 +267,7 @@ public class MapLoader implements ILoader<KwdFile> {
                         pieceNumber = 0;
                     } else if (!NW && N && W) {
                         pieceNumber = 2;
-                    } else if (!N && !NW && !W) {
+                    } else if (!N && !W) {
                         pieceNumber = 1;
                     } else if (!W && NW && N) {
                         pieceNumber = 4;
@@ -286,7 +286,7 @@ public class MapLoader implements ILoader<KwdFile> {
                         pieceNumber = 4;
                     } else if (!NE && N && E) {
                         pieceNumber = 2;
-                    } else if (!N && !NE && !E) {
+                    } else if (!N && !E) {
                         pieceNumber = 1;
                     } else if (!E && NE && N) {
                         pieceNumber = 0;
@@ -305,7 +305,7 @@ public class MapLoader implements ILoader<KwdFile> {
                         pieceNumber = 4;
                     } else if (!SW && S && W) {
                         pieceNumber = 2;
-                    } else if (!S && !SW && !W) {
+                    } else if (!S && !W) {
                         pieceNumber = 1;
                     } else if (!W && SW && S) {
                         pieceNumber = 0;
@@ -324,7 +324,7 @@ public class MapLoader implements ILoader<KwdFile> {
                         pieceNumber = 0;
                     } else if (!SE && S && E) {
                         pieceNumber = 2;
-                    } else if (!S && !SE && !E) {
+                    } else if (!S && !E) {
                         pieceNumber = 1;
                     } else if (!E && SE && S) {
                         pieceNumber = 4;
