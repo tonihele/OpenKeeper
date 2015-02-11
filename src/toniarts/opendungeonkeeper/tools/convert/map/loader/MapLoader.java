@@ -85,17 +85,16 @@ public class MapLoader implements ILoader<KwdFile> {
             return terrain.getSideResource();
         }
 
-        // The tile next to this needs to have it's own ceiling
+        // The tile next to this needs to have its own ceiling
         Terrain neigbourTerrain = kwdFile.getTerrain(tiles[x][y].getTerrainId());
         if (getCeilingResource(neigbourTerrain) == null) {
-            if (neigbourTerrain.getSideResource() != null && terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
 
-                // Use neighbour wall
-                return neigbourTerrain.getSideResource();
+            // Rooms are built separately, so just ignore any room walls
+            if (!(terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS) && hasRoomWalls(neigbourTerrain))) {
+
+                // Use our terrain wall
+                return terrain.getSideResource();
             }
-
-            // Use our wall
-            return terrain.getSideResource();
         }
 
         return null;
@@ -708,5 +707,23 @@ public class MapLoader implements ILoader<KwdFile> {
         }
         //
         return floor;
+    }
+
+    /**
+     * Checks if this terrain piece is actually a room and the room type has
+     * walls
+     *
+     * @param terrain the terrain piece
+     * @return true if this is a room and it has its own walls
+     */
+    private boolean hasRoomWalls(Terrain terrain) {
+        ArtResource ceilingResource = getCeilingResource(terrain);
+        if (ceilingResource == null && terrain.getCompleteResource() == null) {
+
+            // All is null, a room perhaps
+            Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
+            return room.getFlags().contains(Room.RoomFlag.HAS_WALLS);
+        }
+        return false;
     }
 }
