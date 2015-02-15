@@ -9,6 +9,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
+import toniarts.opendungeonkeeper.tools.convert.Utils;
 import toniarts.opendungeonkeeper.tools.convert.map.loader.MapLoader;
 
 /**
@@ -26,7 +27,7 @@ public class ThreeByThree {
         // 3 by 3, a simple case
         int i = 0;
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = MapLoader.loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + i + ".j3o", false);
+            Spatial tile = assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + i + ".j3o"));
             tile.move(p.x * MapLoader.TILE_WIDTH, p.y * MapLoader.TILE_WIDTH, 0);
             n.attachChild(tile);
             i++;
