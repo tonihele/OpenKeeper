@@ -16,6 +16,10 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
+import java.awt.Point;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
 import toniarts.opendungeonkeeper.tools.convert.KmfModelLoader;
 import toniarts.opendungeonkeeper.tools.convert.map.ArtResource;
@@ -23,6 +27,8 @@ import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
 import toniarts.opendungeonkeeper.tools.convert.map.Map;
 import toniarts.opendungeonkeeper.tools.convert.map.Room;
 import toniarts.opendungeonkeeper.tools.convert.map.Terrain;
+import toniarts.opendungeonkeeper.tools.convert.map.loader.room.RoomInstance;
+import toniarts.opendungeonkeeper.tools.convert.map.loader.room.ThreeByThree;
 
 /**
  * Loads whole maps
@@ -31,10 +37,12 @@ import toniarts.opendungeonkeeper.tools.convert.map.Terrain;
  */
 public class MapLoader implements ILoader<KwdFile> {
 
-    private final static float TILE_WIDTH = 0.70f; // Impenetrable rock top is just little over this, "x & y", square
-    private final static float TILE_HEIGHT = 0.70f; // Impenetrable rock wall is just little over this, "z", ground level is at 0
+    public final static float TILE_WIDTH = 0.70f; // Impenetrable rock top is just little over this, "x & y", square
+    public final static float TILE_HEIGHT = 0.70f; // Impenetrable rock wall is just little over this, "z", ground level is at 0
     private final static float WATER_DEPTH = 0.25f;
     private KwdFile kwdFile;
+    private List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
+    private HashMap<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
 
     @Override
     public Spatial load(AssetManager assetManager, KwdFile object) {
@@ -179,7 +187,7 @@ public class MapLoader implements ILoader<KwdFile> {
      * walls
      * @return the asset loaded & ready to rock
      */
-    private static Spatial loadAsset(final AssetManager assetManager, final String asset, final boolean wall) {
+    public static Spatial loadAsset(final AssetManager assetManager, final String asset, final boolean wall) {
         Spatial spatial = assetManager.loadModel(asset);
 
         // Set the transform and scale to our scale and 0 the transform
@@ -381,7 +389,15 @@ public class MapLoader implements ILoader<KwdFile> {
         } else {
 
             // All is null, a room perhaps
-            Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
+            Point p = new Point(x, y);
+            if (!roomCoordinates.containsKey(p)) {
+                RoomInstance roomInstance = new RoomInstance(kwdFile.getRoomByTerrain(terrain.getTerrainId()));
+                findRoom(tiles, p, roomInstance);
+                rooms.add(roomInstance);
+
+                // Construct the actual room
+                handleRoom(tiles, assetManager, root, roomInstance);
+            }
         }
     }
 
@@ -725,5 +741,62 @@ public class MapLoader implements ILoader<KwdFile> {
             return room.getFlags().contains(Room.RoomFlag.HAS_WALLS);
         }
         return false;
+    }
+
+    /**
+     * Find the room starting from a certain point, rooms are never diagonally
+     * attached
+     *
+     * @param tiles the tiles
+     * @param p starting point
+     * @param roomInstance the room instance
+     */
+    private void findRoom(Map[][] tiles, Point p, RoomInstance roomInstance) {
+        Map tile = tiles[p.x][p.y];
+
+        // Get the terrain
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        ArtResource ceilingResource = getCeilingResource(terrain);
+        if (ceilingResource == null && terrain.getCompleteResource() == null) {
+
+            // All is null, a room perhaps
+            if (!roomCoordinates.containsKey(p)) {
+                if (roomInstance.getRoom().equals(kwdFile.getRoomByTerrain(terrain.getTerrainId()))) {
+
+                    // Add the coordinate
+                    roomCoordinates.put(p, roomInstance);
+                    roomInstance.addCoordinate(p);
+
+                    // Find north
+                    findRoom(tiles, new Point(p.x, p.y - 1), roomInstance);
+
+                    // Find east
+                    findRoom(tiles, new Point(p.x + 1, p.y), roomInstance);
+
+                    // Find south
+                    findRoom(tiles, new Point(p.x, p.y + 1), roomInstance);
+
+                    // Find west
+                    findRoom(tiles, new Point(p.x - 1, p.y), roomInstance);
+                }
+            }
+        }
+    }
+
+    /**
+     * Constructs the given room
+     *
+     * @param tiles the tiles
+     * @param assetManager the asset manager instance
+     * @param root the root node
+     * @param roomInstance the room instance
+     */
+    private void handleRoom(Map[][] tiles, AssetManager assetManager, BatchNode root, RoomInstance roomInstance) {
+        switch (roomInstance.getRoom().getTileConstruction()) {
+            case _3_BY_3: {
+                root.attachChild(ThreeByThree.construct(assetManager, roomInstance));
+                break;
+            }
+        }
     }
 }
