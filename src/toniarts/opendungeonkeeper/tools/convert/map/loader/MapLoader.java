@@ -27,6 +27,7 @@ import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
 import toniarts.opendungeonkeeper.tools.convert.map.Map;
 import toniarts.opendungeonkeeper.tools.convert.map.Room;
 import toniarts.opendungeonkeeper.tools.convert.map.Terrain;
+import toniarts.opendungeonkeeper.tools.convert.map.loader.room.HeroGateFrontEnd;
 import toniarts.opendungeonkeeper.tools.convert.map.loader.room.RoomInstance;
 import toniarts.opendungeonkeeper.tools.convert.map.loader.room.ThreeByThree;
 
@@ -738,7 +739,7 @@ public class MapLoader implements ILoader<KwdFile> {
 
             // All is null, a room perhaps
             Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-            return room.getFlags().contains(Room.RoomFlag.HAS_WALLS);
+            return room.getFlags().contains(Room.RoomFlag.HAS_WALLS) || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_FRONT_END;
         }
         return false;
     }
@@ -795,6 +796,13 @@ public class MapLoader implements ILoader<KwdFile> {
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3: {
                 root.attachChild(ThreeByThree.construct(assetManager, roomInstance));
+                break;
+            }
+            case HERO_GATE_FRONT_END: {
+                root.attachChild(HeroGateFrontEnd.construct(assetManager, roomInstance));
+                break;
+            }
+            default: {
                 break;
             }
         }
