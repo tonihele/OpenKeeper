@@ -67,10 +67,7 @@ public class HeroGateFrontEnd {
                 n.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
 
                 // The "candles"
-                n.attachChild(loadObject("chain_swing", assetManager, start, p, true));
-                quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
-                n.attachChild(loadObject("chain_swing", assetManager, start, p, true).rotate(quat).move(0, 1f, 0));
+                addCandles(n, assetManager, start, p);
             } else if (i == 5) {
 
                 // Banners
@@ -78,10 +75,7 @@ public class HeroGateFrontEnd {
                 n.attachChild(loadObject("banner4_swing", assetManager, start, p, true));
 
                 // The "candles"
-                n.attachChild(loadObject("chain_swing", assetManager, start, p, true));
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
-                n.attachChild(loadObject("chain_swing", assetManager, start, p, true).rotate(quat).move(0, 1f, 0));
+                addCandles(n, assetManager, start, p);
             } else if (i == 8) {
 
                 // Banners
@@ -89,10 +83,7 @@ public class HeroGateFrontEnd {
                 n.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
 
                 // The "candles"
-                n.attachChild(loadObject("chain_swing", assetManager, start, p, true));
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
-                n.attachChild(loadObject("chain_swing", assetManager, start, p, true).rotate(quat).move(0, 1f, 0));
+                addCandles(n, assetManager, start, p);
             } else if (i == 11) {
 
                 // Banners
@@ -100,10 +91,7 @@ public class HeroGateFrontEnd {
                 n.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
 
                 // The "candles"
-                n.attachChild(loadObject("chain_swing", assetManager, start, p, true));
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
-                n.attachChild(loadObject("chain_swing", assetManager, start, p, true).rotate(quat).move(0, 1f, 0));
+                addCandles(n, assetManager, start, p);
 
                 // Map
                 for (int x = 1; x < 21; x++) {
@@ -193,7 +181,7 @@ public class HeroGateFrontEnd {
             channel.setAnim("anim");
             channel.setLoopMode(LoopMode.Loop);
             if (randomizeAnimation) {
-                channel.setSpeed(FastMath.nextRandomInt(1, 10) / 10f);
+                channel.setSpeed(FastMath.nextRandomInt(6, 10) / 10f);
                 channel.setTime(FastMath.nextRandomFloat() * channel.getAnimMaxTime());
             }
 
@@ -202,5 +190,22 @@ public class HeroGateFrontEnd {
         }
 
         return object;
+    }
+
+    /**
+     * Adds two candles to the tile, one to each side
+     *
+     * @param n node to attach to
+     * @param assetManager the asset manager instance
+     * @param start starting point for the room
+     * @param p this tile coordinate
+     */
+    private static void addCandles(Node n, AssetManager assetManager, Point start, Point p) {
+
+        // The "candles"
+        n.attachChild(loadObject("chain_swing", assetManager, start, p, true).move(-1f, 0, 0));
+        Quaternion quat = new Quaternion();
+        quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+        n.attachChild(loadObject("chain_swing", assetManager, start, p, true).rotate(quat).move(1f, 1f, 0));
     }
 }
