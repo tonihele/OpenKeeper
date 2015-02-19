@@ -304,7 +304,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
      * @param extension the file extension of the objects wanted
      */
     public void fillWithFiles(List<String> object, final String rootDirectory, final String directory, final String extension) {
-        ListBox listBox = getModelListBox();
+        ListBox<String> listBox = getModelListBox();
 
         if (object == null) {
 
@@ -326,7 +326,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         // Add & sort
         listBox.addAllItems(object);
-        listBox.sortAllItems();
+        listBox.sortAllItems(String.CASE_INSENSITIVE_ORDER);
     }
 
     private void fillTerrain() {
