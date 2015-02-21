@@ -4,6 +4,9 @@
  */
 package toniarts.opendungeonkeeper.tools.convert.map.loader.room;
 
+import com.jme3.animation.AnimChannel;
+import com.jme3.animation.AnimControl;
+import com.jme3.animation.LoopMode;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
@@ -134,6 +137,54 @@ public class FiveByFiveRotated {
             if (tile != null) // Debug
             {
                 n.attachChild(tile);
+            }
+
+            // Only observed 5 by 5 is the Dungeon Heart, its object list is empty, so I just hard code these here
+            // The center pieces
+            if (x == 2 && y == 2) {
+
+                // Set the shadows
+                n.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+
+                // The arches
+                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart Arches.j3o"));
+                resetAndMoveSpatial(tile, start, p);
+                n.attachChild(tile);
+
+                // The steps between the arches
+                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
+                resetAndMoveSpatial(tile, start, p);
+                n.attachChild(tile);
+
+                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
+                resetAndMoveSpatial(tile, start, p);
+                Quaternion quat = new Quaternion();
+                quat.fromAngleAxis(FastMath.PI / 1.5f, new Vector3f(0, 0, 1));
+                tile.rotate(quat);
+                n.attachChild(tile);
+
+                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
+                resetAndMoveSpatial(tile, start, p);
+                quat = new Quaternion();
+                quat.fromAngleAxis(FastMath.PI / 1.5f, new Vector3f(0, 0, -1));
+                tile.rotate(quat);
+                n.attachChild(tile);
+
+                // The alfa & omega! The heart, TODO: use object loader once it is in decent condition, this after all is a real object
+                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/Dungeon centre.j3o"));
+                resetAndMoveSpatial(tile, start, p);
+
+                // Animate
+                AnimControl animControl = (AnimControl) tile.getChild(0).getControl(AnimControl.class);
+                if (animControl != null) {
+                    AnimChannel channel = animControl.createChannel();
+                    channel.setAnim("anim");
+                    channel.setLoopMode(LoopMode.Loop);
+
+                    // Don't batch animated objects, seems not to work
+                    tile.setBatchHint(Spatial.BatchHint.Never);
+                }
+                n.attachChild(tile.move(0, 0, -0.7f));
             }
         }
 
