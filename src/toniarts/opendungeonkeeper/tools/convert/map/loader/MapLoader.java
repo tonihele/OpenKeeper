@@ -27,6 +27,7 @@ import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
 import toniarts.opendungeonkeeper.tools.convert.map.Map;
 import toniarts.opendungeonkeeper.tools.convert.map.Room;
 import toniarts.opendungeonkeeper.tools.convert.map.Terrain;
+import toniarts.opendungeonkeeper.tools.convert.map.loader.room.FiveByFiveRotated;
 import toniarts.opendungeonkeeper.tools.convert.map.loader.room.HeroGateFrontEnd;
 import toniarts.opendungeonkeeper.tools.convert.map.loader.room.RoomInstance;
 import toniarts.opendungeonkeeper.tools.convert.map.loader.room.ThreeByThree;
@@ -800,6 +801,10 @@ public class MapLoader implements ILoader<KwdFile> {
             }
             case HERO_GATE_FRONT_END: {
                 root.attachChild(HeroGateFrontEnd.construct(assetManager, roomInstance));
+                break;
+            }
+            case _5_BY_5_ROTATED: {
+                root.attachChild(FiveByFiveRotated.construct(assetManager, roomInstance));
                 break;
             }
             default: {
