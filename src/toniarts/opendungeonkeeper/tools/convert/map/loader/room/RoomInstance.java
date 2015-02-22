@@ -20,6 +20,8 @@ public class RoomInstance {
 
     private final Room room;
     private List<Point> coordinates = new ArrayList<>();
+    private int minX = Integer.MAX_VALUE;
+    private int maxX = Integer.MIN_VALUE;
 
     public RoomInstance(Room room) {
         this.room = room;
@@ -31,10 +33,41 @@ public class RoomInstance {
 
     public void addCoordinate(Point p) {
         coordinates.add(~Collections.binarySearch(coordinates, p, new PointComparator()), p);
+        minX = Math.min(p.x, minX);
+        maxX = Math.max(p.x, maxX);
     }
 
+    /**
+     * Get the coordinates as a sorted list
+     *
+     * @return the coordinates list
+     * @see #getCoordinatesAsMatrix()
+     */
     public List<Point> getCoordinates() {
         return coordinates;
+    }
+
+    /**
+     * Some building are nowhere near squares, the matrix will help in building
+     * such rooms<br>
+     * The matrix is build in room constraints, so you need to add the first
+     * coordinate to the matrix coordinate to get the real world coordinate
+     *
+     * @return coordinates as matrix, true value signifies presense of the room
+     * instance in the coordinate
+     * @see #getCoordinates()
+     */
+    public boolean[][] getCoordinatesAsMatrix() {
+        int width = maxX - minX + 1;
+        Point start = coordinates.get(0);
+        int height = coordinates.get(coordinates.size() - 1).y - start.y + 1;
+        boolean[][] matrix = new boolean[width][height];
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                matrix[x][y] = (Collections.binarySearch(coordinates, new Point(start.x + x, start.y + y), new PointComparator()) > -1);
+            }
+        }
+        return matrix;
     }
 
     @Override
