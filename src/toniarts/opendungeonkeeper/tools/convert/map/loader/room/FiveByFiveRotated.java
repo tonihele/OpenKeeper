@@ -184,7 +184,7 @@ public class FiveByFiveRotated {
                     // Don't batch animated objects, seems not to work
                     tile.setBatchHint(Spatial.BatchHint.Never);
                 }
-                n.attachChild(tile.move(0, 0, -0.7f));
+                n.attachChild(tile.move(0, 0, -0.25f));
             }
         }
 
