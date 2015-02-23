@@ -7,6 +7,10 @@ Goal is to fully implement the game (version 1.7 with 3 bonus packs) as open sou
 
 Implementation is done in JAVA using JMonkeyEngine (http://jmonkeyengine.org/).
 
+My YouTube channel where I sometimes publish videos of the progress:
+
+https://www.youtube.com/user/Kaljis83/videos
+
 TODO
 ====
 
@@ -25,6 +29,7 @@ TODO
     - [x] Read paths (paths.wad -> kcs)
     - [ ] Understand paths
   - [x] Read cursors
+  - [x] Read the GUI texts
   - ?
 - [ ] Conversion of formats
   - [ ] Meshes to JMonkeyEngine j3o
@@ -35,7 +40,7 @@ TODO
       - [x] Animation data is perfect, but our implementation of the vertex animation distorts the animations and stores too much data (every frame is a key frame)
     - [x] Materials
       - [x] All materials should exist only once, as JME material file
-      - [ ] EngineTextures.wad needs to be extracted <- does it? Seems just duplicates, maybe only few additions
+      - [x] EngineTextures.wad needs to be extracted <- does it? Seems just duplicates, maybe only few additions
   - [ ] Maps to our open map format (XML, xstream?) `(***`
   - [ ] Sounds (MP2 is not supported by JME)
     - [x] MP2 decoding
@@ -46,6 +51,7 @@ TODO
   - [ ] Paths to JME MotionPaths?
   - [x] Cursors
     - [x] Animated cursors
+  - [x] GUI texts
   - ?
 - [ ] Load maps to engine
 - [ ] Basic world interaction

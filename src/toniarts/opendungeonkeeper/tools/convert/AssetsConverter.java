@@ -10,6 +10,8 @@ import com.jme3.export.binary.BinaryExporter;
 import com.jme3.scene.Node;
 import java.io.File;
 import java.io.IOException;
+import java.nio.CharBuffer;
+import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,6 +20,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -26,9 +29,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import toniarts.opendungeonkeeper.gui.Dictionary;
 import toniarts.opendungeonkeeper.tools.convert.enginetextures.EngineTexturesFile;
 import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
 import toniarts.opendungeonkeeper.tools.convert.sound.SdtFile;
+import toniarts.opendungeonkeeper.tools.convert.str.StrFile;
 import toniarts.opendungeonkeeper.tools.convert.wad.WadFile;
 
 /**
@@ -52,7 +57,8 @@ public abstract class AssetsConverter {
         TEXTURES(1),
         MODELS(2),
         MOUSE_CURSORS(3),
-        MUSIC_AND_SOUNDS(4);
+        MUSIC_AND_SOUNDS(4),
+        INTERFACE_TEXTS(5);
 
         private ConvertProcess(int processNumber) {
             this.processNumber = processNumber;
@@ -76,6 +82,7 @@ public abstract class AssetsConverter {
     public static final String MOUSE_CURSORS_FOLDER = "Interface".concat(File.separator).concat("Cursors");
     public static final String SOUNDS_FOLDER = "Sounds";
     public static final String MATERIALS_FOLDER = "Materials";
+    public static final String TEXTS_FOLDER = "Interface".concat(File.separator).concat("Texts");
     private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
 
@@ -122,6 +129,9 @@ public abstract class AssetsConverter {
         //The sound and music
         convertSounds(dungeonKeeperFolder, currentFolder.concat(SOUNDS_FOLDER).concat(File.separator));
 
+        //The texts
+        convertTexts(dungeonKeeperFolder, currentFolder.concat(TEXTS_FOLDER).concat(File.separator));
+
         // Log the time taken
         long duration = new Date().getTime() - start.getTime();
         logger.log(Level.INFO, "Conversion took {0} seconds!", TimeUnit.SECONDS.convert(duration, TimeUnit.MILLISECONDS));
@@ -138,8 +148,11 @@ public abstract class AssetsConverter {
         updateStatus(null, null, ConvertProcess.TEXTURES);
         EngineTexturesFile etFile = getEngineTexturesFile(dungeonKeeperFolder);
         Pattern pattern = Pattern.compile("(?<name>\\w+)MM(?<mipmaplevel>\\d{1})");
+        WadFile frontEnd = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("FrontEnd.WAD")));
+        WadFile engineTextures = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("EngineTextures.WAD")));
         int i = 0;
-        int total = etFile.getFileCount();
+        int total = etFile.getFileCount() + frontEnd.getWadFileEntries().size() + engineTextures.getWadFileEntries().size();
+
         for (String textureFile : etFile) {
             updateStatus(i, total, ConvertProcess.TEXTURES);
             i++;
@@ -169,6 +182,9 @@ public abstract class AssetsConverter {
                 etFile.extractFileData(textureFile, destination, OVERWRITE_DATA);
             }
         }
+
+        extractTextureContainer(i, total, frontEnd, destination);
+        extractTextureContainer(i, total, engineTextures, destination);
     }
 
     /**
@@ -395,5 +411,89 @@ public abstract class AssetsConverter {
         //Extract the textures
         EngineTexturesFile etFile = new EngineTexturesFile(new File(dataDirectory.concat("EngineTextures.dat")));
         return etFile;
+    }
+
+    /**
+     * Extract and copy DK II interface texts
+     *
+     * @param dungeonKeeperFolder DK II main folder
+     * @param destination Destination folder
+     */
+    private void convertTexts(String dungeonKeeperFolder, String destination) {
+        logger.log(Level.INFO, "Extracting texts to: {0}", destination);
+        updateStatus(null, null, ConvertProcess.INTERFACE_TEXTS);
+        String dataDirectory = dungeonKeeperFolder.concat("data").concat(File.separator).concat("text").concat(File.separator).concat("default").concat(File.separator);
+
+        //Find all the STR files
+        final List<File> srtFiles = new ArrayList<>();
+        File dataDir = new File(dataDirectory);
+        try {
+            Files.walkFileTree(dataDir.toPath(), EnumSet.noneOf(FileVisitOption.class), 1, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+
+                    //Get all the STR files
+                    if (attrs.isRegularFile() && file.getFileName().toString().toLowerCase().endsWith(".str")) {
+                        srtFiles.add(file.toFile());
+                    }
+
+                    //Always continue
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException ex) {
+            String msg = "Failed to scan texts folder " + dataDirectory + "!";
+            logger.log(Level.SEVERE, msg, ex);
+            throw new RuntimeException(msg, ex);
+        }
+
+        //Convert the STR files to our simple dictionaries
+        new File(destination).mkdirs(); // Ensure that the folder exists
+        int i = 0;
+        int total = srtFiles.size();
+        CharBuffer codePage = null;
+        for (File file : srtFiles) {
+            updateStatus(i, total, ConvertProcess.INTERFACE_TEXTS);
+            i++;
+
+            // The code page cache makes processing faster
+            StrFile strFile;
+            if (codePage == null) {
+                strFile = new StrFile(file);
+                codePage = strFile.getCodePage();
+            } else {
+                strFile = new StrFile(codePage, file);
+            }
+
+            // Create dictionary and save
+            Dictionary dict = new Dictionary(strFile.getEntries());
+            String fileName = file.getName();
+            fileName = fileName.substring(0, fileName.length() - 3);
+            File dictFile = new File(destination.concat(fileName).concat("dict"));
+            try {
+                dict.save(dictFile);
+            } catch (IOException ex) {
+                String msg = "Failed to save the dictionary file to " + dictFile + "!";
+                logger.log(Level.SEVERE, msg, ex);
+                throw new RuntimeException(msg, ex);
+            }
+        }
+    }
+
+    /**
+     * Extracts the wad files and updates the progress bar
+     *
+     * @param i current entry number
+     * @param total total entry number
+     * @param wad wad file
+     * @param destination destination directory
+     */
+    private void extractTextureContainer(int i, int total, WadFile wad, String destination) {
+        for (final String entry : wad.getWadFileEntries()) {
+            updateStatus(i, total, ConvertProcess.TEXTURES);
+            i++;
+
+            wad.extractFileData(entry, destination);
+        }
     }
 }
