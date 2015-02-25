@@ -15,7 +15,7 @@ import javax.vecmath.Vector3f;
 public class KcsEntry {
 
     private Vector3f position;
-    private Vector3f forward;
+    private Vector3f direction;
     private Vector3f left;
     private Vector3f up;
     private float fov;
@@ -34,12 +34,12 @@ public class KcsEntry {
      *
      * @return Forward orientation
      */
-    public Vector3f getForward() {
-        return forward;
+    public Vector3f getDirection() {
+        return direction;
     }
 
-    protected void setForward(Vector3f forward) {
-        this.forward = forward;
+    protected void setDirection(Vector3f direction) {
+        this.direction = direction;
     }
 
     /**

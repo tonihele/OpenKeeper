@@ -52,7 +52,7 @@ public class KcsFile {
                 //Entries have 56 bytes in them
                 KcsEntry entry = new KcsEntry();
                 entry.setPosition(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
-                entry.setForward(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
+                entry.setDirection(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
                 entry.setLeft(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
                 entry.setUp(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
                 entry.setFov(Utils.readFloat(rawKcs));
