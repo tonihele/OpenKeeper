@@ -26,7 +26,6 @@ import toniarts.opendungeonkeeper.tools.convert.Utils;
  */
 public class KcsFile {
 
-    private final File file;
     private final List<KcsEntry> kcsEntries;
 
     /**
@@ -36,7 +35,6 @@ public class KcsFile {
      * @param file the kcs file to read
      */
     public KcsFile(File file) {
-        this.file = file;
 
         //Read the file
         try (RandomAccessFile rawKcs = new RandomAccessFile(file, "r")) {
