@@ -50,6 +50,6 @@ public class CameraSweepData implements Savable {
     @Override
     public void read(JmeImporter im) throws IOException {
         InputCapsule in = im.getCapsule(this);
-        in.readSavableArrayList("entries", null);
+        entries = in.readSavableArrayList("entries", null);
     }
 }
