@@ -32,6 +32,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.opendungeonkeeper.cinematics.CameraSweepData;
 import toniarts.opendungeonkeeper.cinematics.CameraSweepDataEntry;
+import toniarts.opendungeonkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.opendungeonkeeper.gui.Dictionary;
 import toniarts.opendungeonkeeper.tools.convert.enginetextures.EngineTexturesFile;
 import toniarts.opendungeonkeeper.tools.convert.kcs.KcsEntry;
@@ -545,7 +546,7 @@ public abstract class AssetsConverter {
                     CameraSweepData cameraSweepData = new CameraSweepData(entries);
 
                     // Save it
-                    exporter.save(cameraSweepData, new File(destination.concat(entry.substring(0, entry.length() - 3)).concat("csd")));
+                    exporter.save(cameraSweepData, new File(destination.concat(entry.substring(0, entry.length() - 3)).concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
                 } else if (entry.toLowerCase().endsWith(".txt")) {
 
                     // The text file is nice to have, it is an info text
