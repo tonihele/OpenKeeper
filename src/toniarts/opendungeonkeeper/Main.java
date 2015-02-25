@@ -22,6 +22,7 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import toniarts.opendungeonkeeper.audio.plugins.MP2Loader;
+import toniarts.opendungeonkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.opendungeonkeeper.gui.CursorFactory;
 import toniarts.opendungeonkeeper.setup.DKConverter;
 import toniarts.opendungeonkeeper.setup.DKFolderSelector;
@@ -272,8 +273,10 @@ public class Main extends SimpleApplication {
     public void simpleInitApp() {
 
         // Asset loaders
-        //Sound
+        // Sound
         this.getAssetManager().registerLoader(MP2Loader.class, "mp2");
+        // Camera sweep files
+        this.getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION);
 
         Box b = new Box(1, 1, 1);
         Geometry geom = new Geometry("Box", b);
