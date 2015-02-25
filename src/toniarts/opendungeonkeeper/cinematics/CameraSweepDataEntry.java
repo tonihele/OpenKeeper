@@ -26,6 +26,21 @@ public class CameraSweepDataEntry implements Savable {
     private float fov;
     private float near;
 
+    public CameraSweepDataEntry(Vector3f position, Vector3f direction, Vector3f left, Vector3f up, float fov, float near) {
+        this.position = position;
+        this.direction = direction;
+        this.left = left;
+        this.up = up;
+        this.fov = fov;
+        this.near = near;
+    }
+
+    /**
+     * Serialization-only. Do not use.
+     */
+    public CameraSweepDataEntry() {
+    }
+
     public Vector3f getPosition() {
         return position;
     }

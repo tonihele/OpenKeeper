@@ -11,7 +11,6 @@ import com.jme3.export.OutputCapsule;
 import com.jme3.export.Savable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -22,6 +21,16 @@ import java.util.List;
 public class CameraSweepData implements Savable {
 
     private List<CameraSweepDataEntry> entries;
+
+    public CameraSweepData(List<CameraSweepDataEntry> entries) {
+        this.entries = entries;
+    }
+
+    /**
+     * Serialization-only. Do not use.
+     */
+    public CameraSweepData() {
+    }
 
     /**
      * Get a list of camera sweep data entries
@@ -35,12 +44,12 @@ public class CameraSweepData implements Savable {
     @Override
     public void write(JmeExporter ex) throws IOException {
         OutputCapsule out = ex.getCapsule(this);
-        out.writeSavableArrayList((ArrayList) entries, "entries", (ArrayList) Collections.emptyList());
+        out.writeSavableArrayList((ArrayList) entries, "entries", null);
     }
 
     @Override
     public void read(JmeImporter im) throws IOException {
         InputCapsule in = im.getCapsule(this);
-        in.readSavableArrayList("entries", (ArrayList) Collections.emptyList());
+        in.readSavableArrayList("entries", null);
     }
 }
