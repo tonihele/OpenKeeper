@@ -57,8 +57,8 @@ public class HeroGateFrontEnd {
 
                 // The light beams, I dunno, there are maybe several of these here
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
-                n.attachChild(loadObject("3dfe_beams", assetManager, start, p, true).rotate(quat).move(0, 0.1f, -0.4f));
+                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
+                n.attachChild(loadObject("3dfe_beams", assetManager, start, p, true).rotate(quat).move(0, 0.4f, 0.1f));
 
                 // TODO: Add a point/spot light here
 
@@ -131,7 +131,7 @@ public class HeroGateFrontEnd {
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2, 0);
+        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return n;
@@ -152,7 +152,7 @@ public class HeroGateFrontEnd {
             subSpat.setLocalScale(1);
             subSpat.setLocalTranslation(0, 0, 0);
         }
-        tile.move(p.x - start.x, p.y - start.y, 1f);
+        tile.move(p.x - start.x, -1.0f, p.y - start.y);
     }
 
     /**
@@ -172,7 +172,7 @@ public class HeroGateFrontEnd {
 
         // Reset
         resetAndMoveSpatial(object, start, p);
-        object.move(0, 0, -1f);
+        object.move(0, 1f, 0);
 
         // Animate
         AnimControl animControl = (AnimControl) object.getChild(0).getControl(AnimControl.class);
@@ -205,7 +205,7 @@ public class HeroGateFrontEnd {
         // The "candles"
         n.attachChild(loadObject("chain_swing", assetManager, start, p, true).move(-1f, 0, 0));
         Quaternion quat = new Quaternion();
-        quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
-        n.attachChild(loadObject("chain_swing", assetManager, start, p, true).rotate(quat).move(1f, 1f, 0));
+        quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
+        n.attachChild(loadObject("chain_swing", assetManager, start, p, true).rotate(quat).move(1f, 0, 1f));
     }
 }

@@ -63,19 +63,19 @@ public class Normal {
                             } else if (!N && W && NW) {
                                 pieceNumber = 0;
                                 quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                             } else if (!NW && N && W) {
                                 pieceNumber = 2;
                             } else if (!N && !W) {
                                 pieceNumber = 1;
                                 quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                             } else if (W && !NW && !N) {
                                 pieceNumber = 0;
                             } else if (!W && !NW && N) {
                                 pieceNumber = 0;
                                 quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                             } else {
                                 pieceNumber = 0;
                             }
@@ -84,7 +84,7 @@ public class Normal {
                             if (N && E && NE) {
                                 pieceNumber = 3;
                                 quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
                             } else if (!N && E && NE) {
                                 pieceNumber = 0;
                             } else if (!NE && N && E) {
@@ -96,7 +96,7 @@ public class Normal {
                             } else if (!E && !NE && N) {
                                 pieceNumber = 0;
                                 quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
                             } else {
                                 pieceNumber = 0;
                             }
@@ -111,17 +111,17 @@ public class Normal {
                             } else if (!S && !W) {
                                 pieceNumber = 1;
                                 quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, -1));
+                                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
                             } else if (!W && SW && S) {
                                 pieceNumber = 0;
                             } else if (!W && !SW && S) {
                                 pieceNumber = 0;
                                 quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                             } else {
                                 pieceNumber = 0;
                                 quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, -1));
+                                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
                             }
 
 //                            movement = new Vector3f(-0.5f, 0, 0);
@@ -135,17 +135,17 @@ public class Normal {
                             } else if (!S && !E) {
                                 pieceNumber = 1;
                                 quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
                             } else if (!E && SE && S) {
                                 pieceNumber = 4;
                             } else if (!E && !SE && S) {
                                 pieceNumber = 0;
                                 quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
                             } else {
                                 pieceNumber = 0;
                                 quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, -1));
+                                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
                             }
                         }
 
@@ -158,7 +158,7 @@ public class Normal {
                         if (movement != null) {
                             part.move(movement);
                         }
-                        part.move(i * 0.5f - 0.25f, k * 0.5f - 0.25f, 0);
+                        part.move(i * 0.5f - 0.25f, 0, k * 0.5f - 0.25f);
                         tile.attachChild(part);
                     }
                 }
@@ -171,7 +171,7 @@ public class Normal {
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2, 0);
+        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return n;
@@ -192,7 +192,7 @@ public class Normal {
             subSpat.setLocalScale(1);
             subSpat.setLocalTranslation(0, 0, 0);
         }
-        tile.move(p.x - start.x, p.y - start.y, 1f);
+        tile.move(p.x - start.x, -1f, p.y - start.y);
     }
 
     private static boolean hasSameTile(boolean[][] map, int x, int y) {

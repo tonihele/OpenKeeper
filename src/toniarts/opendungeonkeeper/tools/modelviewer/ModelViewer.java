@@ -426,11 +426,6 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             spat.scale(10);
             spat.setLocalTranslation(10, 25, 30);
 
-            // Rotate it
-            Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(1, 0, 0));
-            spat.rotate(quat);
-
             // Make it rotate
             RotatorControl rotator = new RotatorControl();
             rotator.setEnabled(rotate);

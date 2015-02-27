@@ -46,7 +46,7 @@ public class FiveByFiveRotated {
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                 tile.rotate(quat);
             } else if (x == 4 && y == 0) { // Top right corner
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
@@ -55,20 +55,20 @@ public class FiveByFiveRotated {
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } else if (x == 4 && y == 4) { // Lower right corner
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } // Outer layer sides
             else if (x == 0) { // Left side
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } else if (x == 4) { // Right side
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
@@ -77,13 +77,13 @@ public class FiveByFiveRotated {
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                 tile.rotate(quat);
             } else if (y == 4) { // Bottom side
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } // The inner ring, corners
             else if (x == 1 && y == 1) { // Top left
@@ -93,32 +93,32 @@ public class FiveByFiveRotated {
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } else if (x == 1 && y == 3) { // Bottom left
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                 tile.rotate(quat);
             } else if (x == 3 && y == 3) { // Bottom right
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } // The inner ring, sides
             else if (x == 1) { // Left
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                 tile.rotate(quat);
             } else if (x == 3) { // Right
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } else if (y == 1) { // Top
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
@@ -127,7 +127,7 @@ public class FiveByFiveRotated {
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             }
 
@@ -159,14 +159,14 @@ public class FiveByFiveRotated {
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 1.5f, new Vector3f(0, 0, 1));
+                quat.fromAngleAxis(FastMath.PI / 1.5f, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
                 n.attachChild(tile);
 
                 tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 1.5f, new Vector3f(0, 0, -1));
+                quat.fromAngleAxis(FastMath.PI / 1.5f, new Vector3f(0, 1, 0));
                 tile.rotate(quat);
                 n.attachChild(tile);
 
@@ -184,12 +184,12 @@ public class FiveByFiveRotated {
                     // Don't batch animated objects, seems not to work
                     tile.setBatchHint(Spatial.BatchHint.Never);
                 }
-                n.attachChild(tile.move(0, 0, -0.25f));
+                n.attachChild(tile.move(0, 0.25f, 0));
             }
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2, 0);
+        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return n;
@@ -210,6 +210,6 @@ public class FiveByFiveRotated {
             subSpat.setLocalScale(1);
             subSpat.setLocalTranslation(0, 0, 0);
         }
-        tile.move(p.x - start.x, p.y - start.y, 1f);
+        tile.move(p.x - start.x, -1.0f, p.y - start.y);
     }
 }

@@ -40,9 +40,9 @@ import toniarts.opendungeonkeeper.tools.convert.map.loader.room.ThreeByThree;
  */
 public class MapLoader implements ILoader<KwdFile> {
 
-    public final static float TILE_WIDTH = 0.70f; // Impenetrable rock top is just little over this, "x & y", square
-    public final static float TILE_HEIGHT = 0.70f; // Impenetrable rock wall is just little over this, "z", ground level is at 0
-    private final static float WATER_DEPTH = 0.25f;
+    public final static float TILE_WIDTH = 1;
+    public final static float TILE_HEIGHT = 1;
+    private final static float WATER_DEPTH = 0.3525f;
     private KwdFile kwdFile;
     private List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
     private HashMap<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
@@ -61,11 +61,6 @@ public class MapLoader implements ILoader<KwdFile> {
                 handleTile(tiles, x, y, assetManager, root);
             }
         }
-
-        // The models are in weird angle, rotate 90 degrees to get it "standard"
-        Quaternion quat = new Quaternion();
-        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(1, 0, 0));
-        root.rotate(quat);
 
         // Batch it
         root.batch();
@@ -115,7 +110,7 @@ public class MapLoader implements ILoader<KwdFile> {
 
         // Move the ceiling to a correct tile
         if (wall != null) {
-            wall.move(x * TILE_WIDTH, y * TILE_WIDTH, 0);
+            wall.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
             wall.setShadowMode(RenderQueue.ShadowMode.CastAndReceive); // Walls cast and receive shadows
             root.attachChild(wall);
         }
@@ -202,19 +197,19 @@ public class MapLoader implements ILoader<KwdFile> {
 
                     // "Reset"
                     n.setLocalTranslation(0, 0, 0);
-                    n.setLocalScale(1f);
+//                    n.setLocalScale(1f);
 
                     // Adjust the size
+//                    BoundingBox worldBound = (BoundingBox) n.getWorldBound();
+//                    float xExtent = worldBound.getXExtent() * 2;
+//                    float yExtent = worldBound.getYExtent() * 2;
+//                    float zExtent = worldBound.getZExtent() * 2;
+//                    n.scale((xExtent != 0 ? TILE_WIDTH / xExtent : 1f), (yExtent != 0 ? TILE_WIDTH / yExtent : 1f), (zExtent != 0 ? (wall ? TILE_HEIGHT : WATER_DEPTH) / zExtent : 1f));
+//
+//                    // Set the translation so that everything moves similarly
                     BoundingBox worldBound = (BoundingBox) n.getWorldBound();
-                    float xExtent = worldBound.getXExtent() * 2;
-                    float yExtent = worldBound.getYExtent() * 2;
-                    float zExtent = worldBound.getZExtent() * 2;
-                    n.scale((xExtent != 0 ? TILE_WIDTH / xExtent : 1f), (yExtent != 0 ? TILE_WIDTH / yExtent : 1f), (zExtent != 0 ? (wall ? TILE_HEIGHT : WATER_DEPTH) / zExtent : 1f));
-
-                    // Set the translation so that everything moves similarly
-                    worldBound = (BoundingBox) n.getWorldBound();
                     Vector3f boundCenter = worldBound.getCenter();
-                    n.setLocalTranslation(0 - boundCenter.x - worldBound.getXExtent(), 0 - boundCenter.y - worldBound.getYExtent(), 0 - boundCenter.z - (wall ? worldBound.getZExtent() : -worldBound.getZExtent()));
+                    n.setLocalTranslation(0 - boundCenter.x - worldBound.getXExtent(), 0 - boundCenter.y - (wall ? -worldBound.getYExtent() : worldBound.getYExtent()), 0 - boundCenter.z - worldBound.getZExtent());
                 }
             }
         });
@@ -288,8 +283,8 @@ public class MapLoader implements ILoader<KwdFile> {
                         pieceNumber = 0;
                     }
                     quat = new Quaternion();
-                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, -1));
-                    movement = new Vector3f(-TILE_WIDTH, -TILE_WIDTH, 0);
+                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                    movement = new Vector3f(-TILE_WIDTH * 2, 0, 0);
                 } else if (i == 1 && k == 0) { // North east corner
                     if (N && E && NE) {
                         pieceNumber = 3;
@@ -307,8 +302,7 @@ public class MapLoader implements ILoader<KwdFile> {
                         pieceNumber = 4;
                     }
                     quat = new Quaternion();
-                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
-                    movement = new Vector3f(0, -TILE_WIDTH, 0);
+                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                 } else if (i == 0 && k == 1) { // South west corner
                     if (S && W && SW) {
                         pieceNumber = 3;
@@ -326,8 +320,8 @@ public class MapLoader implements ILoader<KwdFile> {
                         pieceNumber = 4;
                     }
                     quat = new Quaternion();
-                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
-                    movement = new Vector3f(-TILE_WIDTH, 0, 0);
+                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                    movement = new Vector3f(-TILE_WIDTH * 2, 0, 0);
                 } else if (i == 1 && k == 1) { // South east corner
                     if (S && E && SE) {
                         pieceNumber = 3;
@@ -354,13 +348,10 @@ public class MapLoader implements ILoader<KwdFile> {
                 if (movement != null) {
                     part.move(movement);
                 }
-                part.move((i - 1) * TILE_WIDTH, (k - 1) * TILE_WIDTH, 0);
+                part.move((i - 1) * -TILE_WIDTH, 0, (k - 1) * TILE_WIDTH);
                 ((Node) model).attachChild(part);
             }
         }
-
-        // Scale down to one grid
-        model.setLocalScale(0.5f, 0.5f, 1);
 
         return model;
     }
@@ -432,7 +423,7 @@ public class MapLoader implements ILoader<KwdFile> {
                 setRandomTexture(assetManager, ceiling);
             }
         }
-        ceiling.move(x * TILE_WIDTH, y * TILE_WIDTH, -TILE_HEIGHT);
+        ceiling.move(x * TILE_WIDTH, TILE_HEIGHT, y * TILE_WIDTH);
         ceiling.setShadowMode(RenderQueue.ShadowMode.Off); // Ceilings never cast or receive, only thing above them would be picked up creatures, and they are solid
         root.attachChild(ceiling);
 
@@ -442,7 +433,7 @@ public class MapLoader implements ILoader<KwdFile> {
         ArtResource wallNorth = getWallNorth(x, y, tiles, terrain);
         if (wallNorth != null) {
             Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallNorth.getName() + ".j3o", true);
-            wall.move(0, -TILE_WIDTH, 0);
+            wall.move(0, 0, -TILE_WIDTH);
             addWall(wall, root, x, y);
         }
 
@@ -451,7 +442,7 @@ public class MapLoader implements ILoader<KwdFile> {
         if (wallSouth != null) {
             Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallSouth.getName() + ".j3o", true);
             Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
             wall.rotate(quat);
             wall.move(-TILE_WIDTH, 0, 0);
             addWall(wall, root, x, y);
@@ -462,7 +453,7 @@ public class MapLoader implements ILoader<KwdFile> {
         if (wallEast != null) {
             Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallEast.getName() + ".j3o", true);
             Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
             wall.rotate(quat);
             addWall(wall, root, x, y);
         }
@@ -472,9 +463,9 @@ public class MapLoader implements ILoader<KwdFile> {
         if (wallWest != null) {
             Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallWest.getName() + ".j3o", true);
             Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
             wall.rotate(quat);
-            wall.move(-TILE_WIDTH, -TILE_WIDTH, 0);
+            wall.move(-TILE_WIDTH, 0, -TILE_WIDTH);
             addWall(wall, root, x, y);
         }
 
@@ -503,7 +494,7 @@ public class MapLoader implements ILoader<KwdFile> {
             Spatial floor = handleWaterConstruction(tiles, x, y, terrain, assetManager, floorResource);
 
             // Finally add it
-            floor.move(x * TILE_WIDTH, y * TILE_WIDTH, 0);
+            floor.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
             floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
             root.attachChild(floor);
 
@@ -511,12 +502,12 @@ public class MapLoader implements ILoader<KwdFile> {
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
             String modelName = floorResource.getName();
             Spatial floor = constructTerrainQuad(tiles, terrain, tile, x, y, assetManager, modelName);
-            floor.move(x * TILE_WIDTH, y * TILE_WIDTH, 0);
+            floor.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
             floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
             root.attachChild(floor);
         } else {
             Spatial floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + ".j3o", false);
-            floor.move(x * TILE_WIDTH, y * TILE_WIDTH, 0);
+            floor.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
             floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
             root.attachChild(floor);
         }
@@ -550,72 +541,72 @@ public class MapLoader implements ILoader<KwdFile> {
         if (!waterE && waterS && waterSW && waterW && waterNW && waterN) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
             Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
             floor.rotate(quat);
-            floor.move(0, -TILE_WIDTH, 0);
+            floor.move(0, 0, -TILE_WIDTH);
         } else if (!waterS && waterW && waterNW && waterN && waterNE && waterE) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
         } else if (!waterW && waterN && waterNE && waterE && waterSE && waterS) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
             Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
             floor.rotate(quat);
             floor.move(-TILE_WIDTH, 0, 0);
         } else if (!waterN && waterE && waterSE && waterS && waterSW && waterW) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "0" + ".j3o", false);
             Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
             floor.rotate(quat);
-            floor.move(-TILE_WIDTH, -TILE_WIDTH, 0);
+            floor.move(-TILE_WIDTH, 0, -TILE_WIDTH);
         } //
         // Just one corner
         else if (!waterSW && waterS && waterSE && waterE && waterW && waterN && waterNE && waterNW) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "2" + ".j3o", false);
             Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
             floor.rotate(quat);
-            floor.move(-TILE_WIDTH, -TILE_WIDTH, 0);
+            floor.move(-TILE_WIDTH, 0, -TILE_WIDTH);
         } else if (!waterNE && waterS && waterSE && waterE && waterW && waterN && waterSW && waterNW) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "2" + ".j3o", false);
         } else if (!waterSE && waterS && waterSW && waterE && waterW && waterN && waterNE && waterNW) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "2" + ".j3o", false);
             Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
             floor.rotate(quat);
             floor.move(-TILE_WIDTH, 0, 0);
         } else if (!waterNW && waterS && waterSW && waterE && waterW && waterN && waterNE && waterSE) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "2" + ".j3o", false);
             Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
             floor.rotate(quat);
-            floor.move(0, -TILE_WIDTH, 0);
+            floor.move(0, 0, -TILE_WIDTH);
         } //
         // Land corner
         else if (!waterN && !waterNW && !waterW && waterS && waterSE && waterE) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "1" + ".j3o", false);
             Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
+            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
             floor.rotate(quat);
-            floor.move(-TILE_WIDTH, 0, 0f);
+            floor.move(-TILE_WIDTH, 0, 0);
         } else if (!waterN && !waterNE && !waterE && waterSW && waterS && waterW) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "1" + ".j3o", false);
             Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
+            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
             floor.rotate(quat);
-            floor.move(-TILE_WIDTH, -TILE_WIDTH, 0f);
+            floor.move(-TILE_WIDTH, 0, -TILE_WIDTH);
         } else if (!waterS && !waterSE && !waterE && waterN && waterW && waterNW) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "1" + ".j3o", false);
             Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
+            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
             floor.rotate(quat);
-            floor.move(0, -TILE_WIDTH, 0f);
+            floor.move(0, 0, -TILE_WIDTH);
         } else if (!waterS && !waterSW && !waterW && waterN && waterNE && waterE) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "1" + ".j3o", false);
         }//
         // Just a seabed
         else if (waterS && waterSW && waterW && waterSE && waterN && waterNE && waterE && waterNW) { // Just a seabed
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + "3" + ".j3o", false);
-            floor.move(0, 0, WATER_DEPTH); // Water bed is flat
+            floor.move(0, -WATER_DEPTH, 0); // Water bed is flat
         }//
         // We have only the one tilers left, they need to be constructed similar to quads, but unfortunately not just the same
         else {
@@ -634,58 +625,64 @@ public class MapLoader implements ILoader<KwdFile> {
                         if (!waterN && waterW) { // Side
                             pieceNumber = 4;
                             quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, -1));
-                            movement = new Vector3f(-TILE_WIDTH, -TILE_WIDTH, 0);
+                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0)); //
                         } else if (!waterW && waterN) { // Side
                             pieceNumber = 4;
                             quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
-                            movement = new Vector3f(-TILE_WIDTH, 0, 0);
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                            movement = new Vector3f(0, 0, TILE_WIDTH / 2); //
                         } else if (!waterNW && waterN && waterW) { // Corner surrounded by water
                             pieceNumber = 6;
                             quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
-                            movement = new Vector3f(0, -TILE_WIDTH, 0);
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                            movement = new Vector3f(TILE_WIDTH / 2, 0, 0); //
                         } else if (!waterN && !waterW) { // Corner surrounded by land
                             pieceNumber = 5;
                             quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
-                            movement = new Vector3f(-TILE_WIDTH, 0, 0);
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                            movement = new Vector3f(0, 0, TILE_WIDTH / 2); //
+                        } else { // Seabed
+                            movement = new Vector3f(TILE_WIDTH / 2, 0, TILE_WIDTH / 2);
                         }
                     } else if (i == 1 && k == 0) { // North east corner
                         if (!waterN && waterE) { // Side
                             pieceNumber = 4;
                             quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, -1));
-                            movement = new Vector3f(-TILE_WIDTH, -TILE_WIDTH, 0);
+                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                            movement = new Vector3f(-TILE_WIDTH / 2, 0, 0); //
                         } else if (!waterE && waterN) { // Side
                             pieceNumber = 4;
                             quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
-                            movement = new Vector3f(0, -TILE_WIDTH, 0);
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0)); //
                         } else if (!waterNE && waterN && waterE) { // Corner surrounded by water
                             pieceNumber = 6;
+                            movement = new Vector3f(0, 0, TILE_WIDTH / 2); //
                         } else if (!waterN && !waterE) { // Corner surrounded by land
                             pieceNumber = 5;
                             quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
-                            movement = new Vector3f(-TILE_WIDTH, -TILE_WIDTH, 0);
+                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
+                            movement = new Vector3f(-TILE_WIDTH / 2, 0, 0); //
+                        } else { // Seabed
+                            movement = new Vector3f(0, 0, TILE_WIDTH / 2);
                         }
                     } else if (i == 0 && k == 1) { // South west corner
                         if (!waterS && waterW) { // Side
                             pieceNumber = 4;
+                            movement = new Vector3f(TILE_WIDTH / 2, 0, 0); //
                         } else if (!waterW && waterS) { // Side
                             pieceNumber = 4;
                             quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
-                            movement = new Vector3f(-TILE_WIDTH, 0, 0);
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0)); //
                         } else if (!waterSW && waterS && waterW) { // Corner surrounded by water
                             pieceNumber = 6;
                             quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 0, 1));
-                            movement = new Vector3f(-TILE_WIDTH, -TILE_WIDTH, 0);
+                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
+                            movement = new Vector3f(0, 0, -TILE_WIDTH / 2); //
                         } else if (!waterS && !waterW) { // Corner surrounded by land
                             pieceNumber = 5;
+                            movement = new Vector3f(TILE_WIDTH / 2, 0, 0); //
+                        } else { // Seabed
+                            movement = new Vector3f(TILE_WIDTH / 2, 0, 0);
                         }
                     } else if (i == 1 && k == 1) { // South east corner
                         if (!waterS && waterE) { // Side
@@ -693,18 +690,18 @@ public class MapLoader implements ILoader<KwdFile> {
                         } else if (!waterE && waterS) { // Side
                             pieceNumber = 4;
                             quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
-                            movement = new Vector3f(0, -TILE_WIDTH, 0);
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                            movement = new Vector3f(0, 0, -TILE_WIDTH / 2); //
                         } else if (!waterSE && waterS && waterE) { // Corner surrounded by water
                             pieceNumber = 6;
                             quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, 1));
-                            movement = new Vector3f(-TILE_WIDTH, 0, 0);
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                            movement = new Vector3f(-TILE_WIDTH / 2, 0, 0); //
                         } else if (!waterS && !waterE) { // Corner surrounded by land
                             pieceNumber = 5;
                             quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1));
-                            movement = new Vector3f(0, -TILE_WIDTH, 0);
+                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                            movement = new Vector3f(0, 0, -TILE_WIDTH / 2); //
                         }
                     }
 
@@ -716,13 +713,10 @@ public class MapLoader implements ILoader<KwdFile> {
                     if (movement != null) {
                         part.move(movement);
                     }
-                    part.move((i - 1) * TILE_WIDTH, (k - 1) * TILE_WIDTH, (pieceNumber == 7 ? WATER_DEPTH : 0));
+                    part.move((i - 1) * TILE_WIDTH, -(pieceNumber == 7 ? WATER_DEPTH : 0), (k - 1) * TILE_WIDTH);
                     ((Node) floor).attachChild(part);
                 }
             }
-
-            // Scale down to one grid
-            floor.setLocalScale(0.5f, 0.5f, 1);
         }
         //
         return floor;
