@@ -8,7 +8,7 @@ import com.jme3.animation.LoopMode;
 import com.jme3.asset.AssetManager;
 import com.jme3.cinematic.MotionPath;
 import com.jme3.cinematic.events.MotionEvent;
-import com.jme3.math.FastMath;
+import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
@@ -79,7 +79,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         path.setCycle(false);
 
         // The waypoints
-        final Vector3f startLocation = new Vector3f((start.x - 0.5f) * MapLoader.TILE_WIDTH, (start.y - 0.5f) * MapLoader.TILE_HEIGHT, 0);
+        final Vector3f startLocation = new Vector3f((start.x - 0.5f) * MapLoader.TILE_WIDTH, 0, (start.y - 0.5f) * MapLoader.TILE_HEIGHT);
         for (CameraSweepDataEntry entry : cameraSweepData.getEntries()) {
             path.addWayPoint(entry.getPosition().multLocal(MapLoader.TILE_WIDTH).addLocal(startLocation));
         }
@@ -101,29 +101,27 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
                 // Get the rotation at previous (or current) waypoint
                 Quaternion q1 = new Quaternion();
                 CameraSweepDataEntry entry = cameraSweepData.getEntries().get(startIndex);
-                q1.fromAxes(new Vector3f(entry.getLeft().x, entry.getLeft().z, entry.getLeft().y), new Vector3f(entry.getDirection().x, entry.getDirection().z, entry.getDirection().y), new Vector3f(entry.getUp().x, entry.getUp().z, entry.getUp().y));
+                Matrix3f mat = new Matrix3f();
+                mat.setColumn(0, new Vector3f(-entry.getDirection().x, entry.getLeft().x, -entry.getUp().x));
+                mat.setColumn(1, new Vector3f(entry.getDirection().y, -entry.getLeft().y, entry.getUp().y));
+                mat.setColumn(2, new Vector3f(entry.getDirection().z, -entry.getLeft().z, entry.getUp().z));
+                q1.fromRotationMatrix(mat);
 
                 // If we are not on the last waypoint, interpolate the rotation between waypoints
                 if (endIndex < cameraSweepData.getEntries().size()) {
                     Quaternion q2 = new Quaternion();
                     entry = cameraSweepData.getEntries().get(endIndex);
-                    q2.fromAxes(new Vector3f(entry.getLeft().x, entry.getLeft().z, entry.getLeft().y), new Vector3f(entry.getDirection().x, entry.getDirection().z, entry.getDirection().y), new Vector3f(entry.getUp().x, entry.getUp().z, entry.getUp().y));
+                    mat = new Matrix3f();
+                    mat.setColumn(0, new Vector3f(-entry.getDirection().x, entry.getLeft().x, -entry.getUp().x));
+                    mat.setColumn(1, new Vector3f(entry.getDirection().y, -entry.getLeft().y, entry.getUp().y));
+                    mat.setColumn(2, new Vector3f(entry.getDirection().z, -entry.getLeft().z, entry.getUp().z));
+                    q2.fromRotationMatrix(mat);
 
                     q1.slerp(q2, progress);
                 }
 
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 0, -1)); // Make it rotate normal
-//                    q1.inverseLocal();
-
+                // Set the rotation
                 setRotation(q1);
-//                    camNode.rotate(quat);
-//
-//                    quat = new Quaternion();
-//                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(1, 0, 0)); // Make it rotate normal
-//                    camNode.rotate(quat);
-
-//                    camNode.getCamera().setFrustumNear(1000);
             }
         };
         cameraMotionControl.setLoopMode(LoopMode.DontLoop);
@@ -135,7 +133,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         addCinematicEvent(0, cameraMotionControl);
 
         // Set duration of the whole animation
-        setInitialDuration(cameraSweepData.getEntries().size() / getFramesPerSecond());
+        setInitialDuration(cameraSweepData.getEntries().size() / getFramesPerSecond() + 2);
     }
 
     /**
