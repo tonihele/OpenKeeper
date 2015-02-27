@@ -23,6 +23,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import toniarts.opendungeonkeeper.audio.plugins.MP2Loader;
 import toniarts.opendungeonkeeper.gui.CursorFactory;
+import toniarts.opendungeonkeeper.gui.plugins.DictLoader;
 import toniarts.opendungeonkeeper.setup.DKConverter;
 import toniarts.opendungeonkeeper.setup.DKFolderSelector;
 import toniarts.opendungeonkeeper.setup.IFrameClosingBehavior;
@@ -274,6 +275,8 @@ public class Main extends SimpleApplication {
         // Asset loaders
         //Sound
         this.getAssetManager().registerLoader(MP2Loader.class, "mp2");
+        //Dictionary
+        this.getAssetManager().registerLoader(DictLoader.class, "dict");
 
         Box b = new Box(1, 1, 1);
         Geometry geom = new Geometry("Box", b);
