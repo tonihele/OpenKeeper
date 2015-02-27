@@ -24,7 +24,7 @@ public class RotatorControl extends AbstractControl {
         if (spatial != null) {
 
             //Rotate
-            spatial.rotate(0, 0, FastMath.PI * (int) (TURN_RATE) / 180);
+            spatial.rotate(0, FastMath.PI * (int) (TURN_RATE) / 180, 0);
         }
     }
 

@@ -60,6 +60,9 @@ import toniarts.opendungeonkeeper.tools.convert.material.MaterialExporter;
 import toniarts.opendungeonkeeper.tools.modelviewer.ModelViewer;
 
 /**
+ * Loads up and converts a Dungeon Keeper II model to JME model<br>
+ * The coordinate system is a bit different, so switching Z & Y is intentional,
+ * JME uses right-handed coordinate system
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -168,7 +171,7 @@ public class KmfModelLoader implements AssetLoader {
         for (Grop grop : kmfFile.getGrops()) {
             String key = AssetsConverter.MODELS_FOLDER.concat("/").concat(grop.getName()).concat(".j3o");
             AssetLinkNode modelLink = new AssetLinkNode(key, new ModelKey(key));
-            modelLink.setLocalTranslation(new Vector3f(grop.getPos().x, grop.getPos().y, grop.getPos().z));
+            modelLink.setLocalTranslation(new Vector3f(grop.getPos().x, -grop.getPos().z, grop.getPos().y));
             root.attachChild(modelLink);
         }
     }
@@ -212,8 +215,7 @@ public class KmfModelLoader implements AssetLoader {
 
         //Source mesh is node
         Node node = new Node(sourceMesh.getName());
-        node.setLocalScale(sourceMesh.getScale());
-        node.setLocalTranslation(new Vector3f(sourceMesh.getPos().x, sourceMesh.getPos().y, sourceMesh.getPos().z));
+        node.setLocalTranslation(new Vector3f(sourceMesh.getPos().x, -sourceMesh.getPos().z, sourceMesh.getPos().y));
 
         int index = 0;
         for (MeshSprite meshSprite : sourceMesh.getSprites()) {
@@ -230,7 +232,7 @@ public class KmfModelLoader implements AssetLoader {
 
                 //Vertice
                 javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
-                vertices[i] = new Vector3f(v.x, v.y, v.z);
+                vertices[i] = new Vector3f(v.x, -v.z, v.y);
 
                 //Texture coordinate
                 Uv uv = meshVertex.getUv();
@@ -238,7 +240,7 @@ public class KmfModelLoader implements AssetLoader {
 
                 //Normals
                 v = meshVertex.getNormal();
-                normals[i] = new Vector3f(v.x, v.y, v.z);
+                normals[i] = new Vector3f(v.x, -v.z, v.y);
 
                 i++;
             }
@@ -281,8 +283,6 @@ public class KmfModelLoader implements AssetLoader {
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
             mesh.setStatic();
 
-            mesh.updateBound();
-
             // Create geometry
             Geometry geom = createGeometry(index, mesh, materials, meshSprite.getMaterialIndex());
 
@@ -306,8 +306,7 @@ public class KmfModelLoader implements AssetLoader {
 
         //Source mesh is node
         Node node = new Node(anim.getName());
-        node.setLocalScale(anim.getCubeScale());
-        node.setLocalTranslation(new Vector3f(anim.getPos().x, anim.getPos().y, anim.getPos().z));
+        node.setLocalTranslation(new Vector3f(anim.getPos().x, -anim.getPos().z, anim.getPos().y));
 
         // Create pose tracks for each mesh index
         List<PoseTrack> poseTracks = new ArrayList<>(anim.getSprites().size());
@@ -404,7 +403,7 @@ public class KmfModelLoader implements AssetLoader {
                             frameOffsets.get(frame).put(frameInfo, new ArrayList<Vector3f>());
                         }
                         frameIndices.get(frame).get(frameInfo).add(i);
-                        frameOffsets.get(frame).get(frameInfo).add(new Vector3f(coord.x, coord.y, coord.z));
+                        frameOffsets.get(frame).get(frameInfo).add(new Vector3f(coord.x, -coord.z, coord.y));
                     }
 
                     // Add the pose target, we are in the last frame of the frame target
@@ -426,7 +425,7 @@ public class KmfModelLoader implements AssetLoader {
                             frameOffsets.get(frame).put(fi, new ArrayList<Vector3f>());
                         }
                         frameIndices.get(frame).get(fi).add(i);
-                        frameOffsets.get(frame).get(fi).add(new Vector3f(coord.x, coord.y, coord.z));
+                        frameOffsets.get(frame).get(fi).add(new Vector3f(coord.x, -coord.z, coord.y));
 
                         // Also add to the frame infos (otherwise it will never be applied fully with weight 1.0)
                         x = Collections.binarySearch(frameInfos.get(frame), fi);
@@ -438,7 +437,7 @@ public class KmfModelLoader implements AssetLoader {
                     // Set the last frame
                     previousFrame = frameInfo;
                 }
-                vertices[i] = new Vector3f(baseCoord.x, baseCoord.y, baseCoord.z);
+                vertices[i] = new Vector3f(baseCoord.x, -baseCoord.z, baseCoord.y);
 
                 //Texture coordinate
                 Uv uv = animVertex.getUv();
@@ -446,7 +445,7 @@ public class KmfModelLoader implements AssetLoader {
 
                 //Normals
                 javax.vecmath.Vector3f v = animVertex.getNormal();
-                normals[i] = new Vector3f(v.x, v.y, v.z);
+                normals[i] = new Vector3f(v.x, -v.z, v.y);
 
                 i++;
             }
@@ -543,8 +542,6 @@ public class KmfModelLoader implements AssetLoader {
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
             mesh.setBuffer(Type.BindPoseNormal, 3, BufferUtils.createFloatBuffer(normals));
             mesh.setStreamed();
-
-            mesh.updateBound();
 
             // Create geometry
             Geometry geom = createGeometry(index, mesh, materials, animSprite.getMaterialIndex());
