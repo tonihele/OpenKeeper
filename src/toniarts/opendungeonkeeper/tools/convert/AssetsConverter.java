@@ -562,12 +562,13 @@ public abstract class AssetsConverter {
     }
 
     /**
-     * Converts JAVAX 3f vector to JME vector
+     * Converts JAVAX 3f vector to JME vector (also converts the coordinate
+     * system)
      *
      * @param v vector
      * @return JME vector
      */
     private static Vector3f convertVector(javax.vecmath.Vector3f v) {
-        return new Vector3f(v.x, v.y, v.z);
+        return new Vector3f(v.x, -v.z, v.y);
     }
 }
