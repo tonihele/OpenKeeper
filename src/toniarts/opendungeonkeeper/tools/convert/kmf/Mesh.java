@@ -41,6 +41,11 @@ public class Mesh {
         this.pos = pos;
     }
 
+    /**
+     * Unit cube scale for culling
+     *
+     * @return cube scale
+     */
     public float getScale() {
         return scale;
     }

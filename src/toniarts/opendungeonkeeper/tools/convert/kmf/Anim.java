@@ -70,6 +70,11 @@ public class Anim {
         this.pos = pos;
     }
 
+    /**
+     * GEOM/coord Scale Factor
+     *
+     * @return scale factor
+     */
     public float getScale() {
         return scale;
     }
@@ -102,6 +107,11 @@ public class Anim {
         this.geometries = geometries;
     }
 
+    /**
+     * Unit cube scale for culling
+     *
+     * @return cube scale
+     */
     public float getCubeScale() {
         return cubeScale;
     }
