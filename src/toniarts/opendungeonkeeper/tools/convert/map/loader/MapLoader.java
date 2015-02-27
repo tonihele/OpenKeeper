@@ -197,16 +197,9 @@ public class MapLoader implements ILoader<KwdFile> {
 
                     // "Reset"
                     n.setLocalTranslation(0, 0, 0);
-//                    n.setLocalScale(1f);
+                    n.setLocalScale(1f);
 
-                    // Adjust the size
-//                    BoundingBox worldBound = (BoundingBox) n.getWorldBound();
-//                    float xExtent = worldBound.getXExtent() * 2;
-//                    float yExtent = worldBound.getYExtent() * 2;
-//                    float zExtent = worldBound.getZExtent() * 2;
-//                    n.scale((xExtent != 0 ? TILE_WIDTH / xExtent : 1f), (yExtent != 0 ? TILE_WIDTH / yExtent : 1f), (zExtent != 0 ? (wall ? TILE_HEIGHT : WATER_DEPTH) / zExtent : 1f));
-//
-//                    // Set the translation so that everything moves similarly
+                    // Set the translation so that everything moves similarly
                     BoundingBox worldBound = (BoundingBox) n.getWorldBound();
                     Vector3f boundCenter = worldBound.getCenter();
                     n.setLocalTranslation(0 - boundCenter.x - worldBound.getXExtent(), 0 - boundCenter.y - (wall ? -worldBound.getYExtent() : worldBound.getYExtent()), 0 - boundCenter.z - worldBound.getZExtent());
