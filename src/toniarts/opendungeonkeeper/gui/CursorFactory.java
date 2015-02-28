@@ -21,7 +21,7 @@ import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CursorFactory {
+public final class CursorFactory {
 
     public enum Cursor {
 
