@@ -7,6 +7,7 @@ package toniarts.opendungeonkeeper.tools.convert;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.export.binary.BinaryExporter;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import java.io.File;
 import java.io.IOException;
@@ -29,8 +30,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import toniarts.opendungeonkeeper.cinematics.CameraSweepData;
+import toniarts.opendungeonkeeper.cinematics.CameraSweepDataEntry;
+import toniarts.opendungeonkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.opendungeonkeeper.gui.Dictionary;
 import toniarts.opendungeonkeeper.tools.convert.enginetextures.EngineTexturesFile;
+import toniarts.opendungeonkeeper.tools.convert.kcs.KcsEntry;
+import toniarts.opendungeonkeeper.tools.convert.kcs.KcsFile;
 import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
 import toniarts.opendungeonkeeper.tools.convert.sound.SdtFile;
 import toniarts.opendungeonkeeper.tools.convert.str.StrFile;
@@ -58,7 +64,8 @@ public abstract class AssetsConverter {
         MODELS(2),
         MOUSE_CURSORS(3),
         MUSIC_AND_SOUNDS(4),
-        INTERFACE_TEXTS(5);
+        INTERFACE_TEXTS(5),
+        PATHS(6);
 
         private ConvertProcess(int processNumber) {
             this.processNumber = processNumber;
@@ -83,6 +90,7 @@ public abstract class AssetsConverter {
     public static final String SOUNDS_FOLDER = "Sounds";
     public static final String MATERIALS_FOLDER = "Materials";
     public static final String TEXTS_FOLDER = "Interface".concat(File.separator).concat("Texts");
+    public static final String PATHS_FOLDER = "Interface".concat(File.separator).concat("Paths");
     private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
 
@@ -131,6 +139,9 @@ public abstract class AssetsConverter {
 
         //The texts
         convertTexts(dungeonKeeperFolder, currentFolder.concat(TEXTS_FOLDER).concat(File.separator));
+
+        //The paths
+        convertPaths(dungeonKeeperFolder, currentFolder.concat(PATHS_FOLDER).concat(File.separator));
 
         // Log the time taken
         long duration = new Date().getTime() - start.getTime();
@@ -495,5 +506,69 @@ public abstract class AssetsConverter {
 
             wad.extractFileData(entry, destination);
         }
+    }
+
+    /**
+     * Extract and copy DK II camera sweep files (paths)
+     *
+     * @param dungeonKeeperFolder DK II main folder
+     * @param destination Destination folder
+     */
+    private void convertPaths(String dungeonKeeperFolder, String destination) {
+        logger.log(Level.INFO, "Extracting paths to: {0}", destination);
+        updateStatus(null, null, ConvertProcess.PATHS);
+
+        //Paths are in the data folder, access the packed file
+        WadFile wad = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("Paths.WAD")));
+        int i = 0;
+        int total = wad.getWadFileEntryCount();
+        File tmpdir = new File(System.getProperty("java.io.tmpdir"));
+        BinaryExporter exporter = BinaryExporter.getInstance();
+        for (final String entry : wad.getWadFileEntries()) {
+            try {
+                updateStatus(i, total, ConvertProcess.PATHS);
+
+                // Convert all the KCS entries
+                if (entry.toLowerCase().endsWith(".kcs")) {
+
+                    // Extract each file to temp
+                    File f = wad.extractFileData(entry, tmpdir.toString());
+                    f.deleteOnExit();
+
+                    // Open the entry
+                    KcsFile kcsFile = new KcsFile(f);
+
+                    // Convert
+                    List<CameraSweepDataEntry> entries = new ArrayList<>(kcsFile.getKcsEntries().size());
+                    for (KcsEntry kcsEntry : kcsFile.getKcsEntries()) {
+                        entries.add(new CameraSweepDataEntry(convertVector(kcsEntry.getPosition()), convertVector(kcsEntry.getDirection()), convertVector(kcsEntry.getLeft()), convertVector(kcsEntry.getUp()), kcsEntry.getFov(), kcsEntry.getNear()));
+                    }
+                    CameraSweepData cameraSweepData = new CameraSweepData(entries);
+
+                    // Save it
+                    exporter.save(cameraSweepData, new File(destination.concat(entry.substring(0, entry.length() - 3)).concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
+                } else if (entry.toLowerCase().endsWith(".txt")) {
+
+                    // The text file is nice to have, it is an info text
+                    wad.extractFileData(entry.toString(), destination);
+                }
+
+            } catch (Exception ex) {
+                String msg = "Failed to save the path file to " + destination + "!";
+                logger.log(Level.SEVERE, msg, ex);
+                throw new RuntimeException(msg, ex);
+            }
+        }
+    }
+
+    /**
+     * Converts JAVAX 3f vector to JME vector (also converts the coordinate
+     * system)
+     *
+     * @param v vector
+     * @return JME vector
+     */
+    private static Vector3f convertVector(javax.vecmath.Vector3f v) {
+        return new Vector3f(v.x, -v.z, v.y);
     }
 }

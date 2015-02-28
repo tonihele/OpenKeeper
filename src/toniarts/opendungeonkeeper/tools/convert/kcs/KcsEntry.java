@@ -7,64 +7,90 @@ package toniarts.opendungeonkeeper.tools.convert.kcs;
 import javax.vecmath.Vector3f;
 
 /**
- * Stores the KCS file entry structure
+ * Stores the KCS file entry structure<br>
+ * From guide by George Gensure
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class KcsEntry {
 
-    private Vector3f unknown1;
-    private Vector3f unknown2;
-    private Vector3f unknown3;
-    private Vector3f unknown4;
-    private float unknown5;
-    private float unknown6;
+    private Vector3f position;
+    private Vector3f direction;
+    private Vector3f left;
+    private Vector3f up;
+    private float fov;
+    private float near;
 
-    public Vector3f getUnknown1() {
-        return unknown1;
+    public Vector3f getPosition() {
+        return position;
     }
 
-    protected void setUnknown1(Vector3f unknown1) {
-        this.unknown1 = unknown1;
+    protected void setPosition(Vector3f position) {
+        this.position = position;
     }
 
-    public Vector3f getUnknown2() {
-        return unknown2;
+    /**
+     * Forward orientation vector
+     *
+     * @return Forward orientation
+     */
+    public Vector3f getDirection() {
+        return direction;
     }
 
-    protected void setUnknown2(Vector3f unknown2) {
-        this.unknown2 = unknown2;
+    protected void setDirection(Vector3f direction) {
+        this.direction = direction;
     }
 
-    public Vector3f getUnknown3() {
-        return unknown3;
+    /**
+     * Left orientation vector
+     *
+     * @return Left orientation
+     */
+    public Vector3f getLeft() {
+        return left;
     }
 
-    protected void setUnknown3(Vector3f unknown3) {
-        this.unknown3 = unknown3;
+    protected void setLeft(Vector3f left) {
+        this.left = left;
     }
 
-    public Vector3f getUnknown4() {
-        return unknown4;
+    /**
+     * Up orientation vector
+     *
+     * @return Up orientation
+     */
+    public Vector3f getUp() {
+        return up;
     }
 
-    protected void setUnknown4(Vector3f unknown4) {
-        this.unknown4 = unknown4;
+    protected void setUp(Vector3f up) {
+        this.up = up;
     }
 
-    public float getUnknown5() {
-        return unknown5;
+    /**
+     * Field of view (in radians)
+     *
+     * @return Field of view
+     */
+    public float getFov() {
+        return fov;
     }
 
-    protected void setUnknown5(float unknown5) {
-        this.unknown5 = unknown5;
+    protected void setFov(float fov) {
+        this.fov = fov;
     }
 
-    public float getUnknown6() {
-        return unknown6;
+    /**
+     * Near clipping distance in fixed units
+     *
+     * @return Near clipping distance
+     */
+    public float getNear() {
+        return near;
     }
 
-    protected void setUnknown6(float unknown6) {
-        this.unknown6 = unknown6;
+    protected void setNear(float near) {
+        this.near = near;
     }
 }

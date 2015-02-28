@@ -19,13 +19,13 @@ import toniarts.opendungeonkeeper.tools.convert.Utils;
  * The file is LITTLE ENDIAN I might say. I don't know it is relevant but DK II
  * run these at 30 FPS. So 150 entries equals 5 seconds of movement animation...
  * I reverse engineered this comparing the KCS files and the accompanied TXT
- * file
+ * file<br>
+ * Actual format reverse engineered by George Gensure
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class KcsFile {
 
-    private final File file;
     private final List<KcsEntry> kcsEntries;
 
     /**
@@ -35,7 +35,6 @@ public class KcsFile {
      * @param file the kcs file to read
      */
     public KcsFile(File file) {
-        this.file = file;
 
         //Read the file
         try (RandomAccessFile rawKcs = new RandomAccessFile(file, "r")) {
@@ -49,16 +48,13 @@ public class KcsFile {
             for (int i = 0; i < numOfEntries; i++) {
 
                 //Entries have 56 bytes in them
-                //To me it looks like 4 vectors + 2 floats
-                //But I'm not completely sure, actually not really sure at all
-                //They do look like 3D coordinates though
                 KcsEntry entry = new KcsEntry();
-                entry.setUnknown1(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
-                entry.setUnknown2(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
-                entry.setUnknown3(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
-                entry.setUnknown4(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
-                entry.setUnknown5(Utils.readFloat(rawKcs));
-                entry.setUnknown6(Utils.readFloat(rawKcs)); // Always 3600??
+                entry.setPosition(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
+                entry.setDirection(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
+                entry.setLeft(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
+                entry.setUp(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
+                entry.setFov(Utils.readFloat(rawKcs));
+                entry.setNear(Utils.readFloat(rawKcs));
                 kcsEntries.add(entry);
             }
         } catch (IOException e) {
