@@ -279,7 +279,7 @@ public class Main extends SimpleApplication {
         // Camera sweep files
         this.getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION);
         //Dictionary
-        this.getAssetManager().registerLoader(DictLoader.class, "dict");
+        this.getAssetManager().registerLoader(DictLoader.class, DictLoader.DICTIONARY_FILE_EXTENSION);
 
         Box b = new Box(1, 1, 1);
         Geometry geom = new Geometry("Box", b);

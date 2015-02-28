@@ -17,6 +17,8 @@ import toniarts.opendungeonkeeper.gui.Dictionary;
  */
 public class DictLoader implements AssetLoader {
 
+    public static final String DICTIONARY_FILE_EXTENSION = "dict";
+
     @Override
     public Object load(AssetInfo assetInfo) throws IOException {
         try (InputStream inputStream = assetInfo.openStream()) {

@@ -34,6 +34,7 @@ import toniarts.opendungeonkeeper.cinematics.CameraSweepData;
 import toniarts.opendungeonkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.opendungeonkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.opendungeonkeeper.gui.Dictionary;
+import toniarts.opendungeonkeeper.gui.plugins.DictLoader;
 import toniarts.opendungeonkeeper.tools.convert.enginetextures.EngineTexturesFile;
 import toniarts.opendungeonkeeper.tools.convert.kcs.KcsEntry;
 import toniarts.opendungeonkeeper.tools.convert.kcs.KcsFile;
@@ -480,7 +481,7 @@ public abstract class AssetsConverter {
             Dictionary dict = new Dictionary(strFile.getEntries());
             String fileName = file.getName();
             fileName = fileName.substring(0, fileName.length() - 3);
-            File dictFile = new File(destination.concat(fileName).concat("dict"));
+            File dictFile = new File(destination.concat(fileName).concat(DictLoader.DICTIONARY_FILE_EXTENSION));
             try {
                 dict.save(dictFile);
             } catch (IOException ex) {
