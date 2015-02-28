@@ -20,7 +20,7 @@ import java.io.File;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
-import toniarts.opendungeonkeeper.tools.convert.map.loader.MapLoader;
+import toniarts.opendungeonkeeper.world.MapLoader;
 
 /**
  * Our wrapper on JME cinematic class, produces ready cinematics from camera

@@ -53,9 +53,9 @@ import toniarts.opendungeonkeeper.tools.convert.KmfModelLoader;
 import toniarts.opendungeonkeeper.tools.convert.kmf.KmfFile;
 import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
 import toniarts.opendungeonkeeper.tools.convert.map.Terrain;
-import toniarts.opendungeonkeeper.tools.convert.map.loader.MapLoader;
-import toniarts.opendungeonkeeper.tools.convert.map.loader.ObjectLoader;
-import toniarts.opendungeonkeeper.tools.convert.map.loader.TerrainLoader;
+import toniarts.opendungeonkeeper.world.MapLoader;
+import toniarts.opendungeonkeeper.world.ObjectLoader;
+import toniarts.opendungeonkeeper.world.TerrainLoader;
 
 /**
  * Simple model viewer

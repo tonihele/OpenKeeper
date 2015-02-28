@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package toniarts.opendungeonkeeper.tools.convert.map.loader;
+package toniarts.opendungeonkeeper.world;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.bounding.BoundingBox;
@@ -27,11 +27,11 @@ import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
 import toniarts.opendungeonkeeper.tools.convert.map.Map;
 import toniarts.opendungeonkeeper.tools.convert.map.Room;
 import toniarts.opendungeonkeeper.tools.convert.map.Terrain;
-import toniarts.opendungeonkeeper.tools.convert.map.loader.room.FiveByFiveRotated;
-import toniarts.opendungeonkeeper.tools.convert.map.loader.room.HeroGateFrontEnd;
-import toniarts.opendungeonkeeper.tools.convert.map.loader.room.Normal;
-import toniarts.opendungeonkeeper.tools.convert.map.loader.room.RoomInstance;
-import toniarts.opendungeonkeeper.tools.convert.map.loader.room.ThreeByThree;
+import toniarts.opendungeonkeeper.world.room.FiveByFiveRotated;
+import toniarts.opendungeonkeeper.world.room.HeroGateFrontEnd;
+import toniarts.opendungeonkeeper.world.room.Normal;
+import toniarts.opendungeonkeeper.world.room.RoomInstance;
+import toniarts.opendungeonkeeper.world.room.ThreeByThree;
 
 /**
  * Loads whole maps

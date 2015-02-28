@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package toniarts.opendungeonkeeper.tools.convert.map.loader.room;
+package toniarts.opendungeonkeeper.world.room;
 
 import com.jme3.animation.AnimChannel;
 import com.jme3.animation.AnimControl;
@@ -17,7 +17,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
-import toniarts.opendungeonkeeper.tools.convert.map.loader.MapLoader;
+import toniarts.opendungeonkeeper.world.MapLoader;
 
 /**
  * Loads up a hero gate, front end edition. Main menu. Most of the objects are
