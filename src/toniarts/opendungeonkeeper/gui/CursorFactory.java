@@ -28,7 +28,7 @@ public class CursorFactory {
         IDLE, POINTER;
     }
     private static HashMap<Cursor, JmeCursor> cursors;
-    private static Object lock = new Object();
+    private static final Object lock = new Object();
 
     private CursorFactory() {
         // Nope
