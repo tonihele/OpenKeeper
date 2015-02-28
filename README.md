@@ -25,9 +25,9 @@ TODO
     - [x] Texture compression
   - [x] Read sounds
   - [ ] Read cutscenes (*
-  - [ ] Read paths
+  - [x] Read paths
     - [x] Read paths (paths.wad -> kcs)
-    - [ ] Understand paths
+    - [x] Understand paths
   - [x] Read cursors
   - [x] Read the GUI texts
   - ?
@@ -48,7 +48,7 @@ TODO
     - [ ] Merge the sound tracks
     - [ ] Decide what to do with the MAP files (playback events)
   - [ ] Video playes for DK format (*
-  - [ ] Paths to JME MotionPaths?
+  - [x] Paths to JME MotionPaths & Cinematics
   - [x] Cursors
     - [x] Animated cursors
   - [x] GUI texts
