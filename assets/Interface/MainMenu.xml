@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty xmlns="http://nifty-gui.sourceforge.net/nifty-1.3.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <resourceBundle id="menu" filename="Interface/Texts/Text" />
+    <style id="menuText">
+        <attributes font="Interface/Fonts/DungeonKeeperIIBig.fnt" color="#bbbcbb" />
+    </style>
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- start screen -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="start" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
+                <panel childLayout="center" align="center" valign="center">
+                    <image filename="Textures/Logo.png" />
+                </panel>
+            </panel>
+            <panel id="panel2" height="36.875%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="center" align="center" valign="center">
+                    <text id="singlePlayer" style="menuText" text="${menu.71}">
+                        <effect>
+                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
+                        </effect>
+                    </text>
+                </panel>
+                <panel childLayout="center" align="center" valign="center">
+                    <text id="multiplayer" style="menuText" text="${menu.72}">
+                        <effect>
+                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
+                        </effect>
+                    </text>
+                </panel>
+                <panel childLayout="center" align="center" valign="center">
+                    <text id="mpd" style="menuText" text="${menu.1675}">
+                        <effect>
+                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
+                        </effect>
+                    </text>
+                </panel>
+            </panel>
+            <panel id="panel3" height="7%" width="100%" align="center" valign="center" childLayout="center">
+
+            </panel>
+            <panel id="panel4" height="15.208%" width="100%" align="center" valign="top" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="center" align="center" valign="top">
+                    <text id="options" style="menuText" text="${menu.94}">
+                        <effect>
+                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
+                        </effect>
+                    </text>
+                </panel>
+                <panel childLayout="center" align="center" valign="top">
+                    <text id="extras" style="menuText" text="${menu.73}">
+                        <effect>
+                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
+                        </effect>
+                    </text>
+                </panel>
+            </panel>
+            <panel id="panel5" height="5%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <text id="quit" style="menuText" text="${menu.28}" align="center" valign="center">
+                    <effect>
+                        <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
+                    </effect>
+                    <interact onClick="quitGame()" />
+                </text>
+            </panel>
+            <panel id="panel6" height="*" width="100%" align="center" valign="top" childLayout="vertical">
+                <panel childLayout="vertical" align="right" valign="top">
+                    <text font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb" text="*PRE-ALPHA*"/>
+                </panel>
+                <panel childLayout="vertical" align="right" valign="top">
+                    <text font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb" text="Open Source Edition"/>
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+</nifty>
