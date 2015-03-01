@@ -18,6 +18,7 @@ import java.awt.Point;
 import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
 import toniarts.opendungeonkeeper.tools.convert.Utils;
 import toniarts.opendungeonkeeper.world.MapLoader;
+import toniarts.opendungeonkeeper.world.room.control.FrontEndLevelControl;
 
 /**
  * Loads up a hero gate, front end edition. Main menu. Most of the objects are
@@ -94,37 +95,41 @@ public class HeroGateFrontEnd {
                 addCandles(n, assetManager, start, p);
 
                 // Map
+                Node map = new Node("Map");
                 for (int x = 1; x < 21; x++) {
-                    n.attachChild(loadObject("3dmap_level" + x, assetManager, start, p, false));
+                    attachAndCreateLevel(map, x, null, assetManager, start, p, false);
                     if (x == 15) {
-                        n.attachChild(loadObject("3dmap_level" + x + "a", assetManager, start, p, false));
-                        n.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                        n.attachChild(loadObject("3dmap_level" + x + "b", assetManager, start, p, false));
-                        n.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
+                        attachAndCreateLevel(map, x, "a", assetManager, start, p, false);
+                        map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
+                        attachAndCreateLevel(map, x, "b", assetManager, start, p, false);
+                        map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
                     } else if (x == 6) {
-                        n.attachChild(loadObject("3dmap_level" + x + "a", assetManager, start, p, false));
-                        n.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                        n.attachChild(loadObject("3dmap_level" + x + "b", assetManager, start, p, false));
-                        n.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
+                        attachAndCreateLevel(map, x, "a", assetManager, start, p, false);
+                        map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
+                        map.attachChild(loadObject("3dmap_level" + x + "b", assetManager, start, p, false));
+                        map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
                     } else if (x == 11) {
-                        n.attachChild(loadObject("3dmap_level" + x + "a", assetManager, start, p, false));
-                        n.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                        n.attachChild(loadObject("3dmap_level" + x + "b", assetManager, start, p, false));
-                        n.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
-                        n.attachChild(loadObject("3dmap_level" + x + "c", assetManager, start, p, false));
-                        n.attachChild(loadObject("3dmaplevel" + x + "c" + "_arrows", assetManager, start, p, false));
+                        attachAndCreateLevel(map, x, "a", assetManager, start, p, false);
+                        map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
+                        attachAndCreateLevel(map, x, "b", assetManager, start, p, false);
+                        map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
+                        attachAndCreateLevel(map, x, "c", assetManager, start, p, false);
+                        map.attachChild(loadObject("3dmaplevel" + x + "c" + "_arrows", assetManager, start, p, false));
                     } else {
-                        n.attachChild(loadObject("3dmaplevel" + x + "_arrows", assetManager, start, p, false));
+                        map.attachChild(loadObject("3dmaplevel" + x + "_arrows", assetManager, start, p, false));
                     }
                 }
 
                 // Secret levels
                 for (int x = 1; x < 6; x++) {
-                    n.attachChild(loadObject("Secret_Level" + x, assetManager, start, p, false));
+                    map.attachChild(loadObject("Secret_Level" + x, assetManager, start, p, false));
                 }
 
                 // The map base
-                n.attachChild(loadObject("3dmap_level21", assetManager, start, p, false));
+                map.attachChild(loadObject("3dmap_level21", assetManager, start, p, false));
+
+                // Add the map node
+                n.attachChild(map);
             }
 
             i++;
@@ -207,5 +212,24 @@ public class HeroGateFrontEnd {
         Quaternion quat = new Quaternion();
         quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
         n.attachChild(loadObject("chain_swing", assetManager, start, p, true).rotate(quat).move(1f, 0, 1f));
+    }
+
+    /**
+     * Creates and attach the level node, creates a control for it
+     *
+     * @param map node to attach to
+     * @param level level number
+     * @param variation variation, like level "a" etc.
+     * @param assetManager the asset manager instance
+     * @param start starting point for the room
+     * @param p this tile coordinate
+     * @param randomizeAnimation randomize object animation (speed and start
+     * time)
+     */
+    private static void attachAndCreateLevel(Node map, int level, String variation, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
+        Spatial lvl = loadObject("3dmap_level" + level + (variation == null ? "" : variation), assetManager, start, p, randomizeAnimation);
+        lvl.addControl(new FrontEndLevelControl(level, variation));
+        lvl.setBatchHint(Spatial.BatchHint.Never);
+        map.attachChild(lvl);
     }
 }
