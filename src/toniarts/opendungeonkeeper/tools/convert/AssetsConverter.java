@@ -128,23 +128,23 @@ public abstract class AssetsConverter {
         //have a user made asset there
 
         //First and foremost, we need the textures
-//        convertTextures(dungeonKeeperFolder, currentFolder.concat(TEXTURES_FOLDER).concat(File.separator));
+        convertTextures(dungeonKeeperFolder, currentFolder.concat(TEXTURES_FOLDER).concat(File.separator));
 
         //And the models, note that these already need to find the textures (our custom resource locator)
         //In development this works without such
-//        convertModels(dungeonKeeperFolder, currentFolder.concat(MODELS_FOLDER).concat(File.separator), assetManager);
+        convertModels(dungeonKeeperFolder, currentFolder.concat(MODELS_FOLDER).concat(File.separator), assetManager);
 
         //The mouse cursors
-//        convertMouseCursors(dungeonKeeperFolder, currentFolder.concat(MOUSE_CURSORS_FOLDER).concat(File.separator));
+        convertMouseCursors(dungeonKeeperFolder, currentFolder.concat(MOUSE_CURSORS_FOLDER).concat(File.separator));
 
         //The sound and music
-//        convertSounds(dungeonKeeperFolder, currentFolder.concat(SOUNDS_FOLDER).concat(File.separator));
+        convertSounds(dungeonKeeperFolder, currentFolder.concat(SOUNDS_FOLDER).concat(File.separator));
 
         //The texts
         convertTexts(dungeonKeeperFolder, currentFolder.concat(TEXTS_FOLDER).concat(File.separator));
 
         //The paths
-//        convertPaths(dungeonKeeperFolder, currentFolder.concat(PATHS_FOLDER).concat(File.separator));
+        convertPaths(dungeonKeeperFolder, currentFolder.concat(PATHS_FOLDER).concat(File.separator));
 
         // Log the time taken
         long duration = new Date().getTime() - start.getTime();
