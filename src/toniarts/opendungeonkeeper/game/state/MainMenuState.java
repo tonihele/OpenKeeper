@@ -10,9 +10,19 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
+import com.jme3.collision.CollisionResults;
 import com.jme3.input.InputManager;
+import com.jme3.input.RawInputListener;
+import com.jme3.input.event.JoyAxisEvent;
+import com.jme3.input.event.JoyButtonEvent;
+import com.jme3.input.event.KeyInputEvent;
+import com.jme3.input.event.MouseButtonEvent;
+import com.jme3.input.event.MouseMotionEvent;
+import com.jme3.input.event.TouchEvent;
 import com.jme3.light.AmbientLight;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Ray;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
@@ -29,6 +39,7 @@ import toniarts.opendungeonkeeper.cinematics.Cinematic;
 import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
 import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
 import toniarts.opendungeonkeeper.world.MapLoader;
+import toniarts.opendungeonkeeper.world.room.control.FrontEndLevelControl;
 
 /**
  * The main menu state
@@ -47,6 +58,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private Screen screen;
     private Node menuNode;
     private final KwdFile kwdFile;
+    private final MouseEventListener mouseListener = new MouseEventListener(this);
 
     public MainMenuState() {
 
@@ -104,10 +116,16 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
     @Override
     public void onStartScreen() {
+        if ("selectCampaignLevel".equals(nifty.getCurrentScreen().getScreenId())) {
+            inputManager.addRawInputListener(mouseListener);
+        }
     }
 
     @Override
     public void onEndScreen() {
+        if ("selectCampaignLevel".equals(nifty.getCurrentScreen().getScreenId())) {
+            inputManager.removeRawInputListener(mouseListener);
+        }
     }
 
     public void goToScreen(String nextScreen) {
@@ -116,7 +134,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
     public void continueCampaign() {
         doTransitionAndGoToScreen("EnginePath251", "selectCampaignLevel");
-
     }
 
     public void cancelCampaign() {
@@ -150,5 +167,90 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
     public void quitGame() {
         app.stop();
+    }
+
+    /**
+     * This is for the level pick up
+     */
+    private static class MouseEventListener implements RawInputListener {
+
+        private final MainMenuState mainMenuState;
+        private FrontEndLevelControl currentControl;
+
+        public MouseEventListener(MainMenuState mainMenuState) {
+            this.mainMenuState = mainMenuState;
+        }
+
+        @Override
+        public void beginInput() {
+        }
+
+        @Override
+        public void endInput() {
+        }
+
+        @Override
+        public void onJoyAxisEvent(JoyAxisEvent evt) {
+        }
+
+        @Override
+        public void onJoyButtonEvent(JoyButtonEvent evt) {
+        }
+
+        @Override
+        public void onMouseMotionEvent(MouseMotionEvent evt) {
+
+            // See if we hit a map
+            CollisionResults results = new CollisionResults();
+
+            // Convert screen click to 3d position
+            Vector3f click3d = mainMenuState.app.getCamera().getWorldCoordinates(
+                    new Vector2f(evt.getX(), evt.getY()), 0f);
+            Vector3f dir = mainMenuState.app.getCamera().getWorldCoordinates(
+                    new Vector2f(evt.getX(), evt.getY()), 1f).subtractLocal(click3d);
+
+            // Aim the ray from the clicked spot forwards
+            Ray ray = new Ray(click3d, dir);
+
+            // Collect intersections between ray and all nodes in results list
+            mainMenuState.menuNode.collideWith(ray, results);
+
+            // See the results so we see what is going on
+            for (int i = 0; i < results.size(); i++) {
+
+                FrontEndLevelControl controller = results.getCollision(i).getGeometry().getParent().getParent().getControl(FrontEndLevelControl.class);
+                if (controller != null) {
+
+                    // (For each "hit", we know distance, impact point, geometry)
+//                    float dist = results.getCollision(i).getDistance();
+//                    Vector3f pt = results.getCollision(i).getContactPoint();
+//                    String target = results.getCollision(i).getGeometry().getName();
+//                    System.out.println("Selection #" + i + ": " + target + " at " + pt + ", " + dist + " WU away.");
+
+                    // Deactivate current controller 
+                    if (currentControl != null && !currentControl.equals(controller)) {
+                        currentControl.setActive(false);
+                    }
+
+                    // Set and activate current controller
+                    currentControl = controller;
+                    currentControl.setActive(true);
+                    break;
+                }
+            }
+
+        }
+
+        @Override
+        public void onMouseButtonEvent(MouseButtonEvent evt) {
+        }
+
+        @Override
+        public void onKeyEvent(KeyInputEvent evt) {
+        }
+
+        @Override
+        public void onTouchEvent(TouchEvent evt) {
+        }
     }
 }
