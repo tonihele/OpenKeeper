@@ -10,7 +10,10 @@ import com.jme3.export.binary.BinaryExporter;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.nio.CharBuffer;
 import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
@@ -24,6 +27,7 @@ import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -33,8 +37,6 @@ import java.util.regex.Pattern;
 import toniarts.opendungeonkeeper.cinematics.CameraSweepData;
 import toniarts.opendungeonkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.opendungeonkeeper.cinematics.CameraSweepDataLoader;
-import toniarts.opendungeonkeeper.gui.Dictionary;
-import toniarts.opendungeonkeeper.gui.plugins.DictLoader;
 import toniarts.opendungeonkeeper.tools.convert.enginetextures.EngineTexturesFile;
 import toniarts.opendungeonkeeper.tools.convert.kcs.KcsEntry;
 import toniarts.opendungeonkeeper.tools.convert.kcs.KcsFile;
@@ -126,23 +128,23 @@ public abstract class AssetsConverter {
         //have a user made asset there
 
         //First and foremost, we need the textures
-        convertTextures(dungeonKeeperFolder, currentFolder.concat(TEXTURES_FOLDER).concat(File.separator));
+//        convertTextures(dungeonKeeperFolder, currentFolder.concat(TEXTURES_FOLDER).concat(File.separator));
 
         //And the models, note that these already need to find the textures (our custom resource locator)
         //In development this works without such
-        convertModels(dungeonKeeperFolder, currentFolder.concat(MODELS_FOLDER).concat(File.separator), assetManager);
+//        convertModels(dungeonKeeperFolder, currentFolder.concat(MODELS_FOLDER).concat(File.separator), assetManager);
 
         //The mouse cursors
-        convertMouseCursors(dungeonKeeperFolder, currentFolder.concat(MOUSE_CURSORS_FOLDER).concat(File.separator));
+//        convertMouseCursors(dungeonKeeperFolder, currentFolder.concat(MOUSE_CURSORS_FOLDER).concat(File.separator));
 
         //The sound and music
-        convertSounds(dungeonKeeperFolder, currentFolder.concat(SOUNDS_FOLDER).concat(File.separator));
+//        convertSounds(dungeonKeeperFolder, currentFolder.concat(SOUNDS_FOLDER).concat(File.separator));
 
         //The texts
         convertTexts(dungeonKeeperFolder, currentFolder.concat(TEXTS_FOLDER).concat(File.separator));
 
         //The paths
-        convertPaths(dungeonKeeperFolder, currentFolder.concat(PATHS_FOLDER).concat(File.separator));
+//        convertPaths(dungeonKeeperFolder, currentFolder.concat(PATHS_FOLDER).concat(File.separator));
 
         // Log the time taken
         long duration = new Date().getTime() - start.getTime();
@@ -459,7 +461,7 @@ public abstract class AssetsConverter {
             throw new RuntimeException(msg, ex);
         }
 
-        //Convert the STR files to our simple dictionaries
+        //Convert the STR files to JAVA native resource bundles
         new File(destination).mkdirs(); // Ensure that the folder exists
         int i = 0;
         int total = srtFiles.size();
@@ -477,13 +479,14 @@ public abstract class AssetsConverter {
                 strFile = new StrFile(codePage, file);
             }
 
-            // Create dictionary and save
-            Dictionary dict = new Dictionary(strFile.getEntries());
+            // Write the properties
             String fileName = file.getName();
             fileName = fileName.substring(0, fileName.length() - 3);
-            File dictFile = new File(destination.concat(fileName).concat(DictLoader.DICTIONARY_FILE_EXTENSION));
-            try {
-                dict.save(dictFile);
+            File dictFile = new File(destination.concat(fileName).concat("properties"));
+            try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(dictFile, false), "UTF-8"))) {
+                for (Map.Entry<Integer, String> entry : strFile.getEntriesAsSet()) {
+                    pw.println(entry.getKey() + "=" + entry.getValue());
+                }
             } catch (IOException ex) {
                 String msg = "Failed to save the dictionary file to " + dictFile + "!";
                 logger.log(Level.SEVERE, msg, ex);
