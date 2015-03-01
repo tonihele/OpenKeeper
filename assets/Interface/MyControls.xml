@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-controls xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+
+    <controlDefinition style="nifty-panel-style"
+                       name="cancelButton"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel focusable="true" childLayout="overlay" visibleToMouse="false" paddingLeft="7px" paddingRight="7px">
+            <image filename="Textures/Cancel-Over.png" width="$width" heigth="$height" visibleToMouse="false">
+                <interact onClick="$click"/>
+                <effect>
+                    <onHover name="changeImage" active="Textures/Cancel-Click.png" inactive="Textures/Cancel-Over.png" />
+                </effect>
+            </image>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition style="nifty-panel-style"
+                       name="okButton"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel focusable="true" childLayout="overlay" visibleToMouse="false" paddingLeft="7px" paddingRight="7px">
+            <image filename="Textures/Confirm-Over.png" width="$width" heigth="$height" visibleToMouse="false">
+                <interact onClick="$click"/>
+                <effect>
+                    <onHover name="changeImage" active="Textures/Confirm-Click.png" inactive="Textures/Confirm-Over.png" />
+                </effect>
+            </image>
+        </panel>
+    </controlDefinition>
+
+</nifty-controls>

@@ -106,6 +106,10 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     public void onEndScreen() {
     }
 
+    public void goToScreen(String nextScreen) {
+        nifty.gotoScreen(nextScreen);  // Switch to another screen
+    }
+
     public void quitGame() {
         app.stop();
     }
