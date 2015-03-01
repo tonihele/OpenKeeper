@@ -2,13 +2,11 @@ package toniarts.opendungeonkeeper;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.AssetManager;
-import com.jme3.material.Material;
-import com.jme3.math.ColorRGBA;
+import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.RenderManager;
-import com.jme3.scene.Geometry;
-import com.jme3.scene.shape.Box;
 import com.jme3.system.AppSettings;
 import com.jme3.system.JmeSystem;
+import de.lessvoid.nifty.Nifty;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
@@ -23,6 +21,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import toniarts.opendungeonkeeper.audio.plugins.MP2Loader;
 import toniarts.opendungeonkeeper.cinematics.CameraSweepDataLoader;
+import toniarts.opendungeonkeeper.game.state.MainMenuState;
 import toniarts.opendungeonkeeper.gui.CursorFactory;
 import toniarts.opendungeonkeeper.setup.DKConverter;
 import toniarts.opendungeonkeeper.setup.DKFolderSelector;
@@ -278,65 +277,22 @@ public class Main extends SimpleApplication {
         // Camera sweep files
         this.getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION);
 
-        Box b = new Box(1, 1, 1);
-        Geometry geom = new Geometry("Box", b);
+        // Init Nifty
+        NiftyJmeDisplay niftyDisplay = new NiftyJmeDisplay(assetManager,
+                inputManager,
+                getAudioRenderer(),
+                getGuiViewPort());
+        Nifty nifty = niftyDisplay.getNifty();
 
-        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.setColor("Color", ColorRGBA.Blue);
-        geom.setMaterial(mat);
-        rootNode.attachChild(geom);
-//        AssetInfo ai = new AssetInfo(this.getAssetManager(), null) {
-//            @Override
-//            public InputStream openStream() {
-//                try {
-//                    final File file = new File("C:\\temp\\OpenDungeonKeeper\\meshes\\Imp.kmf");
-//                    key = new AssetKey() {
-//                        @Override
-//                        public String getName() {
-//                            return file.toPath().getFileName().toString();
-//                        }
-//                    };
-//                    return new FileInputStream(file);
-//                } catch (FileNotFoundException ex) {
-////                    Logger.getLogger(KmfModelLoader.class.getName()).log(Level.SEVERE, null, ex);
-//                }
-//                return null;
-//            }
-//        };
-//        KmfModelLoader kmfModelLoader = new KmfModelLoader();
-//        Node n;
-//        try {
-//            n = (Node) kmfModelLoader.load(ai);
-//
-//
-//            //Export
-//            BinaryExporter exporter = BinaryExporter.getInstance();
-//            String currentFolder = Paths.get("").toAbsolutePath().toString();
-//
-//            //Create an assets folder
-//            if (!currentFolder.endsWith(File.separator)) {
-//                currentFolder = currentFolder.concat(File.separator);
-//            }
-//            currentFolder = currentFolder.concat("assets").concat(File.separator).concat("Models").concat(File.separator).concat("Imp.j3o");
-//            exporter.save(n, new File(currentFolder));
-//        } catch (IOException ex) {
-////            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-        // Convert the assets
-//        this.getAssetManager().registerLoader(KmfModelLoader.class, "kmf");
-//        AssetsConverter.convertAssets(dkIIFolder, assetManager);
-//
-//        String key = "Models/Imp.j3o";
-//
-//        //Create an imp on the map
-//        Spatial dg = this.getAssetManager().loadModel(new ModelKey(key));
-//        rootNode.attachChild(dg);
-//
-//        //Sound
-//        this.getAssetManager().registerLoader(MP2Loader.class, "mp2");
-//        AudioNode audioSource = new AudioNode(assetManager, "Sounds/test.wav", false);
-//        audioSource.setLooping(false);
-//        audioSource.play();
+        // Attach the nifty display to the gui view port as a processor
+        getGuiViewPort().addProcessor(niftyDisplay);
+
+        // Initialize the main menu state
+        MainMenuState mainMenu = new MainMenuState();
+        stateManager.attach(mainMenu);
+
+        // Load the start menu
+        nifty.fromXml("Interface/MainMenu.xml", "start", mainMenu);
     }
 
     /**
@@ -354,6 +310,16 @@ public class Main extends SimpleApplication {
             logger.log(Level.SEVERE, "Failed to load the application icons!", ex);
         }
         return null;
+    }
+
+    /**
+     * Gets the DK II folder, convenience method (this is also stored in the
+     * settings)
+     *
+     * @return the DK II folder
+     */
+    public static String getDkIIFolder() {
+        return dkIIFolder;
     }
 
     @Override
