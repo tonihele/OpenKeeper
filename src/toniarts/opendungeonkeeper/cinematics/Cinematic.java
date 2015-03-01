@@ -95,7 +95,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
         // The waypoints
         for (CameraSweepDataEntry entry : cameraSweepData.getEntries()) {
-            path.addWayPoint(entry.getPosition().multLocal(MapLoader.TILE_WIDTH).addLocal(startLocation));
+            path.addWayPoint(entry.getPosition().mult(MapLoader.TILE_WIDTH).addLocal(startLocation));
         }
         path.setCurveTension(0);
         if (IS_DEBUG) {
