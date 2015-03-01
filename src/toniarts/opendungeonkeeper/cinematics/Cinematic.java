@@ -8,6 +8,7 @@ import com.jme3.animation.LoopMode;
 import com.jme3.asset.AssetManager;
 import com.jme3.cinematic.MotionPath;
 import com.jme3.cinematic.events.MotionEvent;
+import com.jme3.math.FastMath;
 import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
@@ -34,7 +35,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
     private final AssetManager assetManager;
     private static final Logger logger = Logger.getLogger(Cinematic.class.getName());
-    private static final boolean IS_DEBUG = true;
+    private static final boolean IS_DEBUG = false;
     private static final String CAMERA_NAME = "Motion cam";
 
     /**
@@ -48,6 +49,20 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      * @param scene scene node to attach to
      */
     public Cinematic(AssetManager assetManager, Camera cam, Point start, String cameraSweepFile, Node scene) {
+        this(assetManager, cam, new Vector3f((start.x - MapLoader.TILE_WIDTH / 2) * MapLoader.TILE_WIDTH, 0.35f, (start.y - MapLoader.TILE_WIDTH * 0.35f) * MapLoader.TILE_HEIGHT), cameraSweepFile, scene);
+    }
+
+    /**
+     * Creates a new cinematic ready for consumption
+     *
+     * @param assetManager asset manager instance
+     * @param cam the camera to use
+     * @param start starting location, zero based
+     * @param cameraSweepFile the camera sweep file name that is the basis for
+     * this animation (without the extension)
+     * @param scene scene node to attach to
+     */
+    public Cinematic(AssetManager assetManager, Camera cam, Vector3f start, String cameraSweepFile, Node scene) {
         super(scene);
         this.assetManager = assetManager;
 
@@ -72,14 +87,13 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      * @param cameraSweepData the camera sweep data
      * @param scene the scene to attach to
      */
-    private void initializeCinematic(final CameraSweepData cameraSweepData, Node scene, Camera cam, Point start) {
+    private void initializeCinematic(final CameraSweepData cameraSweepData, Node scene, final Camera cam, final Vector3f startLocation) {
         final CameraNode camNode = bindCamera(CAMERA_NAME, cam);
         camNode.setControlDir(ControlDirection.SpatialToCamera);
         final MotionPath path = new MotionPath();
         path.setCycle(false);
 
         // The waypoints
-        final Vector3f startLocation = new Vector3f((start.x - 0.5f) * MapLoader.TILE_WIDTH, 0, (start.y - 0.5f) * MapLoader.TILE_HEIGHT);
         for (CameraSweepDataEntry entry : cameraSweepData.getEntries()) {
             path.addWayPoint(entry.getPosition().multLocal(MapLoader.TILE_WIDTH).addLocal(startLocation));
         }
@@ -122,6 +136,9 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
                 // Set the rotation
                 setRotation(q1);
+
+                // Set the near
+                cam.setFrustumNear(FastMath.interpolateLinear(progress, cameraSweepData.getEntries().get(startIndex).getNear(), cameraSweepData.getEntries().get(endIndex).getNear()) / 4096f);
             }
         };
         cameraMotionControl.setLoopMode(LoopMode.DontLoop);
@@ -133,7 +150,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         addCinematicEvent(0, cameraMotionControl);
 
         // Set duration of the whole animation
-        setInitialDuration(cameraSweepData.getEntries().size() / getFramesPerSecond() + 2);
+        setInitialDuration(cameraSweepData.getEntries().size() / getFramesPerSecond() + 0.2f);
     }
 
     /**
