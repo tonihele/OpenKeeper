@@ -8,6 +8,8 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.cinematic.events.CinematicEvent;
+import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.input.InputManager;
 import com.jme3.light.AmbientLight;
 import com.jme3.math.ColorRGBA;
@@ -17,11 +19,13 @@ import com.jme3.scene.Node;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
+import java.awt.Point;
 import java.io.File;
 import java.util.regex.Pattern;
 import toniarts.opendungeonkeeper.Main;
 import toniarts.opendungeonkeeper.cinematics.CameraSweepData;
 import toniarts.opendungeonkeeper.cinematics.CameraSweepDataLoader;
+import toniarts.opendungeonkeeper.cinematics.Cinematic;
 import toniarts.opendungeonkeeper.tools.convert.AssetsConverter;
 import toniarts.opendungeonkeeper.tools.convert.map.KwdFile;
 import toniarts.opendungeonkeeper.world.MapLoader;
@@ -78,7 +82,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         // Set the camera position
         // TODO: an utility, this is map start position really, so general
-        Vector3f startLocation = new Vector3f((3 - MapLoader.TILE_WIDTH / 2) * MapLoader.TILE_WIDTH, 0f, (12 - MapLoader.TILE_WIDTH * 0.35f) * MapLoader.TILE_HEIGHT);
+        Vector3f startLocation = new Vector3f((3 - MapLoader.TILE_WIDTH / 2) * MapLoader.TILE_WIDTH, 0, (12 - MapLoader.TILE_WIDTH * 0.35f) * MapLoader.TILE_HEIGHT);
         CameraSweepData csd = (CameraSweepData) assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat("\\").replaceAll(Pattern.quote(File.separator), "/").concat("EnginePath250".concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
         this.app.getCamera().setLocation(startLocation.addLocal(csd.getEntries().get(0).getPosition()));
     }
@@ -108,6 +112,40 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
     public void goToScreen(String nextScreen) {
         nifty.gotoScreen(nextScreen);  // Switch to another screen
+    }
+
+    public void continueCampaign() {
+        doTransitionAndGoToScreen("EnginePath251", "selectCampaignLevel");
+
+    }
+
+    public void cancelCampaign() {
+        doTransitionAndGoToScreen("EnginePath252", "singlePlayer");
+    }
+
+    private void doTransitionAndGoToScreen(String transition, final String screen) {
+
+        // Remove the current screen
+        nifty.gotoScreen(null);
+
+        // Do cinematic transition
+        Cinematic c = new Cinematic(assetManager, app.getCamera(), new Point(3, 12), transition, menuNode);
+        c.addListener(new CinematicEventListener() {
+            @Override
+            public void onPlay(CinematicEvent cinematic) {
+            }
+
+            @Override
+            public void onPause(CinematicEvent cinematic) {
+            }
+
+            @Override
+            public void onStop(CinematicEvent cinematic) {
+                nifty.gotoScreen(screen);
+            }
+        });
+        stateManager.attach(c);
+        c.play();
     }
 
     public void quitGame() {

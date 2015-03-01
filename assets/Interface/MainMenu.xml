@@ -109,6 +109,7 @@
                         <effect>
                             <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
                         </effect>
+                        <interact onClick="continueCampaign()" />
                     </text>
                 </panel>
             </panel>
@@ -165,6 +166,24 @@
                     </panel>
                     <panel childLayout="center" align="right" valign="bottom" width="56px">
                         <control click="quitGame()" id="quit" name="okButton" width="48px" height="48px">
+                        </control>
+                    </panel>
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Campaing map, level selection -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="selectCampaignLevel" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="78%" width="100%" childLayout="vertical">
+            </panel>
+            <panel id="panel2" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="horizontal" align="right" valign="bottom">
+                    <panel childLayout="center" align="right" valign="bottom" width="56px">
+                        <control click="cancelCampaign()" id="back" name="cancelButton" width="48px" height="48px">
                         </control>
                     </panel>
                 </panel>
