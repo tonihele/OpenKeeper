@@ -8,10 +8,13 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.audio.AudioNode;
+import com.jme3.audio.AudioSource;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.collision.CollisionResults;
 import com.jme3.input.InputManager;
+import com.jme3.input.MouseInput;
 import com.jme3.input.RawInputListener;
 import com.jme3.input.event.JoyAxisEvent;
 import com.jme3.input.event.JoyButtonEvent;
@@ -27,10 +30,12 @@ import com.jme3.math.Vector3f;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 import java.awt.Point;
 import java.io.File;
+import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 import toniarts.opendungeonkeeper.Main;
 import toniarts.opendungeonkeeper.cinematics.CameraSweepData;
@@ -57,6 +62,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private Nifty nifty;
     private Screen screen;
     private Node menuNode;
+    private Level selectedLevel;
+    private AudioNode levelBriefing;
     private final KwdFile kwdFile;
     private final MouseEventListener mouseListener = new MouseEventListener(this);
 
@@ -118,6 +125,16 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     public void onStartScreen() {
         if ("selectCampaignLevel".equals(nifty.getCurrentScreen().getScreenId())) {
             inputManager.addRawInputListener(mouseListener);
+        } else if ("campaing".equals(nifty.getCurrentScreen().getScreenId())) {
+
+            // Set the dynamic values
+            Label levelTitle = screen.findNiftyControl("levelTitle", Label.class);
+            levelTitle.setText(getLevelTitle());
+
+            // Play some tunes!!
+            levelBriefing = new AudioNode(assetManager, "Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2", false);
+            levelBriefing.setLooping(false);
+            levelBriefing.play();
         }
     }
 
@@ -125,6 +142,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     public void onEndScreen() {
         if ("selectCampaignLevel".equals(nifty.getCurrentScreen().getScreenId())) {
             inputManager.removeRawInputListener(mouseListener);
+
+        } else if ("campaing".equals(nifty.getCurrentScreen().getScreenId())) {
+
+            // Quit playing the sound
+            if (levelBriefing != null && levelBriefing.getStatus() == AudioSource.Status.Playing) {
+                levelBriefing.stop();
+            }
+            levelBriefing = null;
         }
     }
 
@@ -140,6 +165,12 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         doTransitionAndGoToScreen("EnginePath252", "singlePlayer");
     }
 
+    /**
+     * Does a cinematic transition and opens up a specified screen
+     *
+     * @param transition name of the transition (without file extension)
+     * @param screen the screen name
+     */
     private void doTransitionAndGoToScreen(String transition, final String screen) {
 
         // Remove the current screen
@@ -167,6 +198,41 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
     public void quitGame() {
         app.stop();
+    }
+
+    /**
+     * Campaing level selected, transition the screen and display the briefing
+     *
+     * @param selectedLevel the selected level
+     */
+    private void selectCampaignLevel(FrontEndLevelControl selectedLevel) {
+        this.selectedLevel = new Level(selectedLevel.getLevel(), selectedLevel.getVariation());
+        doTransitionAndGoToScreen("EnginePath253", "campaing");
+    }
+
+    /**
+     * Cancel level selection and go back to the campaign map selection
+     */
+    public void cancelLevelSelect() {
+        this.selectedLevel = null;
+        doTransitionAndGoToScreen("EnginePath254", "selectCampaignLevel");
+    }
+
+    /**
+     * Get the selected level title
+     *
+     * @return level title
+     */
+    public String getLevelTitle() {
+        if (selectedLevel != null) {
+            ResourceBundle dict = ResourceBundle.getBundle("Interface/Texts/LEVEL" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "_BRIEFING");
+            StringBuilder sb = new StringBuilder("\"");
+            sb.append(dict.getString("0"));
+            sb.append("\" - ");
+            sb.append(dict.getString("1"));
+            return sb.toString();
+        }
+        return "";
     }
 
     /**
@@ -199,15 +265,59 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         @Override
         public void onMouseMotionEvent(MouseMotionEvent evt) {
+            setCampaingMapActive(evt.getX(), evt.getY());
+        }
+
+        @Override
+        public void onMouseButtonEvent(MouseButtonEvent evt) {
+            if (currentControl != null && evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
+                evt.setConsumed();
+
+                // Select level
+                mainMenuState.selectCampaignLevel(currentControl);
+            }
+        }
+
+        @Override
+        public void onKeyEvent(KeyInputEvent evt) {
+        }
+
+        @Override
+        public void onTouchEvent(TouchEvent evt) {
+
+            // NOT TESTED AT ALL, just for shit & giggles, may work which would be super cool
+            if (!evt.isScaleSpanInProgress()) {
+                if (currentControl != null) {
+                    evt.setConsumed();
+
+                    // Select level
+                    mainMenuState.selectCampaignLevel(currentControl);
+                } else if (currentControl == null) {
+                    evt.setConsumed();
+
+                    // Treat this like "on hover"
+                    setCampaingMapActive((int) evt.getX(), (int) evt.getY());
+                }
+            }
+        }
+
+        /**
+         * Sets the map at certain point as active (i.e. selected), IF there is
+         * one
+         *
+         * @param x x screen coordinate
+         * @param y y screen coordinate
+         */
+        private void setCampaingMapActive(int x, int y) {
 
             // See if we hit a map
             CollisionResults results = new CollisionResults();
 
-            // Convert screen click to 3d position
+            // Convert screen click to 3D position
             Vector3f click3d = mainMenuState.app.getCamera().getWorldCoordinates(
-                    new Vector2f(evt.getX(), evt.getY()), 0f);
+                    new Vector2f(x, y), 0f);
             Vector3f dir = mainMenuState.app.getCamera().getWorldCoordinates(
-                    new Vector2f(evt.getX(), evt.getY()), 1f).subtractLocal(click3d);
+                    new Vector2f(x, y), 1f).subtractLocal(click3d);
 
             // Aim the ray from the clicked spot forwards
             Ray ray = new Ray(click3d, dir);
@@ -221,13 +331,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 FrontEndLevelControl controller = results.getCollision(i).getGeometry().getParent().getParent().getControl(FrontEndLevelControl.class);
                 if (controller != null) {
 
-                    // (For each "hit", we know distance, impact point, geometry)
-//                    float dist = results.getCollision(i).getDistance();
-//                    Vector3f pt = results.getCollision(i).getContactPoint();
-//                    String target = results.getCollision(i).getGeometry().getName();
-//                    System.out.println("Selection #" + i + ": " + target + " at " + pt + ", " + dist + " WU away.");
-
-                    // Deactivate current controller 
+                    // Deactivate current controller
                     if (currentControl != null && !currentControl.equals(controller)) {
                         currentControl.setActive(false);
                     }
@@ -238,19 +342,28 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                     break;
                 }
             }
+        }
+    }
 
+    /**
+     * Level info
+     */
+    private static class Level {
+
+        private final int level;
+        private final String variation;
+
+        public Level(int level, String variation) {
+            this.level = level;
+            this.variation = variation;
         }
 
-        @Override
-        public void onMouseButtonEvent(MouseButtonEvent evt) {
+        public int getLevel() {
+            return level;
         }
 
-        @Override
-        public void onKeyEvent(KeyInputEvent evt) {
-        }
-
-        @Override
-        public void onTouchEvent(TouchEvent evt) {
+        public String getVariation() {
+            return variation;
         }
     }
 }
