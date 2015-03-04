@@ -190,4 +190,35 @@
             </panel>
         </layer>
     </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Campaing level briefing -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="campaing" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="78%" width="100%" childLayout="vertical">
+                <panel width="100%" childLayout="center" align="center" valign="center">
+                    <text id="briefingTitle" style="menuTitleText" text="${menu.1476}">
+                    </text>
+                </panel>
+                <panel width="100%" childLayout="center" align="center" valign="center">
+                    <control name="label" id="levelTitle" style="menuTitleText">
+                    </control>
+                </panel>
+            </panel>
+            <panel id="panel2" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="horizontal" align="right" valign="bottom">
+                    <panel childLayout="center" align="right" valign="bottom" width="56px">
+                        <control click="cancelLevelSelect()" id="back" name="cancelButton" width="48px" height="48px">
+                        </control>
+                    </panel>
+                    <panel childLayout="center" align="right" valign="bottom" width="56px">
+                        <control click="startLevel()" id="start" name="okButton" width="48px" height="48px">
+                        </control>
+                    </panel>
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+
 </nifty>
