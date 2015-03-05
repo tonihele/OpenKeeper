@@ -53,4 +53,12 @@ public class FrontEndLevelControl extends AbstractControl {
         }
         this.active = active;
     }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public String getVariation() {
+        return variation;
+    }
 }
