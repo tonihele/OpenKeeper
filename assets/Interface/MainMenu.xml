@@ -9,6 +9,9 @@
     <registerSound id="menuClick" filename="Sounds/Global/FE3D CLICK ON T.mp2" />
     <registerSound id="buttonClick" filename="Sounds/Global/FE BUTTON BIG 5.mp2" />
 
+    <style id="menuTextSmall">
+        <attributes font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb" />
+    </style>
     <style id="menuText">
         <attributes font="Interface/Fonts/DungeonKeeperIIBig.fnt" color="#bbbcbb" />
         <effect>
@@ -210,6 +213,53 @@
                 <panel width="100%" childLayout="center" align="center" valign="center">
                     <control name="label" id="levelTitle" style="menuTitleText">
                     </control>
+                </panel>
+                <panel height="5%" width="100%" childLayout="center" align="center" valign="center">
+
+                </panel>
+                <!--Main objectives-->
+                <panel height="30%" width="100%" childLayout="horizontal" align="center" valign="center">
+                    <panel width="33%" childLayout="center" align="center" valign="center">
+                        <image align="center" valign="top" id="mainObjectiveImage" />
+                    </panel>
+                    <panel width="*" childLayout="vertical" align="left" valign="top">
+                        <panel backgroundColor="#f508" width="100%" childLayout="vertical">
+                            <text align="left" valign="top" id="mainObjectivesTitle" style="menuTitleText" text="${menu.1408}">
+                            </text>
+                        </panel>
+                        <panel backgroundColor="#0008" width="100%" height="*" childLayout="vertical">
+                            <control width="100%" name="label" style="menuTextSmall" id="mainObjective" textHAlign="left" textVAlign="top">
+                            </control>
+                        </panel>
+                    </panel>
+                </panel>
+                <panel height="3%" width="100%" childLayout="center" align="center" valign="center">
+
+                </panel>
+                <!--Subobjectives-->
+                <panel height="*" width="100%" childLayout="horizontal" align="center" valign="center">
+                    <panel width="33%" childLayout="center" align="center" valign="center">
+                        <image align="center" valign="top" id="subObjectiveImage" />
+                    </panel>
+                    <panel width="*" childLayout="vertical" align="left" valign="top">
+                        <panel backgroundColor="#f508" width="100%" childLayout="vertical">
+                            <text align="left" valign="top" id="subObjectivesTitle" style="menuTitleText" text="${menu.1409}">
+                            </text>
+                        </panel>
+                        <panel backgroundColor="#0008" width="100%" height="*" childLayout="vertical">
+                            <panel width="100%" childLayout="vertical">
+                                <control width="100%" name="label" style="menuTextSmall" id="subObjective1" textHAlign="left" textVAlign="top">
+                                </control>
+                                <control width="100%" name="label" style="menuTextSmall" id="subObjective2" textHAlign="left" textVAlign="top">
+                                </control>
+                                <control width="100%" name="label" style="menuTextSmall" id="subObjective3" textHAlign="left" textVAlign="top">
+                                </control>
+                            </panel>
+                        </panel>
+                    </panel>
+                </panel>
+                <panel height="3%" width="100%" childLayout="center" align="center" valign="center">
+
                 </panel>
             </panel>
             <panel id="panel2" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">

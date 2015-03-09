@@ -31,8 +31,13 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.Label;
+import de.lessvoid.nifty.elements.Element;
+import de.lessvoid.nifty.elements.render.ImageRenderer;
+import de.lessvoid.nifty.elements.render.TextRenderer;
+import de.lessvoid.nifty.render.NiftyImage;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
+import de.lessvoid.nifty.tools.SizeValue;
 import java.awt.Point;
 import java.io.File;
 import java.util.ResourceBundle;
@@ -119,6 +124,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     public void bind(Nifty nifty, Screen screen) {
         this.nifty = nifty;
         this.screen = screen;
+//        nifty.setDebugOptionPanelColors(true);
     }
 
     @Override
@@ -130,6 +136,28 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             // Set the dynamic values
             Label levelTitle = screen.findNiftyControl("levelTitle", Label.class);
             levelTitle.setText(getLevelTitle());
+
+            Label mainObjective = screen.findNiftyControl("mainObjective", Label.class);
+            mainObjective.setText(getLevelResourceBundle().getString("2"));
+
+            Element mainObjectiveImage = screen.findElementByName("mainObjectiveImage");
+            NiftyImage img = nifty.createImage("Textures/Obj_Shots/Level" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "-0.png", false);
+            mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
+            mainObjectiveImage.setWidth(img.getWidth());
+            mainObjectiveImage.setHeight(img.getHeight());
+
+            setupSubObjectiveLabel("subObjective1", "3");
+            setupSubObjectiveLabel("subObjective2", "4");
+            Label subObjective = setupSubObjectiveLabel("subObjective3", "5");
+
+            // Fix the layout
+            subObjective.getElement().getParent().layoutElements();
+
+            Element subObjectiveImage = screen.findElementByName("subObjectiveImage");
+            img = nifty.createImage("Textures/Obj_Shots/Level" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "-1.png", false);
+            subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
+            subObjectiveImage.setWidth(img.getWidth());
+            subObjectiveImage.setHeight(img.getHeight());
 
             // Play some tunes!!
             levelBriefing = new AudioNode(assetManager, "Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2", false);
@@ -225,7 +253,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      */
     public String getLevelTitle() {
         if (selectedLevel != null) {
-            ResourceBundle dict = ResourceBundle.getBundle("Interface/Texts/LEVEL" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "_BRIEFING");
+            ResourceBundle dict = getLevelResourceBundle();
             StringBuilder sb = new StringBuilder("\"");
             sb.append(dict.getString("0"));
             sb.append("\" - ");
@@ -233,6 +261,35 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             return sb.toString();
         }
         return "";
+    }
+
+    /**
+     * Gets the selected level resource bundle
+     *
+     * @return the resource bundle
+     */
+    private ResourceBundle getLevelResourceBundle() {
+        ResourceBundle dict = ResourceBundle.getBundle("Interface/Texts/LEVEL" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "_BRIEFING");
+        return dict;
+    }
+
+    /**
+     * Set ups a sub objective text
+     *
+     * @param id the element ID
+     * @param textId the text ID in the resource bundle
+     * @return returns the element
+     */
+    private Label setupSubObjectiveLabel(String id, String textId) {
+
+        Label label = screen.findNiftyControl(id, Label.class);
+        String caption = getLevelResourceBundle().getString(textId);
+        label.setText(caption.isEmpty() ? "" : "- ".concat(caption));
+
+        TextRenderer renderer = label.getElement().getRenderer(TextRenderer.class);
+        label.setHeight(new SizeValue(renderer.getTextHeight() + "px"));
+
+        return label;
     }
 
     /**
