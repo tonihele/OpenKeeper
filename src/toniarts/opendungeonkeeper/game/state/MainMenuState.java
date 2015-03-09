@@ -339,8 +339,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                     // Set and activate current controller
                     currentControl = controller;
                     currentControl.setActive(true);
-                    break;
+                    return;
                 }
+            }
+
+            // Deactivate current controller, nothing is selected
+            if (currentControl != null) {
+                currentControl.setActive(false);
+                currentControl = null;
             }
         }
     }
