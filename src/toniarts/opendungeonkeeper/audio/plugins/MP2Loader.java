@@ -209,7 +209,7 @@ public class MP2Loader implements AssetLoader {
                 return audioData;
             }
         } catch (Exception ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, "Failed to read a frame!", ex);
             throw new IOException("Failed to read a frame!");
         }
     }
@@ -225,10 +225,13 @@ public class MP2Loader implements AssetLoader {
                 inputStream = null;
             }
             return data;
+        } catch (Exception e) {
+            return new AudioBuffer(); // Failed
         } finally {
             if (inputStream != null) {
                 inputStream.close();
             }
         }
+
     }
 }
