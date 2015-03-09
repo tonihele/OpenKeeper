@@ -228,7 +228,7 @@ public class HeroGateFrontEnd {
      */
     private static void attachAndCreateLevel(Node map, int level, String variation, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
         Spatial lvl = loadObject("3dmap_level" + level + (variation == null ? "" : variation), assetManager, start, p, randomizeAnimation);
-        lvl.addControl(new FrontEndLevelControl(level, variation));
+        lvl.addControl(new FrontEndLevelControl(level, variation, assetManager));
         lvl.setBatchHint(Spatial.BatchHint.Never);
         map.attachChild(lvl);
     }
