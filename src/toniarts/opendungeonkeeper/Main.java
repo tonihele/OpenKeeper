@@ -2,11 +2,9 @@ package toniarts.opendungeonkeeper;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.AssetManager;
-import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.RenderManager;
 import com.jme3.system.AppSettings;
 import com.jme3.system.JmeSystem;
-import de.lessvoid.nifty.Nifty;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
@@ -15,12 +13,14 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import toniarts.opendungeonkeeper.audio.plugins.MP2Loader;
 import toniarts.opendungeonkeeper.cinematics.CameraSweepDataLoader;
+import toniarts.opendungeonkeeper.game.state.GameState;
 import toniarts.opendungeonkeeper.game.state.MainMenuState;
 import toniarts.opendungeonkeeper.gui.CursorFactory;
 import toniarts.opendungeonkeeper.setup.DKConverter;
@@ -49,11 +49,12 @@ public class Main extends SimpleApplication {
     private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
+    private final HashMap<String, String> params;
 
     public static void main(String[] args) throws InvocationTargetException, InterruptedException {
 
         // Create main application instance
-        final Main app = new Main();
+        final Main app = new Main(parseArguments(args));
 
         // Read settings and convert resources if needed
         initSettings(app);
@@ -64,6 +65,34 @@ public class Main extends SimpleApplication {
         } else {
             logger.warning("Application setup not complete!!");
         }
+    }
+
+    /**
+     * Parse application parameters
+     *
+     * @param args the arguments list
+     * @return parameters as parameter / value -map
+     */
+    public static HashMap<String, String> parseArguments(String[] args) {
+        HashMap<String, String> params = new HashMap<>(args.length);
+
+        // Go through the params
+        int i = 0;
+        while (i < args.length && args[i].startsWith("-")) {
+
+            // If the next parameter doesn't have a "-", it is the value for the param
+            String value = null;
+            if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
+                value = args[i + 1];
+            }
+
+            // Add it
+            params.put(args[i].substring(1).toLowerCase(), value);
+
+            i++;
+        }
+
+        return params;
     }
 
     /**
@@ -133,6 +162,12 @@ public class Main extends SimpleApplication {
         }
 
         return result;
+    }
+
+    public Main(HashMap<String, String> params) {
+        super();
+
+        this.params = params;
     }
 
     private static void initSettings(Main app) {
@@ -277,22 +312,15 @@ public class Main extends SimpleApplication {
         // Camera sweep files
         this.getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION);
 
-        // Init Nifty
-        NiftyJmeDisplay niftyDisplay = new NiftyJmeDisplay(assetManager,
-                inputManager,
-                getAudioRenderer(),
-                getGuiViewPort());
-        Nifty nifty = niftyDisplay.getNifty();
+        if (params.containsKey("level")) {
+            GameState gameState = new GameState(params.get("level"), this.getAssetManager());
+            stateManager.attach(gameState);
+        } else {
 
-        // Attach the nifty display to the gui view port as a processor
-        getGuiViewPort().addProcessor(niftyDisplay);
-
-        // Initialize the main menu state
-        MainMenuState mainMenu = new MainMenuState();
-        stateManager.attach(mainMenu);
-
-        // Load the start menu
-        nifty.fromXml("Interface/MainMenu.xml", "start", mainMenu);
+            // Initialize the main menu state
+            MainMenuState mainMenu = new MainMenuState();
+            stateManager.attach(mainMenu);
+        }
     }
 
     /**
