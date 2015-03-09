@@ -269,7 +269,7 @@
                         </control>
                     </panel>
                     <panel childLayout="center" align="right" valign="bottom" width="56px">
-                        <control click="startLevel()" id="start" name="okButton" width="48px" height="48px">
+                        <control click="startCampaingLevel()" id="start" name="okButton" width="48px" height="48px">
                         </control>
                     </panel>
                 </panel>
