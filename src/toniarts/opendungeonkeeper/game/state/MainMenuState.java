@@ -27,6 +27,7 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import de.lessvoid.nifty.Nifty;
@@ -69,6 +70,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private Node menuNode;
     private Level selectedLevel;
     private AudioNode levelBriefing;
+    private NiftyJmeDisplay niftyDisplay;
     private final KwdFile kwdFile;
     private final MouseEventListener mouseListener = new MouseEventListener(this);
 
@@ -104,6 +106,18 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
         rootNode.attachChild(menuNode);
 
+        // Init Nifty
+        niftyDisplay = new NiftyJmeDisplay(assetManager,
+                inputManager,
+                this.app.getAudioRenderer(),
+                this.app.getGuiViewPort());
+
+        // Attach the nifty display to the gui view port as a processor
+        this.app.getGuiViewPort().addProcessor(niftyDisplay);
+
+        // Load the start menu
+        niftyDisplay.getNifty().fromXml("Interface/MainMenu.xml", "start", this);
+
         // Set the camera position
         // TODO: an utility, this is map start position really, so general
         Vector3f startLocation = new Vector3f((3 - MapLoader.TILE_WIDTH / 2) * MapLoader.TILE_WIDTH, 0, (12 - MapLoader.TILE_WIDTH * 0.35f) * MapLoader.TILE_HEIGHT);
@@ -114,8 +128,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     @Override
     public void cleanup() {
 
+        // Clear sound
+        clearLevelBriefingNarration();
+
         // Detach our start menu
         rootNode.detachChild(menuNode);
+
+        // Detach nifty
+        app.getGuiViewPort().removeProcessor(niftyDisplay);
 
         super.cleanup();
     }
@@ -171,12 +191,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             inputManager.removeRawInputListener(mouseListener);
 
         } else if ("campaing".equals(nifty.getCurrentScreen().getScreenId())) {
-
-            // Quit playing the sound
-            if (levelBriefing != null && levelBriefing.getStatus() == AudioSource.Status.Playing) {
-                levelBriefing.stop();
-            }
-            levelBriefing = null;
+            clearLevelBriefingNarration();
         }
     }
 
@@ -190,6 +205,19 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
     public void cancelCampaign() {
         doTransitionAndGoToScreen("EnginePath252", "singlePlayer");
+    }
+
+    /**
+     * Called by the GUI, start the selected campaing level
+     */
+    public void startCampaingLevel() {
+
+        // Detach us
+        stateManager.detach(this);
+
+        // Create the level state
+        GameState gameState = new GameState("level" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : ""), assetManager);
+        stateManager.attach(gameState);
     }
 
     /**
@@ -291,6 +319,18 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         label.setHeight(new SizeValue(renderer.getTextHeight() + "px"));
 
         return label;
+    }
+
+    /**
+     * Stops the level briefing sound
+     */
+    private void clearLevelBriefingNarration() {
+
+        // Quit playing the sound
+        if (levelBriefing != null && levelBriefing.getStatus() == AudioSource.Status.Playing) {
+            levelBriefing.stop();
+        }
+        levelBriefing = null;
     }
 
     /**
