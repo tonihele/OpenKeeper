@@ -124,7 +124,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     public void bind(Nifty nifty, Screen screen) {
         this.nifty = nifty;
         this.screen = screen;
-//        nifty.setDebugOptionPanelColors(true);
     }
 
     @Override
@@ -282,10 +281,12 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      */
     private Label setupSubObjectiveLabel(String id, String textId) {
 
+        // Get the actual label and set the text
         Label label = screen.findNiftyControl(id, Label.class);
         String caption = getLevelResourceBundle().getString(textId);
         label.setText(caption.isEmpty() ? "" : "- ".concat(caption));
 
+        // Measure the text height so that the element can be arranged to the the screen without overlapping the othe sub objectives
         TextRenderer renderer = label.getElement().getRenderer(TextRenderer.class);
         label.setHeight(new SizeValue(renderer.getTextHeight() + "px"));
 
