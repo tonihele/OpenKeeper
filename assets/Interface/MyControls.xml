@@ -9,6 +9,7 @@
                 <interact onClick="$click"/>
                 <effect>
                     <onHover name="changeImage" active="Textures/Cancel-Click.png" inactive="Textures/Cancel-Over.png" />
+                    <onClick name="playSound" sound="buttonClick"/>
                 </effect>
             </image>
         </panel>
@@ -22,6 +23,7 @@
                 <interact onClick="$click"/>
                 <effect>
                     <onHover name="changeImage" active="Textures/Confirm-Click.png" inactive="Textures/Confirm-Over.png" />
+                    <onClick name="playSound" sound="buttonClick"/>
                 </effect>
             </image>
         </panel>

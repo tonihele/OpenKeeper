@@ -6,8 +6,14 @@
 
     <resourceBundle id="menu" filename="Interface/Texts/Text" />
 
+    <registerSound id="menuClick" filename="Sounds/Global/FE3D CLICK ON T.mp2" />
+    <registerSound id="buttonClick" filename="Sounds/Global/FE BUTTON BIG 5.mp2" />
+
     <style id="menuText">
         <attributes font="Interface/Fonts/DungeonKeeperIIBig.fnt" color="#bbbcbb" />
+        <effect>
+            <onClick name="playSound" sound="menuClick"/>
+        </effect>
     </style>
     <style id="menuTitleText">
         <attributes font="Interface/Fonts/DungeonKeeperIIBig.fnt" color="#ff5f00" />
