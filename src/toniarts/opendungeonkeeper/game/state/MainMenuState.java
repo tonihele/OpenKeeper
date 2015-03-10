@@ -207,6 +207,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         doTransitionAndGoToScreen("EnginePath252", "singlePlayer");
     }
 
+    public void options() {
+        doTransitionAndGoToScreen("EnginePath256", "optionsMain");
+    }
+
+    public void cancelOptionsMain() {
+        doTransitionAndGoToScreen("EnginePath257", "start");
+    }
+
     /**
      * Called by the GUI, start the selected campaing level
      */

@@ -15,6 +15,7 @@
     <style id="menuText">
         <attributes font="Interface/Fonts/DungeonKeeperIIBig.fnt" color="#bbbcbb" />
         <effect>
+            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
             <onClick name="playSound" sound="menuClick"/>
         </effect>
     </style>
@@ -35,24 +36,15 @@
             <panel id="panel2" height="36.875%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="center" valign="center">
                     <text id="singlePlayer" style="menuText" text="${menu.71}">
-                        <effect>
-                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-                        </effect>
                         <interact onClick="goToScreen(singlePlayer)" />
                     </text>
                 </panel>
                 <panel childLayout="center" align="center" valign="center">
                     <text id="multiplayer" style="menuText" text="${menu.72}">
-                        <effect>
-                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-                        </effect>
                     </text>
                 </panel>
                 <panel childLayout="center" align="center" valign="center">
                     <text id="mpd" style="menuText" text="${menu.1675}">
-                        <effect>
-                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-                        </effect>
                     </text>
                 </panel>
             </panel>
@@ -62,24 +54,16 @@
             <panel id="panel4" height="15.208%" width="100%" align="center" valign="top" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="center" valign="top">
                     <text id="options" style="menuText" text="${menu.94}">
-                        <effect>
-                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-                        </effect>
+                        <interact onClick="options()" />
                     </text>
                 </panel>
                 <panel childLayout="center" align="center" valign="top">
                     <text id="extras" style="menuText" text="${menu.73}">
-                        <effect>
-                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-                        </effect>
                     </text>
                 </panel>
             </panel>
             <panel id="panel5" height="5%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <text id="quit" style="menuText" text="${menu.28}" align="center" valign="center">
-                    <effect>
-                        <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-                    </effect>
                     <interact onClick="goToScreen(quitGame)" />
                 </text>
             </panel>
@@ -108,16 +92,10 @@
             <panel id="panel2" height="25%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="center" valign="center">
                     <text id="newCampaign" style="menuText" text="${menu.140}">
-                        <effect>
-                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-                        </effect>
                     </text>
                 </panel>
                 <panel childLayout="center" align="center" valign="center">
                     <text id="continueCampaign" style="menuText" text="${menu.2059}">
-                        <effect>
-                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-                        </effect>
                         <interact onClick="continueCampaign()" />
                     </text>
                 </panel>
@@ -128,16 +106,10 @@
             <panel id="panel4" height="25%" width="100%" align="center" valign="top" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="center" valign="top">
                     <text id="skirmish" style="menuText" text="${menu.141}">
-                        <effect>
-                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-                        </effect>
                     </text>
                 </panel>
                 <panel childLayout="center" align="center" valign="top">
                     <text id="loadGame" style="menuText" text="${menu.145}">
-                        <effect>
-                            <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-                        </effect>
                     </text>
                 </panel>
             </panel>
@@ -270,6 +242,38 @@
                     </panel>
                     <panel childLayout="center" align="right" valign="bottom" width="56px">
                         <control click="startCampaingLevel()" id="start" name="okButton" width="48px" height="48px">
+                        </control>
+                    </panel>
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Options, main selection -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="optionsMain" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="78%" width="100%" childLayout="vertical">
+                <panel width="100%" childLayout="center" align="center" valign="center">
+                    <text id="optionsTitle" style="menuTitleText" text="${menu.94}">
+                    </text>
+                </panel>
+                <panel width="100%" height="*" childLayout="center" align="center" valign="center">
+                    <panel width="100%" childLayout="vertical" align="center" valign="center">
+                        <text id="graphicsOptions" style="menuText" text="${menu.96}" align="center">
+                        </text>
+                        <text id="soundOptions" style="menuText" text="${menu.95}" align="center">
+                        </text>
+                        <text id="controlOptions" style="menuText" text="${menu.98}" align="center">
+                        </text>
+                    </panel>
+                </panel>
+            </panel>
+            <panel id="panel2" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="horizontal" align="right" valign="bottom">
+                    <panel childLayout="center" align="right" valign="bottom" width="56px">
+                        <control click="cancelOptionsMain()" id="back" name="cancelButton" width="48px" height="48px">
                         </control>
                     </panel>
                 </panel>
