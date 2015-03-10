@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-styles xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+
+    <style id="nifty-drop-down#panel">
+        <attributes backgroundImage="Textures/0-H-Scroll_Bar_BG.png" imageMode="resize:94,1,94,4,94,1,94,22,94,1,94,4" childLayout="horizontal" padding="4px,5px,4px,5px" height="31px" focusable="true" visibleToMouse="true"/>
+        <effect>
+            <onHover name="border" color="#622f" post="true"/>
+        </effect>
+    </style>
+
+    <style id="nifty-drop-down#panel-text">
+        <attributes childLayout="center" childClip="true" backgroundColor="#366f" padding="0px,2px" width="*"/>
+        <effect>
+            <onActive name="border" color="#f508" post="true" inset="1px"/>
+            <onFocus name="colorBar" color="#800f" post="true" inset="1px"/>
+            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
+            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
+        </effect>
+    </style>
+
+    <style id="nifty-drop-down#text" base="base-font">
+        <attributes color="#000f" selectionColor="#f00f" visibleToMouse="false" align="left" valign="center"
+                    textHAlign="left" height="23px"/>
+        <effect>
+            <onFocus name="textColor" post="false" color="#cccf"/>
+        </effect>
+    </style>
+
+    <style id="nifty-drop-down#panel-icon">
+        <attributes childLayout="center"/>
+    </style>
+
+    <style id="nifty-drop-down#icon">
+        <attributes filename="Textures/0-V-Down_Arrow.png" valign="center" width="32px" height="16px"/>
+        <effect>
+            <onClick name="focus" targetElement="#parent"/>
+            <!--<onClick name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,2" post="true"/>-->
+            <!--<onFocus name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,1" post="true"/>-->
+            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
+            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
+        </effect>
+    </style>
+
+    <style id="nifty-drop-down#list-panel">
+        <attributes childLayout="vertical" width="*"/>
+        <effect>
+            <onStartScreen name="clip" length="150" inherit="true" post="false"/>
+            <onStartScreen name="move" length="150" timeType="exp" factor="2.5" mode="fromOffset" offsetY="-100"
+                           inherit="true"/>
+            <onStartScreen name="fade" length="150" startColor="#0000" endColor="#000c" inherit="true"/>
+            <onEndScreen name="clip" length="150" inherit="true" post="false"/>
+            <onEndScreen name="move" length="150" timeType="exp" factor="2.5" mode="toOffset" offsetY="-100"
+                         inherit="true"/>
+        </effect>
+    </style>
+
+    <style id="nifty-drop-down#text-item" base="base-font">
+        <attributes textHAlign="left" textVAlign="center" width="100%"/>
+        <effect>
+            <onHover name="focus"/>
+            <onFocus name="colorBar" color="#000f" post="false"/>
+        </effect>
+    </style>
+</nifty-styles>
