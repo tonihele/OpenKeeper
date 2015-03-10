@@ -350,6 +350,15 @@ public class Main extends SimpleApplication {
         return dkIIFolder;
     }
 
+    /**
+     * Get the application settings
+     *
+     * @return application settings
+     */
+    public AppSettings getSettings() {
+        return settings;
+    }
+
     @Override
     public void simpleRender(RenderManager rm) {
         //TODO: add render code
