@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <nifty xmlns="http://nifty-gui.sourceforge.net/nifty-1.3.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <useStyles filename="nifty-default-styles.xml" />
+    <useStyles filename="Interface/DropDownStyle.xml" />
+    <useStyles filename="Interface/ScrollbarStyle.xml" />
     <useControls filename="nifty-default-controls.xml" />
     <useControls filename="Interface/MyControls.xml" />
 
@@ -262,6 +264,7 @@
                 <panel width="100%" height="*" childLayout="center" align="center" valign="center">
                     <panel width="100%" childLayout="vertical" align="center" valign="center">
                         <text id="graphicsOptions" style="menuText" text="${menu.96}" align="center">
+                            <interact onClick="goToScreen(graphicsOptions)" />
                         </text>
                         <text id="soundOptions" style="menuText" text="${menu.95}" align="center">
                         </text>
@@ -274,6 +277,40 @@
                 <panel childLayout="horizontal" align="right" valign="bottom">
                     <panel childLayout="center" align="right" valign="bottom" width="56px">
                         <control click="cancelOptionsMain()" id="back" name="cancelButton" width="48px" height="48px">
+                        </control>
+                    </panel>
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Graphic options -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="graphicsOptions" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="78%" width="100%" childLayout="vertical">
+                <panel width="100%" childLayout="center" align="center" valign="center">
+                    <text id="briefingTitle" style="menuTitleText" text="${menu.96}">
+                    </text>
+                </panel>
+                <panel width="95%" height="*" childLayout="center" align="center" valign="center">
+                    <panel width="100%" childLayout="vertical" align="center" valign="center">
+                        <text style="menuTextSmall" text="${menu.134}: "></text>
+                        <control width="250px" name="dropDown" id="resolution">
+
+                        </control>
+                    </panel>
+                </panel>
+            </panel>
+            <panel id="panel2" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="horizontal" align="right" valign="bottom">
+                    <panel childLayout="center" align="right" valign="bottom" width="56px">
+                        <control click="goToScreen(optionsMain)" id="back" name="cancelButton" width="48px" height="48px">
+                        </control>
+                    </panel>
+                    <panel childLayout="center" align="right" valign="bottom" width="56px">
+                        <control click="applySettings()" id="start" name="okButton" width="48px" height="48px">
                         </control>
                     </panel>
                 </panel>

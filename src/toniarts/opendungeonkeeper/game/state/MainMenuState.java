@@ -30,7 +30,9 @@ import com.jme3.math.Vector3f;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
+import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.controls.DropDown;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
@@ -39,8 +41,13 @@ import de.lessvoid.nifty.render.NiftyImage;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 import de.lessvoid.nifty.tools.SizeValue;
+import java.awt.DisplayMode;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import java.awt.Point;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 import toniarts.opendungeonkeeper.Main;
@@ -182,6 +189,10 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             levelBriefing = new AudioNode(assetManager, "Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2", false);
             levelBriefing.setLooping(false);
             levelBriefing.play();
+        } else if ("graphicsOptions".equals(nifty.getCurrentScreen().getScreenId())) {
+
+            // Populate settings screen
+            setGraphicsSettingsToGUI();
         }
     }
 
@@ -339,6 +350,112 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             levelBriefing.stop();
         }
         levelBriefing = null;
+    }
+
+    private List<MyDisplayMode> getResolutions(GraphicsDevice device) {
+
+        //Get from the system
+        DisplayMode[] modes = device.getDisplayModes();
+
+        List<MyDisplayMode> displayModes = new ArrayList<>(modes.length);
+
+        //Loop them through
+        for (DisplayMode dm : modes) {
+
+            //They may already exist, then just add the possible resfresh rate
+            MyDisplayMode mdm = new MyDisplayMode(dm);
+            if (displayModes.contains(mdm)) {
+                mdm = displayModes.get(displayModes.indexOf(mdm));
+                mdm.addRefreshRate(dm);
+            } else {
+                displayModes.add(mdm);
+            }
+        }
+
+        return displayModes;
+    }
+
+    /**
+     * Sets the current setting values to the GUI
+     */
+    private void setGraphicsSettingsToGUI() {
+
+        // Application settings
+        AppSettings settings = app.getSettings();
+
+        GraphicsDevice device = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+        MyDisplayMode mdm = new MyDisplayMode(settings);
+        List<MyDisplayMode> resolutions = getResolutions(device);
+
+        // Get values to the settings screen
+
+        // Resolutions
+        DropDown res = screen.findNiftyControl("resolution", DropDown.class);
+        res.addAllItems(resolutions);
+        res.selectItem(mdm);
+    }
+
+    private class MyDisplayMode {
+
+        private int height;
+        private int width;
+        private int bitDepth;
+        private List<Integer> refreshRate = new ArrayList<>(10);
+
+        public MyDisplayMode(DisplayMode dm) {
+            height = dm.getHeight();
+            width = dm.getWidth();
+            bitDepth = dm.getBitDepth();
+            refreshRate.add(dm.getRefreshRate());
+        }
+
+        private MyDisplayMode(AppSettings settings) {
+            height = settings.getHeight();
+            width = settings.getWidth();
+            bitDepth = settings.getBitsPerPixel();
+            refreshRate.add(settings.getFrequency());
+        }
+
+        public void addRefreshRate(DisplayMode dm) {
+            if (!refreshRate.contains(dm.getRefreshRate())) {
+                refreshRate.add(dm.getRefreshRate());
+            }
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final MyDisplayMode other = (MyDisplayMode) obj;
+            if (this.height != other.height) {
+                return false;
+            }
+            if (this.width != other.width) {
+                return false;
+            }
+            if (this.bitDepth != other.bitDepth) {
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 37 * hash + this.height;
+            hash = 37 * hash + this.width;
+            hash = 37 * hash + this.bitDepth;
+            return hash;
+        }
+
+        @Override
+        public String toString() {
+            return width + " x " + height + " @" + bitDepth;
+        }
     }
 
     /**
