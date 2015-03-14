@@ -9,8 +9,8 @@
 
     <resourceBundle id="menu" filename="Interface/Texts/Text" />
 
-    <registerSound id="menuClick" filename="Sounds/Global/FE3D CLICK ON T.mp2" />
-    <registerSound id="buttonClick" filename="Sounds/Global/FE BUTTON BIG 5.mp2" />
+    <!--<registerSound id="menuClick" filename="Sounds/Global/FE3D CLICK ON T.mp2" />-->
+    <!--<registerSound id="buttonClick" filename="Sounds/Global/FE BUTTON BIG 5.mp2" />-->
 
     <style id="menuTextSmall">
         <attributes font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb" />
@@ -358,7 +358,7 @@
                         </control>
                     </panel>
                     <panel childLayout="center" align="right" valign="bottom" width="56px">
-                        <control click="applySettings()" id="start" name="okButton" width="48px" height="48px">
+                        <control click="applyGraphicsSettings()" id="start" name="okButton" width="48px" height="48px">
                         </control>
                     </panel>
                 </panel>
