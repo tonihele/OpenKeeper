@@ -32,7 +32,11 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.NiftyEventSubscriber;
+import de.lessvoid.nifty.controls.CheckBox;
+import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
 import de.lessvoid.nifty.controls.DropDown;
+import de.lessvoid.nifty.controls.DropDownSelectionChangedEvent;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
@@ -47,6 +51,8 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Point;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
@@ -78,6 +84,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private Level selectedLevel;
     private AudioNode levelBriefing;
     private NiftyJmeDisplay niftyDisplay;
+    public final static List<String> opengl = new ArrayList<>(Arrays.asList(new String[]{AppSettings.LWJGL_OPENGL1, AppSettings.LWJGL_OPENGL2, AppSettings.LWJGL_OPENGL3}));
+    public final static List<Integer> samples = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
+    public final static List<Integer> anisotrophies = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
     private final KwdFile kwdFile;
     private final MouseEventListener mouseListener = new MouseEventListener(this);
 
@@ -384,6 +393,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         GraphicsDevice device = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
         MyDisplayMode mdm = new MyDisplayMode(settings);
         List<MyDisplayMode> resolutions = getResolutions(device);
+        Collections.sort(resolutions);
 
         // Get values to the settings screen
 
@@ -391,9 +401,78 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         DropDown res = screen.findNiftyControl("resolution", DropDown.class);
         res.addAllItems(resolutions);
         res.selectItem(mdm);
+
+        //Refresh rates
+        DropDown refresh = screen.findNiftyControl("refreshRate", DropDown.class);
+        int index = Collections.binarySearch(resolutions, mdm);
+        if (index >= 0) {
+            refresh.addAllItems(resolutions.get(index).refreshRate);
+            refresh.selectItem(settings.getFrequency());
+        } else {
+            refresh.addItem(mdm.refreshRate.get(0));
+        }
+        if (!settings.isFullscreen()) {
+            refresh.disable();
+        }
+
+        //Fullscreen
+        CheckBox fullscreen = screen.findNiftyControl("fullscreen", CheckBox.class);
+        fullscreen.setChecked(settings.isFullscreen());
+        fullscreen.setEnabled(device.isFullScreenSupported());
+
+        //VSync
+        CheckBox vsync = screen.findNiftyControl("verticalSync", CheckBox.class);
+        vsync.setChecked(settings.isVSync());
+
+        //Antialiasing
+        DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
+        aa.addAllItems(samples);
+        if (samples.contains(settings.getSamples())) {
+            aa.selectItem(settings.getSamples());
+        } else {
+            aa.addItem(settings.getSamples());
+            aa.selectItem(settings.getSamples());
+        }
+
+        //Anisotropic filtering
+        DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
+        af.addAllItems(anisotrophies);
+        if (settings.containsKey(Main.ANISOTROPY_KEY) && anisotrophies.contains(settings.getInteger(Main.ANISOTROPY_KEY))) {
+            af.selectItem(settings.getInteger(Main.ANISOTROPY_KEY));
+        } else if (settings.containsKey(Main.ANISOTROPY_KEY)) {
+            af.addItem(settings.getInteger(Main.ANISOTROPY_KEY));
+            af.selectItem(settings.getInteger(Main.ANISOTROPY_KEY));
+        }
+
+        //OpenGL
+        DropDown ogl = screen.findNiftyControl("openGl", DropDown.class);
+        ogl.addAllItems(opengl);
+        ogl.selectItem(settings.getRenderer());
     }
 
-    private class MyDisplayMode {
+    @NiftyEventSubscriber(id = "resolution")
+    public void onResolutionChanged(final String id, final DropDownSelectionChangedEvent<MyDisplayMode> event) {
+
+        //Set the refresh dropdown
+        DropDown refresh = screen.findNiftyControl("refreshRate", DropDown.class);
+        refresh.clear();
+        refresh.addAllItems(event.getSelection().refreshRate);
+        refresh.selectItemByIndex(refresh.itemCount() - 1);
+    }
+
+    @NiftyEventSubscriber(id = "fullscreen")
+    public void onFullscreenChanged(final String id, final CheckBoxStateChangedEvent event) {
+
+        //Set the refresh dropdown
+        DropDown refresh = screen.findNiftyControl("refreshRate", DropDown.class);
+        if (event.isChecked()) {
+            refresh.enable();
+        } else {
+            refresh.disable();
+        }
+    }
+
+    private class MyDisplayMode implements Comparable<MyDisplayMode> {
 
         private int height;
         private int width;
@@ -453,6 +532,18 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         @Override
         public String toString() {
             return width + " x " + height + " @" + bitDepth;
+        }
+
+        @Override
+        public int compareTo(MyDisplayMode o) {
+            int result = Integer.compare(bitDepth, o.bitDepth);
+            if (result == 0) {
+                result = Integer.compare(width, o.width);
+            }
+            if (result == 0) {
+                result = Integer.compare(height, o.height);
+            }
+            return result;
         }
     }
 

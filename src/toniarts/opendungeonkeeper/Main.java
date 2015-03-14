@@ -46,6 +46,7 @@ public class Main extends SimpleApplication {
     private final static String CONVERSION_DONE_KEY = "Conversion done";
     private final static String CONVERSION_VERSION_KEY = "Conversion version";
     private final static int CONVERSION_VERSION = 1;
+    public final static String ANISOTROPY_KEY = "Anisotrophy";
     private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
