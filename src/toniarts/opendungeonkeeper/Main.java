@@ -1,7 +1,10 @@
 package toniarts.opendungeonkeeper;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.asset.AssetEventListener;
+import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.TextureKey;
 import com.jme3.renderer.RenderManager;
 import com.jme3.system.AppSettings;
 import com.jme3.system.JmeSystem;
@@ -316,6 +319,9 @@ public class Main extends SimpleApplication {
         // Camera sweep files
         this.getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION);
 
+        // Set the anisotropy asset listener
+        setAnisotropy();
+
         if (params.containsKey("level")) {
             GameState gameState = new GameState(params.get("level"), this.getAssetManager());
             stateManager.attach(gameState);
@@ -325,6 +331,31 @@ public class Main extends SimpleApplication {
             MainMenuState mainMenu = new MainMenuState();
             stateManager.attach(mainMenu);
         }
+    }
+
+    /**
+     * Adds an asset listener to the asset manager that automatically sets
+     * anisotropy level to any textures loaded
+     */
+    private void setAnisotropy() {
+        AssetEventListener asl = new AssetEventListener() {
+            @Override
+            public void assetLoaded(AssetKey key) {
+            }
+
+            @Override
+            public void assetRequested(AssetKey key) {
+                if (key.getExtension().equals("png") || key.getExtension().equals("jpg") || key.getExtension().equals("dds")) {
+                    TextureKey tkey = (TextureKey) key;
+                    tkey.setAnisotropy(settings.getInteger(ANISOTROPY_KEY));
+                }
+            }
+
+            @Override
+            public void assetDependencyNotFound(AssetKey parentKey, AssetKey dependentAssetKey) {
+            }
+        };
+        assetManager.addAssetEventListener(asl);
     }
 
     /**
