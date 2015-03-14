@@ -1,5 +1,6 @@
 /nbproject/private/
 /build/
+/assets/Interface/Texts/*.properties
 # property file which holds the configuration
 odk.properties
 *.png
@@ -19,3 +20,4 @@ odk.properties
 !/assets/Materials/ModelViewer/*.j3m
 !/assets/Textures/ModelViewer/*.png
 !/assets/Textures/ModelViewer/*.jpg
+*.csd

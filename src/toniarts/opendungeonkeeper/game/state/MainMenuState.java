@@ -155,54 +155,52 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
     @Override
     public void onStartScreen() {
-        if ("selectCampaignLevel".equals(nifty.getCurrentScreen().getScreenId())) {
-            inputManager.addRawInputListener(mouseListener);
-        } else if ("campaing".equals(nifty.getCurrentScreen().getScreenId())) {
-
-            // Set the dynamic values
-            Label levelTitle = screen.findNiftyControl("levelTitle", Label.class);
-            levelTitle.setText(getLevelTitle());
-
-            Label mainObjective = screen.findNiftyControl("mainObjective", Label.class);
-            mainObjective.setText(getLevelResourceBundle().getString("2"));
-
-            Element mainObjectiveImage = screen.findElementByName("mainObjectiveImage");
-            NiftyImage img = nifty.createImage("Textures/Obj_Shots/Level" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "-0.png", false);
-            mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
-            mainObjectiveImage.setWidth(img.getWidth());
-            mainObjectiveImage.setHeight(img.getHeight());
-
-            setupSubObjectiveLabel("subObjective1", "3");
-            setupSubObjectiveLabel("subObjective2", "4");
-            Label subObjective = setupSubObjectiveLabel("subObjective3", "5");
-
-            // Fix the layout
-            subObjective.getElement().getParent().layoutElements();
-
-            Element subObjectiveImage = screen.findElementByName("subObjectiveImage");
-            img = nifty.createImage("Textures/Obj_Shots/Level" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "-1.png", false);
-            subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
-            subObjectiveImage.setWidth(img.getWidth());
-            subObjectiveImage.setHeight(img.getHeight());
-
-            // Play some tunes!!
-            levelBriefing = new AudioNode(assetManager, "Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2", false);
-            levelBriefing.setLooping(false);
-            levelBriefing.play();
-        } else if ("graphicsOptions".equals(nifty.getCurrentScreen().getScreenId())) {
-
-            // Populate settings screen
-            setGraphicsSettingsToGUI();
+        switch (nifty.getCurrentScreen().getScreenId()) {
+            case "selectCampaignLevel":
+                inputManager.addRawInputListener(mouseListener);
+                break;
+            case "campaign":
+                // Set the dynamic values
+                Label levelTitle = screen.findNiftyControl("levelTitle", Label.class);
+                levelTitle.setText(getLevelTitle());
+                Label mainObjective = screen.findNiftyControl("mainObjective", Label.class);
+                mainObjective.setText(getLevelResourceBundle().getString("2"));
+                Element mainObjectiveImage = screen.findElementByName("mainObjectiveImage");
+                NiftyImage img = nifty.createImage("Textures/Obj_Shots/Level" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "-0.png", false);
+                mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
+                mainObjectiveImage.setWidth(img.getWidth());
+                mainObjectiveImage.setHeight(img.getHeight());
+                setupSubObjectiveLabel("subObjective1", "3");
+                setupSubObjectiveLabel("subObjective2", "4");
+                Label subObjective = setupSubObjectiveLabel("subObjective3", "5");
+                // Fix the layout
+                subObjective.getElement().getParent().layoutElements();
+                Element subObjectiveImage = screen.findElementByName("subObjectiveImage");
+                img = nifty.createImage("Textures/Obj_Shots/Level" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "-1.png", false);
+                subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
+                subObjectiveImage.setWidth(img.getWidth());
+                subObjectiveImage.setHeight(img.getHeight());
+                // Play some tunes!!
+                levelBriefing = new AudioNode(assetManager, "Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2", false);
+                levelBriefing.setLooping(false);
+                levelBriefing.play();
+                break;
+            case "graphicsOptions":
+                // Populate settings screen
+                setGraphicsSettingsToGUI();
+                break;
         }
     }
 
     @Override
     public void onEndScreen() {
-        if ("selectCampaignLevel".equals(nifty.getCurrentScreen().getScreenId())) {
-            inputManager.removeRawInputListener(mouseListener);
-
-        } else if ("campaing".equals(nifty.getCurrentScreen().getScreenId())) {
-            clearLevelBriefingNarration();
+        switch (nifty.getCurrentScreen().getScreenId()) {
+            case "selectCampaignLevel":
+                inputManager.removeRawInputListener(mouseListener);
+                break;
+            case "campaign":
+                clearLevelBriefingNarration();
+                break;
         }
     }
 
@@ -227,9 +225,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     }
 
     /**
-     * Called by the GUI, start the selected campaing level
+     * Called by the GUI, start the selected campaign level
      */
-    public void startCampaingLevel() {
+    public void startCampaignLevel() {
 
         // Detach us
         stateManager.detach(this);
@@ -275,13 +273,13 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     }
 
     /**
-     * Campaing level selected, transition the screen and display the briefing
+     * Campaign level selected, transition the screen and display the briefing
      *
      * @param selectedLevel the selected level
      */
     private void selectCampaignLevel(FrontEndLevelControl selectedLevel) {
         this.selectedLevel = new Level(selectedLevel.getLevel(), selectedLevel.getVariation());
-        doTransitionAndGoToScreen("EnginePath253", "campaing");
+        doTransitionAndGoToScreen("EnginePath253", "campaign");
     }
 
     /**
@@ -488,7 +486,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         @Override
         public void onMouseMotionEvent(MouseMotionEvent evt) {
-            setCampaingMapActive(evt.getX(), evt.getY());
+            setCampaignMapActive(evt.getX(), evt.getY());
         }
 
         @Override
@@ -519,7 +517,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                     evt.setConsumed();
 
                     // Treat this like "on hover"
-                    setCampaingMapActive((int) evt.getX(), (int) evt.getY());
+                    setCampaignMapActive((int) evt.getX(), (int) evt.getY());
                 }
             }
         }
@@ -531,7 +529,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
          * @param x x screen coordinate
          * @param y y screen coordinate
          */
-        private void setCampaingMapActive(int x, int y) {
+        private void setCampaignMapActive(int x, int y) {
 
             // See if we hit a map
             CollisionResults results = new CollisionResults();

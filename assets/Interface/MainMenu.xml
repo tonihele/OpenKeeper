@@ -157,7 +157,7 @@
     </screen>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <!-- Campaing map, level selection -->
+    <!-- Campaign map, level selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="selectCampaignLevel" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
@@ -175,9 +175,9 @@
     </screen>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <!-- Campaing level briefing -->
+    <!-- Campaign level briefing -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="campaing" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+    <screen id="campaign" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="78%" width="100%" childLayout="vertical">
                 <panel width="100%" childLayout="center" align="center" valign="center">
@@ -243,7 +243,7 @@
                         </control>
                     </panel>
                     <panel childLayout="center" align="right" valign="bottom" width="56px">
-                        <control click="startCampaingLevel()" id="start" name="okButton" width="48px" height="48px">
+                        <control click="startCampaignLevel()" id="start" name="okButton" width="48px" height="48px">
                         </control>
                     </panel>
                 </panel>
