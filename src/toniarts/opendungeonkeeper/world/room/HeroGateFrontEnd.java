@@ -97,26 +97,30 @@ public class HeroGateFrontEnd {
                 // Map
                 Node map = new Node("Map");
                 for (int x = 1; x < 21; x++) {
-                    attachAndCreateLevel(map, x, null, assetManager, start, p, false);
-                    if (x == 15) {
-                        attachAndCreateLevel(map, x, "a", assetManager, start, p, false);
-                        map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                        attachAndCreateLevel(map, x, "b", assetManager, start, p, false);
-                        map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
-                    } else if (x == 6) {
-                        attachAndCreateLevel(map, x, "a", assetManager, start, p, false);
-                        map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                        map.attachChild(loadObject("3dmap_level" + x + "b", assetManager, start, p, false));
-                        map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
-                    } else if (x == 11) {
-                        attachAndCreateLevel(map, x, "a", assetManager, start, p, false);
-                        map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                        attachAndCreateLevel(map, x, "b", assetManager, start, p, false);
-                        map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
-                        attachAndCreateLevel(map, x, "c", assetManager, start, p, false);
-                        map.attachChild(loadObject("3dmaplevel" + x + "c" + "_arrows", assetManager, start, p, false));
-                    } else {
-                        map.attachChild(loadObject("3dmaplevel" + x + "_arrows", assetManager, start, p, false));
+                    switch (x) {
+                        case 6:
+                            attachAndCreateLevel(map, x, "a", assetManager, start, p, false);
+                            map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
+                            attachAndCreateLevel(map, x, "b", assetManager, start, p, false);
+                            map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
+                            break;
+                        case 11:
+                            attachAndCreateLevel(map, x, "a", assetManager, start, p, false);
+                            map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
+                            attachAndCreateLevel(map, x, "b", assetManager, start, p, false);
+                            map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
+                            attachAndCreateLevel(map, x, "c", assetManager, start, p, false);
+                            map.attachChild(loadObject("3dmaplevel" + x + "c" + "_arrows", assetManager, start, p, false));
+                            break;
+                        case 15:
+                            attachAndCreateLevel(map, x, "a", assetManager, start, p, false);
+                            map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
+                            attachAndCreateLevel(map, x, "b", assetManager, start, p, false);
+                            map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
+                            break;
+                        default:
+                            attachAndCreateLevel(map, x, null, assetManager, start, p, false);
+                            map.attachChild(loadObject("3dmaplevel" + x + "_arrows", assetManager, start, p, false));
                     }
                 }
 
