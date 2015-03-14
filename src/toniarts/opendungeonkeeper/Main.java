@@ -58,6 +58,7 @@ public class Main extends SimpleApplication {
         final Main app = new Main(parseArguments(args));
 
         // Read settings and convert resources if needed
+        app.showSettings = false;
         initSettings(app);
 
         // Finally start it if everything went ok
@@ -175,7 +176,9 @@ public class Main extends SimpleApplication {
         AppSettings setup = new AppSettings(true);
 
         //Default resolution
-        setup.setResolution(800, 600);
+        if (!setup.containsKey("Width") || !setup.containsKey("Height")) {
+            setup.setResolution(800, 600); // Default resolution
+        }
         File settingsFile = new File(SETTINGS_FILE);
         if (settingsFile.exists()) {
             try {
@@ -188,9 +191,9 @@ public class Main extends SimpleApplication {
         setup.setFrameRate(Math.max(MAX_FPS, setup.getFrequency()));
 
         //FIXME: These currently just destroy everything
-        setup.setRenderer(AppSettings.LWJGL_OPENGL2);
-        setup.setSamples(1);
-        setup.setStereo3D(false);
+//        setup.setRenderer(AppSettings.LWJGL_OPENGL2);
+//        setup.setSamples(1);
+//        setup.setStereo3D(false);
 
         // DKII settings
         dkIIFolder = setup.getString(DKII_FOLDER_KEY);
@@ -358,6 +361,27 @@ public class Main extends SimpleApplication {
      */
     public AppSettings getSettings() {
         return settings;
+    }
+
+    @Override
+    public void restart() {
+        try {
+            super.restart();
+
+            // FIXME: This should go to handle error
+            try {
+
+                // Continue to save the settings
+                settings.save(new FileOutputStream(new File(Main.SETTINGS_FILE)));
+            } catch (IOException ex) {
+                logger.log(Level.WARNING, "Can not save the settings!", ex);
+            }
+
+        } catch (Exception e) {
+            // Failed to restart
+//            initSettings(this);
+//            restart();
+        }
     }
 
     @Override

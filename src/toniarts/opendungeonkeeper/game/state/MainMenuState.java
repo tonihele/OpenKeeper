@@ -359,6 +359,42 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         levelBriefing = null;
     }
 
+    /**
+     * Save the graphics settings
+     */
+    public void applyGraphicsSettings() {
+
+        // Get the controls settings
+        boolean needToRestart = true;
+        AppSettings settings = app.getSettings();
+        DropDown res = screen.findNiftyControl("resolution", DropDown.class);
+        DropDown refresh = screen.findNiftyControl("refreshRate", DropDown.class);
+        CheckBox fullscreen = screen.findNiftyControl("fullscreen", CheckBox.class);
+        CheckBox vsync = screen.findNiftyControl("verticalSync", CheckBox.class);
+        DropDown ogl = screen.findNiftyControl("openGl", DropDown.class);
+        DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
+        DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
+        MyDisplayMode mdm = (MyDisplayMode) res.getSelection();
+
+        // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
+
+        // Set the settings
+        settings.setResolution(mdm.width, mdm.height);
+        settings.setBitsPerPixel(mdm.bitDepth);
+        settings.setFrequency((Integer) refresh.getSelection());
+        settings.setFullscreen(fullscreen.isChecked());
+        settings.setVSync(vsync.isChecked());
+        settings.setRenderer((String) ogl.getSelection());
+        settings.setSamples((Integer) aa.getSelection());
+        settings.putInteger(Main.ANISOTROPY_KEY, (Integer) af.getSelection());
+
+        // This fails and crashes on invalid settings
+        if (needToRestart) {
+            app.restart();
+            nifty.resolutionChanged();
+        }
+    }
+
     private List<MyDisplayMode> getResolutions(GraphicsDevice device) {
 
         //Get from the system
