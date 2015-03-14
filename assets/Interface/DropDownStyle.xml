@@ -18,9 +18,9 @@
         </effect>
     </style>
 
-    <style id="nifty-drop-down#text" base="base-font">
-        <attributes color="#000f" selectionColor="#f00f" visibleToMouse="false" align="left" valign="center"
-                    textHAlign="left" height="23px"/>
+    <style id="nifty-drop-down#text" base="Interface/Fonts/DungeonKeeperII.fnt">
+        <attributes color="#bbbcbb" selectionColor="#f00f" visibleToMouse="false" align="left" valign="center"
+                    textHAlign="left" height="23px" font="Interface/Fonts/DungeonKeeperII.fnt" />
         <effect>
             <onFocus name="textColor" post="false" color="#cccf"/>
         </effect>
@@ -54,8 +54,8 @@
         </effect>
     </style>
 
-    <style id="nifty-drop-down#text-item" base="base-font">
-        <attributes textHAlign="left" textVAlign="center" width="100%"/>
+    <style id="nifty-drop-down#text-item" base="Interface/Fonts/DungeonKeeperII.fnt">
+        <attributes textHAlign="left" textVAlign="center" width="100%" font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb"/>
         <effect>
             <onHover name="focus"/>
             <onFocus name="colorBar" color="#000f" post="false"/>
