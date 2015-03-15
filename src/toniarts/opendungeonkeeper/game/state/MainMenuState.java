@@ -374,6 +374,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         DropDown ogl = screen.findNiftyControl("openGl", DropDown.class);
         DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
+        CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
         MyDisplayMode mdm = (MyDisplayMode) res.getSelection();
 
         // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
@@ -387,12 +388,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         settings.setRenderer((String) ogl.getSelection());
         settings.setSamples((Integer) aa.getSelection());
         settings.putInteger(Main.ANISOTROPY_KEY, (Integer) af.getSelection());
+        settings.putBoolean(Main.SSAO_KEY, ssao.isChecked());
 
         // This fails and crashes on invalid settings
         if (needToRestart) {
             app.restart();
             nifty.resolutionChanged();
         }
+        app.setViewProcessors();
     }
 
     private List<MyDisplayMode> getResolutions(GraphicsDevice device) {

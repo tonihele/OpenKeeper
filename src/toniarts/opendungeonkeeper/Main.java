@@ -5,6 +5,8 @@ import com.jme3.asset.AssetEventListener;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
+import com.jme3.post.FilterPostProcessor;
+import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.renderer.RenderManager;
 import com.jme3.system.AppSettings;
 import com.jme3.system.JmeSystem;
@@ -50,6 +52,7 @@ public class Main extends SimpleApplication {
     private final static String CONVERSION_VERSION_KEY = "Conversion version";
     private final static int CONVERSION_VERSION = 1;
     public final static String ANISOTROPY_KEY = "Anisotrophy";
+    public final static String SSAO_KEY = "SSAO";
     private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
@@ -322,6 +325,9 @@ public class Main extends SimpleApplication {
         // Set the anisotropy asset listener
         setAnisotropy();
 
+        // Set the processors
+        setViewProcessors();
+
         if (params.containsKey("level")) {
             GameState gameState = new GameState(params.get("level"), this.getAssetManager());
             stateManager.attach(gameState);
@@ -412,6 +418,23 @@ public class Main extends SimpleApplication {
             // Failed to restart
 //            initSettings(this);
 //            restart();
+        }
+    }
+
+    /**
+     * (re-)Sets scene processors to the view port
+     */
+    public void setViewProcessors() {
+
+        // Clear the old ones
+        viewPort.clearProcessors();
+
+        // Add SSAO
+        if (settings.getBoolean(SSAO_KEY)) {
+            FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
+            SSAOFilter ssaoFilter = new SSAOFilter(5.94f, 3.92f, 0.33f, 0.1f);
+            fpp.addFilter(ssaoFilter);
+            viewPort.addProcessor(fpp);
         }
     }
 
