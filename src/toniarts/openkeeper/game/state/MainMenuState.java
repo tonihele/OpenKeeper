@@ -34,8 +34,6 @@ import com.jme3.input.event.KeyInputEvent;
 import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
-import com.jme3.light.AmbientLight;
-import com.jme3.math.ColorRGBA;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
@@ -126,11 +124,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         if (menuNode == null) {
             menuNode = new Node("Main menu");
             menuNode.attachChild(new MapLoader().load(assetManager, kwdFile));
-
-            // Without light it is invisible
-            AmbientLight al = new AmbientLight();
-            al.setColor(ColorRGBA.White.multLocal(5f));
-            menuNode.addLight(al);
         }
         rootNode.attachChild(menuNode);
 

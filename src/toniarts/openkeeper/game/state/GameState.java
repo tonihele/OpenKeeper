@@ -21,8 +21,6 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.input.InputManager;
-import com.jme3.light.AmbientLight;
-import com.jme3.math.ColorRGBA;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import de.lessvoid.nifty.Nifty;
@@ -59,11 +57,6 @@ public class GameState extends AbstractAppState implements ScreenController {
         // Create the actual level
         worldNode = new Node("World");
         worldNode.attachChild(new MapLoader().load(assetManager, kwdFile));
-
-        // Add some ambient light to it
-        AmbientLight al = new AmbientLight();
-        al.setColor(ColorRGBA.White.multLocal(5f));
-        worldNode.addLight(al);
     }
 
     @Override

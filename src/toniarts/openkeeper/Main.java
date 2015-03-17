@@ -21,6 +21,8 @@ import com.jme3.asset.AssetEventListener;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
+import com.jme3.light.AmbientLight;
+import com.jme3.math.ColorRGBA;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.renderer.RenderManager;
@@ -343,6 +345,11 @@ public class Main extends SimpleApplication {
 
         // Set the processors
         setViewProcessors();
+
+        // FIXME: We need ambient light, but it may be different for different states. There just seems to be a bug in BatchNodes concerning the removal of the light. So this is temporary perhaps
+        AmbientLight al = new AmbientLight();
+        al.setColor(ColorRGBA.White.multLocal(5f));
+        rootNode.addLight(al);
 
         if (params.containsKey("level")) {
             GameState gameState = new GameState(params.get("level"), this.getAssetManager());
