@@ -1,6 +1,18 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2014-2015 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
 package toniarts.openkeeper.tools.convert.str;
 
@@ -11,7 +23,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -83,11 +94,11 @@ public class StrFile {
             for (int i = 0; i < offsetsCount; i++) {
                 offsets.add(Utils.readUnsignedInteger(rawStr));
             }
-            
+
             // Make a copy because offsets in some languages (like german) are not sorted!
             List<Integer> offsetsCopy = new ArrayList<>(offsets);
             Collections.sort(offsetsCopy);
-            
+
             // Decode the entries
             entries = new LinkedHashMap<>(offsetsCount);
             for (int i = 0; i < offsetsCount; i++) {
@@ -95,7 +106,7 @@ public class StrFile {
                 rawStr.seek(offsets.get(i) + STR_HEADER_SIZE);
                 int j = Collections.binarySearch(offsetsCopy, offsets.get(i));
                 int dataLength = (int) (j < offsetsCopy.size() - 1 ? offsetsCopy.get(j + 1) - offsets.get(i) : rawStr.length() - offsets.get(i) - STR_HEADER_SIZE);
-                                    
+
                 byte[] data = new byte[dataLength];
                 int dataRead = rawStr.read(data);
                 if (dataRead < dataLength) {
