@@ -64,7 +64,7 @@
   <SubComponents>
     <Component class="javax.swing.JLabel" name="jLabel1">
       <Properties>
-        <Property name="text" type="java.lang.String" value="&lt;html&gt;Open Dungeon Keeper needs the original Dungeon Keeper II files in order to work. Some of these files needs to be converted by the Open Dungeon Keeper to make them usable. This process might take awhile. It is however not done every time you start Open Dungeon Keeper, only when the process is changed due a version change etc.&lt;/html&gt;"/>
+        <Property name="text" type="java.lang.String" value="&lt;html&gt;OpenKeeper needs the original Dungeon Keeper II files in order to work. Some of these files needs to be converted by the OpenKeeper to make them usable. This process might take awhile. It is however not done every time you start OpenKeeper, only when the process is changed due a version change etc.&lt;/html&gt;"/>
       </Properties>
     </Component>
     <Component class="javax.swing.JProgressBar" name="conversionProgressBar">

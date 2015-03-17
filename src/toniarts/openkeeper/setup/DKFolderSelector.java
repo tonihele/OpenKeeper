@@ -47,7 +47,7 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
         setTitle("Open Dungeon Keeper");
         setResizable(false);
 
-        jLabel1.setText("<html>Open Dungeon Keeper needs the original Dungeon Keeper II files in order to work. Please select the Dungeon Keeper II installation folder to continue.</html>");
+        jLabel1.setText("<html>OpenKeeper needs the original Dungeon Keeper II files in order to work. Please select the Dungeon Keeper II installation folder to continue.</html>");
 
         selectFolderButton.setText("Select Dungeon Keeper II installation folder...");
         selectFolderButton.addActionListener(new java.awt.event.ActionListener() {
@@ -101,7 +101,7 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(statusIcon)
                     .addComponent(selectFolderButton))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 31, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 17, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(exitButton)
                     .addComponent(continueButton))

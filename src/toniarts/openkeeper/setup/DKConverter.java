@@ -62,7 +62,7 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
         setTitle("Converting files... Please wait...");
         setResizable(false);
 
-        jLabel1.setText("<html>Open Dungeon Keeper needs the original Dungeon Keeper II files in order to work. Some of these files needs to be converted by the Open Dungeon Keeper to make them usable. This process might take awhile. It is however not done every time you start Open Dungeon Keeper, only when the process is changed due a version change etc.</html>");
+        jLabel1.setText("<html>OpenKeeper needs the original Dungeon Keeper II files in order to work. Some of these files needs to be converted by the OpenKeeper to make them usable. This process might take awhile. It is however not done every time you start OpenKeeper, only when the process is changed due a version change etc.</html>");
 
         conversionStatusLabel.setText("Converting files:");
 
@@ -98,7 +98,7 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
                 .addComponent(totalProgressLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(totalProgressBar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(112, Short.MAX_VALUE))
+                .addContainerGap(70, Short.MAX_VALUE))
         );
 
         pack();

@@ -44,8 +44,8 @@ public class Main extends SimpleApplication {
     private static int conversionVersion = 0;
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
-    private final static String SETTINGS_FILE = "odk.properties";
-    private final static String TITLE = "Open Dungeon Keeper";
+    private final static String SETTINGS_FILE = "openkeeper.properties";
+    private final static String TITLE = "OpenKeeper";
     private final static int MAX_FPS = 90;
     private final static String DKII_FOLDER_KEY = "Dungeon Keeper II folder";
     private final static String CONVERSION_DONE_KEY = "Conversion done";
