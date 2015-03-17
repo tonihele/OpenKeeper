@@ -181,6 +181,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 inputManager.addRawInputListener(mouseListener);
                 break;
             case "campaign":
+
                 // Set the dynamic values
                 Label levelTitle = screen.findNiftyControl("levelTitle", Label.class);
                 levelTitle.setText(getLevelTitle());
@@ -194,6 +195,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 setupSubObjectiveLabel("subObjective1", "3");
                 setupSubObjectiveLabel("subObjective2", "4");
                 Label subObjective = setupSubObjectiveLabel("subObjective3", "5");
+
                 // Fix the layout
                 subObjective.getElement().getParent().layoutElements();
                 Element subObjectiveImage = screen.findElementByName("subObjectiveImage");
@@ -201,12 +203,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
                 subObjectiveImage.setWidth(img.getWidth());
                 subObjectiveImage.setHeight(img.getHeight());
+
                 // Play some tunes!!
                 levelBriefing = new AudioNode(assetManager, "Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2", false);
                 levelBriefing.setLooping(false);
                 levelBriefing.play();
                 break;
             case "graphicsOptions":
+
                 // Populate settings screen
                 setGraphicsSettingsToGUI();
                 break;
@@ -499,6 +503,10 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         DropDown ogl = screen.findNiftyControl("openGl", DropDown.class);
         ogl.addAllItems(opengl);
         ogl.selectItem(settings.getRenderer());
+
+        //SSAO
+        CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
+        ssao.setChecked(settings.getBoolean(Main.SSAO_KEY));
     }
 
     @NiftyEventSubscriber(id = "resolution")
