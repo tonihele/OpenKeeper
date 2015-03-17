@@ -29,7 +29,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- start screen -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="start" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+    <screen id="start" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
                 <panel childLayout="center" align="center" valign="center">
@@ -84,7 +84,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- single player game -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="singlePlayer" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+    <screen id="singlePlayer" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
                 <panel childLayout="center" align="center" valign="center">
@@ -128,7 +128,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- quit game -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="quitGame" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+    <screen id="quitGame" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="40%" width="100%" childLayout="vertical">
                 <panel height="100%" childLayout="center" align="center" valign="bottom">
@@ -160,7 +160,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Campaign map, level selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="selectCampaignLevel" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+    <screen id="selectCampaignLevel" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="78%" width="100%" childLayout="vertical">
             </panel>
@@ -178,7 +178,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Campaign level briefing -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="campaign" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+    <screen id="campaign" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="78%" width="100%" childLayout="vertical">
                 <panel width="100%" childLayout="center" align="center" valign="center">
@@ -255,7 +255,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Options, main selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="optionsMain" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+    <screen id="optionsMain" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="78%" width="100%" childLayout="vertical">
                 <panel width="100%" childLayout="center" align="center" valign="center">
@@ -288,7 +288,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Graphic options -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="graphicsOptions" controller="toniarts.opendungeonkeeper.game.state.MainMenuState">
+    <screen id="graphicsOptions" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="78%" width="100%" childLayout="vertical">
                 <panel width="100%" childLayout="center" align="center" valign="center">
