@@ -33,7 +33,7 @@ import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 
 /**
- * Main entry point of Open Dungeon Keeper
+ * Main entry point of OpenKeeper
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
