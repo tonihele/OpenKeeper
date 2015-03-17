@@ -1,4 +1,4 @@
-OpenDungeonKeeper
+OpenKeeper
 =================
 
 Dungeon Keeper II clone
