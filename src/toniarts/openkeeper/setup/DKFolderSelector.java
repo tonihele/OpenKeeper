@@ -71,7 +71,7 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
             }
         });
 
-        statusIcon.setIcon(new javax.swing.ImageIcon(getClass().getResource("/toniarts/opendungeonkeeper/setup/images/Action-ok-icon.png"))); // NOI18N
+        statusIcon.setIcon(new javax.swing.ImageIcon(getClass().getResource("/toniarts/openkeeper/setup/images/Action-ok-icon.png"))); // NOI18N
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -101,7 +101,7 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(statusIcon)
                     .addComponent(selectFolderButton))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 17, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(exitButton)
                     .addComponent(continueButton))

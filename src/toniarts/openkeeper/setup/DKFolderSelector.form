@@ -55,7 +55,7 @@
                   <Component id="statusIcon" min="-2" max="-2" attributes="0"/>
                   <Component id="selectFolderButton" min="-2" max="-2" attributes="0"/>
               </Group>
-              <EmptySpace pref="17" max="32767" attributes="0"/>
+              <EmptySpace max="32767" attributes="0"/>
               <Group type="103" groupAlignment="3" attributes="0">
                   <Component id="exitButton" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="continueButton" alignment="3" min="-2" max="-2" attributes="0"/>
@@ -99,7 +99,7 @@
     <Component class="javax.swing.JLabel" name="statusIcon">
       <Properties>
         <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-          <Image iconType="3" name="/toniarts/opendungeonkeeper/setup/images/Action-ok-icon.png"/>
+          <Image iconType="3" name="/toniarts/openkeeper/setup/images/Action-ok-icon.png"/>
         </Property>
       </Properties>
     </Component>
