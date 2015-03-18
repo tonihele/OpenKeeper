@@ -21,6 +21,7 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.input.InputManager;
+import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import de.lessvoid.nifty.Nifty;
@@ -47,6 +48,7 @@ public class GameState extends AbstractAppState implements ScreenController {
     private Nifty nifty;
     private Screen screen;
     private Node worldNode;
+    private NiftyJmeDisplay niftyDisplay;
     private final KwdFile kwdFile;
 
     public GameState(String level, AssetManager assetManager) {
@@ -75,6 +77,18 @@ public class GameState extends AbstractAppState implements ScreenController {
         this.app.getFlyByCamera().setMoveSpeed(10);
 
         rootNode.attachChild(worldNode);
+
+        // Init Nifty
+        niftyDisplay = new NiftyJmeDisplay(assetManager,
+                inputManager,
+                this.app.getAudioRenderer(),
+                this.app.getGuiViewPort());
+
+        // Attach the nifty display to the gui view port as a processor
+        this.app.getGuiViewPort().addProcessor(niftyDisplay);
+
+        // Load the HUD
+        niftyDisplay.getNifty().fromXml("Interface/GameHUD.xml", "hud", this);
     }
 
     @Override

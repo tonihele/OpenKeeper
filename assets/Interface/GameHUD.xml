@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty xmlns="http://nifty-gui.sourceforge.net/nifty-1.3.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <useStyles filename="nifty-default-styles.xml" />
+    <useControls filename="nifty-default-controls.xml" />
+
+    <resourceBundle id="menu" filename="Interface/Texts/Text" />
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- HUD -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="hud" controller="toniarts.openkeeper.game.state.GameState">
+
+        <layer id="background" childLayout="vertical">
+
+            <!--The upper panel-->
+            <panel id="top" height="64px" width="100%" align="left" valign="top" childLayout="horizontal" padding="2px,0px,0px,0px">
+                <panel height="70%" width="100%" childLayout="horizontal" align="left" valign="top">
+                    <panel height="78%" width="*" valign="center" backgroundImage="Textures/GUI/Windows/Bar-00.png" imageMode="repeat:0,0,128,64" childLayout="horizontal">
+                    </panel>
+                    <panel height="100%" width="32px" backgroundImage="Textures/GUI/Windows/Bar-02.png" imageMode="repeat:0,0,128,64" childLayout="horizontal">
+                    </panel>
+                </panel>
+            </panel>
+
+            <!--Empty center-->
+            <panel id="center" height="*" width="100%" childLayout="horizontal">
+            </panel>
+
+            <!--The bottom panel-->
+            <panel id="bottom" height="150px" width="100%" align="left" valign="top" childLayout="vertical" padding="0px,0px,10px,0px">
+
+                <!--The top bar-->
+                <panel height="30%" width="100%" childLayout="horizontal" align="left" valign="top" margin="0px,0px,4px,0px">
+                    <panel height="78%" width="*" valign="center" backgroundImage="Textures/GUI/Windows/Bar-00.png" imageMode="repeat:0,0,128,64" childLayout="horizontal">
+                    </panel>
+                    <panel height="100%" width="128px" backgroundImage="Textures/GUI/Windows/Bar-02.png" imageMode="repeat:0,0,128,64" childLayout="horizontal">
+                    </panel>
+                </panel>
+
+                <!--Map (place for it) & the works-->
+                <panel height="*" width="100%" childLayout="horizontal" align="left" valign="top">
+                    <!--Map, but not in this layer-->
+                    <panel height="100%" width="140px" valign="center" childLayout="horizontal" marging="0px,0px,0px,6px">
+                    </panel>
+                    <panel height="100%" width="*" valign="center" childLayout="horizontal" backgroundImage="Textures/GUI/Windows/Panel-BG.png" imageMode="repeat:0,0,64,64">
+                    </panel>
+                </panel>
+            </panel>
+        </layer>
+
+        <layer id="layer" childLayout="vertical">
+
+            <!--The upper panel-->
+<!--            <panel id="panel" height="64px" width="100%" align="left" valign="top" backgroundColor="#f60f" childLayout="horizontal" padding="2px,0px,0px,0px">
+
+            </panel>-->
+        </layer>
+    </screen>
+</nifty>
