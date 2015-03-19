@@ -19,15 +19,33 @@ package toniarts.openkeeper.game.state;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.DesktopAssetManager;
+import com.jme3.asset.TextureKey;
 import com.jme3.input.InputManager;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
+import com.jme3.texture.Texture;
+import com.jme3.texture.Texture2D;
+import com.jme3.texture.plugins.AWTLoader;
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.elements.Element;
+import de.lessvoid.nifty.elements.render.ImageRenderer;
+import de.lessvoid.nifty.render.NiftyImage;
+import de.lessvoid.nifty.render.image.ImageModeFactory;
+import de.lessvoid.nifty.render.image.ImageModeHelper;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.world.MapLoader;
@@ -50,6 +68,9 @@ public class GameState extends AbstractAppState implements ScreenController {
     private Node worldNode;
     private NiftyJmeDisplay niftyDisplay;
     private final KwdFile kwdFile;
+    private boolean backgroundSet = false;
+    private static final String HUD_SCREEN_ID = "hud";
+    private static final Logger logger = Logger.getLogger(GameState.class.getName());
 
     public GameState(String level, AssetManager assetManager) {
 
@@ -108,6 +129,46 @@ public class GameState extends AbstractAppState implements ScreenController {
 
     @Override
     public void onStartScreen() {
+        switch (nifty.getCurrentScreen().getScreenId()) {
+            case HUD_SCREEN_ID: {
+
+                if (!backgroundSet) {
+
+                    // Stretch the background image (height-wise) on the background image panel
+                    try {
+                        BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey("Textures/GUI/Windows/Panel-BG.png")).openStream());
+
+                        // Scale the backgroung image to the panel height, keeping the aspect ratio
+                        Element panel = nifty.getCurrentScreen().findElementByName("bottomBackgroundPanel");
+                        BufferedImage newImage = new BufferedImage(panel.getHeight() * img.getWidth() / img.getHeight(), panel.getHeight(), img.getType());
+                        Graphics2D g = newImage.createGraphics();
+                        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                        g.drawImage(img, 0, 0, newImage.getWidth(), newImage.getHeight(), 0, 0, img.getWidth(), img.getHeight(), null);
+                        g.dispose();
+
+                        // Convert the new image to a texture, and add a dummy cached entry to the asset manager
+                        AWTLoader loader = new AWTLoader();
+                        Texture tex = new Texture2D(loader.load(newImage, false));
+                        ((DesktopAssetManager) assetManager).addToCache(new TextureKey("HUDBackground"), tex);
+
+                        // Add the scaled one
+                        NiftyImage niftyImage = nifty.createImage("HUDBackground", false);
+                        String resizeString = "repeat:0,0," + newImage.getWidth() + "," + newImage.getHeight();
+                        String areaProviderProperty = ImageModeHelper.getAreaProviderProperty(resizeString);
+                        String renderStrategyProperty = ImageModeHelper.getRenderStrategyProperty(resizeString);
+                        niftyImage.setImageMode(ImageModeFactory.getSharedInstance().createImageMode(areaProviderProperty, renderStrategyProperty));
+                        ImageRenderer renderer = panel.getRenderer(ImageRenderer.class);
+                        renderer.setImage(niftyImage);
+
+                        backgroundSet = true;
+                    } catch (IOException ex) {
+                        logger.log(Level.SEVERE, "Failed to open the background image!", ex);
+                    }
+                }
+
+                break;
+            }
+        }
     }
 
     @Override

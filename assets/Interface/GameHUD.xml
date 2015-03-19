@@ -42,7 +42,7 @@
                     <!--Map, but not in this layer-->
                     <panel height="100%" width="140px" valign="center" childLayout="horizontal" marging="0px,0px,0px,6px">
                     </panel>
-                    <panel height="100%" width="*" valign="center" childLayout="horizontal" backgroundImage="Textures/GUI/Windows/Panel-BG.png" imageMode="repeat:0,0,64,64">
+                    <panel id="bottomBackgroundPanel" height="100%" width="*" valign="center" childLayout="horizontal" backgroundImage="Textures/GUI/Windows/Panel-BG.png" imageMode="repeat:0,0,64,64">
                     </panel>
                 </panel>
             </panel>
