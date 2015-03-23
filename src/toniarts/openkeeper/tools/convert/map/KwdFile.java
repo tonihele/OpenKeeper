@@ -336,7 +336,7 @@ public class KwdFile {
         for (FilePath path : paths) {
 
             // Paths are relative to the base path, may or may not have an extension (assume kwd if none found)
-            String filePath = basePath.concat(path.getPath().replaceAll(Pattern.quote("\\"), Matcher.quoteReplacement(File.separator)));
+            String filePath = Utils.convertFileSeparators(path.getPath().replaceAll(Pattern.quote("\\"), Matcher.quoteReplacement(File.separator)));
             if (!".".equals(filePath.substring(filePath.length() - 4, filePath.length() - 3))) {
                 filePath = filePath.concat(".kwd");
             }
@@ -348,7 +348,7 @@ public class KwdFile {
             }
 
             // Open the file
-            try (RandomAccessFile data = new RandomAccessFile(filePath, "r")) {
+            try (RandomAccessFile data = new RandomAccessFile(Utils.getRealFileName(basePath, filePath), "r")) {
 
                 // Read the file until EOF, normally it is one data type per file, but with Globals, it is all in the same file
                 do {
@@ -370,15 +370,15 @@ public class KwdFile {
         // Hmm, seems that normal maps don't refer the effects nor effect elements
         List<String> unreadFilePaths = new ArrayList<>();
         if (effects == null) {
-            unreadFilePaths.add(basePath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Effects.kwd"));
+            unreadFilePaths.add(("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Effects.kwd"));
         }
         if (effectElements == null) {
-            unreadFilePaths.add(basePath.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("EffectElements.kwd"));
+            unreadFilePaths.add(("Data").concat(File.separator).concat("editor").concat(File.separator).concat("EffectElements.kwd"));
         }
 
         // Loop through the unprocessed files
         for (String filePath : unreadFilePaths) {
-            try (RandomAccessFile data = new RandomAccessFile(filePath, "r")) {
+            try (RandomAccessFile data = new RandomAccessFile(Utils.getRealFileName(basePath, filePath), "r")) {
 
                 // Read header (and put the file pointer to the data start)
                 KwdHeader header = readKwdHeader(data);
