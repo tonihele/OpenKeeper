@@ -75,7 +75,7 @@ public class SdtFile {
                 entry.setSize(Utils.readUnsignedInteger(rawSdt));
                 byte[] nameBytes = new byte[16];
                 rawSdt.read(nameBytes);
-                String filename = Utils.bytesToString(nameBytes).trim();
+                String filename = Utils.convertFileSeparators(Utils.bytesToString(nameBytes).trim());
                 entry.setUnknown1(Utils.readUnsignedInteger(rawSdt));
                 entry.setUnknown2(Utils.readUnsignedInteger(rawSdt));
                 entry.setnSamples(Utils.readUnsignedInteger(rawSdt));
