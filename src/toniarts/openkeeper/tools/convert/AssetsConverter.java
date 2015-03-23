@@ -174,8 +174,8 @@ public abstract class AssetsConverter {
         updateStatus(null, null, ConvertProcess.TEXTURES);
         EngineTexturesFile etFile = getEngineTexturesFile(dungeonKeeperFolder);
         Pattern pattern = Pattern.compile("(?<name>\\w+)MM(?<mipmaplevel>\\d{1})");
-        WadFile frontEnd = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("FrontEnd.WAD")));
-        WadFile engineTextures = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("EngineTextures.WAD")));
+        WadFile frontEnd = new WadFile(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("FrontEnd.WAD")));
+        WadFile engineTextures = new WadFile(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("EngineTextures.WAD")));
         int i = 0;
         int total = etFile.getFileCount() + frontEnd.getWadFileEntries().size() + engineTextures.getWadFileEntries().size();
 
@@ -227,7 +227,7 @@ public abstract class AssetsConverter {
         EngineTexturesFile engineTexturesFile = getEngineTexturesFile(dungeonKeeperFolder);
 
         //Meshes are in the data folder, access the packed file
-        WadFile wad = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("Meshes.WAD")));
+        WadFile wad = new WadFile(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Meshes.WAD")));
         HashMap<String, KmfFile> kmfs = new HashMap<>();
         File tmpdir = new File(System.getProperty("java.io.tmpdir"));
         int i = 0;
@@ -330,7 +330,7 @@ public abstract class AssetsConverter {
         updateStatus(null, null, ConvertProcess.MOUSE_CURSORS);
 
         //Mouse cursors are PNG files in the Sprite.WAD
-        WadFile wadFile = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("Sprite.WAD")));
+        WadFile wadFile = new WadFile(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Sprite.WAD")));
         int i = 0;
         int total = wadFile.getWadFileEntryCount();
         for (String fileName : wadFile.getWadFileEntries()) {
@@ -353,7 +353,7 @@ public abstract class AssetsConverter {
     private void convertSounds(String dungeonKeeperFolder, String destination) {
         logger.log(Level.INFO, "Extracting sounds to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MUSIC_AND_SOUNDS);
-        String dataDirectory = dungeonKeeperFolder.concat("data").concat(File.separator).concat("sound").concat(File.separator).concat("sfx").concat(File.separator);
+        String dataDirectory = dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Sound").concat(File.separator).concat("Sfx").concat(File.separator);
 
         //Find all the sound files
         final List<File> sdtFiles = new ArrayList<>();
@@ -448,7 +448,7 @@ public abstract class AssetsConverter {
     private void convertTexts(String dungeonKeeperFolder, String destination) {
         logger.log(Level.INFO, "Extracting texts to: {0}", destination);
         updateStatus(null, null, ConvertProcess.INTERFACE_TEXTS);
-        String dataDirectory = dungeonKeeperFolder.concat("data").concat(File.separator).concat("text").concat(File.separator).concat("default").concat(File.separator);
+        String dataDirectory = dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Text").concat(File.separator).concat("Default").concat(File.separator);
 
         //Find all the STR files
         final List<File> srtFiles = new ArrayList<>();
@@ -535,7 +535,7 @@ public abstract class AssetsConverter {
         updateStatus(null, null, ConvertProcess.PATHS);
 
         //Paths are in the data folder, access the packed file
-        WadFile wad = new WadFile(new File(dungeonKeeperFolder.concat("data").concat(File.separator).concat("Paths.WAD")));
+        WadFile wad = new WadFile(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Paths.WAD")));
         int i = 0;
         int total = wad.getWadFileEntryCount();
         File tmpdir = new File(System.getProperty("java.io.tmpdir"));
