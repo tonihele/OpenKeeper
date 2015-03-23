@@ -22,7 +22,13 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,6 +43,8 @@ import java.util.regex.Pattern;
 public class Utils {
 
     private static final Logger logger = Logger.getLogger(Utils.class.getName());
+    private static final HashMap<String, String> fileNameCache = new HashMap<>();
+    private static final Object fileNameLock = new Object();
 
     /**
      * Reads 4 bytes and converts it to JAVA int from LITTLE ENDIAN unsigned
@@ -303,14 +311,112 @@ public class Utils {
      * @return fully qualified and working asset key
      */
     public static String getCanonicalAssetKey(String asset) {
-        asset = asset.replaceAll("[/\\\\]", Matcher.quoteReplacement(File.separator));
         String assetsFolder = AssetsConverter.getAssetsFolder();
         try {
-            File file = new File(assetsFolder.concat(asset)).getCanonicalFile();
+            File file = new File(getRealFileName(assetsFolder, asset)).getCanonicalFile();
             return file.getPath().substring(assetsFolder.length()).replaceAll(Pattern.quote(File.separator), "/");
         } catch (IOException e) {
             logger.log(Level.WARNING, "Can not locate asset " + asset + "!", e);
             return asset;
+        }
+    }
+
+    /**
+     * Converts all the file separators to current system separators
+     *
+     * @param fileName the file name to convert
+     * @return the file name with native file separators
+     */
+    public static String convertFileSeparators(String fileName) {
+        return fileName.replaceAll("[/\\\\]", Matcher.quoteReplacement(File.separator));
+    }
+
+    /**
+     * Gets real file name for a file, this is to ignore file system case
+     * sensitivity<br>
+     * Does a recursive search
+     *
+     * @param realPath the real path that surely exists (<strong>case
+     * sensitive!!</strong>), serves as a root for the searching
+     * @param uncertainPath the file (and/or directory) to find from the real
+     * path
+     * @return the case sensitive fully working file name
+     * @throws IOException if file is not found
+     */
+    public static String getRealFileName(final String realPath, String uncertainPath) throws IOException {
+
+        // Make sure that the uncertain path's separators are system separators
+        uncertainPath = convertFileSeparators(uncertainPath);
+
+        String fileName = realPath.concat(uncertainPath);
+
+        // If it exists as such, that is super!
+        File testFile = new File(fileName);
+        if (testFile.exists()) {
+            return testFile.getCanonicalPath();
+        } else {
+
+            // See cache
+            if (fileNameCache.containsKey(fileName)) {
+                return fileNameCache.get(fileName);
+            }
+        }
+
+        // Otherwise we need to do a recursive search
+        synchronized (fileNameLock) {
+            final String[] path = uncertainPath.split(Matcher.quoteReplacement(File.separator));
+            final Path realPathAsPath = new File(realPath).toPath();
+            FileFinder fileFinder = new FileFinder(realPathAsPath, path);
+            Files.walkFileTree(realPathAsPath, fileFinder);
+            fileNameCache.put(fileName, fileFinder.file);
+            if (fileFinder.file == null) {
+                throw new IOException("File not found " + testFile + "!");
+            }
+            return fileFinder.file;
+        }
+    }
+
+    /**
+     * File finder, recursively tries to find a file ignoring case
+     */
+    private static class FileFinder extends SimpleFileVisitor<Path> {
+
+        private int level = 0;
+        private String file;
+        private final Path startingPath;
+        private final String[] path;
+
+        private FileFinder(Path startingPath, String[] path) {
+            this.startingPath = startingPath;
+            this.path = path;
+        }
+
+        @Override
+        public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+            if (startingPath.equals(dir)) {
+                return FileVisitResult.CONTINUE; // Just the root
+            } else if (level < path.length - 1 && startingPath.relativize(dir).getName(level).toString().equalsIgnoreCase(path[level])) {
+                level++;
+                return FileVisitResult.CONTINUE;
+            }
+            return FileVisitResult.SKIP_SUBTREE;
+        }
+
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+
+            // See if this is the file we are looking for
+            if (level == path.length - 1 && file.getName(file.getNameCount() - 1).toString().equalsIgnoreCase(path[level])) {
+                this.file = file.toFile().getCanonicalPath();
+                return FileVisitResult.TERMINATE;
+            }
+
+            return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+            return FileVisitResult.TERMINATE;
         }
     }
 }
