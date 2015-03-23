@@ -31,7 +31,6 @@ import com.jme3.scene.control.CameraControl.ControlDirection;
 import java.awt.Point;
 import java.io.File;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.world.MapLoader;
 
@@ -79,7 +78,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         this.assetManager = assetManager;
 
         // Load up the camera sweep file
-        Object obj = assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat("\\").replaceAll(Pattern.quote(File.separator), "/").concat(cameraSweepFile.concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
+        Object obj = assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).concat(cameraSweepFile.concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
         if (obj == null || !(obj instanceof CameraSweepData)) {
             String msg = "Failed to load the camera sweep file " + cameraSweepFile + "!";
             logger.severe(msg);
