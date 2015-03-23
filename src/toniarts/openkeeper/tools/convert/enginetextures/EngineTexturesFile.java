@@ -216,7 +216,7 @@ public class EngineTexturesFile implements Iterable<String> {
 
             try (RandomAccessFile rawTextures = new RandomAccessFile(file, "r")) {
                 do {
-                    String name = Utils.readVaryingLengthStrings(rawDir, 1).get(0);
+                    String name = Utils.convertFileSeparators(Utils.readVaryingLengthStrings(rawDir, 1).get(0));
                     int offset = Utils.readUnsignedInteger(rawDir);
 
                     //Read the actual data from the DAT file from the offset specified by the DIR file
