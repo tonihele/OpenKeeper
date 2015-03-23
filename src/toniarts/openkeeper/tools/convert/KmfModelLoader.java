@@ -668,6 +668,11 @@ public class KmfModelLoader implements AssetLoader {
             // Get the texture, the first one
             // There is a list of possible alternative textures
             String texture = mat.getTextures().get(0);
+            if (textureFixes.containsKey(texture)) {
+
+                //Fix the texture entry
+                texture = textureFixes.get(texture);
+            }
 
             // See if the material is found already on the cache
             String materialLocation = null;
@@ -677,11 +682,6 @@ public class KmfModelLoader implements AssetLoader {
                 materialKey = materialCache.get(mat);
                 if (materialKey != null) {
                     material = assetInfo.getManager().loadMaterial(materialKey);
-                    if (textureFixes.containsKey(texture)) {
-
-                        //Fix the texture entry
-                        texture = textureFixes.get(texture);
-                    }
                     setMaterialFlags(material, engineTextureFile, texture);
                     List<Material> materialList = new ArrayList<>(mat.getTextures().size());
                     materialList.add(material);
@@ -764,7 +764,13 @@ public class KmfModelLoader implements AssetLoader {
             for (int k = 1; k < mat.getTextures().size(); k++) {
 
                 // Get the texture
-                Texture alternativeTex = loadTexture(mat.getTextures().get(k), assetInfo);
+                String alternativeTexture = mat.getTextures().get(k);
+                if (textureFixes.containsKey(alternativeTexture)) {
+
+                    //Fix the texture entry
+                    alternativeTexture = textureFixes.get(alternativeTexture);
+                }
+                Texture alternativeTex = loadTexture(alternativeTexture, assetInfo);
 
                 // Clone the original material, set texture and add to list
                 Material alternativeMaterial = material.clone();
@@ -815,11 +821,6 @@ public class KmfModelLoader implements AssetLoader {
     private Texture loadTexture(String texture, AssetInfo assetInfo) {
 
         // Load the texture
-        if (textureFixes.containsKey(texture)) {
-
-            //Fix the texture entry
-            texture = textureFixes.get(texture);
-        }
         TextureKey textureKey = new TextureKey(Utils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png")), false);
         Texture tex = assetInfo.getManager().loadTexture(textureKey);
         return tex;
