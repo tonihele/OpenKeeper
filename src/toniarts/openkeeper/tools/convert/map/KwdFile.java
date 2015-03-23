@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.vecmath.Vector3f;
 import toniarts.openkeeper.tools.convert.Utils;
 import toniarts.openkeeper.tools.convert.map.ArtResource.Animation;
@@ -336,7 +334,7 @@ public class KwdFile {
         for (FilePath path : paths) {
 
             // Paths are relative to the base path, may or may not have an extension (assume kwd if none found)
-            String filePath = Utils.convertFileSeparators(path.getPath().replaceAll(Pattern.quote("\\"), Matcher.quoteReplacement(File.separator)));
+            String filePath = Utils.convertFileSeparators(path.getPath());
             if (!".".equals(filePath.substring(filePath.length() - 4, filePath.length() - 3))) {
                 filePath = filePath.concat(".kwd");
             }
