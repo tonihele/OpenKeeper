@@ -416,7 +416,7 @@ public class Utils {
 
         @Override
         public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-            return FileVisitResult.TERMINATE;
+            return FileVisitResult.TERMINATE; // We already missed our window here
         }
     }
 }
