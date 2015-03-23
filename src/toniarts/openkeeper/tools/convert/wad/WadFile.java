@@ -39,7 +39,7 @@ import toniarts.openkeeper.tools.convert.Utils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class WadFile {
-
+    
     private final File file;
     private final LinkedHashMap<String, WadFileEntry> wadFileEntries;
     private static final String WAD_HEADER_IDENTIFIER = "DWFB";
@@ -73,7 +73,7 @@ public class WadFile {
 
             //Seek
             rawWad.seek(0x48);
-
+            
             int files = Utils.readUnsignedInteger(rawWad);
             int nameOffset = Utils.readUnsignedInteger(rawWad);
             int nameSize = Utils.readUnsignedInteger(rawWad);
@@ -118,7 +118,8 @@ public class WadFile {
             int offset = 0;
             wadFileEntries = new LinkedHashMap<>(files);
             for (WadFileEntry entry : entries) {
-                wadFileEntries.put(Utils.bytesToString(Arrays.copyOfRange(nameArray, offset, offset + entry.getNameSize())).trim(), entry);
+                String name = Utils.bytesToString(Arrays.copyOfRange(nameArray, offset, offset + entry.getNameSize())).trim();
+                wadFileEntries.put(Utils.convertFileSeparators(name), entry);
                 offset += entry.getNameSize();
             }
         } catch (IOException e) {
@@ -155,7 +156,7 @@ public class WadFile {
 
         //Open the WAD for extraction
         try (RandomAccessFile rawWad = new RandomAccessFile(file, "r")) {
-
+            
             for (String fileName : wadFileEntries.keySet()) {
                 extractFileData(fileName, destination, rawWad);
             }
@@ -180,7 +181,7 @@ public class WadFile {
         if (!dest.endsWith(File.separator)) {
             dest = dest.concat(File.separator);
         }
-
+        
         String mkdir = dest;
         if (fileName.contains(File.separator)) {
             this.subdir = fileName.substring(0, fileName.lastIndexOf(File.separator) + 1);
@@ -188,7 +189,7 @@ public class WadFile {
         } else {
             dest += this.subdir;
         }
-
+        
         File destinationFolder = new File(mkdir);
         destinationFolder.mkdirs();
         dest = dest.concat(fileName);
@@ -235,14 +236,14 @@ public class WadFile {
         if (fileEntry == null) {
             throw new RuntimeException("File " + fileName + " not found from the WAD archive!");
         }
-
+        
         try {
 
             //Seek to the file we want and read it
             rawWad.seek(fileEntry.getOffset());
             byte[] bytes = new byte[fileEntry.getCompressedSize()];
             rawWad.read(bytes);
-
+            
             result = new ByteArrayOutputStream();
 
             //See if the file is compressed
@@ -251,13 +252,13 @@ public class WadFile {
             } else {
                 result.write(bytes);
             }
-
+            
         } catch (Exception e) {
 
             //Fug
             throw new RuntimeException("Failed to read the WAD file!", e);
         }
-
+        
         return result;
     }
 
@@ -318,7 +319,7 @@ public class WadFile {
                 k -= (Utils.toUnsignedByte(flag) & 0x60) << 3;
                 k -= Utils.toUnsignedByte(tmp);
                 k--;
-
+                
                 counter = ((Utils.toUnsignedByte(flag) >> 2) & 7) + 2;
                 do {
                     dest[j] = dest[k++];
