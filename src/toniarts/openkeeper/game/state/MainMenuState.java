@@ -545,7 +545,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
 
         public void addRefreshRate(DisplayMode dm) {
-            if (!refreshRate.contains(dm.getRefreshRate())) {
+            if (dm.getRefreshRate() != DisplayMode.REFRESH_RATE_UNKNOWN && !refreshRate.contains(dm.getRefreshRate())) {
                 refreshRate.add(dm.getRefreshRate());
             }
         }
@@ -582,7 +582,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         @Override
         public String toString() {
-            return width + " x " + height + " @" + bitDepth;
+            return width + " x " + height + (bitDepth != DisplayMode.BIT_DEPTH_MULTI ? " @" + bitDepth : "");
         }
 
         @Override
