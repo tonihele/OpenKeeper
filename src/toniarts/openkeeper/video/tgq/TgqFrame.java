@@ -16,9 +16,54 @@
  */
 package toniarts.openkeeper.video.tgq;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import toniarts.openkeeper.tools.convert.Utils;
+
 /**
+ * Holds a TGQ frame (one texture that is)
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TgqFrame {
+public class TgqFrame implements Comparable<TgqFrame> {
+
+    private final int width;
+    private final int height;
+    private final int frameIndex;
+
+    public TgqFrame(byte[] data, int frameIndex) {
+        this.frameIndex = frameIndex;
+
+        // Read width & height from the header
+        ByteBuffer buf = ByteBuffer.wrap(data);
+        buf.order(ByteOrder.LITTLE_ENDIAN);
+        width = buf.getShort();
+        height = buf.getShort();
+
+        // Decode
+        decodeFrame(buf);
+    }
+
+    private void decodeFrame(ByteBuffer buf) {
+        short quantizer = Utils.toUnsignedByte(buf.get());
+        buf.position(buf.position() + 3); // Skip 3 bytes
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    @Override
+    public String toString() {
+        return "Video frame: " + frameIndex + ", " + width + "x" + height;
+    }
+
+    @Override
+    public int compareTo(TgqFrame o) {
+        return Integer.compare(frameIndex, o.frameIndex);
+    }
 }

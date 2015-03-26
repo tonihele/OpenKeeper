@@ -116,4 +116,9 @@ public class EAAudioHeader {
     protected void setNumberOfSamplesInStream(int numberOfSamplesInStream) {
         this.numberOfSamplesInStream = numberOfSamplesInStream;
     }
+
+    @Override
+    public String toString() {
+        return "Channels: " + numberOfChannels + ", " + bitsPerSample + " bits " + sampleRate + "Hz. Compression: " + compression;
+    }
 }

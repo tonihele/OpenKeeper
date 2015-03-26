@@ -26,7 +26,7 @@ import toniarts.openkeeper.tools.convert.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EAAudioFrame {
+public class EAAudioFrame implements Comparable<EAAudioFrame> {
 
     private static int EA_ADPCM_TABLE[] = {
         0, 240, 460, 392,
@@ -36,12 +36,14 @@ public class EAAudioFrame {
         0, -1, -3, -4
     };
     private final EAAudioHeader header;
+    private final int frameIndex;
     private int numberOfSamples;
     private int codedSamples;
     private ByteBuffer pcm;
 
-    public EAAudioFrame(EAAudioHeader header, byte[] data) {
+    public EAAudioFrame(EAAudioHeader header, byte[] data, int frameIndex) {
         this.header = header;
+        this.frameIndex = frameIndex;
 
         // Proceed to decode the frame so that we have only PCM
         decodeFrame(data);
@@ -133,5 +135,15 @@ public class EAAudioFrame {
      */
     public ByteBuffer getPcm() {
         return pcm;
+    }
+
+    @Override
+    public String toString() {
+        return "Audio frame: " + frameIndex + ", " + header;
+    }
+
+    @Override
+    public int compareTo(EAAudioFrame o) {
+        return Integer.compare(frameIndex, o.frameIndex);
     }
 }

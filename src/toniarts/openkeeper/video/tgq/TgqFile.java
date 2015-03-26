@@ -27,9 +27,12 @@ import toniarts.openkeeper.tools.convert.Utils;
 
 /**
  * Parses a DK II movie file<br>
- * A little endian file, containing audio and video<br>
+ * A little endian file, containing audio and video, just one stream of each.
+ * Audio and video frames are ~interspersedly positioned in the file.<br>
+ * The format is actually called Texture Quantized Image (TQI), but named here
+ * for the extension the DK II movie files have.<br>
  *
- * http://wiki.multimedia.cx/index.php?title=Electronic_Arts_Formats
+ * Source: http://wiki.multimedia.cx/index.php?title=Electronic_Arts_Formats
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -37,8 +40,13 @@ public class TgqFile implements AutoCloseable {
 
     private final RandomAccessFile file;
     private EAAudioHeader audioHeader;
+    private Integer width;
+    private Integer height;
     private int numberOfAudioStreamChunks;
+    private int audioFrameIndex = 0;
+    private int videoFrameIndex = 0;
     public ConcurrentLinkedQueue<EAAudioFrame> audioFrames = new ConcurrentLinkedQueue<>();
+    public ConcurrentLinkedQueue<TgqFrame> videoFrames = new ConcurrentLinkedQueue<>();
     private final static String TQG_TAG = "pIQT";
     private final static String SCHl_TAG = "SCHl";
     private final static String SHEN_TAG = "SHEN";
@@ -117,9 +125,10 @@ public class TgqFile implements AutoCloseable {
                 // Audio data itself
                 byte[] data = new byte[frameSize - 8];
                 file.read(data);
-                audioFrames.add(new EAAudioFrame(audioHeader, data));
+                audioFrames.add(new EAAudioFrame(audioHeader, data, audioFrameIndex));
 
                 gotFrame = true;
+                audioFrameIndex++;
                 break;
             }
             case SEEN_TAG:
@@ -133,7 +142,19 @@ public class TgqFile implements AutoCloseable {
             case TQG_TAG: {
 
                 // Video frame
+                byte[] data = new byte[frameSize - 8];
+                file.read(data);
+                TgqFrame frame = new TgqFrame(data, videoFrameIndex);
+                videoFrames.add(frame);
+
+                // See if we have the data
+                if (width == null || height == null) {
+                    width = frame.getWidth();
+                    height = frame.getHeight();
+                }
+
                 gotFrame = true;
+                videoFrameIndex++;
                 break;
             }
             default: {
@@ -203,7 +224,7 @@ public class TgqFile implements AutoCloseable {
         }
 
         // Tag data
-        while (file.getFilePointer() < pos + frameSize) {
+        while (file.getFilePointer() < (pos + frameSize)) {
             short tag = (short) file.readUnsignedByte();
             if (tag == 0xFF) {
                 return;
