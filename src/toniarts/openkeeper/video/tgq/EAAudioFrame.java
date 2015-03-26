@@ -37,6 +37,7 @@ public class EAAudioFrame {
     };
     private final EAAudioHeader header;
     private int numberOfSamples;
+    private int codedSamples;
     private ByteBuffer pcm;
 
     public EAAudioFrame(EAAudioHeader header, byte[] data) {
@@ -58,7 +59,7 @@ public class EAAudioFrame {
             buf.order(ByteOrder.LITTLE_ENDIAN);
 
             // 12 bytes header
-            int codedSamples = buf.getInt();
+            codedSamples = buf.getInt();
             codedSamples -= codedSamples % 28;
             numberOfSamples = (data.length - 12) / 30 * 28;
             short currentLeftSample = buf.getShort();
@@ -67,11 +68,11 @@ public class EAAudioFrame {
             short previousRightSample = buf.getShort();
 
             // Output
-            pcm = ByteBuffer.allocateDirect(numberOfSamples * 4);
+            pcm = ByteBuffer.allocateDirect(codedSamples * 4);
             pcm.order(ByteOrder.LITTLE_ENDIAN); // JME takes PCM_LE
 
             // Decoding
-            for (int count1 = 0; count1 < numberOfSamples / 28; count1++) {
+            for (int count1 = 0; count1 < codedSamples / 28; count1++) {
                 int b = Utils.toUnsignedByte(buf.get());
                 int coeff1l = EA_ADPCM_TABLE[ b >> 4];
                 int coeff2l = EA_ADPCM_TABLE[(b >> 4) + 4];
@@ -103,7 +104,6 @@ public class EAAudioFrame {
                 }
             }
             pcm.rewind();
-
         } else {
             throw new RuntimeException("Compression not supported! Can't decode the audio frame!");
         }
@@ -126,6 +126,11 @@ public class EAAudioFrame {
         return header;
     }
 
+    /**
+     * PCM little endian bytebuffer
+     *
+     * @return PCM audio
+     */
     public ByteBuffer getPcm() {
         return pcm;
     }
