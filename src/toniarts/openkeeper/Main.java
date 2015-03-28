@@ -49,6 +49,7 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
 
 /**
  * Main entry point of OpenKeeper
@@ -59,7 +60,6 @@ public class Main extends SimpleApplication {
 
     private static String dkIIFolder;
     private static boolean conversionDone = false;
-    private static int conversionVersion = 0;
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
     private final static String SETTINGS_FILE = "openkeeper.properties";
@@ -68,7 +68,6 @@ public class Main extends SimpleApplication {
     private final static String DKII_FOLDER_KEY = "Dungeon Keeper II folder";
     private final static String CONVERSION_DONE_KEY = "Conversion done";
     private final static String CONVERSION_VERSION_KEY = "Conversion version";
-    private final static int CONVERSION_VERSION = 1;
     public final static String ANISOTROPY_KEY = "Anisotrophy";
     public final static String SSAO_KEY = "SSAO";
     private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
@@ -155,7 +154,7 @@ public class Main extends SimpleApplication {
         }
 
         // If the folder is ok, check the conversion
-        if (folderOk && (conversionVersion < CONVERSION_VERSION || !conversionDone)) {
+        if (folderOk && (AssetsConverter.conversionNeeded(app.settings) || !conversionDone)) {
             logger.info("Need to convert the assets!");
             saveSetup = true;
 
@@ -167,7 +166,7 @@ public class Main extends SimpleApplication {
             DKConverter frame = new DKConverter(dkIIFolder, assetManager) {
                 @Override
                 protected void continueOk() {
-                    app.settings.putInteger(CONVERSION_VERSION_KEY, CONVERSION_VERSION);
+                    AssetsConverter.setConversionSettings(app.settings);
                     app.settings.putBoolean(CONVERSION_DONE_KEY, true);
                     conversionOk = true;
                 }
@@ -222,7 +221,6 @@ public class Main extends SimpleApplication {
         // DKII settings
         dkIIFolder = setup.getString(DKII_FOLDER_KEY);
         conversionDone = setup.getBoolean(CONVERSION_DONE_KEY);
-        conversionVersion = setup.getInteger(CONVERSION_VERSION_KEY);
 
         // The icons
         setup.setIcons(getApplicationIcons());
