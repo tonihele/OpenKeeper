@@ -67,7 +67,6 @@ public class Main extends SimpleApplication {
     private final static int MAX_FPS = 90;
     private final static String DKII_FOLDER_KEY = "Dungeon Keeper II folder";
     private final static String CONVERSION_DONE_KEY = "Conversion done";
-    private final static String CONVERSION_VERSION_KEY = "Conversion version";
     public final static String ANISOTROPY_KEY = "Anisotrophy";
     public final static String SSAO_KEY = "SSAO";
     private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
