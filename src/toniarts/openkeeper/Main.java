@@ -37,6 +37,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -50,6 +51,7 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.utils.UTF8Control;
 
 /**
  * Main entry point of OpenKeeper
@@ -456,6 +458,16 @@ public class Main extends SimpleApplication {
             fpp.addFilter(ssaoFilter);
             viewPort.addProcessor(fpp);
         }
+    }
+
+    /**
+     * Gets current locale's resource bundle (UTF-8)
+     *
+     * @param baseName base name of the bundle
+     * @return the resource bundle
+     */
+    public static ResourceBundle getResourceBundle(String baseName) {
+        return ResourceBundle.getBundle(baseName, new UTF8Control());
     }
 
     @Override

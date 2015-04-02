@@ -7,7 +7,7 @@
     <useControls filename="nifty-default-controls.xml" />
     <useControls filename="Interface/MyControls.xml" />
 
-    <resourceBundle id="menu" filename="Interface/Texts/Text" />
+    <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
 
     <!--<registerSound id="menuClick" filename="Sounds/Global/FE3D CLICK ON T.mp2" />-->
     <!--<registerSound id="buttonClick" filename="Sounds/Global/FE BUTTON BIG 5.mp2" />-->

@@ -137,6 +137,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         this.app.getGuiViewPort().addProcessor(niftyDisplay);
 
         // Load the start menu
+        niftyDisplay.getNifty().getResourceBundles().put("menu", Main.getResourceBundle("Interface/Texts/Text"));
         niftyDisplay.getNifty().fromXml("Interface/MainMenu.xml", "start", this);
 
         // Set the camera position
@@ -331,8 +332,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * @return the resource bundle
      */
     private ResourceBundle getLevelResourceBundle() {
-        ResourceBundle dict = ResourceBundle.getBundle("Interface/Texts/LEVEL" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "_BRIEFING");
-        return dict;
+        return Main.getResourceBundle("Interface/Texts/LEVEL" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "_BRIEFING");
     }
 
     /**
