@@ -26,6 +26,7 @@ public class BitReader {
 
     private BitReader(BitReader other) {
         bb = other.bb.duplicate();
+        bb.order(other.bb.order());
         curInt = other.curInt;
         deficit = other.deficit;
     }
@@ -33,10 +34,14 @@ public class BitReader {
     public final int readInt() {
         if (bb.remaining() >= 4) {
             deficit -= 32;
+            final int b1 = bb.get() & 0xff;
+            final int b2 = bb.get() & 0xff;
+            final int b3 = bb.get() & 0xff;
+            final int b4 = bb.get() & 0xff;
             if (bb.order() == ByteOrder.BIG_ENDIAN) {
-                return ((bb.get() & 0xff) << 24) | ((bb.get() & 0xff) << 16) | ((bb.get() & 0xff) << 8) | (bb.get() & 0xff);
+                return (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
             } else {
-                return ((bb.get() & 0xff)) | ((bb.get() & 0xff) << 8) | ((bb.get() & 0xff) << 16) | ((bb.get() & 0xff) << 24);
+                return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
             }
         } else {
             return readIntSafe();
@@ -44,9 +49,6 @@ public class BitReader {
     }
 
     private int readIntSafe() {
-
-        // NOT ENDIANESS SAFE!!!!!
-
         deficit -= (bb.remaining() << 3);
         int res = 0;
         if (bb.hasRemaining()) {
@@ -64,7 +66,12 @@ public class BitReader {
         if (bb.hasRemaining()) {
             res |= bb.get() & 0xff;
         }
-        return res;
+
+        if (bb.order() == ByteOrder.BIG_ENDIAN) {
+            return res;
+        } else {
+            return Integer.reverseBytes(res);
+        }
     }
 
     public int read1Bit() {
