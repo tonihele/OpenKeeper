@@ -230,7 +230,7 @@ public class KwdFile {
     private String author;
     private String email;
     private String information;
-    private int mWShortId0;
+    private int triggerId; // Associated trigger
     private int ticksPerSec;
     private short x01184[];
     private String messages[];
@@ -685,7 +685,7 @@ public class KwdFile {
             player.setChanceOfExploringToFindSpecials((short) file.readUnsignedByte());
             player.setChanceOfFindingSpecialsWhenExploring((short) file.readUnsignedByte());
             player.setFateOfImprisonedCreatures(parseEnum((short) file.readUnsignedByte(), Player.ImprisonedCreatureFatePolicy.class));
-            player.setUnknown4(Utils.readUnsignedShort(file));
+            player.setTriggerId(Utils.readUnsignedShort(file));
             player.setPlayerId((short) file.readUnsignedByte());
             player.setStartingCameraX(Utils.readUnsignedShort(file));
             player.setStartingCameraY(Utils.readUnsignedShort(file));
@@ -1165,7 +1165,7 @@ public class KwdFile {
             rawMapInfo.read(bytes);
             information = Utils.bytesToStringUtf16(bytes).trim();
 
-            mWShortId0 = Utils.readUnsignedShort(rawMapInfo);
+            triggerId = Utils.readUnsignedShort(rawMapInfo);
             ticksPerSec = Utils.readUnsignedShort(rawMapInfo);
             x01184 = new short[520];
             for (int x = 0; x < x01184.length; x++) {
