@@ -106,7 +106,7 @@ public abstract class Trigger {
             CONGREGATE_IN(39), // Action point
             CLAIM_PART_OF(40), // Action point
             CLAIM_ALL_OF(41), // Action point
-            SLAP_TYPES(43), // Action point
+            SLAP_TYPES(42), // Action point
             PARTY_CREATED(43), // Party
             MEMBERS_KILLED(44), // Party
             MEMBERS_CAPTURED(45), // Party
