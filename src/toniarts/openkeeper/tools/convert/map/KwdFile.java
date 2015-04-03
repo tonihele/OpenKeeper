@@ -2236,7 +2236,7 @@ public class KwdFile {
                     trigger = new TriggerGeneric(this);
                     ((TriggerGeneric) trigger).setTargetValueComparison(parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
                     ((TriggerGeneric) trigger).setTargetFlagId((short) file.readUnsignedByte());
-                    ((TriggerGeneric) trigger).setTargetValueType(parseEnum((short) file.readUnsignedByte(), TriggerGeneric.TargetValueType.class));
+                    short targetValueType = (short) file.readUnsignedByte();
                     ((TriggerGeneric) trigger).setTargetValueFlagId((short) file.readUnsignedByte());
                     ((TriggerGeneric) trigger).setTargetValue(Utils.readInteger(file));
                     ((TriggerGeneric) trigger).setId(Utils.readUnsignedShort(file));
@@ -2244,6 +2244,16 @@ public class KwdFile {
                     ((TriggerGeneric) trigger).setX0c(Utils.readUnsignedShort(file));
                     ((TriggerGeneric) trigger).setTarget(parseEnum((short) file.readUnsignedByte(), TriggerGeneric.TargetType.class));
                     ((TriggerGeneric) trigger).setRepeatTimes((short) file.readUnsignedByte());
+                    if (TriggerGeneric.TargetType.SLAP_TYPES.equals(((TriggerGeneric) trigger).getTarget())) {
+
+                        // The target value type is actually a terrain ID
+                        ((TriggerGeneric) trigger).setTargetValueType(TriggerGeneric.TargetValueType.TERRAIN_ID);
+                        ((TriggerGeneric) trigger).setTerrainId(targetValueType);
+                    } else {
+
+                        // Assign type normally
+                        ((TriggerGeneric) trigger).setTargetValueType(parseEnum(targetValueType, TriggerGeneric.TargetValueType.class));
+                    }
                     break;
                 }
                 case 214: {

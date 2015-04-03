@@ -159,6 +159,7 @@ public abstract class Trigger {
 
         public enum TargetValueType implements IValueEnum {
 
+            TERRAIN_ID(-1), // Slab types point to terrain ID
             VALUE(0), // Use the value
             VALUE1(1), // This isn't quite right, but this means use the value
             FLAG(2); // As in flag value
@@ -192,6 +193,7 @@ public abstract class Trigger {
         private int x0c;
         private TargetType target;
         private short repeatTimes; // Repeat x times, 255 = always
+        private short terrainId; // Slab types have the targetValueType as terrain ID
 
         public TriggerGeneric(KwdFile kwdFile) {
             super(kwdFile);
@@ -277,9 +279,40 @@ public abstract class Trigger {
             this.repeatTimes = repeatTimes;
         }
 
+        public short getTerrainId() {
+            return terrainId;
+        }
+
+        protected void setTerrainId(short terrainId) {
+            this.terrainId = terrainId;
+        }
+
+        private String getTargetValueString() {
+            StringBuilder buf = new StringBuilder();
+            switch (targetValueType) {
+                case FLAG: {
+                    buf.append(target).append(" ").append(targetValueFlagId + 1);
+                    break;
+                }
+                case TERRAIN_ID: {
+                    Terrain terrain = kwdFile.getTerrain(terrainId);
+                    buf.append(targetValue).append(" ").append(terrain);
+                    if (targetFlagId > 0 && terrain != null && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                        buf.append(" [").append(kwdFile.getPlayer(targetFlagId)).append("]");
+                    }
+                    break;
+                }
+                default: {
+                    buf.append(targetValue);
+                    break;
+                }
+            }
+            return buf.toString();
+        }
+
         @Override
         public String toString() {
-            return "When " + target + (target == TargetType.FLAG || target == TargetType.TIMER ? " " + (targetFlagId + 1) : "") + (targetValueComparison != ComparisonType.NONE ? " " + targetValueComparison + " " + (targetValueType == TargetValueType.FLAG ? target + " " + (targetValueFlagId + 1) : targetValue) : "");
+            return "When " + target + (target == TargetType.FLAG || target == TargetType.TIMER ? " " + (targetFlagId + 1) : "") + (targetValueComparison != ComparisonType.NONE ? " " + targetValueComparison + " " + getTargetValueString() : "");
         }
 
         @Override
