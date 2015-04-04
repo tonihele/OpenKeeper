@@ -151,6 +151,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
                 // Set the near
                 cam.setFrustumNear(FastMath.interpolateLinear(progress, cameraSweepData.getEntries().get(startIndex).getNear(), cameraSweepData.getEntries().get(endIndex).getNear()) / 4096f);
+                cam.setFrustumPerspective(45f, (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
             }
         };
         cameraMotionControl.setLoopMode(LoopMode.DontLoop);
