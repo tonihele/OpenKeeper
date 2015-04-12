@@ -73,7 +73,7 @@ public class TgqFile implements AutoCloseable {
             while (tgq.readFrame()) {
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse frame!");
+            throw new RuntimeException("Failed to parse frame!", e);
         }
     }
 
