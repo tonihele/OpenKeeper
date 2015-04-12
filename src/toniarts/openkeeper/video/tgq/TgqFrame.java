@@ -18,7 +18,6 @@ package toniarts.openkeeper.video.tgq;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.ShortBuffer;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.BitReader;
 import toniarts.openkeeper.tools.convert.Utils;
@@ -82,7 +81,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         26, 27, 29, 34, 38, 46, 56, 69,
         27, 29, 35, 38, 46, 56, 69, 83};
     private final static int DC_VLC_BITS = 9;
-    private final static int TEX_VLC_BITS = 9;
+    private final static int TEX_VLC_BITS = 28;
     private static final short[][] dcLuminanceVlc = {
         {18, 15, 0}, {-1, -1, 0}, {-1, -1, 1}, {-1, -1, 2}, {-1, -1, 3}, {-1, -1, 4},
         {-1, -1, 5}, {-1, -1, 6}, {-1, -1, 7}, {-1, -1, 8}, {9, -1, 0}, {8, 10, 0},
@@ -161,8 +160,24 @@ public class TgqFrame implements Comparable<TgqFrame> {
         calculateDequantizationTable(quantizer);
 
         // Create a bit stream
+//        buf.position(0);
+        byte[] array = {
+            64, 1, -32, 1,
+            100, 20, 30, 3,
+            47, -91, 52, -12,
+            2, -6, 11, -24,
+            41, 98, -124, 52
+        };
+//        ByteBuffer bArray = ByteBuffer.wrap(array);
+//        bArray.order(ByteOrder.LITTLE_ENDIAN);
         BitReader bitReader = new BitReader(buf);
-//        bitReader.skip(21);
+//        bitReader.readNBit(32);
+//        bitReader.readNBit(32);
+//        bitReader.readNBit(21);
+        //int integ = Integer.reverseBytes(bitReader.curInt);
+//        buf.position(buf.position() + (21 >> 3));
+//        buf.order(ByteOrder.BIG_ENDIAN);
+//        int luku = (buf.getInt()) >> (21 & 7);
 //        int luku = bitReader.readNBit(32);
 
         // Decode the macroblocks
@@ -183,10 +198,10 @@ public class TgqFrame implements Comparable<TgqFrame> {
         }
     }
 
-    private short[][] decodeBlock(BitReader bitReader) {
-        short[][] block = new short[6][64];
+    private int[][] decodeBlock(BitReader bitReader) {
+        int[][] block = new int[6][64];
         for (int n = 0; n < 6; n++) {
-            mpeg1DecodeBlock(bitReader, ShortBuffer.wrap(block[n]), n);
+            mpeg1DecodeBlock(bitReader, block[n], n);
         }
         return block;
     }
@@ -197,7 +212,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
      * @param bitReader data
      * @param componentIndex one of 4 luma + 2 chroma components
      */
-    private void mpeg1DecodeBlock(BitReader bitReader, ShortBuffer blockBuffer, int componentIndex) {
+    private void mpeg1DecodeBlock(BitReader bitReader, int[] block, int componentIndex) {
 
         // DC coefficient
         int component = (componentIndex <= 3 ? 0 : componentIndex - 4 + 1);
@@ -208,42 +223,49 @@ public class TgqFrame implements Comparable<TgqFrame> {
         int dc = lastDc[component];
         dc += diff;
         lastDc[component] = dc;
-        blockBuffer.put(0, (short) (dc * dequantizationTable[0]));
+        block[0] = dc * dequantizationTable[0];
         //TODO: Fork(), really, sounds expensive, I just need an int while not advancing the stream
-        int luku = bitReader.fork().readNBit(32);
+//        BitReader fork = bitReader.fork();
+//        fork.readNBit(bitReader.position() >> 3);
+//        long luku = fork.readNBit(32) << (bitReader.position() & 7);
+//        long luku = fork.bb.getInt(fork.bb.position() + (bitReader.position() >> 3) - 4) & 0xFFFFFFFFL;
+//        Integer.reverseBytes(luku);
         System.out.println("Bit index: " + bitReader.position());
-        System.out.println(luku);
+//        System.out.println(luku);
+//        int i = 0;
+//        int j;
+//        for (int idx = 0; idx < 64;) {
+        short[] vlc = decodeVlc(bitReader, TEX_VLC_BITS, dctCoeff);
+//        int run = 0;
         int i = 0;
-        int j;
-        while (bitReader.fork().readNBit(32) > 0xBFFFFFFF) {
+        int j = 0;
+        while (vlc[2] != EOB) {
 
-            // Now quantify & encode AC coefficients
-            short[] vlc = decodeVlc(bitReader, TEX_VLC_BITS, dctCoeff);
-            int level = vlc[2];
-            int run = vlc[3];
-            if (level != 0) {
-                i += run;
-                j = scanTablePermutated[i];
-                level = (level * dequantizationTable[j]) >> 4;
-                level = (level - 1) | 1;
-                level = (level ^ bitReader.readNBit(1))
-                        - bitReader.readNBit(1);
-                bitReader.skip(1);
-            } else {
+//            if (vlc[2] == EOB) {
+//                break;
+//            } else 
+            int level = vlc[3];
+            if (vlc[2] == DCT_ESCAPE) {
 
-                // Escape
-                run = bitReader.readNBit(6) + 1;
-                bitReader.skip(6);
+                int run = bitReader.readNBit(6) + 1;
                 level = bitReader.readNBit(8);
-                bitReader.skip(8);
-                if (level == -128) {
-                    level = bitReader.readNBit(8) - 256;
-                    bitReader.skip(8);
-                } else if (level == 0) {
-                    level = bitReader.readNBit(8);
-                    bitReader.skip(8);
+
+                if (((level & 0x7f) == 0)) { // 16 bit
+                    level <<= 8;
+                    level |= bitReader.readNBit(8);
+                    if ((level & 0x8000) != 0) {
+                        level |= 0xffffff00;  // sign ??
+                    }
+                } else if ((0x80 & level) != 0) { // sign ??
+                    level |= 0xffffff00;
                 }
-                i += run;
+
+//                if (level == -128) {
+//                    level = bitReader.readNBit(8) - 256;
+//                } else if (level == 0) {
+//                    level = bitReader.readNBit(8);
+//                }
+                i += run + 1;
                 j = scanTablePermutated[i];
                 if (level < 0) {
                     level = -level;
@@ -254,16 +276,79 @@ public class TgqFrame implements Comparable<TgqFrame> {
                     level = (level * dequantizationTable[j]) >> 4;
                     level = (level - 1) | 1;
                 }
+            } else {
+                i += vlc[2] + 1;
+                level = bitReader.read1Bit() == 0 ? vlc[3] : -vlc[3];
+                j = scanTablePermutated[i];
+                level = (level * dequantizationTable[j]) >> 4;
+                level = (level - 1) | 1;
+//                level = (level ^ bitReader.checkNBit(1))
+//                        - bitReader.checkNBit(1);
+//                bitReader.skip(1);
+//                idx += (vlc[2] >> 6) + 1;
+//                level = toSigned(((readVLC & 0x3f) * qScale * qmat[idx]) >> 4, bits.read1Bit());
             }
 
-            blockBuffer.put(j, (short) level);
+//                for (int i = 0; i < 64; i += 4) {
+//            block[i] += COEFF[ind][i] * level;
+//            block[i + 1] += COEFF[ind][i + 1] * level;
+//            block[i + 2] += COEFF[ind][i + 2] * level;
+//            block[i + 3] += COEFF[ind][i + 3] * level;
+//        }
+
+            block[j] = level;
+            vlc = decodeVlc(bitReader, TEX_VLC_BITS, dctCoeff);
         }
-        bitReader.skip(2);
+//        while (bitReader.fork().readNBit(32) > 0xBFFFFFFF) {
+//        while (vlc[2] != EOB) {
+//
+//            // Now quantify & encode AC coefficients
+//            int level = vlc[2];
+//            int run = vlc[3];
+//            if (level != 0) {
+//                i += run;
+//                j = scanTablePermutated[i];
+//                level = (level * dequantizationTable[j]) >> 4;
+//                level = (level - 1) | 1;
+//                level = (level ^ bitReader.readNBit(1))
+//                        - bitReader.readNBit(1);
+//                bitReader.skip(1);
+//            } else {
+//
+//                // Escape
+//                run = bitReader.readNBit(6) + 1;
+//                bitReader.skip(6);
+//                level = bitReader.readNBit(8);
+//                bitReader.skip(8);
+//                if (level == -128) {
+//                    level = bitReader.readNBit(8) - 256;
+//                    bitReader.skip(8);
+//                } else if (level == 0) {
+//                    level = bitReader.readNBit(8);
+//                    bitReader.skip(8);
+//                }
+//                i += run;
+//                j = scanTablePermutated[i];
+//                if (level < 0) {
+//                    level = -level;
+//                    level = (level * dequantizationTable[j]) >> 4;
+//                    level = (level - 1) | 1;
+//                    level = -level;
+//                } else {
+//                    level = (level * dequantizationTable[j]) >> 4;
+//                    level = (level - 1) | 1;
+//                }
+//            }
+//
+//            blockBuffer.put(j, (short) level);
+//            vlc = decodeVlc(bitReader, TEX_VLC_BITS, dctCoeff);
+//        }
+//        bitReader.skip(2);
         blockLastIndex[componentIndex] = i;
     }
 
     private int decodeDc(BitReader bitReader, int component) {
-        int code = 0;
+        int code;
 
         if (component == 0) {
             code = decodeVlc(bitReader, DC_VLC_BITS, dcLuminanceVlc)[2];
