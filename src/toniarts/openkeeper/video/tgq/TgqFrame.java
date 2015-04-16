@@ -18,6 +18,7 @@ package toniarts.openkeeper.video.tgq;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.BitReader;
 import toniarts.openkeeper.tools.convert.Utils;
@@ -49,7 +50,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         53, 60, 61, 54, 47, 55, 62, 63
     };
     private final static short[] scanTablePermutated = new short[64];
-    private final static short[] scanTableRasterEnd = new short[64];
+//    private final static short[] scanTableRasterEnd = new short[64];
 
     static {
         for (int i = 0; i < 64; i++) {
@@ -57,14 +58,14 @@ public class TgqFrame implements Comparable<TgqFrame> {
             scanTablePermutated[i] = j;
         }
 
-        short end = -1;
-        for (int i = 0; i < 64; i++) {
-            short j = scanTablePermutated[i];
-            if (j > end) {
-                end = j;
-            }
-            scanTableRasterEnd[i] = end;
-        }
+//        short end = -1;
+//        for (int i = 0; i < 64; i++) {
+//            short j = scanTablePermutated[i];
+//            if (j > end) {
+//                end = j;
+//            }
+//            scanTableRasterEnd[i] = end;
+//        }
     }
     private final static int[] baseTable = {
         4096, 2953, 3135, 3483, 4096, 5213, 7568, 14846,
@@ -101,7 +102,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
     private static final short DCT_ESCAPE = -2;
     private static final short EOB = -5; /* end of block */
 
-    public final short dctCoeff[][] = {
+    public static final short dctCoeff[][] = {
         {128, 141, 0, 0}, {-1, -1, EOB, EOB}, {-1, -1, 0, 1}, {-1, -1, 1, 1}, {-1, -1, 0, 2}, {-1, -1, 2, 1},
         {-1, -1, 0, 3}, {-1, -1, 3, 1}, {-1, -1, 4, 1}, {-1, -1, 1, 2}, {-1, -1, 5, 1}, {-1, -1, 6, 1},
         {-1, -1, 7, 1}, {-1, -1, 0, 4}, {-1, -1, 2, 2}, {-1, -1, 8, 1}, {-1, -1, 9, 1}, {-1, -1, DCT_ESCAPE, DCT_ESCAPE},
@@ -142,7 +143,21 @@ public class TgqFrame implements Comparable<TgqFrame> {
         {90, 89, 0, 0}, {92, 91, 0, 0}, {225, 223, 0, 0}, {94, 93, 0, 0}, {96, 95, 0, 0}
     };
     private int[] lastDc = {0, 0, 0};
+    private final int[] linesize;
+    private final int codedWidth;
+    private final int codedHeight;
+    private final int[] y;
+    private final int[] cb;
+    private final int[] cr;
+    private final static short ASQRT = 181; /* (1/sqrt(2))<<8 */
+
+    private final static short A4 = 669; /* cos(pi/8)*sqrt(2)<<9 */
+
+    private final static short A2 = 277; /* sin(pi/8)*sqrt(2)<<9 */
+
+    private final static short A5 = 196; /* sin(pi/8)<<9 */
 //    private int[] blockLastIndex = new int[12];
+
     private static final Logger logger = Logger.getLogger(TgqFrame.class.getName());
 
     public TgqFrame(byte[] data, int frameIndex) {
@@ -153,6 +168,14 @@ public class TgqFrame implements Comparable<TgqFrame> {
         buf.order(ByteOrder.LITTLE_ENDIAN);
         width = buf.getShort();
         height = buf.getShort();
+
+        // Create the result data buffers
+        codedWidth = (width + 15) & ~0xf;
+        codedHeight = (height + 15) & ~0xf;
+        linesize = new int[]{codedWidth, codedWidth / 2, codedWidth / 2};
+        y = new int[codedWidth * codedHeight];
+        cb = new int[codedWidth * codedHeight];
+        cr = new int[codedWidth * codedHeight];
 
         // Decode
         decodeFrame(buf);
@@ -169,7 +192,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         // Decode the macroblocks
         for (int y = 0; y < (height + 15) / 16; y++) {
             for (int x = 0; x < (width + 15) / 16; x++) {
-                decodeBlock(bitReader);
+                idctPut(decodeBlock(bitReader), x, y);
             }
         }
     }
@@ -279,6 +302,8 @@ public class TgqFrame implements Comparable<TgqFrame> {
         int idx1 = 0, idx = 0;
         int readLength = -1;
         int mask = (1 << maxLength + 1);
+
+        // FIXME: should fix the check bit instead of forking...
         int bits = bitReader.fork().readNBit(maxLength + 1); // Make sure that enough bits are available
 
         while (idx != -1) {	// NIL ????
@@ -291,6 +316,92 @@ public class TgqFrame implements Comparable<TgqFrame> {
         // Advance the reader by the real length
         bitReader.skip(readLength);
         return (tab[idx1]);
+    }
+
+    /**
+     * Applies IDCT algorithm to block and puts it to the result arrays
+     *
+     * @param block the block
+     */
+    private void idctPut(int[][] block, int mbX, int mbY) {
+
+        // Set the buffers
+        IntBuffer yBuf = (IntBuffer) IntBuffer.wrap(y).position((mbY * 16 * linesize[0]) + mbX * 16);
+        IntBuffer cbBuf = (IntBuffer) IntBuffer.wrap(cb).position((mbY * 8 * linesize[1]) + mbX * 8);
+        IntBuffer crBuf = (IntBuffer) IntBuffer.wrap(cr).position((mbY * 8 * linesize[2]) + mbX * 8);
+
+        int yPosition = yBuf.position();
+        eaIdctPut(yBuf, linesize[0], block[0]);
+        eaIdctPut((IntBuffer) yBuf.position(yPosition + 8), linesize[0], block[1]);
+        eaIdctPut((IntBuffer) yBuf.position(yPosition + 8 * linesize[0]), linesize[0], block[2]);
+        eaIdctPut((IntBuffer) yBuf.position(yPosition + 8 * linesize[0] + 8), linesize[0], block[3]);
+        eaIdctPut(cbBuf, linesize[1], block[4]);
+        eaIdctPut(crBuf, linesize[2], block[5]);
+    }
+
+    private static void eaIdctPut(IntBuffer dest, int linesize, int[] block) {
+        int[] temp = new int[64];
+        block[0] += 4;
+        for (int i = 0; i < 8; i++) {
+            eaIdctCol((IntBuffer) IntBuffer.wrap(temp).position(i), (IntBuffer) IntBuffer.wrap(block).position(i));
+        }
+        int dPosition = dest.position();
+        for (int i = 0; i < 8; i++) {
+            idctTransform((IntBuffer) dest.position(dPosition + i * linesize), 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, true, (IntBuffer) IntBuffer.wrap(temp).position(8 * i));
+        }
+    }
+
+    private static void eaIdctCol(IntBuffer dest, IntBuffer src) {
+        if ((src.get(src.position() + 8) | src.get(src.position() + 16) | src.get(src.position() + 24) | src.get(src.position() + 32) | src.get(src.position() + 40) | src.get(src.position() + 48) | src.get(src.position() + 56)) == 0) {
+            dest.put(dest.position() + 0, src.get(src.position() + 0));
+            dest.put(dest.position() + 8, src.get(src.position() + 0));
+            dest.put(dest.position() + 16, src.get(src.position() + 0));
+            dest.put(dest.position() + 24, src.get(src.position() + 0));
+            dest.put(dest.position() + 32, src.get(src.position() + 0));
+            dest.put(dest.position() + 40, src.get(src.position() + 0));
+            dest.put(dest.position() + 48, src.get(src.position() + 0));
+            dest.put(dest.position() + 56, src.get(src.position() + 0));
+        } else {
+            idctTransform(dest, 0, 8, 16, 24, 32, 40, 48, 56, 0, 8, 16, 24, 32, 40, 48, 56, false, src);
+        }
+    }
+
+    private static void idctTransform(IntBuffer dest, int s0, int s1, int s2, int s3, int s4, int s5, int s6, int s7, int d0, int d1, int d2, int d3, int d4, int d5, int d6, int d7, boolean clip, IntBuffer src) {
+        int a1 = src.get(src.position() + s1) + src.get(src.position() + s7);
+        int a7 = src.get(src.position() + s1) - src.get(src.position() + s7);
+        int a5 = src.get(src.position() + s5) + src.get(src.position() + s3);
+        int a3 = src.get(src.position() + s5) - src.get(src.position() + s3);
+        int a2 = src.get(src.position() + s2) + src.get(src.position() + s6);
+        int a6 = (ASQRT * (src.get(src.position() + s2) - src.get(src.position() + s6))) >> 8;
+        int a0 = src.get(src.position() + s0) + src.get(src.position() + s4);
+        int a4 = src.get(src.position() + s0) - src.get(src.position() + s4);
+        int b0 = (((A4 - A5) * a7 - A5 * a3) >> 9) + a1 + a5;
+        int b1 = (((A4 - A5) * a7 - A5 * a3) >> 9) + ((ASQRT * (a1 - a5)) >> 8);
+        int b2 = (((A2 + A5) * a3 + A5 * a7) >> 9) + ((ASQRT * (a1 - a5)) >> 8);
+        int b3 = ((A2 + A5) * a3 + A5 * a7) >> 9;
+        if (clip) {
+            dest.put(dest.position() + d0, clip(a0 + a2 + a6 + b0));
+            dest.put(dest.position() + d1, clip(a4 + a6 + b1));
+            dest.put(dest.position() + d2, clip(a4 - a6 + b2));
+            dest.put(dest.position() + d3, clip(a0 - a2 - a6 + b3));
+            dest.put(dest.position() + d4, clip(a0 - a2 - a6 - b3));
+            dest.put(dest.position() + d5, clip(a4 - a6 - b2));
+            dest.put(dest.position() + d6, clip(a4 + a6 - b1));
+            dest.put(dest.position() + d7, clip(a0 + a2 + a6 - b0));
+        } else {
+            dest.put(dest.position() + d0, (a0 + a2 + a6 + b0));
+            dest.put(dest.position() + d1, (a4 + a6 + b1));
+            dest.put(dest.position() + d2, (a4 - a6 + b2));
+            dest.put(dest.position() + d3, (a0 - a2 - a6 + b3));
+            dest.put(dest.position() + d4, (a0 - a2 - a6 - b3));
+            dest.put(dest.position() + d5, (a4 - a6 - b2));
+            dest.put(dest.position() + d6, (a4 + a6 - b1));
+            dest.put(dest.position() + d7, (a0 + a2 + a6 - b0));
+        }
+    }
+
+    protected static int clip(int val) {
+        return (val >> 4);
     }
 
     public int getWidth() {
