@@ -293,9 +293,15 @@ public class TgqFrame implements Comparable<TgqFrame> {
         if (code == 0) {
             diff = 0;
         } else {
-            diff = bitReader.readNBit(code);
+            diff = mpegSigned(bitReader, code);
         }
         return diff;
+    }
+
+    private static int mpegSigned(BitReader bits, int size) {
+        int val = bits.readNBit(size);
+        int sign = (val >>> (size - 1)) ^ 0x1;
+        return val + sign - (sign << size);
     }
 
     public short[] decodeVlc(BitReader bitReader, int maxLength, short tab[][]) {
