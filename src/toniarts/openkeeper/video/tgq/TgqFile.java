@@ -283,7 +283,7 @@ public class TgqFile implements AutoCloseable {
         byte[] bytes = new byte[length];
         file.read(bytes);
 
-        // Always big endien
+        // Always big endian
         for (byte b : bytes) {
             value <<= 8;
             value |= b & 0xff; // Unsigned
