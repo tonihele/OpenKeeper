@@ -332,6 +332,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
      */
     private void idctPut(int[][] block, int mbX, int mbY) {
 
+        // FIXME: Could do without the buffers, more efficient that way?
         // Set the buffers
         IntBuffer yBuf = (IntBuffer) IntBuffer.wrap(y).position((mbY * 16 * linesize[0]) + mbX * 16);
         IntBuffer cbBuf = (IntBuffer) IntBuffer.wrap(cb).position((mbY * 8 * linesize[1]) + mbX * 8);
