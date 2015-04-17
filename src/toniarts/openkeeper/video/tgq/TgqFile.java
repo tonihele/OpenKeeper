@@ -23,6 +23,7 @@ import java.io.RandomAccessFile;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.Utils;
 
 /**
@@ -61,16 +62,27 @@ public class TgqFile implements AutoCloseable {
 
     public static void main(String[] args) throws IOException {
 
-        // Take a movie file as parameter
-        if (args.length != 1 || !new File(args[0]).exists()) {
-            throw new RuntimeException("Please provide a TGQ movie file as first parameter!");
+        if (args.length != 2) {
+            throw new RuntimeException("Please provide a TGQ movie file as first parameter and frame output folder as the second parameter!");
         }
+
+        // Take a movie file as parameter
+        if (!new File(args[0]).exists()) {
+            throw new RuntimeException("Movie file doesn't exist!");
+        }
+
+        new File(args[1]).mkdirs();
 
         // Create the video parser
         try (TgqFile tgq = new TgqFile(new File(args[0]))) {
             TgqFrame frame = null;
 //            while ((frame = tgq.readFrame()) != null) {
             while (tgq.readFrame()) {
+                frame = tgq.videoFrames.poll();
+                if (frame != null) {
+                    File outputfile = new File(args[1].concat("Frame").concat(frame.getFrameIndex() + "").concat(".png"));
+                    ImageIO.write(frame.getImage(), "png", outputfile);
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse frame!", e);
