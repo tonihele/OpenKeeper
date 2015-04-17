@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.video.tgq;
 
+import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
@@ -51,22 +52,12 @@ public class TgqFrame implements Comparable<TgqFrame> {
         53, 60, 61, 54, 47, 55, 62, 63
     };
     private final static short[] scanTablePermutated = new short[64];
-//    private final static short[] scanTableRasterEnd = new short[64];
 
     static {
         for (int i = 0; i < 64; i++) {
             short j = scanTable[i];
             scanTablePermutated[i] = j;
         }
-
-//        short end = -1;
-//        for (int i = 0; i < 64; i++) {
-//            short j = scanTablePermutated[i];
-//            if (j > end) {
-//                end = j;
-//            }
-//            scanTableRasterEnd[i] = end;
-//        }
     }
     private final static int[] baseTable = {
         4096, 2953, 3135, 3483, 4096, 5213, 7568, 14846,
@@ -157,7 +148,6 @@ public class TgqFrame implements Comparable<TgqFrame> {
     private final static short A2 = 277; /* sin(pi/8)*sqrt(2)<<9 */
 
     private final static short A5 = 196; /* sin(pi/8)<<9 */
-//    private int[] blockLastIndex = new int[12];
 
     private static final Logger logger = Logger.getLogger(TgqFrame.class.getName());
 
@@ -408,8 +398,39 @@ public class TgqFrame implements Comparable<TgqFrame> {
         }
     }
 
-    protected static int clip(int val) {
+    private static int clip(int val) {
         return (val >> 4);
+    }
+
+    /**
+     * Get the frame as a JAVA RGB buffered image, should be only used for
+     * debugging etc.
+     *
+     * @return frame as buffered image
+     */
+    public BufferedImage getImage() {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+
+                // Get the YUV pixels, croma channels are just done with nearest neighbour, not exactly the greatest method
+                int yPix = this.y[ y * width + x];
+                int uPix = this.cb[ (int) Math.floor(y / 2) * (width / 2) + (int) Math.floor(x / 2)];
+                int vPix = this.cr[(int) Math.floor(y / 2) * (width / 2) + (int) Math.floor(x / 2)];
+
+                // And converted to RGB by http://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
+                int r = (int) (yPix + 1.402 * (vPix - 128));
+                int g = (int) (yPix - 0.34414 * (uPix - 128) - 0.71414 * (vPix - 128));
+                int b = (int) (yPix + 1.772 * (uPix - 128));
+                int color = (r << 16) | (g << 8) | b;
+                image.setRGB(x, y, color);
+            }
+        }
+        return image;
+    }
+
+    public int getFrameIndex() {
+        return frameIndex;
     }
 
     public int getWidth() {
