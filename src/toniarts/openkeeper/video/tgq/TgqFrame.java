@@ -29,6 +29,7 @@ import toniarts.openkeeper.tools.convert.Utils;
  * <ul>
  * <li>FFMPEG project; eatgi.c, mpeg12.c</li>
  * <li>JAVA MPEG Player by J.Anders</li>
+ * <li>JCodec project</li>
  * </ul>
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
@@ -173,9 +174,9 @@ public class TgqFrame implements Comparable<TgqFrame> {
         codedWidth = (width + 15) & ~0xf;
         codedHeight = (height + 15) & ~0xf;
         linesize = new int[]{codedWidth, codedWidth / 2, codedWidth / 2};
-        y = new int[codedWidth * codedHeight];
-        cb = new int[codedWidth * codedHeight];
-        cr = new int[codedWidth * codedHeight];
+        y = new int[linesize[0] * codedHeight];
+        cb = new int[linesize[1] * codedHeight / 2];
+        cr = new int[linesize[2] * codedHeight / 2];
 
         // Decode
         decodeFrame(buf);
