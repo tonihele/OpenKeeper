@@ -141,6 +141,9 @@ public class TgqFrame implements Comparable<TgqFrame> {
     private final int[] y;
     private final int[] cb;
     private final int[] cr;
+    public final static int YCBCR_PLANE_LUMA = 0;
+    public final static int YCBCR_PLANE_CB = 1;
+    public final static int YCBCR_PLANE_CR = 2;
     private final static short ASQRT = 181; /* (1/sqrt(2))<<8 */
 
     private final static short A4 = 669; /* cos(pi/8)*sqrt(2)<<9 */
@@ -164,9 +167,9 @@ public class TgqFrame implements Comparable<TgqFrame> {
         codedWidth = (width + 15) & ~0xf;
         codedHeight = (height + 15) & ~0xf;
         linesize = new int[]{codedWidth, codedWidth / 2, codedWidth / 2};
-        y = new int[linesize[0] * codedHeight];
-        cb = new int[linesize[1] * codedHeight / 2];
-        cr = new int[linesize[2] * codedHeight / 2];
+        y = new int[linesize[YCBCR_PLANE_LUMA] * codedHeight];
+        cb = new int[linesize[YCBCR_PLANE_CB] * codedHeight / 2];
+        cr = new int[linesize[YCBCR_PLANE_CR] * codedHeight / 2];
 
         // Decode
         decodeFrame(buf);
@@ -324,17 +327,17 @@ public class TgqFrame implements Comparable<TgqFrame> {
 
         // FIXME: Could do without the buffers, more efficient that way?
         // Set the buffers
-        IntBuffer yBuf = (IntBuffer) IntBuffer.wrap(y).position((mbY * 16 * linesize[0]) + mbX * 16);
-        IntBuffer cbBuf = (IntBuffer) IntBuffer.wrap(cb).position((mbY * 8 * linesize[1]) + mbX * 8);
-        IntBuffer crBuf = (IntBuffer) IntBuffer.wrap(cr).position((mbY * 8 * linesize[2]) + mbX * 8);
+        IntBuffer yBuf = (IntBuffer) IntBuffer.wrap(y).position((mbY * 16 * linesize[YCBCR_PLANE_LUMA]) + mbX * 16);
+        IntBuffer cbBuf = (IntBuffer) IntBuffer.wrap(cb).position((mbY * 8 * linesize[YCBCR_PLANE_CB]) + mbX * 8);
+        IntBuffer crBuf = (IntBuffer) IntBuffer.wrap(cr).position((mbY * 8 * linesize[YCBCR_PLANE_CR]) + mbX * 8);
 
         int yPosition = yBuf.position();
-        eaIdctPut(yBuf, linesize[0], block[0]);
-        eaIdctPut((IntBuffer) yBuf.position(yPosition + 8), linesize[0], block[1]);
-        eaIdctPut((IntBuffer) yBuf.position(yPosition + 8 * linesize[0]), linesize[0], block[2]);
-        eaIdctPut((IntBuffer) yBuf.position(yPosition + 8 * linesize[0] + 8), linesize[0], block[3]);
-        eaIdctPut(cbBuf, linesize[1], block[4]);
-        eaIdctPut(crBuf, linesize[2], block[5]);
+        eaIdctPut(yBuf, linesize[YCBCR_PLANE_LUMA], block[0]);
+        eaIdctPut((IntBuffer) yBuf.position(yPosition + 8), linesize[YCBCR_PLANE_LUMA], block[1]);
+        eaIdctPut((IntBuffer) yBuf.position(yPosition + 8 * linesize[YCBCR_PLANE_LUMA]), linesize[YCBCR_PLANE_LUMA], block[2]);
+        eaIdctPut((IntBuffer) yBuf.position(yPosition + 8 * linesize[YCBCR_PLANE_LUMA] + 8), linesize[YCBCR_PLANE_LUMA], block[3]);
+        eaIdctPut(cbBuf, linesize[YCBCR_PLANE_CB], block[4]);
+        eaIdctPut(crBuf, linesize[YCBCR_PLANE_CR], block[5]);
     }
 
     private static void eaIdctPut(IntBuffer dest, int linesize, int[] block) {
@@ -427,6 +430,44 @@ public class TgqFrame implements Comparable<TgqFrame> {
             }
         }
         return image;
+    }
+
+    public int getLinesize(int plane) {
+        if (plane < 0 || plane > 2) {
+            throw new IndexOutOfBoundsException("Plane must be 0-2! I recommend using the on this class plane constants!");
+        }
+        return linesize[plane];
+    }
+
+    public ByteBuffer getBufferForPlane(int plane) {
+        if (plane < 0 || plane > 2) {
+            throw new IndexOutOfBoundsException("Plane must be 0-2! I recommend using the on this class plane constants!");
+        }
+        // TODO: the planes should already be byte arrays or buffers
+        switch (plane) {
+            case YCBCR_PLANE_LUMA: {
+                byte[] array = new byte[y.length];
+                for (int i = 0; i < y.length; i++) {
+                    array[i] = (byte) y[i];
+                }
+                return ByteBuffer.allocateDirect(array.length).put(array);
+            }
+            case YCBCR_PLANE_CB: {
+                byte[] array = new byte[cb.length];
+                for (int i = 0; i < cb.length; i++) {
+                    array[i] = (byte) cb[i];
+                }
+                return ByteBuffer.allocateDirect(array.length).put(array);
+            }
+            case YCBCR_PLANE_CR: {
+                byte[] array = new byte[cr.length];
+                for (int i = 0; i < cr.length; i++) {
+                    array[i] = (byte) cr[i];
+                }
+                return ByteBuffer.allocateDirect(array.length).put(array);
+            }
+        }
+        return null;
     }
 
     public int getFrameIndex() {
