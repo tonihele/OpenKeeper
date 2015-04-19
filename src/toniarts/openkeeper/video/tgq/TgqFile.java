@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -37,7 +36,7 @@ import toniarts.openkeeper.tools.convert.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TgqFile implements AutoCloseable {
+public abstract class TgqFile implements AutoCloseable {
 
     private final RandomAccessFile file;
     private EAAudioHeader audioHeader;
@@ -46,8 +45,6 @@ public class TgqFile implements AutoCloseable {
     private int numberOfAudioStreamChunks;
     private int audioFrameIndex = 0;
     private int videoFrameIndex = 0;
-    public ConcurrentLinkedQueue<EAAudioFrame> audioFrames = new ConcurrentLinkedQueue<>();
-    public ConcurrentLinkedQueue<TgqFrame> videoFrames = new ConcurrentLinkedQueue<>();
     private final static String TQG_TAG = "pIQT";
     private final static String SCHl_TAG = "SCHl";
     private final static String SHEN_TAG = "SHEN";
@@ -60,7 +57,7 @@ public class TgqFile implements AutoCloseable {
     private final static String PT_PATCH_TAG = "PT";
     private static final Logger logger = Logger.getLogger(TgqFile.class.getName());
 
-    public static void main(String[] args) throws IOException {
+    public static void main(final String[] args) throws IOException {
 
         if (args.length != 2) {
             throw new RuntimeException("Please provide a TGQ movie file as first parameter and frame output folder as the second parameter!");
@@ -74,15 +71,24 @@ public class TgqFile implements AutoCloseable {
         new File(args[1]).mkdirs();
 
         // Create the video parser
-        try (TgqFile tgq = new TgqFile(new File(args[0]))) {
-            TgqFrame frame = null;
-//            while ((frame = tgq.readFrame()) != null) {
-            while (tgq.readFrame()) {
-                frame = tgq.videoFrames.poll();
-                if (frame != null) {
-                    File outputfile = new File(args[1].concat("Frame").concat(frame.getFrameIndex() + "").concat(".png"));
+        try (TgqFile tgq = new TgqFile(new File(args[0])) {
+            @Override
+            protected void addVideoFrame(TgqFrame frame) {
+                File outputfile = new File(args[1].concat("Frame").concat(frame.getFrameIndex() + "").concat(".png"));
+                try {
                     ImageIO.write(frame.getImage(), "png", outputfile);
+                } catch (IOException ex) {
+                    throw new RuntimeException("Failed to save the movie frame!", ex);
                 }
+            }
+
+            @Override
+            protected void addAudioFrame(EAAudioFrame frame) {
+                // Not interested
+            }
+        }) {
+            while (tgq.readFrame()) {
+                // Read the frames
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse frame!", e);
@@ -137,7 +143,7 @@ public class TgqFile implements AutoCloseable {
                 // Audio data itself
                 byte[] data = new byte[frameSize - 8];
                 file.read(data);
-                audioFrames.add(new EAAudioFrame(audioHeader, data, audioFrameIndex));
+                addAudioFrame(new EAAudioFrame(audioHeader, data, audioFrameIndex));
 
                 gotFrame = true;
                 audioFrameIndex++;
@@ -157,7 +163,7 @@ public class TgqFile implements AutoCloseable {
                 byte[] data = new byte[frameSize - 8];
                 file.read(data);
                 TgqFrame frame = new TgqFrame(data, videoFrameIndex);
-                videoFrames.add(frame);
+                addVideoFrame(frame);
 
                 // See if we have the data
                 if (width == null || height == null) {
@@ -183,6 +189,20 @@ public class TgqFile implements AutoCloseable {
 
         return gotFrame;
     }
+
+    /**
+     * A video frame has been decoded
+     *
+     * @param frame the decoded frame
+     */
+    protected abstract void addVideoFrame(TgqFrame frame);
+
+    /**
+     * A audio frame has been decoded
+     *
+     * @param frame the decoded frame
+     */
+    protected abstract void addAudioFrame(EAAudioFrame frame);
 
     private void readAudioHeader(long pos, int frameSize) throws IOException {
 
