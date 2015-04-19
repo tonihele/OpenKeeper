@@ -295,7 +295,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         return val + sign - (sign << size);
     }
 
-    public short[] decodeVlc(BitReader bitReader, int maxLength, short tab[][]) {
+    private short[] decodeVlc(BitReader bitReader, int maxLength, short tab[][]) {
         int idx1 = 0, idx = 0;
         int readLength = -1;
         int mask = (1 << maxLength + 1);
