@@ -1,0 +1,29 @@
+MaterialDef MovieMaterial {
+
+    MaterialParameters {
+        Texture2D TexLuma
+        Texture2D TexCr
+        Texture2D TexCb
+        Vector2 AspectValues
+        Vector2 ValidRange
+        Color LetterboxColor
+        
+		// Alpha threshold for fragment discarding
+        Float AlphaDiscardThreshold (AlphaTestFallOff)
+    }
+
+    Technique {
+        VertexShader GLSL100:   Shaders/Video/MovieMaterial.vert
+        FragmentShader GLSL100: Shaders/Video/MovieMaterial.frag
+
+        WorldParameters {
+            WorldViewProjectionMatrix
+        }
+
+        Defines {
+			DISCARD_ALPHA : AlphaDiscardThreshold
+			LETTERBOX: LetterboxColor
+        }
+    }
+
+}
