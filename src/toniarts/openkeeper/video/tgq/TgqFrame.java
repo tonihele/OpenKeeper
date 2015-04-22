@@ -228,7 +228,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         lastDc[component] = dc;
         block[0] = dc * dequantizationTable[0];
 
-//        System.out.println("Bit index: " + bitReader.position());
+        // Quantify and encode AC coefficients
         short[] vlc = decodeVlc(bitReader, TEX_VLC_BITS, dctCoeff);
         int i = 0;
         int j = 0;
@@ -236,6 +236,8 @@ public class TgqFrame implements Comparable<TgqFrame> {
 
             int level;
             if (vlc[2] == DCT_ESCAPE) {
+
+                // Escape
                 int run = bitReader.readNBit(6) + 1;
                 level = twosSigned(bitReader, 8);
                 if (level == -128) {
@@ -255,6 +257,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
                     level = (level - 1) | 1;
                 }
             } else {
+
                 i += vlc[2] + 1;
                 level = vlc[3];
                 j = scanTablePermutated[i];
@@ -264,9 +267,6 @@ public class TgqFrame implements Comparable<TgqFrame> {
             }
 
             block[j] = level;
-//            System.out.println("Bit index: " + bitReader.position());
-//            System.out.println("Position: " + j);
-//            System.out.println("Level: " + level);
             vlc = decodeVlc(bitReader, TEX_VLC_BITS, dctCoeff);
         }
     }
