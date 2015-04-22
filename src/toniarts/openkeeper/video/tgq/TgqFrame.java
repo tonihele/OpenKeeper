@@ -236,15 +236,14 @@ public class TgqFrame implements Comparable<TgqFrame> {
 
             int level;
             if (vlc[2] == DCT_ESCAPE) {
-
-                int run = bitReader.readNBit(6);
-                level = bitReader.readNBit(8);
+                int run = bitReader.readNBit(6) + 1;
+                level = twosSigned(bitReader, 8);
                 if (level == -128) {
                     level = bitReader.readNBit(8) - 256;
                 } else if (level == 0) {
                     level = bitReader.readNBit(8);
                 }
-                i += run + 1;
+                i += run;
                 j = scanTablePermutated[i];
                 if (level < 0) {
                     level = -level;
@@ -257,13 +256,15 @@ public class TgqFrame implements Comparable<TgqFrame> {
                 }
             } else {
                 i += vlc[2] + 1;
-                level = bitReader.read1Bit() == 0 ? vlc[3] : -vlc[3];
+                level = vlc[3];
                 j = scanTablePermutated[i];
                 level = (level * dequantizationTable[j]) >> 4;
                 level = (level - 1) | 1;
+                level = toSigned(level, bitReader.read1Bit());
             }
 
             block[j] = level;
+//            System.out.println("Bit index: " + bitReader.position());
 //            System.out.println("Position: " + j);
 //            System.out.println("Level: " + level);
             vlc = decodeVlc(bitReader, TEX_VLC_BITS, dctCoeff);
@@ -296,6 +297,16 @@ public class TgqFrame implements Comparable<TgqFrame> {
         int val = bits.readNBit(size);
         int sign = (val >>> (size - 1)) ^ 0x1;
         return val + sign - (sign << size);
+    }
+
+    public static int toSigned(int val, int s) {
+        int sign = (s << 31) >> 31;
+        return (val ^ sign) - sign;
+    }
+
+    public static int twosSigned(BitReader bits, int size) {
+        int shift = 32 - size;
+        return (bits.readNBit(size) << shift) >> shift;
     }
 
     private short[] decodeVlc(BitReader bitReader, int maxLength, short tab[][]) {
