@@ -70,8 +70,9 @@ public class EAAudioFrame implements Comparable<EAAudioFrame> {
             short previousRightSample = buf.getShort();
 
             // Output
-            pcm = ByteBuffer.allocateDirect(codedSamples * 4);
-            pcm.order(ByteOrder.LITTLE_ENDIAN); // JME takes PCM_LE
+            byte[] array = new byte[codedSamples * 4];
+            pcm = ByteBuffer.wrap(array);
+            pcm.order(ByteOrder.LITTLE_ENDIAN);
 
             // Decoding
             for (int count1 = 0; count1 < codedSamples / 28; count1++) {
