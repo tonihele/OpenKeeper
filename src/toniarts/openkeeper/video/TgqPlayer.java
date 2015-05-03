@@ -316,6 +316,10 @@ public abstract class TgqPlayer {
                                 } catch (InterruptedException ex) {
                                     return;
                                 }
+                            } else if (!decoderThread.isAlive()) {
+
+                                // Decoder is dead already and no frames
+                                return;
                             }
                         }
                         onNewVideoFrame(videoFrame);
