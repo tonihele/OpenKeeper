@@ -45,7 +45,7 @@ public abstract class MovieState extends AbstractAppState {
     }
 
     @Override
-    public void initialize(AppStateManager stateManager, Application app) {
+    public void initialize(AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
         this.app = (Main) app;
 
@@ -61,6 +61,7 @@ public abstract class MovieState extends AbstractAppState {
         player = new TgqPlayer(new File(movie)) {
             @Override
             protected void onPlayingEnd() {
+                app.getStateManager().detach(MovieState.this);
                 MovieState.this.onPlayingEnd();
             }
 
@@ -73,8 +74,8 @@ public abstract class MovieState extends AbstractAppState {
     }
 
     /**
-     * Called when the playing has finished, you probably want to detach the
-     * state and move on with your life
+     * Called when the playing has finished, you probably want to move on with
+     * your life
      */
     protected abstract void onPlayingEnd();
 
