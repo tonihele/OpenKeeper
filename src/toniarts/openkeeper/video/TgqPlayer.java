@@ -17,31 +17,50 @@
 package toniarts.openkeeper.video;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.SourceDataLine;
 import toniarts.openkeeper.video.tgq.EAAudioFrame;
+import toniarts.openkeeper.video.tgq.EAAudioHeader;
 import toniarts.openkeeper.video.tgq.TgqFile;
 import toniarts.openkeeper.video.tgq.TgqFrame;
 
 /**
  * "Mediaplayer" for TGQ files<br>
  * Kinda like an interface between the actual canvas and the decoder<br>
- * Not rewindable etc.
+ * Not rewindable etc.<br>
+ * Very simplistic, the buffer is just filled up once. If the decoder is too
+ * slow, the playback will start to stutter. But with a modern computer, it
+ * really shouldn't be that slow. Video is synced to audio.<br>
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class TgqPlayer {
 
     private File file;
-    private static final int FPS = 15;
+    private static final int FPS = 25; // The specs say 15 FPS, but with this they are totally in sync, dunno why
     private static final int FRAME_INTERVAL = (int) Math.floor(1000 / FPS); // In milliseconds
     private static final float FRAME_BUFFER_SIZE = 3; // In seconds, there is no fancy counter etc.
     private static final int MAX_FRAME_COUNT_IN_BUFFER = (int) (FPS * FRAME_BUFFER_SIZE);
-    public ConcurrentLinkedQueue<EAAudioFrame> audioFrames = new ConcurrentLinkedQueue<>();
-    public ConcurrentLinkedQueue<TgqFrame> videoFrames = new ConcurrentLinkedQueue<>();
+    private ConcurrentLinkedQueue<EAAudioFrame> audioFrames = new ConcurrentLinkedQueue<>();
+    private ConcurrentLinkedQueue<TgqFrame> videoFrames = new ConcurrentLinkedQueue<>();
+    private volatile EAAudioHeader audioHeader;
     private Thread decoderThread;
-    private Thread playerThread;
+    private Thread videoPlaybackThread;
+    private Thread audioPlaybackThread;
+    private long clock;
+    private volatile boolean bufferingComplete;
+    private volatile boolean audioInitialized;
+    private SourceDataLine line;
+    private final Object bufferedEvent = new Object();
+    private final Object audioHeaderEvent = new Object();
+    private final Object audioInitializedEvent = new Object();
     private boolean stopped = true;
     private static final Logger logger = Logger.getLogger(TgqPlayer.class.getName());
 
@@ -53,17 +72,30 @@ public abstract class TgqPlayer {
      * Start playing the movie
      */
     public void play() {
+
+        // Init the variables
         stopped = false;
+        bufferingComplete = false;
+        audioInitialized = false;
+        clock = 0;
+        line = null;
+        audioFrames.clear();
+        videoFrames.clear();
 
         // Create and start the decoder thread
         TgqDecoder decoder = new TgqDecoder(file);
         decoderThread = new Thread(decoder, "TgqDecoder");
         decoderThread.start();
 
-        // Create the player
-        Player player = new Player(decoderThread);
-        playerThread = new Thread(player, "TgqPlayer");
-        playerThread.start();
+        // The audio player
+        AudioPlayer audioPlayer = new AudioPlayer();
+        audioPlaybackThread = new Thread(audioPlayer, "TgqAudioPlayback");
+        audioPlaybackThread.start();
+
+        // The video player
+        VideoPlayer videoPlayer = new VideoPlayer();
+        videoPlaybackThread = new Thread(videoPlayer, "TgqVideoPlayback");
+        videoPlaybackThread.start();
     }
 
     /**
@@ -78,9 +110,14 @@ public abstract class TgqPlayer {
                 decoderThread.interrupt();
             }
 
-            // Kill the player as well
-            if (playerThread != null && playerThread.isAlive()) {
-                playerThread.interrupt();
+            // Kill the video player as well
+            if (videoPlaybackThread != null && videoPlaybackThread.isAlive()) {
+                videoPlaybackThread.interrupt();
+            }
+
+            // Kill the audio player as well
+            if (audioPlaybackThread != null && audioPlaybackThread.isAlive()) {
+                audioPlaybackThread.interrupt();
             }
         } finally {
 
@@ -107,78 +144,192 @@ public abstract class TgqPlayer {
     protected abstract void onNewVideoFrame(TgqFrame frame);
 
     /**
-     * Player thread, does the actual playing logic
+     * This thread handles the audio playback, critical to the process since the
+     * video is synced to the audio
      */
-    private class Player implements Runnable {
+    private class AudioPlayer implements Runnable {
 
-        private final Thread decoderThread;
-
-        private Player(Thread decoderThread) {
-            this.decoderThread = decoderThread;
+        public AudioPlayer() {
         }
 
         @Override
         public void run() {
+
             try {
 
-                // Wait until the hard working decoder has filled the buffer
-                while (decoderThread.isAlive() && videoFrames.size() < MAX_FRAME_COUNT_IN_BUFFER) {
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException ex) {
-                        logger.log(Level.WARNING, "Playing start delay interrupted!", ex);
-                        return;
+                // Wait for the audio header to init audio
+                if (audioHeader == null) {
+                    synchronized (audioHeaderEvent) {
+                        if (audioHeader == null) {
+                            try {
+                                audioHeaderEvent.wait();
+                            } catch (InterruptedException ex) {
+                                logger.log(Level.WARNING, "Audio header waiting interrupted!", ex);
+                                return;
+                            }
+                        }
+                    }
+                }
+                initAudio(audioHeader);
+                audioInitialized = true;
+                synchronized (audioInitializedEvent) {
+                    audioInitializedEvent.notifyAll();
+                }
+
+                // Wait for the start
+                if (!bufferingComplete) {
+                    synchronized (bufferedEvent) {
+                        if (!bufferingComplete) {
+                            try {
+                                bufferedEvent.wait();
+                            } catch (InterruptedException ex) {
+                                logger.log(Level.WARNING, "Playing start delay interrupted!", ex);
+                                return;
+                            }
+                        }
                     }
                 }
 
-                // Start the actual playing process
-                Long lastFrame = null;
-                while (!Thread.interrupted() && (!videoFrames.isEmpty() || decoderThread.isAlive())) {
-                    if (videoFrames.isEmpty()) {
+                // Play audio
+                EAAudioFrame audioFrame = null;
+                while (!Thread.currentThread().isInterrupted()) {
+                    if (audioFrame == null) {
+                        audioFrame = audioFrames.poll();
+                        if (audioFrame == null) {
+                            if (!decoderThread.isAlive()) {
 
-                        // Shieeet, probably out of sync
-                        logger.log(Level.WARNING, "Decoder still alive but frame queue is empty! Buffer too small?");
-                        try {
-                            Thread.sleep(50);
-                        } catch (InterruptedException ex) {
-                            return;
+                                // No more audio data
+                                return;
+                            }
+
+                            // We need to wait
+                            logger.log(Level.WARNING, "Decoder still alive but frame queue is empty! Buffer too small?");
+                            try {
+                                Thread.sleep(50);
+                            } catch (InterruptedException ex) {
+                                return;
+                            }
+                            continue;
                         }
-                        continue;
-                    }
 
-                    // First frame
-                    if (lastFrame == null) {
-                        lastFrame = System.currentTimeMillis();
-                        nextFrame();
-                        continue;
-                    }
-
-                    // Sleep until the next frame
-                    long sleepTime = (lastFrame + FRAME_INTERVAL) - System.currentTimeMillis();
-                    if (sleepTime > 0) {
-                        try {
-                            Thread.sleep(sleepTime);
-                        } catch (InterruptedException ex) {
-
-                            // Interrupted
-                            return;
+                        // Feed the stream
+                        ByteBuffer buf = audioFrame.getPcm();
+                        int written = line.write(buf.array(), buf.arrayOffset() + buf.position(), buf.remaining());
+                        buf.position(buf.position() + written);
+                        if (buf.remaining() == 0) {
+                            audioFrame = null;
                         }
-                    } else {
-                        logger.log(Level.WARNING, "Sleep time between frames is negative! Frame processing takes too long!");
                     }
-                    lastFrame = System.currentTimeMillis();
-                    nextFrame();
                 }
 
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Audio player failed!", e);
             } finally {
 
-                // Stop
+                // Let the audio die nicely
+                if (line != null) {
+                    try {
+
+                        // If not interrupted, wait until the audio is played completely
+                        if (!Thread.currentThread().isInterrupted()) {
+                            line.drain();
+                        }
+                        line.stop();
+                        line.close();
+                        line = null;
+                    } catch (Exception e) {
+                        logger.log(Level.WARNING, "Failed to release the audio!", e);
+                    }
+                }
+
+                // Make sure we call stop at the end
                 stop();
             }
         }
 
-        private void nextFrame() {
-            onNewVideoFrame(videoFrames.poll());
+        /**
+         * Initialize the audio
+         *
+         * @param audioHeader the audio header
+         */
+        private void initAudio(EAAudioHeader audioHeader) {
+            AudioFormat format = new AudioFormat(audioHeader.getSampleRate(), audioHeader.getBitsPerSample(), audioHeader.getNumberOfChannels(), true, false);
+            DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
+            if (!AudioSystem.isLineSupported(info)) {
+                throw new RuntimeException("Line matching " + info + " not supported.");
+            }
+            try {
+                line = (SourceDataLine) AudioSystem.getLine(info);
+                line.open(format, 1024 * 4 * format.getFrameSize());
+                line.start();
+            } catch (LineUnavailableException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    /**
+     * Plays the actual video frames, is synced to audio
+     */
+    private class VideoPlayer implements Runnable {
+
+        public VideoPlayer() {
+        }
+
+        @Override
+        public void run() {
+
+            // Wait for the audio to be initialized
+            if (!audioInitialized) {
+                synchronized (audioInitializedEvent) {
+                    if (!audioInitialized) {
+                        try {
+                            audioInitializedEvent.wait();
+                        } catch (InterruptedException ex) {
+                            logger.log(Level.WARNING, "Audio initialized interrupted!", ex);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // Advance the video frames
+            long lastAudio = 0;
+            int lastFrameIndex = -1;
+            while (!Thread.interrupted()) {
+                if (line != null) {
+                    long newAudio = line.getMicrosecondPosition();
+                    clock += newAudio - lastAudio;
+                    lastAudio = newAudio;
+
+                    int frameIndex = (int) Math.floor(clock / 1000f / FRAME_INTERVAL);
+                    if (lastFrameIndex < frameIndex) {
+
+                        // New frame
+                        TgqFrame videoFrame = videoFrames.poll();
+                        while (videoFrame == null || videoFrame.getFrameIndex() < frameIndex) {
+                            videoFrame = videoFrames.poll();
+                            if (decoderThread.isAlive() && videoFrame == null) {
+                                logger.log(Level.WARNING, "Video decoding is late!");
+                                try {
+                                    Thread.sleep(50);
+                                } catch (InterruptedException ex) {
+                                    return;
+                                }
+                            }
+                        }
+                        onNewVideoFrame(videoFrame);
+                        int late = frameIndex - lastFrameIndex;
+                        if (late > 1) {
+
+                            logger.log(Level.WARNING, "Video is late {0} frames!", late);
+                        }
+                        lastFrameIndex = frameIndex;
+                    }
+                } else {
+                    break;
+                }
+            }
         }
     }
 
@@ -195,28 +346,53 @@ public abstract class TgqPlayer {
 
         @Override
         public void run() {
-            try (TgqFile tgqFile = new TgqFile(file) {
-                @Override
-                protected void addVideoFrame(TgqFrame frame) {
-                    videoFrames.add(frame);
-                }
+            try {
+                try (TgqFile tgqFile = new TgqFile(file) {
+                    @Override
+                    protected void addVideoFrame(TgqFrame frame) {
+                        videoFrames.add(frame);
+                    }
 
-                @Override
-                protected void addAudioFrame(EAAudioFrame frame) {
-                    audioFrames.add(frame);
-                }
-            }) {
-                while (!Thread.interrupted() && tgqFile.readFrame()) {
+                    @Override
+                    protected void addAudioFrame(EAAudioFrame frame) {
+                        audioFrames.add(frame);
+                    }
 
-                    // Read the frames, but not too fast
-                    if (videoFrames.size() >= MAX_FRAME_COUNT_IN_BUFFER) {
-                        Thread.sleep(FRAME_INTERVAL);
+                    @Override
+                    protected void onAudioHeader(EAAudioHeader audioHeader) {
+                        TgqPlayer.this.audioHeader = audioHeader;
+                        synchronized (audioHeaderEvent) {
+                            audioHeaderEvent.notifyAll();
+                        }
+                    }
+                }) {
+                    while (!Thread.interrupted() && tgqFile.readFrame()) {
+
+                        // Read the frames, but not too fast
+                        if (audioFrames.size() >= MAX_FRAME_COUNT_IN_BUFFER) {
+                            if (!bufferingComplete) {
+                                bufferingComplete = true;
+                                synchronized (bufferedEvent) {
+                                    bufferedEvent.notifyAll();
+                                }
+                            }
+                            Thread.sleep(FRAME_INTERVAL);
+                        }
+                    }
+                } catch (InterruptedException ex) {
+                    // No biggie
+                } catch (Exception ex) {
+                    logger.log(Level.SEVERE, "Failed to decode the frames on file " + file + "!", ex);
+                }
+            } finally {
+
+                // If someone is still waiting
+                if (!bufferingComplete) {
+                    bufferingComplete = true;
+                    synchronized (bufferedEvent) {
+                        bufferedEvent.notifyAll();
                     }
                 }
-            } catch (InterruptedException ex) {
-                // No biggie
-            } catch (Exception ex) {
-                logger.log(Level.SEVERE, "Failed to decode the frames on file " + file + "!", ex);
             }
         }
     }
