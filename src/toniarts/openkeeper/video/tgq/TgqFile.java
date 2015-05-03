@@ -86,6 +86,11 @@ public abstract class TgqFile implements AutoCloseable {
             protected void addAudioFrame(EAAudioFrame frame) {
                 // Not interested
             }
+
+            @Override
+            protected void onAudioHeader(EAAudioHeader audioHeader) {
+                // Not interested
+            }
         }) {
             while (tgq.readFrame()) {
                 // Read the frames
@@ -124,6 +129,7 @@ public abstract class TgqFile implements AutoCloseable {
 
                 // Audio header, set some context parameters
                 readAudioHeader(pos, frameSize);
+                onAudioHeader(audioHeader);
 
                 gotFrame = true;
                 break;
@@ -191,18 +197,25 @@ public abstract class TgqFile implements AutoCloseable {
     }
 
     /**
+     * Called when audio header is got
+     *
+     * @param audioHeader the header
+     */
+    protected abstract void onAudioHeader(final EAAudioHeader audioHeader);
+
+    /**
      * A video frame has been decoded
      *
      * @param frame the decoded frame
      */
-    protected abstract void addVideoFrame(TgqFrame frame);
+    protected abstract void addVideoFrame(final TgqFrame frame);
 
     /**
      * A audio frame has been decoded
      *
      * @param frame the decoded frame
      */
-    protected abstract void addAudioFrame(EAAudioFrame frame);
+    protected abstract void addAudioFrame(final EAAudioFrame frame);
 
     private void readAudioHeader(long pos, int frameSize) throws IOException {
 
