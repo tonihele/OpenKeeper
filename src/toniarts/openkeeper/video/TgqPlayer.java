@@ -383,6 +383,7 @@ public abstract class TgqPlayer {
                     // No biggie
                 } catch (Exception ex) {
                     logger.log(Level.SEVERE, "Failed to decode the frames on file " + file + "!", ex);
+                    stop();
                 }
             } finally {
 
