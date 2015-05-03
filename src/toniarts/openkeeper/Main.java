@@ -37,6 +37,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
+import java.util.PriorityQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -49,6 +50,7 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
+import toniarts.openkeeper.video.MovieState;
 
 /**
  * Main entry point of OpenKeeper
@@ -346,19 +348,12 @@ public class Main extends SimpleApplication {
         // Set the processors
         setViewProcessors();
 
-        // FIXME: We need ambient light, but it may be different for different states. There just seems to be a bug in BatchNodes concerning the removal of the light. So this is temporary perhaps
-        AmbientLight al = new AmbientLight();
-        al.setColor(ColorRGBA.White.multLocal(5f));
-        rootNode.addLight(al);
-
-        if (params.containsKey("level")) {
-            GameState gameState = new GameState(params.get("level"), this.getAssetManager());
-            stateManager.attach(gameState);
+        if (params.containsKey("nomovies")) {
+            startGame();
         } else {
 
-            // Initialize the main menu state
-            MainMenuState mainMenu = new MainMenuState();
-            stateManager.attach(mainMenu);
+            // The fireworks!
+            playIntro();
         }
     }
 
@@ -464,5 +459,60 @@ public class Main extends SimpleApplication {
     @Override
     public void simpleRender(RenderManager rm) {
         //TODO: add render code
+    }
+
+    /**
+     * Starts the game, opens up the start menu / level
+     */
+    private void startGame() {
+
+        // FIXME: We need ambient light, but it may be different for different states. There just seems to be a bug in BatchNodes concerning the removal of the light. So this is temporary perhaps
+        AmbientLight al = new AmbientLight();
+        al.setColor(ColorRGBA.White.multLocal(5f));
+        rootNode.addLight(al);
+
+        if (params.containsKey("level")) {
+            GameState gameState = new GameState(params.get("level"), this.getAssetManager());
+            stateManager.attach(gameState);
+        } else {
+
+            // Initialize the main menu state
+            MainMenuState mainMenu = new MainMenuState();
+            stateManager.attach(mainMenu);
+        }
+    }
+
+    /**
+     * Plays the intro movies, after which the game is started
+     */
+    private void playIntro() {
+
+        // The intro sequence
+        PriorityQueue<String> introSequence = new PriorityQueue<>(2);
+        introSequence.add(getDkIIFolder().concat("Data".concat(File.separator).concat("Movies").concat(File.separator).concat("BullfrogIntro.tgq")));
+        introSequence.add(getDkIIFolder().concat("Data".concat(File.separator).concat("Movies").concat(File.separator).concat("INTRO.TGQ")));
+        playMovie(introSequence);
+    }
+
+    /**
+     * Plays single movie, and advances to the next or if not available, starts
+     * the game
+     *
+     * @param introSequence movie queue
+     */
+    private void playMovie(final PriorityQueue<String> introSequence) {
+
+        String movieFile = introSequence.poll();
+        if (movieFile != null) {
+            MovieState movieState = new MovieState(movieFile) {
+                @Override
+                protected void onPlayingEnd() {
+                    playMovie(introSequence);
+                }
+            };
+            stateManager.attach(movieState);
+        } else {
+            startGame();
+        }
     }
 }
