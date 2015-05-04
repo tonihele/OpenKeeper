@@ -323,7 +323,7 @@ public abstract class TgqPlayer {
                             }
                         }
                         onNewVideoFrame(videoFrame);
-                        int late = frameIndex - lastFrameIndex;
+                        int late = frameIndex - (lastFrameIndex == -1 ? 0 : lastFrameIndex);
                         if (late > 1) {
 
                             logger.log(Level.WARNING, "Video is late {0} frames!", late);
