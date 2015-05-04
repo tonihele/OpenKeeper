@@ -31,6 +31,7 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Quad;
 import java.io.File;
+import java.io.FileNotFoundException;
 import org.lwjgl.opengl.Display;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.video.tgq.TgqFrame;
@@ -41,7 +42,7 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class MovieState extends AbstractAppState {
-    
+
     private final String movie;
     private Main app;
     private InputManager inputManager;
@@ -49,11 +50,14 @@ public abstract class MovieState extends AbstractAppState {
     private MovieMaterial movieMaterial;
     private Geometry movieScreen;
     private TgqPlayer player;
-    
-    public MovieState(String movie) {
+
+    public MovieState(String movie) throws FileNotFoundException {
+        if (!new File(movie).exists()) {
+            throw new FileNotFoundException("Movie file not found!");
+        }
         this.movie = movie;
     }
-    
+
     @Override
     public void initialize(AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
@@ -79,7 +83,7 @@ public abstract class MovieState extends AbstractAppState {
                 app.getStateManager().detach(MovieState.this);
                 MovieState.this.onPlayingEnd();
             }
-            
+
             @Override
             protected void onNewVideoFrame(TgqFrame frame) {
                 movieMaterial.videoFrameUpdated(frame);
@@ -105,12 +109,12 @@ public abstract class MovieState extends AbstractAppState {
      * your life
      */
     protected abstract void onPlayingEnd();
-    
+
     @Override
     public void update(float tpf) {
         movieMaterial.update(tpf);
     }
-    
+
     @Override
     public void cleanup() {
 
@@ -132,7 +136,7 @@ public abstract class MovieState extends AbstractAppState {
         // Clean our mapping
         inputManager.deleteMapping(KEY_SKIP);
         inputManager.removeListener(actionListener);
-        
+
         super.cleanup();
     }
 }
