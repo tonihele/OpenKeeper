@@ -504,13 +504,20 @@ public class Main extends SimpleApplication {
 
         String movieFile = introSequence.poll();
         if (movieFile != null) {
-            MovieState movieState = new MovieState(movieFile) {
-                @Override
-                protected void onPlayingEnd() {
-                    playMovie(introSequence);
-                }
-            };
-            stateManager.attach(movieState);
+            try {
+                MovieState movieState = new MovieState(movieFile) {
+                    @Override
+                    protected void onPlayingEnd() {
+                        playMovie(introSequence);
+                    }
+                };
+                stateManager.attach(movieState);
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
+
+                // Continue with the movie list
+                playMovie(introSequence);
+            }
         } else {
             startGame();
         }
