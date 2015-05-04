@@ -37,7 +37,7 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
  */
 public class MovieMaterial {
 
-    private static Image emptyImage = new Image(Format.ABGR8, 1, 1, BufferUtils.createByteBuffer(4));
+    private static Image emptyImage = new Image(Format.ABGR8, 1, 1, BufferUtils.createByteBuffer(new byte[]{127, -128, -128, -128}));
     private final boolean letterbox;
     private final ColorRGBA letterboxColor = ColorRGBA.Red.clone();
     private final Vector2f aspectValues = new Vector2f(1, 1);
