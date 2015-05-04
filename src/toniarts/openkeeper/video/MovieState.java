@@ -19,6 +19,14 @@ package toniarts.openkeeper.video;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.input.InputManager;
+import com.jme3.input.KeyInput;
+import com.jme3.input.MouseInput;
+import com.jme3.input.TouchInput;
+import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.KeyTrigger;
+import com.jme3.input.controls.MouseButtonTrigger;
+import com.jme3.input.controls.TouchTrigger;
 import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Quad;
@@ -33,21 +41,28 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class MovieState extends AbstractAppState {
-
+    
     private final String movie;
     private Main app;
+    private InputManager inputManager;
+    private static final String KEY_SKIP = "skip";
     private MovieMaterial movieMaterial;
     private Geometry movieScreen;
     private TgqPlayer player;
-
+    
     public MovieState(String movie) {
         this.movie = movie;
     }
-
+    
     @Override
     public void initialize(AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
         this.app = (Main) app;
+        this.inputManager = app.getInputManager();
+
+        // Assign video skipping keys
+        inputManager.addMapping(KEY_SKIP, new KeyTrigger(KeyInput.KEY_ESCAPE), new KeyTrigger(KeyInput.KEY_SPACE), new KeyTrigger(KeyInput.KEY_RETURN), new MouseButtonTrigger(MouseInput.BUTTON_LEFT), new TouchTrigger(TouchInput.ALL));
+        inputManager.addListener(actionListener, KEY_SKIP);
 
         // Create the canvas
         boolean squareScreen = ((0f + Display.getWidth()) / Display.getHeight()) < 1.6f;
@@ -64,7 +79,7 @@ public abstract class MovieState extends AbstractAppState {
                 app.getStateManager().detach(MovieState.this);
                 MovieState.this.onPlayingEnd();
             }
-
+            
             @Override
             protected void onNewVideoFrame(TgqFrame frame) {
                 movieMaterial.videoFrameUpdated(frame);
@@ -72,18 +87,30 @@ public abstract class MovieState extends AbstractAppState {
         };
         player.play();
     }
+    private ActionListener actionListener = new ActionListener() {
+        @Override
+        public void onAction(String name, boolean pressed, float tpf) {
+
+            // Skip video
+            if (KEY_SKIP.equals(name) && !pressed) {
+                if (player != null) {
+                    player.stop();
+                }
+            }
+        }
+    };
 
     /**
      * Called when the playing has finished, you probably want to move on with
      * your life
      */
     protected abstract void onPlayingEnd();
-
+    
     @Override
     public void update(float tpf) {
         movieMaterial.update(tpf);
     }
-
+    
     @Override
     public void cleanup() {
 
@@ -102,6 +129,10 @@ public abstract class MovieState extends AbstractAppState {
             app.getGuiNode().detachChild(movieScreen);
         }
 
+        // Clean our mapping
+        inputManager.deleteMapping(KEY_SKIP);
+        inputManager.removeListener(actionListener);
+        
         super.cleanup();
     }
 }
