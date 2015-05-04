@@ -37,7 +37,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
-import java.util.PriorityQueue;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -50,7 +50,8 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
-import toniarts.openkeeper.video.MovieState;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.utils.UTF8Control;
 
 /**
  * Main entry point of OpenKeeper
@@ -61,7 +62,6 @@ public class Main extends SimpleApplication {
 
     private static String dkIIFolder;
     private static boolean conversionDone = false;
-    private static int conversionVersion = 0;
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
     private final static String SETTINGS_FILE = "openkeeper.properties";
@@ -69,8 +69,6 @@ public class Main extends SimpleApplication {
     private final static int MAX_FPS = 90;
     private final static String DKII_FOLDER_KEY = "Dungeon Keeper II folder";
     private final static String CONVERSION_DONE_KEY = "Conversion done";
-    private final static String CONVERSION_VERSION_KEY = "Conversion version";
-    private final static int CONVERSION_VERSION = 1;
     public final static String ANISOTROPY_KEY = "Anisotrophy";
     public final static String SSAO_KEY = "SSAO";
     private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
@@ -157,7 +155,7 @@ public class Main extends SimpleApplication {
         }
 
         // If the folder is ok, check the conversion
-        if (folderOk && (conversionVersion < CONVERSION_VERSION || !conversionDone)) {
+        if (folderOk && (AssetsConverter.conversionNeeded(app.settings) || !conversionDone)) {
             logger.info("Need to convert the assets!");
             saveSetup = true;
 
@@ -169,7 +167,7 @@ public class Main extends SimpleApplication {
             DKConverter frame = new DKConverter(dkIIFolder, assetManager) {
                 @Override
                 protected void continueOk() {
-                    app.settings.putInteger(CONVERSION_VERSION_KEY, CONVERSION_VERSION);
+                    AssetsConverter.setConversionSettings(app.settings);
                     app.settings.putBoolean(CONVERSION_DONE_KEY, true);
                     conversionOk = true;
                 }
@@ -224,7 +222,6 @@ public class Main extends SimpleApplication {
         // DKII settings
         dkIIFolder = setup.getString(DKII_FOLDER_KEY);
         conversionDone = setup.getBoolean(CONVERSION_DONE_KEY);
-        conversionVersion = setup.getInteger(CONVERSION_VERSION_KEY);
 
         // The icons
         setup.setIcons(getApplicationIcons());
@@ -454,6 +451,16 @@ public class Main extends SimpleApplication {
             fpp.addFilter(ssaoFilter);
             viewPort.addProcessor(fpp);
         }
+    }
+
+    /**
+     * Gets current locale's resource bundle (UTF-8)
+     *
+     * @param baseName base name of the bundle
+     * @return the resource bundle
+     */
+    public static ResourceBundle getResourceBundle(String baseName) {
+        return ResourceBundle.getBundle(baseName, new UTF8Control());
     }
 
     @Override

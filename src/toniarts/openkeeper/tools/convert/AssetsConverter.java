@@ -21,6 +21,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.export.binary.BinaryExporter;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
+import com.jme3.system.AppSettings;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -75,19 +76,41 @@ public abstract class AssetsConverter {
      */
     public enum ConvertProcess {
 
-        TEXTURES(1),
-        MODELS(2),
-        MOUSE_CURSORS(3),
-        MUSIC_AND_SOUNDS(4),
-        INTERFACE_TEXTS(5),
-        PATHS(6);
+        TEXTURES(1, 1),
+        MODELS(2, 1),
+        MOUSE_CURSORS(3, 1),
+        MUSIC_AND_SOUNDS(4, 1),
+        INTERFACE_TEXTS(5, 1),
+        PATHS(6, 1);
 
-        private ConvertProcess(int processNumber) {
+        private ConvertProcess(int processNumber, int version) {
             this.processNumber = processNumber;
+            this.version = version;
         }
 
         public int getProcessNumber() {
-            return processNumber;
+            return this.processNumber;
+        }
+
+        public int getVersion() {
+            return this.version;
+        }
+
+        public String getSettingName() {
+            String[] names = this.toString().toLowerCase().split(" ");
+            String name = "";
+            for (String item : names) {
+                name += Character.toUpperCase(item.charAt(0)) + item.substring(1);
+            }
+            return name + "Version";
+        }
+
+        public void setOutdated(boolean outdated) {
+            this.outdated = outdated;
+        }
+
+        public boolean isOutdated() {
+            return this.outdated;
         }
 
         @Override
@@ -95,6 +118,8 @@ public abstract class AssetsConverter {
             return super.toString().replace('_', ' ');
         }
         private final int processNumber;
+        private final int version;
+        private boolean outdated = false;
     }
     private final String dungeonKeeperFolder;
     private final AssetManager assetManager;
@@ -122,6 +147,27 @@ public abstract class AssetsConverter {
      * @param process the process we are currently doing
      */
     protected abstract void updateStatus(Integer currentProgress, Integer totalProgress, ConvertProcess process);
+
+    public static Boolean conversionNeeded(AppSettings settings) {
+        boolean needConversion = false;
+
+        for (ConvertProcess item : ConvertProcess.values()) {
+            String key = item.getSettingName();
+            boolean isOutdated = item.getVersion() > settings.getInteger(key);
+            item.setOutdated(isOutdated);
+            if (isOutdated) {
+                needConversion = true;
+            }
+        }
+
+        return needConversion;
+    }
+
+    public static void setConversionSettings(AppSettings settings) {
+        for (ConvertProcess item : ConvertProcess.values()) {
+            settings.putInteger(item.getSettingName(), item.getVersion());
+        }
+    }
 
     /**
      * Convert all the original DK II assets to our formats and copy to our
@@ -170,6 +216,9 @@ public abstract class AssetsConverter {
      * @param destination Destination folder
      */
     private void convertTextures(String dungeonKeeperFolder, String destination) {
+        if (!ConvertProcess.TEXTURES.isOutdated()) {
+            return;
+        }
         logger.log(Level.INFO, "Extracting textures to: {0}", destination);
         updateStatus(null, null, ConvertProcess.TEXTURES);
         EngineTexturesFile etFile = getEngineTexturesFile(dungeonKeeperFolder);
@@ -220,6 +269,9 @@ public abstract class AssetsConverter {
      * @param destination Destination folder
      */
     private void convertModels(String dungeonKeeperFolder, String destination, AssetManager assetManager) {
+        if (!ConvertProcess.MODELS.isOutdated()) {
+            return;
+        }
         logger.log(Level.INFO, "Extracting models to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MODELS);
 
@@ -326,6 +378,9 @@ public abstract class AssetsConverter {
      * @param destination Destination folder
      */
     private void convertMouseCursors(String dungeonKeeperFolder, String destination) {
+        if (!ConvertProcess.MOUSE_CURSORS.isOutdated()) {
+            return;
+        }
         logger.log(Level.INFO, "Extracting mouse cursors to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MOUSE_CURSORS);
 
@@ -351,6 +406,9 @@ public abstract class AssetsConverter {
      * @param destination Destination folder
      */
     private void convertSounds(String dungeonKeeperFolder, String destination) {
+        if (!ConvertProcess.MUSIC_AND_SOUNDS.isOutdated()) {
+            return;
+        }
         logger.log(Level.INFO, "Extracting sounds to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MUSIC_AND_SOUNDS);
         String dataDirectory = dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Sound").concat(File.separator).concat("Sfx").concat(File.separator);
@@ -446,6 +504,9 @@ public abstract class AssetsConverter {
      * @param destination Destination folder
      */
     private void convertTexts(String dungeonKeeperFolder, String destination) {
+        if (!ConvertProcess.INTERFACE_TEXTS.isOutdated()) {
+            return;
+        }
         logger.log(Level.INFO, "Extracting texts to: {0}", destination);
         updateStatus(null, null, ConvertProcess.INTERFACE_TEXTS);
         String dataDirectory = dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Text").concat(File.separator).concat("Default").concat(File.separator);
@@ -531,6 +592,9 @@ public abstract class AssetsConverter {
      * @param destination Destination folder
      */
     private void convertPaths(String dungeonKeeperFolder, String destination) {
+        if (!ConvertProcess.PATHS.isOutdated()) {
+            return;
+        }
         logger.log(Level.INFO, "Extracting paths to: {0}", destination);
         updateStatus(null, null, ConvertProcess.PATHS);
 

@@ -327,7 +327,7 @@ public class Player implements Comparable<Player> {
     private short chanceOfFindingSpecialsWhenExploring; // Misc, byte, percentage
     private ImprisonedCreatureFatePolicy fateOfImprisonedCreatures; // Misc, byte
     //
-    private int unknown4; // xa6
+    private int triggerId; // xa6, associated trigger
     private short playerId; // 0xa8
     private int startingCameraX; // xa9, 0 based coordinate
     private int startingCameraY; // xab, 0 based coordinate
@@ -949,12 +949,12 @@ public class Player implements Comparable<Player> {
         this.fateOfImprisonedCreatures = fateOfImprisonedCreatures;
     }
 
-    public int getUnknown4() {
-        return unknown4;
+    public int getTriggerId() {
+        return triggerId;
     }
 
-    protected void setUnknown4(int unknown4) {
-        this.unknown4 = unknown4;
+    protected void setTriggerId(int triggerId) {
+        this.triggerId = triggerId;
     }
 
     public short getPlayerId() {

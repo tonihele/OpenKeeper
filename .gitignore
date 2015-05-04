@@ -1,8 +1,9 @@
 /nbproject/private/
 /build/
 /assets/Interface/Texts/*.properties
+/assets/Interface/Paths/*.txt
 # property file which holds the configuration
-odk.properties
+openkeeper.properties
 *.png
 *.j3m
 *.j3o

@@ -230,7 +230,7 @@ public class KwdFile {
     private String author;
     private String email;
     private String information;
-    private int mWShortId0;
+    private int triggerId; // Associated trigger
     private int ticksPerSec;
     private short x01184[];
     private String messages[];
@@ -685,7 +685,7 @@ public class KwdFile {
             player.setChanceOfExploringToFindSpecials((short) file.readUnsignedByte());
             player.setChanceOfFindingSpecialsWhenExploring((short) file.readUnsignedByte());
             player.setFateOfImprisonedCreatures(parseEnum((short) file.readUnsignedByte(), Player.ImprisonedCreatureFatePolicy.class));
-            player.setUnknown4(Utils.readUnsignedShort(file));
+            player.setTriggerId(Utils.readUnsignedShort(file));
             player.setPlayerId((short) file.readUnsignedByte());
             player.setStartingCameraX(Utils.readUnsignedShort(file));
             player.setStartingCameraY(Utils.readUnsignedShort(file));
@@ -1165,7 +1165,7 @@ public class KwdFile {
             rawMapInfo.read(bytes);
             information = Utils.bytesToStringUtf16(bytes).trim();
 
-            mWShortId0 = Utils.readUnsignedShort(rawMapInfo);
+            triggerId = Utils.readUnsignedShort(rawMapInfo);
             ticksPerSec = Utils.readUnsignedShort(rawMapInfo);
             x01184 = new short[520];
             for (int x = 0; x < x01184.length; x++) {
@@ -2236,14 +2236,24 @@ public class KwdFile {
                     trigger = new TriggerGeneric(this);
                     ((TriggerGeneric) trigger).setTargetValueComparison(parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
                     ((TriggerGeneric) trigger).setTargetFlagId((short) file.readUnsignedByte());
-                    ((TriggerGeneric) trigger).setTargetValueType(parseEnum((short) file.readUnsignedByte(), TriggerGeneric.TargetValueType.class));
+                    short targetValueType = (short) file.readUnsignedByte();
                     ((TriggerGeneric) trigger).setTargetValueFlagId((short) file.readUnsignedByte());
                     ((TriggerGeneric) trigger).setTargetValue(Utils.readInteger(file));
                     ((TriggerGeneric) trigger).setId(Utils.readUnsignedShort(file));
-                    ((TriggerGeneric) trigger).setX0a(Utils.readUnsignedShort(file));
-                    ((TriggerGeneric) trigger).setX0c(Utils.readUnsignedShort(file));
+                    ((TriggerGeneric) trigger).setX0a(Utils.readUnsignedShort(file)); // SiblingID
+                    ((TriggerGeneric) trigger).setX0c(Utils.readUnsignedShort(file)); // ChildID
                     ((TriggerGeneric) trigger).setTarget(parseEnum((short) file.readUnsignedByte(), TriggerGeneric.TargetType.class));
                     ((TriggerGeneric) trigger).setRepeatTimes((short) file.readUnsignedByte());
+                    if (TriggerGeneric.TargetType.SLAP_TYPES.equals(((TriggerGeneric) trigger).getTarget())) {
+
+                        // The target value type is actually a terrain ID
+                        ((TriggerGeneric) trigger).setTargetValueType(TriggerGeneric.TargetValueType.TERRAIN_ID);
+                        ((TriggerGeneric) trigger).setTerrainId(targetValueType);
+                    } else {
+
+                        // Assign type normally
+                        ((TriggerGeneric) trigger).setTargetValueType(parseEnum(targetValueType, TriggerGeneric.TargetValueType.class));
+                    }
                     break;
                 }
                 case 214: {
@@ -2256,8 +2266,8 @@ public class KwdFile {
                     ((TriggerAction) trigger).setUnknown2((short) file.readUnsignedByte());
                     ((TriggerAction) trigger).setActionTargetValue1(Utils.readUnsignedShort(file));
                     ((TriggerAction) trigger).setActionTargetValue2(Utils.readUnsignedShort(file));
-                    ((TriggerAction) trigger).setFlags1(Utils.readUnsignedShort(file));
-                    ((TriggerAction) trigger).setFlags2(Utils.readUnsignedShort(file));
+                    ((TriggerAction) trigger).setFlags1(Utils.readUnsignedShort(file)); // ID
+                    ((TriggerAction) trigger).setFlags2(Utils.readUnsignedShort(file)); // SiblingID
                     short[] unknown1 = new short[2];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();

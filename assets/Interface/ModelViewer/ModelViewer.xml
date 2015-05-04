@@ -6,7 +6,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Main Screen for model loader -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="start" controller="toniarts.opendungeonkeeper.tools.modelviewer.ModelViewer">
+    <screen id="start" controller="toniarts.openkeeper.tools.modelviewer.ModelViewer">
         <layer id="layer" childLayout="horizontal">
             <panel id="panel" height="95%" width="25%" align="left" valign="center" childLayout="vertical" visibleToMouse="true">
                 <control id="typeCombo" name="dropDown" displayItems="5" />

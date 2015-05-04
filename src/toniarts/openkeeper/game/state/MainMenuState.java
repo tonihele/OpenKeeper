@@ -65,6 +65,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
@@ -136,12 +137,13 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         this.app.getGuiViewPort().addProcessor(niftyDisplay);
 
         // Load the start menu
+        niftyDisplay.getNifty().getResourceBundles().put("menu", Main.getResourceBundle("Interface/Texts/Text"));
         niftyDisplay.getNifty().fromXml("Interface/MainMenu.xml", "start", this);
 
         // Set the camera position
         // TODO: an utility, this is map start position really, so general
         Vector3f startLocation = new Vector3f((3 - MapLoader.TILE_WIDTH / 2) * MapLoader.TILE_WIDTH, 0, (12 - MapLoader.TILE_WIDTH * 0.35f) * MapLoader.TILE_HEIGHT);
-        CameraSweepData csd = (CameraSweepData) assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).concat("EnginePath250".concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
+        CameraSweepData csd = (CameraSweepData) assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat("EnginePath250".concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
         this.app.getCamera().setLocation(startLocation.addLocal(csd.getEntries().get(0).getPosition()));
     }
 
@@ -330,8 +332,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * @return the resource bundle
      */
     private ResourceBundle getLevelResourceBundle() {
-        ResourceBundle dict = ResourceBundle.getBundle("Interface/Texts/LEVEL" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "_BRIEFING");
-        return dict;
+        return Main.getResourceBundle("Interface/Texts/LEVEL" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "_BRIEFING");
     }
 
     /**
