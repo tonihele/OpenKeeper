@@ -231,7 +231,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         // Quantify and encode AC coefficients
         short[] vlc = decodeVlc(bitReader, TEX_VLC_BITS, dctCoeff);
         int i = 0;
-        int j = 0;
+        int j;
         while (vlc[2] != EOB) {
 
             int level;
@@ -413,7 +413,8 @@ public class TgqFrame implements Comparable<TgqFrame> {
     }
 
     private static int clip(int val) {
-        return (val >> 4);
+        int value = (val >> 4);
+        return value < 0 ? 0 : (value > 255 ? 255 : value);
     }
 
     /**
