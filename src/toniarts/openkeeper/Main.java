@@ -347,6 +347,11 @@ public class Main extends SimpleApplication {
         // Set the processors
         setViewProcessors();
 
+        // FIXME: We need ambient light, but it may be different for different states. There just seems to be a bug in BatchNodes concerning the removal of the light. So this is temporary perhaps
+        AmbientLight al = new AmbientLight();
+        al.setColor(ColorRGBA.White.multLocal(5f));
+        rootNode.addLight(al);
+
         if (params.containsKey("nomovies")) {
             startGame();
         } else {
@@ -474,12 +479,6 @@ public class Main extends SimpleApplication {
      * Starts the game, opens up the start menu / level
      */
     private void startGame() {
-
-        // FIXME: We need ambient light, but it may be different for different states. There just seems to be a bug in BatchNodes concerning the removal of the light. So this is temporary perhaps
-        AmbientLight al = new AmbientLight();
-        al.setColor(ColorRGBA.White.multLocal(5f));
-        rootNode.addLight(al);
-
         if (params.containsKey("level")) {
             GameState gameState = new GameState(params.get("level"), this.getAssetManager());
             stateManager.attach(gameState);
