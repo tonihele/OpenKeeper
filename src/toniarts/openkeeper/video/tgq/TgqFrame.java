@@ -17,6 +17,7 @@
 package toniarts.openkeeper.video.tgq;
 
 import java.awt.image.BufferedImage;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
@@ -138,9 +139,9 @@ public class TgqFrame implements Comparable<TgqFrame> {
     private final int[] linesize;
     private final int codedWidth;
     private final int codedHeight;
-    private final int[] y;
-    private final int[] cb;
-    private final int[] cr;
+    private final ByteBuffer luma;
+    private final ByteBuffer cb;
+    private final ByteBuffer cr;
     public final static int YCBCR_PLANE_LUMA = 0;
     public final static int YCBCR_PLANE_CB = 1;
     public final static int YCBCR_PLANE_CR = 2;
@@ -167,9 +168,9 @@ public class TgqFrame implements Comparable<TgqFrame> {
         codedWidth = (width + 15) & ~0xf;
         codedHeight = (height + 15) & ~0xf;
         linesize = new int[]{codedWidth, codedWidth / 2, codedWidth / 2};
-        y = new int[linesize[YCBCR_PLANE_LUMA] * codedHeight];
-        cb = new int[linesize[YCBCR_PLANE_CB] * codedHeight / 2];
-        cr = new int[linesize[YCBCR_PLANE_CR] * codedHeight / 2];
+        luma = ByteBuffer.allocateDirect(linesize[YCBCR_PLANE_LUMA] * codedHeight);
+        cb = ByteBuffer.allocateDirect(linesize[YCBCR_PLANE_CB] * codedHeight / 2);
+        cr = ByteBuffer.allocateDirect(linesize[YCBCR_PLANE_CR] * codedHeight / 2);
 
         // Decode
         decodeFrame(buf);
@@ -336,22 +337,21 @@ public class TgqFrame implements Comparable<TgqFrame> {
      */
     private void idctPut(int[][] block, int mbX, int mbY) {
 
-        // FIXME: Could do without the buffers, more efficient that way?
-        // Set the buffers
-        IntBuffer yBuf = (IntBuffer) IntBuffer.wrap(y).position((mbY * 16 * linesize[YCBCR_PLANE_LUMA]) + mbX * 16);
-        IntBuffer cbBuf = (IntBuffer) IntBuffer.wrap(cb).position((mbY * 8 * linesize[YCBCR_PLANE_CB]) + mbX * 8);
-        IntBuffer crBuf = (IntBuffer) IntBuffer.wrap(cr).position((mbY * 8 * linesize[YCBCR_PLANE_CR]) + mbX * 8);
+        // Set the buffer positions
+        luma.position((mbY * 16 * linesize[YCBCR_PLANE_LUMA]) + mbX * 16);
+        cb.position((mbY * 8 * linesize[YCBCR_PLANE_CB]) + mbX * 8);
+        cr.position((mbY * 8 * linesize[YCBCR_PLANE_CR]) + mbX * 8);
 
-        int yPosition = yBuf.position();
-        eaIdctPut(yBuf, linesize[YCBCR_PLANE_LUMA], block[0]);
-        eaIdctPut((IntBuffer) yBuf.position(yPosition + 8), linesize[YCBCR_PLANE_LUMA], block[1]);
-        eaIdctPut((IntBuffer) yBuf.position(yPosition + 8 * linesize[YCBCR_PLANE_LUMA]), linesize[YCBCR_PLANE_LUMA], block[2]);
-        eaIdctPut((IntBuffer) yBuf.position(yPosition + 8 * linesize[YCBCR_PLANE_LUMA] + 8), linesize[YCBCR_PLANE_LUMA], block[3]);
-        eaIdctPut(cbBuf, linesize[YCBCR_PLANE_CB], block[4]);
-        eaIdctPut(crBuf, linesize[YCBCR_PLANE_CR], block[5]);
+        int yPosition = luma.position();
+        eaIdctPut(luma, linesize[YCBCR_PLANE_LUMA], block[0]);
+        eaIdctPut((ByteBuffer) luma.position(yPosition + 8), linesize[YCBCR_PLANE_LUMA], block[1]);
+        eaIdctPut((ByteBuffer) luma.position(yPosition + 8 * linesize[YCBCR_PLANE_LUMA]), linesize[YCBCR_PLANE_LUMA], block[2]);
+        eaIdctPut((ByteBuffer) luma.position(yPosition + 8 * linesize[YCBCR_PLANE_LUMA] + 8), linesize[YCBCR_PLANE_LUMA], block[3]);
+        eaIdctPut(cb, linesize[YCBCR_PLANE_CB], block[4]);
+        eaIdctPut(cr, linesize[YCBCR_PLANE_CR], block[5]);
     }
 
-    private static void eaIdctPut(IntBuffer dest, int linesize, int[] block) {
+    private static void eaIdctPut(ByteBuffer dest, int linesize, int[] block) {
         int[] temp = new int[64];
         block[0] += 4;
         for (int i = 0; i < 8; i++) {
@@ -359,7 +359,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         }
         int dPosition = dest.position();
         for (int i = 0; i < 8; i++) {
-            idctTransform((IntBuffer) dest.position(dPosition + i * linesize), 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, true, (IntBuffer) IntBuffer.wrap(temp).position(8 * i));
+            idctTransform((ByteBuffer) dest.position(dPosition + i * linesize), 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, true, (IntBuffer) IntBuffer.wrap(temp).position(8 * i));
         }
     }
 
@@ -378,7 +378,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         }
     }
 
-    private static void idctTransform(IntBuffer dest, int s0, int s1, int s2, int s3, int s4, int s5, int s6, int s7, int d0, int d1, int d2, int d3, int d4, int d5, int d6, int d7, boolean clip, IntBuffer src) {
+    private static void idctTransform(Buffer dest, int s0, int s1, int s2, int s3, int s4, int s5, int s6, int s7, int d0, int d1, int d2, int d3, int d4, int d5, int d6, int d7, boolean clip, IntBuffer src) {
         int a1 = src.get(src.position() + s1) + src.get(src.position() + s7);
         int a7 = src.get(src.position() + s1) - src.get(src.position() + s7);
         int a5 = src.get(src.position() + s5) + src.get(src.position() + s3);
@@ -391,30 +391,31 @@ public class TgqFrame implements Comparable<TgqFrame> {
         int b1 = (((A4 - A5) * a7 - A5 * a3) >> 9) + ((ASQRT * (a1 - a5)) >> 8);
         int b2 = (((A2 + A5) * a3 + A5 * a7) >> 9) + ((ASQRT * (a1 - a5)) >> 8);
         int b3 = ((A2 + A5) * a3 + A5 * a7) >> 9;
+
         if (clip) {
-            dest.put(dest.position() + d0, clip(a0 + a2 + a6 + b0));
-            dest.put(dest.position() + d1, clip(a4 + a6 + b1));
-            dest.put(dest.position() + d2, clip(a4 - a6 + b2));
-            dest.put(dest.position() + d3, clip(a0 - a2 - a6 + b3));
-            dest.put(dest.position() + d4, clip(a0 - a2 - a6 - b3));
-            dest.put(dest.position() + d5, clip(a4 - a6 - b2));
-            dest.put(dest.position() + d6, clip(a4 + a6 - b1));
-            dest.put(dest.position() + d7, clip(a0 + a2 + a6 - b0));
+            ((ByteBuffer) dest).put(dest.position() + d0, clip(a0 + a2 + a6 + b0));
+            ((ByteBuffer) dest).put(dest.position() + d1, clip(a4 + a6 + b1));
+            ((ByteBuffer) dest).put(dest.position() + d2, clip(a4 - a6 + b2));
+            ((ByteBuffer) dest).put(dest.position() + d3, clip(a0 - a2 - a6 + b3));
+            ((ByteBuffer) dest).put(dest.position() + d4, clip(a0 - a2 - a6 - b3));
+            ((ByteBuffer) dest).put(dest.position() + d5, clip(a4 - a6 - b2));
+            ((ByteBuffer) dest).put(dest.position() + d6, clip(a4 + a6 - b1));
+            ((ByteBuffer) dest).put(dest.position() + d7, clip(a0 + a2 + a6 - b0));
         } else {
-            dest.put(dest.position() + d0, (a0 + a2 + a6 + b0));
-            dest.put(dest.position() + d1, (a4 + a6 + b1));
-            dest.put(dest.position() + d2, (a4 - a6 + b2));
-            dest.put(dest.position() + d3, (a0 - a2 - a6 + b3));
-            dest.put(dest.position() + d4, (a0 - a2 - a6 - b3));
-            dest.put(dest.position() + d5, (a4 - a6 - b2));
-            dest.put(dest.position() + d6, (a4 + a6 - b1));
-            dest.put(dest.position() + d7, (a0 + a2 + a6 - b0));
+            ((IntBuffer) dest).put(dest.position() + d0, (a0 + a2 + a6 + b0));
+            ((IntBuffer) dest).put(dest.position() + d1, (a4 + a6 + b1));
+            ((IntBuffer) dest).put(dest.position() + d2, (a4 - a6 + b2));
+            ((IntBuffer) dest).put(dest.position() + d3, (a0 - a2 - a6 + b3));
+            ((IntBuffer) dest).put(dest.position() + d4, (a0 - a2 - a6 - b3));
+            ((IntBuffer) dest).put(dest.position() + d5, (a4 - a6 - b2));
+            ((IntBuffer) dest).put(dest.position() + d6, (a4 + a6 - b1));
+            ((IntBuffer) dest).put(dest.position() + d7, (a0 + a2 + a6 - b0));
         }
     }
 
-    private static int clip(int val) {
+    private static byte clip(int val) {
         int value = (val >> 4);
-        return value < 0 ? 0 : (value > 255 ? 255 : value);
+        return (byte) (value < 0 ? 0 : (value > 255 ? 255 : value));
     }
 
     /**
@@ -429,9 +430,9 @@ public class TgqFrame implements Comparable<TgqFrame> {
             for (int x = 0; x < width; x++) {
 
                 // Get the YUV pixels, croma channels are just done with nearest neighbour, not exactly the greatest method
-                int yPix = this.y[ y * width + x];
-                int uPix = this.cb[ (int) Math.floor(y / 2) * (width / 2) + (int) Math.floor(x / 2)];
-                int vPix = this.cr[(int) Math.floor(y / 2) * (width / 2) + (int) Math.floor(x / 2)];
+                int yPix = this.luma.get(y * width + x) & 0xFF;
+                int uPix = this.cb.get((int) Math.floor(y / 2) * (width / 2) + (int) Math.floor(x / 2)) & 0xFF;
+                int vPix = this.cr.get((int) Math.floor(y / 2) * (width / 2) + (int) Math.floor(x / 2)) & 0xFF;
 
                 // And converted to RGB by http://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
                 int r = (int) (yPix + 1.402 * (vPix - 128));
@@ -455,28 +456,16 @@ public class TgqFrame implements Comparable<TgqFrame> {
         if (plane < 0 || plane > 2) {
             throw new IndexOutOfBoundsException("Plane must be 0-2! I recommend using the on this class plane constants!");
         }
-        // TODO: the planes should already be byte arrays or buffers
+
         switch (plane) {
             case YCBCR_PLANE_LUMA: {
-                byte[] array = new byte[y.length];
-                for (int i = 0; i < y.length; i++) {
-                    array[i] = (byte) y[i];
-                }
-                return ByteBuffer.allocateDirect(array.length).put(array);
+                return luma;
             }
             case YCBCR_PLANE_CB: {
-                byte[] array = new byte[cb.length];
-                for (int i = 0; i < cb.length; i++) {
-                    array[i] = (byte) cb[i];
-                }
-                return ByteBuffer.allocateDirect(array.length).put(array);
+                return cb;
             }
             case YCBCR_PLANE_CR: {
-                byte[] array = new byte[cr.length];
-                for (int i = 0; i < cr.length; i++) {
-                    array[i] = (byte) cr[i];
-                }
-                return ByteBuffer.allocateDirect(array.length).put(array);
+                return cr;
             }
         }
         return null;
