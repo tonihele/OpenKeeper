@@ -5,7 +5,9 @@ import java.nio.ByteOrder;
 
 /**
  * This class is part of JCodec ( www.jcodec.org ) This software is distributed
- * under FreeBSD License
+ * under FreeBSD License<br>
+ * Adapted for little endian buffers by Toni Helenius <helenius.toni@gmail.com>,
+ * <b>the support is not complete!</b>
  *
  * @author The JCodec project
  *
