@@ -37,6 +37,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
+import java.util.PriorityQueue;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,6 +53,7 @@ import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.UTF8Control;
+import toniarts.openkeeper.video.MovieState;
 
 /**
  * Main entry point of OpenKeeper
