@@ -24,7 +24,7 @@ TODO
     - [x] Names & entries
     - [x] Texture compression
   - [x] Read sounds
-  - [ ] Read cutscenes (*
+  - [x] Read cutscenes (*
   - [x] Read paths
     - [x] Read paths (paths.wad -> kcs)
     - [x] Understand paths
@@ -47,7 +47,7 @@ TODO
     - [x] Finish up the MP2 asset loader
     - [ ] Merge the sound tracks
     - [ ] Decide what to do with the MAP files (playback events)
-  - [ ] Video playes for DK format (*
+  - [x] Video playes for DK format (*
   - [x] Paths to JME MotionPaths & Cinematics
   - [x] Cursors
     - [x] Animated cursors
