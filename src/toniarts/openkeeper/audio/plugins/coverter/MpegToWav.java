@@ -20,21 +20,17 @@ import java.io.FileInputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Arrays;
-import toniarts.openkeeper.audio.plugins.decoder.Kjmp2;
+import toniarts.openkeeper.audio.plugins.decoder.AudioInformation;
+import toniarts.openkeeper.audio.plugins.decoder.Decoder;
+import toniarts.openkeeper.audio.plugins.decoder.MediaInformation;
+import toniarts.openkeeper.audio.plugins.decoder.MpxReader;
 
 /**
- * Crude example of converting MP2 to WAV with the KJMP2 library<br>
- * Converted from Martin J. Fiedler <martin.fiedler@gmx.net> C code with added
- * proper MONO support
+ * Crude example of converting MPx to WAV with the Doppio library
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class MpegToWav {
-
-    private static final int KJMP2_MAX_FRAME_SIZE = 1440;
-    private static final int MAX_BUFSIZE = 100 * KJMP2_MAX_FRAME_SIZE;
-    private static final int KJMP2_SAMPLES_PER_FRAME = 1152;
 
     public static void main(String[] args) {
         ByteBuffer header = ByteBuffer.wrap(new byte[]{
@@ -60,30 +56,17 @@ public class MpegToWav {
 
         try (FileInputStream fin = new FileInputStream(args[0])) {
 
-            byte buffer[] = new byte[MAX_BUFSIZE];
-            int bufsize = fin.read(buffer, 0, MAX_BUFSIZE);
-            int bufpos = 0;
-            int inOffset = 0;
-
-            int rate = (bufsize > 4) ? Kjmp2.kjmp2GetSampleRate(buffer) : 0;
-            if (rate == 0) {
-                System.out.printf("Input is not a valid MP2 audio file, exiting.\n");
-                return;
-            }
+            MpxReader reader = new MpxReader();
+            MediaInformation info = reader.readInformation(fin, true);
+            Decoder decoder = reader.getDecoder(fin, true);
 
             try (RandomAccessFile fout = new RandomAccessFile(args[1], "rw")) {
-
-                // Init decoder
-                Kjmp2 decoder = new Kjmp2();
-
                 System.out.printf("Decoding %s into %s ...\n", args[0], args[1]);
-                int eof = 0;
                 int outBytes = 0;
-                int desync = 0;
 
-                // Read the number of channels
-                decoder.kjmp2DecodeFrame(buffer, null);
-                int nOfCh = decoder.getNumberOfChannels();
+                // Read info
+                int nOfCh = (int) info.get(AudioInformation.I_CHANNEL_NUMBER);
+                int rate = (int) info.get(AudioInformation.I_SAMPLE_RATE);
 
                 // Header
                 header.putInt(24, rate);
@@ -94,39 +77,11 @@ public class MpegToWav {
                 fout.write(header.array());
 
                 // Output
-                ByteBuffer samples = ByteBuffer.allocate(KJMP2_SAMPLES_PER_FRAME * 2 * nOfCh);
-                samples.order(ByteOrder.LITTLE_ENDIAN);
-
-                while (eof == 0 || (bufsize > 4)) {
-                    int bytes;
-
-                    if (eof == 0 && (bufsize < KJMP2_MAX_FRAME_SIZE)) {
-                        buffer = Arrays.copyOfRange(buffer, bufpos, bufpos + bufsize + 1);
-                        buffer = Arrays.copyOf(buffer, MAX_BUFSIZE);
-
-                        bufpos = 0;
-                        inOffset += bufsize;
-                        bytes = fin.read(buffer, bufsize, MAX_BUFSIZE - bufsize);
-                        if (bytes > 0) {
-                            bufsize += bytes;
-                        } else {
-                            eof = 1;
-                        }
-                    } else {
-                        bytes = (int) decoder.kjmp2DecodeFrame(Arrays.copyOfRange(buffer, bufpos, bufpos + KJMP2_MAX_FRAME_SIZE + 1), samples.asShortBuffer());
-                        if ((bytes < 4) || (bytes > KJMP2_MAX_FRAME_SIZE) || (bytes > bufsize)) {
-                            if (desync == 0) {
-                                System.out.printf("Stream error detected at file offset %d.\n", inOffset + bufpos);
-                            }
-                            desync = bytes = 1;
-                        } else {
-                            fout.write(samples.array());
-                            outBytes += samples.capacity();
-                            desync = 0;
-                        }
-                        bufsize -= bytes;
-                        bufpos += bytes;
-                    }
+                byte[] buffer = new byte[8192];
+                int length;
+                while ((length = decoder.read(buffer)) > -1) {
+                    fout.write(buffer, 0, length);
+                    outBytes += length;
                 }
 
                 // Finish of the header

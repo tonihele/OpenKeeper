@@ -26,25 +26,21 @@ import com.jme3.util.BufferUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.audio.plugins.decoder.Kjmp2;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.audio.plugins.decoder.AudioInformation;
+import toniarts.openkeeper.audio.plugins.decoder.Decoder;
+import toniarts.openkeeper.audio.plugins.decoder.MediaInformation;
+import toniarts.openkeeper.audio.plugins.decoder.MpxReader;
 
 /**
- * Plays MP2 files
+ * Plays MPx files, not MP3s though
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class MP2Loader implements AssetLoader {
 
     private static final Logger logger = Logger.getLogger(MP2Loader.class.getName());
-    private static final int KJMP2_MAX_FRAME_SIZE = 1440;
-    private static final int MAX_BUFSIZE = 1000 * KJMP2_MAX_FRAME_SIZE;
-    private static final int KJMP2_SAMPLES_PER_FRAME = 1152;
     private boolean readStream = false;
     private AudioBuffer audioBuffer;
     private AudioStream audioStream;
@@ -55,135 +51,77 @@ public class MP2Loader implements AssetLoader {
      * The last read repeats a bit, that is a known issue:
      * http://hub.jmonkeyengine.org/forum/topic/streaming-audio-with-audionode-plays-ending-wrongly/
      */
-    private class MP2Stream extends InputStream {
+    private static class MPxStream extends InputStream {
 
-        private final InputStream is;
-        private int bufSize;
-        private byte[] buffer;
-        private final Kjmp2 decoder;
-        private boolean eof = false;
-        private int bufpos = 0;
-        private int inOffset = 0;
-        private boolean desync = false;
-        private final ByteBuffer samples;
+        private final Decoder decoder;
+        private final InputStream inputStream;
 
-        public MP2Stream(InputStream is, int bufSize, byte[] buffer, int numberOfChannels, Kjmp2 decoder) {
-            this.is = is;
-            this.bufSize = bufSize;
-            this.buffer = buffer;
+        public MPxStream(InputStream inputStream, Decoder decoder) {
             this.decoder = decoder;
-            samples = ByteBuffer.allocate(KJMP2_SAMPLES_PER_FRAME * 2 * numberOfChannels);
-            samples.order(ByteOrder.LITTLE_ENDIAN);
-            samples.position(samples.limit());
+            this.inputStream = inputStream;
+        }
+
+        /**
+         * Reads up the audio source to len bytes of data from the decoded audio
+         * stream into an array of bytes. If the argument b is
+         * <code>null</code>, -1 is returned.
+         *
+         * @param b the buffer into which the data is read
+         * @param i the start offset of the data
+         * @param j the maximum number of bytes read
+         * @return the total number of bytes read into, or -1 is there is no
+         * more data because the end of the stream has been reached.
+         * @exception IOException if an input or output error occurs
+         */
+        @Override
+        public int read(byte b[], int i, int j) throws IOException {
+            if (decoder == null) {
+                return -1;
+            }
+            return decoder.read(b, i, j);
+        }
+
+        /**
+         * Reads up to a specified maximum number of bytes of data from the
+         * decoded audio stream, putting them into the given byte array. If the
+         * argument b is null, -1 is returned.
+         *
+         * @param b the buffer into which the data is read
+         * @return the total number of bytes read into the buffer, or -1 if
+         * there is no more data because the end of the stream has been reached
+         * @exception IOException if an input or output error occurs
+         */
+        @Override
+        public int read(byte b[]) throws IOException {
+            return read(b, 0, b.length);
         }
 
         @Override
         public int read() throws IOException {
-
-            if (samples.position() == samples.limit() && (!eof || bufSize > 4)) {
-                int bytes;
-
-                if (!eof && (bufSize < KJMP2_MAX_FRAME_SIZE)) {
-                    buffer = Arrays.copyOfRange(buffer, bufpos, bufpos + bufSize + 1);
-                    buffer = Arrays.copyOf(buffer, MAX_BUFSIZE);
-
-                    bufpos = 0;
-                    inOffset += bufSize;
-                    bytes = is.read(buffer, bufSize, MAX_BUFSIZE - bufSize);
-                    if (bytes > 0) {
-                        bufSize += bytes;
-                    } else {
-                        eof = true;
-                    }
-                }
-
-                if (bufSize > 4) {
-
-                    // Rewind and gather more
-                    samples.clear();
-
-                    bytes = (int) decoder.kjmp2DecodeFrame(Arrays.copyOfRange(buffer, bufpos, bufpos + KJMP2_MAX_FRAME_SIZE + 1), samples.asShortBuffer());
-                    if ((bytes < 4) || (bytes > KJMP2_MAX_FRAME_SIZE) || (bytes > bufSize)) {
-                        if (desync) {
-                            logger.log(Level.WARNING, "Stream error detected at file offset {0}{1}!", new Object[]{inOffset, bufpos});
-                        }
-                        desync = true;
-                        bytes = 1;
-                    } else {
-                        desync = false;
-                    }
-                    bufSize -= bytes;
-                    bufpos += bytes;
-                }
-            }
-
-            // Check exit
-            if (samples.position() != samples.limit()) {
-                return Utils.toUnsignedByte(samples.get());
-            } else {
-                return -1;
-            }
+            return -1;
         }
 
         @Override
         public void close() throws IOException {
-            is.close();
+            inputStream.close();
         }
     }
 
-    private void readDataChunkForBuffer(InputStream is, int bufSize, byte[] buffer, int numberOfChannels, Kjmp2 decoder) throws IOException {
-
-        boolean eof = false;
-        int bufpos = 0;
-        int inOffset = 0;
-        boolean desync = false;
+    private void readDataChunkForBuffer(Decoder decoder) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        while (!eof || (bufSize > 4)) {
-            int bytes;
-
-            // Output
-            ByteBuffer samples = ByteBuffer.allocate(KJMP2_SAMPLES_PER_FRAME * 2 * numberOfChannels);
-            samples.order(ByteOrder.LITTLE_ENDIAN);
-
-            if (!eof && (bufSize < KJMP2_MAX_FRAME_SIZE)) {
-                buffer = Arrays.copyOfRange(buffer, bufpos, bufpos + bufSize + 1);
-                buffer = Arrays.copyOf(buffer, MAX_BUFSIZE);
-
-                bufpos = 0;
-                inOffset += bufSize;
-                bytes = is.read(buffer, bufSize, MAX_BUFSIZE - bufSize);
-                if (bytes > 0) {
-                    bufSize += bytes;
-                } else {
-                    eof = true;
-                }
-            } else {
-                bytes = (int) decoder.kjmp2DecodeFrame(Arrays.copyOfRange(buffer, bufpos, bufpos + KJMP2_MAX_FRAME_SIZE + 1), samples.asShortBuffer());
-                if ((bytes < 4) || (bytes > KJMP2_MAX_FRAME_SIZE) || (bytes > bufSize)) {
-                    if (desync) {
-                        logger.log(Level.WARNING, "Stream error detected at file offset {0}{1}!", new Object[]{inOffset, bufpos});
-                    }
-                    desync = true;
-                    bytes = 1;
-                } else {
-                    baos.write(samples.array());
-                    desync = false;
-                }
-                bufSize -= bytes;
-                bufpos += bytes;
-            }
+        byte[] buffer = new byte[8192];
+        int length;
+        while ((length = decoder.read(buffer)) > -1) {
+            baos.write(buffer, 0, length);
         }
         audioBuffer.updateData(BufferUtils.createByteBuffer(baos.toByteArray()));
     }
 
-    private void readDataChunkForStream(InputStream is, int bufSize, byte[] buffer, int numberOfChannels, Kjmp2 kjmp2) throws IOException {
-        audioStream.updateData(new MP2Stream(is, bufSize, buffer, numberOfChannels, kjmp2), 0);
+    private void readDataChunkForStream(InputStream inputStream, Decoder decoder) {
+        audioStream.updateData(new MPxStream(inputStream, decoder), 0);
     }
 
     private AudioData load(InputStream inputStream, boolean stream) throws IOException {
-
-        // Load the MPx file
-        byte buffer[] = new byte[KJMP2_MAX_FRAME_SIZE * 100];
 
         readStream = stream;
         if (readStream) {
@@ -195,28 +133,19 @@ public class MP2Loader implements AssetLoader {
         }
         try {
 
-            // Create new KJMP2 instance
-            Kjmp2 kjmp2 = new Kjmp2();
-
-            // Read a frame
-            int bufSize = inputStream.read(buffer);
-            int frameSize = kjmp2.kjmp2DecodeFrame(buffer, null);
-            if (frameSize == 0) {
-
-                // Invalid header
-                throw new IOException("Not a valid MP2 file!");
-            }
+            MpxReader reader = new MpxReader();
+            MediaInformation info = reader.readInformation(inputStream, true);
+            Decoder decoder = reader.getDecoder(inputStream, true);
 
             // Setup audio
-            int numberOfChannels = kjmp2.getNumberOfChannels();
-            audioData.setupFormat(numberOfChannels, 16, kjmp2.kjmp2GetSampleRate());
+            audioData.setupFormat((int) info.get(AudioInformation.I_CHANNEL_NUMBER), (int) decoder.get(AudioInformation.I_SAMPLE_SIZE), (int) info.get(AudioInformation.I_SAMPLE_RATE));
 
             // Read the file
             while (true) {
                 if (readStream) {
-                    readDataChunkForStream(inputStream, bufSize, buffer, numberOfChannels, kjmp2);
+                    readDataChunkForStream(inputStream, decoder);
                 } else {
-                    readDataChunkForBuffer(inputStream, bufSize, buffer, numberOfChannels, kjmp2);
+                    readDataChunkForBuffer(decoder);
                 }
                 return audioData;
             }
