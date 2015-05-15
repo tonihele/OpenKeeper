@@ -68,7 +68,8 @@ public class FrontEndLevelControl extends AbstractControl {
                     if (getSpatial().getLocalTranslation().equals(baseLocation)) {
                         AudioNode fx = new AudioNode(assetManager, "Sounds/Global/RockRise nl.mp2", false);
                         fx.setLooping(false);
-//                        fx.play();
+                        fx.setPositional(true);
+                        fx.play();
                     }
 
                     // Play the animation
