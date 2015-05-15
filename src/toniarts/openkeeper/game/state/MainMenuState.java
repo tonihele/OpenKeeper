@@ -265,7 +265,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private void doTransitionAndGoToScreen(String transition, final String screen) {
 
         // Remove the current screen
-        nifty.gotoScreen(null);
+        nifty.gotoScreen("empty");
 
         // Do cinematic transition
         Cinematic c = new Cinematic(assetManager, app.getCamera(), new Point(3, 12), transition, menuNode);

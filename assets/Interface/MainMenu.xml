@@ -27,6 +27,13 @@
     </style>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- empty screen -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="empty" controller="toniarts.openkeeper.game.state.MainMenuState">
+
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- start screen -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="start" controller="toniarts.openkeeper.game.state.MainMenuState">
