@@ -9,8 +9,8 @@
 
     <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
 
-    <!--<registerSound id="menuClick" filename="Sounds/Global/FE3D CLICK ON T.mp2" />-->
-    <!--<registerSound id="buttonClick" filename="Sounds/Global/FE BUTTON BIG 5.mp2" />-->
+    <registerSound id="buttonClick" filename="Sounds/Global/FE3D CLICK ON T.mp2" />
+    <registerSound id="menuClick" filename="Sounds/Global/FE BUTTON BIG 5.mp2" />
 
     <style id="menuTextSmall">
         <attributes font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb" />
@@ -19,7 +19,7 @@
         <attributes font="Interface/Fonts/DungeonKeeperIIBig.fnt" color="#bbbcbb" />
         <effect>
             <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-            <onClick name="playSound" sound="menuClick"/>
+            <onClick neverStopRendering="true" name="playSound" sound="menuClick"/>
         </effect>
     </style>
     <style id="menuTitleText">

@@ -6,11 +6,11 @@
                        controller="de.lessvoid.nifty.controls.DefaultController">
         <panel focusable="true" childLayout="overlay" visibleToMouse="false" paddingLeft="7px" paddingRight="7px">
             <image filename="Textures/Cancel-Over.png" width="$width" heigth="$height" visibleToMouse="false">
-                <interact onClick="$click"/>
                 <effect>
                     <onHover name="changeImage" active="Textures/Cancel-Click.png" inactive="Textures/Cancel-Over.png" />
-                    <onClick name="playSound" sound="buttonClick"/>
+                    <onClick neverStopRendering="true" name="playSound" sound="buttonClick"/>
                 </effect>
+                <interact onClick="$click"/>
             </image>
         </panel>
     </controlDefinition>
@@ -20,11 +20,11 @@
                        controller="de.lessvoid.nifty.controls.DefaultController">
         <panel focusable="true" childLayout="overlay" visibleToMouse="false" paddingLeft="7px" paddingRight="7px">
             <image filename="Textures/Confirm-Over.png" width="$width" heigth="$height" visibleToMouse="false">
-                <interact onClick="$click"/>
                 <effect>
                     <onHover name="changeImage" active="Textures/Confirm-Click.png" inactive="Textures/Confirm-Over.png" />
-                    <onClick name="playSound" sound="buttonClick"/>
+                    <onClick neverStopRendering="true" name="playSound" sound="buttonClick"/>
                 </effect>
+                <interact onClick="$click"/>
             </image>
         </panel>
     </controlDefinition>
