@@ -27,7 +27,7 @@
             </panel>
 
             <!--The bottom panel-->
-            <panel id="bottom" height="150px" width="100%" align="left" valign="top" childLayout="vertical" padding="0px,0px,10px,0px">
+            <panel id="bottom" height="140px" width="100%" align="left" valign="top" childLayout="vertical" padding="0px,0px,10px,0px">
 
                 <!--The top bar-->
                 <panel height="30%" width="100%" childLayout="horizontal" align="left" valign="top" margin="0px,0px,4px,0px">
@@ -40,20 +40,51 @@
                 <!--Map (place for it) & the works-->
                 <panel height="*" width="100%" childLayout="horizontal" align="left" valign="top">
                     <!--Map, but not in this layer-->
-                    <panel height="100%" width="140px" valign="center" childLayout="horizontal" marging="0px,0px,0px,6px">
+                    <panel height="100%" width="140px" valign="center" childLayout="horizontal" margin="0px,0px,0px,6px">
                     </panel>
                     <panel id="bottomBackgroundPanel" height="100%" width="*" valign="center" childLayout="horizontal" backgroundImage="Textures/GUI/Windows/Panel-BG.png" imageMode="repeat:0,0,64,64">
                     </panel>
                 </panel>
             </panel>
+
         </layer>
 
         <layer id="layer" childLayout="vertical">
 
             <!--The upper panel-->
-<!--            <panel id="panel" height="64px" width="100%" align="left" valign="top" backgroundColor="#f60f" childLayout="horizontal" padding="2px,0px,0px,0px">
+            <panel id="top" height="64px" width="100%" align="left" valign="top" childLayout="horizontal" padding="2px,0px,0px,0px">
+                <panel height="70%" width="100%" childLayout="horizontal" align="left" valign="top">
 
-            </panel>-->
+                    
+                </panel>
+            </panel>
+
+            <!--Empty center-->
+            <panel id="center" height="*" width="100%" childLayout="horizontal">
+            </panel>
+
+            <!--The bottom panel-->
+            <panel id="bottom" height="140px" width="100%" align="left" valign="top" childLayout="vertical" padding="0px,0px,0px,0px">
+
+                <!--The top bar begins here-->
+                <panel height="*" width="100%" childLayout="horizontal" align="left" valign="top" margin="0px,0px,0px,0px">
+
+                    <!--The map-->
+                    <panel height="100%" width="140px" valign="top" childLayout="horizontal" margin="0px,0px,0px,6px" backgroundImage="Textures/GUI/Map/map.png" imageMode="resize:52,6,55,48,52,6,55,12,52,6,55,54">
+                    </panel>
+
+                    <!--The rest-->
+                    <panel height="100%" width="*" valign="top" childLayout="vertical" margin="0px,0px,0px,0px">
+
+                        <!--The tab category buttons-->
+                        <panel height="30%" width="*" valign="top" childLayout="horizontal" margin="0px,128px,0px,0px">
+                        </panel>
+                    </panel>
+                </panel>
+
+            </panel>
+
         </layer>
+
     </screen>
 </nifty>
