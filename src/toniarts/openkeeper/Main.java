@@ -352,7 +352,7 @@ public class Main extends SimpleApplication {
         al.setColor(ColorRGBA.White.multLocal(5f));
         rootNode.addLight(al);
 
-        if (params.containsKey("nomovies")) {
+        if (params.containsKey("nomovies") || params.containsKey("level")) {
             startGame();
         } else {
 
