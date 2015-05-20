@@ -38,6 +38,7 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
  * Very simplistic, the buffer is just filled up once. If the decoder is too
  * slow, the playback will start to stutter. But with a modern computer, it
  * really shouldn't be that slow. Video is synced to audio.<br>
+ * Example is taken from JCodec project
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -333,7 +334,7 @@ public abstract class TgqPlayer {
 
                         // No frame change, sleep just a tiny bit not to take all the CPU
                         try {
-                            Thread.sleep(2000000 / 1000000, (int) (2000000 % 1000000));
+                            Thread.sleep(2, 0);
                         } catch (InterruptedException ex) {
                             return;
                         }
