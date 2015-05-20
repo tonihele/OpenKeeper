@@ -329,6 +329,14 @@ public abstract class TgqPlayer {
                             logger.log(Level.WARNING, "Video is late {0} frames!", late);
                         }
                         lastFrameIndex = frameIndex;
+                    } else {
+
+                        // No frame change, sleep just a tiny bit not to take all the CPU
+                        try {
+                            Thread.sleep(2000000 / 1000000, (int) (2000000 % 1000000));
+                        } catch (InterruptedException ex) {
+                            return;
+                        }
                     }
                 } else {
                     break;
