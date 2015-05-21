@@ -57,11 +57,9 @@ public abstract class TgqPlayer {
     private Thread audioPlaybackThread;
     private long clock;
     private volatile boolean bufferingComplete;
-    private volatile boolean audioInitialized;
     private SourceDataLine line;
     private final Object bufferedEvent = new Object();
     private final Object audioHeaderEvent = new Object();
-    private final Object audioInitializedEvent = new Object();
     private boolean stopped = true;
     private static final Logger logger = Logger.getLogger(TgqPlayer.class.getName());
 
@@ -77,7 +75,6 @@ public abstract class TgqPlayer {
         // Init the variables
         stopped = false;
         bufferingComplete = false;
-        audioInitialized = false;
         clock = 0;
         line = null;
         audioFrames.clear();
@@ -172,10 +169,6 @@ public abstract class TgqPlayer {
                     }
                 }
                 initAudio(audioHeader);
-                audioInitialized = true;
-                synchronized (audioInitializedEvent) {
-                    audioInitializedEvent.notifyAll();
-                }
 
                 // Wait for the start
                 if (!bufferingComplete) {
@@ -280,14 +273,14 @@ public abstract class TgqPlayer {
         @Override
         public void run() {
 
-            // Wait for the audio to be initialized
-            if (!audioInitialized) {
-                synchronized (audioInitializedEvent) {
-                    if (!audioInitialized) {
+            // Wait for the start
+            if (!bufferingComplete) {
+                synchronized (bufferedEvent) {
+                    if (!bufferingComplete) {
                         try {
-                            audioInitializedEvent.wait();
+                            bufferedEvent.wait();
                         } catch (InterruptedException ex) {
-                            logger.log(Level.WARNING, "Audio initialized interrupted!", ex);
+                            logger.log(Level.WARNING, "Playing start delay interrupted!", ex);
                             return;
                         }
                     }
