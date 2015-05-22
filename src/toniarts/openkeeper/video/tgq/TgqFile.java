@@ -269,62 +269,86 @@ public abstract class TgqFile implements AutoCloseable {
         }
 
         // Tag data
+        boolean inSubStream;
         while (file.getFilePointer() < (pos + frameSize)) {
             short tag = (short) file.readUnsignedByte();
-            if (tag == 0xFF) {
-                return;
-            } else if (tag == 0x8A || tag == 0xFC || tag == 0xFD || tag == 0xFE) {
 
-                // No data
-                continue;
-            }
-            short length = (short) file.readUnsignedByte();
-
-            // See the tag
             switch (tag) {
-                case 0x82: {
-                    audioHeader.setNumberOfChannels(getValue(length));
-                    break;
-                }
-                case 0x83: {
-                    switch (getValue(length)) {
-                        case 0x00: {
-                            audioHeader.setCompression(EAAudioHeader.Compression.PCM_16_I_LE); // We don't know the bits really
-                            break;
-                        }
-                        case 0x07: {
-                            audioHeader.setCompression(EAAudioHeader.Compression.EA_XA_ADPCM);
-                            break;
-                        }
-                        case 0x09: {
-                            audioHeader.setCompression(EAAudioHeader.Compression.UNKNOWN);
-                            break;
+                case 0xFC:
+                case 0xFE:
+                case 0xFD: {
+
+                    // Start of a sub stream
+                    inSubStream = true;
+
+                    // Loop through the sub stream
+                    while (inSubStream && file.getFilePointer() < (pos + frameSize)) {
+                        short subTag = (short) file.readUnsignedByte();
+                        switch (subTag) {
+                            case 0x82: {
+                                audioHeader.setNumberOfChannels(getValue(file));
+                                break;
+                            }
+                            case 0x83: {
+                                switch (getValue(file)) {
+                                    case 0x00: {
+                                        audioHeader.setCompression(EAAudioHeader.Compression.PCM_16_I_LE); // We don't know the bits really
+                                        break;
+                                    }
+                                    case 0x07: {
+                                        audioHeader.setCompression(EAAudioHeader.Compression.EA_XA_ADPCM);
+                                        break;
+                                    }
+                                    case 0x09: {
+                                        audioHeader.setCompression(EAAudioHeader.Compression.UNKNOWN);
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
+                            case 0x85: {
+                                audioHeader.setNumberOfSamplesInStream(getValue(file));
+                                break;
+                            }
+                            case 0x8A: {
+                                inSubStream = false;
+                                getValue(file); // Specs say this has no data but I beg to differ
+                                break;
+                            }
+                            case 0xFF: {
+                                return; // The end
+                            }
+                            default: {
+                                logger.log(Level.INFO, "Did not process sub stream tag {0}!", subTag);
+                                getValue(file);
+                            }
                         }
                     }
                     break;
                 }
-                case 0x85: {
-                    audioHeader.setNumberOfSamplesInStream(getValue(length));
-                    break;
+                case 0xFF: {
+                    return; // The end
                 }
                 default: {
                     logger.log(Level.INFO, "Did not process tag {0}!", tag);
-                    file.skipBytes(length);
-                    break;
+                    getValue(file);
                 }
             }
         }
     }
 
     /**
-     * Gets a value of given length (in bytes)
+     * Gets a value from the file, first reading the length (a byte that
+     * signifies the number of bytes to read for the value) of the value, and
+     * the value itself
      *
-     * @param length length in bytes
-     * @return value from given length
+     * @param file file to read from
+     * @return value value from the file
      * @throws IOException
      */
-    private int getValue(final short length) throws IOException {
+    private static int getValue(final RandomAccessFile file) throws IOException {
         int value = 0;
+        short length = (short) file.readUnsignedByte();
         byte[] bytes = new byte[length];
         file.read(bytes);
 
