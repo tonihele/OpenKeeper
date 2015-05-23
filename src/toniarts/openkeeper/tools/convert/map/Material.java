@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import toniarts.openkeeper.tools.convert.IValueEnum;
+
 /**
  * Enumeration for material value found in map files
  *

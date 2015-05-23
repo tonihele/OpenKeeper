@@ -32,6 +32,8 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
+import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.Utils;
 import toniarts.openkeeper.tools.convert.map.ArtResource.Animation;
 import toniarts.openkeeper.tools.convert.map.ArtResource.Image;
@@ -402,7 +404,7 @@ public class KwdFile {
         long offset = data.getFilePointer();
 
         KwdHeader header = new KwdHeader();
-        header.setId(parseEnum(Utils.readUnsignedInteger(data), MapDataTypeEnum.class));
+        header.setId(Utils.parseEnum(Utils.readUnsignedInteger(data), MapDataTypeEnum.class));
         int size = Utils.readUnsignedInteger(data); // Bytes in the real size indicator, well seems to be 4 always
         byte[] bytes = new byte[size];
         data.read(bytes);
@@ -598,7 +600,7 @@ public class KwdFile {
             Player player = new Player();
             player.setStartingGold(Utils.readInteger(file));
             player.setAi(Utils.readInteger(file) == 1);
-            player.setAiType(parseEnum((short) file.readUnsignedByte(), Player.AIType.class));
+            player.setAiType(Utils.parseEnum((short) file.readUnsignedByte(), Player.AIType.class));
             player.setSpeed((short) file.readUnsignedByte());
             player.setOpenness((short) file.readUnsignedByte());
             player.setRemoveCallToArmsIfTotalCreaturesLessThan((short) file.readUnsignedByte());
@@ -614,9 +616,9 @@ public class KwdFile {
             player.setMinTimeBeforePlacingResearchedRoom((short) file.readUnsignedByte());
             player.setDefaultSize((short) file.readUnsignedByte());
             player.setTilesLeftBetweenRooms((short) file.readUnsignedByte());
-            player.setDistanceBetweenRoomsThatShouldBeCloseMan(parseEnum((short) file.readUnsignedByte(), Player.Distance.class));
-            player.setCorridorStyle(parseEnum((short) file.readUnsignedByte(), Player.CorridorStyle.class));
-            player.setWhenMoreSpaceInRoomRequired(parseEnum((short) file.readUnsignedByte(), Player.RoomExpandPolicy.class));
+            player.setDistanceBetweenRoomsThatShouldBeCloseMan(Utils.parseEnum((short) file.readUnsignedByte(), Player.Distance.class));
+            player.setCorridorStyle(Utils.parseEnum((short) file.readUnsignedByte(), Player.CorridorStyle.class));
+            player.setWhenMoreSpaceInRoomRequired(Utils.parseEnum((short) file.readUnsignedByte(), Player.RoomExpandPolicy.class));
             player.setDigToNeutralRoomsWithinTilesOfHeart((short) file.readUnsignedByte());
             List<Short> buildOrder = new ArrayList<>(15);
             for (int i = 0; i < 15; i++) {
@@ -630,7 +632,7 @@ public class KwdFile {
             player.setBoulderTrapsOnRouteToBreachPoints(Utils.readInteger(file) == 1);
             player.setTrapUseStyle((short) file.readUnsignedByte());
             player.setDoorTrapPreference((short) file.readUnsignedByte());
-            player.setDoorUsage(parseEnum((short) file.readUnsignedByte(), Player.DoorUsagePolicy.class));
+            player.setDoorUsage(Utils.parseEnum((short) file.readUnsignedByte(), Player.DoorUsagePolicy.class));
             player.setChanceOfLookingToUseTrapsAndDoors((short) file.readUnsignedByte());
             player.setRequireMinLevelForCreatures(Utils.readInteger(file) == 1);
             player.setRequireTotalThreatGreaterThanTheEnemy(Utils.readInteger(file) == 1);
@@ -640,8 +642,8 @@ public class KwdFile {
             player.setNeverAttack(Utils.readInteger(file) == 1);
             player.setMinLevelForCreatures((short) file.readUnsignedByte());
             player.setTotalThreatGreaterThanTheEnemy((short) file.readUnsignedByte());
-            player.setFirstAttemptToBreachRoom(parseEnum((short) file.readUnsignedByte(), Player.BreachRoomPolicy.class));
-            player.setFirstDigToEnemyPoint(parseEnum((short) file.readUnsignedByte(), Player.DigToPolicy.class));
+            player.setFirstAttemptToBreachRoom(Utils.parseEnum((short) file.readUnsignedByte(), Player.BreachRoomPolicy.class));
+            player.setFirstDigToEnemyPoint(Utils.parseEnum((short) file.readUnsignedByte(), Player.DigToPolicy.class));
             player.setBreachAtPointsSimultaneously((short) file.readUnsignedByte());
             player.setUsePercentageOfTotalCreaturesInFirstFightAfterBreach((short) file.readUnsignedByte());
             player.setManaValue(Utils.readUnsignedShort(file));
@@ -658,15 +660,15 @@ public class KwdFile {
             player.setTryToMakeAngryOnesHappy(Utils.readInteger(file) == 1);
             player.setDisposeOfAngryCreatures(Utils.readInteger(file) == 1);
             player.setDisposeOfRubbishCreaturesIfBetterOnesComeAlong(Utils.readInteger(file) == 1);
-            player.setDisposalMethod(parseEnum((short) file.readUnsignedByte(), Player.CreatureDisposalPolicy.class));
+            player.setDisposalMethod(Utils.parseEnum((short) file.readUnsignedByte(), Player.CreatureDisposalPolicy.class));
             player.setMaximumNumberOfImps((short) file.readUnsignedByte());
             player.setWillNotSlapCreatures((short) file.readUnsignedByte() == 0);
             player.setAttackWhenNumberOfCreaturesIsAtLeast((short) file.readUnsignedByte());
             player.setUseLightningIfEnemyIsInWater(Utils.readInteger(file) == 1);
-            player.setUseSightOfEvil(parseEnum((short) file.readUnsignedByte(), Player.SightOfEvilUsagePolicy.class));
+            player.setUseSightOfEvil(Utils.parseEnum((short) file.readUnsignedByte(), Player.SightOfEvilUsagePolicy.class));
             player.setUseSpellsInBattle((short) file.readUnsignedByte());
             player.setSpellsPowerPreference((short) file.readUnsignedByte());
-            player.setUseCallToArms(parseEnum((short) file.readUnsignedByte(), Player.CallToArmsUsagePolicy.class));
+            player.setUseCallToArms(Utils.parseEnum((short) file.readUnsignedByte(), Player.CallToArmsUsagePolicy.class));
             short[] unknown2 = new short[2];
             for (int i = 0; i < unknown2.length; i++) {
                 unknown2[i] = (short) file.readUnsignedByte();
@@ -681,10 +683,10 @@ public class KwdFile {
             player.setBuildAreaStartY(Utils.readUnsignedShort(file));
             player.setBuildAreaEndX(Utils.readUnsignedShort(file));
             player.setBuildAreaEndY(Utils.readUnsignedShort(file));
-            player.setLikelyhoodToMovingCreaturesToLibraryForResearching(parseEnum((short) file.readUnsignedByte(), Player.MoveToResearchPolicy.class));
+            player.setLikelyhoodToMovingCreaturesToLibraryForResearching(Utils.parseEnum((short) file.readUnsignedByte(), Player.MoveToResearchPolicy.class));
             player.setChanceOfExploringToFindSpecials((short) file.readUnsignedByte());
             player.setChanceOfFindingSpecialsWhenExploring((short) file.readUnsignedByte());
-            player.setFateOfImprisonedCreatures(parseEnum((short) file.readUnsignedByte(), Player.ImprisonedCreatureFatePolicy.class));
+            player.setFateOfImprisonedCreatures(Utils.parseEnum((short) file.readUnsignedByte(), Player.ImprisonedCreatureFatePolicy.class));
             player.setTriggerId(Utils.readUnsignedShort(file));
             player.setPlayerId((short) file.readUnsignedByte());
             player.setStartingCameraX(Utils.readUnsignedShort(file));
@@ -726,7 +728,7 @@ public class KwdFile {
             terrain.setStringIds(readStringId(file));
             terrain.setDepth(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             terrain.setLightHeight(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            terrain.setFlags(parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Terrain.TerrainFlag.class));
+            terrain.setFlags(Utils.parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Terrain.TerrainFlag.class));
             terrain.setDamage(Utils.readUnsignedShort(file));
             terrain.setUnk196(Utils.readUnsignedShort(file));
             terrain.setUnk198(Utils.readUnsignedShort(file));
@@ -852,8 +854,8 @@ public class KwdFile {
         }
 
         // Add the common values
-        resourceType.setFlags(parseFlagValue(flags, ArtResource.ArtResourceFlag.class));
-        resourceType.setType(parseEnum(type, ArtResource.Type.class));
+        resourceType.setFlags(Utils.parseFlagValue(flags, ArtResource.ArtResourceFlag.class));
+        resourceType.setType(Utils.parseEnum(type, ArtResource.Type.class));
         resourceType.setStartAf(startAf);
 
         resourceType.setEndAf(endAf);
@@ -924,10 +926,10 @@ public class KwdFile {
                 unknown2[x] = (short) file.readUnsignedByte();
             }
             door.setUnknown2(unknown2);
-            door.setMaterial(parseEnum(file.readUnsignedByte(), Material.class));
+            door.setMaterial(Utils.parseEnum(file.readUnsignedByte(), Material.class));
             door.setTrapTypeId((short) file.readUnsignedByte());
             int flag = Utils.readUnsignedInteger(file);
-            door.setFlags(parseFlagValue(flag, DoorFlag.class));
+            door.setFlags(Utils.parseFlagValue(flag, DoorFlag.class));
             door.setHealth(Utils.readUnsignedShort(file));
             door.setGoldCost(Utils.readUnsignedShort(file));
             short[] unknown3 = new short[2];
@@ -996,7 +998,7 @@ public class KwdFile {
             }
             trap.setUnknown3(unknown3);
             trap.setThreat(Utils.readUnsignedShort(file));
-            trap.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), Trap.TrapFlag.class));
+            trap.setFlags(Utils.parseFlagValue(Utils.readUnsignedInteger(file), Trap.TrapFlag.class));
             trap.setHealth(Utils.readUnsignedShort(file));
             trap.setManaCost(Utils.readUnsignedShort(file));
             trap.setPowerlessEffectId(Utils.readUnsignedShort(file));
@@ -1015,14 +1017,14 @@ public class KwdFile {
             trap.setTooltipStringId(Utils.readUnsignedShort(file));
             trap.setNameStringId(Utils.readUnsignedShort(file));
             trap.setUnknown5((short) file.readUnsignedByte());
-            trap.setTriggerType(parseEnum((short) file.readUnsignedByte(), Trap.TriggerType.class));
+            trap.setTriggerType(Utils.parseEnum((short) file.readUnsignedByte(), Trap.TriggerType.class));
             trap.setTrapId((short) file.readUnsignedByte());
             trap.setShotTypeId((short) file.readUnsignedByte());
             trap.setManufCrateObjectId((short) file.readUnsignedByte());
             bytes = new byte[32];
             file.read(bytes);
             trap.setSoundCategory(Utils.bytesToString(bytes).trim());
-            trap.setMaterial(parseEnum((short) file.readUnsignedByte(), Material.class));
+            trap.setMaterial(Utils.parseEnum((short) file.readUnsignedByte(), Material.class));
             trap.setOrderInEditor((short) file.readUnsignedByte());
             trap.setShotOffset(new Vector3f(Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION, Utils.readInteger(file) / FIXED_POINT_DIVISION));
             trap.setShotDelay(Utils.readUnsignedShort(file) / FIXED_POINT_DIVISION);
@@ -1068,7 +1070,7 @@ public class KwdFile {
             room.setCeilingHeight(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             room.setUnknown2(Utils.readUnsignedShort(file));
             room.setTorchIntensity(Utils.readUnsignedShort(file));
-            room.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), Room.RoomFlag.class));
+            room.setFlags(Utils.parseFlagValue(Utils.readUnsignedInteger(file), Room.RoomFlag.class));
             room.setTooltipStringId(Utils.readUnsignedShort(file));
             room.setNameStringId(Utils.readUnsignedShort(file));
             room.setCost(Utils.readUnsignedShort(file));
@@ -1087,7 +1089,7 @@ public class KwdFile {
             room.setRoomId((short) file.readUnsignedByte());
             room.setUnknown7((short) file.readUnsignedByte());
             room.setTerrainId((short) file.readUnsignedByte());
-            room.setTileConstruction(parseEnum((short) file.readUnsignedByte(), Room.TileConstruction.class));
+            room.setTileConstruction(Utils.parseEnum((short) file.readUnsignedByte(), Room.TileConstruction.class));
             room.setCreatedCreatureId((short) file.readUnsignedByte());
             room.setTorchColor(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte())); // This is the editor is rather weird
             List<Short> objects = new ArrayList<>(8);
@@ -1178,7 +1180,7 @@ public class KwdFile {
                 messages[x] = Utils.bytesToStringUtf16(bytes).trim();
             }
             int flag = Utils.readUnsignedShort(rawMapInfo);
-            lvflags = parseFlagValue(flag, LevFlag.class);
+            lvflags = Utils.parseFlagValue(flag, LevFlag.class);
             bytes = new byte[32];
             rawMapInfo.read(bytes);
             speechStr = Utils.bytesToString(bytes).trim();
@@ -1192,7 +1194,7 @@ public class KwdFile {
                 rewardNext[x] = (short) rawMapInfo.readUnsignedByte();
             }
             soundTrack = (short) rawMapInfo.readUnsignedByte();
-            textTableId = parseEnum((short) rawMapInfo.readUnsignedByte(), TextTable.class);
+            textTableId = Utils.parseEnum((short) rawMapInfo.readUnsignedByte(), TextTable.class);
             textTitleId = Utils.readUnsignedShort(rawMapInfo);
             textPlotId = Utils.readUnsignedShort(rawMapInfo);
             textDebriefId = Utils.readUnsignedShort(rawMapInfo);
@@ -1232,7 +1234,7 @@ public class KwdFile {
             paths = new FilePath[pathCount];
             for (int x = 0; x < paths.length; x++) {
                 FilePath filePath = new FilePath();
-                filePath.setId(parseEnum(Utils.readUnsignedInteger(rawMapInfo), MapDataTypeEnum.class));
+                filePath.setId(Utils.parseEnum(Utils.readUnsignedInteger(rawMapInfo), MapDataTypeEnum.class));
                 filePath.setUnknown2(Utils.readInteger(rawMapInfo));
                 bytes = new byte[64];
                 rawMapInfo.read(bytes);
@@ -1316,7 +1318,7 @@ public class KwdFile {
             creature.setTranslationSoundGategory(Utils.bytesToString(bytes).trim());
             creature.setShuffleSpeed(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             creature.setCreatureId((short) file.readUnsignedByte());
-            creature.setFirstPersonGammaEffect(parseEnum(file.readUnsignedByte(), Creature.GammaEffect.class));
+            creature.setFirstPersonGammaEffect(Utils.parseEnum(file.readUnsignedByte(), Creature.GammaEffect.class));
             creature.setFirstPersonWalkCycleScale((short) file.readUnsignedByte());
             creature.setIntroCameraPathIndex((short) file.readUnsignedByte());
             creature.setUnk2e2((short) file.readUnsignedByte());
@@ -1352,7 +1354,7 @@ public class KwdFile {
             Creature.Resistance[] resistances = new Creature.Resistance[4];
             for (int x = 0; x < resistances.length; x++) {
                 Creature.Resistance resistance = creature.new Resistance();
-                resistance.setAttackType(parseEnum(file.readUnsignedByte(), Creature.AttackType.class));
+                resistance.setAttackType(Utils.parseEnum(file.readUnsignedByte(), Creature.AttackType.class));
                 resistance.setValue((short) file.readUnsignedByte());
                 resistances[x] = resistance;
             }
@@ -1362,7 +1364,7 @@ public class KwdFile {
             creature.setAngryJobs(readJobPreferences(3, creature, file));
             Creature.JobType[] hateJobs = new Creature.JobType[2];
             for (int x = 0; x < hateJobs.length; x++) {
-                hateJobs[x] = parseEnum(Utils.readUnsignedInteger(file), Creature.JobType.class);
+                hateJobs[x] = Utils.parseEnum(Utils.readUnsignedInteger(file), Creature.JobType.class);
             }
             creature.setHateJobs(hateJobs);
             Xe7c[] xe7cs = new Xe7c[3];
@@ -1404,10 +1406,10 @@ public class KwdFile {
             creature.setTortureTimeToConvert(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             creature.setMeleeRecharge(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             // The flags is actually very big, pushing the boundaries, a true uint32, need to -> long
-            creature.setFlags(parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Creature.CreatureFlag.class));
+            creature.setFlags(Utils.parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Creature.CreatureFlag.class));
             creature.setExpForNextLevel(Utils.readUnsignedShort(file));
-            creature.setJobClass(parseEnum(file.readUnsignedByte(), Creature.JobClass.class));
-            creature.setFightStyle(parseEnum(file.readUnsignedByte(), Creature.FightStyle.class));
+            creature.setJobClass(Utils.parseEnum(file.readUnsignedByte(), Creature.JobClass.class));
+            creature.setFightStyle(Utils.parseEnum(file.readUnsignedByte(), Creature.FightStyle.class));
             creature.setExpPerSecond(Utils.readUnsignedShort(file));
             creature.setExpPerSecondTraining(Utils.readUnsignedShort(file));
             creature.setResearchPerSecond(Utils.readUnsignedShort(file));
@@ -1439,12 +1441,12 @@ public class KwdFile {
             creature.setWeaknessStringId(Utils.readUnsignedShort(file));
             creature.setSlapEffectId(Utils.readUnsignedShort(file));
             creature.setDeathEffectId(Utils.readUnsignedShort(file));
-            creature.setMelee1Swipe(parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
-            creature.setMelee2Swipe(parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setMelee1Swipe(Utils.parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setMelee2Swipe(Utils.parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
             creature.setUnk3d3((short) file.readUnsignedByte());
-            creature.setSpellSwipe(parseEnum((short) file.readUnsignedByte(), Creature.Swipe.class));
-            creature.setFirstPersonSpecialAbility1(parseEnum(file.readUnsignedByte(), Creature.SpecialAbility.class));
-            creature.setFirstPersonSpecialAbility2(parseEnum(file.readUnsignedByte(), Creature.SpecialAbility.class));
+            creature.setSpellSwipe(Utils.parseEnum((short) file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setFirstPersonSpecialAbility1(Utils.parseEnum(file.readUnsignedByte(), Creature.SpecialAbility.class));
+            creature.setFirstPersonSpecialAbility2(Utils.parseEnum(file.readUnsignedByte(), Creature.SpecialAbility.class));
             short[] unkf48 = new short[3];
             for (int x = 0; x < unkf48.length; x++) {
                 unkf48[x] = (short) file.readUnsignedByte();
@@ -1458,22 +1460,22 @@ public class KwdFile {
             creature.setUnk3ea(unk3ea);
             creature.setHungerFill((short) file.readUnsignedByte());
             creature.setUnhappyThreshold((short) file.readUnsignedByte());
-            creature.setMeleeAttackType(parseEnum(file.readUnsignedByte(), Creature.AttackType.class));
+            creature.setMeleeAttackType(Utils.parseEnum(file.readUnsignedByte(), Creature.AttackType.class));
             creature.setUnk3eb2((short) file.readUnsignedByte());
             creature.setLairObjectId((short) file.readUnsignedByte());
             creature.setUnk3f1((short) file.readUnsignedByte());
-            creature.setDeathFallDirection(parseEnum(file.readUnsignedByte(), Creature.DeathFallDirection.class));
+            creature.setDeathFallDirection(Utils.parseEnum(file.readUnsignedByte(), Creature.DeathFallDirection.class));
             creature.setUnk3f2((short) file.readUnsignedByte());
             bytes = new byte[32];
             file.read(bytes);
             creature.setSoundGategory(Utils.bytesToString(bytes).trim());
-            creature.setMaterial(parseEnum(file.readUnsignedByte(), Material.class));
+            creature.setMaterial(Utils.parseEnum(file.readUnsignedByte(), Material.class));
             creature.setFirstPersonFilterResource(readArtResource(file));
             creature.setUnkfcb(Utils.readUnsignedShort(file));
             creature.setUnk4(Utils.readUnsignedInteger(file));
             creature.setRef3(readArtResource(file));
-            creature.setSpecial1Swipe(parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
-            creature.setSpecial2Swipe(parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setSpecial1Swipe(Utils.parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
+            creature.setSpecial2Swipe(Utils.parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
             creature.setFirstPersonMeleeResource(readArtResource(file));
             creature.setUnk6(Utils.readUnsignedInteger(file));
             creature.setTortureHpChange(Utils.readShort(file));
@@ -1524,7 +1526,7 @@ public class KwdFile {
                     unknownExtraBytes[x] = (short) file.readUnsignedByte();
                 }
                 creature.setUnknownExtraBytes(unknownExtraBytes);
-                creature.setFlags2(parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Creature.CreatureFlag2.class));
+                creature.setFlags2(Utils.parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Creature.CreatureFlag2.class));
                 creature.setUnknown(Utils.readUnsignedInteger(file));
             }
 
@@ -1550,7 +1552,7 @@ public class KwdFile {
         Creature.JobPreference[] preferences = new Creature.JobPreference[count];
         for (int x = 0; x < preferences.length; x++) {
             Creature.JobPreference jobPreference = creature.new JobPreference();
-            jobPreference.setJobType(parseEnum(Utils.readUnsignedInteger(file), Creature.JobType.class));
+            jobPreference.setJobType(Utils.parseEnum(Utils.readUnsignedInteger(file), Creature.JobType.class));
             jobPreference.setMoodChange(Utils.readUnsignedShort(file));
             jobPreference.setManaChange(Utils.readUnsignedShort(file));
             jobPreference.setChance((short) file.readUnsignedByte());
@@ -1579,7 +1581,7 @@ public class KwdFile {
         //NOTE: interestingly enough, here a uint8 sized flag is enough I think, and the editor seems to read 0-511 (9 bits, or probably 10 bits but the sign bit is always positive) for each color element
         //      But I also think it might be a mistake in the editor/file format
         //      Some lights seem to be logical with this structure.... so who knows
-        light.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), Light.LightFlag.class));
+        light.setFlags(Utils.parseFlagValue(Utils.readUnsignedInteger(file), Light.LightFlag.class));
         light.setColor(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte()));
 
         return light;
@@ -1622,13 +1624,13 @@ public class KwdFile {
             object.setMass(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             object.setSpeed(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             object.setAirFriction(Utils.readUnsignedInteger(file) / FIXED_POINT5_DIVISION);
-            object.setMaterial(parseEnum(file.readUnsignedByte(), Material.class));
+            object.setMaterial(Utils.parseEnum(file.readUnsignedByte(), Material.class));
             short[] unknown3 = new short[3];
             for (int x = 0; x < unknown3.length; x++) {
                 unknown3[x] = (short) file.readUnsignedByte();
             }
             object.setUnknown3(unknown3);
-            object.setFlags(parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Object.ObjectFlag.class));
+            object.setFlags(Utils.parseFlagValue(Utils.readUnsignedIntegerAsLong(file), Object.ObjectFlag.class));
             object.setHp(Utils.readUnsignedShort(file));
             object.setMaxAngle(Utils.readUnsignedShort(file));
             object.setX34c(Utils.readUnsignedShort(file));
@@ -1639,7 +1641,7 @@ public class KwdFile {
             object.setDeathEffectId(Utils.readUnsignedShort(file));
             object.setMiscEffectId(Utils.readUnsignedShort(file));
             object.setObjectId((short) file.readUnsignedByte());
-            object.setStartState(parseEnum((short) file.readUnsignedByte(), Object.State.class));
+            object.setStartState(Utils.parseEnum((short) file.readUnsignedByte(), Object.State.class));
             object.setRoomCapacity((short) file.readUnsignedByte());
             object.setPickUpPriority((short) file.readUnsignedByte());
             bytes = new byte[32];
@@ -1677,7 +1679,7 @@ public class KwdFile {
             creatureSpell.setShotData1(Utils.readUnsignedInteger(file));
             creatureSpell.setShotData2(Utils.readUnsignedInteger(file));
             creatureSpell.setRange(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            creatureSpell.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), CreatureSpell.CreatureSpellFlag.class));
+            creatureSpell.setFlags(Utils.parseFlagValue(Utils.readUnsignedInteger(file), CreatureSpell.CreatureSpellFlag.class));
             short[] data2 = new short[2];
             for (int x = 0; x < data2.length; x++) {
                 data2[x] = (short) file.readUnsignedByte();
@@ -1694,7 +1696,7 @@ public class KwdFile {
             creatureSpell.setAlternativeShotId((short) file.readUnsignedByte());
             creatureSpell.setAlternativeRoomId((short) file.readUnsignedByte());
             creatureSpell.setRechargeTime(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            creatureSpell.setAlternativeShot(parseEnum(file.readUnsignedByte(), CreatureSpell.AlternativeShot.class));
+            creatureSpell.setAlternativeShot(Utils.parseEnum(file.readUnsignedByte(), CreatureSpell.AlternativeShot.class));
             short[] data3 = new short[27];
             for (int x = 0; x < data3.length; x++) {
                 data3[x] = (short) file.readUnsignedByte();
@@ -1738,7 +1740,7 @@ public class KwdFile {
             effectElement.setMinScale(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             effectElement.setMaxScale(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             effectElement.setScaleRatio(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            effectElement.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), EffectElement.EffectElementFlag.class));
+            effectElement.setFlags(Utils.parseFlagValue(Utils.readUnsignedInteger(file), EffectElement.EffectElementFlag.class));
             effectElement.setEffectElementId(Utils.readUnsignedShort(file));
             effectElement.setMinHp(Utils.readUnsignedShort(file));
             effectElement.setMaxHp(Utils.readUnsignedShort(file));
@@ -1790,7 +1792,7 @@ public class KwdFile {
             effect.setMaxSpeedYz(Utils.readInteger(file) / FIXED_POINT_DIVISION);
             effect.setMinScale(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             effect.setMaxScale(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            effect.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), Effect.EffectFlag.class));
+            effect.setFlags(Utils.parseFlagValue(Utils.readUnsignedInteger(file), Effect.EffectFlag.class));
             effect.setEffectId(Utils.readUnsignedShort(file));
             effect.setMinHp(Utils.readUnsignedShort(file));
             effect.setMaxHp(Utils.readUnsignedShort(file));
@@ -1820,7 +1822,7 @@ public class KwdFile {
             effect.setGenerateRandomness(Utils.readUnsignedShort(file));
             effect.setMisc2(Utils.readUnsignedShort(file));
             effect.setMisc3(Utils.readUnsignedShort(file));
-            effect.setGenerationType(parseEnum((short) file.readUnsignedByte(), Effect.GenerationType.class));
+            effect.setGenerationType(Utils.parseEnum((short) file.readUnsignedByte(), Effect.GenerationType.class));
             effect.setElementsPerTurn((short) file.readUnsignedByte());
             effect.setUnknown3(Utils.readUnsignedShort(file));
 
@@ -1857,9 +1859,9 @@ public class KwdFile {
             keeperSpell.setShotData1(Utils.readInteger(file));
             keeperSpell.setShotData2(Utils.readInteger(file));
             keeperSpell.setResearchTime(Utils.readUnsignedShort(file));
-            keeperSpell.setTargetRule(parseEnum((short) file.readUnsignedByte(), KeeperSpell.TargetRule.class));
+            keeperSpell.setTargetRule(Utils.parseEnum((short) file.readUnsignedByte(), KeeperSpell.TargetRule.class));
             keeperSpell.setOrderInEditor((short) file.readUnsignedByte());
-            keeperSpell.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), KeeperSpell.KeeperSpellFlag.class));
+            keeperSpell.setFlags(Utils.parseFlagValue(Utils.readUnsignedInteger(file), KeeperSpell.KeeperSpellFlag.class));
             keeperSpell.setXe0Unreferenced(Utils.readUnsignedShort(file));
             keeperSpell.setManaDrain(Utils.readUnsignedShort(file));
             keeperSpell.setTooltipStringId(Utils.readUnsignedShort(file));
@@ -1868,7 +1870,7 @@ public class KwdFile {
             keeperSpell.setStrengthStringId(Utils.readUnsignedShort(file));
             keeperSpell.setWeaknessStringId(Utils.readUnsignedShort(file));
             keeperSpell.setKeeperSpellId((short) file.readUnsignedByte());
-            keeperSpell.setCastRule(parseEnum((short) file.readUnsignedByte(), KeeperSpell.CastRule.class));
+            keeperSpell.setCastRule(Utils.parseEnum((short) file.readUnsignedByte(), KeeperSpell.CastRule.class));
             keeperSpell.setShotTypeId((short) file.readUnsignedByte());
             bytes = new byte[32];
             file.read(bytes);
@@ -1882,8 +1884,8 @@ public class KwdFile {
             bytes = new byte[32];
             file.read(bytes);
             keeperSpell.setSoundGategoryGui(Utils.bytesToString(bytes).trim());
-            keeperSpell.setHandAnimId(parseEnum((short) file.readUnsignedByte(), KeeperSpell.HandAnimId.class));
-            keeperSpell.setNoGoHandAnimId(parseEnum((short) file.readUnsignedByte(), KeeperSpell.HandAnimId.class));
+            keeperSpell.setHandAnimId(Utils.parseEnum((short) file.readUnsignedByte(), KeeperSpell.HandAnimId.class));
+            keeperSpell.setNoGoHandAnimId(Utils.parseEnum((short) file.readUnsignedByte(), KeeperSpell.HandAnimId.class));
 
             // Add to the hash by the keeper spell ID
             keeperSpells.put(keeperSpell.getKeeperSpellId(), keeperSpell);
@@ -1963,7 +1965,7 @@ public class KwdFile {
                     ((ActionPoint) thing).setEndX(Utils.readInteger(file));
                     ((ActionPoint) thing).setEndY(Utils.readInteger(file));
                     ((ActionPoint) thing).setWaitDelay(Utils.readUnsignedShort(file));
-                    ((ActionPoint) thing).setFlags(parseFlagValue(Utils.readInteger(file), ActionPointFlag.class));
+                    ((ActionPoint) thing).setFlags(Utils.parseFlagValue(Utils.readInteger(file), ActionPointFlag.class));
                     ((ActionPoint) thing).setId((short) file.readUnsignedByte());
                     ((ActionPoint) thing).setNextWaypointId((short) file.readUnsignedByte());
                     byte[] bytes = new byte[32];
@@ -2004,7 +2006,7 @@ public class KwdFile {
                     ((Thing.Creature) thing).setPosZ(Utils.readInteger(file));
                     ((Thing.Creature) thing).setGoldHeld(Utils.readUnsignedShort(file));
                     ((Thing.Creature) thing).setLevel((short) file.readUnsignedByte());
-                    ((Thing.Creature) thing).setFlags(parseFlagValue((short) file.readUnsignedByte(), Thing.Creature.CreatureFlag.class));
+                    ((Thing.Creature) thing).setFlags(Utils.parseFlagValue((short) file.readUnsignedByte(), Thing.Creature.CreatureFlag.class));
                     ((Thing.Creature) thing).setInitialHealth(Utils.readInteger(file));
                     ((Thing.Creature) thing).setX14(Utils.readInteger(file));
                     ((Thing.Creature) thing).setX18(Utils.readUnsignedShort(file));
@@ -2036,7 +2038,7 @@ public class KwdFile {
                         heroPartyData.setInitialHealth(Utils.readInteger(file));
                         heroPartyData.setX18(Utils.readUnsignedShort(file));
                         heroPartyData.setObjectiveTargetPlayerId((short) file.readUnsignedByte());
-                        heroPartyData.setObjective(parseEnum((short) file.readUnsignedByte(), Thing.HeroParty.Objective.class));
+                        heroPartyData.setObjective(Utils.parseEnum((short) file.readUnsignedByte(), Thing.HeroParty.Objective.class));
                         heroPartyData.setCreatureId((short) file.readUnsignedByte());
                         heroPartyData.setX1d((short) file.readUnsignedByte());
                         heroPartyData.setX1e((short) file.readUnsignedByte());
@@ -2096,10 +2098,10 @@ public class KwdFile {
                     ((Thing.Room) thing).setPosY(Utils.readInteger(file));
                     ((Thing.Room) thing).setX08(Utils.readInteger(file));
                     ((Thing.Room) thing).setX0c(Utils.readUnsignedShort(file));
-                    ((Thing.Room) thing).setDirection(parseEnum((short) file.readUnsignedByte(), Thing.Room.Direction.class));
+                    ((Thing.Room) thing).setDirection(Utils.parseEnum((short) file.readUnsignedByte(), Thing.Room.Direction.class));
                     ((Thing.Room) thing).setX0f((short) file.readUnsignedByte());
                     ((Thing.Room) thing).setInitialHealth(Utils.readUnsignedShort(file));
-                    ((Thing.Room) thing).setRoomType(parseEnum((short) file.readUnsignedByte(), Thing.Room.RoomType.class));
+                    ((Thing.Room) thing).setRoomType(Utils.parseEnum((short) file.readUnsignedByte(), Thing.Room.RoomType.class));
                     ((Thing.Room) thing).setPlayerId((short) file.readUnsignedByte());
                     break;
                 }
@@ -2171,9 +2173,9 @@ public class KwdFile {
             shot.setSpeed(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
             shot.setData1(Utils.readUnsignedInteger(file));
             shot.setData2(Utils.readUnsignedInteger(file));
-            shot.setShotProcessFlags(parseFlagValue(Utils.readUnsignedInteger(file), Shot.ShotProcessFlag.class));
+            shot.setShotProcessFlags(Utils.parseFlagValue(Utils.readUnsignedInteger(file), Shot.ShotProcessFlag.class));
             shot.setRadius(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            shot.setFlags(parseFlagValue(Utils.readUnsignedInteger(file), Shot.ShotFlag.class));
+            shot.setFlags(Utils.parseFlagValue(Utils.readUnsignedInteger(file), Shot.ShotFlag.class));
             shot.setGeneralEffectId(Utils.readUnsignedShort(file));
             shot.setCreationEffectId(Utils.readUnsignedShort(file));
             shot.setDeathEffectId(Utils.readUnsignedShort(file));
@@ -2190,10 +2192,10 @@ public class KwdFile {
             shot.setHitLavaShotId((short) file.readUnsignedByte());
             shot.setHitWaterShotId((short) file.readUnsignedByte());
             shot.setHitThingShotId((short) file.readUnsignedByte());
-            shot.setDamageType(parseEnum((short) file.readUnsignedByte(), Shot.DamageType.class));
-            shot.setCollideType(parseEnum((short) file.readUnsignedByte(), Shot.CollideType.class));
-            shot.setProcessType(parseEnum((short) file.readUnsignedByte(), Shot.ProcessType.class));
-            shot.setAttackCategory(parseEnum((short) file.readUnsignedByte(), Shot.AttackCategory.class));
+            shot.setDamageType(Utils.parseEnum((short) file.readUnsignedByte(), Shot.DamageType.class));
+            shot.setCollideType(Utils.parseEnum((short) file.readUnsignedByte(), Shot.CollideType.class));
+            shot.setProcessType(Utils.parseEnum((short) file.readUnsignedByte(), Shot.ProcessType.class));
+            shot.setAttackCategory(Utils.parseEnum((short) file.readUnsignedByte(), Shot.AttackCategory.class));
             bytes = new byte[32];
             file.read(bytes);
             shot.setSoundCategory(Utils.bytesToString(bytes).trim());
@@ -2234,7 +2236,7 @@ public class KwdFile {
 
                     // TriggerGeneric
                     trigger = new TriggerGeneric(this);
-                    ((TriggerGeneric) trigger).setTargetValueComparison(parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                    ((TriggerGeneric) trigger).setTargetValueComparison(Utils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
                     ((TriggerGeneric) trigger).setTargetFlagId((short) file.readUnsignedByte());
                     short targetValueType = (short) file.readUnsignedByte();
                     ((TriggerGeneric) trigger).setTargetValueFlagId((short) file.readUnsignedByte());
@@ -2242,7 +2244,7 @@ public class KwdFile {
                     ((TriggerGeneric) trigger).setId(Utils.readUnsignedShort(file));
                     ((TriggerGeneric) trigger).setX0a(Utils.readUnsignedShort(file)); // SiblingID
                     ((TriggerGeneric) trigger).setX0c(Utils.readUnsignedShort(file)); // ChildID
-                    ((TriggerGeneric) trigger).setTarget(parseEnum((short) file.readUnsignedByte(), TriggerGeneric.TargetType.class));
+                    ((TriggerGeneric) trigger).setTarget(Utils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.TargetType.class));
                     ((TriggerGeneric) trigger).setRepeatTimes((short) file.readUnsignedByte());
                     if (TriggerGeneric.TargetType.SLAP_TYPES.equals(((TriggerGeneric) trigger).getTarget())) {
 
@@ -2252,7 +2254,7 @@ public class KwdFile {
                     } else {
 
                         // Assign type normally
-                        ((TriggerGeneric) trigger).setTargetValueType(parseEnum(targetValueType, TriggerGeneric.TargetValueType.class));
+                        ((TriggerGeneric) trigger).setTargetValueType(Utils.parseEnum(targetValueType, TriggerGeneric.TargetValueType.class));
                     }
                     break;
                 }
@@ -2273,7 +2275,7 @@ public class KwdFile {
                         unknown1[x] = (short) file.readUnsignedByte();
                     }
                     ((TriggerAction) trigger).setUnknown1(unknown1);
-                    ((TriggerAction) trigger).setActionType(parseEnum(Utils.readUnsignedShort(file), TriggerAction.ActionType.class));
+                    ((TriggerAction) trigger).setActionType(Utils.parseEnum(Utils.readUnsignedShort(file), TriggerAction.ActionType.class));
                     break;
                 }
                 default: {
@@ -2404,42 +2406,6 @@ public class KwdFile {
         cal.set(Calendar.SECOND, file.readUnsignedByte());
         file.skipBytes(1);
         return cal.getTime();
-    }
-
-    /**
-     * Parse a flag to enumeration set of given class
-     *
-     * @param flag the flag value
-     * @param enumeration the enumeration class
-     * @return the set
-     */
-    protected static <E extends Enum<E> & IFlagEnum> EnumSet<E> parseFlagValue(long flag, Class<E> enumeration) {
-        EnumSet<E> set = EnumSet.noneOf(enumeration);
-        for (E e : enumeration.getEnumConstants()) {
-            long flagValue = e.getFlagValue();
-            if ((flagValue & flag) == flagValue) {
-                set.add(e);
-            }
-        }
-        return set;
-    }
-
-    /**
-     * Parses a value to a enum of a wanted enum class
-     *
-     * @param <E> The enumeration class
-     * @param value the id value
-     * @param enumeration the enumeration class
-     * @return Enum value, returns null if no enum is found with given value
-     */
-    protected static <E extends Enum & IValueEnum> E parseEnum(int value, Class<E> enumeration) {
-        for (E e : enumeration.getEnumConstants()) {
-            if (e.getValue() == value) {
-                return e;
-            }
-        }
-        logger.log(Level.WARNING, "Value {0} not specified for enum class {1}!", new java.lang.Object[]{value, enumeration.getName()});
-        return null;
     }
 
     /**

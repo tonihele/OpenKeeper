@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import toniarts.openkeeper.tools.convert.IValueEnum;
 import java.util.List;
 
 /**

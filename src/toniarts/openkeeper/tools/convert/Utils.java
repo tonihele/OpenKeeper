@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
@@ -374,6 +375,42 @@ public class Utils {
             }
             return fileFinder.file;
         }
+    }
+
+    /**
+     * Parse a flag to enumeration set of given class
+     *
+     * @param flag the flag value
+     * @param enumeration the enumeration class
+     * @return the set
+     */
+    public static <E extends Enum<E> & IFlagEnum> EnumSet<E> parseFlagValue(long flag, Class<E> enumeration) {
+        EnumSet<E> set = EnumSet.noneOf(enumeration);
+        for (E e : enumeration.getEnumConstants()) {
+            long flagValue = e.getFlagValue();
+            if ((flagValue & flag) == flagValue) {
+                set.add(e);
+            }
+        }
+        return set;
+    }
+
+    /**
+     * Parses a value to a enum of a wanted enum class
+     *
+     * @param <E> The enumeration class
+     * @param value the id value
+     * @param enumeration the enumeration class
+     * @return Enum value, returns null if no enum is found with given value
+     */
+    public static <E extends Enum & IValueEnum> E parseEnum(int value, Class<E> enumeration) {
+        for (E e : enumeration.getEnumConstants()) {
+            if (e.getValue() == value) {
+                return e;
+            }
+        }
+        logger.log(Level.WARNING, "Value {0} not specified for enum class {1}!", new java.lang.Object[]{value, enumeration.getName()});
+        return null;
     }
 
     /**

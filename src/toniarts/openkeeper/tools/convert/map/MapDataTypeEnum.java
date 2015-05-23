@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import toniarts.openkeeper.tools.convert.IValueEnum;
+
 /**
  * These are the identifiers for each different data type
  *

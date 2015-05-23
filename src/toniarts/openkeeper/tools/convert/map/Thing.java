@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import toniarts.openkeeper.tools.convert.IValueEnum;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
 import java.util.List;
 import javax.vecmath.Vector3f;

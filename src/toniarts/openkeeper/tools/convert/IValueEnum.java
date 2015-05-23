@@ -14,14 +14,21 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.tools.convert.map;
+package toniarts.openkeeper.tools.convert;
 
 /**
- * Interface for enums dealing with map flags
+ * A small interface for enums that have an ID value in the map files<br>
+ * Can be easily converted to enum values then.
  *
+ * @see KwdFile.#parseEnum(int, java.lang.Class)
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IFlagEnum {
+public interface IValueEnum {
 
-    public long getFlagValue();
+    /**
+     * Get the ID value associated to a enum value
+     *
+     * @return the id value
+     */
+    public int getValue();
 }

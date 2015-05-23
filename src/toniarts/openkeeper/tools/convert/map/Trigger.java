@@ -17,6 +17,9 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
+import toniarts.openkeeper.tools.convert.IValueEnum;
+import toniarts.openkeeper.tools.convert.Utils;
 
 /**
  * Container class for *Triggers.kld
@@ -505,7 +508,7 @@ public abstract class Trigger {
          * @return the action to peform on this flag with the value
          */
         private EnumSet<FlagTargetValueActionType> getFlagTargetValueActionTypes() {
-            return KwdFile.parseFlagValue(playerId, FlagTargetValueActionType.class);
+            return Utils.parseFlagValue(playerId, FlagTargetValueActionType.class);
         }
 
         @Override
