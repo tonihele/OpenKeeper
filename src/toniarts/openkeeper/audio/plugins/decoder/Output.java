@@ -45,38 +45,10 @@ abstract class Output extends Initializer {
     private final static float MONO_ARRAY[] = {
         1
     };
-    final static int RESERVED = -1;
     final static int STEREO = 0x0,
             JOINT_STEREO = 0x1,
             DUAL_CHANNEL = 0x2,
             SINGLE_CHANNEL = 0x3;
-    final static int RATE[][][] = {
-        {
-            {
-                RESERVED, 32000, 48000, 56000, 64000, 80000, 96000, 112000, 128000, 144000, 160000, 176000, 192000, 224000, 256000, RESERVED
-            }, {
-                RESERVED, 8000, 16000, 24000, 32000, 40000, 48000, 56000, 64000, 80000, 96000, 112000, 128000, 144000, 160000, RESERVED
-            }, {
-                RESERVED, 8000, 16000, 24000, 32000, 40000, 48000, 56000, 64000, 80000, 96000, 112000, 128000, 144000, 160000, RESERVED
-            }
-        }, {
-            {
-                RESERVED, 32000, 64000, 96000, 128000, 160000, 192000, 224000, 256000, 288000, 320000, 352000, 384000, 416000, 448000, RESERVED
-            }, {
-                RESERVED, 32000, 48000, 56000, 64000, 80000, 96000, 112000, 128000, 160000, 192000, 224000, 256000, 320000, 384000, RESERVED
-            }, {
-                RESERVED, 32000, 40000, 48000, 56000, 64000, 80000, 96000, 112000, 128000, 160000, 192000, 224000, 256000, 320000, RESERVED
-            }
-        }, {
-            {
-                RESERVED, 32000, 48000, 56000, 64000, 80000, 96000, 112000, 128000, 144000, 160000, 176000, 192000, 224000, 256000, RESERVED
-            }, {
-                RESERVED, 8000, 16000, 24000, 32000, 40000, 48000, 56000, 64000, 80000, 96000, 112000, 128000, 144000, 160000, RESERVED
-            }, {
-                RESERVED, 8000, 16000, 24000, 32000, 40000, 48000, 56000, 64000, 80000, 96000, 112000, 128000, 144000, 160000, RESERVED
-            }
-        }
-    };
     int whichChannels;
     int channels;
     int occupiedNumSubbands;
@@ -92,12 +64,12 @@ abstract class Output extends Initializer {
     int[] pointer;
     int counter;
     private float[] frameBufferZeroValues;
-    private byte[] buffer, zeroBuffer, readBuffer;
+    private byte[] buffer, zeroBuffer;
     private int obuffersize;
     private int frameBufferAnalyzerSize;
     private int readPos, size;
     private int flushCount = 0;
-    boolean frequencyMode;
+    private boolean frequencyMode;
     private boolean switched;
     private boolean bigEndian;
 
