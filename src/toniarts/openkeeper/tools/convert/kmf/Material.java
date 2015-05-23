@@ -39,7 +39,7 @@ public class Material {
         UNKNOWN6(0x0020),
         UNKNOWN7(0x0040),
         UNKNOWN8(0x0080),
-        UNKNOWN9(0x0100);
+        UNKNOWN9(0x0100); // Environment mapped, invisible guys have this???
         private final long flagValue;
 
         private MaterialFlag(long flagValue) {
