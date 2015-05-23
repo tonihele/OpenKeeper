@@ -184,7 +184,7 @@ public class KmfFile {
         int texturesCount = Utils.readUnsignedInteger(rawKmf);
         m.setTextures(Utils.readVaryingLengthStrings(rawKmf, texturesCount));
 
-        m.setFlag(Utils.readUnsignedInteger(rawKmf));
+        m.setFlag(Utils.parseFlagValue(Utils.readUnsignedInteger(rawKmf), Material.MaterialFlag.class));
         m.setBrightness(Utils.readFloat(rawKmf));
         m.setGamma(Utils.readFloat(rawKmf));
 

@@ -16,9 +16,11 @@
  */
 package toniarts.openkeeper.tools.convert.kmf;
 
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
 
 /**
  * KMF Material wrapper
@@ -27,9 +29,31 @@ import java.util.Objects;
  */
 public class Material {
 
+    public enum MaterialFlag implements IFlagEnum {
+
+        UNKNOWN1(0x0001), // Seems to be present with some multiple textures like HIGHLIGHT, DECAY & animated
+        UNKNOWN2(0x0002), // Translucency???
+        UNKNOWN3(0x0004),
+        UNKNOWN4(0x0008),
+        UNKNOWN5(0x0010),
+        UNKNOWN6(0x0020),
+        UNKNOWN7(0x0040),
+        UNKNOWN8(0x0080),
+        UNKNOWN9(0x0100);
+        private final long flagValue;
+
+        private MaterialFlag(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
     private String name;
     private List<String> textures;
-    private int flag;
+    private EnumSet<MaterialFlag> flag;
     private float brightness;
     private float gamma;
     private String environmentMappingTexture;
@@ -50,11 +74,11 @@ public class Material {
         this.textures = textures;
     }
 
-    public int getFlag() {
+    public EnumSet<MaterialFlag> getFlag() {
         return flag;
     }
 
-    protected void setFlag(int flag) {
+    protected void setFlag(EnumSet<MaterialFlag> flag) {
         this.flag = flag;
     }
 
