@@ -21,7 +21,6 @@ import com.jme3.asset.AssetManager;
 import com.jme3.cinematic.MotionPath;
 import com.jme3.cinematic.events.MotionEvent;
 import com.jme3.math.FastMath;
-import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
@@ -125,23 +124,13 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
                 int endIndex = startIndex + 1;
 
                 // Get the rotation at previous (or current) waypoint
-                Quaternion q1 = new Quaternion();
                 CameraSweepDataEntry entry = cameraSweepData.getEntries().get(startIndex);
-                Matrix3f mat = new Matrix3f();
-                mat.setColumn(0, new Vector3f(-entry.getDirection().x, entry.getLeft().x, -entry.getUp().x));
-                mat.setColumn(1, new Vector3f(entry.getDirection().y, -entry.getLeft().y, entry.getUp().y));
-                mat.setColumn(2, new Vector3f(entry.getDirection().z, -entry.getLeft().z, entry.getUp().z));
-                q1.fromRotationMatrix(mat);
+                Quaternion q1 = new Quaternion(entry.getRotation());
 
                 // If we are not on the last waypoint, interpolate the rotation between waypoints
                 if (endIndex < cameraSweepData.getEntries().size()) {
-                    Quaternion q2 = new Quaternion();
                     entry = cameraSweepData.getEntries().get(endIndex);
-                    mat = new Matrix3f();
-                    mat.setColumn(0, new Vector3f(-entry.getDirection().x, entry.getLeft().x, -entry.getUp().x));
-                    mat.setColumn(1, new Vector3f(entry.getDirection().y, -entry.getLeft().y, entry.getUp().y));
-                    mat.setColumn(2, new Vector3f(entry.getDirection().z, -entry.getLeft().z, entry.getUp().z));
-                    q2.fromRotationMatrix(mat);
+                    Quaternion q2 = new Quaternion(entry.getRotation());
 
                     q1.slerp(q2, progress);
                 }
@@ -157,6 +146,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         cameraMotionControl.setLoopMode(LoopMode.DontLoop);
         cameraMotionControl.setInitialDuration(cameraSweepData.getEntries().size() / getFramesPerSecond());
         cameraMotionControl.setLookAt(Vector3f.ZERO, Vector3f.ZERO);
+        cameraMotionControl.setRotation(Quaternion.IDENTITY);
         cameraMotionControl.setDirectionType(MotionEvent.Direction.Rotation);
 
         // Add us

@@ -21,6 +21,7 @@ import com.jme3.export.JmeExporter;
 import com.jme3.export.JmeImporter;
 import com.jme3.export.OutputCapsule;
 import com.jme3.export.Savable;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import java.io.IOException;
 
@@ -32,17 +33,13 @@ import java.io.IOException;
 public class CameraSweepDataEntry implements Savable {
 
     private Vector3f position;
-    private Vector3f direction;
-    private Vector3f left;
-    private Vector3f up;
+    private Quaternion rotation;
     private float fov;
     private float near;
 
-    public CameraSweepDataEntry(Vector3f position, Vector3f direction, Vector3f left, Vector3f up, float fov, float near) {
+    public CameraSweepDataEntry(Vector3f position, Quaternion rotation, float fov, float near) {
         this.position = position;
-        this.direction = direction;
-        this.left = left;
-        this.up = up;
+        this.rotation = rotation;
         this.fov = fov;
         this.near = near;
     }
@@ -57,31 +54,17 @@ public class CameraSweepDataEntry implements Savable {
         return position;
     }
 
-    /**
-     * Forward orientation vector
-     *
-     * @return Forward orientation
-     */
-    public Vector3f getDirection() {
-        return direction;
+    public Quaternion getRotation() {
+        return rotation;
     }
 
     /**
-     * Left orientation vector
+     * The camera rotation
      *
-     * @return Left orientation
+     * @param rotation the rotation
      */
-    public Vector3f getLeft() {
-        return left;
-    }
-
-    /**
-     * Up orientation vector
-     *
-     * @return Up orientation
-     */
-    public Vector3f getUp() {
-        return up;
+    public void setRotation(Quaternion rotation) {
+        this.rotation = rotation;
     }
 
     /**
@@ -106,9 +89,7 @@ public class CameraSweepDataEntry implements Savable {
     public void write(JmeExporter ex) throws IOException {
         OutputCapsule out = ex.getCapsule(this);
         out.write(position, "position", null);
-        out.write(direction, "direction", null);
-        out.write(left, "left", null);
-        out.write(up, "up", null);
+        out.write(rotation, "rotation", null);
         out.write(fov, "fov", Float.NaN);
         out.write(near, "near", Float.NaN);
     }
@@ -117,9 +98,7 @@ public class CameraSweepDataEntry implements Savable {
     public void read(JmeImporter im) throws IOException {
         InputCapsule in = im.getCapsule(this);
         position = (Vector3f) in.readSavable("position", null);
-        direction = (Vector3f) in.readSavable("direction", null);
-        left = (Vector3f) in.readSavable("left", null);
-        up = (Vector3f) in.readSavable("up", null);
+        rotation = (Quaternion) in.readSavable("rotation", null);
         fov = in.readFloat("fov", Float.NaN);
         near = in.readFloat("near", Float.NaN);
     }

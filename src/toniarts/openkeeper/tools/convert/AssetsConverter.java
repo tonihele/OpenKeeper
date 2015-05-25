@@ -19,6 +19,8 @@ package toniarts.openkeeper.tools.convert;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.export.binary.BinaryExporter;
+import com.jme3.math.Matrix3f;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.system.AppSettings;
@@ -81,7 +83,7 @@ public abstract class AssetsConverter {
         MOUSE_CURSORS(3, 1),
         MUSIC_AND_SOUNDS(4, 1),
         INTERFACE_TEXTS(5, 1),
-        PATHS(6, 1);
+        PATHS(6, 2);
 
         private ConvertProcess(int processNumber, int version) {
             this.processNumber = processNumber;
@@ -621,7 +623,17 @@ public abstract class AssetsConverter {
                     // Convert
                     List<CameraSweepDataEntry> entries = new ArrayList<>(kcsFile.getKcsEntries().size());
                     for (KcsEntry kcsEntry : kcsFile.getKcsEntries()) {
-                        entries.add(new CameraSweepDataEntry(convertVector(kcsEntry.getPosition()), convertVector(kcsEntry.getDirection()), convertVector(kcsEntry.getLeft()), convertVector(kcsEntry.getUp()), kcsEntry.getFov(), kcsEntry.getNear()));
+
+                        // Convert the rotation matrix to quatenion
+                        Matrix3f mat = new Matrix3f();
+                        Vector3f direction = convertVector(kcsEntry.getDirection());
+                        Vector3f left = convertVector(kcsEntry.getLeft());
+                        Vector3f up = convertVector(kcsEntry.getUp());
+                        mat.setColumn(0, new Vector3f(-direction.x, direction.y, direction.z));
+                        mat.setColumn(1, new Vector3f(left.x, -left.y, -left.z));
+                        mat.setColumn(2, new Vector3f(-up.x, up.y, up.z));
+
+                        entries.add(new CameraSweepDataEntry(convertVector(kcsEntry.getPosition()), new Quaternion().fromRotationMatrix(mat), kcsEntry.getFov(), kcsEntry.getNear()));
                     }
                     CameraSweepData cameraSweepData = new CameraSweepData(entries);
 
