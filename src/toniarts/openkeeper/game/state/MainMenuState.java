@@ -128,13 +128,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         rootNode.attachChild(menuNode);
 
         // Init Nifty
-        niftyDisplay = new NiftyJmeDisplay(assetManager,
-                inputManager,
-                this.app.getAudioRenderer(),
-                this.app.getGuiViewPort());
-
-        // Attach the nifty display to the gui view port as a processor
-        this.app.getGuiViewPort().addProcessor(niftyDisplay);
+        niftyDisplay = this.app.getNifty();
 
         // Load the start menu
         niftyDisplay.getNifty().getResourceBundles().put("menu", Main.getResourceBundle("Interface/Texts/Text"));

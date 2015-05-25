@@ -83,7 +83,7 @@ public class GameState extends AbstractAppState implements ScreenController {
     }
 
     @Override
-    public void initialize(AppStateManager stateManager, Application app) {
+    public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
         this.app = (Main) app;
         rootNode = this.app.getRootNode();
@@ -100,13 +100,7 @@ public class GameState extends AbstractAppState implements ScreenController {
         rootNode.attachChild(worldNode);
 
         // Init Nifty
-        niftyDisplay = new NiftyJmeDisplay(assetManager,
-                inputManager,
-                this.app.getAudioRenderer(),
-                this.app.getGuiViewPort());
-
-        // Attach the nifty display to the gui view port as a processor
-        this.app.getGuiViewPort().addProcessor(niftyDisplay);
+        niftyDisplay = this.app.getNifty();
 
         // Load the HUD
         niftyDisplay.getNifty().fromXml("Interface/GameHUD.xml", "hud", this);

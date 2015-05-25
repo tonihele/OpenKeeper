@@ -23,6 +23,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.light.AmbientLight;
 import com.jme3.math.ColorRGBA;
+import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.renderer.RenderManager;
@@ -77,6 +78,7 @@ public class Main extends SimpleApplication {
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
     private final HashMap<String, String> params;
+    private NiftyJmeDisplay nifty;
 
     public static void main(String[] args) throws InvocationTargetException, InterruptedException {
 
@@ -529,5 +531,26 @@ public class Main extends SimpleApplication {
         } else {
             startGame();
         }
+    }
+
+    /**
+     * Get Nifty, warning this also initializes and attaches Nifty (if not
+     * initialized already) and is not synchronized
+     *
+     * @return the Nifty instance
+     */
+    public NiftyJmeDisplay getNifty() {
+        if (nifty == null) {
+
+            // Init Nifty
+            nifty = new NiftyJmeDisplay(assetManager,
+                    inputManager,
+                    getAudioRenderer(),
+                    getGuiViewPort());
+
+            // Attach the nifty display to the gui view port as a processor
+            getGuiViewPort().addProcessor(nifty);
+        }
+        return nifty;
     }
 }
