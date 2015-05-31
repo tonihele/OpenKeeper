@@ -48,6 +48,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
     private static final Logger logger = Logger.getLogger(Cinematic.class.getName());
     private static final boolean IS_DEBUG = false;
     private static final String CAMERA_NAME = "Motion cam";
+    private final CameraSweepData cameraSweepData;
 
     /**
      * Creates a new cinematic ready for consumption
@@ -60,7 +61,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      * @param scene scene node to attach to
      */
     public Cinematic(AssetManager assetManager, Camera cam, Point start, String cameraSweepFile, Node scene) {
-        this(assetManager, cam, new Vector3f((start.x - MapLoader.TILE_WIDTH / 2) * MapLoader.TILE_WIDTH, 0.35f, (start.y - MapLoader.TILE_WIDTH * 0.35f) * MapLoader.TILE_HEIGHT), cameraSweepFile, scene);
+        this(assetManager, cam, MapLoader.getCameraPositionOnMapPoint(start.x, start.y), cameraSweepFile, scene);
     }
 
     /**
@@ -73,7 +74,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      * this animation (without the extension)
      * @param scene scene node to attach to
      */
-    public Cinematic(AssetManager assetManager, Camera cam, Vector3f start, String cameraSweepFile, Node scene) {
+    public Cinematic(AssetManager assetManager, final Camera cam, final Vector3f start, String cameraSweepFile, Node scene) {
         super(scene);
         this.assetManager = assetManager;
 
@@ -84,9 +85,10 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
             logger.severe(msg);
             throw new RuntimeException(msg);
         }
+        cameraSweepData = (CameraSweepData) obj;
 
         // Initialize
-        initializeCinematic((CameraSweepData) obj, scene, cam, start);
+        initializeCinematic(scene, cam, start);
 
         // Set the camera as a first step
         activateCamera(0, CAMERA_NAME);
@@ -95,10 +97,9 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
     /**
      * Creates the actual cinematic
      *
-     * @param cameraSweepData the camera sweep data
      * @param scene the scene to attach to
      */
-    private void initializeCinematic(final CameraSweepData cameraSweepData, Node scene, final Camera cam, final Vector3f startLocation) {
+    private void initializeCinematic(Node scene, final Camera cam, final Vector3f startLocation) {
         final CameraNode camNode = bindCamera(CAMERA_NAME, cam);
         camNode.setControlDir(ControlDirection.SpatialToCamera);
         final MotionPath path = new MotionPath();
@@ -121,39 +122,53 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
                 // Rotate
                 float progress = getCurrentValue();
                 int startIndex = getCurrentWayPoint();
-                int endIndex = startIndex + 1;
 
                 // Get the rotation at previous (or current) waypoint
                 CameraSweepDataEntry entry = cameraSweepData.getEntries().get(startIndex);
                 Quaternion q1 = new Quaternion(entry.getRotation());
 
                 // If we are not on the last waypoint, interpolate the rotation between waypoints
-                if (endIndex < cameraSweepData.getEntries().size()) {
-                    entry = cameraSweepData.getEntries().get(endIndex);
-                    Quaternion q2 = new Quaternion(entry.getRotation());
+                CameraSweepDataEntry entryNext = cameraSweepData.getEntries().get(startIndex + 1);
+                Quaternion q2 = new Quaternion(entryNext.getRotation());
 
-                    q1.slerp(q2, progress);
-                }
+                q1.slerp(q2, progress);
 
                 // Set the rotation
                 setRotation(q1);
 
                 // Set the near
-                cam.setFrustumNear(FastMath.interpolateLinear(progress, cameraSweepData.getEntries().get(startIndex).getNear(), cameraSweepData.getEntries().get(endIndex).getNear()) / 4096f);
-                cam.setFrustumPerspective(45f, (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
+                cam.setFrustumNear(FastMath.interpolateLinear(progress, entry.getNear(), entryNext.getNear()) / 4096f);
+                cam.setFrustumPerspective(60f, (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
+                // cam.setFrustumPerspective(FastMath.RAD_TO_DEG * FastMath.interpolateLinear(progress, cameraSweepData.getEntries().get(startIndex).getFov(), cameraSweepData.getEntries().get(endIndex).getFov()), (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
+            }
+
+            @Override
+            public void onStop() {
+                super.onStop();
+
+                // We never reach the final point
+                // FIXME: Also this is not quaranteed to be run, so the camera might be in a funny location
+                CameraSweepDataEntry entry = cameraSweepData.getEntries().get(cameraSweepData.getEntries().size() - 1);
+
+                // Set Position
+                cam.setLocation(startLocation.add(entry.getPosition()));
+
+                // Set the rotation
+                Quaternion q = new Quaternion(entry.getRotation());
+                setRotation(q);
+
+//                cam.setFrustumPerspective(FastMath.RAD_TO_DEG * entry.getFov(), (float) cam.getWidth() / cam.getHeight(), 0.1f, 1000f);
             }
         };
         cameraMotionControl.setLoopMode(LoopMode.DontLoop);
         cameraMotionControl.setInitialDuration(cameraSweepData.getEntries().size() / getFramesPerSecond());
-        cameraMotionControl.setLookAt(Vector3f.ZERO, Vector3f.ZERO);
-        cameraMotionControl.setRotation(Quaternion.IDENTITY);
         cameraMotionControl.setDirectionType(MotionEvent.Direction.Rotation);
 
         // Add us
         addCinematicEvent(0, cameraMotionControl);
 
         // Set duration of the whole animation
-        setInitialDuration(cameraSweepData.getEntries().size() / getFramesPerSecond() + 0.2f);
+        setInitialDuration(cameraSweepData.getEntries().size() / getFramesPerSecond());
     }
 
     /**
