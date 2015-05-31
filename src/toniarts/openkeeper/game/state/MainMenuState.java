@@ -58,7 +58,6 @@ import de.lessvoid.nifty.tools.SizeValue;
 import java.awt.DisplayMode;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
-import java.awt.Point;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,6 +71,7 @@ import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
@@ -99,6 +99,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     public final static List<Integer> anisotrophies = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
     private final KwdFile kwdFile;
     private final MouseEventListener mouseListener = new MouseEventListener(this);
+    private Vector3f startLocation;
 
     public MainMenuState() {
 
@@ -135,10 +136,15 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         niftyDisplay.getNifty().fromXml("Interface/MainMenu.xml", "start", this);
 
         // Set the camera position
-        // TODO: an utility, this is map start position really, so general
-        Vector3f startLocation = new Vector3f((3 - MapLoader.TILE_WIDTH / 2) * MapLoader.TILE_WIDTH, 0, (12 - MapLoader.TILE_WIDTH * 0.35f) * MapLoader.TILE_HEIGHT);
+        loadCameraStartLocation();
+    }
+
+    private void loadCameraStartLocation() {
+        Player player = kwdFile.getPlayer((short) 3); // Keeper 1
+        startLocation = new Vector3f(MapLoader.getCameraPositionOnMapPoint(player.getStartingCameraX(), player.getStartingCameraY()));
+
         CameraSweepData csd = (CameraSweepData) assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat("EnginePath250".concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
-        this.app.getCamera().setLocation(startLocation.addLocal(csd.getEntries().get(0).getPosition()));
+        this.app.getCamera().setLocation(csd.getEntries().get(0).getPosition().mult(MapLoader.TILE_WIDTH).add(startLocation));
     }
 
     @Override
@@ -259,7 +265,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         nifty.gotoScreen("empty");
 
         // Do cinematic transition
-        Cinematic c = new Cinematic(assetManager, app.getCamera(), new Point(3, 12), transition, menuNode);
+        Cinematic c = new Cinematic(assetManager, app.getCamera(), startLocation, transition, menuNode);
         c.addListener(new CinematicEventListener() {
             @Override
             public void onPlay(CinematicEvent cinematic) {
