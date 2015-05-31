@@ -78,7 +78,7 @@ public class Main extends SimpleApplication {
     private final static String RECORDER_QUALITY_KEY = "VideoRecorderQuality";
     private final static float RECORDER_QUALITY_DEFAULT = 0.8f;
     private final static String RECORDER_FPS_KEY = "VideoRecorderFPS";
-    private final static int RECORDER_FPS_DEFAULT = 30;
+    private final static int RECORDER_FPS_DEFAULT = 60;
     private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
     private final static String APPLICATION_SETTINGS_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
     private final static String SETTINGS_FILE = APPLICATION_SETTINGS_FOLDER.concat("openkeeper.properties");
