@@ -67,6 +67,7 @@ import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.CameraSweepData;
+import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -144,7 +145,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         startLocation = new Vector3f(MapLoader.getCameraPositionOnMapPoint(player.getStartingCameraX(), player.getStartingCameraY()));
 
         CameraSweepData csd = (CameraSweepData) assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat("EnginePath250".concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
-        this.app.getCamera().setLocation(csd.getEntries().get(0).getPosition().mult(MapLoader.TILE_WIDTH).add(startLocation));
+        CameraSweepDataEntry entry = csd.getEntries().get(0);
+        this.app.getCamera().setLocation(entry.getPosition().mult(MapLoader.TILE_WIDTH).add(startLocation));
+        this.app.getCamera().setRotation(entry.getRotation());
     }
 
     @Override
