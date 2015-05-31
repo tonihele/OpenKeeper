@@ -17,6 +17,8 @@
 package toniarts.openkeeper;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.app.state.ScreenshotAppState;
+import com.jme3.app.state.VideoRecorderAppState;
 import com.jme3.asset.AssetEventListener;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
@@ -67,14 +69,20 @@ public class Main extends SimpleApplication {
     private static boolean conversionDone = false;
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
-    private final static String SETTINGS_FILE = "openkeeper.properties";
     private final static String TITLE = "OpenKeeper";
     private final static int MAX_FPS = 90;
-    private final static String DKII_FOLDER_KEY = "Dungeon Keeper II folder";
-    private final static String CONVERSION_DONE_KEY = "Conversion done";
+    private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
+    private final static String CONVERSION_DONE_KEY = "ConversionDone";
     public final static String ANISOTROPY_KEY = "Anisotrophy";
     public final static String SSAO_KEY = "SSAO";
+    private final static String RECORDER_QUALITY_KEY = "VideoRecorderQuality";
+    private final static float RECORDER_QUALITY_DEFAULT = 0.8f;
+    private final static String RECORDER_FPS_KEY = "VideoRecorderFPS";
+    private final static int RECORDER_FPS_DEFAULT = 30;
     private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
+    private final static String APPLICATION_SETTINGS_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
+    private final static String SETTINGS_FILE = APPLICATION_SETTINGS_FOLDER.concat("openkeeper.properties");
+    private final static String SCREENSHOTS_FOLDER = APPLICATION_SETTINGS_FOLDER.concat("SCRSHOTS").concat(File.separator);
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
     private final HashMap<String, String> params;
@@ -108,7 +116,13 @@ public class Main extends SimpleApplication {
 
         // Go through the params
         int i = 0;
-        while (i < args.length && args[i].startsWith("-")) {
+        while (i < args.length) {
+
+            // Skip values etc
+            if (!args[i].startsWith("-")) {
+                i++;
+                continue;
+            }
 
             // If the next parameter doesn't have a "-", it is the value for the param
             String value = null;
@@ -201,6 +215,11 @@ public class Main extends SimpleApplication {
     }
 
     private static void initSettings(Main app) {
+
+        // Create some folders
+        new File(APPLICATION_SETTINGS_FOLDER).mkdirs();
+        new File(SCREENSHOTS_FOLDER).mkdirs();
+
         AppSettings setup = new AppSettings(true);
 
         //Default resolution
@@ -353,6 +372,29 @@ public class Main extends SimpleApplication {
         AmbientLight al = new AmbientLight();
         al.setColor(ColorRGBA.White.multLocal(5f));
         rootNode.addLight(al);
+
+        // Allow people to take screenshots
+        ScreenshotAppState screenShotState = new ScreenshotAppState(SCREENSHOTS_FOLDER);
+        this.stateManager.attach(screenShotState);
+
+        // Recording video
+        if (params.containsKey("record")) {
+            float quality = (getSettings().containsKey(RECORDER_QUALITY_KEY) ? getSettings().getFloat(RECORDER_QUALITY_KEY) : RECORDER_QUALITY_DEFAULT);
+            int frameRate = (getSettings().containsKey(RECORDER_FPS_KEY) ? getSettings().getInteger(RECORDER_FPS_KEY) : RECORDER_FPS_DEFAULT);
+            getSettings().setFrameRate(frameRate);
+            VideoRecorderAppState recorder = new VideoRecorderAppState(quality, frameRate);
+            String folder = params.get("record");
+            if (folder == null) {
+                folder = SCREENSHOTS_FOLDER;
+            }
+            if (!folder.endsWith(File.separator)) {
+                folder = folder.concat(File.separator);
+            }
+            folder = folder.concat(getSettings().getTitle()).concat("-").concat(String.valueOf(System.currentTimeMillis() / 1000)).concat(".avi");
+            recorder.setFile(new File(folder));
+
+            this.stateManager.attach(recorder);
+        }
 
         if (params.containsKey("nomovies") || params.containsKey("level")) {
             startGame();
