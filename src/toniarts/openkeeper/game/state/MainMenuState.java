@@ -150,9 +150,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         // Detach our start menu
         rootNode.detachChild(menuNode);
 
-        // Detach nifty
-        app.getGuiViewPort().removeProcessor(niftyDisplay);
-
         super.cleanup();
     }
 
