@@ -816,4 +816,15 @@ public class MapLoader implements ILoader<KwdFile> {
             }
         }
     }
+
+    /**
+     * Get a standard camera position vector on given map point
+     *
+     * @param x tile x coordinate
+     * @param y tile y coordinate
+     * @return camera location
+     */
+    public static Vector3f getCameraPositionOnMapPoint(final int x, final int y) {
+        return new Vector3f((x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2), 0f, (y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2));
+    }
 }
