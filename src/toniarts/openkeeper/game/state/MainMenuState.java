@@ -251,7 +251,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         stateManager.detach(this);
 
         // Create the level state
-        GameState gameState = new GameState("level" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : ""), assetManager);
+        String level = String.format("level%s%s", selectedLevel.getLevel(), selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "");
+        GameState gameState = new GameState(level, assetManager);
         stateManager.attach(gameState);
     }
 
