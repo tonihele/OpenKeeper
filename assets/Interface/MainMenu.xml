@@ -51,10 +51,12 @@
                 </panel>
                 <panel childLayout="center" align="center" valign="center">
                     <text id="multiplayer" style="menuText" text="${menu.72}">
+                        <interact onClick="doTransition(271,multiplayer,273)" />
                     </text>
                 </panel>
                 <panel childLayout="center" align="center" valign="center">
                     <text id="mpd" style="menuText" text="${menu.1675}">
+                        <interact onClick="doTransition(262,myPetDungeon,264)" />
                     </text>
                 </panel>
             </panel>
@@ -64,11 +66,12 @@
             <panel id="panel4" height="15.208%" width="100%" align="center" valign="top" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="center" valign="top">
                     <text id="options" style="menuText" text="${menu.94}">
-                        <interact onClick="options()" />
+                        <interact onClick="doTransition(256,optionsMain,258)" />
                     </text>
                 </panel>
                 <panel childLayout="center" align="center" valign="top">
                     <text id="extras" style="menuText" text="${menu.73}">
+                        <interact onClick="doTransition(259,extras,261)" />
                     </text>
                 </panel>
             </panel>
@@ -79,10 +82,10 @@
             </panel>
             <panel id="panel6" height="*" width="100%" align="center" valign="top" childLayout="vertical">
                 <panel childLayout="vertical" align="right" valign="top">
-                    <text font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb" text="*PRE-ALPHA*"/>
+                    <text style="menuTextSmall" color="#bbbcbb" text="*PRE-ALPHA*"/>
                 </panel>
                 <panel childLayout="vertical" align="right" valign="top">
-                    <text font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb" text="Open Source Edition"/>
+                    <text style="menuTextSmall" color="#bbbcbb" text="Open Source Edition"/>
                 </panel>
             </panel>
         </layer>
@@ -95,18 +98,16 @@
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
                 <panel childLayout="center" align="center" valign="center">
-                    <text id="singlePlayer" style="menuTitleText" text="${menu.71}">
-                    </text>
+                    <text id="singlePlayer" style="menuTitleText" text="${menu.71}" />
                 </panel>
             </panel>
             <panel id="panel2" height="25%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="center" valign="center">
-                    <text id="newCampaign" style="menuText" text="${menu.140}">
-                    </text>
+                    <text id="newCampaign" style="menuText" text="${menu.140}" />
                 </panel>
                 <panel childLayout="center" align="center" valign="center">
                     <text id="continueCampaign" style="menuText" text="${menu.2059}">
-                        <interact onClick="continueCampaign()" />
+                        <interact onClick="doTransition(251,selectCampaignLevel,null)" />
                     </text>
                 </panel>
             </panel>
@@ -115,18 +116,15 @@
             </panel>
             <panel id="panel4" height="25%" width="100%" align="center" valign="top" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="center" valign="top">
-                    <text id="skirmish" style="menuText" text="${menu.141}">
-                    </text>
+                    <text id="skirmish" style="menuText" text="${menu.141}" />
                 </panel>
                 <panel childLayout="center" align="center" valign="top">
-                    <text id="loadGame" style="menuText" text="${menu.145}">
-                    </text>
+                    <text id="loadGame" style="menuText" text="${menu.145}" />
                 </panel>
             </panel>
             <panel id="panel5" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="right" valign="bottom">
-                    <control click="goToScreen(start)" id="back" name="cancelButton" width="48px" height="48px">
-                    </control>
+                    <control click="goToScreen(start)" id="back" name="cancelButton" width="48px" height="48px" />
                 </panel>
             </panel>
         </layer>
@@ -139,26 +137,18 @@
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="40%" width="100%" childLayout="vertical">
                 <panel height="100%" childLayout="center" align="center" valign="bottom">
-                    <text id="singlePlayer" style="menuTitleText" text="${menu.28}" align="center" valign="bottom">
-                    </text>
+                    <text id="singlePlayer" style="menuTitleText" text="${menu.28}" align="center" valign="bottom" />
                 </panel>
             </panel>
             <panel id="panel2" height="38%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="center" valign="center">
-                    <text id="newCampaign" style="menuText" text="${menu.15}">
-                    </text>
+                    <text id="newCampaign" style="menuText" text="${menu.15}" />
                 </panel>
             </panel>
             <panel id="panel3" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="horizontal" align="right" valign="bottom">
-                    <panel childLayout="center" align="right" valign="bottom" width="56px">
-                        <control click="goToScreen(start)" id="back" name="cancelButton" width="48px" height="48px">
-                        </control>
-                    </panel>
-                    <panel childLayout="center" align="right" valign="bottom" width="56px">
-                        <control click="quitGame()" id="quit" name="okButton" width="48px" height="48px">
-                        </control>
-                    </panel>
+                    <control click="goToScreen(start)" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
+                    <control click="quitGame()" id="quit" name="okButton" width="48px" height="48px"  margin="5px"/>
                 </panel>
             </panel>
         </layer>
@@ -173,10 +163,7 @@
             </panel>
             <panel id="panel2" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="horizontal" align="right" valign="bottom">
-                    <panel childLayout="center" align="right" valign="bottom" width="56px">
-                        <control click="cancelCampaign()" id="back" name="cancelButton" width="48px" height="48px">
-                        </control>
-                    </panel>
+                    <control click="doTransition(252,singlePlayer,274)" id="back" name="cancelButton" width="48px" height="48px" />
                 </panel>
             </panel>
         </layer>
@@ -189,8 +176,7 @@
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="78%" width="100%" childLayout="vertical">
                 <panel width="100%" childLayout="center" align="center" valign="center">
-                    <text id="briefingTitle" style="menuTitleText" text="${menu.1476}">
-                    </text>
+                    <text id="briefingTitle" style="menuTitleText" text="${menu.1476}" />
                 </panel>
                 <panel width="100%" childLayout="center" align="center" valign="center">
                     <control name="label" id="levelTitle" style="menuTitleText">
@@ -206,12 +192,10 @@
                     </panel>
                     <panel width="*" childLayout="vertical" align="left" valign="top">
                         <panel backgroundColor="#f508" width="100%" childLayout="vertical">
-                            <text align="left" valign="top" id="mainObjectivesTitle" style="menuTitleText" text="${menu.1408}">
-                            </text>
+                            <text align="left" valign="top" id="mainObjectivesTitle" style="menuTitleText" text="${menu.1408}" />
                         </panel>
                         <panel backgroundColor="#0008" width="100%" height="*" childLayout="vertical">
-                            <control width="100%" name="label" style="menuTextSmall" id="mainObjective" textHAlign="left" textVAlign="top">
-                            </control>
+                            <control width="100%" name="label" style="menuTextSmall" id="mainObjective" textHAlign="left" textVAlign="top" />
                         </panel>
                     </panel>
                 </panel>
@@ -225,17 +209,13 @@
                     </panel>
                     <panel width="*" childLayout="vertical" align="left" valign="top">
                         <panel backgroundColor="#f508" width="100%" childLayout="vertical">
-                            <text align="left" valign="top" id="subObjectivesTitle" style="menuTitleText" text="${menu.1409}">
-                            </text>
+                            <text align="left" valign="top" id="subObjectivesTitle" style="menuTitleText" text="${menu.1409}" />
                         </panel>
                         <panel backgroundColor="#0008" width="100%" height="*" childLayout="vertical">
                             <panel width="100%" childLayout="vertical">
-                                <control width="100%" name="label" style="menuTextSmall" id="subObjective1" textHAlign="left" textVAlign="top">
-                                </control>
-                                <control width="100%" name="label" style="menuTextSmall" id="subObjective2" textHAlign="left" textVAlign="top">
-                                </control>
-                                <control width="100%" name="label" style="menuTextSmall" id="subObjective3" textHAlign="left" textVAlign="top">
-                                </control>
+                                <control width="100%" name="label" style="menuTextSmall" id="subObjective1" textHAlign="left" textVAlign="top" />
+                                <control width="100%" name="label" style="menuTextSmall" id="subObjective2" textHAlign="left" textVAlign="top" />
+                                <control width="100%" name="label" style="menuTextSmall" id="subObjective3" textHAlign="left" textVAlign="top" />
                             </panel>
                         </panel>
                     </panel>
@@ -246,14 +226,8 @@
             </panel>
             <panel id="panel2" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="horizontal" align="right" valign="bottom">
-                    <panel childLayout="center" align="right" valign="bottom" width="56px">
-                        <control click="cancelLevelSelect()" id="back" name="cancelButton" width="48px" height="48px">
-                        </control>
-                    </panel>
-                    <panel childLayout="center" align="right" valign="bottom" width="56px">
-                        <control click="startCampaignLevel()" id="start" name="okButton" width="48px" height="48px">
-                        </control>
-                    </panel>
+                    <control click="cancelLevelSelect()" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
+                    <control click="startCampaignLevel()" id="start" name="okButton" width="48px" height="48px" margin="5px" />
                 </panel>
             </panel>
         </layer>
@@ -266,27 +240,25 @@
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="78%" width="100%" childLayout="vertical">
                 <panel width="100%" childLayout="center" align="center" valign="center">
-                    <text id="optionsTitle" style="menuTitleText" text="${menu.94}">
-                    </text>
+                    <text id="optionsTitle" style="menuTitleText" text="${menu.94}" />
                 </panel>
                 <panel width="100%" height="*" childLayout="center" align="center" valign="center">
                     <panel width="100%" childLayout="vertical" align="center" valign="center">
-                        <text id="graphicsOptions" style="menuText" text="${menu.96}" align="center">
-                            <interact onClick="goToScreen(graphicsOptions)" />
+                        <text id="optionsGraphics" style="menuText" text="${menu.96}" align="center">
+                            <interact onClick="goToScreen(optionsGraphics)" />
                         </text>
-                        <text id="soundOptions" style="menuText" text="${menu.95}" align="center">
+                        <text id="soundOptions" style="menuText" text="${menu.95}" align="center" >
+                            <interact onClick="goToScreen(optionsSound)" />
                         </text>
-                        <text id="controlOptions" style="menuText" text="${menu.98}" align="center">
+                        <text id="controlOptions" style="menuText" text="${menu.98}" align="center" >
+                            <interact onClick="goToScreen(optionsControl)" />
                         </text>
                     </panel>
                 </panel>
             </panel>
             <panel id="panel2" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="horizontal" align="right" valign="bottom">
-                    <panel childLayout="center" align="right" valign="bottom" width="56px">
-                        <control click="cancelOptionsMain()" id="back" name="cancelButton" width="48px" height="48px">
-                        </control>
-                    </panel>
+                    <control click="doTransition(257,start,274)" id="back" name="cancelButton" width="48px" height="48px" />
                 </panel>
             </panel>
         </layer>
@@ -295,64 +267,50 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Graphic options -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="graphicsOptions" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="optionsGraphics" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
             <panel id="panel1" height="78%" width="100%" childLayout="vertical">
                 <panel width="100%" childLayout="center" align="center" valign="center">
-                    <text id="briefingTitle" style="menuTitleText" text="${menu.96}">
-                    </text>
+                    <text id="briefingTitle" style="menuTitleText" text="${menu.96}" />
                 </panel>
                 <panel width="100%" height="*" childLayout="center" align="center" valign="center">
                     <panel childLayout="horizontal" valign="center">
                         <!--Left side options panel-->
                         <panel childLayout="vertical" align="left" valign="top">
                             <panel align="left" valign="center" childLayout="vertical" padding="10px">
-                                <text style="menuTextSmall" text="${menu.134}: "></text>
-                                <control width="250px" name="dropDown" id="resolution">
-
-                                </control>
+                                <text style="menuTextSmall" text="${menu.134}: " />
+                                <control width="250px" name="dropDown" id="resolution" />
                             </panel>
                             <panel align="left" valign="center" childLayout="horizontal" padding="10px">
-                                <control name="checkbox" id="fullscreen">
-                                </control>
-                                <text style="menuTextSmall" text=" Fullscreen"></text>
+                                <control name="checkbox" id="fullscreen" />
+                                <text style="menuTextSmall" text=" Fullscreen" />
                             </panel>
                             <panel align="left" valign="center" childLayout="vertical" padding="10px">
-                                <text style="menuTextSmall" text="Antialiasing: "></text>
-                                <control width="100px" name="dropDown" id="antialiasing">
-
-                                </control>
+                                <text style="menuTextSmall" text="Antialiasing: " />
+                                <control width="100px" name="dropDown" id="antialiasing" />
                             </panel>
                             <panel align="left" valign="center" childLayout="vertical" padding="10px">
-                                <text style="menuTextSmall" text="OpenGL: "></text>
-                                <control width="250px" name="dropDown" id="openGl">
-
-                                </control>
+                                <text style="menuTextSmall" text="OpenGL: " />
+                                <control width="250px" name="dropDown" id="openGl" />
                             </panel>
                             <panel align="left" valign="center" childLayout="horizontal" padding="10px">
-                                <control name="checkbox" id="ssao">
-                                </control>
-                                <text style="menuTextSmall" text=" SSAO"></text>
+                                <control name="checkbox" id="ssao" />
+                                <text style="menuTextSmall" text=" SSAO" />
                             </panel>
                         </panel>
                         <!--Right side options panel-->
                         <panel  childLayout="vertical" align="right" valign="top">
                             <panel align="left" valign="center" childLayout="vertical" padding="10px">
-                                <text style="menuTextSmall" text="Refresh rate: "></text>
-                                <control width="100px" name="dropDown" id="refreshRate">
-
-                                </control>
+                                <text style="menuTextSmall" text="Refresh rate: " />
+                                <control width="100px" name="dropDown" id="refreshRate" />
                             </panel>
                             <panel align="left" valign="center" childLayout="horizontal" padding="10px">
-                                <control name="checkbox" id="verticalSync">
-                                </control>
-                                <text style="menuTextSmall" text=" Vertical sync"></text>
+                                <control name="checkbox" id="verticalSync" />
+                                <text style="menuTextSmall" text=" Vertical sync" />
                             </panel>
                             <panel align="left" valign="center" childLayout="vertical" padding="10px">
-                                <text style="menuTextSmall" text="Anisotropic filtering: "></text>
-                                <control width="100px" name="dropDown" id="anisotropicFiltering">
-
-                                </control>
+                                <text style="menuTextSmall" text="Anisotropic filtering: " />
+                                <control width="100px" name="dropDown" id="anisotropicFiltering" />
                             </panel>
                         </panel>
                     </panel>
@@ -360,17 +318,228 @@
             </panel>
             <panel id="panel2" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="horizontal" align="right" valign="bottom">
-                    <panel childLayout="center" align="right" valign="bottom" width="56px">
-                        <control click="goToScreen(optionsMain)" id="back" name="cancelButton" width="48px" height="48px">
-                        </control>
-                    </panel>
-                    <panel childLayout="center" align="right" valign="bottom" width="56px">
-                        <control click="applyGraphicsSettings()" id="start" name="okButton" width="48px" height="48px">
-                        </control>
-                    </panel>
+                    <control click="goToScreen(optionsMain)" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
+                    <control click="applyGraphicsSettings()" id="start" name="okButton" width="48px" height="48px" margin="5px" />
                 </panel>
             </panel>
         </layer>
     </screen>
 
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Sound Options -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="optionsSound" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="78%" width="100%" childLayout="vertical">
+                <panel width="100%" childLayout="center" align="center" valign="center">
+                    <text id="optionsSoundTitle" style="menuTitleText" text="${menu.95}" />
+                </panel>
+                <panel width="100%" height="*" childLayout="center" align="center" valign="center">
+                    <text style="menuTextSmall" text="Not ready yet" />
+                </panel>
+            </panel>
+            <panel id="panel2" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="horizontal" align="right" valign="bottom">
+                    <control click="goToScreen(optionsMain)" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
+                    <control click="goToScreen(optionsMain)" id="start" name="okButton" width="48px" height="48px" margin="5px" />
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Control Options -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="optionsControl" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="78%" width="100%" childLayout="vertical">
+                <panel width="100%" childLayout="center" align="center" valign="center">
+                    <text id="optionsControlTitle" style="menuTitleText" text="${menu.98}" />
+                </panel>
+                <panel width="100%" height="*" childLayout="center" align="center" valign="center">
+                    <text style="menuTextSmall" text="Not ready yet" />
+                </panel>
+            </panel>
+            <panel id="panel2" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="horizontal" align="right" valign="bottom">
+                    <control click="goToScreen(optionsMain)" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
+                    <control click="goToScreen(optionsMain)" id="start" name="okButton" width="48px" height="48px" margin="5px" />
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Extras -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="extras" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
+                <panel childLayout="center" align="center" valign="center">
+                    <text id="extrasTitle" style="menuTitleText" text="${menu.73}" />
+                </panel>
+            </panel>
+            <panel id="panel2" height="25%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="center" align="center" valign="center">
+                    <text id="top" style="menuText" text="${menu.2802}">
+                        <interact onClick="goToScreen(top)" />
+                    </text>
+                </panel>
+                <panel childLayout="center" align="center" valign="center">
+                    <text id="movies" style="menuText" text="${menu.93}" />
+                </panel>
+            </panel>
+            <panel id="panel3" height="5%" width="100%" align="center" valign="center" childLayout="center">
+
+            </panel>
+            <panel id="panel4" height="25%" width="100%" align="center" valign="top" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="center" align="center" valign="top">
+                    <text id="trailer" style="menuText" text="${menu.86}" />
+                </panel>
+                <panel childLayout="center" align="center" valign="top">
+                    <text id="credits" style="menuText" text="${menu.372}">
+                        <interact onClick="doTransition(265,credits,null)" />
+                    </text>
+                </panel>
+            </panel>
+            <panel id="panel5" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="center" align="right" valign="bottom">
+                    <control click="doTransition(260,start,274)" id="back" name="okButton" width="48px" height="48px" />
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Top players -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="top" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
+                <panel childLayout="center" align="center" valign="center">
+                    <text id="topTitle" style="menuTitleText" text="${menu.2802}" />
+                </panel>
+            </panel>
+
+            <panel id="panel2" height="55%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="horizontal" valign="top" width="100%">
+                    <text id="rank" style="menuTitleText"  width="25%" text="${menu.80}" />
+                    <text id="score" style="menuTitleText" width="25%" text="${menu.82}" />
+                    <text id="level" style="menuTitleText" width="25%" text="${menu.2042}" />
+                    <text id="name" style="menuTitleText" width="25%" text="${menu.83}" />
+                </panel>
+                <panel childLayout="horizontal" valign="top" width="100%">
+                    <text style="menuTextSmall" text="0" width="25%" />
+                    <text style="menuTextSmall" text="0" width="25%" />
+                    <text style="menuTextSmall" text="0" width="25%" />
+                    <text style="menuTextSmall" text="empty"  width="25%" />
+                </panel>
+            </panel>
+
+            <panel id="panel5" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="center" align="right" valign="bottom">
+                    <control click="goToScreen(extras)" id="back" name="okButton" width="48px" height="48px" />
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- View Movies -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="movies" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
+                <panel childLayout="center" align="center" valign="center">
+                    <text id="moviesTitle" style="menuTitleText" text="${menu.93}" />
+                </panel>
+            </panel>
+
+            <panel id="panel2" height="55%" width="100%" align="center" valign="center" childLayout="center" visibleToMouse="true">
+                <text style="menuTextSmall" text="Not ready yet" />
+            </panel>
+
+            <panel id="panel5" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="center" align="right" valign="bottom">
+                    <control click="goToScreen(extras)" id="back" name="okButton" width="48px" height="48px" />
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Credits -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="credits" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
+                <panel childLayout="center" align="center" valign="center">
+                    <text id="creditsTitle" style="menuTitleText" text="${menu.372}" />
+                </panel>
+            </panel>
+
+            <panel id="panel2" height="55%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <text style="menuTextSmall" text="Not ready yet" />
+            </panel>
+
+            <panel id="panel5" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="center" align="right" valign="bottom">
+                    <control click="doTransition(266,extras,261)" id="back" name="okButton" width="48px" height="48px" />
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Multi player game -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="multiplayer" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
+                <panel childLayout="center" align="center" valign="center">
+                    <text id="multiplayerTitle" style="menuTitleText" text="${menu.149}" />
+                </panel>
+            </panel>
+
+            <panel id="panel2" height="55%" width="100%" align="center" valign="center" childLayout="center" visibleToMouse="true">
+                <text style="menuTextSmall" text="Not ready yet" />
+            </panel>
+
+            <panel id="panel5" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="horizontal" align="right" valign="bottom">
+                    <control click="doTransition(272,start,274)" id="back" name="cancelButton" width="48px" height="48px" margin="5px"/>
+                    <control id="ok" name="okButton" width="48px" height="48px" margin="5px"/>
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- MPD -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="myPetDungeon" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
+                <panel childLayout="center" align="center" valign="center">
+                    <text id="myPetDungeonTitle" style="menuTitleText" text="${menu.1675}" />
+                </panel>
+            </panel>
+
+            <panel id="panel2" height="55%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true" padding="10px">
+                <text style="menuText" text="Liberty" align="center"/>
+                <text style="menuText" text="Discovery" align="center"/>
+                <text style="menuText" text="Bottleneck" align="center"/>
+                <text style="menuText" text="Recruits" align="center"/>
+                <text style="menuText" text="furnace" align="center"/>
+                <text style="menuText" text="Masterpiece" align="center"/>
+                <text style="menuText" text="${menu.1618}" align="center"/>
+            </panel>
+
+            <panel id="panel5" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="horizontal" align="right" valign="bottom">
+                    <control click="doTransition(263,start,274)" id="back" name="cancelButton" width="48px" height="48px" margin="5px"/>
+                </panel>
+            </panel>
+        </layer>
+    </screen>
 </nifty>

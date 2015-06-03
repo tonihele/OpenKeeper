@@ -140,11 +140,24 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         loadCameraStartLocation();
     }
 
+    /**
+     * Load the initial main menu camera position
+     */
     private void loadCameraStartLocation() {
         Player player = kwdFile.getPlayer((short) 3); // Keeper 1
         startLocation = new Vector3f(MapLoader.getCameraPositionOnMapPoint(player.getStartingCameraX(), player.getStartingCameraY()));
 
-        CameraSweepData csd = (CameraSweepData) assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat("EnginePath250".concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
+        // Set the actual camera location
+        loadCameraStartLocation("EnginePath250");
+    }
+
+    /**
+     * Loads and sets up the starting camera position from the given transition
+     *
+     * @param transition the transition
+     */
+    private void loadCameraStartLocation(String transition) {
+        CameraSweepData csd = (CameraSweepData) assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat(transition.concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
         CameraSweepDataEntry entry = csd.getEntries().get(0);
         Cinematic.applyCameraSweepEntry(app.getCamera(), startLocation, entry);
     }
@@ -202,7 +215,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 levelBriefing.setLooping(false);
                 levelBriefing.play();
                 break;
-            case "graphicsOptions":
+            case "optionsGraphics":
 
                 // Populate settings screen
                 setGraphicsSettingsToGUI();
@@ -226,22 +239,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         nifty.gotoScreen(nextScreen);  // Switch to another screen
     }
 
-    public void continueCampaign() {
-        doTransitionAndGoToScreen("EnginePath251", "selectCampaignLevel");
-    }
-
-    public void cancelCampaign() {
-        doTransitionAndGoToScreen("EnginePath252", "singlePlayer");
-    }
-
-    public void options() {
-        doTransitionAndGoToScreen("EnginePath256", "optionsMain");
-    }
-
-    public void cancelOptionsMain() {
-        doTransitionAndGoToScreen("EnginePath257", "start");
-    }
-
     /**
      * Called by the GUI, start the selected campaign level
      */
@@ -257,12 +254,26 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     }
 
     /**
+     * Go to screen with cinematic transition
+     *
+     * @param transition the transition code
+     * @param screen the screen to go to
+     * @param transitionStatic the transition for the finishing position. Not
+     * all the transitions return perfectly so this is a workaround
+     */
+    public void doTransition(String transition, String screen, String transitionStatic) {
+        transition = "EnginePath" + transition;
+
+        doTransitionAndGoToScreen(transition, screen, (transitionStatic == null || "null".equals(transitionStatic) ? null : "EnginePath" + transitionStatic));
+    }
+
+    /**
      * Does a cinematic transition and opens up a specified screen
      *
      * @param transition name of the transition (without file extension)
      * @param screen the screen name
      */
-    private void doTransitionAndGoToScreen(String transition, final String screen) {
+    private void doTransitionAndGoToScreen(final String transition, final String screen, final String transitionStatic) {
 
         // Remove the current screen
         nifty.gotoScreen("empty");
@@ -280,6 +291,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
             @Override
             public void onStop(CinematicEvent cinematic) {
+                if (transitionStatic != null) {
+                    loadCameraStartLocation(transitionStatic);
+                }
                 nifty.gotoScreen(screen);
             }
         });
@@ -298,7 +312,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      */
     private void selectCampaignLevel(FrontEndLevelControl selectedLevel) {
         this.selectedLevel = new Level(selectedLevel.getLevel(), selectedLevel.getVariation());
-        doTransitionAndGoToScreen("EnginePath253", "campaign");
+        doTransition("253", "campaign", null);
     }
 
     /**
@@ -306,7 +320,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      */
     public void cancelLevelSelect() {
         this.selectedLevel = null;
-        doTransitionAndGoToScreen("EnginePath254", "selectCampaignLevel");
+        doTransition("254", "selectCampaignLevel", null);
     }
 
     /**
