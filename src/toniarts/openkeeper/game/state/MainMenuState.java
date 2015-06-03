@@ -146,8 +146,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         CameraSweepData csd = (CameraSweepData) assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat("EnginePath250".concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
         CameraSweepDataEntry entry = csd.getEntries().get(0);
-        this.app.getCamera().setLocation(entry.getPosition().mult(MapLoader.TILE_WIDTH).add(startLocation));
-        this.app.getCamera().setRotation(entry.getRotation());
+        Cinematic.applyCameraSweepEntry(app.getCamera(), startLocation, entry);
     }
 
     @Override
