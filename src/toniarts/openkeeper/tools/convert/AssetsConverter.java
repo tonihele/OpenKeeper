@@ -19,6 +19,7 @@ package toniarts.openkeeper.tools.convert;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.export.binary.BinaryExporter;
+import com.jme3.math.FastMath;
 import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
@@ -83,7 +84,7 @@ public abstract class AssetsConverter {
         MOUSE_CURSORS(3, 1),
         MUSIC_AND_SOUNDS(4, 1),
         INTERFACE_TEXTS(5, 1),
-        PATHS(6, 2);
+        PATHS(6, 3);
 
         private ConvertProcess(int processNumber, int version) {
             this.processNumber = processNumber;
@@ -633,7 +634,7 @@ public abstract class AssetsConverter {
                         mat.setColumn(1, new Vector3f(left.x, -left.y, -left.z));
                         mat.setColumn(2, new Vector3f(-up.x, up.y, up.z));
 
-                        entries.add(new CameraSweepDataEntry(convertVector(kcsEntry.getPosition()), new Quaternion().fromRotationMatrix(mat), kcsEntry.getFov(), kcsEntry.getNear()));
+                        entries.add(new CameraSweepDataEntry(convertVector(kcsEntry.getPosition()), new Quaternion().fromRotationMatrix(mat), FastMath.RAD_TO_DEG * kcsEntry.getFov(), kcsEntry.getNear()));
                     }
                     CameraSweepData cameraSweepData = new CameraSweepData(entries);
 
