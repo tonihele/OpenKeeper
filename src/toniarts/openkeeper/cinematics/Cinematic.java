@@ -136,10 +136,9 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
                 // Set the rotation
                 setRotation(q1);
 
-                // Set the near
+                // Set the near & FOV
                 cam.setFrustumNear(FastMath.interpolateLinear(progress, entry.getNear(), entryNext.getNear()) / 4096f);
                 cam.setFrustumPerspective(60f, (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
-                // cam.setFrustumPerspective(FastMath.RAD_TO_DEG * FastMath.interpolateLinear(progress, cameraSweepData.getEntries().get(startIndex).getFov(), cameraSweepData.getEntries().get(endIndex).getFov()), (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
             }
 
             @Override
@@ -147,17 +146,8 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
                 super.onStop();
 
                 // We never reach the final point
-                // FIXME: Also this is not quaranteed to be run, so the camera might be in a funny location
                 CameraSweepDataEntry entry = cameraSweepData.getEntries().get(cameraSweepData.getEntries().size() - 1);
-
-                // Set Position
-                cam.setLocation(startLocation.add(entry.getPosition()));
-
-                // Set the rotation
-                Quaternion q = new Quaternion(entry.getRotation());
-                setRotation(q);
-
-//                cam.setFrustumPerspective(FastMath.RAD_TO_DEG * entry.getFov(), (float) cam.getWidth() / cam.getHeight(), 0.1f, 1000f);
+                applyCameraSweepEntry(cam, startLocation, entry);
             }
         };
         cameraMotionControl.setLoopMode(LoopMode.DontLoop);
@@ -169,6 +159,27 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
         // Set duration of the whole animation
         setInitialDuration(cameraSweepData.getEntries().size() / getFramesPerSecond());
+    }
+
+    /**
+     * Apply the camera sweep entry data to the given camera
+     *
+     * @param cam the camera
+     * @param startLocation the start location for the path
+     * @param entry the entry to apply to
+     */
+    public static void applyCameraSweepEntry(final Camera cam, final Vector3f startLocation, final CameraSweepDataEntry entry) {
+
+        // Set Position
+        cam.setLocation(startLocation.add(entry.getPosition().mult(MapLoader.TILE_WIDTH)));
+
+        // Set the rotation
+        cam.setRotation(entry.getRotation());
+
+        // FIXME: FOV, and the near should also be the very minimun needed
+        // Set the near & FOV
+        cam.setFrustumNear(entry.getNear() / 4096f);
+        cam.setFrustumPerspective(60f, (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
     }
 
     /**
