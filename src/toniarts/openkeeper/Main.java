@@ -80,9 +80,9 @@ public class Main extends SimpleApplication {
     private final static String RECORDER_FPS_KEY = "VideoRecorderFPS";
     private final static int RECORDER_FPS_DEFAULT = 60;
     private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
-    private final static String APPLICATION_SETTINGS_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
-    private final static String SETTINGS_FILE = APPLICATION_SETTINGS_FOLDER.concat("openkeeper.properties");
-    private final static String SCREENSHOTS_FOLDER = APPLICATION_SETTINGS_FOLDER.concat("SCRSHOTS").concat(File.separator);
+    private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
+    private final static String SETTINGS_FILE = "openkeeper.properties";
+    private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
     private final HashMap<String, String> params;
@@ -217,7 +217,7 @@ public class Main extends SimpleApplication {
     private static void initSettings(Main app) {
 
         // Create some folders
-        new File(APPLICATION_SETTINGS_FOLDER).mkdirs();
+        new File(USER_HOME_FOLDER).mkdirs();
         new File(SCREENSHOTS_FOLDER).mkdirs();
 
         AppSettings setup = new AppSettings(true);
