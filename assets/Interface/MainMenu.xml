@@ -247,10 +247,10 @@
                         <text id="optionsGraphics" style="menuText" text="${menu.96}" align="center">
                             <interact onClick="goToScreen(optionsGraphics)" />
                         </text>
-                        <text id="soundOptions" style="menuText" text="${menu.95}" align="center" >
+                        <text id="optionsSound" style="menuText" text="${menu.95}" align="center" >
                             <interact onClick="goToScreen(optionsSound)" />
                         </text>
-                        <text id="controlOptions" style="menuText" text="${menu.98}" align="center" >
+                        <text id="optionsControl" style="menuText" text="${menu.98}" align="center" >
                             <interact onClick="goToScreen(optionsControl)" />
                         </text>
                     </panel>
