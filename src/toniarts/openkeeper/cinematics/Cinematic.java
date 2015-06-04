@@ -17,8 +17,12 @@
 package toniarts.openkeeper.cinematics;
 
 import com.jme3.animation.LoopMode;
+import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.cinematic.MotionPath;
+import com.jme3.cinematic.PlayState;
+import com.jme3.cinematic.events.CinematicEvent;
+import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.cinematic.events.MotionEvent;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
@@ -48,6 +52,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
     private static final Logger logger = Logger.getLogger(Cinematic.class.getName());
     private static final boolean IS_DEBUG = false;
     private static final String CAMERA_NAME = "Motion cam";
+    private final AppStateManager stateManager;
     private final CameraSweepData cameraSweepData;
 
     /**
@@ -60,8 +65,8 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      * this animation (without the extension)
      * @param scene scene node to attach to
      */
-    public Cinematic(AssetManager assetManager, Camera cam, Point start, String cameraSweepFile, Node scene) {
-        this(assetManager, cam, MapLoader.getCameraPositionOnMapPoint(start.x, start.y), cameraSweepFile, scene);
+    public Cinematic(AssetManager assetManager, Camera cam, Point start, String cameraSweepFile, Node scene, AppStateManager stateManager) {
+        this(assetManager, cam, MapLoader.getCameraPositionOnMapPoint(start.x, start.y), cameraSweepFile, scene, stateManager);
     }
 
     /**
@@ -74,9 +79,10 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      * this animation (without the extension)
      * @param scene scene node to attach to
      */
-    public Cinematic(AssetManager assetManager, final Camera cam, final Vector3f start, String cameraSweepFile, Node scene) {
+    public Cinematic(AssetManager assetManager, final Camera cam, final Vector3f start, String cameraSweepFile, Node scene, final AppStateManager stateManager) {
         super(scene);
         this.assetManager = assetManager;
+        this.stateManager = stateManager;
 
         // Load up the camera sweep file
         Object obj = assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat(cameraSweepFile.concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
@@ -99,9 +105,10 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      *
      * @param scene the scene to attach to
      */
-    private void initializeCinematic(Node scene, final Camera cam, final Vector3f startLocation) {
+    private void initializeCinematic(final Node scene, final Camera cam, final Vector3f startLocation) {
         final CameraNode camNode = bindCamera(CAMERA_NAME, cam);
         camNode.setControlDir(ControlDirection.SpatialToCamera);
+        scene.attachChild(camNode);
         final MotionPath path = new MotionPath();
         path.setCycle(false);
 
@@ -119,35 +126,36 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
             public void update(float tpf) {
                 super.update(tpf);
 
-                // Rotate
-                float progress = getCurrentValue();
-                int startIndex = getCurrentWayPoint();
+                if (getPlayState() == PlayState.Playing) {
 
-                // Get the rotation at previous (or current) waypoint
-                CameraSweepDataEntry entry = cameraSweepData.getEntries().get(startIndex);
-                Quaternion q1 = new Quaternion(entry.getRotation());
+                    // Rotate
+                    float progress = getCurrentValue();
+                    int startIndex = getCurrentWayPoint();
 
-                // If we are not on the last waypoint, interpolate the rotation between waypoints
-                CameraSweepDataEntry entryNext = cameraSweepData.getEntries().get(startIndex + 1);
-                Quaternion q2 = new Quaternion(entryNext.getRotation());
+                    // Get the rotation at previous (or current) waypoint
+                    CameraSweepDataEntry entry = cameraSweepData.getEntries().get(startIndex);
+                    Quaternion q1 = new Quaternion(entry.getRotation());
 
-                q1.slerp(q2, progress);
+                    // If we are not on the last waypoint, interpolate the rotation between waypoints
+                    CameraSweepDataEntry entryNext = cameraSweepData.getEntries().get(startIndex + 1);
+                    Quaternion q2 = new Quaternion(entryNext.getRotation());
 
-                // Set the rotation
-                setRotation(q1);
+                    q1.slerp(q2, progress);
 
-                // Set the near & FOV
-                cam.setFrustumNear(FastMath.interpolateLinear(progress, entry.getNear(), entryNext.getNear()) / 4096f);
-                cam.setFrustumPerspective(60f, (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
+                    // Set the rotation
+                    setRotation(q1);
+
+                    // Set the near & FOV
+                    cam.setFrustumNear(FastMath.interpolateLinear(progress, entry.getNear(), entryNext.getNear()) / 4096f);
+                    cam.setFrustumPerspective(FastMath.interpolateLinear(progress, entry.getFov(), entryNext.getFov()) - 10, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
+                }
             }
 
             @Override
             public void onStop() {
                 super.onStop();
 
-                // We never reach the final point
-                CameraSweepDataEntry entry = cameraSweepData.getEntries().get(cameraSweepData.getEntries().size() - 1);
-                applyCameraSweepEntry(cam, startLocation, entry);
+
             }
         };
         cameraMotionControl.setLoopMode(LoopMode.DontLoop);
@@ -159,6 +167,37 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
         // Set duration of the whole animation
         setInitialDuration(cameraSweepData.getEntries().size() / getFramesPerSecond());
+
+        addListener(new CinematicEventListener() {
+            private boolean executed = false;
+
+            @Override
+            public void onPlay(CinematicEvent cinematic) {
+            }
+
+            @Override
+            public void onPause(CinematicEvent cinematic) {
+            }
+
+            @Override
+            public void onStop(CinematicEvent cinematic) {
+
+                if (!executed) {
+                    executed = true;
+
+                    // We never reach the final point
+                    CameraSweepDataEntry entry = cameraSweepData.getEntries().get(cameraSweepData.getEntries().size() - 1);
+                    applyCameraSweepEntry(cam, startLocation, entry);
+
+                    // Detach
+                    scene.detachChild(camNode);
+
+                    // Remove us, this will cause stack over flow loop without the executed flag
+                    // Dirty but, working in a way
+                    stateManager.detach(Cinematic.this);
+                }
+            }
+        });
     }
 
     /**
@@ -176,10 +215,10 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         // Set the rotation
         cam.setRotation(entry.getRotation());
 
-        // FIXME: FOV, and the near should also be the very minimun needed
+        // FIXME: Near should be the very minimun needed, how to use the original near info
         // Set the near & FOV
         cam.setFrustumNear(entry.getNear() / 4096f);
-        cam.setFrustumPerspective(60f, (float) cam.getWidth() / cam.getHeight(), 0.1f, 1000f);
+        cam.setFrustumPerspective(entry.getFov() - 10, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
     }
 
     /**

@@ -279,7 +279,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         nifty.gotoScreen("empty");
 
         // Do cinematic transition
-        Cinematic c = new Cinematic(assetManager, app.getCamera(), startLocation, transition, menuNode);
+        Cinematic c = new Cinematic(assetManager, app.getCamera(), startLocation, transition, menuNode, stateManager);
         c.addListener(new CinematicEventListener() {
             @Override
             public void onPlay(CinematicEvent cinematic) {
