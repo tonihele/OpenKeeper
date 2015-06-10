@@ -70,8 +70,6 @@ import toniarts.openkeeper.tools.convert.map.Thing.ActionPoint.ActionPointFlag;
 import toniarts.openkeeper.tools.convert.map.Thing.HeroParty;
 import toniarts.openkeeper.tools.convert.map.Thing.HeroParty.HeroPartyData;
 import toniarts.openkeeper.tools.convert.map.Thing.Thing12;
-import toniarts.openkeeper.tools.convert.map.Trigger.TriggerAction;
-import toniarts.openkeeper.tools.convert.map.Trigger.TriggerGeneric;
 
 /**
  * Reads a DK II map file, the KWD is the file name of the main map identifier,
@@ -289,7 +287,7 @@ public class KwdFile {
     private HashMap<Short, KeeperSpell> keeperSpells;
     private List<Thing> things;
     private HashMap<Short, Shot> shots;
-    private List<Trigger> triggers;
+    private HashMap<Integer, Trigger> triggers;
     private List<Variable> variables;
     private boolean customOverrides = false;
     //
@@ -1923,11 +1921,13 @@ public class KwdFile {
                     thing = new Thing.Object();
                     ((Thing.Object) thing).setPosX(Utils.readInteger(file));
                     ((Thing.Object) thing).setPosY(Utils.readInteger(file));
-                    short unknown1[] = new short[16];
+                    short unknown1[] = new short[14];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();
                     }
                     ((Thing.Object) thing).setUnknown1(unknown1);
+                    ((Thing.Object) thing).setObjectId((short) file.readUnsignedByte());
+                    ((Thing.Object) thing).setPlayerId((short) file.readUnsignedByte());
                     break;
                 }
                 case 195: {
@@ -2009,7 +2009,7 @@ public class KwdFile {
                     ((Thing.Creature) thing).setFlags(Utils.parseFlagValue((short) file.readUnsignedByte(), Thing.Creature.CreatureFlag.class));
                     ((Thing.Creature) thing).setInitialHealth(Utils.readInteger(file));
                     ((Thing.Creature) thing).setX14(Utils.readInteger(file));
-                    ((Thing.Creature) thing).setX18(Utils.readUnsignedShort(file));
+                    ((Thing.Creature) thing).setTriggerId(Utils.readUnsignedShort(file));
                     ((Thing.Creature) thing).setCreatureId((short) file.readUnsignedByte());
                     ((Thing.Creature) thing).setPlayerId((short) file.readUnsignedByte());
                     break;
@@ -2021,7 +2021,7 @@ public class KwdFile {
                     byte[] bytes = new byte[32];
                     file.read(bytes);
                     ((HeroParty) thing).setName(Utils.bytesToString(bytes).trim());
-                    ((HeroParty) thing).setX20(Utils.readUnsignedShort(file));
+                    ((HeroParty) thing).setTriggerId(Utils.readUnsignedShort(file));
                     ((HeroParty) thing).setId((short) file.readUnsignedByte());
                     ((HeroParty) thing).setX23(Utils.readInteger(file));
                     ((HeroParty) thing).setX27(Utils.readInteger(file));
@@ -2036,7 +2036,7 @@ public class KwdFile {
                         heroPartyData.setX0f((short) file.readUnsignedByte());
                         heroPartyData.setObjectiveTargetActionPointId(Utils.readInteger(file));
                         heroPartyData.setInitialHealth(Utils.readInteger(file));
-                        heroPartyData.setX18(Utils.readUnsignedShort(file));
+                        heroPartyData.setTriggerId(Utils.readUnsignedShort(file));
                         heroPartyData.setObjectiveTargetPlayerId((short) file.readUnsignedByte());
                         heroPartyData.setObjective(Utils.parseEnum((short) file.readUnsignedByte(), Thing.HeroParty.Objective.class));
                         heroPartyData.setCreatureId((short) file.readUnsignedByte());
@@ -2221,7 +2221,7 @@ public class KwdFile {
 
         // Read the requested Triggers file
         logger.info("Reading triggers!");
-        triggers = new ArrayList<>(header.getItemCount());
+        triggers = new HashMap<>(header.getItemCount());
         for (int i = 0; i < header.getItemCount(); i++) {
             Trigger trigger = null;
             int[] triggerTag = new int[2];
@@ -2242,8 +2242,8 @@ public class KwdFile {
                     ((TriggerGeneric) trigger).setTargetValueFlagId((short) file.readUnsignedByte());
                     ((TriggerGeneric) trigger).setTargetValue(Utils.readInteger(file));
                     ((TriggerGeneric) trigger).setId(Utils.readUnsignedShort(file));
-                    ((TriggerGeneric) trigger).setX0a(Utils.readUnsignedShort(file)); // SiblingID
-                    ((TriggerGeneric) trigger).setX0c(Utils.readUnsignedShort(file)); // ChildID
+                    ((TriggerGeneric) trigger).setIdNext(Utils.readUnsignedShort(file)); // SiblingID
+                    ((TriggerGeneric) trigger).setIdChild(Utils.readUnsignedShort(file)); // ChildID
                     ((TriggerGeneric) trigger).setTarget(Utils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.TargetType.class));
                     ((TriggerGeneric) trigger).setRepeatTimes((short) file.readUnsignedByte());
                     if (TriggerGeneric.TargetType.SLAP_TYPES.equals(((TriggerGeneric) trigger).getTarget())) {
@@ -2265,11 +2265,11 @@ public class KwdFile {
                     ((TriggerAction) trigger).setActionTargetId((short) file.readUnsignedByte());
                     ((TriggerAction) trigger).setPlayerId((short) file.readUnsignedByte());
                     ((TriggerAction) trigger).setCreatureLevel((short) file.readUnsignedByte());
-                    ((TriggerAction) trigger).setUnknown2((short) file.readUnsignedByte());
+                    ((TriggerAction) trigger).setAvailable((short) file.readUnsignedByte());
                     ((TriggerAction) trigger).setActionTargetValue1(Utils.readUnsignedShort(file));
                     ((TriggerAction) trigger).setActionTargetValue2(Utils.readUnsignedShort(file));
-                    ((TriggerAction) trigger).setFlags1(Utils.readUnsignedShort(file)); // ID
-                    ((TriggerAction) trigger).setFlags2(Utils.readUnsignedShort(file)); // SiblingID
+                    ((TriggerAction) trigger).setId(Utils.readUnsignedShort(file)); // ID
+                    ((TriggerAction) trigger).setIdNext(Utils.readUnsignedShort(file)); // SiblingID
                     short[] unknown1 = new short[2];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();
@@ -2287,7 +2287,9 @@ public class KwdFile {
             }
 
             // Add to the list
-            triggers.add(trigger);
+            if (trigger != null) {
+                triggers.put(trigger.getId(), trigger);
+            }
 
             // Check file offset
             checkOffset(triggerTag[1], file, offset);
@@ -2313,7 +2315,7 @@ public class KwdFile {
         for (int i = 0; i < header.getItemCount(); i++) {
             Variable variable = new Variable();
             int id = Utils.readInteger(file);
-            logger.info("Id = " + id);
+            logger.log(Level.INFO, "Id = {0}", id);
             variable.setX00(id);
             variable.setValue(Utils.readInteger(file));
             variable.setX08(Utils.readInteger(file));
@@ -2362,8 +2364,24 @@ public class KwdFile {
         return creatures.get(id);
     }
 
+    /**
+     * Get the map tiles
+     *
+     * @return the map tiles
+     */
     public Map[][] getTiles() {
         return tiles;
+    }
+
+    /**
+     * Get single map tile in specified coordinates
+     *
+     * @param x the x
+     * @param y the y
+     * @return the tile in given coordinate
+     */
+    public Map getTile(int x, int y) {
+        return tiles[x][y];
     }
 
     /**
@@ -2384,6 +2402,75 @@ public class KwdFile {
      */
     public Room getRoomByTerrain(short id) {
         return roomsByTerrainId.get(id);
+    }
+
+    /**
+     * Get list of things
+     *
+     * @return things
+     */
+    public List<Thing> getThings() {
+        return things;
+    }
+
+    /**
+     * Get the trigger/action with the specified ID
+     *
+     * @param id the id of trigger/action
+     * @return the trigger/action
+     */
+    public Trigger getTrigger(int id) {
+        return triggers.get(id);
+    }
+
+    /**
+     * Get the object with the specified ID
+     *
+     * @param id the id of object
+     * @return the object
+     */
+    public Object getObject(int id) {
+        return objects.get((short) id);
+    }
+
+    /**
+     * Get the room with the specified ID
+     *
+     * @param id the id of room
+     * @return the room
+     */
+    public Room getRoomById(int id) {
+        return rooms.get((short) id);
+    }
+
+    /**
+     * Get the keeper spell with the specified ID
+     *
+     * @param id the id of keeper spell
+     * @return the keeper spell
+     */
+    public KeeperSpell getKeeperSpellById(int id) {
+        return keeperSpells.get((short) id);
+    }
+
+    /**
+     * Get the trap with the specified ID
+     *
+     * @param id the id of trap
+     * @return the trap
+     */
+    public Trap getTrapById(int id) {
+        return traps.get((short) id);
+    }
+
+    /**
+     * Get the door with the specified ID
+     *
+     * @param id the id of door
+     * @return the door
+     */
+    public Door getDoorById(int id) {
+        return doors.get((short) id);
     }
 
     /**
