@@ -16,11 +16,11 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IValueEnum;
-import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
 import java.util.List;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
+import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
  * Container class for *Things.kld
@@ -220,7 +220,7 @@ public abstract class Thing {
         private EnumSet<CreatureFlag> flags; // Short, likely flags
         private int initialHealth; // Percent
         private int x14;
-        private int x18;
+        private int triggerId;
         private short creatureId; // 1a
         private short playerId; // player id
 
@@ -288,12 +288,12 @@ public abstract class Thing {
             this.x14 = x14;
         }
 
-        public int getX18() {
-            return x18;
+        public int getTriggerId() {
+            return triggerId;
         }
 
-        protected void setX18(int x18) {
-            this.x18 = x18;
+        protected void setTriggerId(int triggerId) {
+            this.triggerId = triggerId;
         }
 
         public short getCreatureId() {
@@ -663,7 +663,7 @@ public abstract class Thing {
             private final int id;
         }
         private String name; // Always shit
-        private int x20;
+        private int triggerId;
         private short id; // I assume, autoincremental 0-based
         private int x23; // these two are unreferenced...
         private int x27;
@@ -677,12 +677,12 @@ public abstract class Thing {
             this.name = name;
         }
 
-        public int getX20() {
-            return x20;
+        public int getTriggerId() {
+            return triggerId;
         }
 
-        protected void setX20(int x20) {
-            this.x20 = x20;
+        protected void setTriggerId(int triggerId) {
+            this.triggerId = triggerId;
         }
 
         public short getId() {
@@ -779,7 +779,7 @@ public abstract class Thing {
             private short x0f;
             private int objectiveTargetActionPointId;
             private int initialHealth;
-            private int x18; // trigger root
+            private int triggerId; // trigger root
             private short objectiveTargetPlayerId;
             private Objective objective;
             private short creatureId;
@@ -851,12 +851,12 @@ public abstract class Thing {
                 this.initialHealth = initialHealth;
             }
 
-            public int getX18() {
-                return x18;
+            public int getTriggerId() {
+                return triggerId;
             }
 
-            protected void setX18(int x18) {
-                this.x18 = x18;
+            protected void setTriggerId(int triggerId) {
+                this.triggerId = triggerId;
             }
 
             public short getObjectiveTargetPlayerId() {
@@ -1076,7 +1076,9 @@ public abstract class Thing {
 
         private int posX; // 0-based coordinate
         private int posY; // 0-based coordinate
-        private short unknown1[]; // 16
+        private short unknown1[]; // 14
+        private short objectId;
+        private short playerId;
 
         public int getPosX() {
             return posX;
@@ -1100,6 +1102,22 @@ public abstract class Thing {
 
         protected void setUnknown1(short[] unknown1) {
             this.unknown1 = unknown1;
+        }
+
+        public short getObjectId() {
+            return objectId;
+        }
+
+        protected void setObjectId(short objectId) {
+            this.objectId = objectId;
+        }
+
+        public short getPlayerId() {
+            return playerId;
+        }
+
+        protected void setPlayerId(short playerId) {
+            this.playerId = playerId;
         }
     }
 
