@@ -50,15 +50,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.imageio.ImageIO;
 import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
-import toniarts.openkeeper.tools.convert.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.kcs.KcsEntry;
 import toniarts.openkeeper.tools.convert.kcs.KcsFile;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.tools.convert.str.StrFile;
+import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
+import toniarts.openkeeper.tools.convert.textures.loadingscreens.LoadingScreenFile;
 import toniarts.openkeeper.tools.convert.wad.WadFile;
 
 /**
@@ -79,7 +81,7 @@ public abstract class AssetsConverter {
      */
     public enum ConvertProcess {
 
-        TEXTURES(1, 1),
+        TEXTURES(1, 2),
         MODELS(2, 1),
         MOUSE_CURSORS(3, 1),
         MUSIC_AND_SOUNDS(4, 1),
@@ -584,7 +586,21 @@ public abstract class AssetsConverter {
             updateStatus(i, total, ConvertProcess.TEXTURES);
             i++;
 
-            wad.extractFileData(entry, destination);
+            // Some of these archives contain .444 files, convert these to PNGs
+            if (entry.endsWith(".444")) {
+                LoadingScreenFile lsf = new LoadingScreenFile(wad.getFileData(entry));
+                try {
+
+                    // Simulate the extraction of the WAD entry, do this because of the funny subdir logic
+                    File dest = wad.extractFileData(entry, destination, true);
+                    String destFilename = dest.getCanonicalPath();
+                    ImageIO.write(lsf.getImage(), "png", new File(destFilename.substring(0, destFilename.length() - 3).concat("png")));
+                } catch (IOException ex) {
+                    throw new RuntimeException("Failed to save the wad entry " + entry + "!", ex);
+                }
+            } else {
+                wad.extractFileData(entry, destination);
+            }
         }
     }
 

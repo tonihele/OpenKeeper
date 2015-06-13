@@ -17,7 +17,7 @@
 package toniarts.openkeeper.tools.convert;
 
 import java.io.File;
-import toniarts.openkeeper.tools.convert.enginetextures.EngineTexturesFile;
+import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 
 /**
  *

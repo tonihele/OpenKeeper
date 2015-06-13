@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.tools.convert.enginetextures;
+package toniarts.openkeeper.tools.convert.textures.enginetextures;
 
 /**
  * Holds an Engine Texture entry<br>

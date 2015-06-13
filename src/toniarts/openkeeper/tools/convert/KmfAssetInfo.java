@@ -20,7 +20,7 @@ import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import java.io.InputStream;
-import toniarts.openkeeper.tools.convert.enginetextures.EngineTexturesFile;
+import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 
 /**
