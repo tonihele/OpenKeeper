@@ -221,6 +221,15 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         cam.setFrustumPerspective(entry.getFov() - 10, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
     }
 
+    @Override
+    public void cleanup() {
+        if (cameraSweepData != null) {
+            cameraSweepData.getEntries().clear();
+        }
+
+        super.cleanup();
+    }
+
     /**
      * Animation speed, FPS
      *
