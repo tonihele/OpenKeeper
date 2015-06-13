@@ -20,6 +20,8 @@ import com.jme3.asset.AssetManager;
 import java.awt.event.WindowEvent;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -33,6 +35,7 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
     private static volatile boolean convertDone = false;
     private final String dungeonKeeperFolder;
     private final AssetManager assetManager;
+    private static final Logger logger = Logger.getLogger(DKConverter.class.getName());
 
     /**
      * Creates new form DKConverter
@@ -238,6 +241,7 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
             } catch (Exception e) {
 
                 // Fug
+                logger.log(Level.SEVERE, "Failed to convert the assets!", e);
                 frame.onError(e);
             } finally {
 
