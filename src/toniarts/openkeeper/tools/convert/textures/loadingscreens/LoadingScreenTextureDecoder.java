@@ -96,8 +96,9 @@ public class LoadingScreenTextureDecoder extends Dk2TextureDecoder {
                     value |= clamp(g >> 16, 0, 255) << 16;
                     value |= clamp(b >> 16, 0, 255) << 8;
                     value |= 0xff000000;
-                    if (out.position() + i * 4 <= out.limit() - 4) { // Some go overboard...
-                        out.putInt(out.position() + i * 4, value);
+                    int pos = out.position() + i * 4;
+                    if (pos <= out.limit() - 4) { // Some go overboard...
+                        out.putInt(pos, value);
                     }
                 }
                 out.position(Math.min(out.limit(), out.position() + stride));
