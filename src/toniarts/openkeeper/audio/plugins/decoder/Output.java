@@ -35,7 +35,7 @@ abstract class Output extends Initializer {
     final static int OBUFFERSIZE = 2304;
     final static int SBLIMIT = 32;
     final static int SHIFT_LEVEL = 4;
-    private final static double[] ZERO_FLOATS = new double[SBLIMIT];
+    private final static float[] ZERO_FLOATS = new float[SBLIMIT];
     final static int STANDARD = 0,
             LEFT_CHANNEL = 1,
             RIGHT_CHANNEL = 2;
