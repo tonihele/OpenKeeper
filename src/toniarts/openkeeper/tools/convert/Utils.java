@@ -201,10 +201,26 @@ public class Utils {
      * Converts a byte array to a JAVA String
      *
      * @param bytes the bytearray to convert
+     * @see #bytesToString(java.io.RandomAccessFile, int)
      * @return fresh String
      */
     public static String bytesToString(byte[] bytes) {
         return new String(bytes, Charset.forName("US-ASCII"));
+    }
+
+    /**
+     * Reads bytes from a file and converts them to a string
+     *
+     * @param file the file
+     * @param size the number of bytes to read
+     * @see #bytesToString(byte[])
+     * @return fresh String
+     * @throws IOException the reading may fail
+     */
+    public static String bytesToString(RandomAccessFile file, int size) throws IOException {
+        byte[] bytes = new byte[size];
+        file.read(bytes);
+        return bytesToString(bytes);
     }
 
     /**
