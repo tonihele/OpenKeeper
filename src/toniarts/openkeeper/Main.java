@@ -50,6 +50,7 @@ import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.MainMenuState;
+import toniarts.openkeeper.game.state.loading.TitleScreenState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
@@ -356,50 +357,72 @@ public class Main extends SimpleApplication {
     @Override
     public void simpleInitApp() {
 
-        // Asset loaders
-        // Sound
-        this.getAssetManager().registerLoader(MP2Loader.class, "mp2");
-        // Camera sweep files
-        this.getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION);
+        // Initiate the title screen
+        TitleScreenState gameLoader = new TitleScreenState() {
+            @Override
+            public Void onLoad() {
+                try {
+                    long startTime = System.currentTimeMillis();
 
-        // Set the anisotropy asset listener
-        setAnisotropy();
+                    // Asset loaders
+                    // Sound
+                    getAssetManager().registerLoader(MP2Loader.class, "mp2");
+                    // Camera sweep files
+                    getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION);
 
-        // FIXME: We need ambient light, but it may be different for different states. There just seems to be a bug in BatchNodes concerning the removal of the light. So this is temporary perhaps
-        AmbientLight al = new AmbientLight();
-        al.setColor(ColorRGBA.White.multLocal(5f));
-        rootNode.addLight(al);
+                    // Set the anisotropy asset listener
+                    setAnisotropy();
 
-        // Allow people to take screenshots
-        ScreenshotAppState screenShotState = new ScreenshotAppState(SCREENSHOTS_FOLDER);
-        this.stateManager.attach(screenShotState);
+                    // FIXME: We need ambient light, but it may be different for different states. There just seems to be a bug in BatchNodes concerning the removal of the light. So this is temporary perhaps
+                    AmbientLight al = new AmbientLight();
+                    al.setColor(ColorRGBA.White.multLocal(5f));
+                    rootNode.addLight(al);
 
-        // Recording video
-        if (params.containsKey("record")) {
-            float quality = (getSettings().containsKey(RECORDER_QUALITY_KEY) ? getSettings().getFloat(RECORDER_QUALITY_KEY) : RECORDER_QUALITY_DEFAULT);
-            int frameRate = (getSettings().containsKey(RECORDER_FPS_KEY) ? getSettings().getInteger(RECORDER_FPS_KEY) : RECORDER_FPS_DEFAULT);
-            getSettings().setFrameRate(frameRate);
-            VideoRecorderAppState recorder = new VideoRecorderAppState(quality, frameRate);
-            String folder = params.get("record");
-            if (folder == null) {
-                folder = SCREENSHOTS_FOLDER;
+                    // Allow people to take screenshots
+                    ScreenshotAppState screenShotState = new ScreenshotAppState(SCREENSHOTS_FOLDER);
+                    stateManager.attach(screenShotState);
+
+                    // Recording video
+                    if (params.containsKey("record")) {
+                        float quality = (getSettings().containsKey(RECORDER_QUALITY_KEY) ? getSettings().getFloat(RECORDER_QUALITY_KEY) : RECORDER_QUALITY_DEFAULT);
+                        int frameRate = (getSettings().containsKey(RECORDER_FPS_KEY) ? getSettings().getInteger(RECORDER_FPS_KEY) : RECORDER_FPS_DEFAULT);
+                        getSettings().setFrameRate(frameRate);
+                        VideoRecorderAppState recorder = new VideoRecorderAppState(quality, frameRate);
+                        String folder = params.get("record");
+                        if (folder == null) {
+                            folder = SCREENSHOTS_FOLDER;
+                        }
+                        if (!folder.endsWith(File.separator)) {
+                            folder = folder.concat(File.separator);
+                        }
+                        folder = folder.concat(getSettings().getTitle()).concat("-").concat(String.valueOf(System.currentTimeMillis() / 1000)).concat(".avi");
+                        recorder.setFile(new File(folder));
+
+                        stateManager.attach(recorder);
+                    }
+
+                    // It is all a clever ruge, we don't actually load much here
+                    if (!params.containsKey("nomovies") && !params.containsKey("level")) {
+                        Thread.sleep(5000 - (System.currentTimeMillis() - startTime));
+                    }
+                } catch (InterruptedException ex) {
+                }
+                return null;
             }
-            if (!folder.endsWith(File.separator)) {
-                folder = folder.concat(File.separator);
+
+            @Override
+            public void onLoadComplete() {
+
+                if (params.containsKey("nomovies") || params.containsKey("level")) {
+                    startGame();
+                } else {
+
+                    // The fireworks!
+                    playIntro();
+                }
             }
-            folder = folder.concat(getSettings().getTitle()).concat("-").concat(String.valueOf(System.currentTimeMillis() / 1000)).concat(".avi");
-            recorder.setFile(new File(folder));
-
-            this.stateManager.attach(recorder);
-        }
-
-        if (params.containsKey("nomovies") || params.containsKey("level")) {
-            startGame();
-        } else {
-
-            // The fireworks!
-            playIntro();
-        }
+        };
+        this.stateManager.attach(gameLoader);
     }
 
     /**
@@ -520,10 +543,6 @@ public class Main extends SimpleApplication {
      * Starts the game, opens up the start menu / level
      */
     private void startGame() {
-
-        // Set the processors
-        setViewProcessors();
-
         if (params.containsKey("level")) {
             GameState gameState = new GameState(params.get("level"), this.getAssetManager());
             stateManager.attach(gameState);

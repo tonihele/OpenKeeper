@@ -70,6 +70,7 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.cinematics.Cinematic;
+import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -98,15 +99,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     public final static List<String> opengl = new ArrayList<>(Arrays.asList(new String[]{AppSettings.LWJGL_OPENGL1, AppSettings.LWJGL_OPENGL2, AppSettings.LWJGL_OPENGL3}));
     public final static List<Integer> samples = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
     public final static List<Integer> anisotrophies = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
-    private final KwdFile kwdFile;
+    private KwdFile kwdFile;
     private final MouseEventListener mouseListener = new MouseEventListener(this);
     private Vector3f startLocation;
-
-    public MainMenuState() {
-
-        // Load the 3D Front end
-        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat("Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd"))));
-    }
 
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
@@ -118,26 +113,49 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         inputManager = this.app.getInputManager();
         viewPort = this.app.getViewPort();
 
-        // Disable the fly cam
-        this.app.getFlyByCamera().setEnabled(false);
-        this.app.getFlyByCamera().setDragToRotate(true);
+        // Set up the loading screen
+        SingleBarLoadingState loader = new SingleBarLoadingState() {
+            @Override
+            public Void onLoad() {
 
-        // Attach the 3D Front end
-        if (menuNode == null) {
-            menuNode = new Node("Main menu");
-            menuNode.attachChild(new MapLoader().load(assetManager, kwdFile));
-        }
-        rootNode.attachChild(menuNode);
+                // Load the 3D Front end
+                kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat("Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd"))));
+                setProgress(0.25f);
 
-        // Init Nifty
-        niftyDisplay = this.app.getNifty();
+                // Attach the 3D Front end
+                if (menuNode == null) {
+                    menuNode = new Node("Main menu");
+                    menuNode.attachChild(new MapLoader().load(assetManager, kwdFile));
+                }
+                setProgress(1.0f);
 
-        // Load the start menu
-        niftyDisplay.getNifty().getResourceBundles().put("menu", Main.getResourceBundle("Interface/Texts/Text"));
-        niftyDisplay.getNifty().fromXml("Interface/MainMenu.xml", "start", this);
+                return null;
+            }
 
-        // Set the camera position
-        loadCameraStartLocation();
+            @Override
+            public void onLoadComplete() {
+
+                // Set the processors
+                MainMenuState.this.app.setViewProcessors();
+
+                // Disable the fly cam
+                MainMenuState.this.app.getFlyByCamera().setEnabled(false);
+                MainMenuState.this.app.getFlyByCamera().setDragToRotate(true);
+
+                rootNode.attachChild(menuNode);
+
+                // Init Nifty
+                niftyDisplay = MainMenuState.this.app.getNifty();
+
+                // Load the start menu
+                niftyDisplay.getNifty().getResourceBundles().put("menu", Main.getResourceBundle("Interface/Texts/Text"));
+                niftyDisplay.getNifty().fromXml("Interface/MainMenu.xml", "start", MainMenuState.this);
+
+                // Set the camera position
+                loadCameraStartLocation();
+            }
+        };
+        stateManager.attach(loader);
     }
 
     /**
