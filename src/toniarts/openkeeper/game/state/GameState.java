@@ -92,6 +92,9 @@ public class GameState extends AbstractAppState implements ScreenController {
         inputManager = this.app.getInputManager();
         viewPort = this.app.getViewPort();
 
+        // Set the processors
+        this.app.setViewProcessors();
+
         // Enable the fly cam
         this.app.getFlyByCamera().setEnabled(true);
         this.app.getFlyByCamera().setDragToRotate(false);
