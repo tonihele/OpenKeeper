@@ -144,7 +144,8 @@ public abstract class LoadingState extends AbstractAppState {
     };
 
     /**
-     * Add your loading logic here
+     * Add your loading logic here, <b>do NOT</b> manipulate the scene from
+     * here!
      *
      * @return void
      */
