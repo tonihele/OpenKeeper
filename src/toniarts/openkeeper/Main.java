@@ -373,11 +373,6 @@ public class Main extends SimpleApplication {
                     // Set the anisotropy asset listener
                     setAnisotropy();
 
-                    // FIXME: We need ambient light, but it may be different for different states. There just seems to be a bug in BatchNodes concerning the removal of the light. So this is temporary perhaps
-                    AmbientLight al = new AmbientLight();
-                    al.setColor(ColorRGBA.White.multLocal(5f));
-                    rootNode.addLight(al);
-
                     // Allow people to take screenshots
                     ScreenshotAppState screenShotState = new ScreenshotAppState(SCREENSHOTS_FOLDER);
                     stateManager.attach(screenShotState);
@@ -412,6 +407,11 @@ public class Main extends SimpleApplication {
 
             @Override
             public void onLoadComplete() {
+
+                // FIXME: We need ambient light, but it may be different for different states. There just seems to be a bug in BatchNodes concerning the removal of the light. So this is temporary perhaps
+                AmbientLight al = new AmbientLight();
+                al.setColor(ColorRGBA.White.multLocal(5f));
+                rootNode.addLight(al);
 
                 if (params.containsKey("nomovies") || params.containsKey("level")) {
                     startGame();
