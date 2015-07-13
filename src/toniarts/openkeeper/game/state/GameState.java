@@ -24,6 +24,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.asset.DesktopAssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.input.InputManager;
+import com.jme3.math.Vector3f;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
@@ -49,6 +50,7 @@ import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -71,6 +73,7 @@ public class GameState extends AbstractAppState implements ScreenController {
     private final String level;
     private KwdFile kwdFile;
     private boolean backgroundSet = false;
+    private Vector3f startLocation;
     private static final String HUD_SCREEN_ID = "hud";
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
 
@@ -118,7 +121,7 @@ public class GameState extends AbstractAppState implements ScreenController {
 
                 // Enable the fly cam
                 GameState.this.app.getFlyByCamera().setEnabled(true);
-                GameState.this.app.getFlyByCamera().setDragToRotate(false);
+                GameState.this.app.getFlyByCamera().setDragToRotate(true);
                 GameState.this.app.getFlyByCamera().setMoveSpeed(10);
 
                 rootNode.attachChild(worldNode);
@@ -128,9 +131,23 @@ public class GameState extends AbstractAppState implements ScreenController {
 
                 // Load the HUD
                 niftyDisplay.getNifty().fromXml("Interface/GameHUD.xml", "hud", GameState.this);
+
+                // Set the camera position
+                loadCameraStartLocation();
             }
         };
         stateManager.attach(loader);
+    }
+
+    /**
+     * Load the initial main menu camera position
+     */
+    private void loadCameraStartLocation() {
+        Player player = kwdFile.getPlayer((short) 3); // Keeper 1
+        startLocation = new Vector3f(MapLoader.getCameraPositionOnMapPoint(player.getStartingCameraX(), player.getStartingCameraY()));
+
+        // Set the actual camera location
+        this.app.getCamera().setLocation(startLocation);
     }
 
     @Override
