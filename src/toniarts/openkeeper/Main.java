@@ -23,6 +23,7 @@ import com.jme3.asset.AssetEventListener;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
+import com.jme3.asset.plugins.FileLocator;
 import com.jme3.light.AmbientLight;
 import com.jme3.math.ColorRGBA;
 import com.jme3.niftygui.NiftyJmeDisplay;
@@ -39,7 +40,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.PriorityQueue;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -183,6 +187,7 @@ public class Main extends SimpleApplication {
             AssetManager assetManager = JmeSystem.newAssetManager(
                     Thread.currentThread().getContextClassLoader()
                     .getResource("com/jme3/asset/Desktop.cfg")); // Get temporary asset manager instance since we not yet have one ourselves
+            assetManager.registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
             DKConverter frame = new DKConverter(dkIIFolder, assetManager) {
                 @Override
                 protected void continueOk() {
@@ -356,6 +361,9 @@ public class Main extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
+
+        // Distribution locator
+        getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
 
         // Initiate the title screen
         TitleScreenState gameLoader = new TitleScreenState() {
@@ -531,6 +539,16 @@ public class Main extends SimpleApplication {
      * @return the resource bundle
      */
     public static ResourceBundle getResourceBundle(String baseName) {
+        File file = new File(AssetsConverter.getAssetsFolder());
+        try {
+            URL[] urls = {file.toURI().toURL()};
+            ClassLoader loader = new URLClassLoader(urls);
+            return ResourceBundle.getBundle(baseName, Locale.getDefault(), loader, new UTF8Control());
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Failed to locate the resource bundle " + baseName + " in " + file + "!", e);
+        }
+
+        // Works only from the IDE
         return ResourceBundle.getBundle(baseName, new UTF8Control());
     }
 
