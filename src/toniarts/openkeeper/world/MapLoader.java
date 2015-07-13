@@ -50,7 +50,7 @@ import toniarts.openkeeper.world.room.ThreeByThree;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapLoader implements ILoader<KwdFile> {
+public abstract class MapLoader implements ILoader<KwdFile> {
 
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
@@ -67,10 +67,14 @@ public class MapLoader implements ILoader<KwdFile> {
         BatchNode root = new BatchNode("Map");
 
         // Go through the map
+        int tilesCount = object.getWidth() * object.getHeight();
         Map[][] tiles = object.getTiles();
         for (int x = 0; x < object.getWidth(); x++) {
             for (int y = 0; y < object.getHeight(); y++) {
                 handleTile(tiles, x, y, assetManager, root);
+
+                // Update progress
+                updateProgress(x * object.getWidth() + y + 1, tilesCount);
             }
         }
 
@@ -827,4 +831,12 @@ public class MapLoader implements ILoader<KwdFile> {
     public static Vector3f getCameraPositionOnMapPoint(final int x, final int y) {
         return new Vector3f((x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2), 0f, (y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2));
     }
+
+    /**
+     * If you want to monitor the map loading progress, use this method
+     *
+     * @param progress current progress
+     * @param max max progress
+     */
+    protected abstract void updateProgress(final int progress, final int max);
 }
