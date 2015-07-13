@@ -382,7 +382,12 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     // Load the selected map
                     String file = ((String) selection.get(0)).concat(".kwd").replaceAll(Matcher.quoteReplacement(File.separator), "/");
                     KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(file)));
-                    Node spat = (Node) new MapLoader().load(this.getAssetManager(), kwd);
+                    Node spat = (Node) new MapLoader() {
+                        @Override
+                        protected void updateProgress(int progress, int max) {
+                            // Do nothing
+                        }
+                    }.load(this.getAssetManager(), kwd);
                     setupModel(spat, true);
                     break;
                 }
