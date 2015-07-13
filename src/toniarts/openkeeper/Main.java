@@ -544,7 +544,7 @@ public class Main extends SimpleApplication {
      */
     private void startGame() {
         if (params.containsKey("level")) {
-            GameState gameState = new GameState(params.get("level"), this.getAssetManager());
+            GameState gameState = new GameState(params.get("level"));
             stateManager.attach(gameState);
         } else {
 

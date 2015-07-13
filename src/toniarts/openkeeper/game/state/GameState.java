@@ -47,6 +47,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.world.MapLoader;
 
@@ -67,19 +68,14 @@ public class GameState extends AbstractAppState implements ScreenController {
     private Screen screen;
     private Node worldNode;
     private NiftyJmeDisplay niftyDisplay;
-    private final KwdFile kwdFile;
+    private final String level;
+    private KwdFile kwdFile;
     private boolean backgroundSet = false;
     private static final String HUD_SCREEN_ID = "hud";
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
 
-    public GameState(String level, AssetManager assetManager) {
-
-        // Load the level data
-        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat("Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat(level).concat(".kwd"))));
-
-        // Create the actual level
-        worldNode = new Node("World");
-        worldNode.attachChild(new MapLoader().load(assetManager, kwdFile));
+    public GameState(String level) {
+        this.level = level;
     }
 
     @Override
@@ -92,21 +88,49 @@ public class GameState extends AbstractAppState implements ScreenController {
         inputManager = this.app.getInputManager();
         viewPort = this.app.getViewPort();
 
-        // Set the processors
-        this.app.setViewProcessors();
+        // Set up the loading screen
+        SingleBarLoadingState loader = new SingleBarLoadingState() {
+            @Override
+            public Void onLoad() {
 
-        // Enable the fly cam
-        this.app.getFlyByCamera().setEnabled(true);
-        this.app.getFlyByCamera().setDragToRotate(false);
-        this.app.getFlyByCamera().setMoveSpeed(10);
+                // Load the level data
+                kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat("Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat(level).concat(".kwd"))));
+                setProgress(0.25f);
 
-        rootNode.attachChild(worldNode);
+                // Create the actual level
+                worldNode = new Node("World");
+                worldNode.attachChild(new MapLoader() {
+                    @Override
+                    protected void updateProgress(int progress, int max) {
+                        setProgress(0.25f + ((float) progress / max * 0.75f));
+                    }
+                }.load(assetManager, kwdFile));
+                setProgress(1.0f);
 
-        // Init Nifty
-        niftyDisplay = this.app.getNifty();
+                return null;
+            }
 
-        // Load the HUD
-        niftyDisplay.getNifty().fromXml("Interface/GameHUD.xml", "hud", this);
+            @Override
+            public void onLoadComplete() {
+
+                // Set the processors
+                GameState.this.app.setViewProcessors();
+
+                // Enable the fly cam
+                GameState.this.app.getFlyByCamera().setEnabled(true);
+                GameState.this.app.getFlyByCamera().setDragToRotate(false);
+                GameState.this.app.getFlyByCamera().setMoveSpeed(10);
+
+                rootNode.attachChild(worldNode);
+
+                // Init Nifty
+                niftyDisplay = GameState.this.app.getNifty();
+
+                // Load the HUD
+                niftyDisplay.getNifty().fromXml("Interface/GameHUD.xml", "hud", GameState.this);
+            }
+        };
+        stateManager.attach(loader);
     }
 
     @Override

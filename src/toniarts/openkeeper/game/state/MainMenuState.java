@@ -125,7 +125,12 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 // Attach the 3D Front end
                 if (menuNode == null) {
                     menuNode = new Node("Main menu");
-                    menuNode.attachChild(new MapLoader().load(assetManager, kwdFile));
+                    menuNode.attachChild(new MapLoader() {
+                        @Override
+                        protected void updateProgress(int progress, int max) {
+                            setProgress(0.25f + ((float) progress / max * 0.75f));
+                        }
+                    }.load(assetManager, kwdFile));
                 }
                 setProgress(1.0f);
 
@@ -263,11 +268,12 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     public void startCampaignLevel() {
 
         // Detach us
+        nifty.gotoScreen("empty");
         stateManager.detach(this);
 
         // Create the level state
         String level = String.format("level%s%s", selectedLevel.getLevel(), selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "");
-        GameState gameState = new GameState(level, assetManager);
+        GameState gameState = new GameState(level);
         stateManager.attach(gameState);
     }
 
