@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <nifty-controls xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
 
+    <!--Cancel button-->
     <controlDefinition style="nifty-panel-style"
                        name="cancelButton"
                        controller="de.lessvoid.nifty.controls.DefaultController">
@@ -15,6 +16,7 @@
         </panel>
     </controlDefinition>
 
+    <!--Ok button-->
     <controlDefinition style="nifty-panel-style"
                        name="okButton"
                        controller="de.lessvoid.nifty.controls.DefaultController">
@@ -26,6 +28,41 @@
                 </effect>
                 <interact onClick="$click"/>
             </image>
+        </panel>
+    </controlDefinition>
+
+    <!--The worker amount & status-->
+    <controlDefinition style="nifty-panel-style" name="workerAmount" controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel marginLeft="3px" valign="center" childLayout="horizontal" id="tab-workers" visible="true">
+            <image filename="Textures/GUI/Tabs/t-cp-imp.png" valign="center" />
+            <image filename="Textures/GUI/Creatures/Evil/imp-bg.png" valign="center" marginRight="3px" />
+            <image filename="Textures/GUI/Tabs/t-creature_panel-0.png" valign="center" marginRight="3px" />
+        </panel>
+    </controlDefinition>
+
+    <!--The tab contents scroll-->
+    <controlDefinition style="nifty-panel-style" name="tabScroll" controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel marginRight="3px" childLayout="vertical" valign="center" id="tab-scroll">
+            <image filename="Textures/GUI/Pages/page_forward.png" >
+                <effect>
+                    <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true" neverStopRendering="true" />
+                </effect>
+            </image>
+            <image filename="Textures/GUI/Pages/page_back.png" />
+        </panel>
+    </controlDefinition>
+
+    <!--The =, shown for creatures-->
+    <controlDefinition style="nifty-panel-style" name="workerEqual" controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel marginLeft="3px" valign="center" childLayout="horizontal" id="tab-workers-equal" visible="true">
+            <image filename="Textures/GUI/Tabs/t-cp-total.png" valign="center" marginRight="3px" />
+        </panel>
+    </controlDefinition>
+
+    <!-- Reaper -->
+    <controlDefinition style="nifty-panel-style" name="reaperTalisman" controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel marginRight="3px" valign="center" align="right" childLayout="horizontal" id="reaper">
+            <image marginRight="3px" align="right" valign="center" filename="Textures/GUI/Spells/reaper_talisman-00.png"/>
         </panel>
     </controlDefinition>
 

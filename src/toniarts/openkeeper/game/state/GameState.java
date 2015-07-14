@@ -32,6 +32,9 @@ import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.builder.ImageBuilder;
+import de.lessvoid.nifty.builder.PanelBuilder;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
 import de.lessvoid.nifty.render.NiftyImage;
@@ -44,13 +47,19 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -60,6 +69,10 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class GameState extends AbstractAppState implements ScreenController {
 
+    private enum TabCategory {
+
+        CREATURES, ROOMS, SPELLS, WORKSHOP_ITEMS;
+    }
     private Main app;
     private Node rootNode;
     private AssetManager assetManager;
@@ -211,5 +224,94 @@ public class GameState extends AbstractAppState implements ScreenController {
 
     @Override
     public void onEndScreen() {
+    }
+
+    public void guiTabClick(String tab) {
+        final TabCategory category = TabCategory.valueOf(tab.toUpperCase());
+
+        // Get the contents & remove all
+        Element contentPanel = nifty.getCurrentScreen().findElementByName("tab-content");
+        for (Element element : contentPanel.getElements()) {
+            element.markForRemoval();
+        }
+
+        // Rebuild it
+        if (category == TabCategory.CREATURES) {
+            new ControlBuilder("tab-workers", "workerAmount") {
+                {
+                }
+            }.build(nifty, screen, contentPanel);
+        }
+        new ControlBuilder("tab-scroll", "tabScroll") {
+            {
+            }
+        }.build(nifty, screen, contentPanel);
+        if (category == TabCategory.CREATURES) {
+            new ControlBuilder("tab-workers-equal", "workerEqual") {
+                {
+                }
+            }.build(nifty, screen, contentPanel);
+        }
+        new PanelBuilder("tab-content") {
+            {
+                width("*");
+                marginLeft("3px");
+                valignCenter();
+                alignLeft();
+                childLayoutHorizontal();
+
+                // Fill the actual content
+                // FIXME: Somekind of wrapper here for these
+                switch (category) {
+                    case ROOMS: {
+                        for (final Room room : getAvailableRoomsToBuild()) {
+                            image(new ImageBuilder() {
+                                {
+                                    filename(Utils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat(room.getGuiIcon().getName()).concat(".png")));
+                                    valignCenter();
+                                    marginRight("3px");
+                                }
+                            });
+                        }
+                        break;
+                    }
+                    case SPELLS: {
+                        for (final KeeperSpell spell : getAvailableKeeperSpells()) {
+                            image(new ImageBuilder() {
+                                {
+                                    filename(Utils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat(spell.getGuiIcon().getName()).concat(".png")));
+                                    valignCenter();
+                                    marginRight("3px");
+                                }
+                            });
+                        }
+                        break;
+                    }
+                }
+            }
+        }.build(nifty, screen, contentPanel);
+        new ControlBuilder("tab-reaper", "reaperTalisman") {
+            {
+            }
+        }.build(nifty, screen, contentPanel);
+
+        // Reset the layout
+        contentPanel.resetLayout();
+    }
+
+    private List<Room> getAvailableRoomsToBuild() {
+        List<Room> rooms = kwdFile.getRooms();
+        for (Iterator<Room> iter = rooms.iterator(); iter.hasNext();) {
+            Room room = iter.next();
+            if (!room.getFlags().contains(Room.RoomFlag.BUILDABLE)) {
+                iter.remove();
+            }
+        }
+        return rooms;
+    }
+
+    private List<KeeperSpell> getAvailableKeeperSpells() {
+        List<KeeperSpell> spells = kwdFile.getKeeperSpells();
+        return spells;
     }
 }

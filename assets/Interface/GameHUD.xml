@@ -2,6 +2,7 @@
 <nifty xmlns="http://nifty-gui.sourceforge.net/nifty-1.3.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <useStyles filename="nifty-default-styles.xml" />
     <useControls filename="nifty-default-controls.xml" />
+    <useControls filename="Interface/MyControls.xml" />
 
     <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
     <style id="textSmall">
@@ -131,24 +132,28 @@
                                             <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
                                             <onClick name="imageOverlay" filename="Textures/GUI/Icons/selected-creature.png" post="true"/>
                                         </effect>
+                                        <interact onClick="guiTabClick(creatures)" />
                                     </image>
                                     <image valign="center" filename="Textures/GUI/Tabs/t-rooms.png" margin="0px,0px,0px,6px">
                                         <effect>
                                             <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
                                             <onClick name="imageOverlay" filename="Textures/GUI/Icons/selected-room.png" post="true"/>
                                         </effect>
+                                        <interact onClick="guiTabClick(rooms)" />
                                     </image>
                                     <image valign="center" filename="Textures/GUI/Tabs/t-spells.png" margin="0px,0px,0px,6px">
                                         <effect>
                                             <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
                                             <onClick name="imageOverlay" filename="Textures/GUI/Icons/selected-spell.png" post="true"/>
                                         </effect>
+                                        <interact onClick="guiTabClick(spells)" />
                                     </image>
                                     <image valign="center" filename="Textures/GUI/Tabs/t-workshop.png" margin="0px,0px,0px,6px">
                                         <effect>
                                             <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
                                             <onClick name="imageOverlay" filename="Textures/GUI/Icons/selected-workshop.png" post="true"/>
                                         </effect>
+                                        <interact onClick="guiTabClick(workshopItems)" />
                                     </image>
 
                                     <!-- Objective -->
@@ -194,9 +199,30 @@
                                 </panel>
                             </panel>
 
-                            <panel height="*" width="100%" valign="top" childLayout="overlay" padding="4px,14px,14px,10px" id="tab-content">
-                                <panel width="*" childLayout="vertical" id="tab-rooms">
-                                    <panel childLayout="horizontal" padding="3px,3px,0" visible="false">
+                            <!--Tab contents-->
+                            <panel height="*" width="100%" valign="top" childLayout="overlay" padding="4px,14px,14px,10px">
+
+                                <panel width="*" childLayout="horizontal" id="tab-content" visible="true">
+
+                                    <!--The worker amount & status-->
+                                    <control name="workerAmount" />
+
+                                    <!--The tab contents scroll-->
+                                    <control name="tabScroll" />
+
+                                    <!--The =, shown for creatures-->
+                                    <control name="workerEqual" />
+
+                                    <panel width="*" marginLeft="3px" valign="center" align="left" childLayout="horizontal" id="tab-content-content" visible="true">
+                                    </panel>
+
+                                    <!-- Reaper -->
+                                    <control name="reaperTalisman" />
+
+                                </panel>
+
+                                <panel width="*" childLayout="vertical" id="tab-rooms" visible="false">
+                                    <panel childLayout="horizontal" padding="3px,3px,0">
                                         <image filename="Textures/GUI/Rooms/lair.png" valign="center" marginRight="3px" />
                                         <image filename="Textures/GUI/Rooms/dark_library.png" valign="center" marginRight="3px" />
                                         <image filename="Textures/GUI/Rooms/Treasury.png" valign="center" marginRight="3px" />
@@ -218,7 +244,7 @@
                                     </panel>
                                 </panel>
 
-                                <panel width="*" childLayout="horizontal" id="tab-creatures" visible="true">
+                                <panel width="*" childLayout="horizontal" id="tab-creatures" visible="false">
                                     <image filename="Textures/GUI/Tabs/t-cp-imp.png" valign="center" />
                                     <image filename="Textures/GUI/Creatures/Evil/imp-bg.png" valign="center" marginRight="3px" />
                                     <image filename="Textures/GUI/Tabs/t-creature_panel-0.png" valign="center" marginRight="3px" />
@@ -297,8 +323,8 @@
                                 </panel>
 
                                 <!-- Reaper -->
-                                <panel width="90px" height="100%" childLayout="center" id="reaper">
-                                    <image filename="Textures/GUI/Spells/reaper_talisman-00.png"/>
+                                <panel width="*" height="100%" valign="center" align="right" childLayout="vertical" id="reaper" visible="false">
+                                    <image marginRight="3px" align="right" valign="center" filename="Textures/GUI/Spells/reaper_talisman-00.png"/>
                                 </panel>
                             </panel>
                         </panel>
