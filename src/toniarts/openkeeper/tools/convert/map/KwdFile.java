@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -2471,6 +2472,28 @@ public class KwdFile {
      */
     public Door getDoorById(int id) {
         return doors.get((short) id);
+    }
+
+    /**
+     * Get the list of all rooms
+     *
+     * @return list of all rooms
+     */
+    public List<Room> getRooms() {
+        List<Room> c = new ArrayList(rooms.values());
+        Collections.sort(c);
+        return c;
+    }
+
+    /**
+     * Get the list of all keeper spells
+     *
+     * @return list of all keeper spells
+     */
+    public List<KeeperSpell> getKeeperSpells() {
+        List<KeeperSpell> c = new ArrayList(keeperSpells.values());
+        Collections.sort(c);
+        return c;
     }
 
     /**
