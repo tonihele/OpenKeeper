@@ -235,6 +235,32 @@ public class Utils {
     }
 
     /**
+     * Reads strings of varying length (UTF16 NULL terminated) from the file
+     *
+     * @param file the file to read from
+     * @param size number of Strings to read
+     * @return string read from the file
+     * @throws IOException
+     */
+    public static String readVaryingLengthStringUtf16(RandomAccessFile file, int size) throws IOException {
+
+        byte[] bytes = new byte[size];
+        file.read(bytes);
+
+        List<Byte> result = new ArrayList<>(size);
+
+        for (int i = 0; i < bytes.length; i += 2) {
+            if (bytes[i] == 0 && bytes[i + 1] == 0) {
+                break;
+            }
+            result.add(bytes[i]);
+            result.add(bytes[i + 1]);
+        }
+
+        return Utils.bytesToStringUtf16(toByteArray(result));
+    }
+
+    /**
      * Convert a byte to unsigned byte
      *
      * @param b byte
