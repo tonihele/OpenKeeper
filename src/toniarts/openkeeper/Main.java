@@ -465,10 +465,13 @@ public class Main extends SimpleApplication {
      */
     public static BufferedImage[] getApplicationIcons() {
         try {
-            return new BufferedImage[]{ImageIO.read(CursorFactory.class.getResource("icons/odk256.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/odk128.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/odk32.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/odk16.png"))};
+            return new BufferedImage[]{ImageIO.read(CursorFactory.class.getResource("icons/openkeeper256.png")),
+                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper128.png")),
+                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper64.png")),
+                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper48.png")),
+                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper32.png")),
+                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper24.png")),
+                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper16.png"))};
         } catch (IOException ex) {
             logger.log(Level.SEVERE, "Failed to load the application icons!", ex);
         }

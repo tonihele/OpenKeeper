@@ -24,3 +24,10 @@ openkeeper.properties
 *.csd
 /dist/
 /HiScores.okh
+!/src/toniarts/openkeeper/gui/icons/openkeeper24.png
+!/src/toniarts/openkeeper/gui/icons/openkeeper16.png
+!/src/toniarts/openkeeper/gui/icons/openkeeper128.png
+!/src/toniarts/openkeeper/gui/icons/openkeeper32.png
+!/src/toniarts/openkeeper/gui/icons/openkeeper64.png
+!/src/toniarts/openkeeper/gui/icons/openkeeper256.png
+!/src/toniarts/openkeeper/gui/icons/openkeeper48.png
