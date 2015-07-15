@@ -54,6 +54,9 @@ import javax.imageio.ImageIO;
 import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
+import toniarts.openkeeper.game.data.HiScores;
+import toniarts.openkeeper.tools.convert.hiscores.HiScoresEntry;
+import toniarts.openkeeper.tools.convert.hiscores.HiScoresFile;
 import toniarts.openkeeper.tools.convert.kcs.KcsEntry;
 import toniarts.openkeeper.tools.convert.kcs.KcsFile;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
@@ -86,7 +89,8 @@ public abstract class AssetsConverter {
         MOUSE_CURSORS(3, 1),
         MUSIC_AND_SOUNDS(4, 1),
         INTERFACE_TEXTS(5, 1),
-        PATHS(6, 3);
+        PATHS(6, 3),
+        HI_SCORES(7, 1);
 
         private ConvertProcess(int processNumber, int version) {
             this.processNumber = processNumber;
@@ -208,6 +212,9 @@ public abstract class AssetsConverter {
 
         //The paths
         convertPaths(dungeonKeeperFolder, currentFolder.concat(PATHS_FOLDER).concat(File.separator));
+
+        //HiScores
+        convertHiScores(dungeonKeeperFolder);
 
         // Log the time taken
         long duration = new Date().getTime() - start.getTime();
@@ -667,6 +674,36 @@ public abstract class AssetsConverter {
                 logger.log(Level.SEVERE, msg, ex);
                 throw new RuntimeException(msg, ex);
             }
+        }
+    }
+
+    /**
+     * Extract and copy DK II HiScores
+     *
+     * @param dungeonKeeperFolder DK II main folder
+     */
+    private void convertHiScores(String dungeonKeeperFolder) {
+        if (!ConvertProcess.HI_SCORES.isOutdated()) {
+            return;
+        }
+        logger.log(Level.INFO, "Converting hiscores");
+        updateStatus(0, 1, ConvertProcess.HI_SCORES);
+        try {
+
+            // Load the original
+            File file = new File(dungeonKeeperFolder + "Data/Settings/HiScores.dat");
+            HiScoresFile originalHiScores = new HiScoresFile(file);
+
+            // Convert it!
+            HiScores hiScores = new HiScores();
+            for (HiScoresEntry entry : originalHiScores.getHiScoresEntries()) {
+                hiScores.add(entry.getScore(), entry.getName(), entry.getLevel());
+            }
+            updateStatus(1, 1, ConvertProcess.HI_SCORES);
+        } catch (Exception ex) {
+            logger.log(Level.WARNING, "Can not convert HiScores!", ex);
+
+            // By no means fatal :D
         }
     }
 
