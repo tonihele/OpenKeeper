@@ -22,3 +22,5 @@ openkeeper.properties
 !/assets/Textures/ModelViewer/*.png
 !/assets/Textures/ModelViewer/*.jpg
 *.csd
+/dist/
+/HiScores.okh
