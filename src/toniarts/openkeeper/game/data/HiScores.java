@@ -201,7 +201,7 @@ public class HiScores implements Savable {
      */
     private void trimList() {
         if (entries.size() > NUMBER_OF_ENTRIES) {
-            entries.subList(NUMBER_OF_ENTRIES, entries.size());
+            entries.subList(NUMBER_OF_ENTRIES, entries.size()).clear();
         }
     }
 
