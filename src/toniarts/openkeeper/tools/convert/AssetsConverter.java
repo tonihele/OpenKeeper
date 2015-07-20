@@ -235,8 +235,15 @@ public abstract class AssetsConverter {
         updateStatus(null, null, ConvertProcess.TEXTURES);
         EngineTexturesFile etFile = getEngineTexturesFile(dungeonKeeperFolder);
         Pattern pattern = Pattern.compile("(?<name>\\w+)MM(?<mipmaplevel>\\d{1})");
-        WadFile frontEnd = new WadFile(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("FrontEnd.WAD")));
-        WadFile engineTextures = new WadFile(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("EngineTextures.WAD")));
+        WadFile frontEnd;
+        WadFile engineTextures;
+        try {
+            frontEnd = new WadFile(new File(Utils.getRealFileName(dungeonKeeperFolder, "Data".concat(File.separator).concat("FrontEnd.WAD"))));
+            engineTextures = new WadFile(new File(Utils.getRealFileName(dungeonKeeperFolder, "Data".concat(File.separator).concat("EngineTextures.WAD"))));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to open a WAD file!", e);
+        }
+
         int i = 0;
         int total = etFile.getFileCount() + frontEnd.getWadFileEntries().size() + engineTextures.getWadFileEntries().size();
 
@@ -501,12 +508,13 @@ public abstract class AssetsConverter {
      */
     public static EngineTexturesFile getEngineTexturesFile(String dungeonKeeperFolder) {
 
-        //Form the data path
-        String dataDirectory = dungeonKeeperFolder.concat("DK2TextureCache").concat(File.separator);
-
-        //Extract the textures
-        EngineTexturesFile etFile = new EngineTexturesFile(new File(dataDirectory.concat("EngineTextures.dat")));
-        return etFile;
+        //Get the engine textures file
+        try {
+            EngineTexturesFile etFile = new EngineTexturesFile(new File(Utils.getRealFileName(dungeonKeeperFolder, "DK2TextureCache".concat(File.separator).concat("EngineTextures.dat"))));
+            return etFile;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to open the EngineTextures file!", e);
+        }
     }
 
     /**
