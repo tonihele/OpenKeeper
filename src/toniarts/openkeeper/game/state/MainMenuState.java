@@ -285,7 +285,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         Element credits = screen.findElementByName("creditList");
         if (credits != null) {
             credits.resetEffects();
-            credits.startEffect(EffectEventId.onStartScreen);
+            credits.startEffect(EffectEventId.onActive);
         }
     }
 

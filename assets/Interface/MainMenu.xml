@@ -1182,7 +1182,7 @@
                     </panel>
 
                     <effect>
-                        <onStartScreen name="autoScroll" length="70000" start="0" end="-8500" inherit="true" onEndEffect="restartCredits()" />
+                        <onActive name="autoScroll" length="70000" start="0" end="-8500" inherit="true" onEndEffect="restartCredits()" />
                     </effect>
                 </panel>
             </panel>
