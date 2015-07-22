@@ -48,6 +48,7 @@ import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
 import de.lessvoid.nifty.controls.DropDown;
 import de.lessvoid.nifty.controls.DropDownSelectionChangedEvent;
 import de.lessvoid.nifty.controls.Label;
+import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
 import de.lessvoid.nifty.elements.render.TextRenderer;
@@ -275,6 +276,22 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         String level = String.format("level%s%s", selectedLevel.getLevel(), selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "");
         GameState gameState = new GameState(level);
         stateManager.attach(gameState);
+    }
+
+    /**
+     * Called by the gui to restart the autoscroll effect
+     */
+    public void restartCredits() {
+        Element credits = screen.findElementByName("creditList");
+        if (credits != null) {
+            credits.resetEffects();
+            if (!credits.isEffectActive(EffectEventId.onActive)) {
+                credits.startEffect(EffectEventId.onActive);
+            } else {
+                // Screen got changed
+                credits.stopEffect(EffectEventId.onActive);
+            }
+        }
     }
 
     /**
