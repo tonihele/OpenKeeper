@@ -65,8 +65,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
+import static toniarts.openkeeper.Main.getDkIIFolder;
 import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
@@ -75,6 +77,7 @@ import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
@@ -103,6 +106,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private KwdFile kwdFile;
     private final MouseEventListener mouseListener = new MouseEventListener(this);
     private Vector3f startLocation;
+    private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
 
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
@@ -155,6 +159,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
                 // Load the start menu
                 niftyDisplay.getNifty().getResourceBundles().put("menu", Main.getResourceBundle("Interface/Texts/Text"));
+                niftyDisplay.getNifty().getResourceBundles().put("speech", Main.getResourceBundle("Interface/Texts/Speech"));
                 niftyDisplay.getNifty().fromXml("Interface/MainMenu.xml", "start", MainMenuState.this);
 
                 // Set the camera position
@@ -291,6 +296,19 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 // Screen got changed
                 credits.stopEffect(EffectEventId.onActive);
             }
+        }
+    }
+
+    public void playMovie(String movieFile) {
+        try {
+            MovieState movieState = new MovieState(getDkIIFolder().concat("Data".concat(File.separator).concat("Movies").concat(File.separator).concat(movieFile + ".TGQ"))) {
+                @Override
+                protected void onPlayingEnd() {
+                }
+            };
+            stateManager.attach(movieState);
+        } catch (Exception e) {
+            logger.log(java.util.logging.Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
         }
     }
 

@@ -66,4 +66,21 @@
         </panel>
     </controlDefinition>
 
+    <!-- Movie Button -->
+    <controlDefinition style="nifty-panel-style"
+                       name="movieButton"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="horizontal" valign="center" marginBottom="10px">
+            <image id="movieimage" filename="$image" width="72px" heigth="56px" visibleToMouse="false">
+                <effect>
+                    <onHover name="imageOverlay" filename="Textures/Mov_Shots/M-Hilight.png" post="true" />
+                </effect>
+                <interact onClick="$click"/>
+            </image>
+            <panel childLayout="horizontal" align="left" valign="center">
+                <text font="Interface/Fonts/DungeonKeeperIIBig.fnt" color="#bbbcbb" marginLeft="12px" text="$moviename" />
+            </panel>
+        </panel>
+    </controlDefinition>
+
 </nifty-controls>
