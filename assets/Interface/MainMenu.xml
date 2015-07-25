@@ -397,7 +397,9 @@
             </panel>
             <panel id="panel4" height="25%" width="100%" align="center" valign="top" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="center" valign="top">
-                    <text id="trailer" style="menuText" text="${menu.86}" />
+                    <text id="trailer" style="menuText" text="${menu.86}">
+                        <interact onClick="playMovie(trailer)" />
+                    </text>
                 </panel>
                 <panel childLayout="center" align="center" valign="top">
                     <text id="credits" style="menuText" text="${menu.372}">
