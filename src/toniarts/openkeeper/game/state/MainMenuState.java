@@ -41,11 +41,9 @@ import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.system.AppSettings;
-import com.jme3.texture.Image;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.builder.ControlBuilder;
-import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.controls.CheckBox;
 import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
 import de.lessvoid.nifty.controls.DropDown;
@@ -71,7 +69,6 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import sun.security.ssl.Debug;
 import toniarts.openkeeper.Main;
 import static toniarts.openkeeper.Main.getDkIIFolder;
 import toniarts.openkeeper.cinematics.CameraSweepData;
@@ -335,6 +332,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * Generates the movie list
      */
     private void generateMovieList() {
+        // TODO: We should only do that if the progress has changed and at the start of the game
         Element movies = screen.findElementByName("movieList");
         if (movies != null) {
             for (Element oldElement : movies.getElements()) {
