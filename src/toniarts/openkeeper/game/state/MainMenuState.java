@@ -261,7 +261,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 setGraphicsSettingsToGUI();
                 break;
             case "movies":
-                showMovies();
+                generateMovieList();
                 break;
         }
     }
@@ -313,6 +313,11 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
     }
 
+    /**
+     * Plays a movie file
+     *
+     * @param movieFile the movie filename that should be played. No extension!
+     */
     public void playMovie(String movieFile) {
         try {
             MovieState movieState = new MovieState(getDkIIFolder().concat("Data".concat(File.separator).concat("Movies").concat(File.separator).concat(movieFile + ".TGQ"))) {
@@ -326,7 +331,10 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
     }
 
-    private void showMovies() {
+    /**
+     * Generates the movie list
+     */
+    private void generateMovieList() {
         Element movies = screen.findElementByName("movieList");
         if (movies != null) {
             for (Element oldElement : movies.getElements()) {
@@ -353,7 +361,15 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
     }
 
+    /**
+     * Stub for checking if a cutscene is unlocked
+     *
+     * @param level the level id that should be checked. Should be a value
+     * between 0-20
+     * @return
+     */
     private boolean isCutsceneViewable(int level) {
+        // TODO: implement the logic behind it
         return true;
     }
 
