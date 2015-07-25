@@ -71,7 +71,7 @@
                        name="movieButton"
                        controller="de.lessvoid.nifty.controls.DefaultController">
         <panel childLayout="horizontal" valign="center" marginBottom="10px">
-            <image id="movieimage" filename="$image" width="72px" heigth="56px" visibleToMouse="false">
+            <image filename="$image" width="72px" heigth="56px" visibleToMouse="false">
                 <effect>
                     <onHover name="imageOverlay" filename="Textures/Mov_Shots/M-Hilight.png" post="true" />
                 </effect>

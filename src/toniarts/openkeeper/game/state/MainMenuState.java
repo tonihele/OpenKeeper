@@ -41,8 +41,11 @@ import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.system.AppSettings;
+import com.jme3.texture.Image;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
+import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.controls.CheckBox;
 import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
 import de.lessvoid.nifty.controls.DropDown;
@@ -63,10 +66,12 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import sun.security.ssl.Debug;
 import toniarts.openkeeper.Main;
 import static toniarts.openkeeper.Main.getDkIIFolder;
 import toniarts.openkeeper.cinematics.CameraSweepData;
@@ -107,6 +112,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private final MouseEventListener mouseListener = new MouseEventListener(this);
     private Vector3f startLocation;
     private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
+    HashMap<String, String[]> cutscenes = new HashMap<>();
 
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
@@ -117,6 +123,11 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         this.stateManager = this.app.getStateManager();
         inputManager = this.app.getInputManager();
         viewPort = this.app.getViewPort();
+
+        // fill the movie list
+        this.cutscenes.put("image", "Intro,000,001,002,003,004,005,006,007,008,009,010,011,012,013,014,015,016,017,018,Outro".split(","));
+        this.cutscenes.put("click", "INTRO,CutSceneLevel1,CutSceneLevel2,CutSceneLevel3,CutSceneLevel4,CutSceneLevel5,CutSceneLevel6,CutSceneLevel7,CutSceneLevel8,CutSceneLevel9,CutSceneLevel10,CutSceneLevel11,CutSceneLevel12,CutSceneLevel13,CutSceneLevel14,CutSceneLevel15,CutSceneLevel16,CutSceneLevel17,CutSceneLevel18,CutSceneLevel19,Outro".split(","));
+        this.cutscenes.put("moviename", "${menu.77},${speech.1417},${speech.1439},${speech.1435},${speech.1445},${speech.1428},${speech.1426},${speech.1430},${speech.1432},${speech.1441},${speech.1431},${speech.1433},${speech.1419},${speech.1414},${speech.1437},${speech.1416},${speech.1420},${speech.1421},${speech.1443},${speech.1422},${menu.2843}".split(","));
 
         // Set up the loading screen
         SingleBarLoadingState loader = new SingleBarLoadingState() {
@@ -249,6 +260,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 // Populate settings screen
                 setGraphicsSettingsToGUI();
                 break;
+            case "movies":
+                showMovies();
+                break;
         }
     }
 
@@ -310,6 +324,37 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         } catch (Exception e) {
             logger.log(java.util.logging.Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
         }
+    }
+
+    private void showMovies() {
+        Element movies = screen.findElementByName("movieList");
+        if (movies != null) {
+            for (Element oldElement : movies.getElements()) {
+                nifty.removeElement(screen, oldElement);
+            }
+
+            String[] item = this.cutscenes.get("moviename");
+            String image;
+            String action;
+            for (int i = 0; i < item.length; i++) {
+                if (isCutsceneViewable(i)) {
+                    image = this.cutscenes.get("image")[i];
+                    action = "playMovie(" + this.cutscenes.get("click")[i] + ")";
+                } else {
+                    image = "Unavailable";
+                    action = "goToScreen(cutsceneLocked)";
+                }
+                ControlBuilder control = new ControlBuilder("movie" + i, "movieButton");
+                control.parameter("image", "Textures/Mov_Shots/M-" + image + "-0.png");
+                control.parameter("click", action);
+                control.parameter("moviename", item[i]);
+                control.build(nifty, screen, movies);
+            }
+        }
+    }
+
+    private boolean isCutsceneViewable(int level) {
+        return true;
     }
 
     /**
