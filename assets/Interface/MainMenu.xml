@@ -25,6 +25,16 @@
     </style>
     <style id="menuTitleText">
         <attributes font="Interface/Fonts/DungeonKeeperIIBig.fnt" color="#ff5f00" />
+        <effect>
+            <onActive name="blendMode" blendMode="blend" post="true"/>
+        </effect>
+    </style>
+
+    <style id="nifty-hiscore-head#text">
+        <attributes font="Interface/Fonts/DungeonKeeperII.fnt" color="#ff5f00" />
+    </style>
+    <style id="nifty-hiscore-row#text">
+        <attributes font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb" />
     </style>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
@@ -383,7 +393,7 @@
             <panel id="panel2" height="25%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="center" valign="center">
                     <text id="top" style="menuText" text="${menu.2802}">
-                        <interact onClick="goToScreen(top)" />
+                        <interact onClick="goToScreen(hiscores)" />
                     </text>
                 </panel>
                 <panel childLayout="center" align="center" valign="center">
@@ -418,27 +428,16 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Top players -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="top" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="hiscores" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
-            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
+            <panel id="panel1" height="20%" width="100%" childLayout="vertical">
                 <panel childLayout="center" align="center" valign="center">
                     <text id="topTitle" style="menuTitleText" text="${menu.2802}" />
                 </panel>
             </panel>
 
-            <panel id="panel2" height="55%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
-                <panel childLayout="horizontal" valign="top" width="100%">
-                    <text id="rank" style="menuTitleText"  width="25%" text="${menu.80}" />
-                    <text id="score" style="menuTitleText" width="25%" text="${menu.82}" />
-                    <text id="level" style="menuTitleText" width="25%" text="${menu.2042}" />
-                    <text id="name" style="menuTitleText" width="25%" text="${menu.83}" />
-                </panel>
-                <panel childLayout="horizontal" valign="top" width="100%">
-                    <text style="menuTextSmall" text="0" width="25%" />
-                    <text style="menuTextSmall" text="0" width="25%" />
-                    <text style="menuTextSmall" text="0" width="25%" />
-                    <text style="menuTextSmall" text="empty"  width="25%" />
-                </panel>
+            <panel id="hiscoreList" height="60%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <!-- placeholder for hiscores -->
             </panel>
 
             <panel id="panel5" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
