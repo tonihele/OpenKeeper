@@ -109,13 +109,13 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private final MouseEventListener mouseListener = new MouseEventListener(this);
     private Vector3f startLocation;
     private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
-    private static final HashMap<String, String[]> cutscenes = new HashMap<String, String[]>() {
-        {
-            put("image", "Intro,000,001,002,003,004,005,006,007,008,009,010,011,012,013,014,015,016,017,018,Outro".split(","));
-            put("click", "INTRO,CutSceneLevel1,CutSceneLevel2,CutSceneLevel3,CutSceneLevel4,CutSceneLevel5,CutSceneLevel6,CutSceneLevel7,CutSceneLevel8,CutSceneLevel9,CutSceneLevel10,CutSceneLevel11,CutSceneLevel12,CutSceneLevel13,CutSceneLevel14,CutSceneLevel15,CutSceneLevel16,CutSceneLevel17,CutSceneLevel18,CutSceneLevel19,Outro".split(","));
-            put("moviename", "${menu.77},${speech.1417},${speech.1439},${speech.1435},${speech.1445},${speech.1428},${speech.1426},${speech.1430},${speech.1432},${speech.1441},${speech.1431},${speech.1433},${speech.1419},${speech.1414},${speech.1437},${speech.1416},${speech.1420},${speech.1421},${speech.1443},${speech.1422},${menu.2843}".split(","));
-        }
-    };
+    private static final HashMap<String, String[]> cutscenes = new HashMap<>(3);
+
+    static {
+        cutscenes.put("image", "Intro,000,001,002,003,004,005,006,007,008,009,010,011,012,013,014,015,016,017,018,Outro".split(","));
+        cutscenes.put("click", "INTRO,CutSceneLevel1,CutSceneLevel2,CutSceneLevel3,CutSceneLevel4,CutSceneLevel5,CutSceneLevel6,CutSceneLevel7,CutSceneLevel8,CutSceneLevel9,CutSceneLevel10,CutSceneLevel11,CutSceneLevel12,CutSceneLevel13,CutSceneLevel14,CutSceneLevel15,CutSceneLevel16,CutSceneLevel17,CutSceneLevel18,CutSceneLevel19,Outro".split(","));
+        cutscenes.put("moviename", "${menu.77},${speech.1417},${speech.1439},${speech.1435},${speech.1445},${speech.1428},${speech.1426},${speech.1430},${speech.1432},${speech.1441},${speech.1431},${speech.1433},${speech.1419},${speech.1414},${speech.1437},${speech.1416},${speech.1420},${speech.1421},${speech.1443},${speech.1422},${menu.2843}".split(","));
+    }
 
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
