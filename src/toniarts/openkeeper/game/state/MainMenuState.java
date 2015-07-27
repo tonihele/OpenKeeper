@@ -109,7 +109,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private final MouseEventListener mouseListener = new MouseEventListener(this);
     private Vector3f startLocation;
     private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
-    private static final HashMap<String, String[]> cutscenes = new HashMap(3);
+    private static final HashMap<String, String[]> cutscenes = new HashMap<>(3);
 
     static {
         cutscenes.put("image", "Intro,000,001,002,003,004,005,006,007,008,009,010,011,012,013,014,015,016,017,018,Outro".split(","));
