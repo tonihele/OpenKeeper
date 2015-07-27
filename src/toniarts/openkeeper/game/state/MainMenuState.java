@@ -75,6 +75,7 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.cinematics.Cinematic;
+import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -109,6 +110,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private final MouseEventListener mouseListener = new MouseEventListener(this);
     private Vector3f startLocation;
     private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
+    public static HiScores hiscores = HiScores.load();
     private static final HashMap<String, String[]> cutscenes = new HashMap<>(3);
 
     static {
@@ -253,6 +255,10 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 levelBriefing.setLooping(false);
                 levelBriefing.play();
                 break;
+            case "hiscores":
+                generateHiscoreList();
+                break;
+
             case "optionsGraphics":
 
                 // Populate settings screen
@@ -274,6 +280,35 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 clearLevelBriefingNarration();
                 break;
         }
+    }
+
+    private void generateHiscoreList() {
+        Element hiscoreList = screen.findElementByName("hiscoreList");
+
+        if (hiscoreList != null) {
+            for (Element oldElement : hiscoreList.getElements()) {
+                nifty.removeElement(screen, oldElement);
+            }
+
+            ControlBuilder hiscoreDesc = new ControlBuilder("hiscoreHead", "hiscoreRow");
+            hiscoreDesc.parameter("rank", "${menu.80}");
+            hiscoreDesc.parameter("score", "${menu.82}");
+            hiscoreDesc.parameter("level", "${menu.2042}");
+            hiscoreDesc.parameter("user", "${menu.83}");
+            hiscoreDesc.style("nifty-hiscore-head");
+            hiscoreDesc.build(nifty, screen, hiscoreList);
+
+            int i = 0;
+            for (HiScores.HiScoresEntry hiscore : MainMenuState.hiscores.getEntries()) {
+                ControlBuilder hiscoreControl = new ControlBuilder("hiscore" + i++, "hiscoreRow");
+                hiscoreControl.parameter("rank", i + "");
+                hiscoreControl.parameter("score", hiscore.getScore() + "");
+                hiscoreControl.parameter("level", hiscore.getLevel());
+                hiscoreControl.parameter("user", hiscore.getName());
+                hiscoreControl.build(nifty, screen, hiscoreList);
+            }
+        }
+
     }
 
     public void goToScreen(String nextScreen) {

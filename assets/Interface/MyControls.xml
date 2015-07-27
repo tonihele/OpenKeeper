@@ -83,4 +83,14 @@
         </panel>
     </controlDefinition>
 
+    <!-- HiScore entry -->
+    <controlDefinition style="nifty-hiscore-row" name="hiscoreRow" controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="horizontal" valign="top" width="100%">
+            <text style="#text" text="$rank" textHAlign="right" width="25%" />
+            <text style="#text" text="$score" textHAlign="right" width="25%" />
+            <text style="#text" text="$level" textHAlign="center" width="25%" />
+            <text style="#text" text="$user" textHAlign="left"  width="25%" />
+        </panel>
+    </controlDefinition>
+
 </nifty-controls>
