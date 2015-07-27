@@ -57,8 +57,6 @@ import toniarts.openkeeper.animation.Pose;
 import toniarts.openkeeper.animation.PoseTrack;
 import toniarts.openkeeper.animation.PoseTrack.PoseFrame;
 import static toniarts.openkeeper.tools.convert.KmfModelLoader.inputStreamToFile;
-import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEntry;
-import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.kmf.AnimSprite;
 import toniarts.openkeeper.tools.convert.kmf.AnimVertex;
@@ -69,6 +67,8 @@ import toniarts.openkeeper.tools.convert.kmf.MeshVertex;
 import toniarts.openkeeper.tools.convert.kmf.Triangle;
 import toniarts.openkeeper.tools.convert.kmf.Uv;
 import toniarts.openkeeper.tools.convert.material.MaterialExporter;
+import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEntry;
+import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.modelviewer.ModelViewer;
 
 /**
@@ -102,6 +102,7 @@ public class KmfModelLoader implements AssetLoader {
     private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
     /* Already saved materials are stored here */
     private static HashMap<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
+    private static final boolean ALWAYS_GENERATE_NORMALS = false;
 
     public static void main(final String[] args) throws IOException {
 
@@ -294,6 +295,12 @@ public class KmfModelLoader implements AssetLoader {
             mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
             mesh.setStatic();
+
+            // See the normals
+            if (ALWAYS_GENERATE_NORMALS || !isNormalsOk(normals)) {
+                normals = generateWeightedNormals(mesh);
+                mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
+            }
 
             // Create geometry
             Geometry geom = createGeometry(index, mesh, materials, meshSprite.getMaterialIndex());
@@ -554,6 +561,13 @@ public class KmfModelLoader implements AssetLoader {
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
             mesh.setBuffer(Type.BindPoseNormal, 3, BufferUtils.createFloatBuffer(normals));
             mesh.setStreamed();
+
+            // See the normals
+            if (ALWAYS_GENERATE_NORMALS || !isNormalsOk(normals)) {
+                normals = generateWeightedNormals(mesh);
+                mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
+                mesh.setBuffer(Type.BindPoseNormal, 3, BufferUtils.createFloatBuffer(normals));
+            }
 
             // Create geometry
             Geometry geom = createGeometry(index, mesh, materials, animSprite.getMaterialIndex());
@@ -824,6 +838,112 @@ public class KmfModelLoader implements AssetLoader {
         TextureKey textureKey = new TextureKey(Utils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png")), false);
         Texture tex = assetInfo.getManager().loadTexture(textureKey);
         return tex;
+    }
+
+    /**
+     * Sees if the normals contain NAN etc
+     *
+     * @param normals the normals to check
+     * @return true if normals are ok
+     */
+    private boolean isNormalsOk(Vector3f[] normals) {
+        for (Vector3f normal : normals) {
+            if (!normal.isUnitVector()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Recalculate the normals<br>
+     * http://www.bytehazard.com/articles/vertnorm.html
+     *
+     * @param mesh the mesh in question
+     * @return new normals
+     */
+    private static Vector3f[] generateWeightedNormals(Mesh mesh) {
+        Vector3f[] normals = new Vector3f[mesh.getVertexCount()];
+        HashMap<com.jme3.math.Triangle, Float> surfaceAreas = new HashMap<>(mesh.getTriangleCount());
+        for (int face = 0; face < mesh.getTriangleCount(); face++) {
+            com.jme3.math.Triangle faceA = new com.jme3.math.Triangle();
+            mesh.getTriangle(face, faceA);
+            int[] indices = new int[3];
+            mesh.getTriangle(face, indices);
+            Vector3f normal = Vector3f.ZERO.clone();
+
+            // Loop through all the vertices of face A
+            for (int vertice = 0; vertice < 3; vertice++) {
+                for (int face2 = 0; face2 < mesh.getTriangleCount(); face2++) {
+
+                    // Ignore self
+                    if (face == face2) {
+                        continue;
+                    }
+
+                    // TODO:
+                    // criteria for hard-edges
+                    //   if face A and B smoothing groups match {
+
+                    com.jme3.math.Triangle faceB = new com.jme3.math.Triangle();
+                    mesh.getTriangle(face2, faceB);
+
+                    // Get the surface area
+                    Float surfaceArea = surfaceAreas.get(faceB);
+                    if (surfaceArea == null) {
+                        surfaceArea = calculateSurfaceArea(faceB);
+                        surfaceAreas.put(faceB, surfaceArea);
+                    }
+
+                    // Accumulate normal
+                    // v1, v2, v3 are the vertices of face A
+                    Vector3f v1 = faceA.get(0);
+                    Vector3f v2 = faceA.get(1);
+                    Vector3f v3 = faceA.get(2);
+
+                    if (isShared(faceB, v1)) {
+                        float angle = v1.subtract(v2).angleBetween(v1.subtract(v3));
+                        normal.addLocal(faceB.getNormal().mult(surfaceArea).multLocal(angle)); // multiply by angle
+                    }
+                    if (isShared(faceB, v2)) {
+                        float angle = v2.subtract(v1).angleBetween(v2.subtract(v3));
+                        normal.addLocal(faceB.getNormal().mult(surfaceArea).multLocal(angle)); // multiply by angle
+                    }
+                    if (isShared(faceB, v3)) {
+                        float angle = v3.subtract(v1).angleBetween(v3.subtract(v2));
+                        normal.addLocal(faceB.getNormal().mult(surfaceArea).multLocal(angle)); // multiply by angle
+                    }
+                }
+
+                // Add & normalize
+                normals[indices[vertice]] = (normals[indices[vertice]] != null ? normals[indices[vertice]].addLocal(normal) : normal);
+            }
+        }
+
+        // Normalize
+        for (Vector3f normal : normals) {
+            if (normal != null) { // Some unused vertices exist
+                normal.normalizeLocal();
+            }
+        }
+
+        return normals;
+    }
+
+    private static boolean isShared(com.jme3.math.Triangle face, Vector3f v) {
+        // TODO: Compare indices instead of vectors, a lot faster
+        for (int vertice = 0; vertice < 3; vertice++) {
+            if (face.get(vertice).equals(v)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static float calculateSurfaceArea(com.jme3.math.Triangle face) {
+        Vector3f uu = face.get1().subtract(face.get3());
+        Vector3f vv = face.get2().subtract(face.get3());
+        return 0.5f * uu.crossLocal(vv).length();
     }
 
     /**
