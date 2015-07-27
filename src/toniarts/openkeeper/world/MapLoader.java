@@ -32,6 +32,8 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -39,11 +41,19 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Map;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.room.CombatPit;
 import toniarts.openkeeper.world.room.FiveByFiveRotated;
 import toniarts.openkeeper.world.room.HeroGateFrontEnd;
+import toniarts.openkeeper.world.room.HeroGateThreeByOne;
+import toniarts.openkeeper.world.room.HeroGateTwoByTwo;
 import toniarts.openkeeper.world.room.Normal;
+import toniarts.openkeeper.world.room.Prison;
 import toniarts.openkeeper.world.room.RoomInstance;
+import toniarts.openkeeper.world.room.StoneBridge;
+import toniarts.openkeeper.world.room.Temple;
 import toniarts.openkeeper.world.room.ThreeByThree;
+import toniarts.openkeeper.world.room.WoodenBridge;
 
 /**
  * Loads whole maps
@@ -58,6 +68,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private KwdFile kwdFile;
     private List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
     private HashMap<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
+    private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
     @Override
     public Spatial load(AssetManager assetManager, KwdFile object) {
@@ -797,27 +808,66 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param root the root node
      * @param roomInstance the room instance
      */
-    private void handleRoom(Map[][] tiles, AssetManager assetManager, BatchNode root, RoomInstance roomInstance) {
+    private void handleRoom(Map[][] tiles, AssetManager assetManager, Node root, RoomInstance roomInstance) {
         switch (roomInstance.getRoom().getTileConstruction()) {
-            case _3_BY_3: {
+            case _3_BY_3:
                 root.attachChild(ThreeByThree.construct(assetManager, roomInstance));
                 break;
-            }
-            case HERO_GATE_FRONT_END: {
+
+            case HERO_GATE_FRONT_END:
                 root.attachChild(HeroGateFrontEnd.construct(assetManager, roomInstance));
                 break;
-            }
-            case _5_BY_5_ROTATED: {
+
+            case HERO_GATE_2_BY_2:
+                root.attachChild(HeroGateTwoByTwo.construct(assetManager, roomInstance));
+                break;
+
+            case HERO_GATE_3_BY_1:
+                Thing.Room.Direction direction = Thing.Room.Direction.NORTH;
+                for (Thing thing : kwdFile.getThings()) {
+                    if (thing instanceof Thing.Room) {
+                        Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
+                        if (roomInstance.hasCoordinate(p)) {
+                            direction = ((Thing.Room) thing).getDirection();
+                        }
+                    }
+                }
+
+                root.attachChild(HeroGateThreeByOne.construct(assetManager, roomInstance, direction));
+                break;
+
+            case _5_BY_5_ROTATED:
                 root.attachChild(FiveByFiveRotated.construct(assetManager, roomInstance));
                 break;
-            }
-            case NORMAL: {
+
+            case NORMAL:
                 root.attachChild(Normal.construct(assetManager, roomInstance));
                 break;
-            }
-            default: {
+
+            case QUAD:
+                if (roomInstance.getRoom().getName().equalsIgnoreCase("Stone Bridge")) {
+                    root.attachChild(StoneBridge.construct(assetManager, roomInstance));
+                } else {
+                    root.attachChild(WoodenBridge.construct(assetManager, roomInstance));
+                }
                 break;
-            }
+
+            case DOUBLE_QUAD:
+                if (roomInstance.getRoom().getName().equalsIgnoreCase("Prison")) {
+                    root.attachChild(Prison.construct(assetManager, roomInstance));
+                } else if (roomInstance.getRoom().getName().equalsIgnoreCase("Combat Pit")) {
+                    root.attachChild(CombatPit.construct(assetManager, roomInstance));
+                } else if (roomInstance.getRoom().getName().equalsIgnoreCase("Temple")) {
+                    root.attachChild(Temple.construct(assetManager, roomInstance));
+                }
+                // TODO use quad construction for different rooms
+                // root.attachChild(DoubleQuad.construct(assetManager, roomInstance));
+                break;
+
+            default:
+                // TODO
+                logger.log(Level.WARNING, "Room {0} not exist", roomInstance.getRoom().getName());
+                break;
         }
     }
 
