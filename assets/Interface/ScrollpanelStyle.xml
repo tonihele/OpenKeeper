@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-styles xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+    <!-- Just an empty stylesheet since the original one is butt-ugly -->
+    <style id="nifty-scrollpanel#scrollpanel">
+    </style>
+    <style id="nifty-scrollpanel#bottom-right">
+        <attributes width="23px" height="23px"/>
+    </style>
+</nifty-styles>

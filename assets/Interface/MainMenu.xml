@@ -3,6 +3,7 @@
     <useStyles filename="nifty-default-styles.xml" />
     <useStyles filename="Interface/DropDownStyle.xml" />
     <useStyles filename="Interface/ScrollbarStyle.xml" />
+    <useStyles filename="Interface/ScrollpanelStyle.xml" />
     <useStyles filename="Interface/CheckBoxStyle.xml" />
     <useControls filename="nifty-default-controls.xml" />
     <useControls filename="Interface/MyControls.xml" />
@@ -386,7 +387,9 @@
                     </text>
                 </panel>
                 <panel childLayout="center" align="center" valign="center">
-                    <text id="movies" style="menuText" text="${menu.93}" />
+                    <text id="movies" style="menuText" text="${menu.93}">
+                        <interact onClick="goToScreen(movies)" />
+                    </text>
                 </panel>
             </panel>
             <panel id="panel3" height="5%" width="100%" align="center" valign="center" childLayout="center">
@@ -394,7 +397,9 @@
             </panel>
             <panel id="panel4" height="25%" width="100%" align="center" valign="top" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="center" valign="top">
-                    <text id="trailer" style="menuText" text="${menu.86}" />
+                    <text id="trailer" style="menuText" text="${menu.86}">
+                        <interact onClick="playMovie(trailer)" />
+                    </text>
                 </panel>
                 <panel childLayout="center" align="center" valign="top">
                     <text id="credits" style="menuText" text="${menu.372}">
@@ -449,19 +454,39 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="movies" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
-            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
+            <panel id="panel1" height="12%" width="100%" childLayout="vertical">
                 <panel childLayout="center" align="center" valign="center">
                     <text id="moviesTitle" style="menuTitleText" text="${menu.93}" />
                 </panel>
             </panel>
 
-            <panel id="panel2" height="55%" width="100%" align="center" valign="center" childLayout="center" visibleToMouse="true">
-                <text style="menuTextSmall" text="Not ready yet" />
-            </panel>
 
+            <control id="moviePanel" name="scrollPanel" align="center" valign="center" horizontal="false" height="70%" width="80%">
+                <panel id="movieList" childLayout="vertical">
+                    <!-- placeholder for movies -->
+                </panel>
+            </control>
             <panel id="panel5" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="right" valign="bottom">
                     <control click="goToScreen(extras)" id="back" name="okButton" width="48px" height="48px" />
+                </panel>
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Movie still locked message -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="cutsceneLocked" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" height="12%" width="100%" childLayout="vertical">
+            </panel>
+            <panel width="100%" height="70%" childLayout="center" align="center" valign="center">
+                <text width="80%" style="menuText" textAlign="center" text="${menu.2805}" wrap="true" />
+            </panel>
+            <panel id="panel5" height="*" width="75%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel childLayout="center" align="right" valign="bottom">
+                    <control click="goToScreen(movies)" id="back" name="okButton" width="48px" height="48px" />
                 </panel>
             </panel>
         </layer>
