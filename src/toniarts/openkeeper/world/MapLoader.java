@@ -752,10 +752,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private boolean hasRoomWalls(Terrain terrain) {
         ArtResource ceilingResource = getCeilingResource(terrain);
         if (ceilingResource == null && terrain.getCompleteResource() == null) {
-
             // All is null, a room perhaps
             Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-            return room.getFlags().contains(Room.RoomFlag.HAS_WALLS) || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_FRONT_END;
+            return room.getFlags().contains(Room.RoomFlag.HAS_WALLS) || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_FRONT_END || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_3_BY_1;
         }
         return false;
     }
