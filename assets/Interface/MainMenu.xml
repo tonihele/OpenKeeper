@@ -196,13 +196,13 @@
                 <!--Main objectives-->
                 <panel height="30%" width="100%" childLayout="horizontal" align="center" valign="center">
                     <panel width="33%" childLayout="center" align="center" valign="center">
-                        <image align="center" valign="top" id="mainObjectiveImage" />
+                        <image align="center" valign="top" id="mainObjectiveImage" width="144px" />
                     </panel>
-                    <panel width="*" childLayout="vertical" align="left" valign="top">
-                        <panel backgroundColor="#f508" width="100%" childLayout="vertical">
+                    <panel width="*" childLayout="vertical" align="left" valign="top" paddingRight="5%">
+                        <panel backgroundColor="#f508" width="100%" childLayout="vertical" paddingLeft="2%">
                             <text align="left" valign="top" id="mainObjectivesTitle" style="menuTitleText" text="${menu.1408}" />
                         </panel>
-                        <panel backgroundColor="#0008" width="100%" height="*" childLayout="vertical">
+                        <panel backgroundColor="#0008" width="100%" height="*" childLayout="vertical" paddingLeft="2%">
                             <control width="100%" name="label" style="menuTextSmall" id="mainObjective" textHAlign="left" textVAlign="top" />
                         </panel>
                     </panel>
@@ -213,13 +213,13 @@
                 <!--Subobjectives-->
                 <panel height="*" width="100%" childLayout="horizontal" align="center" valign="center">
                     <panel width="33%" childLayout="center" align="center" valign="center">
-                        <image align="center" valign="top" id="subObjectiveImage" />
+                        <image align="center" valign="top" id="subObjectiveImage" width="144px" />
                     </panel>
-                    <panel width="*" childLayout="vertical" align="left" valign="top">
-                        <panel backgroundColor="#f508" width="100%" childLayout="vertical">
+                    <panel width="*" childLayout="vertical" align="left" valign="top" paddingRight="5%">
+                        <panel backgroundColor="#f508" width="100%" childLayout="vertical" paddingLeft="2%">
                             <text align="left" valign="top" id="subObjectivesTitle" style="menuTitleText" text="${menu.1409}" />
                         </panel>
-                        <panel backgroundColor="#0008" width="100%" height="*" childLayout="vertical">
+                        <panel backgroundColor="#0008" width="100%" height="*" childLayout="vertical" paddingLeft="2%">
                             <panel width="100%" childLayout="vertical">
                                 <control width="100%" name="label" style="menuTextSmall" id="subObjective1" textHAlign="left" textVAlign="top" />
                                 <control width="100%" name="label" style="menuTextSmall" id="subObjective2" textHAlign="left" textVAlign="top" />
