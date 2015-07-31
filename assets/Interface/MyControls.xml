@@ -5,7 +5,7 @@
     <controlDefinition style="nifty-panel-style"
                        name="cancelButton"
                        controller="de.lessvoid.nifty.controls.DefaultController">
-        <panel focusable="true" childLayout="overlay" visibleToMouse="false" paddingLeft="7px" paddingRight="7px">
+        <panel focusable="true" childLayout="overlay" visibleToMouse="false" paddingLeft="7px" paddingRight="7px" width="48px" height="48px" margin="5px">
             <image filename="Textures/Cancel-Over.png" width="$width" heigth="$height" visibleToMouse="false">
                 <effect>
                     <onHover name="changeImage" active="Textures/Cancel-Click.png" inactive="Textures/Cancel-Over.png" />
@@ -20,7 +20,7 @@
     <controlDefinition style="nifty-panel-style"
                        name="okButton"
                        controller="de.lessvoid.nifty.controls.DefaultController">
-        <panel focusable="true" childLayout="overlay" visibleToMouse="false" paddingLeft="7px" paddingRight="7px">
+        <panel focusable="true" childLayout="overlay" visibleToMouse="false" paddingLeft="7px" paddingRight="7px" width="48px" height="48px" margin="5px">
             <image filename="Textures/Confirm-Over.png" width="$width" heigth="$height" visibleToMouse="false">
                 <effect>
                     <onHover name="changeImage" active="Textures/Confirm-Click.png" inactive="Textures/Confirm-Over.png" />

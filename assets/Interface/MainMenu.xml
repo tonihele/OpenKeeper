@@ -131,7 +131,7 @@
                 </panel>
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="goToScreen(start)" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
+                <control click="goToScreen(start)" id="back" name="cancelButton" />
                 <text style="menuText" text="" width="48px" margin="5px" />
             </panel>
         </layer>
@@ -153,8 +153,8 @@
                 </panel>
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="goToScreen(start)" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
-                <control click="quitGame()" id="quit" name="okButton" width="48px" height="48px" margin="5px"/>
+                <control click="goToScreen(start)" id="back" name="cancelButton" />
+                <control click="quitGame()" id="quit" name="okButton"/>
             </panel>
         </layer>
     </screen>
@@ -167,7 +167,7 @@
             <panel id="panel1" width="100%" childLayout="vertical">
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="doTransition(252,singlePlayer,274)" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
+                <control click="doTransition(252,singlePlayer,274)" id="back" name="cancelButton" />
                 <text style="menuText" text="" width="48px" margin="5px" />
             </panel>
         </layer>
@@ -229,8 +229,8 @@
                 </panel>
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="cancelLevelSelect()" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
-                <control click="startCampaignLevel()" id="start" name="okButton" width="48px" height="48px" margin="5px" />
+                <control click="cancelLevelSelect()" id="back" name="cancelButton" />
+                <control click="startCampaignLevel()" id="start" name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -259,7 +259,7 @@
                 </panel>
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="doTransition(257,start,274)" id="back" name="okButton" width="48px" height="48px" margin="5px" />
+                <control click="doTransition(257,start,274)" id="back" name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -317,8 +317,8 @@
                 </panel>
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="goToScreen(optionsMain)" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
-                <control click="applyGraphicsSettings()" id="start" name="okButton" width="48px" height="48px" margin="5px" />
+                <control click="goToScreen(optionsMain)" id="back" name="cancelButton" />
+                <control click="applyGraphicsSettings()" id="start" name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -337,8 +337,8 @@
                 </panel>
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="goToScreen(optionsMain)" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
-                <control click="goToScreen(optionsMain)" id="start" name="okButton" width="48px" height="48px" margin="5px" />
+                <control click="goToScreen(optionsMain)" id="back" name="cancelButton" />
+                <control click="goToScreen(optionsMain)" id="start" name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -357,8 +357,8 @@
                 </panel>
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="goToScreen(optionsMain)" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
-                <control click="goToScreen(optionsMain)" id="start" name="okButton" width="48px" height="48px" margin="5px" />
+                <control click="goToScreen(optionsMain)" id="back" name="cancelButton" />
+                <control click="goToScreen(optionsMain)" id="start" name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -401,7 +401,7 @@
                 </panel>
             </panel>
             <panel childLayout="vertical" align="right" valign="bottom">
-                <control click="doTransition(260,start,274)" id="back" name="okButton" width="48px" height="48px" margin="5px" />
+                <control click="doTransition(260,start,274)" id="back" name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -422,7 +422,7 @@
             </panel>
 
             <panel childLayout="vertical" align="right" valign="bottom">
-                <control click="goToScreen(extras)" id="back" name="okButton" width="48px" height="48px" margin="5px" />
+                <control click="goToScreen(extras)" id="back" name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -445,7 +445,7 @@
                 </panel>
             </control>
             <panel childLayout="center" align="right" valign="bottom">
-                <control click="goToScreen(extras)" id="back" name="okButton" width="48px" height="48px" margin="5px" />
+                <control click="goToScreen(extras)" id="back" name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -461,7 +461,7 @@
                 <text width="80%" style="menuText" textAlign="center" text="${menu.2805}" wrap="true" />
             </panel>
             <panel childLayout="center" align="right" valign="bottom">
-                <control click="goToScreen(movies)" id="back" name="okButton" width="48px" height="48px" />
+                <control click="goToScreen(movies)" id="back" name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -1186,7 +1186,7 @@
                 </panel>
             </panel>
             <panel childLayout="center" align="right" valign="bottom">
-                <control click="doTransition(266,extras,261)" id="back" name="okButton" width="48px" height="48px" margin="5px" />
+                <control click="doTransition(266,extras,261)" id="back" name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -1207,8 +1207,8 @@
             </panel>
 
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="doTransition(272,start,274)" id="back" name="cancelButton" width="48px" height="48px" margin="5px"/>
-                <control id="ok" name="okButton" width="48px" height="48px" margin="5px"/>
+                <control click="doTransition(272,start,274)" id="back" name="cancelButton" />
+                <control id="ok" name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -1248,7 +1248,7 @@
             </panel>
 
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="doTransition(263,start,274)" id="back" name="cancelButton" width="48px" height="48px" margin="5px" />
+                <control click="doTransition(263,start,274)" id="back" name="cancelButton" />
                 <text style="menuText" text="" width="48px" margin="5px" />
             </panel>
         </layer>
