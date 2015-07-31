@@ -111,34 +111,34 @@ public class HeroGateFrontEnd {
                 for (int x = 1; x < 21; x++) {
                     switch (x) {
                         case 6:
-                            attachAndCreateLevel(map, x, "a", assetManager, start, p, false);
+                            attachAndCreateLevel(map, "Level", x, "a", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                            attachAndCreateLevel(map, x, "b", assetManager, start, p, false);
+                            attachAndCreateLevel(map, "Level", x, "b", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
                             break;
                         case 11:
-                            attachAndCreateLevel(map, x, "a", assetManager, start, p, false);
+                            attachAndCreateLevel(map, "Level", x, "a", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                            attachAndCreateLevel(map, x, "b", assetManager, start, p, false);
+                            attachAndCreateLevel(map, "Level", x, "b", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
-                            attachAndCreateLevel(map, x, "c", assetManager, start, p, false);
+                            attachAndCreateLevel(map, "Level", x, "c", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "c" + "_arrows", assetManager, start, p, false));
                             break;
                         case 15:
-                            attachAndCreateLevel(map, x, "a", assetManager, start, p, false);
+                            attachAndCreateLevel(map, "Level", x, "a", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                            attachAndCreateLevel(map, x, "b", assetManager, start, p, false);
+                            attachAndCreateLevel(map, "Level", x, "b", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
                             break;
                         default:
-                            attachAndCreateLevel(map, x, null, assetManager, start, p, false);
+                            attachAndCreateLevel(map, "Level", x, null, assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "_arrows", assetManager, start, p, false));
                     }
                 }
 
                 // Secret levels
                 for (int x = 1; x < 6; x++) {
-                    map.attachChild(loadObject("Secret_Level" + x, assetManager, start, p, false));
+                    attachAndCreateLevel(map, "Secret", x, null, assetManager, start, p, false);
                 }
 
                 // The map base
@@ -242,9 +242,14 @@ public class HeroGateFrontEnd {
      * @param randomizeAnimation randomize object animation (speed and start
      * time)
      */
-    private static void attachAndCreateLevel(Node map, int level, String variation, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
-        Spatial lvl = loadObject("3dmap_level" + level + (variation == null ? "" : variation), assetManager, start, p, randomizeAnimation);
-        lvl.addControl(new FrontEndLevelControl(level, variation, assetManager));
+    private static void attachAndCreateLevel(Node map, String type, int level, String variation, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
+        String objName = "3dmap_level";
+        if (type.equals("Secret")) {
+            objName = "Secret_Level";
+        }
+
+        Spatial lvl = loadObject(objName + level + (variation == null ? "" : variation), assetManager, start, p, randomizeAnimation);
+        lvl.addControl(new FrontEndLevelControl(type, level, variation, assetManager));
         lvl.setBatchHint(Spatial.BatchHint.Never);
         map.attachChild(lvl);
     }

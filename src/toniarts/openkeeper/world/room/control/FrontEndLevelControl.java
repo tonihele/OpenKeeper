@@ -31,6 +31,7 @@ import com.jme3.scene.control.AbstractControl;
  */
 public class FrontEndLevelControl extends AbstractControl {
 
+    private final String type;
     private final int level;
     private final String variation;
     private final AssetManager assetManager;
@@ -43,7 +44,8 @@ public class FrontEndLevelControl extends AbstractControl {
     private static final int ACTIVATE_ANIMATION_LENGTH = 250;
     private static final int DEACTIVATE_ANIMATION_LENGTH = 1500;
 
-    public FrontEndLevelControl(int level, String variation, AssetManager assetManager) {
+    public FrontEndLevelControl(String type, int level, String variation, AssetManager assetManager) {
+        this.type = type;
         this.level = level;
         this.variation = variation;
         this.assetManager = assetManager;
@@ -103,6 +105,15 @@ public class FrontEndLevelControl extends AbstractControl {
             this.lastTime = null;
         }
         this.active = active;
+    }
+
+    /**
+     * Get level like, like Secret or Level etc.
+     *
+     * @return level type
+     */
+    public String getType() {
+        return type;
     }
 
     /**
