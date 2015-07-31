@@ -205,14 +205,14 @@ public abstract class TgqPlayer {
                             }
                             continue;
                         }
+                    }
 
-                        // Feed the stream
-                        ByteBuffer buf = audioFrame.getPcm();
-                        int written = line.write(buf.array(), buf.arrayOffset() + buf.position(), buf.remaining());
-                        buf.position(buf.position() + written);
-                        if (buf.remaining() == 0) {
-                            audioFrame = null;
-                        }
+                    // Feed the stream
+                    ByteBuffer buf = audioFrame.getPcm();
+                    int written = line.write(buf.array(), buf.arrayOffset() + buf.position(), Math.min(line.available(), buf.remaining()));
+                    buf.position(buf.position() + written);
+                    if (buf.remaining() == 0) {
+                        audioFrame = null;
                     }
                 }
 
@@ -229,6 +229,7 @@ public abstract class TgqPlayer {
                             line.drain();
                         }
                         line.stop();
+                        line.flush();
                         line.close();
                         line = null;
                     } catch (Exception e) {
