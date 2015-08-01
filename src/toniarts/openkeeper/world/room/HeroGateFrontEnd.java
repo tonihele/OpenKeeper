@@ -29,6 +29,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Level.LevelType;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
@@ -235,6 +236,7 @@ public class HeroGateFrontEnd {
      * Creates and attach the level node, creates a control for it
      *
      * @param map node to attach to
+     * @param type level type
      * @param level level number
      * @param variation variation, like level "a" etc.
      * @param assetManager the asset manager instance
@@ -243,14 +245,14 @@ public class HeroGateFrontEnd {
      * @param randomizeAnimation randomize object animation (speed and start
      * time)
      */
-    private static void attachAndCreateLevel(Node map, LevelType type, int level, String variation, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
+    private static void attachAndCreateLevel(Node map, LevelType type, int levelnumber, String variation, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
         String objName = "3dmap_level";
         if (type.equals(LevelType.Secret)) {
             objName = "Secret_Level";
         }
 
-        Spatial lvl = loadObject(objName + level + (variation == null ? "" : variation), assetManager, start, p, randomizeAnimation);
-        lvl.addControl(new FrontEndLevelControl(type, level, variation, assetManager));
+        Spatial lvl = loadObject(objName + levelnumber + (variation == null ? "" : variation), assetManager, start, p, randomizeAnimation);
+        lvl.addControl(new FrontEndLevelControl(new Level(type, levelnumber, variation), assetManager));
         lvl.setBatchHint(Spatial.BatchHint.Never);
         map.attachChild(lvl);
     }

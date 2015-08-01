@@ -500,7 +500,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * @param selectedLevel the selected level
      */
     private void selectCampaignLevel(FrontEndLevelControl selectedLevel) {
-        this.selectedLevel = new Level(selectedLevel.getType(), selectedLevel.getLevel(), selectedLevel.getVariation());
+        this.selectedLevel = selectedLevel.getLevel();
         doTransition("253", "campaign", null);
     }
 

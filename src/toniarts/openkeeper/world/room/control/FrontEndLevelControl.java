@@ -23,7 +23,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
-import toniarts.openkeeper.game.data.Level.LevelType;
+import toniarts.openkeeper.game.data.Level;
 
 /**
  * Controls level graphics
@@ -32,9 +32,7 @@ import toniarts.openkeeper.game.data.Level.LevelType;
  */
 public class FrontEndLevelControl extends AbstractControl {
 
-    private final LevelType type;
-    private final int level;
-    private final String variation;
+    private final Level level;
     private final AssetManager assetManager;
     private volatile boolean active = false;
     private volatile boolean moved = true;
@@ -45,10 +43,8 @@ public class FrontEndLevelControl extends AbstractControl {
     private static final int ACTIVATE_ANIMATION_LENGTH = 250;
     private static final int DEACTIVATE_ANIMATION_LENGTH = 1500;
 
-    public FrontEndLevelControl(LevelType type, int level, String variation, AssetManager assetManager) {
-        this.type = type;
+    public FrontEndLevelControl(Level level, AssetManager assetManager) {
         this.level = level;
-        this.variation = variation;
         this.assetManager = assetManager;
     }
 
@@ -109,30 +105,12 @@ public class FrontEndLevelControl extends AbstractControl {
     }
 
     /**
-     * Get level like, like Secret or Level etc.
+     * Get the Level Object
      *
-     * @return level type
+     * @return Level
      */
-    public LevelType getType() {
-        return type;
-    }
-
-    /**
-     * Get the level number
-     *
-     * @return level number
-     */
-    public int getLevel() {
+    public Level getLevel() {
         return level;
-    }
-
-    /**
-     * Get level variation, like a, b etc.
-     *
-     * @return level variation, can be null
-     */
-    public String getVariation() {
-        return variation;
     }
 
     private void playAnimation(int animationLength, Vector3f base, Vector3f target, long elapsedTime) {
