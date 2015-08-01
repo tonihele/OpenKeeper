@@ -79,6 +79,7 @@ import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.world.MapLoader;
@@ -171,6 +172,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 // Load the start menu
                 niftyDisplay.getNifty().getResourceBundles().put("menu", Main.getResourceBundle("Interface/Texts/Text"));
                 niftyDisplay.getNifty().getResourceBundles().put("speech", Main.getResourceBundle("Interface/Texts/Speech"));
+                niftyDisplay.getNifty().getResourceBundles().put("mpd1", Main.getResourceBundle("Interface/Texts/LEVELMPD1_BRIEFING"));
+                niftyDisplay.getNifty().getResourceBundles().put("mpd2", Main.getResourceBundle("Interface/Texts/LEVELMPD2_BRIEFING"));
+                niftyDisplay.getNifty().getResourceBundles().put("mpd3", Main.getResourceBundle("Interface/Texts/LEVELMPD3_BRIEFING"));
+                niftyDisplay.getNifty().getResourceBundles().put("mpd4", Main.getResourceBundle("Interface/Texts/LEVELMPD4_BRIEFING"));
+                niftyDisplay.getNifty().getResourceBundles().put("mpd5", Main.getResourceBundle("Interface/Texts/LEVELMPD5_BRIEFING"));
+                niftyDisplay.getNifty().getResourceBundles().put("mpd6", Main.getResourceBundle("Interface/Texts/LEVELMPD6_BRIEFING"));
+                niftyDisplay.getNifty().getResourceBundles().put("mpd7", Main.getResourceBundle("Interface/Texts/LEVELMPD7_BRIEFING"));
+
                 niftyDisplay.getNifty().fromXml("Interface/MainMenu.xml", "start", MainMenuState.this);
 
                 // Set the camera position
@@ -222,6 +231,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
     @Override
     public void onStartScreen() {
+        bind(nifty, nifty.getCurrentScreen());
         switch (nifty.getCurrentScreen().getScreenId()) {
             case "selectCampaignLevel":
                 inputManager.addRawInputListener(mouseListener);
@@ -234,26 +244,41 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 Label mainObjective = screen.findNiftyControl("mainObjective", Label.class);
                 mainObjective.setText(getLevelResourceBundle().getString("2"));
                 Element mainObjectiveImage = screen.findElementByName("mainObjectiveImage");
-                NiftyImage img = nifty.createImage("Textures/Obj_Shots/Level" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "-0.png", false);
+                NiftyImage img = nifty.createImage("Textures/Obj_Shots/" + selectedLevel.getFullName() + "-0.png", false);
                 mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
                 mainObjectiveImage.setWidth(img.getWidth());
                 mainObjectiveImage.setHeight(img.getHeight());
-                setupSubObjectiveLabel("subObjective1", "3");
-                setupSubObjectiveLabel("subObjective2", "4");
-                Label subObjective = setupSubObjectiveLabel("subObjective3", "5");
+                String subText1 = getLevelResourceBundle().getString("3");
+                String subText2 = getLevelResourceBundle().getString("4");
+                String subText3 = getLevelResourceBundle().getString("5");
+                Element subObjectivePanel = screen.findElementByName("subObjectivePanel");
 
-                // Fix the layout
-                subObjective.getElement().getParent().layoutElements();
-                Element subObjectiveImage = screen.findElementByName("subObjectiveImage");
-                img = nifty.createImage("Textures/Obj_Shots/Level" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "-1.png", false);
-                subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
-                subObjectiveImage.setWidth(img.getWidth());
-                subObjectiveImage.setHeight(img.getHeight());
+                subObjectivePanel.hide();
+                if (!(subText1.isEmpty() && subText2.isEmpty() && subText3.isEmpty())) {
+                    // We have subobjectives
+                    subObjectivePanel.show();
+                    setupSubObjectiveLabel("subObjective1", subText1);
+                    setupSubObjectiveLabel("subObjective2", subText2);
+                    Label subObjective = setupSubObjectiveLabel("subObjective3", subText3);
+                    // Fix the layout
+                    subObjective.getElement().getParent().layoutElements();
+                    Element subObjectiveImage = screen.findElementByName("subObjectiveImage");
+                    subObjectiveImage.hide();
 
-                // Play some tunes!!
-                levelBriefing = new AudioNode(assetManager, "Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2", false);
-                levelBriefing.setLooping(false);
-                levelBriefing.play();
+                    if (selectedLevel.getType().equals(Level.LevelType.Level)) {
+                        subObjectiveImage.show();
+                        img = nifty.createImage("Textures/Obj_Shots/" + selectedLevel.getFullName() + "-1.png", false);
+                        subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
+                        subObjectiveImage.setWidth(img.getWidth());
+                        subObjectiveImage.setHeight(img.getHeight());
+
+
+                        // Play some tunes!!
+                        levelBriefing = new AudioNode(assetManager, "Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2", false);
+                        levelBriefing.setLooping(false);
+                        levelBriefing.play();
+                    }
+                }
                 break;
             case "hiscores":
                 generateHiscoreList();
@@ -316,6 +341,16 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     }
 
     /**
+     * Select a my pet dungeon level
+     *
+     * @param Number the level number as a string
+     */
+    public void selectMPDLevel(String Number) {
+        this.selectedLevel = new Level(Level.LevelType.MPD, Integer.parseInt(Number), null);
+        goToScreen("campaign");
+    }
+
+    /**
      * Called by the GUI, start the selected campaign level
      */
     public void startCampaignLevel() {
@@ -325,7 +360,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         stateManager.detach(this);
 
         // Create the level state
-        String level = String.format("level%s%s", selectedLevel.getLevel(), selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "");
+        String level = String.format("%s%s%s", selectedLevel.getType(), selectedLevel.getLevel(), selectedLevel.getVariation());
         GameState gameState = new GameState(level);
         stateManager.attach(gameState);
     }
@@ -465,7 +500,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * @param selectedLevel the selected level
      */
     private void selectCampaignLevel(FrontEndLevelControl selectedLevel) {
-        this.selectedLevel = new Level(selectedLevel.getLevel(), selectedLevel.getVariation());
+        this.selectedLevel = selectedLevel.getLevel();
         doTransition("253", "campaign", null);
     }
 
@@ -473,8 +508,12 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * Cancel level selection and go back to the campaign map selection
      */
     public void cancelLevelSelect() {
+        if (this.selectedLevel.getType().equals(Level.LevelType.MPD)) {
+            goToScreen("myPetDungeon");
+        } else {
+            doTransition("254", "selectCampaignLevel", null);
+        }
         this.selectedLevel = null;
-        doTransition("254", "selectCampaignLevel", null);
     }
 
     /**
@@ -485,9 +524,13 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     public String getLevelTitle() {
         if (selectedLevel != null) {
             ResourceBundle dict = getLevelResourceBundle();
-            StringBuilder sb = new StringBuilder("\"");
-            sb.append(dict.getString("0"));
-            sb.append("\" - ");
+            StringBuilder sb = new StringBuilder();
+            String name = dict.getString("0");
+            if (!name.equals("")) {
+                sb.append("\"");
+                sb.append(name);
+                sb.append("\" - ");
+            }
             sb.append(dict.getString("1"));
             return sb.toString();
         }
@@ -500,7 +543,16 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * @return the resource bundle
      */
     private ResourceBundle getLevelResourceBundle() {
-        return Main.getResourceBundle("Interface/Texts/LEVEL" + selectedLevel.getLevel() + (selectedLevel.getVariation() != null ? selectedLevel.getVariation() : "") + "_BRIEFING");
+        String briefingName = selectedLevel.getLevel() + selectedLevel.getVariation();
+        switch (selectedLevel.getType()) {
+            case MPD:
+                briefingName = selectedLevel.getFullName();
+                break;
+            case Secret:
+                briefingName = "S" + selectedLevel.getLevel();
+                break;
+        }
+        return Main.getResourceBundle("Interface/Texts/LEVEL" + briefingName + "_BRIEFING");
     }
 
     /**
@@ -510,11 +562,10 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * @param textId the text ID in the resource bundle
      * @return returns the element
      */
-    private Label setupSubObjectiveLabel(String id, String textId) {
+    private Label setupSubObjectiveLabel(String id, String caption) {
 
         // Get the actual label and set the text
         Label label = screen.findNiftyControl(id, Label.class);
-        String caption = getLevelResourceBundle().getString(textId);
         label.setText(caption.isEmpty() ? "" : "- ".concat(caption));
 
         // Measure the text height so that the element can be arranged to the the screen without overlapping the othe sub objectives
@@ -880,28 +931,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 currentControl.setActive(false);
                 currentControl = null;
             }
-        }
-    }
-
-    /**
-     * Level info
-     */
-    private static class Level {
-
-        private final int level;
-        private final String variation;
-
-        public Level(int level, String variation) {
-            this.level = level;
-            this.variation = variation;
-        }
-
-        public int getLevel() {
-            return level;
-        }
-
-        public String getVariation() {
-            return variation;
         }
     }
 }
