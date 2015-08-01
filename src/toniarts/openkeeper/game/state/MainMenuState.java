@@ -253,10 +253,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 String subText3 = getLevelResourceBundle().getString("5");
                 Element subObjectivePanel = screen.findElementByName("subObjectivePanel");
 
-                if (subText1.equals("") && subText2.equals("") && subText3.equals("")) {
-                    // We don't have any subobjectives
-                    subObjectivePanel.hide();
-                } else {
+                subObjectivePanel.hide();
+                if (!(subText1.isEmpty() && subText2.isEmpty() && subText3.isEmpty())) {
+                    // We have subobjectives
                     subObjectivePanel.show();
                     setupSubObjectiveLabel("subObjective1", subText1);
                     setupSubObjectiveLabel("subObjective2", subText2);
