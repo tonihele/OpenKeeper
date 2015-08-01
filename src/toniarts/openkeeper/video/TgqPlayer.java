@@ -213,6 +213,10 @@ public abstract class TgqPlayer {
                     buf.position(buf.position() + written);
                     if (buf.remaining() == 0) {
                         audioFrame = null;
+                    } else {
+
+                        // Sleep a bit to not take all CPU
+                        Thread.sleep(2, 0);
                     }
                 }
 
