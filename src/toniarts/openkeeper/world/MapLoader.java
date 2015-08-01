@@ -82,7 +82,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         Map[][] tiles = object.getTiles();
         for (int x = 0; x < object.getWidth(); x++) {
             for (int y = 0; y < object.getHeight(); y++) {
-                handleTile(tiles, x, y, assetManager, root);
+
+                try {
+                    handleTile(tiles, x, y, assetManager, root);
+                } catch (Exception e) {
+                    logger.log(Level.SEVERE, "Failed to handle tile at " + x + ", " + y + "!", e);
+                }
 
                 // Update progress
                 updateProgress(x * object.getWidth() + y + 1, tilesCount);
