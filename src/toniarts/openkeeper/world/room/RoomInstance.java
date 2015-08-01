@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.tools.convert.map.Terrain;
 
 /**
  * Holds a room instance, series of coordinates that together form a room
@@ -43,7 +42,9 @@ public class RoomInstance {
     public short waterResource;
 
     public RoomInstance(Room room) {
-        if (room == null) throw new RuntimeException("Room can not be null");
+        if (room == null) {
+            throw new RuntimeException("Room can not be null");
+        }
         this.room = room;
     }
 
@@ -58,13 +59,12 @@ public class RoomInstance {
         minY = Math.min(p.y, minY);
         maxY = Math.max(p.y, maxY);
     }
-    
-    public boolean hasCoordinate(Point p) {       
+
+    public boolean hasCoordinate(Point p) {
         return coordinates.contains(p);
     }
-    
-    public Point getCenter()
-    {
+
+    public Point getCenter() {
         return new Point((minX + maxX) / 2, (minY + maxY) / 2);
     }
 
@@ -77,18 +77,18 @@ public class RoomInstance {
     public List<Point> getCoordinates() {
         return coordinates;
     }
-    
+
     public void addWallIndexes(Integer... index) {
-        this.wallIndexes.addAll(Arrays.asList(index)); 
+        this.wallIndexes.addAll(Arrays.asList(index));
     }
-    
+
     public int getWallIndexNext() {
-        if (wallPointer >= wallIndexes.size()) { 
+        if (wallPointer >= wallIndexes.size()) {
             wallPointer = 0;
         }
         return wallIndexes.get(wallPointer);
     }
-    
+
     /**
      * Some building are nowhere near squares, the matrix will help in building
      * such rooms<br>
