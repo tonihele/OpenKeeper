@@ -79,6 +79,7 @@ import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.world.MapLoader;
@@ -265,7 +266,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                     Element subObjectiveImage = screen.findElementByName("subObjectiveImage");
                     subObjectiveImage.hide();
 
-                    if (selectedLevel.getType().equals("Level")) {
+                    if (selectedLevel.getType().equals(Level.LevelType.Level)) {
                         subObjectiveImage.show();
                         img = nifty.createImage("Textures/Obj_Shots/" + selectedLevel.getFullName() + "-1.png", false);
                         subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
@@ -346,7 +347,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * @param Number the level number as a string
      */
     public void selectMPDLevel(String Number) {
-        this.selectedLevel = new Level("MPD", Integer.parseInt(Number), null);
+        this.selectedLevel = new Level(Level.LevelType.MPD, Integer.parseInt(Number), null);
         goToScreen("campaign");
     }
 
@@ -508,7 +509,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * Cancel level selection and go back to the campaign map selection
      */
     public void cancelLevelSelect() {
-        if (this.selectedLevel.getType().equals("MPD")) {
+        if (this.selectedLevel.getType().equals(Level.LevelType.MPD)) {
             goToScreen("myPetDungeon");
         } else {
             doTransition("254", "selectCampaignLevel", null);
@@ -545,10 +546,10 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private ResourceBundle getLevelResourceBundle() {
         String briefingName = selectedLevel.getLevel() + selectedLevel.getVariation();
         switch (selectedLevel.getType()) {
-            case "MPD":
+            case MPD:
                 briefingName = selectedLevel.getFullName();
                 break;
-            case "Secret":
+            case Secret:
                 briefingName = "S" + selectedLevel.getLevel();
                 break;
         }
@@ -931,38 +932,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 currentControl.setActive(false);
                 currentControl = null;
             }
-        }
-    }
-
-    /**
-     * Level info
-     */
-    private static class Level {
-
-        private final String type;
-        private final int level;
-        private final String variation;
-
-        public Level(String type, int level, String variation) {
-            this.type = type;
-            this.level = level;
-            this.variation = variation;
-        }
-
-        public int getLevel() {
-            return level;
-        }
-
-        public String getType() {
-            return type != null ? type : "";
-        }
-
-        public String getVariation() {
-            return variation != null ? variation : "";
-        }
-
-        public String getFullName() {
-            return getType() + (getLevel() > 0 ? getLevel() : "") + getVariation();
         }
     }
 }

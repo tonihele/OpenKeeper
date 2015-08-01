@@ -29,6 +29,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.game.data.Level.LevelType;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
@@ -111,34 +112,34 @@ public class HeroGateFrontEnd {
                 for (int x = 1; x < 21; x++) {
                     switch (x) {
                         case 6:
-                            attachAndCreateLevel(map, "Level", x, "a", assetManager, start, p, false);
+                            attachAndCreateLevel(map, LevelType.Level, x, "a", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                            attachAndCreateLevel(map, "Level", x, "b", assetManager, start, p, false);
+                            attachAndCreateLevel(map, LevelType.Level, x, "b", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
                             break;
                         case 11:
-                            attachAndCreateLevel(map, "Level", x, "a", assetManager, start, p, false);
+                            attachAndCreateLevel(map, LevelType.Level, x, "a", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                            attachAndCreateLevel(map, "Level", x, "b", assetManager, start, p, false);
+                            attachAndCreateLevel(map, LevelType.Level, x, "b", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
-                            attachAndCreateLevel(map, "Level", x, "c", assetManager, start, p, false);
+                            attachAndCreateLevel(map, LevelType.Level, x, "c", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "c" + "_arrows", assetManager, start, p, false));
                             break;
                         case 15:
-                            attachAndCreateLevel(map, "Level", x, "a", assetManager, start, p, false);
+                            attachAndCreateLevel(map, LevelType.Level, x, "a", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                            attachAndCreateLevel(map, "Level", x, "b", assetManager, start, p, false);
+                            attachAndCreateLevel(map, LevelType.Level, x, "b", assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
                             break;
                         default:
-                            attachAndCreateLevel(map, "Level", x, null, assetManager, start, p, false);
+                            attachAndCreateLevel(map, LevelType.Level, x, null, assetManager, start, p, false);
                             map.attachChild(loadObject("3dmaplevel" + x + "_arrows", assetManager, start, p, false));
                     }
                 }
 
                 // Secret levels
                 for (int x = 1; x < 6; x++) {
-                    attachAndCreateLevel(map, "Secret", x, null, assetManager, start, p, false);
+                    attachAndCreateLevel(map, LevelType.Secret, x, null, assetManager, start, p, false);
                 }
 
                 // The map base
@@ -242,9 +243,9 @@ public class HeroGateFrontEnd {
      * @param randomizeAnimation randomize object animation (speed and start
      * time)
      */
-    private static void attachAndCreateLevel(Node map, String type, int level, String variation, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
+    private static void attachAndCreateLevel(Node map, LevelType type, int level, String variation, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
         String objName = "3dmap_level";
-        if (type.equals("Secret")) {
+        if (type.equals(LevelType.Secret)) {
             objName = "Secret_Level";
         }
 
