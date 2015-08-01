@@ -216,10 +216,12 @@ public abstract class TgqPlayer {
                     } else {
 
                         // Sleep a bit to not take all CPU
-                        Thread.sleep(2, 0);
+                        Thread.sleep(10);
                     }
                 }
 
+            } catch (InterruptedException e) {
+                // Just stopped by the user
             } catch (Exception e) {
                 logger.log(Level.SEVERE, "Audio player failed!", e);
             } finally {
