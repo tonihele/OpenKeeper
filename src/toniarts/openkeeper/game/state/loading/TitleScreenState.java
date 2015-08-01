@@ -31,7 +31,7 @@ public abstract class TitleScreenState extends LoadingState {
     protected Texture getLoadingScreenTexture() {
 
         // Load up the texture, there are few localized ones available
-        TextureKey texKey = new TextureKey("Textures/TitleScreen/Titlescreen-" + Locale.getDefault().getDisplayLanguage() + ".png");
+        TextureKey texKey = new TextureKey("Textures/TitleScreen/Titlescreen-" + Locale.getDefault().getDisplayLanguage(Locale.ENGLISH) + ".png");
         if (assetManager.locateAsset(texKey) == null) {
             texKey = new TextureKey("Textures/TitleScreen/Titlescreen.png");
         }
