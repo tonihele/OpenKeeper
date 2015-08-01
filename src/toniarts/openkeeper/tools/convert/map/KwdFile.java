@@ -575,7 +575,7 @@ public class KwdFile {
                 Map map = new Map();
                 map.setTerrainId((short) file.readUnsignedByte());
                 map.setPlayerId((short) file.readUnsignedByte());
-                map.setFlag((short) file.readUnsignedByte());
+                map.setFlag(Utils.parseEnum(file.readUnsignedByte(), Map.BridgeTerrainType.class));
                 map.setUnknown((short) file.readUnsignedByte());
                 tiles[x][y] = map;
             }
