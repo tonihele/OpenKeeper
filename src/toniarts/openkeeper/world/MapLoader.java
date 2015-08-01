@@ -174,7 +174,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         if (x < 0 || x >= tiles.length || y < 0 || y >= tiles[x].length) {
             return false;
         }
-        return tiles[x][y].getTerrainId() == terrain.getTerrainId();
+        Terrain bridgeTerrain = getBridgeTerrain(tiles[x][y], kwdFile.getTerrain(tiles[x][y].getTerrainId()));
+        return (tiles[x][y].getTerrainId() == terrain.getTerrainId() || (bridgeTerrain != null && bridgeTerrain.getTerrainId() == terrain.getTerrainId()));
     }
 
     /**
@@ -396,16 +397,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         // Get the terrain
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         ArtResource ceilingResource = getCeilingResource(terrain);
-        if (ceilingResource != null) {
 
-            // Ceiling & wall
-            handleCeilingAndWall(ceilingResource, terrain, tiles, tile, x, y, assetManager, root);
-        } else if (terrain.getCompleteResource() != null) {
-
-            // Floor, no ceiling, it has a floor
-            ArtResource floorResource = terrain.getCompleteResource();
-            handleFloor(terrain, tiles, x, y, assetManager, floorResource, root, tile);
-        } else {
+        // Room; with bridges, there is also "floor"
+        if (ceilingResource == null && terrain.getCompleteResource() == null) {
 
             // All is null, a room perhaps
             Point p = new Point(x, y);
@@ -417,7 +411,51 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 // Construct the actual room
                 handleRoom(tiles, assetManager, root, roomInstance);
             }
+
+            // Swap the terrain if this is a bridge
+            Terrain bridgeTerrain = getBridgeTerrain(tile, terrain);
+            if (bridgeTerrain != null) {
+                terrain = bridgeTerrain;
+            }
         }
+
+        // Terrain
+        if (ceilingResource != null) {
+
+            // Ceiling & wall
+            handleCeilingAndWall(ceilingResource, terrain, tiles, tile, x, y, assetManager, root);
+        } else if (terrain.getCompleteResource() != null) {
+
+            // Floor, no ceiling, it has a floor
+            ArtResource floorResource = terrain.getCompleteResource();
+            handleFloor(terrain, tiles, x, y, assetManager, floorResource, root, tile);
+        }
+    }
+
+    /**
+     * Bridges are a bit special, identifies one and returns the terrain that
+     * should be under it
+     *
+     * @param tile the tile
+     * @param terrain the terrain tile
+     * @return returns null if this is not a bridge, otherwise returns pretty
+     * much either water or lava
+     */
+    private Terrain getBridgeTerrain(Map tile, Terrain terrain) {
+        Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
+        if (room != null && !room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
+
+            // It is a bridge
+            switch (tile.getFlag()) {
+                case WATER: {
+                    return kwdFile.getTerrain((short) 4);
+                }
+                case LAVA: {
+                    return kwdFile.getTerrain((short) 5);
+                }
+            }
+        }
+        return null;
     }
 
     /**
