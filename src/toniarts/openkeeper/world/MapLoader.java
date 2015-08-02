@@ -851,6 +851,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param roomInstance the room instance
      */
     private void handleRoom(Map[][] tiles, AssetManager assetManager, Node root, RoomInstance roomInstance) {
+        String roomName = roomInstance.getRoom().getName();
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3:
                 root.attachChild(ThreeByThree.construct(assetManager, roomInstance));
@@ -887,7 +888,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 break;
 
             case QUAD:
-                if (roomInstance.getRoom().getName().equalsIgnoreCase("Stone Bridge")) {
+                if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
                     root.attachChild(StoneBridge.construct(assetManager, roomInstance));
                 } else {
                     root.attachChild(WoodenBridge.construct(assetManager, roomInstance));
@@ -895,11 +896,11 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 break;
 
             case DOUBLE_QUAD:
-                if (roomInstance.getRoom().getName().equalsIgnoreCase("Prison")) {
+                if (roomName.equalsIgnoreCase("Prison")) {
                     root.attachChild(Prison.construct(assetManager, roomInstance));
-                } else if (roomInstance.getRoom().getName().equalsIgnoreCase("Combat Pit")) {
+                } else if (roomName.equalsIgnoreCase("Combat Pit")) {
                     root.attachChild(CombatPit.construct(assetManager, roomInstance));
-                } else if (roomInstance.getRoom().getName().equalsIgnoreCase("Temple")) {
+                } else if (roomName.equalsIgnoreCase("Temple")) {
                     root.attachChild(Temple.construct(assetManager, roomInstance));
                 }
                 // TODO use quad construction for different rooms
@@ -908,7 +909,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
             default:
                 // TODO
-                logger.log(Level.WARNING, "Room {0} not exist", roomInstance.getRoom().getName());
+                logger.log(Level.WARNING, "Room {0} not exist", roomName);
                 break;
         }
     }
