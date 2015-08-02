@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.world.terrain;
 
+import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
@@ -29,14 +30,23 @@ import com.jme3.scene.Mesh;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.texture.Texture;
+import com.jme3.texture.Texture2D;
+import com.jme3.texture.plugins.AWTLoader;
 import com.jme3.util.BufferUtils;
+import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.image.BufferedImage;
+import java.awt.image.RescaleOp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.EntityInstance;
 import toniarts.openkeeper.world.MapLoader;
@@ -49,7 +59,16 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class Water {
 
-    private static final boolean SHARE_VERTICES = false;
+    /**
+     * TODO: Options loaded from elsewhere
+     */
+    public enum WaterType {
+
+        /* Just for testing etc. Not to be really used, I just left it in */
+        SIMPLE, CLASSIC;
+    };
+    private static final WaterType WATER_TYPE = WaterType.CLASSIC;
+    private static final Logger logger = Logger.getLogger(Water.class.getName());
 
     private Water() {
         // Nope
@@ -64,21 +83,34 @@ public class Water {
      * @return the visual representation of your entity instance
      */
     public static Spatial construct(AssetManager assetManager, List<EntityInstance<Terrain>> entityInstances) {
-        Mesh mesh = createMesh(entityInstances);
         boolean water = entityInstances.get(0).getEntity().getFlags().contains(Terrain.TerrainFlag.WATER);
+        Mesh mesh = createMesh(entityInstances, (water && WATER_TYPE == WaterType.SIMPLE));
 
         // Create the geometry
         Geometry geo = new Geometry((water ? "Water" : "Lava"), mesh);
 
         // The material
-        Material mat;
+        Material mat = null;
         if (water) {
-            mat = new Material(assetManager,
-                    "Common/MatDefs/Misc/Unshaded.j3md");
-            mat.setColor("Color", new ColorRGBA(0, 0, 1, 0.2f));
-            mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
-            mat.setTransparent(true);
+            switch (WATER_TYPE) {
+                case SIMPLE: {
+                    mat = new Material(assetManager,
+                            "Common/MatDefs/Misc/Unshaded.j3md");
+                    mat.setColor("Color", new ColorRGBA(0, 0, 1, 0.2f));
+                    mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+                    mat.setTransparent(true);
+                    break;
+                }
+                case CLASSIC: {
 
+                    // TODO: MaterialHelper to convert package? Something
+                    ArtResource resource = entityInstances.get(0).getEntity().getTopResource();
+
+                    // Alpha resource, compile such
+                    mat = createMaterial(resource, assetManager);
+                    break;
+                }
+            }
         } else {
 
             // Lava
@@ -105,9 +137,11 @@ public class Water {
      * Create the whole mesh
      *
      * @param entityInstances the instances
+     * @param shareVertices no duplicate vertices, if no texture coordinates are
+     * needed
      * @return returns a mesh
      */
-    private static Mesh createMesh(List<EntityInstance<Terrain>> entityInstances) {
+    private static Mesh createMesh(List<EntityInstance<Terrain>> entityInstances, boolean shareVertices) {
 
         // Create new mesh
         Mesh mesh = new Mesh();
@@ -134,10 +168,10 @@ public class Water {
                 Vector3f vertice2 = new Vector3f(tile.x * MapLoader.TILE_WIDTH, -MapLoader.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH);
                 Vector3f vertice3 = new Vector3f(tile.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH, -MapLoader.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH);
                 Vector3f vertice4 = new Vector3f(tile.x * MapLoader.TILE_WIDTH, -MapLoader.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH);
-                int vertice1Index = addVertice(verticeHash, vertice1, vertices, textureCoord1, textureCoordinates, normals);
-                int vertice2Index = addVertice(verticeHash, vertice2, vertices, textureCoord2, textureCoordinates, normals);
-                int vertice3Index = addVertice(verticeHash, vertice3, vertices, textureCoord3, textureCoordinates, normals);
-                int vertice4Index = addVertice(verticeHash, vertice4, vertices, textureCoord4, textureCoordinates, normals);
+                int vertice1Index = addVertice(verticeHash, vertice1, vertices, textureCoord1, textureCoordinates, normals, shareVertices);
+                int vertice2Index = addVertice(verticeHash, vertice2, vertices, textureCoord2, textureCoordinates, normals, shareVertices);
+                int vertice3Index = addVertice(verticeHash, vertice3, vertices, textureCoord3, textureCoordinates, normals, shareVertices);
+                int vertice4Index = addVertice(verticeHash, vertice4, vertices, textureCoord4, textureCoordinates, normals, shareVertices);
 
                 // Indexes
                 indexes.addAll(Arrays.asList(vertice3Index, vertice4Index, vertice2Index, vertice2Index, vertice1Index, vertice3Index));
@@ -162,10 +196,12 @@ public class Water {
      * @param textureCoord the texture coordinate at the given vertice
      * @param textureCoordinates the texture coordinates list
      * @param normals the normals
+     * @param shareVertices no duplicate vertices, if no texture coordinates are
+     * needed
      * @return index of the given vertice
      */
-    private static int addVertice(final HashMap<Vector3f, Integer> verticeHash, final Vector3f vertice, final List<Vector3f> vertices, final Vector2f textureCoord, final List<Vector2f> textureCoordinates, final List<Vector3f> normals) {
-        if (!SHARE_VERTICES || (SHARE_VERTICES && !verticeHash.containsKey(vertice))) {
+    private static int addVertice(final HashMap<Vector3f, Integer> verticeHash, final Vector3f vertice, final List<Vector3f> vertices, final Vector2f textureCoord, final List<Vector2f> textureCoordinates, final List<Vector3f> normals, final boolean shareVertices) {
+        if (!shareVertices || (shareVertices && !verticeHash.containsKey(vertice))) {
             vertices.add(vertice);
             verticeHash.put(vertice, vertices.size() - 1);
 
@@ -178,6 +214,66 @@ public class Water {
             return vertices.size() - 1;
         }
         return verticeHash.get(vertice);
+    }
+
+    /**
+     * TODO: general, refactor out of here. And cache the created materials.<br>
+     * Creates a material from an ArtResource
+     *
+     * @param resource the ArtResource
+     * @param assetManager the asset manager
+     * @return JME material
+     */
+    private static Material createMaterial(ArtResource resource, AssetManager assetManager) {
+        if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+            Material mat = new Material(assetManager,
+                    "MatDefs/LightingSprite.j3md");
+            int frames = ((ArtResource.Image) resource.getSettings()).getFrames();
+            mat.setInt("NumberOfTiles", frames);
+            mat.setInt("Speed", 8); // Just a guess work
+
+            // Create the texture
+            try {
+
+                RescaleOp rop = null;
+                if (resource.getSettings().getType() == ArtResource.Type.ALPHA) {
+                    float[] scales = {1f, 1f, 1f, 0.75f};
+                    float[] offsets = new float[4];
+                    rop = new RescaleOp(scales, offsets, null);
+                    mat.setBoolean("UseAlpha", true);
+                    mat.setTransparent(true);
+                    mat.setFloat("AlphaDiscardThreshold", 0.1f);
+                    mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+                }
+
+                // Get the first frame, the frames need to be same size
+                BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey("Textures/" + resource.getName() + "0.png")).openStream());
+
+                // Create image big enough to fit all the frames
+                BufferedImage text =
+                        new BufferedImage(img.getWidth() * frames, img.getHeight(),
+                        BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g = text.createGraphics();
+                g.drawImage(img, rop, 0, 0);
+                for (int x = 1; x < frames; x++) {
+                    img = ImageIO.read(assetManager.locateAsset(new AssetKey("Textures/" + resource.getName() + x + ".png")).openStream());
+                    g.drawImage(img, rop, img.getWidth() * x, 0);
+                }
+                g.dispose();
+
+                // Convert the new image to a texture
+                AWTLoader loader = new AWTLoader();
+                Texture tex = new Texture2D(loader.load(text, false));
+
+                // Load the texture up
+                mat.setTexture("DiffuseMap", tex);
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Can't create a texture out of " + resource + "!", e);
+            }
+
+            return mat;
+        }
+        return null;
     }
 
     private static int[] toIntArray(final List<Integer> list) {
