@@ -80,7 +80,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         this.kwdFile = object;
 
         //Create a root
-        BatchNode root = new BatchNode("Map");
+        Node root = new Node("Map");
+        BatchNode terrain = new BatchNode("Terrain");
 
         // Go through the map
         int tilesCount = object.getWidth() * object.getHeight();
@@ -89,7 +90,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             for (int y = 0; y < object.getHeight(); y++) {
 
                 try {
-                    handleTile(tiles, x, y, assetManager, root);
+                    handleTile(tiles, x, y, assetManager, terrain);
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Failed to handle tile at " + x + ", " + y + "!", e);
                 }
@@ -100,7 +101,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
 
         // Batch it
-        root.batch();
+        terrain.batch();
+        root.attachChild(terrain);
 
         // Create the water
         if (!waterBatches.isEmpty()) {
