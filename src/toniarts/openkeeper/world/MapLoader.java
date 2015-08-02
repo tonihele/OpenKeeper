@@ -465,10 +465,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             // It is a bridge
             switch (tile.getFlag()) {
                 case WATER: {
-                    return kwdFile.getTerrain((short) 4);
+                    return kwdFile.getWater();
                 }
                 case LAVA: {
-                    return kwdFile.getTerrain((short) 5);
+                    return kwdFile.getLava();
                 }
             }
         }
