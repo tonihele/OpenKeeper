@@ -54,6 +54,7 @@ import toniarts.openkeeper.world.room.StoneBridge;
 import toniarts.openkeeper.world.room.Temple;
 import toniarts.openkeeper.world.room.ThreeByThree;
 import toniarts.openkeeper.world.room.WoodenBridge;
+import toniarts.openkeeper.world.terrain.Water;
 
 /**
  * Loads whole maps
@@ -65,6 +66,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
     private final static float WATER_DEPTH = 0.3525f;
+    public final static float WATER_LEVEL = 0.075f;
     private KwdFile kwdFile;
     private List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
     private List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
@@ -99,6 +101,16 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         // Batch it
         root.batch();
+
+        // Create the water
+        if (!waterBatches.isEmpty()) {
+            root.attachChild(Water.construct(assetManager, waterBatches));
+        }
+
+        // And the lava
+        if (!lavaBatches.isEmpty()) {
+            root.attachChild(Water.construct(assetManager, lavaBatches));
+        }
 
         return root;
     }

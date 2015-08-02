@@ -1,0 +1,160 @@
+/*
+ * Copyright (C) 2014-2015 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.world.terrain;
+
+import com.jme3.asset.AssetManager;
+import com.jme3.material.Material;
+import com.jme3.material.RenderState;
+import com.jme3.math.ColorRGBA;
+import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
+import com.jme3.renderer.queue.RenderQueue;
+import com.jme3.scene.Geometry;
+import com.jme3.scene.Mesh;
+import com.jme3.scene.Spatial;
+import com.jme3.scene.VertexBuffer.Type;
+import com.jme3.util.BufferUtils;
+import java.awt.Point;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.world.EntityInstance;
+import toniarts.openkeeper.world.MapLoader;
+
+/**
+ * Don't let the name fool you, this bad boy also handles lava construction. The
+ * name just comes from the construction type
+ *
+ * @author Toni Helenius <helenius.toni@gmail.com>
+ */
+public class Water {
+
+    private Water() {
+        // Nope
+    }
+
+    /**
+     * Construct water/lava
+     *
+     * @param assetManager asset manager instance
+     * @param entityInstances list of entity instances <b>of the same type</b>.
+     * Don't mix lava & water here
+     * @return the visual representation of your entity instance
+     */
+    public static Spatial construct(AssetManager assetManager, List<EntityInstance<Terrain>> entityInstances) {
+
+        // Create new mesh
+        Mesh mesh = new Mesh();
+        List<Vector3f> vertices = new ArrayList<>();
+        List<Vector2f> textureCoordinates = new ArrayList<>();
+        List<Integer> indexes = new ArrayList<>();
+        List<Vector3f> normals = new ArrayList<>();
+
+        // Handle each river/lake separately
+        for (EntityInstance<Terrain> entityInstance : entityInstances) {
+            HashMap<Vector3f, Integer> verticeHash = new HashMap<>(entityInstance.getCoordinates().size());
+            for (Point tile : entityInstance.getCoordinates()) {
+
+                // For each tile, create a quad, in a way
+
+                // Texture coordinates
+                Vector2f textureCoord1 = new Vector2f(0, 0);
+                Vector2f textureCoord2 = new Vector2f(1, 0);
+                Vector2f textureCoord3 = new Vector2f(0, 1);
+                Vector2f textureCoord4 = new Vector2f(1, 1);
+
+                // Vertices
+                Vector3f vertice1 = new Vector3f(tile.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH, -MapLoader.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH);
+                Vector3f vertice2 = new Vector3f(tile.x * MapLoader.TILE_WIDTH, -MapLoader.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH);
+                Vector3f vertice3 = new Vector3f(tile.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH, -MapLoader.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH);
+                Vector3f vertice4 = new Vector3f(tile.x * MapLoader.TILE_WIDTH, -MapLoader.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH);
+                int vertice1Index = addVertice(verticeHash, vertice1, vertices, textureCoord1, textureCoordinates, normals);
+                int vertice2Index = addVertice(verticeHash, vertice2, vertices, textureCoord2, textureCoordinates, normals);
+                int vertice3Index = addVertice(verticeHash, vertice3, vertices, textureCoord3, textureCoordinates, normals);
+                int vertice4Index = addVertice(verticeHash, vertice4, vertices, textureCoord4, textureCoordinates, normals);
+
+                // Indexes
+                indexes.addAll(Arrays.asList(vertice3Index, vertice4Index, vertice2Index, vertice2Index, vertice1Index, vertice3Index));
+            }
+        }
+
+        // Assign the mesh data
+        mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices.toArray(new Vector3f[vertices.size()])));
+        mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(textureCoordinates.toArray(new Vector2f[textureCoordinates.size()])));
+        mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(toIntArray(indexes)));
+        mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals.toArray(new Vector3f[normals.size()])));
+        mesh.updateBound();
+
+        Geometry geo = new Geometry("OurMesh", mesh); // using our custom mesh object
+        Material mat = new Material(assetManager,
+                "Common/MatDefs/Misc/Unshaded.j3md");
+        if (entityInstances.get(0).getEntity().getFlags().contains(Terrain.TerrainFlag.WATER)) {
+            mat.setColor("Color", new ColorRGBA(0, 0, 1, 0.2f));
+            mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+            mat.setTransparent(true);
+        } else {
+            mat.setColor("Color", ColorRGBA.Red);
+        }
+        geo.setMaterial(mat);
+        if (mat.isTransparent()) {
+            geo.setQueueBucket(RenderQueue.Bucket.Translucent);
+            geo.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+        } else {
+            geo.setShadowMode(RenderQueue.ShadowMode.Receive);
+        }
+
+        return geo;
+    }
+
+    /**
+     * Adds a vertice to vertice list or returns the index of an existing
+     * verctice in the same coordinates. No duplicate vertices
+     *
+     * @param verticeHash the vertice hash (vertice -> index)
+     * @param vertice vertice to add/find
+     * @param vertices all the vertices
+     * @param textureCoord the texture coordinate at the given vertice
+     * @param textureCoordinates the texture coordinates list
+     * @param normals the normals
+     * @return index of the given vertice
+     */
+    private static int addVertice(final HashMap<Vector3f, Integer> verticeHash, final Vector3f vertice, final List<Vector3f> vertices, final Vector2f textureCoord, final List<Vector2f> textureCoordinates, final List<Vector3f> normals) {
+        if (!verticeHash.containsKey(vertice)) {
+            vertices.add(vertice);
+            verticeHash.put(vertice, vertices.size() - 1);
+
+            // Add the texture coordinate as well
+            textureCoordinates.add(textureCoord);
+
+            // And the normal, they are all facing upwards now
+            normals.add(new Vector3f(0, 1, 0));
+
+            return vertices.size() - 1;
+        }
+        return verticeHash.get(vertice);
+    }
+
+    private static int[] toIntArray(final List<Integer> list) {
+        int[] ret = new int[list.size()];
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = list.get(i);
+        }
+        return ret;
+    }
+}
