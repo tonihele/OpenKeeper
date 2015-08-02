@@ -17,6 +17,7 @@
 package toniarts.openkeeper.world.terrain;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
@@ -27,12 +28,15 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.VertexBuffer.Type;
+import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.Utils;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.EntityInstance;
 import toniarts.openkeeper.world.MapLoader;
@@ -44,6 +48,8 @@ import toniarts.openkeeper.world.MapLoader;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class Water {
+
+    private static final boolean SHARE_VERTICES = false;
 
     private Water() {
         // Nope
@@ -58,6 +64,50 @@ public class Water {
      * @return the visual representation of your entity instance
      */
     public static Spatial construct(AssetManager assetManager, List<EntityInstance<Terrain>> entityInstances) {
+        Mesh mesh = createMesh(entityInstances);
+        boolean water = entityInstances.get(0).getEntity().getFlags().contains(Terrain.TerrainFlag.WATER);
+
+        // Create the geometry
+        Geometry geo = new Geometry((water ? "Water" : "Lava"), mesh);
+
+        // The material
+        Material mat;
+        if (water) {
+            mat = new Material(assetManager,
+                    "Common/MatDefs/Misc/Unshaded.j3md");
+            mat.setColor("Color", new ColorRGBA(0, 0, 1, 0.2f));
+            mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+            mat.setTransparent(true);
+
+        } else {
+
+            // Lava
+            mat = new Material(assetManager,
+                    "Common/MatDefs/Light/Lighting.j3md");
+            TextureKey textureKey = new TextureKey(Utils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(entityInstances.get(0).getEntity().getTopResource().getName()).concat(".png")), false);
+            Texture tex = assetManager.loadTexture(textureKey);
+            mat.setTexture("DiffuseMap", tex);
+        }
+
+        // Set it all
+        geo.setMaterial(mat);
+        if (mat.isTransparent()) {
+            geo.setQueueBucket(RenderQueue.Bucket.Translucent);
+            geo.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+        } else {
+            geo.setShadowMode(RenderQueue.ShadowMode.Receive);
+        }
+
+        return geo;
+    }
+
+    /**
+     * Create the whole mesh
+     *
+     * @param entityInstances the instances
+     * @return returns a mesh
+     */
+    private static Mesh createMesh(List<EntityInstance<Terrain>> entityInstances) {
 
         // Create new mesh
         Mesh mesh = new Mesh();
@@ -93,33 +143,13 @@ public class Water {
                 indexes.addAll(Arrays.asList(vertice3Index, vertice4Index, vertice2Index, vertice2Index, vertice1Index, vertice3Index));
             }
         }
-
         // Assign the mesh data
         mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices.toArray(new Vector3f[vertices.size()])));
         mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(textureCoordinates.toArray(new Vector2f[textureCoordinates.size()])));
         mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(toIntArray(indexes)));
         mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals.toArray(new Vector3f[normals.size()])));
         mesh.updateBound();
-
-        Geometry geo = new Geometry("OurMesh", mesh); // using our custom mesh object
-        Material mat = new Material(assetManager,
-                "Common/MatDefs/Misc/Unshaded.j3md");
-        if (entityInstances.get(0).getEntity().getFlags().contains(Terrain.TerrainFlag.WATER)) {
-            mat.setColor("Color", new ColorRGBA(0, 0, 1, 0.2f));
-            mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
-            mat.setTransparent(true);
-        } else {
-            mat.setColor("Color", ColorRGBA.Red);
-        }
-        geo.setMaterial(mat);
-        if (mat.isTransparent()) {
-            geo.setQueueBucket(RenderQueue.Bucket.Translucent);
-            geo.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
-        } else {
-            geo.setShadowMode(RenderQueue.ShadowMode.Receive);
-        }
-
-        return geo;
+        return mesh;
     }
 
     /**
@@ -135,7 +165,7 @@ public class Water {
      * @return index of the given vertice
      */
     private static int addVertice(final HashMap<Vector3f, Integer> verticeHash, final Vector3f vertice, final List<Vector3f> vertices, final Vector2f textureCoord, final List<Vector2f> textureCoordinates, final List<Vector3f> normals) {
-        if (!verticeHash.containsKey(vertice)) {
+        if (!SHARE_VERTICES || !verticeHash.containsKey(vertice)) {
             vertices.add(vertice);
             verticeHash.put(vertice, vertices.size() - 1);
 
