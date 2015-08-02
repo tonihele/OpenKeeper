@@ -92,7 +92,7 @@ public class Water {
         // Set it all
         geo.setMaterial(mat);
         if (mat.isTransparent()) {
-            geo.setQueueBucket(RenderQueue.Bucket.Translucent);
+            geo.setQueueBucket(RenderQueue.Bucket.Transparent);
             geo.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
         } else {
             geo.setShadowMode(RenderQueue.ShadowMode.Receive);
@@ -165,7 +165,7 @@ public class Water {
      * @return index of the given vertice
      */
     private static int addVertice(final HashMap<Vector3f, Integer> verticeHash, final Vector3f vertice, final List<Vector3f> vertices, final Vector2f textureCoord, final List<Vector2f> textureCoordinates, final List<Vector3f> normals) {
-        if (!SHARE_VERTICES || !verticeHash.containsKey(vertice)) {
+        if (!SHARE_VERTICES || (SHARE_VERTICES && !verticeHash.containsKey(vertice))) {
             vertices.add(vertice);
             verticeHash.put(vertice, vertices.size() - 1);
 
