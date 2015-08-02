@@ -290,6 +290,8 @@ public class KwdFile {
     private HashMap<Short, Shot> shots;
     private HashMap<Integer, Trigger> triggers;
     private List<Variable> variables;
+    private Terrain water;
+    private Terrain lava;
     private boolean customOverrides = false;
     //
     private static final Logger logger = Logger.getLogger(KwdFile.class.getName());
@@ -776,6 +778,14 @@ public class KwdFile {
 
             // Add to the hash by the terrain ID
             terrainTiles.put(terrain.getTerrainId(), terrain);
+
+            // See that we have water & lava set
+            if (water == null && terrain.getFlags().contains(Terrain.TerrainFlag.WATER)) {
+                water = terrain;
+            }
+            if (lava == null && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
+                lava = terrain;
+            }
 
             // Check file offset
             checkOffset(header, file, offset);
@@ -2494,6 +2504,24 @@ public class KwdFile {
         List<KeeperSpell> c = new ArrayList(keeperSpells.values());
         Collections.sort(c);
         return c;
+    }
+
+    /**
+     * Get the lava terrain tile
+     *
+     * @return lava
+     */
+    public Terrain getLava() {
+        return lava;
+    }
+
+    /**
+     * Get the water terrain tile
+     *
+     * @return water
+     */
+    public Terrain getWater() {
+        return water;
     }
 
     /**

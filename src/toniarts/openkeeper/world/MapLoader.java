@@ -54,6 +54,7 @@ import toniarts.openkeeper.world.room.StoneBridge;
 import toniarts.openkeeper.world.room.Temple;
 import toniarts.openkeeper.world.room.ThreeByThree;
 import toniarts.openkeeper.world.room.WoodenBridge;
+import toniarts.openkeeper.world.terrain.Water;
 
 /**
  * Loads whole maps
@@ -65,9 +66,13 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
     private final static float WATER_DEPTH = 0.3525f;
+    public final static float WATER_LEVEL = 0.075f;
     private KwdFile kwdFile;
     private List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
+    private List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
+    private List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private HashMap<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
+    private HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
     @Override
@@ -75,7 +80,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         this.kwdFile = object;
 
         //Create a root
-        BatchNode root = new BatchNode("Map");
+        Node root = new Node("Map");
+        BatchNode terrain = new BatchNode("Terrain");
 
         // Go through the map
         int tilesCount = object.getWidth() * object.getHeight();
@@ -84,7 +90,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             for (int y = 0; y < object.getHeight(); y++) {
 
                 try {
-                    handleTile(tiles, x, y, assetManager, root);
+                    handleTile(tiles, x, y, assetManager, terrain);
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Failed to handle tile at " + x + ", " + y + "!", e);
                 }
@@ -95,7 +101,18 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
 
         // Batch it
-        root.batch();
+        terrain.batch();
+        root.attachChild(terrain);
+
+        // Create the water
+        if (!waterBatches.isEmpty()) {
+            root.attachChild(Water.construct(assetManager, waterBatches));
+        }
+
+        // And the lava
+        if (!lavaBatches.isEmpty()) {
+            root.attachChild(Water.construct(assetManager, lavaBatches));
+        }
 
         return root;
     }
@@ -448,10 +465,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             // It is a bridge
             switch (tile.getFlag()) {
                 case WATER: {
-                    return kwdFile.getTerrain((short) 4);
+                    return kwdFile.getWater();
                 }
                 case LAVA: {
-                    return kwdFile.getTerrain((short) 5);
+                    return kwdFile.getLava();
                 }
             }
         }
@@ -552,6 +569,18 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         // For water construction type (lava & water), there are 8 pieces (0-7 suffix) in complete resource
         // And in the top resource there is the actual lava/water
         if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)) {
+
+            // Store the batch instance
+            Point p = new Point(x, y);
+            if (!terrainBatchCoordinates.containsKey(p)) {
+                EntityInstance<Terrain> entityInstance = new EntityInstance<>(terrain);
+                findTerrainBatch(tiles, p, entityInstance);
+                if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
+                    lavaBatches.add(entityInstance);
+                } else {
+                    waterBatches.add(entityInstance);
+                }
+            }
 
             // Get the tile
             Spatial floor = handleWaterConstruction(tiles, x, y, terrain, assetManager, floorResource);
@@ -838,6 +867,47 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                     // Find west
                     findRoom(tiles, new Point(p.x - 1, p.y), roomInstance);
                 }
+            }
+        }
+    }
+
+    /**
+     * Find a terrain batch starting from a certain point, they are never
+     * diagonally attached
+     *
+     * @param tiles the tiles
+     * @param p starting point
+     * @param entityInstance the batch instance
+     */
+    private void findTerrainBatch(Map[][] tiles, Point p, EntityInstance<Terrain> entityInstance) {
+        Map tile = tiles[p.x][p.y];
+
+        if (!terrainBatchCoordinates.containsKey(p)) {
+
+            // Get the terrain
+            Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+            Terrain bridgeTerrain = getBridgeTerrain(tile, terrain);
+            if (bridgeTerrain != null) {
+                terrain = bridgeTerrain;
+            }
+
+            if (entityInstance.getEntity().equals(terrain)) {
+
+                // Add the coordinate
+                terrainBatchCoordinates.put(p, entityInstance);
+                entityInstance.addCoordinate(p);
+
+                // Find north
+                findTerrainBatch(tiles, new Point(p.x, p.y - 1), entityInstance);
+
+                // Find east
+                findTerrainBatch(tiles, new Point(p.x + 1, p.y), entityInstance);
+
+                // Find south
+                findTerrainBatch(tiles, new Point(p.x, p.y + 1), entityInstance);
+
+                // Find west
+                findTerrainBatch(tiles, new Point(p.x - 1, p.y), entityInstance);
             }
         }
     }
