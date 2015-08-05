@@ -76,10 +76,10 @@ import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.data.HiScores;
+import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.world.MapLoader;
@@ -543,13 +543,16 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * @return the resource bundle
      */
     private ResourceBundle getLevelResourceBundle() {
-        String briefingName = selectedLevel.getLevel() + selectedLevel.getVariation();
+        String briefingName;
         switch (selectedLevel.getType()) {
             case MPD:
                 briefingName = selectedLevel.getFullName();
                 break;
             case Secret:
                 briefingName = "S" + selectedLevel.getLevel();
+                break;
+            default:
+                briefingName = selectedLevel.getLevel() + selectedLevel.getVariation().toUpperCase();
                 break;
         }
         return Main.getResourceBundle("Interface/Texts/LEVEL" + briefingName + "_BRIEFING");
