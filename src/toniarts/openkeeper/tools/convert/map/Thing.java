@@ -21,6 +21,7 @@ import java.util.List;
 import javax.vecmath.Vector3f;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
+import toniarts.openkeeper.tools.convert.map.Thing.HeroParty.Objective;
 
 /**
  * Container class for *Things.kld
@@ -178,26 +179,19 @@ public abstract class Thing {
         }
     }
 
-//    struct Thing03Block {
-//        int32_t pos[3];
-//        uint16_t x0c;
-//        uint8_t x0e; /* level */
-//        uint8_t x0f; /* likely flags */
-//        int32_t x10;
-//        int32_t x14;
-//        uint16_t x18;
-//        uint8_t id; /* 1a */
-//        uint8_t x1b; /* player id */
-//        };
-    public static class Creature extends Thing {
+    public abstract static class Creature extends Thing {
 
         /**
          * Creature flags
          */
         public enum CreatureFlag implements IFlagEnum {
+            // ELITE contains in creatureId
 
             WILL_FIGHT(0x001),
+            LEADER(0x002),
+            FOLLOWER(0x004),
             WILL_BE_ATTACKED(0x008),
+            RETURN_TO_HERO_LAIR(0x010),
             FREE_FRIENDS_ON_JAIL_BREAK(0x020),
             ACT_AS_DROPPED(0x040),
             START_AS_DYING(0x080);
@@ -212,17 +206,32 @@ public abstract class Thing {
                 return flagValue;
             }
         };
+
+        /**
+         * Creature flags
+         */
+        public enum CreatureFlag2 implements IFlagEnum {
+
+            DESTROY_ROOMS(0x001),
+            I_AM_A_TOOL(0x002),
+            DIES_INSTANTLY(0x004),
+            I_AM_A_MERCENARY(0x008);
+            private final long flagValue;
+
+            private CreatureFlag2(long flagValue) {
+                this.flagValue = flagValue;
+            }
+
+            @Override
+            public long getFlagValue() {
+                return flagValue;
+            }
+        };
         private int posX; // 0-based coordinate
         private int posY; // 0-based coordinate
         private int posZ; // ???
         private int goldHeld; // Percent
-        private short level; // level
-        private EnumSet<CreatureFlag> flags; // Short, likely flags
-        private int initialHealth; // Percent
-        private int x14;
-        private int triggerId;
         private short creatureId; // 1a
-        private short playerId; // player id
 
         public int getPosX() {
             return posX;
@@ -256,6 +265,36 @@ public abstract class Thing {
             this.goldHeld = goldHeld;
         }
 
+        public short getCreatureId() {
+            return creatureId;
+        }
+
+        protected void setCreatureId(short creatureId) {
+            this.creatureId = creatureId;
+        }
+    }
+
+    //    struct Thing03Block {
+//        int32_t pos[3];
+//        uint16_t x0c;
+//        uint8_t x0e; /* level */
+//        uint8_t x0f; /* likely flags */
+//        int32_t x10;
+//        int32_t x14;
+//        uint16_t x18;
+//        uint8_t id; /* 1a */
+//        uint8_t x1b; /* player id */
+//        };
+    public static class KeeperCreature extends Creature {
+
+        private short level;
+        private EnumSet<Creature.CreatureFlag> flags; // Short, likely flags
+        private int initialHealth; // Percent
+        private int objectiveTargetActionPointId;
+        private int x14;
+        private int triggerId;
+        private short playerId; // player id
+
         public short getLevel() {
             return level;
         }
@@ -280,6 +319,14 @@ public abstract class Thing {
             this.initialHealth = initialHealth;
         }
 
+        public int getObjectiveTargetActionPointId() {
+            return objectiveTargetActionPointId;
+        }
+
+        protected void setObjectiveTargetActionPointId(int objectiveTargetActionPointId) {
+            this.objectiveTargetActionPointId = objectiveTargetActionPointId;
+        }
+
         public int getX14() {
             return x14;
         }
@@ -294,14 +341,6 @@ public abstract class Thing {
 
         protected void setTriggerId(int triggerId) {
             this.triggerId = triggerId;
-        }
-
-        public short getCreatureId() {
-            return creatureId;
-        }
-
-        protected void setCreatureId(short creatureId) {
-            this.creatureId = creatureId;
         }
 
         public short getPlayerId() {
@@ -472,6 +511,7 @@ public abstract class Thing {
 //        uint8_t x52;
 //        };
 
+    // FIXME: these were camera positions, but found in variables???
     public static class Thing12 extends Thing {
 
         private Vector3f x00;
@@ -490,7 +530,7 @@ public abstract class Thing {
         private int x4c;
         private int x4e;
         private int x50;
-        private short x52;
+        private short id;
 
         public Vector3f getX00() {
             return x00;
@@ -620,12 +660,12 @@ public abstract class Thing {
             this.x50 = x50;
         }
 
-        public short getX52() {
-            return x52;
+        public short getId() {
+            return id;
         }
 
-        protected void setX52(short x52) {
-            this.x52 = x52;
+        protected void setId(short id) {
+            this.id = id;
         }
     }
 
@@ -641,6 +681,7 @@ public abstract class Thing {
 
         public enum Objective implements IValueEnum {
 
+            NONE(0),
             DESTROY_ROOMS(11),
             DESTROY_WALLS(12),
             STEAL_GOLD(13),
@@ -667,7 +708,7 @@ public abstract class Thing {
         private short id; // I assume, autoincremental 0-based
         private int x23; // these two are unreferenced...
         private int x27;
-        private List<HeroPartyData> heroPartyMembers; // 16 at max
+        private List<GoodCreature> heroPartyMembers; // 16 at max
 
         public String getName() {
             return name;
@@ -709,11 +750,11 @@ public abstract class Thing {
             this.x27 = x27;
         }
 
-        public List<HeroPartyData> getHeroPartyMembers() {
+        public List<GoodCreature> getHeroPartyMembers() {
             return heroPartyMembers;
         }
 
-        protected void setHeroPartyMembers(List<HeroPartyData> heroPartyMembers) {
+        protected void setHeroPartyMembers(List<GoodCreature> heroPartyMembers) {
             this.heroPartyMembers = heroPartyMembers;
         }
 
@@ -1015,37 +1056,94 @@ public abstract class Thing {
         }
     }
 
-    public static class DeadBody extends Thing {
+    public static class DeadBody extends Creature {
 
-        private short unknown1[]; // 16
+        private short playerId;
 
-        public short[] getUnknown1() {
-            return unknown1;
+        public short getPlayerId() {
+            return playerId;
         }
 
-        protected void setUnknown1(short[] unknown1) {
-            this.unknown1 = unknown1;
+        protected void setPlayerId(short playerId) {
+            this.playerId = playerId;
         }
     }
 
-    public static class NeutralCreature extends Thing {
+    public static class NeutralCreature extends Creature {
 
-        private short unknown1[]; // 24
+        private short level; // level
+        private EnumSet<CreatureFlag> flags; // Short, likely flags
+        private int initialHealth; // Percent
+        private int triggerId;
+        private short unknown1;
 
-        public short[] getUnknown1() {
+        public short getLevel() {
+            return level;
+        }
+
+        protected void setLevel(short level) {
+            this.level = level;
+        }
+
+        public EnumSet<CreatureFlag> getFlags() {
+            return flags;
+        }
+
+        protected void setFlags(EnumSet<CreatureFlag> flags) {
+            this.flags = flags;
+        }
+
+        public int getInitialHealth() {
+            return initialHealth;
+        }
+
+        protected void setInitialHealth(int initialHealth) {
+            this.initialHealth = initialHealth;
+        }
+
+        public int getTriggerId() {
+            return triggerId;
+        }
+
+        protected void setTriggerId(int triggerId) {
+            this.triggerId = triggerId;
+        }
+
+        public short getUnknown1() {
             return unknown1;
         }
 
-        protected void setUnknown1(short[] unknown1) {
+        protected void setUnknown1(short unknown1) {
             this.unknown1 = unknown1;
         }
     }
 
     public static class Door extends Thing {
 
+        public enum DoorFlag implements IValueEnum {
+
+            NONE(0),
+            LOCKED(1),
+            BLUEPRINT(2);
+
+            private DoorFlag(int id) {
+                this.id = id;
+            }
+
+            @Override
+            public int getValue() {
+                return id;
+            }
+            private final int id;
+        }
         private int posX; // 0-based coordinate
         private int posY; // 0-based coordinate
-        private short unknown1[]; // 12
+        private int unknown1; // 4
+        private int triggerId;
+        private short doorId;
+        private short playerId;
+        private DoorFlag flag;
+        private short unknown2[];  // 3
 
         public int getPosX() {
             return posX;
@@ -1063,12 +1161,52 @@ public abstract class Thing {
             this.posY = posY;
         }
 
-        public short[] getUnknown1() {
+        public int getUnknown1() {
             return unknown1;
         }
 
-        protected void setUnknown1(short[] unknown1) {
+        protected void setUnknown1(int unknown1) {
             this.unknown1 = unknown1;
+        }
+
+        public int getTriggerId() {
+            return triggerId;
+        }
+
+        protected void setTriggerId(int triggerId) {
+            this.triggerId = triggerId;
+        }
+
+        public short getDoorId() {
+            return doorId;
+        }
+
+        protected void setDoorId(short doorId) {
+            this.doorId = doorId;
+        }
+
+        public short getPlayerId() {
+            return playerId;
+        }
+
+        protected void setPlayerId(short playerId) {
+            this.playerId = playerId;
+        }
+
+        public DoorFlag getFlag() {
+            return flag;
+        }
+
+        protected void setFlag(DoorFlag flag) {
+            this.flag = flag;
+        }
+
+        public short[] getUnknown2() {
+            return unknown2;
+        }
+
+        protected void setUnknown2(short[] unknown2) {
+            this.unknown2 = unknown2;
         }
     }
 
@@ -1076,7 +1214,8 @@ public abstract class Thing {
 
         private int posX; // 0-based coordinate
         private int posY; // 0-based coordinate
-        private short unknown1[]; // 14
+        private short unknown1[]; // 12
+        private int triggerId;
         private short objectId;
         private short playerId;
 
@@ -1104,6 +1243,14 @@ public abstract class Thing {
             this.unknown1 = unknown1;
         }
 
+        public int getTriggerId() {
+            return triggerId;
+        }
+
+        protected void setTriggerId(int triggerId) {
+            this.triggerId = triggerId;
+        }
+
         public short getObjectId() {
             return objectId;
         }
@@ -1125,7 +1272,11 @@ public abstract class Thing {
 
         private int posX; // 0-based coordinate
         private int posY; // 0-based coordinate
-        private short unknown1[]; // 8
+        private int unknown1; // 4
+        private short numberOfShots;
+        private short trapId;
+        private short playerId;
+        private short unknown2; // 1
 
         public int getPosX() {
             return posX;
@@ -1143,43 +1294,129 @@ public abstract class Thing {
             this.posY = posY;
         }
 
-        public short[] getUnknown1() {
+        public int getUnknown1() {
             return unknown1;
         }
 
-        protected void setUnknown1(short[] unknown1) {
+        protected void setUnknown1(int unknown1) {
             this.unknown1 = unknown1;
+        }
+
+        public short getNumberOfShots() {
+            return numberOfShots;
+        }
+
+        protected void setNumberOfShots(short numberOfShots) {
+            this.numberOfShots = numberOfShots;
+        }
+
+        public short getTrapId() {
+            return trapId;
+        }
+
+        protected void setTrapId(short trapId) {
+            this.trapId = trapId;
+        }
+
+        public short getPlayerId() {
+            return playerId;
+        }
+
+        protected void setPlayerId(short playerId) {
+            this.playerId = playerId;
+        }
+
+        public short getUnknown2() {
+            return unknown2;
+        }
+
+        protected void setUnknown2(short unknown2) {
+            this.unknown2 = unknown2;
         }
     }
 
-    public static class GoodCreature extends Thing {
+    public static class GoodCreature extends Creature {
 
-        private int posX; // 0-based coordinate
-        private int posY; // 0-based coordinate
-        private short unknown1[]; // 24
+        private short level; // level
+        private EnumSet<CreatureFlag> flags; // Short, likely flags
+        private int objectiveTargetActionPointId;
+        private int initialHealth; // Percent
+        private int triggerId;
+        private short objectiveTargetPlayerId; // target objective
+        private HeroParty.Objective objective;
+        private short unknown1[];
+        private EnumSet<Thing.Creature.CreatureFlag2> flags2;
 
-        public int getPosX() {
-            return posX;
+        public short getLevel() {
+            return level;
         }
 
-        protected void setPosX(int posX) {
-            this.posX = posX;
+        protected void setLevel(short level) {
+            this.level = level;
         }
 
-        public int getPosY() {
-            return posY;
+        public EnumSet<CreatureFlag> getFlags() {
+            return flags;
         }
 
-        protected void setPosY(int posY) {
-            this.posY = posY;
+        protected void setFlags(EnumSet<CreatureFlag> flags) {
+            this.flags = flags;
+        }
+
+        public int getObjectiveTargetActionPointId() {
+            return objectiveTargetActionPointId;
+        }
+
+        protected void setObjectiveTargetActionPointId(int objectiveTargetActionPointId) {
+            this.objectiveTargetActionPointId = objectiveTargetActionPointId;
+        }
+
+        public int getInitialHealth() {
+            return initialHealth;
+        }
+
+        protected void setInitialHealth(int initialHealth) {
+            this.initialHealth = initialHealth;
+        }
+
+        public int getTriggerId() {
+            return triggerId;
+        }
+
+        protected void setTriggerId(int triggerId) {
+            this.triggerId = triggerId;
+        }
+
+        public short getObjectiveTargetPlayerId() {
+            return objectiveTargetPlayerId;
+        }
+
+        protected void setObjectiveTargetPlayerId(short objectiveTargetPlayerId) {
+            this.objectiveTargetPlayerId = objectiveTargetPlayerId;
+        }
+
+        public Objective getObjective() {
+            return objective;
+        }
+
+        protected void setObjective(Objective objective) {
+            this.objective = objective;
         }
 
         public short[] getUnknown1() {
             return unknown1;
         }
 
-        protected void setUnknown1(short[] unknown1) {
+        protected void setUnknown1(short unknown1[]) {
             this.unknown1 = unknown1;
+        }
+
+        public EnumSet<CreatureFlag2> getFlags2() {
+            return flags2;
+        }
+
+        protected void setFlags2(EnumSet<CreatureFlag2> flags2) {
+            this.flags2 = flags2;
         }
     }
 }

@@ -68,8 +68,10 @@ import static toniarts.openkeeper.tools.convert.map.MapDataTypeEnum.VARIABLES;
 import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Thing.ActionPoint;
 import toniarts.openkeeper.tools.convert.map.Thing.ActionPoint.ActionPointFlag;
+import toniarts.openkeeper.tools.convert.map.Thing.GoodCreature;
 import toniarts.openkeeper.tools.convert.map.Thing.HeroParty;
-import toniarts.openkeeper.tools.convert.map.Thing.HeroParty.HeroPartyData;
+import toniarts.openkeeper.tools.convert.map.Thing.KeeperCreature;
+import toniarts.openkeeper.tools.convert.map.Thing.NeutralCreature;
 import toniarts.openkeeper.tools.convert.map.Thing.Thing12;
 
 /**
@@ -1931,11 +1933,12 @@ public class KwdFile {
                     thing = new Thing.Object();
                     ((Thing.Object) thing).setPosX(Utils.readInteger(file));
                     ((Thing.Object) thing).setPosY(Utils.readInteger(file));
-                    short unknown1[] = new short[14];
+                    short unknown1[] = new short[12];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();
                     }
                     ((Thing.Object) thing).setUnknown1(unknown1);
+                    ((Thing.Object) thing).setTriggerId(Utils.readUnsignedShort(file));
                     ((Thing.Object) thing).setObjectId((short) file.readUnsignedByte());
                     ((Thing.Object) thing).setPlayerId((short) file.readUnsignedByte());
                     break;
@@ -1946,11 +1949,11 @@ public class KwdFile {
                     thing = new Thing.Trap();
                     ((Thing.Trap) thing).setPosX(Utils.readInteger(file));
                     ((Thing.Trap) thing).setPosY(Utils.readInteger(file));
-                    short unknown1[] = new short[8];
-                    for (int x = 0; x < unknown1.length; x++) {
-                        unknown1[x] = (short) file.readUnsignedByte();
-                    }
-                    ((Thing.Trap) thing).setUnknown1(unknown1);
+                    ((Thing.Trap) thing).setUnknown1(Utils.readInteger(file));
+                    ((Thing.Trap) thing).setNumberOfShots((short) file.readUnsignedByte());
+                    ((Thing.Trap) thing).setTrapId((short) file.readUnsignedByte());
+                    ((Thing.Trap) thing).setPlayerId((short) file.readUnsignedByte());
+                    ((Thing.Trap) thing).setUnknown2((short) file.readUnsignedByte());
                     break;
                 }
                 case 196: {
@@ -1959,11 +1962,16 @@ public class KwdFile {
                     thing = new Thing.Door();
                     ((Thing.Door) thing).setPosX(Utils.readInteger(file));
                     ((Thing.Door) thing).setPosY(Utils.readInteger(file));
-                    short unknown1[] = new short[12];
-                    for (int x = 0; x < unknown1.length; x++) {
-                        unknown1[x] = (short) file.readUnsignedByte();
+                    ((Thing.Door) thing).setUnknown1(Utils.readInteger(file));
+                    ((Thing.Door) thing).setTriggerId(Utils.readUnsignedShort(file));
+                    ((Thing.Door) thing).setDoorId((short) file.readUnsignedByte());
+                    ((Thing.Door) thing).setPlayerId((short) file.readUnsignedByte());
+                    ((Thing.Door) thing).setFlag(Utils.parseEnum(file.readUnsignedByte(), Thing.Door.DoorFlag.class));
+                    short unknown2[] = new short[3];
+                    for (int x = 0; x < unknown2.length; x++) {
+                        unknown2[x] = (short) file.readUnsignedByte();
                     }
-                    ((Thing.Door) thing).setUnknown1(unknown1);
+                    ((Thing.Door) thing).setUnknown2(unknown2);
                     break;
                 }
                 case 197: {
@@ -1987,41 +1995,57 @@ public class KwdFile {
 
                     // Neutral creature
                     thing = new Thing.NeutralCreature();
-                    short unknown1[] = new short[24];
-                    for (int x = 0; x < unknown1.length; x++) {
-                        unknown1[x] = (short) file.readUnsignedByte();
-                    }
-                    ((Thing.NeutralCreature) thing).setUnknown1(unknown1);
+                    ((NeutralCreature) thing).setPosX(Utils.readInteger(file));
+                    ((NeutralCreature) thing).setPosY(Utils.readInteger(file));
+                    ((NeutralCreature) thing).setPosZ(Utils.readInteger(file));
+                    ((NeutralCreature) thing).setGoldHeld(Utils.readUnsignedShort(file));
+                    ((NeutralCreature) thing).setLevel((short) file.readUnsignedByte());
+                    ((NeutralCreature) thing).setFlags(Utils.parseFlagValue((short) file.readUnsignedByte(), Thing.Creature.CreatureFlag.class));
+                    ((NeutralCreature) thing).setInitialHealth(Utils.readInteger(file));
+                    ((NeutralCreature) thing).setTriggerId(Utils.readUnsignedShort(file));
+                    ((NeutralCreature) thing).setCreatureId((short) file.readUnsignedByte());
+                    ((NeutralCreature) thing).setUnknown1((short) file.readUnsignedByte());
                     break;
                 }
                 case 199: {
 
                     // Good creature
                     thing = new Thing.GoodCreature();
-                    ((Thing.GoodCreature) thing).setPosX(Utils.readInteger(file));
-                    ((Thing.GoodCreature) thing).setPosY(Utils.readInteger(file));
-                    short unknown1[] = new short[24];
+                    ((GoodCreature) thing).setPosX(Utils.readInteger(file));
+                    ((GoodCreature) thing).setPosY(Utils.readInteger(file));
+                    ((GoodCreature) thing).setPosZ(Utils.readInteger(file));
+                    ((GoodCreature) thing).setGoldHeld(Utils.readUnsignedShort(file));
+                    ((GoodCreature) thing).setLevel((short) file.readUnsignedByte());
+                    ((GoodCreature) thing).setFlags(Utils.parseFlagValue((short) file.readUnsignedByte(), Thing.Creature.CreatureFlag.class));
+                    ((GoodCreature) thing).setObjectiveTargetActionPointId(Utils.readInteger(file));
+                    ((GoodCreature) thing).setInitialHealth(Utils.readInteger(file));
+                    ((GoodCreature) thing).setTriggerId(Utils.readUnsignedShort(file));
+                    ((GoodCreature) thing).setObjectiveTargetPlayerId((short) file.readUnsignedByte());
+                    ((GoodCreature) thing).setObjective(Utils.parseEnum((short) file.readUnsignedByte(), Thing.HeroParty.Objective.class));
+                    ((GoodCreature) thing).setCreatureId((short) file.readUnsignedByte());
+                    short unknown1[] = new short[2];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();
                     }
-                    ((Thing.GoodCreature) thing).setUnknown1(unknown1);
+                    ((GoodCreature) thing).setUnknown1(unknown1);
+                    ((GoodCreature) thing).setFlags2(Utils.parseFlagValue((short) file.readUnsignedByte(), Thing.Creature.CreatureFlag2.class));
                     break;
                 }
                 case 200: {
 
                     // Creature
-                    thing = new Thing.Creature();
-                    ((Thing.Creature) thing).setPosX(Utils.readInteger(file));
-                    ((Thing.Creature) thing).setPosY(Utils.readInteger(file));
-                    ((Thing.Creature) thing).setPosZ(Utils.readInteger(file));
-                    ((Thing.Creature) thing).setGoldHeld(Utils.readUnsignedShort(file));
-                    ((Thing.Creature) thing).setLevel((short) file.readUnsignedByte());
-                    ((Thing.Creature) thing).setFlags(Utils.parseFlagValue((short) file.readUnsignedByte(), Thing.Creature.CreatureFlag.class));
-                    ((Thing.Creature) thing).setInitialHealth(Utils.readInteger(file));
-                    ((Thing.Creature) thing).setX14(Utils.readInteger(file));
-                    ((Thing.Creature) thing).setTriggerId(Utils.readUnsignedShort(file));
-                    ((Thing.Creature) thing).setCreatureId((short) file.readUnsignedByte());
-                    ((Thing.Creature) thing).setPlayerId((short) file.readUnsignedByte());
+                    thing = new Thing.KeeperCreature();
+                    ((KeeperCreature) thing).setPosX(Utils.readInteger(file));
+                    ((KeeperCreature) thing).setPosY(Utils.readInteger(file));
+                    ((KeeperCreature) thing).setPosZ(Utils.readInteger(file));
+                    ((KeeperCreature) thing).setGoldHeld(Utils.readUnsignedShort(file));
+                    ((KeeperCreature) thing).setLevel((short) file.readUnsignedByte());
+                    ((KeeperCreature) thing).setFlags(Utils.parseFlagValue((short) file.readUnsignedByte(), KeeperCreature.CreatureFlag.class));
+                    ((KeeperCreature) thing).setInitialHealth(Utils.readInteger(file));
+                    ((KeeperCreature) thing).setObjectiveTargetActionPointId(Utils.readInteger(file));
+                    ((KeeperCreature) thing).setTriggerId(Utils.readUnsignedShort(file));
+                    ((KeeperCreature) thing).setCreatureId((short) file.readUnsignedByte());
+                    ((KeeperCreature) thing).setPlayerId((short) file.readUnsignedByte());
                     break;
                 }
                 case 201: {
@@ -2035,28 +2059,31 @@ public class KwdFile {
                     ((HeroParty) thing).setId((short) file.readUnsignedByte());
                     ((HeroParty) thing).setX23(Utils.readInteger(file));
                     ((HeroParty) thing).setX27(Utils.readInteger(file));
-                    List<HeroPartyData> heroPartyMembers = new ArrayList<>(16);
+                    List<GoodCreature> heroPartyMembers = new ArrayList<>(16);
                     for (int x = 0; x < 16; x++) {
-                        HeroPartyData heroPartyData = ((HeroParty) thing).new HeroPartyData();
-                        heroPartyData.setX00(Utils.readInteger(file));
-                        heroPartyData.setX04(Utils.readInteger(file));
-                        heroPartyData.setX08(Utils.readInteger(file));
-                        heroPartyData.setGoldHeld(Utils.readUnsignedShort(file));
-                        heroPartyData.setLevel((short) file.readUnsignedByte());
-                        heroPartyData.setX0f((short) file.readUnsignedByte());
-                        heroPartyData.setObjectiveTargetActionPointId(Utils.readInteger(file));
-                        heroPartyData.setInitialHealth(Utils.readInteger(file));
-                        heroPartyData.setTriggerId(Utils.readUnsignedShort(file));
-                        heroPartyData.setObjectiveTargetPlayerId((short) file.readUnsignedByte());
-                        heroPartyData.setObjective(Utils.parseEnum((short) file.readUnsignedByte(), Thing.HeroParty.Objective.class));
-                        heroPartyData.setCreatureId((short) file.readUnsignedByte());
-                        heroPartyData.setX1d((short) file.readUnsignedByte());
-                        heroPartyData.setX1e((short) file.readUnsignedByte());
-                        heroPartyData.setX1f((short) file.readUnsignedByte());
+                        GoodCreature creature = new GoodCreature();
+                        creature.setPosX(Utils.readInteger(file));
+                        creature.setPosY(Utils.readInteger(file));
+                        creature.setPosZ(Utils.readInteger(file));
+                        creature.setGoldHeld(Utils.readUnsignedShort(file));
+                        creature.setLevel((short) file.readUnsignedByte());
+                        creature.setFlags(Utils.parseFlagValue((short) file.readUnsignedByte(), KeeperCreature.CreatureFlag.class));
+                        creature.setObjectiveTargetActionPointId(Utils.readInteger(file));
+                        creature.setInitialHealth(Utils.readInteger(file));
+                        creature.setTriggerId(Utils.readUnsignedShort(file));
+                        creature.setObjectiveTargetPlayerId((short) file.readUnsignedByte());
+                        creature.setObjective(Utils.parseEnum((short) file.readUnsignedByte(), Thing.HeroParty.Objective.class));
+                        creature.setCreatureId((short) file.readUnsignedByte());
+                        short unknown1[] = new short[2];
+                        for (int index = 0; index < unknown1.length; index++) {
+                            unknown1[index] = (short) file.readUnsignedByte();
+                        }
+                        creature.setUnknown1(unknown1);
+                        creature.setFlags2(Utils.parseFlagValue((short) file.readUnsignedByte(), Thing.Creature.CreatureFlag2.class));
 
                         // If creature id is 0, it is safe to say this is not a valid entry
-                        if (heroPartyData.getCreatureId() > 0) {
-                            heroPartyMembers.add(heroPartyData);
+                        if (creature.getCreatureId() > 0) {
+                            heroPartyMembers.add(creature);
                         }
                     }
                     ((HeroParty) thing).setHeroPartyMembers(heroPartyMembers);
@@ -2066,11 +2093,12 @@ public class KwdFile {
 
                     // Dead body
                     thing = new Thing.DeadBody();
-                    short unknown1[] = new short[16];
-                    for (int x = 0; x < unknown1.length; x++) {
-                        unknown1[x] = (short) file.readUnsignedByte();
-                    }
-                    ((Thing.DeadBody) thing).setUnknown1(unknown1);
+                    ((Thing.DeadBody) thing).setPosX(Utils.readInteger(file));
+                    ((Thing.DeadBody) thing).setPosY(Utils.readInteger(file));
+                    ((Thing.DeadBody) thing).setPosZ(Utils.readInteger(file));
+                    ((Thing.DeadBody) thing).setGoldHeld(Utils.readUnsignedShort(file));
+                    ((Thing.DeadBody) thing).setCreatureId((short) file.readUnsignedByte());
+                    ((Thing.DeadBody) thing).setPlayerId((short) file.readUnsignedByte());
                     break;
                 }
                 case 203: {
@@ -2135,7 +2163,7 @@ public class KwdFile {
                     ((Thing12) thing).setX4c(Utils.readUnsignedShort(file));
                     ((Thing12) thing).setX4e(Utils.readUnsignedShort(file));
                     ((Thing12) thing).setX50(Utils.readUnsignedShort(file));
-                    ((Thing12) thing).setX52((short) file.readUnsignedByte());
+                    ((Thing12) thing).setId((short) file.readUnsignedByte());
                     break;
                 }
                 default: {
