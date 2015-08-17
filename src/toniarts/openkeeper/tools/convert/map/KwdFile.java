@@ -43,10 +43,10 @@ import toniarts.openkeeper.tools.convert.map.ArtResource.Proc;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ResourceType;
 import toniarts.openkeeper.tools.convert.map.ArtResource.TerrainResource;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
+import toniarts.openkeeper.tools.convert.map.Creature.JobAlternative;
 import toniarts.openkeeper.tools.convert.map.Creature.Spell;
 import toniarts.openkeeper.tools.convert.map.Creature.Unk7;
 import toniarts.openkeeper.tools.convert.map.Creature.X1323;
-import toniarts.openkeeper.tools.convert.map.Creature.Xe7c;
 import toniarts.openkeeper.tools.convert.map.Creature.Xe94;
 import toniarts.openkeeper.tools.convert.map.Door.DoorFlag;
 import static toniarts.openkeeper.tools.convert.map.MapDataTypeEnum.CREATURES;
@@ -1350,7 +1350,7 @@ public class KwdFile {
                 spell.setShotOffset(new Vector3f(Utils.readUnsignedIntegerAsLong(file) / FIXED_POINT_DIVISION, Utils.readUnsignedIntegerAsLong(file) / FIXED_POINT_DIVISION, Utils.readUnsignedIntegerAsLong(file) / FIXED_POINT_DIVISION));
                 spell.setX0c((short) file.readUnsignedByte());
                 spell.setPlayAnimation((short) file.readUnsignedByte() == 1 ? true : false);
-                spell.setX0e((short) file.readUnsignedByte());
+                spell.setX0e((short) file.readUnsignedByte()); // This value can changed when you not change anything on map, only save it
                 spell.setX0f((short) file.readUnsignedByte());
                 spell.setShotDelay(Utils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
                 spell.setX14((short) file.readUnsignedByte());
@@ -1376,15 +1376,14 @@ public class KwdFile {
                 hateJobs[x] = Utils.parseEnum(Utils.readUnsignedInteger(file), Creature.JobType.class);
             }
             creature.setHateJobs(hateJobs);
-            Xe7c[] xe7cs = new Xe7c[3];
-            for (int x = 0; x < xe7cs.length; x++) {
-                Xe7c xe7c = creature.new Xe7c();
-                xe7c.setX00(Utils.readUnsignedInteger(file));
-                xe7c.setX04(Utils.readUnsignedShort(file));
-                xe7c.setX06(Utils.readUnsignedShort(file));
-                xe7cs[x] = xe7c;
+            JobAlternative[] alternatives = new JobAlternative[3];
+            for (int x = 0; x < alternatives.length; x++) {
+                JobAlternative alternative = creature.new JobAlternative();
+                alternative.setJobType(Utils.parseEnum(Utils.readUnsignedInteger(file), Creature.JobType.class));
+                alternative.setMoodChange(Utils.readUnsignedShort(file));
+                alternative.setManaChange(Utils.readUnsignedShort(file));
             }
-            creature.setXe7c(xe7cs);
+            creature.setAlternativeJobs(alternatives);
             Xe94 xe94 = creature.new Xe94();
             xe94.setX00(Utils.readUnsignedIntegerAsLong(file));
             xe94.setX04(Utils.readUnsignedInteger(file));

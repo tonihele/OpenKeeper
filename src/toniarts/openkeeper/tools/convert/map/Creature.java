@@ -16,10 +16,10 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IValueEnum;
-import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
+import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
  * Container class for Creatures.kwd
@@ -137,11 +137,12 @@ public class Creature implements Comparable<Creature> {
         DRINK(9),
         LEAVE(10),
         DESTROY_ENEMY_ROOMS(11),
-        TOLLING(12),
+        DESTROY_WALLS(12),
         STEAL_ENEMY_GOLD(13),
         SULK(15),
         REBEL(16),
-        EXPLORE(24);
+        EXPLORE(24),
+        TOLLING(28);
 
         private JobType(int id) {
             this.id = id;
@@ -499,7 +500,7 @@ public class Creature implements Comparable<Creature> {
     private JobPreference unhappyJobs[];
     private JobPreference angryJobs[];
     private JobType hateJobs[];
-    private Xe7c xe7c[];
+    private JobAlternative alternativeJobs[];
     private Xe94 xe94;
     private int unkea0; // ea0
     private float height; // ea4
@@ -909,12 +910,12 @@ public class Creature implements Comparable<Creature> {
         this.hateJobs = hateJobs;
     }
 
-    public Xe7c[] getXe7c() {
-        return xe7c;
+    public JobAlternative[] getAlternativeJobs() {
+        return alternativeJobs;
     }
 
-    protected void setXe7c(Xe7c[] xe7c) {
-        this.xe7c = xe7c;
+    protected void setAlternativeJobs(JobAlternative[] alternativeJobs) {
+        this.alternativeJobs = alternativeJobs;
     }
 
     public Xe94 getXe94() {
@@ -1987,34 +1988,34 @@ public class Creature implements Comparable<Creature> {
         }
     }
 
-    public class Xe7c {
+    public class JobAlternative {
 
-        private int x00;
-        private int x04;
-        private int x06;
+        private JobType jobType;
+        private int moodChange;
+        private int manaChange;
 
-        public int getX00() {
-            return x00;
+        public JobType getJobType() {
+            return jobType;
         }
 
-        protected void setX00(int x00) {
-            this.x00 = x00;
+        protected void setJobType(JobType jobType) {
+            this.jobType = jobType;
         }
 
-        public int getX04() {
-            return x04;
+        public int getMoodChange() {
+            return moodChange;
         }
 
-        protected void setX04(int x04) {
-            this.x04 = x04;
+        protected void setMoodChange(int moodChange) {
+            this.moodChange = moodChange;
         }
 
-        public int getX06() {
-            return x06;
+        public int getManaChange() {
+            return manaChange;
         }
 
-        protected void setX06(int x06) {
-            this.x06 = x06;
+        protected void setManaChange(int manaChange) {
+            this.manaChange = manaChange;
         }
     }
 
