@@ -54,6 +54,7 @@ import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.MainMenuState;
+import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.setup.DKConverter;
@@ -74,7 +75,7 @@ public class Main extends SimpleApplication {
     private static boolean conversionDone = false;
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
-    private final static String TITLE = "OpenKeeper";
+    public final static String TITLE = "OpenKeeper";
     private final static int MAX_FPS = 90;
     private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
     private final static String CONVERSION_DONE_KEY = "ConversionDone";
@@ -404,6 +405,22 @@ public class Main extends SimpleApplication {
                         stateManager.attach(recorder);
                     }
 
+                    // Nifty
+                    NiftyJmeDisplay niftyDisplay = getNifty();
+
+                    // Initialize persistent app states
+                    MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager);
+                    mainMenuState.setEnabled(false);
+                    PlayerState playerState = new PlayerState();
+                    playerState.setEnabled(false);
+                    stateManager.attach(mainMenuState);
+                    stateManager.attach(playerState);
+
+                    // Eventually we are going to use Nifty, the XML files take some time to parse
+                    niftyDisplay.getNifty().registerScreenController(mainMenuState, playerState);
+                    niftyDisplay.getNifty().addXml("Interface/MainMenu.xml");
+                    niftyDisplay.getNifty().addXml("Interface/GameHUD.xml");
+
                     // It is all a clever ruge, we don't actually load much here
                     if (!params.containsKey("nomovies") && !params.containsKey("level")) {
                         Thread.sleep(5000 - (System.currentTimeMillis() - startTime));
@@ -569,9 +586,8 @@ public class Main extends SimpleApplication {
             stateManager.attach(gameState);
         } else {
 
-            // Initialize the main menu state
-            MainMenuState mainMenu = new MainMenuState();
-            stateManager.attach(mainMenu);
+            // Enable the start menu
+            stateManager.getState(MainMenuState.class).setEnabled(true);
         }
     }
 

@@ -8,10 +8,13 @@
     <style id="textSmall">
         <attributes font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb" />
     </style>
+    <style id="textNormal">
+        <attributes font="Interface/Fonts/DungeonKeeperIIBig.fnt" color="#bbbcbb" />
+    </style>
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- HUD -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="hud" controller="toniarts.openkeeper.game.state.GameState">
+    <screen id="hud" controller="toniarts.openkeeper.game.state.PlayerState">
 
         <layer childLayout="vertical">
 
@@ -110,6 +113,7 @@
                                         <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-02.png" post="true"/>
                                         <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-02.png" post="true"/>
                                     </effect>
+                                    <interact onClick="pauseMenu()"/>
                                 </panel>
 
                                 <panel x="100%" y="100%" width="32px" height="32px">
@@ -334,9 +338,45 @@
             </panel>
         </layer>
 
+        <layer id="optionsMenu" childLayout="vertical" visible="false">
+            <panel id="top" height="72px" width="100%" align="left" valign="top" childLayout="center">
+                <!--Filler-->
+            </panel>
+
+            <panel id="menu" backgroundColor="#0008" height="*" width="100%" align="left" valign="top" childLayout="vertical" visibleToMouse="true" paddingLeft="3px">
+                <panel width="100%" align="left" valign="top" childLayout="vertical">
+                    <text style="textNormal" text="${menu.94}"></text>
+                </panel>
+
+                <!--Two columns of options-->
+                <panel width="100%" height="*" align="left" valign="top" childLayout="horizontal">
+                    <panel width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px">
+                        <control click="pauseMenu()" text="${menu.537}" glyph="Textures/GUI/Options/i-objective.png" name="inGameMenuSelection" />
+                        <control click="pauseMenu()" text="${menu.97}" glyph="Textures/GUI/Options/i-game.png" name="inGameMenuSelection" />
+                        <control click="pauseMenu()" text="${menu.143}" glyph="Textures/GUI/Options/i-load.png" name="inGameMenuSelection" />
+                        <control click="pauseMenu()" text="${menu.201}" glyph="Textures/GUI/Options/i-save.png" name="inGameMenuSelection" />
+                    </panel>
+                    <panel width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px">
+                        <control click="quitToMainMenu()" text="${menu.1266}" glyph="Textures/GUI/Options/i-quit.png" name="inGameMenuSelection" />
+                        <control click="pauseMenu()" text="${menu.1269}" glyph="Textures/GUI/Options/i-restart.png" name="inGameMenuSelection" />
+                    </panel>
+                </panel>
+
+                <!--Continue game-->
+                <panel width="100%" align="left" valign="bottom" childLayout="vertical" paddingBottom="10px" paddingLeft="3px">
+                    <control click="pauseMenu()" text="${menu.142}" glyph="Textures/GUI/Options/i-accept.png" name="inGameMenuSelection" />
+                </panel>
+            </panel>
+
+            <!--The bottom panel-->
+            <panel id="bottom" height="212px" width="100%" align="left" valign="bottom" childLayout="center">
+                <!--Filler-->
+            </panel>
+        </layer>
+
     </screen>
 
-    <screen id="cinematic" controller="toniarts.openkeeper.game.state.GameState">
+    <screen id="cinematic" controller="toniarts.openkeeper.game.state.PlayerState">
 
         <layer id="background" childLayout="vertical">
 

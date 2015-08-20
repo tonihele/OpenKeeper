@@ -67,6 +67,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.concurrent.Callable;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
@@ -103,7 +104,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private Node menuNode;
     private Level selectedLevel;
     private AudioNode levelBriefing;
-    private NiftyJmeDisplay niftyDisplay;
     public final static List<String> opengl = new ArrayList<>(Arrays.asList(new String[]{AppSettings.LWJGL_OPENGL1, AppSettings.LWJGL_OPENGL2, AppSettings.LWJGL_OPENGL3}));
     public final static List<Integer> samples = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
     public final static List<Integer> anisotrophies = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
@@ -120,6 +120,49 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         cutscenes.put("moviename", "${menu.77},${speech.1417},${speech.1439},${speech.1435},${speech.1445},${speech.1428},${speech.1426},${speech.1430},${speech.1432},${speech.1441},${speech.1431},${speech.1433},${speech.1419},${speech.1414},${speech.1437},${speech.1416},${speech.1420},${speech.1421},${speech.1443},${speech.1422},${menu.2843}".split(","));
     }
 
+    /**
+     * (c) Construct a MainMenuState, you should only have one of these. Disable
+     * when not in use.
+     *
+     * @param load whether to load the menu scene now, or later when needed (has
+     * its own loading screen here)
+     * @param assetManager asset manager for loading the screen
+     */
+    public MainMenuState(final boolean load, final AssetManager assetManager) {
+        if (load) {
+            loadMenuScene(null, assetManager);
+        }
+    }
+
+    /**
+     * Loads up the main menu 3D scene
+     *
+     * @param loadingScreen optional loading screen
+     * @param assetManager asset manager
+     */
+    private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager) {
+
+        // Load the 3D Front end
+        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat("Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd"))));
+        if (loadingScreen != null) {
+            loadingScreen.setProgress(0.25f);
+        }
+
+        // Attach the 3D Front end
+        menuNode = new Node("Main menu");
+        menuNode.attachChild(new MapLoader() {
+            @Override
+            protected void updateProgress(int progress, int max) {
+                if (loadingScreen != null) {
+                    loadingScreen.setProgress(0.25f + ((float) progress / max * 0.75f));
+                }
+            }
+        }.load(assetManager, kwdFile));
+        if (loadingScreen != null) {
+            loadingScreen.setProgress(1.0f);
+        }
+    }
+
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
         super.initialize(stateManager, app);
@@ -130,63 +173,17 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         inputManager = this.app.getInputManager();
         viewPort = this.app.getViewPort();
 
-        // Set up the loading screen
-        SingleBarLoadingState loader = new SingleBarLoadingState() {
-            @Override
-            public Void onLoad() {
-
-                // Load the 3D Front end
-                kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat("Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd"))));
-                setProgress(0.25f);
-
-                // Attach the 3D Front end
-                if (menuNode == null) {
-                    menuNode = new Node("Main menu");
-                    menuNode.attachChild(new MapLoader() {
-                        @Override
-                        protected void updateProgress(int progress, int max) {
-                            setProgress(0.25f + ((float) progress / max * 0.75f));
-                        }
-                    }.load(assetManager, kwdFile));
-                }
-                setProgress(1.0f);
-
-                return null;
-            }
-
-            @Override
-            public void onLoadComplete() {
-
-                // Set the processors
-                MainMenuState.this.app.setViewProcessors();
-
-                // Disable the fly cam
-                MainMenuState.this.app.getFlyByCamera().setEnabled(false);
-                MainMenuState.this.app.getFlyByCamera().setDragToRotate(true);
-
-                rootNode.attachChild(menuNode);
-
-                // Init Nifty
-                niftyDisplay = MainMenuState.this.app.getNifty();
-
-                // Load the start menu
-                niftyDisplay.getNifty().getResourceBundles().put("menu", Main.getResourceBundle("Interface/Texts/Text"));
-                niftyDisplay.getNifty().getResourceBundles().put("speech", Main.getResourceBundle("Interface/Texts/Speech"));
-                niftyDisplay.getNifty().getResourceBundles().put("mpd1", Main.getResourceBundle("Interface/Texts/LEVELMPD1_BRIEFING"));
-                niftyDisplay.getNifty().getResourceBundles().put("mpd2", Main.getResourceBundle("Interface/Texts/LEVELMPD2_BRIEFING"));
-                niftyDisplay.getNifty().getResourceBundles().put("mpd3", Main.getResourceBundle("Interface/Texts/LEVELMPD3_BRIEFING"));
-                niftyDisplay.getNifty().getResourceBundles().put("mpd4", Main.getResourceBundle("Interface/Texts/LEVELMPD4_BRIEFING"));
-                niftyDisplay.getNifty().getResourceBundles().put("mpd5", Main.getResourceBundle("Interface/Texts/LEVELMPD5_BRIEFING"));
-                niftyDisplay.getNifty().getResourceBundles().put("mpd6", Main.getResourceBundle("Interface/Texts/LEVELMPD6_BRIEFING"));
-                niftyDisplay.getNifty().getResourceBundles().put("mpd7", Main.getResourceBundle("Interface/Texts/LEVELMPD7_BRIEFING"));
-
-                niftyDisplay.getNifty().fromXml("Interface/MainMenu.xml", "start", MainMenuState.this);
-
-                // Set the camera position
-                loadCameraStartLocation();
-            }
-        };
-        stateManager.attach(loader);
+        // Set some Nifty stuff
+        NiftyJmeDisplay niftyDisplay = MainMenuState.this.app.getNifty();
+        niftyDisplay.getNifty().getResourceBundles().put("menu", Main.getResourceBundle("Interface/Texts/Text"));
+        niftyDisplay.getNifty().getResourceBundles().put("speech", Main.getResourceBundle("Interface/Texts/Speech"));
+        niftyDisplay.getNifty().getResourceBundles().put("mpd1", Main.getResourceBundle("Interface/Texts/LEVELMPD1_BRIEFING"));
+        niftyDisplay.getNifty().getResourceBundles().put("mpd2", Main.getResourceBundle("Interface/Texts/LEVELMPD2_BRIEFING"));
+        niftyDisplay.getNifty().getResourceBundles().put("mpd3", Main.getResourceBundle("Interface/Texts/LEVELMPD3_BRIEFING"));
+        niftyDisplay.getNifty().getResourceBundles().put("mpd4", Main.getResourceBundle("Interface/Texts/LEVELMPD4_BRIEFING"));
+        niftyDisplay.getNifty().getResourceBundles().put("mpd5", Main.getResourceBundle("Interface/Texts/LEVELMPD5_BRIEFING"));
+        niftyDisplay.getNifty().getResourceBundles().put("mpd6", Main.getResourceBundle("Interface/Texts/LEVELMPD6_BRIEFING"));
+        niftyDisplay.getNifty().getResourceBundles().put("mpd7", Main.getResourceBundle("Interface/Texts/LEVELMPD7_BRIEFING"));
     }
 
     /**
@@ -218,9 +215,79 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         clearLevelBriefingNarration();
 
         // Detach our start menu
-        rootNode.detachChild(menuNode);
+        if (menuNode != null) {
+            rootNode.detachChild(menuNode);
+            menuNode = null;
+        }
 
         super.cleanup();
+    }
+
+    /**
+     * Initialize the start menu, sets the menu scene in place & sets the
+     * controls and start screen
+     */
+    private void initializeMainMenu() {
+
+        // Set the processors & scene
+        app.enqueue(new Callable() {
+            @Override
+            public Object call() throws Exception {
+                MainMenuState.this.app.setViewProcessors();
+                rootNode.attachChild(menuNode);
+
+                // Start screen, do this here since another state may have just changed to empty screen -> have to do it like this, delayed
+                MainMenuState.this.app.getNifty().getNifty().gotoScreen("start");
+                return null;
+            }
+        });
+
+        // Disable the fly cam
+        MainMenuState.this.app.getFlyByCamera().setEnabled(false);
+        MainMenuState.this.app.getFlyByCamera().setDragToRotate(true);
+
+        // Set the camera position
+        loadCameraStartLocation();
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+
+        if (enabled) {
+
+            // If this is the first time, we might have to load the menu
+            if (menuNode == null) {
+
+                // Set up the loading screen
+                SingleBarLoadingState loader = new SingleBarLoadingState() {
+                    @Override
+                    public Void onLoad() {
+                        loadMenuScene(this, MainMenuState.this.assetManager);
+                        return null;
+                    }
+
+                    @Override
+                    public void onLoadComplete() {
+                        initializeMainMenu();
+                    }
+                };
+                stateManager.attach(loader);
+            } else {
+                initializeMainMenu();
+            }
+        } else {
+
+            if (menuNode != null && rootNode != null) {
+
+                // Detach our start menu
+                rootNode.detachChild(menuNode);
+            }
+
+            if (nifty != null) {
+                nifty.gotoScreen("empty");
+            }
+        }
     }
 
     @Override
@@ -355,9 +422,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      */
     public void startCampaignLevel() {
 
-        // Detach us
-        nifty.gotoScreen("empty");
-        stateManager.detach(this);
+        // Disable us
+        setEnabled(false);
 
         // Create the level state
         String level = String.format("%s%s%s", selectedLevel.getType(), selectedLevel.getLevel(), selectedLevel.getVariation());
