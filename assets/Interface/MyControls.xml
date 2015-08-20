@@ -93,4 +93,15 @@
         </panel>
     </controlDefinition>
 
+    <!--In-game menu options-->
+    <controlDefinition style="nifty-panel-style"
+                       name="inGameMenuSelection"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel align="left" valign="center" childLayout="horizontal" paddingTop="6px" paddingBottom="6px">
+            <image marginRight="6px" align="right" valign="center" filename="$glyph"/>
+            <text style="textNormal" text="$text"></text>
+            <interact onClick="$click"/>
+        </panel>
+    </controlDefinition>
+
 </nifty-controls>
