@@ -38,7 +38,7 @@
     <!-- empty screen -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="empty" controller="toniarts.openkeeper.game.state.MainMenuState">
-
+        <layer id="layer" childLayout="vertical"></layer>
     </screen>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
