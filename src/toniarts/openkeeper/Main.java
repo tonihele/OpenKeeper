@@ -191,7 +191,7 @@ public class Main extends SimpleApplication {
                 @Override
                 protected void continueOk() {
                     AssetsConverter.setConversionSettings(app.settings);
-                    app.settings.putBoolean(CONVERSION_DONE_KEY, true);
+                    app.getSettings().putBoolean(CONVERSION_DONE_KEY, true);
                     conversionOk = true;
                 }
             };
