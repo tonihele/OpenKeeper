@@ -117,8 +117,10 @@ public class GameState extends AbstractAppState {
     public void cleanup() {
 
         // Detach our map
-        rootNode.detachChild(worldNode);
-        worldNode = null;
+        if (worldNode != null) {
+            rootNode.detachChild(worldNode);
+            worldNode = null;
+        }
 
         super.cleanup();
     }
