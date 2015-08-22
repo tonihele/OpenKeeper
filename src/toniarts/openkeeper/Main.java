@@ -42,7 +42,9 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.PriorityQueue;
 import java.util.ResourceBundle;
@@ -408,6 +410,16 @@ public class Main extends SimpleApplication {
                     // Nifty
                     NiftyJmeDisplay niftyDisplay = getNifty();
 
+                    // Validate the XML, great for debuging purposes
+                    List<String> guiXMLs = Arrays.asList("Interface/MainMenu.xml", "Interface/GameHUD.xml");
+                    for (String xml : guiXMLs) {
+                        try {
+//                            niftyDisplay.getNifty().validateXml(xml); <-- Amazingly buggy?
+                        } catch (Exception e) {
+                            throw new RuntimeException("GUI file " + xml + " failed to validate!", e);
+                        }
+                    }
+
                     // Initialize persistent app states
                     MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager);
                     mainMenuState.setEnabled(false);
@@ -418,14 +430,19 @@ public class Main extends SimpleApplication {
 
                     // Eventually we are going to use Nifty, the XML files take some time to parse
                     niftyDisplay.getNifty().registerScreenController(mainMenuState, playerState);
-                    niftyDisplay.getNifty().addXml("Interface/MainMenu.xml");
-                    niftyDisplay.getNifty().addXml("Interface/GameHUD.xml");
+                    for (String xml : guiXMLs) {
+                        niftyDisplay.getNifty().addXml(xml);
+                    }
 
                     // It is all a clever ruge, we don't actually load much here
                     if (!params.containsKey("nomovies") && !params.containsKey("level")) {
                         Thread.sleep(5000 - (System.currentTimeMillis() - startTime));
                     }
                 } catch (InterruptedException ex) {
+                    // Doesn't matter
+                } catch (Exception e) {
+                    logger.log(Level.SEVERE, "Failed to load the game!", e);
+                    app.stop();
                 }
                 return null;
             }
