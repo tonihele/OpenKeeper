@@ -157,7 +157,7 @@ public abstract class AssetsConverter {
      */
     protected abstract void updateStatus(Integer currentProgress, Integer totalProgress, ConvertProcess process);
 
-    public static Boolean conversionNeeded(AppSettings settings) {
+    public static boolean conversionNeeded(AppSettings settings) {
         boolean needConversion = false;
 
         for (ConvertProcess item : ConvertProcess.values()) {
