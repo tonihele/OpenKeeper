@@ -75,12 +75,10 @@ import toniarts.openkeeper.video.MovieState;
 public class Main extends SimpleApplication {
 
     private static String dkIIFolder;
-    private static boolean conversionDone = false;
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
     public final static String TITLE = "OpenKeeper";
     private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
-    private final static String CONVERSION_DONE_KEY = "ConversionDone";
     private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
     public final static String SETTINGS_FILE = "openkeeper.properties";
@@ -177,7 +175,7 @@ public class Main extends SimpleApplication {
         }
 
         // If the folder is ok, check the conversion
-        if (folderOk && (AssetsConverter.conversionNeeded(app.getSettings()) || !conversionDone)) {
+        if (folderOk && (AssetsConverter.conversionNeeded(app.getSettings()))) {
             logger.info("Need to convert the assets!");
             saveSetup = true;
 
@@ -190,8 +188,7 @@ public class Main extends SimpleApplication {
             DKConverter frame = new DKConverter(dkIIFolder, assetManager) {
                 @Override
                 protected void continueOk() {
-                    AssetsConverter.setConversionSettings(app.settings);
-                    app.getSettings().putBoolean(CONVERSION_DONE_KEY, true);
+                    AssetsConverter.setConversionSettings(app.getSettings());
                     conversionOk = true;
                 }
             };
@@ -240,7 +237,6 @@ public class Main extends SimpleApplication {
         }
         // DKII settings
         dkIIFolder = app.appSettings.getString(DKII_FOLDER_KEY);
-        conversionDone = app.appSettings.getBoolean(CONVERSION_DONE_KEY);
     }
 
     /**
