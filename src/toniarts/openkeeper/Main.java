@@ -54,6 +54,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.PlayerState;
@@ -78,23 +79,18 @@ public class Main extends SimpleApplication {
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
     public final static String TITLE = "OpenKeeper";
-    private final static int MAX_FPS = 90;
     private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
     private final static String CONVERSION_DONE_KEY = "ConversionDone";
-    public final static String ANISOTROPY_KEY = "Anisotrophy";
-    public final static String SSAO_KEY = "SSAO";
-    private final static String RECORDER_QUALITY_KEY = "VideoRecorderQuality";
-    private final static float RECORDER_QUALITY_DEFAULT = 0.8f;
-    private final static String RECORDER_FPS_KEY = "VideoRecorderFPS";
-    private final static int RECORDER_FPS_DEFAULT = 60;
     private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
-    private final static String SETTINGS_FILE = "openkeeper.properties";
+    public final static String SETTINGS_FILE = "openkeeper.properties";
     private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
     private final HashMap<String, String> params;
     private NiftyJmeDisplay nifty;
+    private Settings userSettings;
+    private AppSettings appSettings;
 
     public static void main(String[] args) throws InvocationTargetException, InterruptedException {
 
@@ -171,7 +167,7 @@ public class Main extends SimpleApplication {
                     if (!path.endsWith(File.separator)) {
                         dkIIFolder = path.concat(File.separator);
                     }
-                    app.settings.putString(DKII_FOLDER_KEY, dkIIFolder);
+                    app.getSettings().putString(DKII_FOLDER_KEY, dkIIFolder);
                     folderOk = true;
                 }
             };
@@ -181,7 +177,7 @@ public class Main extends SimpleApplication {
         }
 
         // If the folder is ok, check the conversion
-        if (folderOk && (AssetsConverter.conversionNeeded(app.settings) || !conversionDone)) {
+        if (folderOk && (AssetsConverter.conversionNeeded(app.getSettings()) || !conversionDone)) {
             logger.info("Need to convert the assets!");
             saveSetup = true;
 
@@ -208,7 +204,7 @@ public class Main extends SimpleApplication {
         boolean result = (folderOk && conversionOk);
         if (result && saveSetup) {
             try {
-                app.settings.save(new FileOutputStream(new File(SETTINGS_FILE)));
+                app.getSettings().save(new FileOutputStream(new File(SETTINGS_FILE)));
             } catch (IOException ex) {
                 Logger.getLogger(Main.class.getName()).log(Level.WARNING, "Settings file failed to save!", ex);
             }
@@ -229,36 +225,49 @@ public class Main extends SimpleApplication {
         new File(USER_HOME_FOLDER).mkdirs();
         new File(SCREENSHOTS_FOLDER).mkdirs();
 
-        AppSettings setup = new AppSettings(true);
+        // Init the user settings (which in JME are app settings)
+        app.settings = app.getUserSettings().getAppSettings();
 
-        //Default resolution
-        if (!setup.containsKey("Width") || !setup.containsKey("Height")) {
-            setup.setResolution(800, 600); // Default resolution
-        }
+        // Init the application settings which contain just the conversion & folder data
+        app.appSettings = new AppSettings(false);
         File settingsFile = new File(SETTINGS_FILE);
         if (settingsFile.exists()) {
             try {
-                setup.load(new FileInputStream(settingsFile));
+                app.appSettings.load(new FileInputStream(settingsFile));
             } catch (IOException ex) {
-                Logger.getLogger(Main.class.getName()).log(Level.WARNING, "Settings file failed to load!", ex);
+                logger.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
             }
         }
-        setup.setTitle(TITLE);
-        setup.setFrameRate(Math.max(MAX_FPS, setup.getFrequency()));
-
-        //FIXME: These currently just destroy everything
-//        setup.setRenderer(AppSettings.LWJGL_OPENGL2);
-//        setup.setSamples(1);
-//        setup.setStereo3D(false);
-
         // DKII settings
-        dkIIFolder = setup.getString(DKII_FOLDER_KEY);
-        conversionDone = setup.getBoolean(CONVERSION_DONE_KEY);
+        dkIIFolder = app.appSettings.getString(DKII_FOLDER_KEY);
+        conversionDone = app.appSettings.getBoolean(CONVERSION_DONE_KEY);
+    }
 
-        // The icons
-        setup.setIcons(getApplicationIcons());
+    /**
+     * The user settings, main settings
+     *
+     * @return the user settings
+     */
+    public Settings getUserSettings() {
+        if (userSettings == null) {
+            userSettings = Settings.getInstance();
 
-        app.settings = setup;
+            // Assing some app level settings
+            userSettings.getAppSettings().setTitle(TITLE);
+            userSettings.getAppSettings().setIcons(getApplicationIcons());
+        }
+        return userSettings;
+    }
+
+    /**
+     * Get the application settings, global OpenKeeper settings, nothing much
+     * here
+     *
+     * @see #getUserSettings()
+     * @return application settings
+     */
+    public AppSettings getSettings() {
+        return appSettings;
     }
 
     /**
@@ -390,8 +399,8 @@ public class Main extends SimpleApplication {
 
                     // Recording video
                     if (params.containsKey("record")) {
-                        float quality = (getSettings().containsKey(RECORDER_QUALITY_KEY) ? getSettings().getFloat(RECORDER_QUALITY_KEY) : RECORDER_QUALITY_DEFAULT);
-                        int frameRate = (getSettings().containsKey(RECORDER_FPS_KEY) ? getSettings().getInteger(RECORDER_FPS_KEY) : RECORDER_FPS_DEFAULT);
+                        float quality = (getUserSettings().getSettingFloat(Settings.Setting.RECORDER_QUALITY));
+                        int frameRate = (getUserSettings().getSettingInteger(Settings.Setting.RECORDER_FPS));
                         getSettings().setFrameRate(frameRate);
                         VideoRecorderAppState recorder = new VideoRecorderAppState(quality, frameRate);
                         String folder = params.get("record");
@@ -481,7 +490,7 @@ public class Main extends SimpleApplication {
             public void assetRequested(AssetKey key) {
                 if (key.getExtension().equals("png") || key.getExtension().equals("jpg") || key.getExtension().equals("dds")) {
                     TextureKey tkey = (TextureKey) key;
-                    tkey.setAnisotropy(settings.getInteger(ANISOTROPY_KEY));
+                    tkey.setAnisotropy(getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
                 }
             }
 
@@ -522,25 +531,17 @@ public class Main extends SimpleApplication {
         return dkIIFolder;
     }
 
-    /**
-     * Get the application settings
-     *
-     * @return application settings
-     */
-    public AppSettings getSettings() {
-        return settings;
-    }
-
     @Override
     public void restart() {
         try {
+            settings = getUserSettings().getAppSettings();
             super.restart();
 
             // FIXME: This should go to handle error
             try {
 
                 // Continue to save the settings
-                settings.save(new FileOutputStream(new File(Main.SETTINGS_FILE)));
+                getUserSettings().save();
             } catch (IOException ex) {
                 logger.log(Level.WARNING, "Can not save the settings!", ex);
             }
@@ -561,7 +562,7 @@ public class Main extends SimpleApplication {
         viewPort.clearProcessors();
 
         // Add SSAO
-        if (settings.getBoolean(SSAO_KEY)) {
+        if (getUserSettings().getSettingBoolean(Settings.Setting.SSAO)) {
             FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
             SSAOFilter ssaoFilter = new SSAOFilter(5.94f, 3.92f, 0.33f, 0.1f);
             fpp.addFilter(ssaoFilter);

@@ -78,6 +78,7 @@ import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Level;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -663,7 +664,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         // Get the controls settings
         boolean needToRestart = true;
-        AppSettings settings = app.getSettings();
+        Settings settings = app.getUserSettings();
         DropDown res = screen.findNiftyControl("resolution", DropDown.class);
         DropDown refresh = screen.findNiftyControl("refreshRate", DropDown.class);
         CheckBox fullscreen = screen.findNiftyControl("fullscreen", CheckBox.class);
@@ -677,15 +678,15 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
 
         // Set the settings
-        settings.setResolution(mdm.width, mdm.height);
-        settings.setBitsPerPixel(mdm.bitDepth);
-        settings.setFrequency((Integer) refresh.getSelection());
-        settings.setFullscreen(fullscreen.isChecked());
-        settings.setVSync(vsync.isChecked());
-        settings.setRenderer((String) ogl.getSelection());
-        settings.setSamples((Integer) aa.getSelection());
-        settings.putInteger(Main.ANISOTROPY_KEY, (Integer) af.getSelection());
-        settings.putBoolean(Main.SSAO_KEY, ssao.isChecked());
+        settings.getAppSettings().setResolution(mdm.width, mdm.height);
+        settings.getAppSettings().setBitsPerPixel(mdm.bitDepth);
+        settings.getAppSettings().setFrequency((Integer) refresh.getSelection());
+        settings.getAppSettings().setFullscreen(fullscreen.isChecked());
+        settings.getAppSettings().setVSync(vsync.isChecked());
+        settings.getAppSettings().setRenderer((String) ogl.getSelection());
+        settings.getAppSettings().setSamples((Integer) aa.getSelection());
+        settings.setSetting(Settings.Setting.ANISOTROPY, af.getSelection());
+        settings.setSetting(Settings.Setting.SSAO, ssao.isChecked());
 
         // This fails and crashes on invalid settings
         if (needToRestart) {
@@ -724,7 +725,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private void setGraphicsSettingsToGUI() {
 
         // Application settings
-        AppSettings settings = app.getSettings();
+        AppSettings settings = app.getUserSettings().getAppSettings();
 
         GraphicsDevice device = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
         MyDisplayMode mdm = new MyDisplayMode(settings);
@@ -773,11 +774,11 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         //Anisotropic filtering
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         af.addAllItems(anisotrophies);
-        if (settings.containsKey(Main.ANISOTROPY_KEY) && anisotrophies.contains(settings.getInteger(Main.ANISOTROPY_KEY))) {
-            af.selectItem(settings.getInteger(Main.ANISOTROPY_KEY));
-        } else if (settings.containsKey(Main.ANISOTROPY_KEY)) {
-            af.addItem(settings.getInteger(Main.ANISOTROPY_KEY));
-            af.selectItem(settings.getInteger(Main.ANISOTROPY_KEY));
+        if (app.getUserSettings().containsSetting(Settings.Setting.ANISOTROPY) && anisotrophies.contains(app.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY))) {
+            af.selectItem(app.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
+        } else if (app.getUserSettings().containsSetting(Settings.Setting.ANISOTROPY)) {
+            af.addItem(app.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
+            af.selectItem(app.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
         }
 
         //OpenGL
@@ -787,7 +788,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         //SSAO
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
-        ssao.setChecked(settings.getBoolean(Main.SSAO_KEY));
+        ssao.setChecked(app.getUserSettings().getSettingBoolean(Settings.Setting.SSAO));
     }
 
     @NiftyEventSubscriber(id = "resolution")
