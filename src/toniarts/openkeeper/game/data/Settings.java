@@ -57,21 +57,20 @@ public class Settings {
     public enum Setting implements ISetting {
 
         // Campaign
-        LEVEL_NUMBER("LevelNumber", Integer.class, 0, SettingCategory.CAMPAIGN, null),
-        LEVEL_ATTEMPTS("LevelAttempts", Integer.class, 0, SettingCategory.CAMPAIGN, null),
-        LEVEL_STATUS("LevelStatus", LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN, null),
-        SECRET_LEVEL_STATUS("SecretLevelStatus", LevelStatus.class, SecretLevelStatus.NOT_DISCOVED, SettingCategory.CAMPAIGN, null),
-        MPD_LEVEL_STATUS("MPDLevelStatus", LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN, null),
+        LEVEL_NUMBER(Integer.class, 0, SettingCategory.CAMPAIGN, null),
+        LEVEL_ATTEMPTS(Integer.class, 0, SettingCategory.CAMPAIGN, null),
+        LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN, null),
+        SECRET_LEVEL_STATUS(LevelStatus.class, SecretLevelStatus.NOT_DISCOVED, SettingCategory.CAMPAIGN, null),
+        MPD_LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN, null),
         // Graphic
-        ANISOTROPY("Anisotrophy", Integer.class, 0, SettingCategory.GRAPHICS, null),
-        SSAO("SSAO", Boolean.class, false, SettingCategory.GRAPHICS, null),
+        ANISOTROPY(Integer.class, 0, SettingCategory.GRAPHICS, null),
+        SSAO(Boolean.class, false, SettingCategory.GRAPHICS, null),
         // Screen recorder
-        RECORDER_QUALITY("VideoRecorderQuality", Float.class, 0.8f, SettingCategory.MISCELLANEOUS, null),
-        RECORDER_FPS("VideoRecorderFPS", Integer.class, 60, SettingCategory.MISCELLANEOUS, null);
+        RECORDER_QUALITY(Float.class, 0.8f, SettingCategory.MISCELLANEOUS, null),
+        RECORDER_FPS(Integer.class, 60, SettingCategory.MISCELLANEOUS, null);
 
-        private Setting(String key, Class clazz, Object defValue, SettingCategory category, String resourceKey) {
+        private Setting(Class clazz, Object defValue, SettingCategory category, String resourceKey) {
             this.clazz = clazz;
-            this.key = key;
             this.defValue = defValue;
             this.category = category;
             this.resourceKey = resourceKey;
@@ -84,7 +83,13 @@ public class Settings {
 
         @Override
         public String getKey() {
-            return key;
+            String name = name().toLowerCase();
+            StringBuilder sb = new StringBuilder(name.length());
+            for (String word : name.split("_")) {
+                sb.append(word.substring(0, 1).toUpperCase());
+                sb.append(word.substring(1));
+            }
+            return sb.toString();
         }
 
         @Override
@@ -113,7 +118,6 @@ public class Settings {
             return settings;
         }
         private final Class clazz;
-        private final String key;
         private final Object defValue;
         private final SettingCategory category;
         private final String resourceKey;
