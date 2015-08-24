@@ -38,6 +38,7 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
 public class MovieMaterial {
 
     private static Image emptyImage = new Image(Format.ABGR8, 1, 1, BufferUtils.createByteBuffer(new byte[]{127, -128, -128, -128}));
+    private boolean empty = true;
     private final boolean letterbox;
     private final ColorRGBA letterboxColor = ColorRGBA.Red.clone();
     private final Vector2f aspectValues = new Vector2f(1, 1);
@@ -143,6 +144,7 @@ public class MovieMaterial {
         material.setTexture("TexCb", textureCb);
         material.setVector2("AspectValues", aspectValues.clone());
         material.setVector2("ValidRange", validRange.clone());
+        material.setBoolean("Empty", empty);
 
         if (letterbox) {
             material.setColor("LetterboxColor", letterboxColor);
@@ -157,6 +159,10 @@ public class MovieMaterial {
                 }
                 if (!validRange.equals(material.getParam("ValidRange").getValue())) {
                     material.setVector2("ValidRange", validRange.clone());
+                }
+                if (empty) {
+                    empty = false;
+                    material.setBoolean("Empty", empty);
                 }
 
                 updateTexture(textureLuma, latestFrame.getBufferForPlane(TgqFrame.YCBCR_PLANE_LUMA),
