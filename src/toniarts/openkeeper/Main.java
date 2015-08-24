@@ -560,7 +560,10 @@ public class Main extends SimpleApplication {
         // Add SSAO
         if (getUserSettings().getSettingBoolean(Settings.Setting.SSAO)) {
             FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
-            SSAOFilter ssaoFilter = new SSAOFilter(5.94f, 3.92f, 0.33f, 0.1f);
+            SSAOFilter ssaoFilter = new SSAOFilter(getUserSettings().getSettingFloat(Settings.Setting.SSAO_SAMPLE_RADIUS),
+                    getUserSettings().getSettingFloat(Settings.Setting.SSAO_INTENSITY),
+                    getUserSettings().getSettingFloat(Settings.Setting.SSAO_SCALE),
+                    getUserSettings().getSettingFloat(Settings.Setting.SSAO_BIAS));
             fpp.addFilter(ssaoFilter);
             viewPort.addProcessor(fpp);
         }

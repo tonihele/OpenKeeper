@@ -65,6 +65,10 @@ public class Settings {
         // Graphic
         ANISOTROPY(Integer.class, 0, SettingCategory.GRAPHICS, null),
         SSAO(Boolean.class, false, SettingCategory.GRAPHICS, null),
+        SSAO_SAMPLE_RADIUS(Float.class, 5.94f, SettingCategory.GRAPHICS, null),
+        SSAO_INTENSITY(Float.class, 3.92f, SettingCategory.GRAPHICS, null),
+        SSAO_SCALE(Float.class, 0.33f, SettingCategory.GRAPHICS, null),
+        SSAO_BIAS(Float.class, 0.1f, SettingCategory.GRAPHICS, null),
         // Screen recorder
         RECORDER_QUALITY(Float.class, 0.8f, SettingCategory.MISCELLANEOUS, null),
         RECORDER_FPS(Integer.class, 60, SettingCategory.MISCELLANEOUS, null);
