@@ -34,6 +34,7 @@ import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
+import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
 import de.lessvoid.nifty.render.NiftyImage;
@@ -53,10 +54,11 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -65,6 +67,11 @@ import toniarts.openkeeper.world.MapLoader;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class PlayerState extends AbstractAppState implements ScreenController {
+
+    private enum PauseMenuState {
+
+        MAIN, QUIT;
+    }
 
     private enum TabCategory {
 
@@ -239,7 +246,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         for (final Room room : getAvailableRoomsToBuild()) {
                             image(new ImageBuilder() {
                                 {
-                                    filename(Utils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat(room.getGuiIcon().getName()).concat(".png")));
+                                    filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat(room.getGuiIcon().getName()).concat(".png")));
                                     valignCenter();
                                     marginRight("3px");
                                 }
@@ -251,7 +258,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         for (final KeeperSpell spell : getAvailableKeeperSpells()) {
                             image(new ImageBuilder() {
                                 {
-                                    filename(Utils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat(spell.getGuiIcon().getName()).concat(".png")));
+                                    filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat(spell.getGuiIcon().getName()).concat(".png")));
                                     valignCenter();
                                     marginRight("3px");
                                 }
@@ -294,7 +301,98 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
         // Pause / unpause
         gameState.setEnabled(!paused);
+
         nifty.getCurrentScreen().findElementByName("optionsMenu").setVisible(paused);
+        if (paused) {
+            pauseMenuNavigate(PauseMenuState.MAIN.name());
+        }
+    }
+
+    public void pauseMenuNavigate(String menu) {
+        Element optionsMenu = nifty.getCurrentScreen().findElementByName("optionsMenu");
+        Label optionsMenuTitle = optionsMenu.findNiftyControl("optionsMenuTitle", Label.class);
+        Element optionsColumnOne = optionsMenu.findElementByName("optionsColumnOne");
+        for (Element element : optionsColumnOne.getElements()) {
+            element.markForRemoval();
+        }
+        Element optionsColumnTwo = optionsMenu.findElementByName("optionsColumnTwo");
+        for (Element element : optionsColumnTwo.getElements()) {
+            element.markForRemoval();
+        }
+        Element optionsNavigationColumnOne = optionsMenu.findElementByName("optionsNavigationColumnOne");
+        for (Element element : optionsNavigationColumnOne.getElements()) {
+            element.markForRemoval();
+        }
+        Element optionsNavigationColumnTwo = optionsMenu.findElementByName("optionsNavigationColumnTwo");
+        for (Element element : optionsNavigationColumnTwo.getElements()) {
+            element.markForRemoval();
+        }
+        // TODO: Maybe you can just put some lists to the enum, and just loop each column and construct
+        switch (PauseMenuState.valueOf(menu)) {
+            case MAIN: {
+                optionsMenuTitle.setText("${menu.94}");
+
+                // Column one
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-objective.png", "${menu.537}", "pauseMenu()") {
+                    {
+                    }
+                }.build(nifty, screen, optionsColumnOne);
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-game.png", "${menu.97}", "pauseMenu()") {
+                    {
+                    }
+                }.build(nifty, screen, optionsColumnOne);
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-load.png", "${menu.143}", "pauseMenu()") {
+                    {
+                    }
+                }.build(nifty, screen, optionsColumnOne);
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-save.png", "${menu.201}", "pauseMenu()") {
+                    {
+                    }
+                }.build(nifty, screen, optionsColumnOne);
+
+                // Column two
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-quit.png", "${menu.1266}", "pauseMenuNavigate(" + PauseMenuState.QUIT.name() + ")") {
+                    {
+                    }
+                }.build(nifty, screen, optionsColumnTwo);
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-restart.png", "${menu.1269}", "pauseMenu()") {
+                    {
+                    }
+                }.build(nifty, screen, optionsColumnTwo);
+
+                // Navigation one
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-accept.png", "${menu.142}", "pauseMenu()") {
+                    {
+                    }
+                }.build(nifty, screen, optionsNavigationColumnOne);
+                break;
+            }
+            case QUIT: {
+                optionsMenuTitle.setText("${menu.1266}");
+
+                // Column one
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-quit.png", "${menu.12}", "quitToMainMenu()") {
+                    {
+                    }
+                }.build(nifty, screen, optionsColumnOne);
+                new InGameMenuSelectionControl(Utils.isWindows() ? "Textures/GUI/Options/i-exit_to_windows.png" : "Textures/GUI/Options/i-quit.png", Utils.isWindows() ? "${menu.13}" : "${menu.14}", "quitToOS()") {
+                    {
+                    }
+                }.build(nifty, screen, optionsColumnOne);
+
+                // Navigation one
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-accept.png", "${menu.142}", "pauseMenu()") {
+                    {
+                    }
+                }.build(nifty, screen, optionsNavigationColumnOne);
+
+                // Navigation two
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-back.png", "${menu.20}", "pauseMenuNavigate(" + PauseMenuState.MAIN.name() + ")") {
+                    {
+                    }
+                }.build(nifty, screen, optionsNavigationColumnTwo);
+            }
+        }
     }
 
     public void quitToMainMenu() {
@@ -303,5 +401,24 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         stateManager.detach(gameState);
         setEnabled(false);
         stateManager.getState(MainMenuState.class).setEnabled(true);
+    }
+
+    public void quitToOS() {
+        app.stop();
+    }
+
+    /**
+     * In-game menu items
+     *
+     * @author Toni Helenius <helenius.toni@gmail.com>
+     */
+    private class InGameMenuSelectionControl extends ControlBuilder {
+
+        private InGameMenuSelectionControl(String glyph, String text, String onClick) {
+            super("inGameMenuSelection");
+            parameter("glyph", glyph);
+            parameter("text", text);
+            parameter("click", onClick);
+        }
     }
 }
