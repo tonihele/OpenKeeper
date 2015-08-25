@@ -345,7 +345,7 @@
 
             <panel id="menu" backgroundColor="#0008" height="*" width="100%" align="left" valign="top" childLayout="vertical" visibleToMouse="true" paddingLeft="3px">
                 <panel width="100%" align="left" valign="top" childLayout="vertical">
-                    <text id="optionsMenuTitle" style="textNormal" text="${menu.94}"></text>
+                    <control name="label" id="optionsMenuTitle" style="textNormal" text="${menu.94}"></control>
                 </panel>
 
                 <!--Two columns of options-->
