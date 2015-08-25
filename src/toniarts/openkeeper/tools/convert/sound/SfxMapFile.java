@@ -20,7 +20,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  *
@@ -117,30 +117,30 @@ public class SfxMapFile {
             header = new SfxMapHeader();
 
             int[] check = new int[4];
-            check[0] = Utils.readInteger(rawMap);
-            check[1] = Utils.readInteger(rawMap);
-            check[2] = Utils.readInteger(rawMap);
-            check[3] = Utils.readInteger(rawMap);
+            check[0] = ConversionUtils.readInteger(rawMap);
+            check[1] = ConversionUtils.readInteger(rawMap);
+            check[2] = ConversionUtils.readInteger(rawMap);
+            check[3] = ConversionUtils.readInteger(rawMap);
 
             if (check[0] != dword_674038 || check[1] != dword_67403C
                     || check[2] != dword_674040 || check[3] != dword_674044) {
                 throw new RuntimeException("The file header is not valid");
             }
 
-            header.unknown_1 = Utils.readInteger(rawMap);
+            header.unknown_1 = ConversionUtils.readInteger(rawMap);
             if (header.unknown_1 != 0) {
                 System.out.println("Header unknown_1 != 0. Value = " + header.unknown_1);
             }
-            header.unknown_2 = Utils.readInteger(rawMap);
+            header.unknown_2 = ConversionUtils.readInteger(rawMap);
             if (header.unknown_2 != 0) {
                 System.out.println("Header unknown_2 != 0. Value = " + header.unknown_2);
             }
-            header.quantity = Utils.readUnsignedInteger(rawMap);
+            header.quantity = ConversionUtils.readUnsignedInteger(rawMap);
 
             entries = new SfxMapHeaderEntries[header.quantity];
             for (int i = 0; i < entries.length; i++) {
                 SfxMapHeaderEntries entry = new SfxMapHeaderEntries();
-                entry.quantity = Utils.readUnsignedInteger(rawMap);
+                entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
                 rawMap.read(entry.unknown);
                 entry.entries = new SfxMapHeaderEntryHeader[entry.quantity];
                 entries[i] = entry;
@@ -149,8 +149,8 @@ public class SfxMapFile {
             for (int i = 0; i < entries.length; i++) {
                 for (int j = 0; j < entries[i].entries.length; j++) {
                     SfxMapHeaderEntryHeader entry = new SfxMapHeaderEntryHeader();
-                    entry.unknown = Utils.readInteger(rawMap);  // readUnsignedInteger
-                    entry.quantity = Utils.readUnsignedInteger(rawMap);
+                    entry.unknown = ConversionUtils.readInteger(rawMap);  // readUnsignedInteger
+                    entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
                     rawMap.read(entry.unknowns);
 
                     entry.entries = new SfxMapHeaderEntry[entry.quantity];
@@ -163,11 +163,11 @@ public class SfxMapFile {
                     for (int k = 0; k < entries[i].entries[j].entries.length; k++) {
 
                         SfxMapHeaderEntry entry = new SfxMapHeaderEntry();
-                        entry.quantity = Utils.readUnsignedInteger(rawMap);
-                        entry.shift = Utils.readInteger(rawMap); // readUnsignedInteger
-                        entry.end_pointer_position = Utils.readInteger(rawMap);
+                        entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
+                        entry.shift = ConversionUtils.readInteger(rawMap); // readUnsignedInteger
+                        entry.end_pointer_position = ConversionUtils.readInteger(rawMap);
                         rawMap.read(entry.unknown);
-                        entry.data_pointer_next = Utils.readInteger(rawMap); // readUnsignedInteger
+                        entry.data_pointer_next = ConversionUtils.readInteger(rawMap); // readUnsignedInteger
                         entry.entries = new SfxMapEntry[entry.quantity];
 
                         entries[i].entries[j].entries[k] = entry;
@@ -176,9 +176,9 @@ public class SfxMapFile {
                     for (int k = 0; k < entries[i].entries[j].entries.length; k++) {
                         for (int n = 0; n < entries[i].entries[j].entries[k].entries.length; n++) {
                             SfxMapEntry entry = new SfxMapEntry();
-                            entry.quantity = Utils.readUnsignedInteger(rawMap);
+                            entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
                             rawMap.read(entry.unknown);
-                            entry.edi_2 = Utils.readUnsignedInteger(rawMap);
+                            entry.edi_2 = ConversionUtils.readUnsignedInteger(rawMap);
 
                             entries[i].entries[j].entries[k].entries[n] = entry;
                         }
@@ -196,9 +196,9 @@ public class SfxMapFile {
              for (int n = 0; n < entries[i].entries[j].entries[k].entries.length; n++) {
 
              SfxMapEntry entry = new SfxMapEntry();
-             entry.quantity = Utils.readUnsignedInteger(rawMap);
+             entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
              rawMap.read(entry.unknown);
-             entry.edi_2 = Utils.readUnsignedInteger(rawMap);
+             entry.edi_2 = ConversionUtils.readUnsignedInteger(rawMap);
 
              entries[i].entries[j].entries[k].entries[n] = entry;
              }

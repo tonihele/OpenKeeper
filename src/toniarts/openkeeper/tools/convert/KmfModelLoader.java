@@ -697,7 +697,7 @@ public class KmfModelLoader implements AssetLoader {
                 } else {
 
                     // Ok, it it not in the cache yet, but maybe it has been already generated, so use it and update the defaults in it
-                    fileName = Utils.stripFileName(mat.getName());
+                    fileName = ConversionUtils.stripFileName(mat.getName());
 
                     // If there are multiple texture options, add a suffix to the material file name
                     if (mat.getTextures().size() > 1) {
@@ -821,7 +821,7 @@ public class KmfModelLoader implements AssetLoader {
     private Texture loadTexture(String texture, AssetInfo assetInfo) {
 
         // Load the texture
-        TextureKey textureKey = new TextureKey(Utils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png")), false);
+        TextureKey textureKey = new TextureKey(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png")), false);
         Texture tex = assetInfo.getManager().loadTexture(textureKey);
         return tex;
     }

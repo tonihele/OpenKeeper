@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * Dungeon Keeper II *Bank.map files. The map files contain sound playback
@@ -57,8 +57,8 @@ public class BankMapFile {
             for (int x = 0; x < unknown1.length; x++) {
                 unknown1[x] = (short) rawMap.readUnsignedByte();
             }
-            unknown2 = Utils.readUnsignedInteger(rawMap);
-            int entries = Utils.readUnsignedInteger(rawMap);
+            unknown2 = ConversionUtils.readUnsignedInteger(rawMap);
+            int entries = ConversionUtils.readUnsignedInteger(rawMap);
 
             //Read the entries
             bankMapFileEntries = new ArrayList<>(entries);
@@ -69,8 +69,8 @@ public class BankMapFile {
                 //    long unknown04;
                 //    char unknown08[3];
                 BankMapFileEntry entry = new BankMapFileEntry();
-                entry.setUnknown1(Utils.readUnsignedIntegerAsLong(rawMap));
-                entry.setUnknown2(Utils.readUnsignedInteger(rawMap));
+                entry.setUnknown1(ConversionUtils.readUnsignedIntegerAsLong(rawMap));
+                entry.setUnknown2(ConversionUtils.readUnsignedInteger(rawMap));
                 short[] unknown3 = new short[3];
                 for (int x = 0; x < unknown3.length; x++) {
                     unknown3[x] = (short) rawMap.readUnsignedByte();
@@ -86,10 +86,10 @@ public class BankMapFile {
             for (int i = 0; i < entries; i++) {
 
                 // 4 bytes = length of the name (including the null terminator)
-                int length = Utils.readUnsignedInteger(rawMap);
+                int length = ConversionUtils.readUnsignedInteger(rawMap);
                 byte[] bytes = new byte[length];
                 rawMap.read(bytes);
-                soundArchiveEntries.add(Utils.bytesToString(bytes).trim());
+                soundArchiveEntries.add(ConversionUtils.bytesToString(bytes).trim());
             }
 
         } catch (IOException e) {

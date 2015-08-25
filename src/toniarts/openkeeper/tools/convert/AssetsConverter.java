@@ -238,8 +238,8 @@ public abstract class AssetsConverter {
         WadFile frontEnd;
         WadFile engineTextures;
         try {
-            frontEnd = new WadFile(new File(Utils.getRealFileName(dungeonKeeperFolder, "Data".concat(File.separator).concat("FrontEnd.WAD"))));
-            engineTextures = new WadFile(new File(Utils.getRealFileName(dungeonKeeperFolder, "Data".concat(File.separator).concat("EngineTextures.WAD"))));
+            frontEnd = new WadFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, "Data".concat(File.separator).concat("FrontEnd.WAD"))));
+            engineTextures = new WadFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, "Data".concat(File.separator).concat("EngineTextures.WAD"))));
         } catch (IOException e) {
             throw new RuntimeException("Failed to open a WAD file!", e);
         }
@@ -510,7 +510,7 @@ public abstract class AssetsConverter {
 
         //Get the engine textures file
         try {
-            EngineTexturesFile etFile = new EngineTexturesFile(new File(Utils.getRealFileName(dungeonKeeperFolder, "DK2TextureCache".concat(File.separator).concat("EngineTextures.dat"))));
+            EngineTexturesFile etFile = new EngineTexturesFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, "DK2TextureCache".concat(File.separator).concat("EngineTextures.dat"))));
             return etFile;
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the EngineTextures file!", e);

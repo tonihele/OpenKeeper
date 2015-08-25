@@ -28,7 +28,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -55,88 +55,88 @@ public class FiveByFiveRotated {
 
             // Corners
             if (x == 0 && y == 0) { // Top left corner
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                 tile.rotate(quat);
             } else if (x == 4 && y == 0) { // Top right corner
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
                 resetAndMoveSpatial(tile, start, p);
             } else if (x == 0 && y == 4) { // Lower left corner
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } else if (x == 4 && y == 4) { // Lower right corner
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } // Outer layer sides
             else if (x == 0) { // Left side
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } else if (x == 4) { // Right side
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
                 resetAndMoveSpatial(tile, start, p);
             } else if (y == 0) { // Top side
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                 tile.rotate(quat);
             } else if (y == 4) { // Bottom side
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } // The inner ring, corners
             else if (x == 1 && y == 1) { // Top left
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
                 resetAndMoveSpatial(tile, start, p);
             } else if (x == 3 && y == 1) { // Top right
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } else if (x == 1 && y == 3) { // Bottom left
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                 tile.rotate(quat);
             } else if (x == 3 && y == 3) { // Bottom right
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } // The inner ring, sides
             else if (x == 1) { // Left
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
                 tile.rotate(quat);
             } else if (x == 3) { // Right
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
             } else if (y == 1) { // Top
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
                 resetAndMoveSpatial(tile, start, p);
             } else if (y == 3) { // Bottom
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
@@ -159,23 +159,23 @@ public class FiveByFiveRotated {
                 n.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 
                 // The arches
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart Arches.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart Arches.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 n.attachChild(tile);
 
                 // The steps between the arches
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 n.attachChild(tile);
 
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI / 1.5f, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
                 n.attachChild(tile);
 
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI / 1.5f, new Vector3f(0, 1, 0));
@@ -183,7 +183,7 @@ public class FiveByFiveRotated {
                 n.attachChild(tile);
 
                 // The alfa & omega! The heart, TODO: use object loader once it is in decent condition, this after all is a real object
-                tile = (Node) assetManager.loadModel(Utils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/Dungeon centre.j3o"));
+                tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/Dungeon centre.j3o"));
                 resetAndMoveSpatial(tile, start, p);
 
                 // Animate

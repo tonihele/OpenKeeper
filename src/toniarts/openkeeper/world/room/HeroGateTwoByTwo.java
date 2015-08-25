@@ -23,7 +23,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -44,7 +44,7 @@ public class HeroGateTwoByTwo {
         int i = 0;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = assetManager.loadModel(Utils.getCanonicalAssetKey(modelName + i++ + ".j3o"));
+            Spatial tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(modelName + i++ + ".j3o"));
             // Reset
             resetAndMoveSpatial((Node) tile, start, p);
             // Set the shadows

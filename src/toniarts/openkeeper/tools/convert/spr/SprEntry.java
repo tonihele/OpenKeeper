@@ -21,7 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import javax.imageio.ImageIO;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  *
@@ -40,9 +40,9 @@ public class SprEntry {
 
     public SprEntry(RandomAccessFile file) throws IOException {
         header = new SprEntryHeader();
-        header.width = Utils.readUnsignedShort(file);
-        header.height = Utils.readUnsignedShort(file);
-        header.offset = Utils.readUnsignedIntegerAsLong(file);
+        header.width = ConversionUtils.readUnsignedShort(file);
+        header.height = ConversionUtils.readUnsignedShort(file);
+        header.offset = ConversionUtils.readUnsignedIntegerAsLong(file);
 
         long pointer = file.getFilePointer();
 

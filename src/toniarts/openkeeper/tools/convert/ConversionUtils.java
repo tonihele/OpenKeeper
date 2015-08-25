@@ -41,9 +41,9 @@ import java.util.regex.Pattern;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Utils {
+public class ConversionUtils {
 
-    private static final Logger logger = Logger.getLogger(Utils.class.getName());
+    private static final Logger logger = Logger.getLogger(ConversionUtils.class.getName());
     private static final HashMap<String, String> fileNameCache = new HashMap<>();
     private static final Object fileNameLock = new Object();
 
@@ -57,7 +57,7 @@ public class Utils {
      * @throws IOException may fail
      */
     public static long readUnsignedIntegerAsLong(RandomAccessFile file) throws IOException {
-        return Utils.readInteger(file) & 0xFFFFFFFFL;
+        return ConversionUtils.readInteger(file) & 0xFFFFFFFFL;
     }
 
     /**
@@ -257,7 +257,7 @@ public class Utils {
             result.add(bytes[i + 1]);
         }
 
-        return Utils.bytesToStringUtf16(toByteArray(result));
+        return ConversionUtils.bytesToStringUtf16(toByteArray(result));
     }
 
     /**
@@ -294,7 +294,7 @@ public class Utils {
                     break;
                 }
             } while (true);
-            strings.add(Utils.bytesToString(toByteArray(bytes)));
+            strings.add(ConversionUtils.bytesToString(toByteArray(bytes)));
         }
         return strings;
     }

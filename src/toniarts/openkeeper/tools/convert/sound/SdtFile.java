@@ -25,7 +25,7 @@ import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * Stores the SDT file structure and contains the methods to handle the SDT
@@ -54,10 +54,10 @@ public class SdtFile {
         try (RandomAccessFile rawSdt = new RandomAccessFile(file, "r")) {
 
             //Header
-            int files = Utils.readUnsignedInteger(rawSdt);
+            int files = ConversionUtils.readUnsignedInteger(rawSdt);
 
             //Read the files
-            int offset = Utils.readUnsignedInteger(rawSdt);
+            int offset = ConversionUtils.readUnsignedInteger(rawSdt);
             rawSdt.seek(offset);
             sdtFileEntries = new HashMap<>(files);
             for (int i = 0; i < files; i++) {
@@ -71,15 +71,15 @@ public class SdtFile {
                 //Unknow3: integer;
                 //Unknow4: integer;
                 SdtFileEntry entry = new SdtFileEntry();
-                entry.setIndexSize(Utils.readUnsignedInteger(rawSdt));
-                entry.setSize(Utils.readUnsignedInteger(rawSdt));
+                entry.setIndexSize(ConversionUtils.readUnsignedInteger(rawSdt));
+                entry.setSize(ConversionUtils.readUnsignedInteger(rawSdt));
                 byte[] nameBytes = new byte[16];
                 rawSdt.read(nameBytes);
-                String filename = Utils.convertFileSeparators(Utils.bytesToString(nameBytes).trim());
-                entry.setUnknown1(Utils.readUnsignedInteger(rawSdt));
-                entry.setUnknown2(Utils.readUnsignedInteger(rawSdt));
-                entry.setnSamples(Utils.readUnsignedInteger(rawSdt));
-                entry.setUnknown4(Utils.readUnsignedInteger(rawSdt));
+                String filename = ConversionUtils.convertFileSeparators(ConversionUtils.bytesToString(nameBytes).trim());
+                entry.setUnknown1(ConversionUtils.readUnsignedInteger(rawSdt));
+                entry.setUnknown2(ConversionUtils.readUnsignedInteger(rawSdt));
+                entry.setnSamples(ConversionUtils.readUnsignedInteger(rawSdt));
+                entry.setUnknown4(ConversionUtils.readUnsignedInteger(rawSdt));
                 entry.setDataOffset(rawSdt.getFilePointer());
 
                 //Skip entries of size 0, there seems to be these BLANKs

@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * Stores the HiScores file entries<br>
@@ -48,9 +48,9 @@ public class HiScoresFile {
             hiScoresEntries = new ArrayList<>();
             while (data.getFilePointer() < data.length()) {
                 HiScoresEntry entry = new HiScoresEntry();
-                entry.setScore(Utils.readUnsignedInteger(data));
-                entry.setName(Utils.readVaryingLengthStringUtf16(data, 64).trim());
-                entry.setLevel(Utils.readVaryingLengthStringUtf16(data, 64).trim());
+                entry.setScore(ConversionUtils.readUnsignedInteger(data));
+                entry.setName(ConversionUtils.readVaryingLengthStringUtf16(data, 64).trim());
+                entry.setLevel(ConversionUtils.readVaryingLengthStringUtf16(data, 64).trim());
 
                 hiScoresEntries.add(entry);
             }

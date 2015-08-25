@@ -26,7 +26,7 @@ import java.io.RandomAccessFile;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  *
@@ -52,14 +52,14 @@ public class SprFile {
         try (RandomAccessFile data = new RandomAccessFile(sprFile, "r")) {
 
             header = new SprHeader();
-            header.magic = Utils.bytesToString(data, 4);
+            header.magic = ConversionUtils.bytesToString(data, 4);
 
             if (!header.magic.equals(PSFB)) {
                 logger.log(Level.SEVERE, "This is not sprite file");
                 throw new RuntimeException("This is not sprite file");
             }
 
-            header.framesCount = Utils.readUnsignedInteger(data);
+            header.framesCount = ConversionUtils.readUnsignedInteger(data);
             sprites = new SprEntry[header.framesCount];
 
             for (int i = 0; i < sprites.length; i++) {

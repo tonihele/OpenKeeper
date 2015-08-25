@@ -18,7 +18,7 @@ package toniarts.openkeeper.video.tgq;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * EA audio frame holder<br>
@@ -76,18 +76,18 @@ public class EAAudioFrame implements Comparable<EAAudioFrame> {
 
             // Decoding
             for (int count1 = 0; count1 < codedSamples / 28; count1++) {
-                int b = Utils.toUnsignedByte(buf.get());
+                int b = ConversionUtils.toUnsignedByte(buf.get());
                 int coeff1l = EA_ADPCM_TABLE[ b >> 4];
                 int coeff2l = EA_ADPCM_TABLE[(b >> 4) + 4];
                 int coeff1r = EA_ADPCM_TABLE[ b & 0x0F];
                 int coeff2r = EA_ADPCM_TABLE[(b & 0x0F) + 4];
 
-                b = Utils.toUnsignedByte(buf.get());
+                b = ConversionUtils.toUnsignedByte(buf.get());
                 int shiftLeft = 20 - (b >> 4);
                 int shiftRight = 20 - (b & 0x0F);
 
                 for (int count2 = 0; count2 < 28; count2++) {
-                    b = Utils.toUnsignedByte(buf.get());
+                    b = ConversionUtils.toUnsignedByte(buf.get());
                     int nextLeftSample = signExtend(b >> 4, 4) << shiftLeft;
                     int nextRightSample = signExtend(b, 4) << shiftRight;
 

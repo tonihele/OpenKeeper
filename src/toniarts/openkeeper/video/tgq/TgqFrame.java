@@ -23,7 +23,7 @@ import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.BitReader;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * Holds a TGQ frame (one texture that is)<br>
@@ -177,7 +177,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
     }
 
     private void decodeFrame(ByteBuffer buf) {
-        short quantizer = Utils.toUnsignedByte(buf.get());
+        short quantizer = ConversionUtils.toUnsignedByte(buf.get());
         buf.position(buf.position() + 3); // Skip 3 bytes
         calculateDequantizationTable(quantizer);
 

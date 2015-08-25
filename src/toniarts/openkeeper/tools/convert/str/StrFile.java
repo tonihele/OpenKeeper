@@ -30,7 +30,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * Reads the Dungeon Keeper 2 STR files<br>
@@ -81,18 +81,18 @@ public class StrFile {
             // Check the header
             byte[] header = new byte[4];
             rawStr.read(header);
-            if (!STR_HEADER_IDENTIFIER.equals(Utils.bytesToString(header))) {
+            if (!STR_HEADER_IDENTIFIER.equals(ConversionUtils.bytesToString(header))) {
                 throw new RuntimeException("Header should be " + STR_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
 
             // Header... 12 bytes, must be added to offsets
-            fileId = Utils.readUnsignedInteger(rawStr);
-            int offsetsCount = Utils.readUnsignedInteger(rawStr);
+            fileId = ConversionUtils.readUnsignedInteger(rawStr);
+            int offsetsCount = ConversionUtils.readUnsignedInteger(rawStr);
 
             // Read the offsets
             List<Integer> offsets = new ArrayList<>(offsetsCount);
             for (int i = 0; i < offsetsCount; i++) {
-                offsets.add(Utils.readUnsignedInteger(rawStr));
+                offsets.add(ConversionUtils.readUnsignedInteger(rawStr));
             }
 
             // Make a copy because offsets in some languages (like german) are not sorted!
@@ -145,7 +145,7 @@ public class StrFile {
             // Check the header
             byte[] header = new byte[4];
             rawCodepage.read(header);
-            if (!CODEPAGE_HEADER_IDENTIFIER.equals(Utils.bytesToString(header))) {
+            if (!CODEPAGE_HEADER_IDENTIFIER.equals(ConversionUtils.bytesToString(header))) {
                 throw new RuntimeException("Header should be " + CODEPAGE_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
             rawCodepage.skipBytes(2); // Don't know what is here
@@ -243,7 +243,7 @@ public class StrFile {
         StringBuilder buffer = new StringBuilder(chunk.length);
         int codePageIndex = 0;
         for (byte b : chunk) {
-            short chr = Utils.toUnsignedByte(b);
+            short chr = ConversionUtils.toUnsignedByte(b);
             char character;
             if (chr == 0xff) {
                 codePageIndex += 254;

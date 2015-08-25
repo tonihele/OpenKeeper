@@ -20,7 +20,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * Loading and title screens carry the .444 file extension. They are packed with
@@ -65,10 +65,10 @@ public class LoadingScreenFile {
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 int base = width * y * 4 + x * 4;
-                int r = Utils.toUnsignedByte(pixels[base]);
-                int g = Utils.toUnsignedByte(pixels[base + 1]);
-                int b = Utils.toUnsignedByte(pixels[base + 2]);
-                int a = Utils.toUnsignedByte(pixels[base + 3]);
+                int r = ConversionUtils.toUnsignedByte(pixels[base]);
+                int g = ConversionUtils.toUnsignedByte(pixels[base + 1]);
+                int b = ConversionUtils.toUnsignedByte(pixels[base + 2]);
+                int a = ConversionUtils.toUnsignedByte(pixels[base + 3]);
                 int col = (a << 24) | (r << 16) | (g << 8) | b;
                 img.setRGB(x, y, col);
             }

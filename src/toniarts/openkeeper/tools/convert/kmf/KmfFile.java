@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import javax.vecmath.Vector3f;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * Reads Dungeon Keeper II model file to a data structure<br>
@@ -89,7 +89,7 @@ public class KmfFile {
             //Read the identifier
             checkHeader(rawKmf, KMF_HEADER_IDENTIFIER);
             rawKmf.skipBytes(4);
-            version = Utils.readUnsignedInteger(rawKmf);
+            version = ConversionUtils.readUnsignedInteger(rawKmf);
 
             //KMSH/HEAD
             checkHeader(rawKmf, KMF_HEAD);
@@ -109,7 +109,7 @@ public class KmfFile {
                 if (rawKmf.read(buf) == -1) {
                     break; // EOF
                 }
-                temp = Utils.bytesToString(buf);
+                temp = ConversionUtils.bytesToString(buf);
                 if (KMF_MESH.equals(temp)) {
                     meshes.add(parseMesh(rawKmf));
                 } else {
@@ -142,8 +142,8 @@ public class KmfFile {
      */
     private void parseHead(RandomAccessFile rawKmf) throws IOException {
         rawKmf.skipBytes(4);
-        this.type = Type.toType(Utils.readUnsignedInteger(rawKmf));
-        int unknown = Utils.readUnsignedInteger(rawKmf);
+        this.type = Type.toType(ConversionUtils.readUnsignedInteger(rawKmf));
+        int unknown = ConversionUtils.readUnsignedInteger(rawKmf);
     }
 
     /**
@@ -154,7 +154,7 @@ public class KmfFile {
      */
     private void parseMatl(RandomAccessFile rawKmf) throws IOException {
         rawKmf.skipBytes(4);
-        int materialsCount = Utils.readUnsignedInteger(rawKmf);
+        int materialsCount = ConversionUtils.readUnsignedInteger(rawKmf);
         byte[] buf = new byte[4];
 
         //Read the materials
@@ -178,18 +178,18 @@ public class KmfFile {
         Material m = new Material();
 
         //Now we should have the name
-        m.setName(Utils.readVaryingLengthStrings(rawKmf, 1).get(0));
+        m.setName(ConversionUtils.readVaryingLengthStrings(rawKmf, 1).get(0));
 
         //Textures
-        int texturesCount = Utils.readUnsignedInteger(rawKmf);
-        m.setTextures(Utils.readVaryingLengthStrings(rawKmf, texturesCount));
+        int texturesCount = ConversionUtils.readUnsignedInteger(rawKmf);
+        m.setTextures(ConversionUtils.readVaryingLengthStrings(rawKmf, texturesCount));
 
-        m.setFlag(Utils.parseFlagValue(Utils.readUnsignedInteger(rawKmf), Material.MaterialFlag.class));
-        m.setBrightness(Utils.readFloat(rawKmf));
-        m.setGamma(Utils.readFloat(rawKmf));
+        m.setFlag(ConversionUtils.parseFlagValue(ConversionUtils.readUnsignedInteger(rawKmf), Material.MaterialFlag.class));
+        m.setBrightness(ConversionUtils.readFloat(rawKmf));
+        m.setGamma(ConversionUtils.readFloat(rawKmf));
 
         //Environment map
-        m.setEnvironmentMappingTexture(Utils.readVaryingLengthStrings(rawKmf, 1).get(0));
+        m.setEnvironmentMappingTexture(ConversionUtils.readVaryingLengthStrings(rawKmf, 1).get(0));
 
         return m;
     }
@@ -211,13 +211,13 @@ public class KmfFile {
         Mesh m = new Mesh();
 
         //Now we should have the name
-        m.setName(Utils.readVaryingLengthStrings(rawKmf, 1).get(0));
+        m.setName(ConversionUtils.readVaryingLengthStrings(rawKmf, 1).get(0));
 
-        int sprsCount = Utils.readUnsignedInteger(rawKmf);
-        int geomCount = Utils.readUnsignedInteger(rawKmf);
-        m.setPos(new Vector3f(Utils.readFloat(rawKmf), Utils.readFloat(rawKmf), Utils.readFloat(rawKmf)));
-        m.setScale(Utils.readFloat(rawKmf));
-        int lodCount = Utils.readUnsignedInteger(rawKmf);
+        int sprsCount = ConversionUtils.readUnsignedInteger(rawKmf);
+        int geomCount = ConversionUtils.readUnsignedInteger(rawKmf);
+        m.setPos(new Vector3f(ConversionUtils.readFloat(rawKmf), ConversionUtils.readFloat(rawKmf), ConversionUtils.readFloat(rawKmf)));
+        m.setScale(ConversionUtils.readFloat(rawKmf));
+        int lodCount = ConversionUtils.readUnsignedInteger(rawKmf);
 
         //Controls
         //KMSH/MATL/CTRL
@@ -246,14 +246,14 @@ public class KmfFile {
     private List<MeshControl> parseMeshControls(RandomAccessFile rawKmf) throws IOException {
         rawKmf.skipBytes(4);
 
-        int controlCount = Utils.readUnsignedInteger(rawKmf);
+        int controlCount = ConversionUtils.readUnsignedInteger(rawKmf);
         List<MeshControl> controls = new ArrayList<>(controlCount);
 
         //Read the controls
         for (int i = 0; i < controlCount; i++) {
             MeshControl control = new MeshControl();
-            control.setUnknown1(Utils.readUnsignedInteger(rawKmf));
-            control.setUnknown2(Utils.readUnsignedInteger(rawKmf));
+            control.setUnknown1(ConversionUtils.readUnsignedInteger(rawKmf));
+            control.setUnknown2(ConversionUtils.readUnsignedInteger(rawKmf));
             controls.add(control);
         }
 
@@ -282,11 +282,11 @@ public class KmfFile {
             MeshSprite sprite = new MeshSprite();
             List<Integer> triangleCounts = new ArrayList<>(lodCount);
             for (int j = 0; j < lodCount; j++) {
-                triangleCounts.add(Utils.readUnsignedInteger(rawKmf));
+                triangleCounts.add(ConversionUtils.readUnsignedInteger(rawKmf));
             }
             sprite.setTriangleCounts(triangleCounts);
-            sprite.setVerticeCount(Utils.readUnsignedInteger(rawKmf));
-            sprite.setMmFactor(Utils.readFloat(rawKmf));
+            sprite.setVerticeCount(ConversionUtils.readUnsignedInteger(rawKmf));
+            sprite.setMmFactor(ConversionUtils.readFloat(rawKmf));
             sprites.add(sprite);
         }
 
@@ -299,14 +299,14 @@ public class KmfFile {
             rawKmf.skipBytes(4);
 
             MeshSprite sprite = sprites.get(i);
-            sprite.setMaterialIndex(Utils.readUnsignedInteger(rawKmf));
+            sprite.setMaterialIndex(ConversionUtils.readUnsignedInteger(rawKmf));
 
             //The triangles, for each lod level
             HashMap<Integer, List<Triangle>> trianglesPerLod = new HashMap<>(lodCount);
             for (int j = 0; j < lodCount; j++) {
                 List<Triangle> triangles = new ArrayList<>(sprite.getTriangleCounts().get(j));
                 for (int k = 0; k < sprite.getTriangleCounts().get(j); k++) {
-                    triangles.add(new Triangle(Utils.toUnsignedByte(rawKmf.readByte()), Utils.toUnsignedByte(rawKmf.readByte()), Utils.toUnsignedByte(rawKmf.readByte())));
+                    triangles.add(new Triangle(ConversionUtils.toUnsignedByte(rawKmf.readByte()), ConversionUtils.toUnsignedByte(rawKmf.readByte()), ConversionUtils.toUnsignedByte(rawKmf.readByte())));
                 }
                 trianglesPerLod.put(j, triangles);
             }
@@ -316,9 +316,9 @@ public class KmfFile {
             List<MeshVertex> vertices = new ArrayList<>(sprite.getVerticeCount());
             for (int j = 0; j < sprite.getVerticeCount(); j++) {
                 MeshVertex meshVertex = new MeshVertex();
-                meshVertex.setGeomIndex(Utils.readUnsignedShort(rawKmf));
-                meshVertex.setUv(new Uv(Utils.readUnsignedShort(rawKmf), Utils.readUnsignedShort(rawKmf)));
-                meshVertex.setNormal(new Vector3f(Utils.readFloat(rawKmf), Utils.readFloat(rawKmf), Utils.readFloat(rawKmf)));
+                meshVertex.setGeomIndex(ConversionUtils.readUnsignedShort(rawKmf));
+                meshVertex.setUv(new Uv(ConversionUtils.readUnsignedShort(rawKmf), ConversionUtils.readUnsignedShort(rawKmf)));
+                meshVertex.setNormal(new Vector3f(ConversionUtils.readFloat(rawKmf), ConversionUtils.readFloat(rawKmf), ConversionUtils.readFloat(rawKmf)));
                 vertices.add(meshVertex);
             }
             sprite.setVertices(vertices);
@@ -339,7 +339,7 @@ public class KmfFile {
 
         //Geometries
         for (int i = 0; i < geomCount; i++) {
-            geometries.add(new Vector3f(Utils.readFloat(rawKmf), Utils.readFloat(rawKmf), Utils.readFloat(rawKmf)));
+            geometries.add(new Vector3f(ConversionUtils.readFloat(rawKmf), ConversionUtils.readFloat(rawKmf), ConversionUtils.readFloat(rawKmf)));
         }
 
         return geometries;
@@ -362,17 +362,17 @@ public class KmfFile {
         Anim a = new Anim();
 
         //Now we should have the name
-        a.setName(Utils.readVaryingLengthStrings(rawKmf, 1).get(0));
+        a.setName(ConversionUtils.readVaryingLengthStrings(rawKmf, 1).get(0));
 
-        int sprsCount = Utils.readUnsignedInteger(rawKmf);
-        int frameCount = Utils.readUnsignedInteger(rawKmf);
-        int indexCount = Utils.readUnsignedInteger(rawKmf);
-        int geomCount = Utils.readUnsignedInteger(rawKmf);
-        a.setFrameFactorFunction(Anim.FrameFactorFunction.toFrameFactorFunction(Utils.readUnsignedInteger(rawKmf)));
-        a.setPos(new Vector3f(Utils.readFloat(rawKmf), Utils.readFloat(rawKmf), Utils.readFloat(rawKmf)));
-        a.setCubeScale(Utils.readFloat(rawKmf));
-        a.setScale(Utils.readFloat(rawKmf));
-        int lodCount = Utils.readUnsignedInteger(rawKmf);
+        int sprsCount = ConversionUtils.readUnsignedInteger(rawKmf);
+        int frameCount = ConversionUtils.readUnsignedInteger(rawKmf);
+        int indexCount = ConversionUtils.readUnsignedInteger(rawKmf);
+        int geomCount = ConversionUtils.readUnsignedInteger(rawKmf);
+        a.setFrameFactorFunction(Anim.FrameFactorFunction.toFrameFactorFunction(ConversionUtils.readUnsignedInteger(rawKmf)));
+        a.setPos(new Vector3f(ConversionUtils.readFloat(rawKmf), ConversionUtils.readFloat(rawKmf), ConversionUtils.readFloat(rawKmf)));
+        a.setCubeScale(ConversionUtils.readFloat(rawKmf));
+        a.setScale(ConversionUtils.readFloat(rawKmf));
+        int lodCount = ConversionUtils.readUnsignedInteger(rawKmf);
         a.setFrames(frameCount);
         a.setIndexes(indexCount);
 
@@ -395,7 +395,7 @@ public class KmfFile {
         int[][] itab = new int[chunks][indexCount];
         for (int chunk = 0; chunk < chunks; chunk++) {
             for (int i = 0; i < indexCount; i++) {
-                itab[chunk][i] = Utils.readUnsignedInteger(rawKmf);
+                itab[chunk][i] = ConversionUtils.readUnsignedInteger(rawKmf);
             }
         }
         a.setItab(itab);
@@ -411,7 +411,7 @@ public class KmfFile {
             //10 bits, BITS, yes BITS, per coordinate (Z, Y, X) = 30 bits (2 last bits can be thrown away)
             // ^ so read 4 bytes
             // + 1 byte for frame base
-            int coordinates = Utils.readUnsignedInteger(rawKmf);
+            int coordinates = ConversionUtils.readUnsignedInteger(rawKmf);
             geom = new AnimGeom();
 
             float x = (((coordinates >> 20) & 0x3ff) - 0x200) / 511.0f;
@@ -422,7 +422,7 @@ public class KmfFile {
             v.scale(a.getScale()); // Scale
             geom.setGeometry(v);
 
-            geom.setFrameBase(Utils.toUnsignedByte(rawKmf.readByte()));
+            geom.setFrameBase(ConversionUtils.toUnsignedByte(rawKmf.readByte()));
             geometries.add(geom);
         }
 
@@ -438,7 +438,7 @@ public class KmfFile {
         short[][] offsets = new short[indexCount][frameCount];
         for (int i = 0; i < indexCount; i++) {
             for (int frame = 0; frame < frameCount; frame++) {
-                offsets[i][frame] = Utils.toUnsignedByte(rawKmf.readByte());
+                offsets[i][frame] = ConversionUtils.toUnsignedByte(rawKmf.readByte());
             }
         }
         a.setOffsets(offsets);
@@ -455,15 +455,15 @@ public class KmfFile {
     private List<AnimControl> parseAnimControls(RandomAccessFile rawKmf) throws IOException {
         rawKmf.skipBytes(4);
 
-        int controlCount = Utils.readUnsignedInteger(rawKmf);
+        int controlCount = ConversionUtils.readUnsignedInteger(rawKmf);
         List<AnimControl> controls = new ArrayList<>(controlCount);
 
         //Read the controls
         for (int i = 0; i < controlCount; i++) {
             AnimControl control = new AnimControl();
-            control.setUnknown1(Utils.readUnsignedShort(rawKmf));
-            control.setUnknown2(Utils.readUnsignedShort(rawKmf));
-            control.setUnknown3(Utils.readUnsignedInteger(rawKmf));
+            control.setUnknown1(ConversionUtils.readUnsignedShort(rawKmf));
+            control.setUnknown2(ConversionUtils.readUnsignedShort(rawKmf));
+            control.setUnknown3(ConversionUtils.readUnsignedInteger(rawKmf));
             controls.add(control);
         }
 
@@ -492,11 +492,11 @@ public class KmfFile {
             AnimSprite sprite = new AnimSprite();
             List<Integer> triangleCounts = new ArrayList<>(lodCount);
             for (int j = 0; j < lodCount; j++) {
-                triangleCounts.add(Utils.readUnsignedInteger(rawKmf));
+                triangleCounts.add(ConversionUtils.readUnsignedInteger(rawKmf));
             }
             sprite.setTriangleCounts(triangleCounts);
-            sprite.setVerticeCount(Utils.readUnsignedInteger(rawKmf));
-            sprite.setMmFactor(Utils.readFloat(rawKmf));
+            sprite.setVerticeCount(ConversionUtils.readUnsignedInteger(rawKmf));
+            sprite.setMmFactor(ConversionUtils.readFloat(rawKmf));
             sprites.add(sprite);
         }
 
@@ -509,7 +509,7 @@ public class KmfFile {
             rawKmf.skipBytes(4);
 
             AnimSprite sprite = sprites.get(i);
-            sprite.setMaterialIndex(Utils.readUnsignedInteger(rawKmf));
+            sprite.setMaterialIndex(ConversionUtils.readUnsignedInteger(rawKmf));
 
             //The triangles, for each lod level
             //KMSH/ANIM/SPRS/SPRS/POLY
@@ -519,7 +519,7 @@ public class KmfFile {
             for (int j = 0; j < lodCount; j++) {
                 List<Triangle> triangles = new ArrayList<>(sprite.getTriangleCounts().get(j));
                 for (int k = 0; k < sprite.getTriangleCounts().get(j); k++) {
-                    triangles.add(new Triangle(Utils.toUnsignedByte(rawKmf.readByte()), Utils.toUnsignedByte(rawKmf.readByte()), Utils.toUnsignedByte(rawKmf.readByte())));
+                    triangles.add(new Triangle(ConversionUtils.toUnsignedByte(rawKmf.readByte()), ConversionUtils.toUnsignedByte(rawKmf.readByte()), ConversionUtils.toUnsignedByte(rawKmf.readByte())));
                 }
                 trianglesPerLod.put(j, triangles);
             }
@@ -532,9 +532,9 @@ public class KmfFile {
             List<AnimVertex> vertices = new ArrayList<>(sprite.getVerticeCount());
             for (int j = 0; j < sprite.getVerticeCount(); j++) {
                 AnimVertex animVertex = new AnimVertex();
-                animVertex.setUv(new Uv(Utils.readUnsignedShort(rawKmf), Utils.readUnsignedShort(rawKmf)));
-                animVertex.setNormal(new Vector3f(Utils.readFloat(rawKmf), Utils.readFloat(rawKmf), Utils.readFloat(rawKmf)));
-                animVertex.setItabIndex(Utils.readUnsignedShort(rawKmf));
+                animVertex.setUv(new Uv(ConversionUtils.readUnsignedShort(rawKmf), ConversionUtils.readUnsignedShort(rawKmf)));
+                animVertex.setNormal(new Vector3f(ConversionUtils.readFloat(rawKmf), ConversionUtils.readFloat(rawKmf), ConversionUtils.readFloat(rawKmf)));
+                animVertex.setItabIndex(ConversionUtils.readUnsignedShort(rawKmf));
                 vertices.add(animVertex);
             }
             sprite.setVertices(vertices);
@@ -555,7 +555,7 @@ public class KmfFile {
         //KMSH/GROP/HEAD
         checkHeader(rawKmf, KMF_HEAD);
         rawKmf.skipBytes(4);
-        int elementCount = Utils.readUnsignedInteger(rawKmf);
+        int elementCount = ConversionUtils.readUnsignedInteger(rawKmf);
 
         //Read the elements
         List<Grop> gs = new ArrayList<>();
@@ -567,8 +567,8 @@ public class KmfFile {
 
             //Read it
             Grop grop = new Grop();
-            grop.setName(Utils.readVaryingLengthStrings(rawKmf, 1).get(0));
-            grop.setPos(new Vector3f(Utils.readFloat(rawKmf), Utils.readFloat(rawKmf), Utils.readFloat(rawKmf)));
+            grop.setName(ConversionUtils.readVaryingLengthStrings(rawKmf, 1).get(0));
+            grop.setPos(new Vector3f(ConversionUtils.readFloat(rawKmf), ConversionUtils.readFloat(rawKmf), ConversionUtils.readFloat(rawKmf)));
             gs.add(grop);
         }
 
@@ -586,7 +586,7 @@ public class KmfFile {
     private void checkHeader(RandomAccessFile rawKmf, String expectedHeader) throws RuntimeException, IOException {
         byte[] buf = new byte[4];
         rawKmf.read(buf);
-        String extractedHeader = Utils.bytesToString(buf);
+        String extractedHeader = ConversionUtils.bytesToString(buf);
         if (!expectedHeader.equals(extractedHeader)) {
             throw new RuntimeException("Header should be " + expectedHeader + " and it was " + extractedHeader + "! Cancelling!");
         }

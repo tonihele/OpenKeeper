@@ -31,7 +31,7 @@ import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * Reads Dungeon Keeper II EngineTextures.dat file to a structure<br>
@@ -69,25 +69,25 @@ public class EngineTexturesFile implements Iterable<String> {
 
             //Read the entries
             rawDir.skipBytes(12);
-            int numberOfEntries = Utils.readUnsignedInteger(rawDir);
+            int numberOfEntries = ConversionUtils.readUnsignedInteger(rawDir);
             engineTextureEntries = new HashMap<>(numberOfEntries);
 
             try (RandomAccessFile rawTextures = new RandomAccessFile(file, "r")) {
                 do {
-                    String name = Utils.convertFileSeparators(Utils.readVaryingLengthStrings(rawDir, 1).get(0));
-                    int offset = Utils.readUnsignedInteger(rawDir);
+                    String name = ConversionUtils.convertFileSeparators(ConversionUtils.readVaryingLengthStrings(rawDir, 1).get(0));
+                    int offset = ConversionUtils.readUnsignedInteger(rawDir);
 
                     //Read the actual data from the DAT file from the offset specified by the DIR file
                     rawTextures.seek(offset);
 
                     //Read the header
                     EngineTextureEntry entry = new EngineTextureEntry();
-                    entry.setResX(Utils.readUnsignedInteger(rawTextures));
-                    entry.setResY(Utils.readUnsignedInteger(rawTextures));
-                    entry.setSize(Utils.readUnsignedInteger(rawTextures) - 8); // - 8 since the size is from here now on
-                    entry.setsResX(Utils.readUnsignedShort(rawTextures));
-                    entry.setsResY(Utils.readUnsignedShort(rawTextures));
-                    entry.setAlphaFlag(Utils.readUnsignedInteger(rawTextures) >> 7 != 0);
+                    entry.setResX(ConversionUtils.readUnsignedInteger(rawTextures));
+                    entry.setResY(ConversionUtils.readUnsignedInteger(rawTextures));
+                    entry.setSize(ConversionUtils.readUnsignedInteger(rawTextures) - 8); // - 8 since the size is from here now on
+                    entry.setsResX(ConversionUtils.readUnsignedShort(rawTextures));
+                    entry.setsResY(ConversionUtils.readUnsignedShort(rawTextures));
+                    entry.setAlphaFlag(ConversionUtils.readUnsignedInteger(rawTextures) >> 7 != 0);
                     entry.setDataStartLocation(rawTextures.getFilePointer());
 
                     //Put the entry to the hash
@@ -216,7 +216,7 @@ public class EngineTexturesFile implements Iterable<String> {
                 int count = (engineTextureEntry.getSize()) / 4;
                 long[] buf = new long[count];
                 for (int i = 0; i < count; i++) {
-                    buf[i] = Utils.readUnsignedIntegerAsLong(rawTextures);
+                    buf[i] = ConversionUtils.readUnsignedIntegerAsLong(rawTextures);
                 }
 
                 // Use the monstrous decompression routine
@@ -290,10 +290,10 @@ public class EngineTexturesFile implements Iterable<String> {
         for (int x = 0; x < engineTextureEntry.getResX(); x++) {
             for (int y = 0; y < engineTextureEntry.getResY(); y++) {
                 int base = engineTextureEntry.getResX() * y * 4 + x * 4;
-                int r = Utils.toUnsignedByte(pixels[base]);
-                int g = Utils.toUnsignedByte(pixels[base + 1]);
-                int b = Utils.toUnsignedByte(pixels[base + 2]);
-                int a = Utils.toUnsignedByte(pixels[base + 3]);
+                int r = ConversionUtils.toUnsignedByte(pixels[base]);
+                int g = ConversionUtils.toUnsignedByte(pixels[base + 1]);
+                int b = ConversionUtils.toUnsignedByte(pixels[base + 2]);
+                int a = ConversionUtils.toUnsignedByte(pixels[base + 3]);
                 int col = (a << 24) | (r << 16) | (g << 8) | b;
                 img.setRGB(x, y, col);
             }

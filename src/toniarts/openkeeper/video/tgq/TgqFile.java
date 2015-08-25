@@ -23,7 +23,7 @@ import java.io.RandomAccessFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * Parses a DK II movie file<br>
@@ -120,10 +120,10 @@ public abstract class TgqFile implements AutoCloseable {
         long pos = file.getFilePointer();
         byte[] bytes = new byte[4];
         file.read(bytes);
-        int frameSize = Utils.readInteger(file);
+        int frameSize = ConversionUtils.readInteger(file);
 
         // See what kind of frame we are dealing with here
-        switch (Utils.bytesToString(bytes)) {
+        switch (ConversionUtils.bytesToString(bytes)) {
             case SHEN_TAG:
             case SCHl_TAG: {
 
@@ -138,7 +138,7 @@ public abstract class TgqFile implements AutoCloseable {
             case SCCl_TAG: {
 
                 // Number of audio data tags
-                numberOfAudioStreamChunks = Utils.readUnsignedInteger(file);
+                numberOfAudioStreamChunks = ConversionUtils.readUnsignedInteger(file);
 
                 gotFrame = true;
                 break;
@@ -182,7 +182,7 @@ public abstract class TgqFile implements AutoCloseable {
                 break;
             }
             default: {
-                logger.log(Level.WARNING, "Unkown tag {0}!", Utils.bytesToString(bytes));
+                logger.log(Level.WARNING, "Unkown tag {0}!", ConversionUtils.bytesToString(bytes));
                 break;
             }
         }
@@ -222,8 +222,8 @@ public abstract class TgqFile implements AutoCloseable {
         // Support only PT patch
         byte[] bytes = new byte[2];
         file.read(bytes);
-        if (!PT_PATCH_TAG.equals(Utils.bytesToString(bytes))) {
-            throw new RuntimeException(PT_PATCH_TAG + " was expected in audio header! But " + Utils.bytesToString(bytes) + " found!");
+        if (!PT_PATCH_TAG.equals(ConversionUtils.bytesToString(bytes))) {
+            throw new RuntimeException(PT_PATCH_TAG + " was expected in audio header! But " + ConversionUtils.bytesToString(bytes) + " found!");
         }
         audioHeader = new EAAudioHeader();
 
@@ -233,7 +233,7 @@ public abstract class TgqFile implements AutoCloseable {
         audioHeader.setNumberOfChannels(1);
         audioHeader.setSampleRate(22050);
 
-        int platformIdentifier = Utils.readShort(file);
+        int platformIdentifier = ConversionUtils.readShort(file);
         switch (platformIdentifier) {
             case 0x00: {
                 audioHeader.setPlatform(EAAudioHeader.Platform.PC);

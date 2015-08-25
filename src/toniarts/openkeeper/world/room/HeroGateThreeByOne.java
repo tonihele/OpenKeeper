@@ -24,7 +24,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 
@@ -46,11 +46,11 @@ public class HeroGateThreeByOne {
                     if (j != 0) {
                         continue;
                     }
-                    tile = assetManager.loadModel(Utils.getCanonicalAssetKey(modelName + "6" + ".j3o"));
+                    tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(modelName + "6" + ".j3o"));
                     tile.rotate(0, -FastMath.PI / i, 0);
                     tile.move(0, 0, -i / 2);
                 } else {
-                    tile = assetManager.loadModel(Utils.getCanonicalAssetKey(modelName + (3 * j + i + 1) + ".j3o"));
+                    tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(modelName + (3 * j + i + 1) + ".j3o"));
                 }
                 // Reset
                 resetAndMoveSpatial((Node) tile, new Point(0, i));

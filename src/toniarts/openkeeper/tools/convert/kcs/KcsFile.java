@@ -22,7 +22,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 import javax.vecmath.Vector3f;
-import toniarts.openkeeper.tools.convert.Utils;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * Stores the KCS file entries<br>
@@ -52,7 +52,7 @@ public class KcsFile {
         try (RandomAccessFile rawKcs = new RandomAccessFile(file, "r")) {
 
             //Header
-            int numOfEntries = Utils.readUnsignedInteger(rawKcs);
+            int numOfEntries = ConversionUtils.readUnsignedInteger(rawKcs);
             rawKcs.skipBytes(12); // 12 bytes of emptiness?
 
             //Read the entries
@@ -61,12 +61,12 @@ public class KcsFile {
 
                 //Entries have 56 bytes in them
                 KcsEntry entry = new KcsEntry();
-                entry.setPosition(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
-                entry.setDirection(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
-                entry.setLeft(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
-                entry.setUp(new Vector3f(Utils.readFloat(rawKcs), Utils.readFloat(rawKcs), Utils.readFloat(rawKcs)));
-                entry.setFov(Utils.readFloat(rawKcs));
-                entry.setNear(Utils.readFloat(rawKcs));
+                entry.setPosition(new Vector3f(ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs)));
+                entry.setDirection(new Vector3f(ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs)));
+                entry.setLeft(new Vector3f(ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs)));
+                entry.setUp(new Vector3f(ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs)));
+                entry.setFov(ConversionUtils.readFloat(rawKcs));
+                entry.setNear(ConversionUtils.readFloat(rawKcs));
                 kcsEntries.add(entry);
             }
         } catch (IOException e) {
