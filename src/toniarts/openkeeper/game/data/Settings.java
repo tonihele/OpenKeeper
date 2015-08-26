@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.data;
 
+import com.jme3.input.KeyInput;
 import com.jme3.system.AppSettings;
 import java.io.File;
 import java.io.FileInputStream;
@@ -69,6 +70,16 @@ public class Settings {
         SSAO_INTENSITY(Float.class, 3.92f, SettingCategory.GRAPHICS, null),
         SSAO_SCALE(Float.class, 0.33f, SettingCategory.GRAPHICS, null),
         SSAO_BIAS(Float.class, 0.1f, SettingCategory.GRAPHICS, null),
+        // Controls
+        CAMERA_ZOOM_IN(Integer.class, KeyInput.KEY_HOME, SettingCategory.CONTROLS, "124"),
+        CAMERA_ZOOM_OUT(Integer.class, KeyInput.KEY_END, SettingCategory.CONTROLS, "125"),
+        CAMERA_UP(Integer.class, KeyInput.KEY_W, SettingCategory.CONTROLS, "118"),
+        CAMERA_DOWN(Integer.class, KeyInput.KEY_S, SettingCategory.CONTROLS, "119"),
+        CAMERA_LEFT(Integer.class, KeyInput.KEY_A, SettingCategory.CONTROLS, "106"),
+        CAMERA_RIGHT(Integer.class, KeyInput.KEY_F, SettingCategory.CONTROLS, "107"),
+        CAMERA_ROTATE(Integer.class, KeyInput.KEY_LCONTROL, SettingCategory.CONTROLS, "120"),
+        CAMERA_ROTATE_LEFT(Integer.class, KeyInput.KEY_DELETE, SettingCategory.CONTROLS, "122"),
+        CAMERA_ROTATE_RIGHT(Integer.class, KeyInput.KEY_PGDN, SettingCategory.CONTROLS, "123"),
         // Screen recorder
         RECORDER_QUALITY(Float.class, 0.8f, SettingCategory.MISCELLANEOUS, null),
         RECORDER_FPS(Integer.class, 60, SettingCategory.MISCELLANEOUS, null);
