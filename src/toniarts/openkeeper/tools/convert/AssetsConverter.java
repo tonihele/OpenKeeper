@@ -39,7 +39,6 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -183,7 +182,7 @@ public abstract class AssetsConverter {
      * working folder
      */
     public void convertAssets() {
-        Date start = new Date();
+        long start = System.currentTimeMillis();
         String currentFolder = getCurrentFolder();
         logger.log(Level.INFO, "Starting asset convertion from DK II folder: {0}", dungeonKeeperFolder);
         logger.log(Level.INFO, "Current folder set to: {0}", currentFolder);
@@ -217,7 +216,7 @@ public abstract class AssetsConverter {
         convertHiScores(dungeonKeeperFolder);
 
         // Log the time taken
-        long duration = new Date().getTime() - start.getTime();
+        long duration = System.currentTimeMillis() - start;
         logger.log(Level.INFO, "Conversion took {0} seconds!", TimeUnit.SECONDS.convert(duration, TimeUnit.MILLISECONDS));
     }
 
