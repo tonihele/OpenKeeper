@@ -35,6 +35,7 @@ import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
 import de.lessvoid.nifty.controls.Label;
+import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
 import de.lessvoid.nifty.render.NiftyImage;
@@ -70,7 +71,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
     private enum PauseMenuState {
 
-        MAIN, QUIT;
+        MAIN, QUIT, CONFIRMATION;
     }
 
     private enum TabCategory {
@@ -304,11 +305,11 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
         nifty.getCurrentScreen().findElementByName("optionsMenu").setVisible(paused);
         if (paused) {
-            pauseMenuNavigate(PauseMenuState.MAIN.name());
+            pauseMenuNavigate(PauseMenuState.MAIN.name(), null, null, null);
         }
     }
 
-    public void pauseMenuNavigate(String menu) {
+    public void pauseMenuNavigate(String menu, String backMenu, String confirmationTitle, String confirmMethod) {
         Element optionsMenu = nifty.getCurrentScreen().findElementByName("optionsMenu");
         Label optionsMenuTitle = optionsMenu.findNiftyControl("optionsMenuTitle", Label.class);
         Element optionsColumnOne = optionsMenu.findElementByName("optionsColumnOne");
@@ -351,7 +352,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 }.build(nifty, screen, optionsColumnOne);
 
                 // Column two
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-quit.png", "${menu.1266}", "pauseMenuNavigate(" + PauseMenuState.QUIT.name() + ")") {
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-quit.png", "${menu.1266}", "pauseMenuNavigate(" + PauseMenuState.QUIT.name() + "," + PauseMenuState.MAIN.name() + ",null,null)") {
                     {
                     }
                 }.build(nifty, screen, optionsColumnTwo);
@@ -371,11 +372,11 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 optionsMenuTitle.setText("${menu.1266}");
 
                 // Column one
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-quit.png", "${menu.12}", "quitToMainMenu()") {
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-quit.png", "${menu.12}", "pauseMenuNavigate(" + PauseMenuState.CONFIRMATION.name() + "," + PauseMenuState.QUIT.name() + ",${menu.12},quitToMainMenu())") {
                     {
                     }
                 }.build(nifty, screen, optionsColumnOne);
-                new InGameMenuSelectionControl(Utils.isWindows() ? "Textures/GUI/Options/i-exit_to_windows.png" : "Textures/GUI/Options/i-quit.png", Utils.isWindows() ? "${menu.13}" : "${menu.14}", "quitToOS()") {
+                new InGameMenuSelectionControl(Utils.isWindows() ? "Textures/GUI/Options/i-exit_to_windows.png" : "Textures/GUI/Options/i-quit.png", Utils.isWindows() ? "${menu.13}" : "${menu.14}", "pauseMenuNavigate(" + PauseMenuState.CONFIRMATION.name() + "," + PauseMenuState.QUIT.name() + "," + (Utils.isWindows() ? "${menu.13}" : "${menu.14}") + ",quitToOS())") {
                     {
                     }
                 }.build(nifty, screen, optionsColumnOne);
@@ -387,7 +388,34 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 }.build(nifty, screen, optionsNavigationColumnOne);
 
                 // Navigation two
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-back.png", "${menu.20}", "pauseMenuNavigate(" + PauseMenuState.MAIN.name() + ")") {
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-back.png", "${menu.20}", "pauseMenuNavigate(" + PauseMenuState.MAIN + ",null,null,null)") {
+                    {
+                    }
+                }.build(nifty, screen, optionsNavigationColumnTwo);
+                break;
+            }
+            case CONFIRMATION: {
+                optionsMenuTitle.setText(confirmationTitle);
+
+                // Column one
+                new LabelBuilder("confirmLabel", "${menu.15}") {
+                    {
+                        style("textNormal");
+                    }
+                }.build(nifty, screen, optionsColumnOne);
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-accept.png", "${menu.21}", confirmMethod) {
+                    {
+                    }
+                }.build(nifty, screen, optionsColumnOne);
+
+                // Navigation one
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-accept.png", "${menu.142}", "pauseMenu()") {
+                    {
+                    }
+                }.build(nifty, screen, optionsNavigationColumnOne);
+
+                // Navigation two
+                new InGameMenuSelectionControl("Textures/GUI/Options/i-back.png", "${menu.20}", "pauseMenuNavigate(" + backMenu + ",null,null,null)") {
                     {
                     }
                 }.build(nifty, screen, optionsNavigationColumnTwo);
