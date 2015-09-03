@@ -7,7 +7,7 @@ MaterialDef MovieMaterial {
         Vector2 AspectValues
         Vector2 ValidRange
         Color LetterboxColor
-        Boolean Empty
+        Boolean NoFrame
 
 	// Alpha threshold for fragment discarding
         Float AlphaDiscardThreshold (AlphaTestFallOff)
@@ -24,6 +24,7 @@ MaterialDef MovieMaterial {
         Defines {
 			DISCARD_ALPHA: AlphaDiscardThreshold
 			LETTERBOX: LetterboxColor
+                        NO_FRAME: NoFrame
         }
     }
 

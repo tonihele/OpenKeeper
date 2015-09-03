@@ -6,7 +6,7 @@ uniform sampler2D m_TexLuma;
 uniform sampler2D m_TexCr;
 uniform sampler2D m_TexCb;
 
-uniform bool m_Empty;
+uniform bool m_NoFrame;
 
 varying vec2 texCoord;
 
@@ -45,7 +45,7 @@ void main(){
 #endif
 	{
 
-        if(!m_Empty) {
+        if(!m_NoFrame) {
             color = vec4(convert * vec3(texture2D(m_TexLuma,uv).r-(16.0/256.0), texture2D(m_TexCb,uv).r-0.5, texture2D(m_TexCr,uv).r - 0.5),1.0);
 	}
 
