@@ -76,7 +76,7 @@ public class Settings {
         CAMERA_UP(Integer.class, KeyInput.KEY_W, SettingCategory.CONTROLS, "118"),
         CAMERA_DOWN(Integer.class, KeyInput.KEY_S, SettingCategory.CONTROLS, "119"),
         CAMERA_LEFT(Integer.class, KeyInput.KEY_A, SettingCategory.CONTROLS, "106"),
-        CAMERA_RIGHT(Integer.class, KeyInput.KEY_F, SettingCategory.CONTROLS, "107"),
+        CAMERA_RIGHT(Integer.class, KeyInput.KEY_D, SettingCategory.CONTROLS, "107"),
         CAMERA_ROTATE(Integer.class, KeyInput.KEY_LCONTROL, SettingCategory.CONTROLS, "120"),
         CAMERA_ROTATE_LEFT(Integer.class, KeyInput.KEY_DELETE, SettingCategory.CONTROLS, "122"),
         CAMERA_ROTATE_RIGHT(Integer.class, KeyInput.KEY_PGDN, SettingCategory.CONTROLS, "123"),
