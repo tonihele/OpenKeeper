@@ -159,6 +159,10 @@ public class PlayerCameraState extends AbstractAppState implements ActionListene
 
     @Override
     public void onAction(String name, boolean isPressed, float tpf) {
+        if (!isEnabled()) {
+            return;
+        }
+
         if (name.equals(Settings.Setting.CAMERA_ROTATE.name())) {
             rotate = isPressed;
         }
@@ -166,6 +170,10 @@ public class PlayerCameraState extends AbstractAppState implements ActionListene
 
     @Override
     public void onAnalog(String name, float value, float tpf) {
+        if (!isEnabled()) {
+            return;
+        }
+
         if (name.equals(CAMERA_MOUSE_ZOOM_IN)) {
             camera.zoomCamera(value, true);
         } else if (name.equals(CAMERA_MOUSE_ZOOM_OUT)) {
