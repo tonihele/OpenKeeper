@@ -63,8 +63,7 @@ public abstract class LoadingState extends AbstractAppState {
         inputManager = this.app.getInputManager();
         viewPort = this.app.getViewPort();
 
-        // Disable the fly cam & cursor
-        this.app.getFlyByCamera().setEnabled(false);
+        // Disable the cursor
         inputManager.setCursorVisible(false);
 
         // Load up the title screen

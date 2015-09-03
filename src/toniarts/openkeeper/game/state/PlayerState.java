@@ -24,7 +24,6 @@ import com.jme3.asset.AssetManager;
 import com.jme3.asset.DesktopAssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.input.InputManager;
-import com.jme3.math.Vector3f;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.texture.Texture;
@@ -48,6 +47,7 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
@@ -57,10 +57,9 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
-import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Utils;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.view.PlayerCameraState;
 
 /**
  * The player state! GUI, camera, etc. Player interactions
@@ -89,8 +88,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private Screen screen;
     private boolean paused = false;
     private boolean backgroundSet = false;
-    private Vector3f startLocation;
     private static final String HUD_SCREEN_ID = "hud";
+    private List<AbstractAppState> appStates = new ArrayList<>();
     private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
 
     @Override
@@ -104,19 +103,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         viewPort = this.app.getViewPort();
     }
 
-    /**
-     * Load the initial main menu camera position
-     */
-    private void loadCameraStartLocation() {
-        Player player = gameState.getLevelData().getPlayer((short) 3); // Keeper 1
-        startLocation = new Vector3f(MapLoader.getCameraPositionOnMapPoint(player.getStartingCameraX(), player.getStartingCameraY()));
-
-        // Set the actual camera location
-        this.app.getCamera().setLocation(startLocation);
-    }
-
     @Override
     public void cleanup() {
+
+        // Detach states
+        for (AbstractAppState state : appStates) {
+            stateManager.detach(state);
+        }
+
         super.cleanup();
     }
 
@@ -131,20 +125,28 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Load the HUD
             app.getNifty().getNifty().gotoScreen(HUD_SCREEN_ID);
 
-            // Set the camera position
-            loadCameraStartLocation();
-
-            // Controls
-            app.getFlyByCamera().setEnabled(true);
-            app.getFlyByCamera().setDragToRotate(true);
-            app.getFlyByCamera().setMoveSpeed(10);
+            // Cursor
+            app.getInputManager().setCursorVisible(true);
 
             // Set the pause state
             if (nifty != null) {
                 paused = false;
                 nifty.getScreen(HUD_SCREEN_ID).findElementByName("optionsMenu").setVisible(paused);
             }
+
+            // Create app states
+            appStates.add(new PlayerCameraState(gameState.getLevelData().getPlayer((short) 3))); // Keeper 1
+
+            // Load the state
+            for (AbstractAppState state : appStates) {
+                stateManager.attach(state);
+            }
         } else {
+
+            // Detach states
+            for (AbstractAppState state : appStates) {
+                stateManager.detach(state);
+            }
             gameState = null;
             if (nifty != null) {
                 nifty.gotoScreen("empty");

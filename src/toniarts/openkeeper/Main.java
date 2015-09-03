@@ -16,7 +16,9 @@
  */
 package toniarts.openkeeper;
 
+import com.jme3.app.DebugKeysAppState;
 import com.jme3.app.SimpleApplication;
+import com.jme3.app.StatsAppState;
 import com.jme3.app.state.ScreenshotAppState;
 import com.jme3.app.state.VideoRecorderAppState;
 import com.jme3.asset.AssetEventListener;
@@ -211,7 +213,7 @@ public class Main extends SimpleApplication {
     }
 
     public Main(HashMap<String, String> params) {
-        super();
+        super(new StatsAppState(), new DebugKeysAppState());
 
         this.params = params;
     }

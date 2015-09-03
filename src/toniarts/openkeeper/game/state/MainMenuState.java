@@ -243,9 +243,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             }
         });
 
-        // Disable the fly cam
-        MainMenuState.this.app.getFlyByCamera().setEnabled(false);
-        MainMenuState.this.app.getFlyByCamera().setDragToRotate(true);
+        // Enable cursor
+        app.getInputManager().setCursorVisible(true);
 
         // Set the camera position
         loadCameraStartLocation();
