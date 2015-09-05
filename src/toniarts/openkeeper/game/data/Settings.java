@@ -78,8 +78,8 @@ public class Settings {
         CAMERA_LEFT(Integer.class, KeyInput.KEY_A, SettingCategory.CONTROLS, "106"),
         CAMERA_RIGHT(Integer.class, KeyInput.KEY_D, SettingCategory.CONTROLS, "107"),
         CAMERA_ROTATE(Integer.class, KeyInput.KEY_LCONTROL, SettingCategory.CONTROLS, "120"),
-        CAMERA_ROTATE_LEFT(Integer.class, KeyInput.KEY_DELETE, SettingCategory.CONTROLS, "122"),
-        CAMERA_ROTATE_RIGHT(Integer.class, KeyInput.KEY_PGDN, SettingCategory.CONTROLS, "123"),
+        CAMERA_ROTATE_LEFT(Integer.class, KeyInput.KEY_Q, SettingCategory.CONTROLS, "122"),
+        CAMERA_ROTATE_RIGHT(Integer.class, KeyInput.KEY_E, SettingCategory.CONTROLS, "123"),
         // Screen recorder
         RECORDER_QUALITY(Float.class, 0.8f, SettingCategory.MISCELLANEOUS, null),
         RECORDER_FPS(Integer.class, 60, SettingCategory.MISCELLANEOUS, null);
