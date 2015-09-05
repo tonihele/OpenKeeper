@@ -83,6 +83,7 @@ import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
+import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -867,14 +868,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         // The map title
         Label label = screen.findNiftyControl("mapNameTitle", Label.class);
         label.setText(selectedSkirmishMap == null ? "No maps found from " + AssetsConverter.MAPS_FOLDER : selectedSkirmishMap.getName());
-        resetContraints(label);
+        NiftyUtils.resetContraints(label);
 
         if (selectedSkirmishMap != null) {
 
             // Player count
             label = screen.findNiftyControl("playerCount", Label.class);
             label.setText(": " + selectedSkirmishMap.getPlayerCount());
-            resetContraints(label);
+            NiftyUtils.resetContraints(label);
 
             // Map image
             // TODO: static generator to MapLoader etc. place, I don't really want to use the BMPs
@@ -910,18 +911,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             GameState gameState = new GameState(selectedSkirmishMap);
             stateManager.attach(gameState);
         }
-    }
-
-    /**
-     * After changing label text, you need to resize its contstraints
-     *
-     * @param label the label
-     */
-    private void resetContraints(Label label) {
-        TextRenderer renderer = label.getElement().getRenderer(TextRenderer.class);
-        label.setHeight(new SizeValue(renderer.getTextHeight() + "px"));
-        label.setWidth(new SizeValue(renderer.getTextWidth() + "px"));
-        label.getElement().getParent().layoutElements();
     }
 
     private class MyDisplayMode implements Comparable<MyDisplayMode> {
