@@ -1313,7 +1313,7 @@
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control click="doTransition(272,start,274)" id="back" name="cancelButton" />
-                <control click="startCampaignLevel()" id="start" name="okButton" />
+                <control click="startSkirmishLevel()" id="start" name="okButton" />
             </panel>
         </layer>
     </screen>

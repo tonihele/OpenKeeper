@@ -370,7 +370,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             case "skirmish":
 
                 // Init the screen
-                setSkirmishMapDataToGUI(selectedSkirmishMap);
+                setSkirmishMapDataToGUI();
                 break;
         }
     }
@@ -862,7 +862,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
     }
 
-    private void setSkirmishMapDataToGUI(KwdFile selectedSkirmishMap) {
+    private void setSkirmishMapDataToGUI() {
 
         // The map title
         Label label = screen.findNiftyControl("mapNameTitle", Label.class);
@@ -890,8 +890,25 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     }
 
     public void selectRandomSkirmishMap() {
-        if (!skirmishMaps.isEmpty()) {
-            setSkirmishMapDataToGUI(skirmishMaps.get(FastMath.nextRandomInt(0, skirmishMaps.size())));
+        if (skirmishMaps.size() > 1) {
+            KwdFile map;
+            do {
+                map = skirmishMaps.get(FastMath.nextRandomInt(0, skirmishMaps.size() - 1));
+            } while (map.equals(selectedSkirmishMap));
+            selectedSkirmishMap = map;
+            setSkirmishMapDataToGUI();
+        }
+    }
+
+    public void startSkirmishLevel() {
+        if (selectedSkirmishMap != null) {
+
+            // Disable us
+            setEnabled(false);
+
+            // Create the level state
+            GameState gameState = new GameState(selectedSkirmishMap);
+            stateManager.attach(gameState);
         }
     }
 

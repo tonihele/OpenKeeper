@@ -48,7 +48,7 @@ public class GameState extends AbstractAppState {
     private ViewPort viewPort;
     private Screen screen;
     private Node worldNode;
-    private final String level;
+    private String level;
     private KwdFile kwdFile;
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
 
@@ -59,6 +59,15 @@ public class GameState extends AbstractAppState {
      */
     public GameState(String level) {
         this.level = level;
+    }
+
+    /**
+     * Single use game states
+     *
+     * @param level the level to load
+     */
+    public GameState(KwdFile level) {
+        this.kwdFile = level;
     }
 
     @Override
@@ -79,7 +88,11 @@ public class GameState extends AbstractAppState {
                 try {
 
                     // Load the level data
-                    kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER.concat(level).concat(".kwd"))));
+                    if (level != null) {
+                        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER.concat(level).concat(".kwd"))));
+                    } else {
+                        kwdFile.load();
+                    }
                     setProgress(0.25f);
 
                     // Create the actual level
