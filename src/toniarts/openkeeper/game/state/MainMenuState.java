@@ -34,6 +34,7 @@ import com.jme3.input.event.KeyInputEvent;
 import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
+import com.jme3.math.FastMath;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
@@ -61,9 +62,11 @@ import java.awt.DisplayMode;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
+import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -114,6 +117,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
     public static HiScores hiscores = HiScores.load();
     private static final HashMap<String, String[]> cutscenes = new HashMap<>(3);
+    private List<KwdFile> skirmishMaps;
+    private KwdFile selectedSkirmishMap;
 
     static {
         cutscenes.put("image", "Intro,000,001,002,003,004,005,006,007,008,009,010,011,012,013,014,015,016,017,018,Outro".split(","));
@@ -144,7 +149,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager) {
 
         // Load the 3D Front end
-        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat("Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd"))));
+        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER.concat("FrontEnd3DLevel.kwd"))));
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }
@@ -162,6 +167,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         if (loadingScreen != null) {
             loadingScreen.setProgress(1.0f);
         }
+
+        // Init the skirmish maps
+        initSkirmishMaps();
     }
 
     @Override
@@ -358,6 +366,11 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 break;
             case "movies":
                 generateMovieList();
+                break;
+            case "skirmish":
+
+                // Init the screen
+                setSkirmishMapDataToGUI(selectedSkirmishMap);
                 break;
         }
     }
@@ -810,6 +823,88 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         } else {
             refresh.disable();
         }
+    }
+
+    private void initSkirmishMaps() {
+        if (skirmishMaps == null) {
+
+            // Get the skirmish maps
+            File f = new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER));
+            File[] files = f.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.toLowerCase().endsWith(".kwd");
+                }
+            });
+
+            // Read them
+            // TODO: Not load the whole map if map has image generated & all, only one problem, the size
+            skirmishMaps = new ArrayList<>(files.length);
+            for (File file : files) {
+                KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
+                if (kwd.getLvlFlags().contains(KwdFile.LevFlag.IS_SKIRMISH_LEVEL)) {
+                    skirmishMaps.add(kwd);
+                }
+            }
+
+            // Sort them
+            Collections.sort(skirmishMaps, new Comparator<KwdFile>() {
+                @Override
+                public int compare(KwdFile o1, KwdFile o2) {
+                    return o1.getName().compareToIgnoreCase(o2.getName());
+                }
+            });
+
+            // Select the first one as selected
+            if (!skirmishMaps.isEmpty()) {
+                selectedSkirmishMap = skirmishMaps.get(0);
+            }
+        }
+    }
+
+    private void setSkirmishMapDataToGUI(KwdFile selectedSkirmishMap) {
+
+        // The map title
+        Label label = screen.findNiftyControl("mapNameTitle", Label.class);
+        label.setText(selectedSkirmishMap == null ? "No maps found from " + AssetsConverter.MAPS_FOLDER : selectedSkirmishMap.getName());
+        resetContraints(label);
+
+        if (selectedSkirmishMap != null) {
+
+            // Player count
+            label = screen.findNiftyControl("playerCount", Label.class);
+            label.setText(": " + selectedSkirmishMap.getPlayerCount());
+            resetContraints(label);
+
+            // Map image
+            // TODO: static generator to MapLoader etc. place, I don't really want to use the BMPs
+            Element mapImage = screen.findElementByName("mapImage");
+            NiftyImage img = nifty.createImage("Textures/Unique_NoTextureName.png", false);
+            mapImage.getRenderer(ImageRenderer.class).setImage(img);
+            mapImage.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
+            mapImage.setConstraintHeight(new SizeValue(img.getHeight() + "px"));
+        }
+
+        // Re-populate
+        screen.layoutLayers();
+    }
+
+    public void selectRandomSkirmishMap() {
+        if (!skirmishMaps.isEmpty()) {
+            setSkirmishMapDataToGUI(skirmishMaps.get(FastMath.nextRandomInt(0, skirmishMaps.size())));
+        }
+    }
+
+    /**
+     * After changing label text, you need to resize its contstraints
+     *
+     * @param label the label
+     */
+    private void resetContraints(Label label) {
+        TextRenderer renderer = label.getElement().getRenderer(TextRenderer.class);
+        label.setHeight(new SizeValue(renderer.getTextHeight() + "px"));
+        label.setWidth(new SizeValue(renderer.getTextWidth() + "px"));
+        label.getElement().getParent().layoutElements();
     }
 
     private class MyDisplayMode implements Comparable<MyDisplayMode> {

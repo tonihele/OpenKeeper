@@ -124,7 +124,9 @@
             </panel>
             <panel id="panel4" height="*" width="100%" align="center" valign="top" childLayout="vertical" visibleToMouse="true">
                 <panel childLayout="center" align="center" valign="top">
-                    <text id="skirmish" style="menuText" text="${menu.141}" />
+                    <text id="skirmish" style="menuText" text="${menu.141}">
+                        <interact onClick="doTransition(271,skirmish,273)" />
+                    </text>
                 </panel>
                 <panel childLayout="center" align="center" valign="top">
                     <text id="loadGame" style="menuText" text="${menu.145}" />
@@ -1250,6 +1252,68 @@
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control click="doTransition(263,start,274)" id="back" name="cancelButton" />
                 <text style="menuText" text="" width="48px" margin="5px" />
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Skirmish level selection -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="skirmish" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" width="100%" childLayout="vertical">
+                <panel width="100%" childLayout="center" align="center" valign="center">
+                    <text id="skirmishTitle" style="menuTitleText" text="${menu.141}" />
+                </panel>
+
+                <!--Spacer-->
+                <panel height="5%" width="100%" childLayout="center" align="center" valign="center">
+                </panel>
+
+                <!--Two panels, left the game stuff, right the map selection stuff-->
+                <panel id="skirmishPanel" height="*" width="100%" childLayout="horizontal" align="center" valign="center">
+
+                    <panel width="66%" childLayout="vertical" align="center" valign="center">
+                    </panel>
+                    <panel width="*" childLayout="vertical" align="center" valign="top">
+                        <panel backgroundColor="#f508" width="100%" childLayout="center" paddingLeft="2%" marginBottom="2%" valign="top">
+                            <control name="label" align="center" valign="top" id="mapNameTitle" style="menuText" />
+                        </panel>
+                        <panel width="100%" childLayout="horizontal" valign="center" align="center">
+                            <text style="menuText" text="${menu.1492}" />
+                            <control name="label" id="playerCount" style="menuText" />
+                        </panel>
+                        <panel width="100%" childLayout="center" valign="top">
+                            <image align="center" id="mapImage" />
+                        </panel>
+                    </panel>
+
+                </panel>
+
+                <panel width="100%" childLayout="horizontal" align="center" valign="top">
+
+                    <panel width="66%" childLayout="vertical" align="center" valign="center">
+                    </panel>
+                    <panel width="*" childLayout="vertical" align="center" valign="top">
+                        <text style="menuText" text="${menu.1495}" align="center">
+                            <!--<interact onClick="selectMPDLevel(6)" />-->
+                        </text>
+                        <text style="menuText" text="${menu.1496}" align="center">
+                            <interact onClick="selectRandomSkirmishMap()" />
+                        </text>
+                        <text style="menuText" text="${menu.2803}" align="center">
+                        </text>
+                    </panel>
+
+                </panel>
+
+                <panel height="3%" width="100%" childLayout="center" align="center" valign="center">
+
+                </panel>
+            </panel>
+            <panel childLayout="horizontal" align="right" valign="bottom">
+                <control click="doTransition(272,start,274)" id="back" name="cancelButton" />
+                <control click="startCampaignLevel()" id="start" name="okButton" />
             </panel>
         </layer>
     </screen>
