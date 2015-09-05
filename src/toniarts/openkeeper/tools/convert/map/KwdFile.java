@@ -33,9 +33,9 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource.Animation;
 import toniarts.openkeeper.tools.convert.map.ArtResource.Image;
 import toniarts.openkeeper.tools.convert.map.ArtResource.Mesh;
@@ -88,7 +88,7 @@ import toniarts.openkeeper.tools.convert.map.Thing.Thing12;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KwdFile {
+public final class KwdFile {
 
     public enum LevFlag implements IFlagEnum {
 
@@ -237,7 +237,7 @@ public class KwdFile {
     private int ticksPerSec;
     private short x01184[];
     private String messages[];
-    private EnumSet<LevFlag> lvflags;
+    private EnumSet<LevFlag> lvlFlags;
     private String speechStr;
     private short talismanPieces;
     private short rewardPrev[];
@@ -257,7 +257,7 @@ public class KwdFile {
     private int textIntrdcOverrdId[];
     private String terrainPath;
     private short oneShotHornyLev;
-    private short x06404;
+    private short playerCount;
     private short x06405; // rewardPrev[4]??
     private short x06406; // rewardNext[4]??
     private int speechHornyId;
@@ -295,6 +295,8 @@ public class KwdFile {
     private Terrain water;
     private Terrain lava;
     private boolean customOverrides = false;
+    private boolean loaded = false;
+    private final String basePath;
     //
     private static final Logger logger = Logger.getLogger(KwdFile.class.getName());
     /**
@@ -328,69 +330,105 @@ public class KwdFile {
      * @param file the KWD file to read
      */
     public KwdFile(String basePath, File file) {
+        this(basePath, file, true);
+    }
+
+    /**
+     * Constructs a new KWD file reader<br>
+     *
+     * @param basePath path to DK II main path (or where ever is the "root")
+     * @param file the KWD file to read
+     * @param load whether to actually load the map data, or just get the
+     * general info
+     */
+    public KwdFile(String basePath, File file, boolean load) {
 
         // Load the actual main map info (paths to catalogs most importantly)
         readMapInfo(file);
-
-        // Now we have the paths, read all of those in order
         if (!basePath.endsWith(File.separator)) {
             basePath = basePath.concat(File.separator);
         }
-        for (FilePath path : paths) {
+        this.basePath = basePath;
 
-            // Paths are relative to the base path, may or may not have an extension (assume kwd if none found)
-            String filePath = ConversionUtils.convertFileSeparators(path.getPath());
-            if (!".".equals(filePath.substring(filePath.length() - 4, filePath.length() - 3))) {
-                filePath = filePath.concat(".kwd");
+        // See if we need to load the actual data
+        if (load) {
+            load();
+        } else {
+
+            // We need map width & height, I couldn't figure out where, except the map data
+            for (FilePath path : paths) {
+                if (path.getId() == MapDataTypeEnum.MAP) {
+                    try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, path.getPath()), "r")) {
+                        KwdHeader header = readKwdHeader(data);
+                        width = header.getWidth();
+                        height = header.getHeight();
+                    } catch (Exception e) {
+
+                        //Fug
+                        throw new RuntimeException("Failed to read the file " + path.getPath() + "!", e);
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Loads the map data
+     *
+     * @throws RuntimeException level file fails to parse
+     */
+    public void load() throws RuntimeException {
+        if (!loaded) {
+
+            // Now we have the paths, read all of those in order
+            for (FilePath path : paths) {
+
+                // Open the file
+                try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, path.getPath()), "r")) {
+
+                    // Read the file until EOF, normally it is one data type per file, but with Globals, it is all in the same file
+                    do {
+
+                        // Read header (and put the file pointer to the data start)
+                        KwdHeader header = readKwdHeader(data);
+                        readFileContents(header, data);
+
+                        // Only loop with Globals
+                    } while ((data.getFilePointer() <= data.length() && path.getId() == MapDataTypeEnum.GLOBALS));
+
+                } catch (Exception e) {
+
+                    //Fug
+                    throw new RuntimeException("Failed to read the file " + path.getPath() + "!", e);
+                }
             }
 
-            // See if the globals are present
-            if (path.getId() == MapDataTypeEnum.GLOBALS) {
-                customOverrides = true;
-                logger.info("The map uses custom overrides!");
+            // Hmm, seems that normal maps don't refer the effects nor effect elements
+            List<String> unreadFilePaths = new ArrayList<>();
+            if (effects == null) {
+                unreadFilePaths.add(("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Effects.kwd"));
+            }
+            if (effectElements == null) {
+                unreadFilePaths.add(("Data").concat(File.separator).concat("editor").concat(File.separator).concat("EffectElements.kwd"));
             }
 
-            // Open the file
-            try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, filePath), "r")) {
-
-                // Read the file until EOF, normally it is one data type per file, but with Globals, it is all in the same file
-                do {
+            // Loop through the unprocessed files
+            for (String filePath : unreadFilePaths) {
+                try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, filePath), "r")) {
 
                     // Read header (and put the file pointer to the data start)
                     KwdHeader header = readKwdHeader(data);
                     readFileContents(header, data);
+                } catch (Exception e) {
 
-                    // Only loop with Globals
-                } while ((data.getFilePointer() <= data.length() && path.getId() == MapDataTypeEnum.GLOBALS));
-
-            } catch (Exception e) {
-
-                //Fug
-                throw new RuntimeException("Failed to read the file " + filePath + "!", e);
+                    //Fug
+                    throw new RuntimeException("Failed to read the file " + filePath + "!", e);
+                }
             }
-        }
 
-        // Hmm, seems that normal maps don't refer the effects nor effect elements
-        List<String> unreadFilePaths = new ArrayList<>();
-        if (effects == null) {
-            unreadFilePaths.add(("Data").concat(File.separator).concat("editor").concat(File.separator).concat("Effects.kwd"));
-        }
-        if (effectElements == null) {
-            unreadFilePaths.add(("Data").concat(File.separator).concat("editor").concat(File.separator).concat("EffectElements.kwd"));
-        }
-
-        // Loop through the unprocessed files
-        for (String filePath : unreadFilePaths) {
-            try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, filePath), "r")) {
-
-                // Read header (and put the file pointer to the data start)
-                KwdHeader header = readKwdHeader(data);
-                readFileContents(header, data);
-            } catch (Exception e) {
-
-                //Fug
-                throw new RuntimeException("Failed to read the file " + filePath + "!", e);
-            }
+            loaded = true;
         }
     }
 
@@ -1161,6 +1199,9 @@ public class KwdFile {
             byte[] bytes = new byte[64 * 2];
             rawMapInfo.read(bytes);
             name = ConversionUtils.bytesToStringUtf16(bytes).trim();
+            if (name != null && !name.isEmpty() && name.toLowerCase().endsWith(".kwd")) {
+                name = name.substring(0, name.length() - 4);
+            }
 
             bytes = new byte[1024 * 2];
             rawMapInfo.read(bytes);
@@ -1191,7 +1232,7 @@ public class KwdFile {
                 messages[x] = ConversionUtils.bytesToStringUtf16(bytes).trim();
             }
             int flag = ConversionUtils.readUnsignedShort(rawMapInfo);
-            lvflags = ConversionUtils.parseFlagValue(flag, LevFlag.class);
+            lvlFlags = ConversionUtils.parseFlagValue(flag, LevFlag.class);
             bytes = new byte[32];
             rawMapInfo.read(bytes);
             speechStr = ConversionUtils.bytesToString(bytes).trim();
@@ -1227,7 +1268,7 @@ public class KwdFile {
             rawMapInfo.read(bytes);
             terrainPath = ConversionUtils.bytesToString(bytes).trim();
             oneShotHornyLev = (short) rawMapInfo.readUnsignedByte();
-            x06404 = (short) rawMapInfo.readUnsignedByte();
+            playerCount = (short) rawMapInfo.readUnsignedByte();
             x06405 = (short) rawMapInfo.readUnsignedByte();
             x06406 = (short) rawMapInfo.readUnsignedByte();
             speechHornyId = ConversionUtils.readUnsignedShort(rawMapInfo);
@@ -1249,7 +1290,24 @@ public class KwdFile {
                 filePath.setUnknown2(ConversionUtils.readInteger(rawMapInfo));
                 bytes = new byte[64];
                 rawMapInfo.read(bytes);
-                filePath.setPath(ConversionUtils.bytesToString(bytes).trim());
+                String path = ConversionUtils.bytesToString(bytes).trim();
+
+                // Tweak the paths
+
+                // Paths are relative to the base path, may or may not have an extension (assume kwd if none found)
+                path = ConversionUtils.convertFileSeparators(path);
+                if (!".".equals(path.substring(path.length() - 4, path.length() - 3))) {
+                    path = path.concat(".kwd");
+                }
+
+                // See if the globals are present
+                if (filePath.getId() == MapDataTypeEnum.GLOBALS) {
+                    customOverrides = true;
+                    logger.info("The map uses custom overrides!");
+                }
+                //
+                filePath.setPath(path);
+
                 paths[x] = filePath;
             }
             unknown = new int[unknownCount];
@@ -2607,6 +2665,24 @@ public class KwdFile {
             logger.log(Level.WARNING, "Record size differs from expected! File offset is {0} and should be {1}!", new java.lang.Object[]{file.getFilePointer(), wantedOffset});
             file.seek(wantedOffset);
         }
+    }
+
+    /**
+     * Get level flags
+     *
+     * @return level flags
+     */
+    public EnumSet<LevFlag> getLvlFlags() {
+        return lvlFlags;
+    }
+
+    /**
+     * Get number of players supported by the map
+     *
+     * @return player count
+     */
+    public short getPlayerCount() {
+        return playerCount;
     }
 
     @Override
