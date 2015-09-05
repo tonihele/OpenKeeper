@@ -148,6 +148,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 stateManager.detach(state);
             }
             gameState = null;
+            appStates.clear();
             if (nifty != null) {
                 nifty.gotoScreen("empty");
             }
