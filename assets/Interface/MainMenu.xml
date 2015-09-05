@@ -1271,20 +1271,20 @@
                 </panel>
 
                 <!--Two panels, left the game stuff, right the map selection stuff-->
-                <panel id="skirmishPanel" height="*" width="100%" childLayout="horizontal" align="center" valign="center">
+                <panel id="skirmishPanel" height="*" width="95%" childLayout="horizontal" align="center" valign="center">
 
-                    <panel width="66%" childLayout="vertical" align="center" valign="center">
+                    <panel width="66%" childLayout="vertical" align="center" valign="center" marginRight="5%">
                     </panel>
                     <panel width="*" childLayout="vertical" align="center" valign="top">
-                        <panel backgroundColor="#f508" width="100%" childLayout="center" paddingLeft="2%" marginBottom="2%" valign="top">
+                        <panel backgroundColor="#f508" width="100%" childLayout="center" marginBottom="2%" valign="top">
                             <control name="label" align="center" valign="top" id="mapNameTitle" style="menuText" />
                         </panel>
                         <panel width="100%" childLayout="horizontal" valign="center" align="center">
                             <text style="menuText" text="${menu.1492}" />
                             <control name="label" id="playerCount" style="menuText" />
                         </panel>
-                        <panel width="100%" childLayout="center" valign="top">
-                            <image align="center" id="mapImage" />
+                        <panel width="100%" childLayout="center" valign="center">
+                            <image valign="center" align="center" id="mapImage" />
                         </panel>
                     </panel>
 
@@ -1292,7 +1292,9 @@
 
                 <panel width="100%" childLayout="horizontal" align="center" valign="top">
 
-                    <panel width="66%" childLayout="vertical" align="center" valign="center">
+                    <panel width="66%" childLayout="vertical" align="right" valign="top">
+                        <text style="menuText" text="${menu.1547}" align="right">
+                        </text>
                     </panel>
                     <panel width="*" childLayout="vertical" align="center" valign="top">
                         <text style="menuText" text="${menu.1495}" align="center">
