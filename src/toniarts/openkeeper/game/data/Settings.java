@@ -144,31 +144,31 @@ public class Settings {
     private final static String USER_SETTINGS_FILE = USER_HOME_FOLDER.concat("openkeeper.properties");
     private static final Logger logger = Logger.getLogger(Settings.class.getName());
 
-    private Settings() {
+    private Settings(final AppSettings settings) {
 
         // Init the settings
-        settings = new AppSettings(true);
+        this.settings = settings;
 
         //Default resolution
-        if (!settings.containsKey("Width") || !settings.containsKey("Height")) {
-            settings.setResolution(800, 600); // Default resolution
+        if (!this.settings.containsKey("Width") || !this.settings.containsKey("Height")) {
+            this.settings.setResolution(800, 600); // Default resolution
         }
         File settingsFile = new File(USER_SETTINGS_FILE);
         if (settingsFile.exists()) {
             try {
-                settings.load(new FileInputStream(settingsFile));
+                this.settings.load(new FileInputStream(settingsFile));
             } catch (IOException ex) {
                 logger.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
             }
         }
-        settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
+        this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
     }
 
-    public static Settings getInstance() {
+    public static Settings getInstance(final AppSettings settings) {
         if (instance == null) {
             synchronized (Settings.class) {
                 if (instance == null) {
-                    instance = new Settings();
+                    instance = new Settings(settings);
                 }
             }
         }

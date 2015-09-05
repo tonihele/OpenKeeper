@@ -83,6 +83,7 @@ public class Main extends SimpleApplication {
     private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
     private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
+    private final static AppSettings appSettings = new AppSettings(false);
     public final static String SETTINGS_FILE = "openkeeper.properties";
     private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
     private static final Object lock = new Object();
@@ -90,7 +91,6 @@ public class Main extends SimpleApplication {
     private final HashMap<String, String> params;
     private NiftyJmeDisplay nifty;
     private Settings userSettings;
-    private AppSettings appSettings;
 
     public static void main(String[] args) throws InvocationTargetException, InterruptedException {
 
@@ -225,20 +225,19 @@ public class Main extends SimpleApplication {
         new File(SCREENSHOTS_FOLDER).mkdirs();
 
         // Init the user settings (which in JME are app settings)
-        app.settings = app.getUserSettings().getAppSettings();
+        app.getUserSettings();
 
         // Init the application settings which contain just the conversion & folder data
-        app.appSettings = new AppSettings(false);
         File settingsFile = new File(SETTINGS_FILE);
         if (settingsFile.exists()) {
             try {
-                app.appSettings.load(new FileInputStream(settingsFile));
+                appSettings.load(new FileInputStream(settingsFile));
             } catch (IOException ex) {
                 logger.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
             }
         }
         // DKII settings
-        dkIIFolder = app.appSettings.getString(DKII_FOLDER_KEY);
+        dkIIFolder = appSettings.getString(DKII_FOLDER_KEY);
     }
 
     /**
@@ -248,7 +247,8 @@ public class Main extends SimpleApplication {
      */
     public Settings getUserSettings() {
         if (userSettings == null) {
-            userSettings = Settings.getInstance();
+            settings = new AppSettings(true);
+            userSettings = Settings.getInstance(settings);
 
             // Assing some app level settings
             userSettings.getAppSettings().setTitle(TITLE);
