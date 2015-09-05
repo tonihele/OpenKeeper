@@ -81,7 +81,7 @@ public class Main extends SimpleApplication {
     private static boolean conversionOk = false;
     public final static String TITLE = "OpenKeeper";
     private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
-    private final static String TEST_FILE = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("FrontEnd3DLevel.kwd");
+    private final static String TEST_FILE = AssetsConverter.MAPS_FOLDER.concat("FrontEnd3DLevel.kwd");
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
     private final static AppSettings appSettings = new AppSettings(false);
     public final static String SETTINGS_FILE = "openkeeper.properties";

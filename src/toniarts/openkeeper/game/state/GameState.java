@@ -29,6 +29,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.world.MapLoader;
 
@@ -78,7 +79,7 @@ public class GameState extends AbstractAppState {
                 try {
 
                     // Load the level data
-                    kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat("Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat(level).concat(".kwd"))));
+                    kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER.concat(level).concat(".kwd"))));
                     setProgress(0.25f);
 
                     // Create the actual level

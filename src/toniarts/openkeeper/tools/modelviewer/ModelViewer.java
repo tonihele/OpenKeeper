@@ -515,7 +515,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 break;
             }
             case MAPS: {
-                fillWithFiles(maps, dkIIFolder, dkIIFolder.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("maps"), "kwd");
+                fillWithFiles(maps, dkIIFolder, dkIIFolder.concat(AssetsConverter.MAPS_FOLDER), "kwd");
                 break;
             }
             case OBJECTS: {

@@ -139,6 +139,7 @@ public abstract class AssetsConverter {
     public static final String MATERIALS_FOLDER = "Materials";
     public static final String TEXTS_FOLDER = "Interface".concat(File.separator).concat("Texts");
     public static final String PATHS_FOLDER = "Interface".concat(File.separator).concat("Paths");
+    public static final String MAPS_FOLDER = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator);
     private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
 
