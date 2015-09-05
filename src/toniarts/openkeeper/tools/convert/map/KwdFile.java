@@ -277,21 +277,21 @@ public final class KwdFile {
     private Map[][] tiles;
     private int width;
     private int height;
-    private HashMap<Short, Player> players;
-    private HashMap<Short, Terrain> terrainTiles;
-    private HashMap<Short, Door> doors;
-    private HashMap<Short, Trap> traps;
-    private HashMap<Short, Room> rooms;
-    private HashMap<Short, Room> roomsByTerrainId; // Maps have rooms by the terrain ID
-    private HashMap<Short, Creature> creatures;
-    private HashMap<Short, Object> objects;
-    private HashMap<Short, CreatureSpell> creatureSpells;
-    private HashMap<Integer, EffectElement> effectElements;
-    private HashMap<Integer, Effect> effects;
-    private HashMap<Short, KeeperSpell> keeperSpells;
+    private java.util.Map<Short, Player> players;
+    private java.util.Map<Short, Terrain> terrainTiles;
+    private java.util.Map<Short, Door> doors;
+    private java.util.Map<Short, Trap> traps;
+    private java.util.Map<Short, Room> rooms;
+    private java.util.Map<Short, Room> roomsByTerrainId; // Maps have rooms by the terrain ID
+    private java.util.Map<Short, Creature> creatures;
+    private java.util.Map<Short, Object> objects;
+    private java.util.Map<Short, CreatureSpell> creatureSpells;
+    private java.util.Map<Integer, EffectElement> effectElements;
+    private java.util.Map<Integer, Effect> effects;
+    private java.util.Map<Short, KeeperSpell> keeperSpells;
     private List<Thing> things;
-    private HashMap<Short, Shot> shots;
-    private HashMap<Integer, Trigger> triggers;
+    private java.util.Map<Short, Shot> shots;
+    private java.util.Map<Integer, Trigger> triggers;
     private List<Variable> variables;
     private Terrain water;
     private Terrain lava;
@@ -305,7 +305,7 @@ public final class KwdFile {
      * correctly sized, but they seem to load ok<br>
      * It is not empty padding, it is data, but what kind, I don't know
      */
-    private static final HashMap<MapDataTypeEnum, List<Long>> ITEM_SIZES = new HashMap<>(MapDataTypeEnum.values().length);
+    private static final java.util.Map<MapDataTypeEnum, List<Long>> ITEM_SIZES = new HashMap<>(MapDataTypeEnum.values().length);
 
     static {
         ITEM_SIZES.put(MapDataTypeEnum.CREATURES, Arrays.asList(5449l, 5537l));
