@@ -54,6 +54,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -424,6 +425,10 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 }.build(nifty, screen, optionsNavigationColumnTwo);
             }
         }
+
+        // Fix layout
+        NiftyUtils.resetContraints(optionsMenuTitle);
+        optionsMenu.layoutElements();
     }
 
     public void quitToMainMenu() {
