@@ -1271,9 +1271,9 @@
                 </panel>
 
                 <!--Two panels, left the game stuff, right the map selection stuff-->
-                <panel id="skirmishPanel" height="*" width="95%" childLayout="horizontal" align="center" valign="center">
+                <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center">
 
-                    <panel id="playersPanel" width="66%" childLayout="vertical" align="center" valign="center" marginRight="5%">
+                    <panel id="playersPanel" width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
                         <control id="playersTable" name="table" vertical="optional" displayItems="4" selection="Single"
                                  colCount="5"
                                  col0="${menu.1688};34;java.lang.String;#32050c30"
@@ -1284,7 +1284,7 @@
                         />
                     </panel>
                     <panel width="*" childLayout="vertical" align="center" valign="top">
-                        <panel backgroundColor="#f508" width="100%" childLayout="center" marginBottom="2%" valign="top">
+                        <panel backgroundColor="#f508" width="100%" childLayout="center" marginBottom="8px" valign="top">
                             <control name="label" align="center" valign="top" id="mapNameTitle" style="menuText" />
                         </panel>
                         <panel width="100%" childLayout="horizontal" valign="center" align="center">
@@ -1298,25 +1298,41 @@
 
                 </panel>
 
-                <panel width="100%" childLayout="horizontal" align="center" valign="top">
+                <!--Two panels, left the game stuff, right the map selection stuff-->
+                <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center">
 
-                    <panel width="66%" childLayout="vertical" align="right" valign="top">
-                        <text style="menuText" text="${menu.1547}" align="right">
-                        </text>
+                    <panel id="playersPanel" width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
+                        <panel width="100%" childLayout="horizontal">
+                            <panel width="50%" childLayout="vertical">
+                                <text style="menuText" text="${menu.270}" align="left">
+                                    <!--<interact onClick="selectMPDLevel(6)" />-->
+                                </text>
+                            </panel>
+                            <panel width="50%" childLayout="vertical">
+                                <text style="menuText" text="${menu.2121}" align="center">
+                                    <!--<interact onClick="selectMPDLevel(6)" />-->
+                                </text>
+                                <text style="menuText" text="${menu.1547}" align="center">
+                                </text>
+                            </panel>
+                        </panel>
                     </panel>
                     <panel width="*" childLayout="vertical" align="center" valign="top">
-                        <text style="menuText" text="${menu.1495}" align="center">
-                            <!--<interact onClick="selectMPDLevel(6)" />-->
-                        </text>
-                        <text style="menuText" text="${menu.1496}" align="center">
-                            <interact onClick="selectRandomSkirmishMap()" />
-                        </text>
-                        <text style="menuText" text="${menu.2803}" align="center">
-                        </text>
+                        <panel width="100%" childLayout="vertical" align="center" valign="top">
+                            <text style="menuText" text="${menu.1495}" align="center">
+                                <!--<interact onClick="selectMPDLevel(6)" />-->
+                            </text>
+                            <text style="menuText" text="${menu.1496}" align="center">
+                                <interact onClick="selectRandomSkirmishMap()" />
+                            </text>
+                            <text style="menuText" text="${menu.2803}" align="center">
+                            </text>
+                        </panel>
                     </panel>
 
                 </panel>
 
+                <!--Spacer-->
                 <panel height="3%" width="100%" childLayout="center" align="center" valign="center">
 
                 </panel>
