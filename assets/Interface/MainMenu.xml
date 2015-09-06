@@ -1273,7 +1273,15 @@
                 <!--Two panels, left the game stuff, right the map selection stuff-->
                 <panel id="skirmishPanel" height="*" width="95%" childLayout="horizontal" align="center" valign="center">
 
-                    <panel width="66%" childLayout="vertical" align="center" valign="center" marginRight="5%">
+                    <panel id="playersPanel" width="66%" childLayout="vertical" align="center" valign="center" marginRight="5%">
+                        <control id="playersTable" name="table" vertical="optional" displayItems="4" selection="Single"
+                                 colCount="5"
+                                 col0="${menu.1688};34;java.lang.String;#32050c30"
+                                 col1=";33;java.lang.String;#32050c30"
+                                 col2=";11;java.lang.String;#00752430"
+                                 col3=";11;java.lang.String;#00779e30"
+                                 col4=";11;java.lang.String;#00752430"
+                        />
                     </panel>
                     <panel width="*" childLayout="vertical" align="center" valign="top">
                         <panel backgroundColor="#f508" width="100%" childLayout="center" marginBottom="2%" valign="top">

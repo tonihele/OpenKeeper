@@ -50,6 +50,7 @@ import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
 import de.lessvoid.nifty.controls.DropDown;
 import de.lessvoid.nifty.controls.DropDownSelectionChangedEvent;
 import de.lessvoid.nifty.controls.Label;
+import de.lessvoid.nifty.controls.ListBox;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
@@ -80,10 +81,12 @@ import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.data.HiScores;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
+import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -119,7 +122,10 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     public static HiScores hiscores = HiScores.load();
     private static final HashMap<String, String[]> cutscenes = new HashMap<>(3);
     private List<KwdFile> skirmishMaps;
+    private List<KwdFile> multiplayerMaps;
     private KwdFile selectedSkirmishMap;
+    private KwdFile selectedMultiplayerMap;
+    private List<Keeper> skirmishPlayers = new ArrayList<>(4);
 
     static {
         cutscenes.put("image", "Intro,000,001,002,003,004,005,006,007,008,009,010,011,012,013,014,015,016,017,018,Outro".split(","));
@@ -170,7 +176,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
 
         // Init the skirmish maps
-        initSkirmishMaps();
+        initMapSelection();
     }
 
     @Override
@@ -826,41 +832,53 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
     }
 
-    private void initSkirmishMaps() {
-        if (skirmishMaps == null) {
+    private void initMapSelection() {
 
-            // Get the skirmish maps
-            File f = new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER));
-            File[] files = f.listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.toLowerCase().endsWith(".kwd");
-                }
-            });
-
-            // Read them
-            // TODO: Not load the whole map if map has image generated & all, only one problem, the size
-            skirmishMaps = new ArrayList<>(files.length);
-            for (File file : files) {
-                KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
-                if (kwd.getLvlFlags().contains(KwdFile.LevFlag.IS_SKIRMISH_LEVEL)) {
-                    skirmishMaps.add(kwd);
-                }
+        // Get the skirmish maps
+        File f = new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER));
+        File[] files = f.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.toLowerCase().endsWith(".kwd");
             }
+        });
 
-            // Sort them
-            Collections.sort(skirmishMaps, new Comparator<KwdFile>() {
-                @Override
-                public int compare(KwdFile o1, KwdFile o2) {
-                    return o1.getName().compareToIgnoreCase(o2.getName());
-                }
-            });
-
-            // Select the first one as selected
-            if (!skirmishMaps.isEmpty()) {
-                selectedSkirmishMap = skirmishMaps.get(0);
+        // Read them
+        multiplayerMaps = new ArrayList<>(files.length);
+        skirmishMaps = new ArrayList<>(files.length);
+        for (File file : files) {
+            KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
+            if (kwd.getLvlFlags().contains(KwdFile.LevFlag.IS_SKIRMISH_LEVEL)) {
+                skirmishMaps.add(kwd);
+            }
+            if (kwd.getLvlFlags().contains(KwdFile.LevFlag.IS_MULTIPLAYER_LEVEL)) {
+                multiplayerMaps.add(kwd);
             }
         }
+
+        // Sort them
+        Comparator c = new Comparator<KwdFile>() {
+            @Override
+            public int compare(KwdFile o1, KwdFile o2) {
+                return o1.getName().compareToIgnoreCase(o2.getName());
+            }
+        };
+        Collections.sort(skirmishMaps, c);
+        Collections.sort(multiplayerMaps, c);
+
+        // Select the first one as selected
+        if (!skirmishMaps.isEmpty()) {
+            selectedSkirmishMap = skirmishMaps.get(0);
+        }
+        if (!multiplayerMaps.isEmpty()) {
+            selectedMultiplayerMap = multiplayerMaps.get(0);
+        }
+
+        // Init skirmish players
+        Keeper keeper = new Keeper(false, "Player");
+        skirmishPlayers.add(keeper);
+        keeper = new Keeper(true, null);
+        skirmishPlayers.add(keeper);
     }
 
     private void setSkirmishMapDataToGUI() {
@@ -884,6 +902,12 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             mapImage.getRenderer(ImageRenderer.class).setImage(img);
             mapImage.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
             mapImage.setConstraintHeight(new SizeValue(img.getHeight() + "px"));
+
+            // We can't have more players than the map supports
+            if (skirmishPlayers.size() > selectedSkirmishMap.getPlayerCount()) {
+                skirmishPlayers.subList(selectedSkirmishMap.getPlayerCount(), skirmishPlayers.size()).clear();
+            }
+            populateSkirmishPlayerTable();
         }
 
         // Re-populate
@@ -910,6 +934,16 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             // Create the level state
             GameState gameState = new GameState(selectedSkirmishMap);
             stateManager.attach(gameState);
+        }
+    }
+
+    private void populateSkirmishPlayerTable() {
+        ListBox<TableRow> listBox = screen.findNiftyControl("playersTable", ListBox.class);
+        int i = 0;
+        listBox.clear();
+        for (Keeper keeper : skirmishPlayers) {
+            listBox.addItem(new TableRow(i, keeper.toString(), "", "", "", keeper.isReady() + ""));
+            i++;
         }
     }
 
