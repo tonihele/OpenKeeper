@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IValueEnum;
 import java.util.List;
+import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
  * Container class for the mapnamePlayer.kld
@@ -48,6 +48,20 @@ public class Player implements Comparable<Player> {
         @Override
         public int getValue() {
             return id;
+        }
+
+        @Override
+        public String toString() {
+            String[] names = name().toLowerCase().split("_");
+            StringBuilder sb = new StringBuilder(name().length());
+            for (String item : names) {
+                if (sb.length() > 0) {
+                    sb.append(" ");
+                }
+                sb.append(Character.toUpperCase(item.charAt(0)));
+                sb.append(item.substring(1));
+            }
+            return sb.toString();
         }
         private final int id;
     }
