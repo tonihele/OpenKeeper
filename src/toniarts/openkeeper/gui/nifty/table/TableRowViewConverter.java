@@ -29,20 +29,24 @@ public class TableRowViewConverter implements ListBox.ListBoxViewConverter<Table
 
     @Override
     public void display(final Element listBoxItem, final TableRow item) {
-        for (int i = 0; i < 5; i++) {
+        int i = 0;
+        for (String s : item.getData()) {
 
             // Get the text element for the row
             Element textElement = listBoxItem.findElementByName("#col-" + String.valueOf(i));
-            textElement.getRenderer(TextRenderer.class).setText(item.data[i]);
+            textElement.getRenderer(TextRenderer.class).setText(s);
+            i++;
         }
     }
 
     @Override
     public int getWidth(final Element listBoxItem, final TableRow item) {
         int width = 0;
-        for (int i = 0; i < 5; i++) {
+        int i = 0;
+        for (String s : item.getData()) {
             TextRenderer renderer = listBoxItem.findElementByName("#col-" + String.valueOf(i)).getRenderer(TextRenderer.class);
-            width += renderer.getFont().getWidth(item.data[i]);
+            width += renderer.getFont().getWidth(s);
+            i++;
         }
         return width;
     }

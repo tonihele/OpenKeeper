@@ -16,6 +16,9 @@
  */
 package toniarts.openkeeper.gui.nifty.table;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Single table row
  *
@@ -23,11 +26,19 @@ package toniarts.openkeeper.gui.nifty.table;
  */
 public class TableRow {
 
-    public int index;
-    public String[] data = new String[5];
+    private final List<String> data;
+    private final int index;
 
     public TableRow(final int index, final String... param) {
         this.index = index;
-        System.arraycopy(param, 0, data, 0, param.length);
+        data = Arrays.asList(param);
+    }
+
+    public List<String> getData() {
+        return data;
+    }
+
+    public int getIndex() {
+        return index;
     }
 }
