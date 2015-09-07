@@ -51,6 +51,7 @@ import de.lessvoid.nifty.controls.DropDown;
 import de.lessvoid.nifty.controls.DropDownSelectionChangedEvent;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.controls.ListBox;
+import de.lessvoid.nifty.controls.ListBoxSelectionChangedEvent;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
@@ -126,6 +127,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private KwdFile selectedSkirmishMap;
     private KwdFile selectedMultiplayerMap;
     private List<Keeper> skirmishPlayers = new ArrayList<>(4);
+    private boolean skirmishMapSelect = false;
+    private boolean multiplayerMapSelect = false;
 
     static {
         cutscenes.put("image", "Intro,000,001,002,003,004,005,006,007,008,009,010,011,012,013,014,015,016,017,018,Outro".split(","));
@@ -379,6 +382,15 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 // Init the screen
                 setSkirmishMapDataToGUI();
                 break;
+            case "skirmishMapSelect": {
+
+                // Populate the maps
+                if (skirmishMapSelect) {
+                    populateMapSelection(skirmishMaps, selectedSkirmishMap);
+                } else {
+                    populateMapSelection(multiplayerMaps, selectedMultiplayerMap);
+                }
+            }
         }
     }
 
@@ -939,12 +951,116 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
     private void populateSkirmishPlayerTable() {
         ListBox<TableRow> listBox = screen.findNiftyControl("playersTable", ListBox.class);
-        int i = 0;
         listBox.clear();
+        int i = 0;
         for (Keeper keeper : skirmishPlayers) {
             listBox.addItem(new TableRow(i, keeper.toString(), "", "", "", keeper.isReady() + ""));
             i++;
         }
+    }
+
+    /**
+     * Go to map selection
+     *
+     * @param mapFor skirmish/multiplayer
+     */
+    public void selectMap(String mapFor) {
+        if ("skirmish".equals(mapFor)) {
+            skirmishMapSelect = true;
+        } else {
+            multiplayerMapSelect = true;
+        }
+        nifty.gotoScreen("skirmishMapSelect");
+    }
+
+    public void cancelMapSelection() {
+        if (skirmishMapSelect) {
+            nifty.gotoScreen("skirmish");
+        } else {
+            nifty.gotoScreen("multiplayer");
+        }
+        skirmishMapSelect = false;
+        multiplayerMapSelect = false;
+    }
+
+    public void mapSelected() {
+        ListBox<TableRow> listBox = screen.findNiftyControl("mapsTable", ListBox.class);
+        int selectedMapIndex = listBox.getSelectedIndices().get(0);
+        if (skirmishMapSelect) {
+            selectedSkirmishMap = skirmishMaps.get(selectedMapIndex);
+            nifty.gotoScreen("skirmish");
+        } else {
+            selectedMultiplayerMap = multiplayerMaps.get(selectedMapIndex);
+            nifty.gotoScreen("multiplayer");
+        }
+        skirmishMapSelect = false;
+        multiplayerMapSelect = false;
+    }
+
+    @NiftyEventSubscriber(id = "mapsTable")
+    public void onListBoxSelectionChanged(final String id, final ListBoxSelectionChangedEvent<TableRow> event) {
+
+        if (event.getSelectionIndices().isEmpty()) {
+            return;
+        }
+
+        // Put the map info in
+        KwdFile selectedMap;
+        if (skirmishMapSelect) {
+            selectedMap = skirmishMaps.get(event.getSelectionIndices().get(0));
+        } else {
+            selectedMap = multiplayerMaps.get(event.getSelectionIndices().get(0));
+        }
+
+        // The map title
+        Label label = screen.findNiftyControl("mapNameTitle", Label.class);
+        label.setText(selectedMap == null ? "No maps found from " + AssetsConverter.MAPS_FOLDER : selectedMap.getName());
+        NiftyUtils.resetContraints(label);
+
+        if (selectedMap != null) {
+
+            // Player count
+            label = screen.findNiftyControl("playerCount", Label.class);
+            label.setText(": " + selectedMap.getPlayerCount());
+            NiftyUtils.resetContraints(label);
+
+            // Map image
+            // TODO: static generator to MapLoader etc. place, I don't really want to use the BMPs
+            Element mapImage = screen.findElementByName("mapImage");
+            NiftyImage img = nifty.createImage("Textures/Unique_NoTextureName.png", false);
+            mapImage.getRenderer(ImageRenderer.class).setImage(img);
+            mapImage.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
+            mapImage.setConstraintHeight(new SizeValue(img.getHeight() + "px"));
+
+            // Map size
+            label = screen.findNiftyControl("mapSize", Label.class);
+            label.setText(selectedMap.getWidth() + " x " + selectedMap.getHeight());
+            NiftyUtils.resetContraints(label);
+        }
+
+        // Re-populate
+        screen.layoutLayers();
+    }
+
+    /**
+     * Populate the map selection with given maps
+     *
+     * @param maps map selection
+     * @param selectedMap the selected map
+     */
+    private void populateMapSelection(List<KwdFile> maps, KwdFile selectedMap) {
+        ListBox<TableRow> listBox = screen.findNiftyControl("mapsTable", ListBox.class);
+        int i = 0;
+        int selected = 0;
+        listBox.clear();
+        for (KwdFile map : maps) {
+            if (map.equals(selectedMap)) {
+                selected = i;
+            }
+            listBox.addItem(new TableRow(i, map.getName(), String.valueOf(map.getPlayerCount()), map.getWidth() + " x " + map.getHeight()));
+            i++;
+        }
+        listBox.selectItemByIndex(selected);
     }
 
     private class MyDisplayMode implements Comparable<MyDisplayMode> {

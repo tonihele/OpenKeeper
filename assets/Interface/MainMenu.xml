@@ -1257,7 +1257,7 @@
     </screen>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <!-- Skirmish level selection -->
+    <!-- Skirmish (& also MP with changes) level selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="skirmish" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer id="layer" childLayout="vertical">
@@ -1320,7 +1320,7 @@
                     <panel width="*" childLayout="vertical" align="center" valign="top">
                         <panel width="100%" childLayout="vertical" align="center" valign="top">
                             <text style="menuText" text="${menu.1495}" align="center">
-                                <!--<interact onClick="selectMPDLevel(6)" />-->
+                                <interact onClick="selectMap(skirmish)" />
                             </text>
                             <text style="menuText" text="${menu.1496}" align="center">
                                 <interact onClick="selectRandomSkirmishMap()" />
@@ -1340,6 +1340,61 @@
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control click="doTransition(272,singlePlayer,274)" id="back" name="cancelButton" />
                 <control click="startSkirmishLevel()" id="start" name="okButton" />
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Map selection -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="skirmishMapSelect" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer id="layer" childLayout="vertical">
+            <panel id="panel1" width="100%" childLayout="vertical">
+                <panel width="100%" childLayout="center" align="center" valign="center">
+                    <text id="skirmishTitle" style="menuTitleText" text="${menu.2800}" />
+                </panel>
+
+                <!--Spacer-->
+                <panel height="5%" width="100%" childLayout="center" align="center" valign="center">
+                </panel>
+
+                <!--Two panels, left the game stuff, right the map selection stuff-->
+                <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center">
+
+                    <panel id="mapsPanel" width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
+                        <control id="mapsTable" name="table" vertical="optional" displayItems="8" selection="Single" forceSelection="true"
+                                 colCount="3"
+                                 col0="${menu.1544};50;java.lang.String;#32050c30"
+                                 col1="${menu.2960};25;java.lang.String;#32050c30"
+                                 col2="${menu.1545};25;java.lang.String;#00752430"
+                        />
+                    </panel>
+                    <panel width="*" childLayout="vertical" align="center" valign="top">
+                        <panel backgroundColor="#f508" width="100%" childLayout="center" marginBottom="8px" valign="top">
+                            <control name="label" align="center" valign="top" id="mapNameTitle" style="menuText" />
+                        </panel>
+                        <panel width="100%" childLayout="horizontal" valign="center" align="center">
+                            <text style="menuText" text="${menu.1492}" />
+                            <control name="label" id="playerCount" style="menuText" />
+                        </panel>
+                        <panel width="100%" childLayout="center" valign="center">
+                            <image valign="center" align="center" id="mapImage" />
+                        </panel>
+                        <panel width="100%" childLayout="center" valign="center" align="center">
+                            <control name="label" id="mapSize" style="menuText" />
+                        </panel>
+                    </panel>
+
+                </panel>
+
+                <!--Spacer-->
+                <panel height="3%" width="100%" childLayout="center" align="center" valign="center">
+
+                </panel>
+            </panel>
+            <panel childLayout="horizontal" align="right" valign="bottom">
+                <control click="cancelMapSelection()" id="back" name="cancelButton" />
+                <control click="mapSelected()" id="start" name="okButton" />
             </panel>
         </layer>
     </screen>
