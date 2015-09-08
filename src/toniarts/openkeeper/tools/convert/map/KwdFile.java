@@ -189,6 +189,58 @@ public final class KwdFile {
         }
         private final int id;
     }
+
+    public enum LevelReward implements IValueEnum {
+
+        NONE(0),
+        ALARM(1),
+        BARRICADE(2),
+        BOULDER(3),
+        BRACED(4),
+        BRIDGE_STONE(5),
+        BRIDGE_WOODEN(6),
+        CALL_TO_ARMS(7),
+        CASINO(8),
+        DARK_LIBRARY(12),
+        FEAR(14),
+        FIREBURST(15),
+        FREEZE(16),
+        GAS(17),
+        GRAVEYARD(18),
+        GUARD_ROOM(19),
+        GUARD_POST(20),
+        HATCHERY(21),
+        LAIR(24),
+        LIGHTNING(25),
+        MAGIC_DOOR(26),
+        PIT(27),
+        PRISON(29),
+        REAPER_TALISMAN_4(30),
+        SECRET_DOOR(32),
+        SENTRY(33),
+        SPIKE(35),
+        STEEL_DOOR(36),
+        TEMPLE(39),
+        TORTURE(41),
+        TRAINING(42),
+        TREASURY(43),
+        TRIGGER(44),
+        WOOD_DOOR(47),
+        WORK_SHOP(48),
+        REAPER_TALISMAN_1(49),
+        REAPER_TALISMAN_2(50),
+        REAPER_TALISMAN_3(51);
+
+        private LevelReward(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private final int id;
+    }
     private static final float FIXED_POINT_DIVISION = 4096f;
     private static final float FIXED_POINT5_DIVISION = 65536f;
     // KWD data
@@ -237,12 +289,12 @@ public final class KwdFile {
     private int triggerId; // Associated trigger
     private int ticksPerSec;
     private short x01184[];
-    private String messages[];
+    private List<String> messages;
     private EnumSet<LevFlag> lvlFlags;
     private String speechStr;
     private short talismanPieces;
-    private short rewardPrev[];
-    private short rewardNext[];
+    private List<LevelReward> rewardPrev;
+    private List<LevelReward> rewardNext;
     private short soundTrack;
     private TextTable textTableId;
     private int textTitleId;
@@ -254,8 +306,7 @@ public final class KwdFile {
     private int textSubobjctvId2;
     private int textSubobjctvId3;
     private int speclvlIdx;
-    private short textIntrdcOverrdObj[];
-    private int textIntrdcOverrdId[];
+    private java.util.Map<Short, Integer> introductionOverrideTextIds; // Creature ID, TextID
     private String terrainPath;
     private short oneShotHornyLev;
     private short playerCount;
@@ -1221,11 +1272,14 @@ public final class KwdFile {
             for (int x = 0; x < x01184.length; x++) {
                 x01184[x] = (short) rawMapInfo.readUnsignedByte();
             }
-            messages = new String[512];
-            for (int x = 0; x < messages.length; x++) {
+            messages = new ArrayList<>(); // I don't know if we need the index, level 19 & 3 has messages, but they are rare
+            for (int x = 0; x < 512; x++) {
                 bytes = new byte[20 * 2];
                 rawMapInfo.read(bytes);
-                messages[x] = ConversionUtils.bytesToStringUtf16(bytes).trim();
+                String message = ConversionUtils.bytesToStringUtf16(bytes).trim();
+                if (!message.isEmpty()) {
+                    messages.add(message);
+                }
             }
             int flag = ConversionUtils.readUnsignedShort(rawMapInfo);
             lvlFlags = ConversionUtils.parseFlagValue(flag, LevFlag.class);
@@ -1233,13 +1287,19 @@ public final class KwdFile {
             rawMapInfo.read(bytes);
             speechStr = ConversionUtils.bytesToString(bytes).trim();
             talismanPieces = (short) rawMapInfo.readUnsignedByte();
-            rewardPrev = new short[4];
-            for (int x = 0; x < rewardPrev.length; x++) {
-                rewardPrev[x] = (short) rawMapInfo.readUnsignedByte();
+            rewardPrev = new ArrayList<>(4);
+            for (int x = 0; x < 4; x++) {
+                LevelReward reward = ConversionUtils.parseEnum((short) rawMapInfo.readUnsignedByte(), LevelReward.class);
+                if (reward != null && !reward.equals(LevelReward.NONE)) {
+                    rewardPrev.add(reward);
+                }
             }
-            rewardNext = new short[4];
-            for (int x = 0; x < rewardNext.length; x++) {
-                rewardNext[x] = (short) rawMapInfo.readUnsignedByte();
+            rewardNext = new ArrayList<>(4);
+            for (int x = 0; x < 4; x++) {
+                LevelReward reward = ConversionUtils.parseEnum((short) rawMapInfo.readUnsignedByte(), LevelReward.class);
+                if (reward != null && !reward.equals(LevelReward.NONE)) {
+                    rewardNext.add(reward);
+                }
             }
             soundTrack = (short) rawMapInfo.readUnsignedByte();
             textTableId = ConversionUtils.parseEnum((short) rawMapInfo.readUnsignedByte(), TextTable.class);
@@ -1252,14 +1312,26 @@ public final class KwdFile {
             textSubobjctvId2 = ConversionUtils.readUnsignedShort(rawMapInfo);
             textSubobjctvId3 = ConversionUtils.readUnsignedShort(rawMapInfo);
             speclvlIdx = ConversionUtils.readUnsignedShort(rawMapInfo);
-            textIntrdcOverrdObj = new short[8];
+
+            // Swap the arrays for more convenient data format
+            short[] textIntrdcOverrdObj = new short[8];
             for (int x = 0; x < textIntrdcOverrdObj.length; x++) {
                 textIntrdcOverrdObj[x] = (short) rawMapInfo.readUnsignedByte();
             }
-            textIntrdcOverrdId = new int[8];
+            int[] textIntrdcOverrdId = new int[8];
             for (int x = 0; x < textIntrdcOverrdId.length; x++) {
                 textIntrdcOverrdId[x] = ConversionUtils.readUnsignedShort(rawMapInfo);
             }
+            introductionOverrideTextIds = new HashMap<>(8);
+            for (int x = 0; x < textIntrdcOverrdObj.length; x++) {
+                if (textIntrdcOverrdObj[x] > 0) {
+
+                    // Over 0 is a valid creature ID
+                    introductionOverrideTextIds.put(textIntrdcOverrdObj[x], textIntrdcOverrdId[x]);
+                }
+            }
+            //
+
             bytes = new byte[32];
             rawMapInfo.read(bytes);
             terrainPath = ConversionUtils.bytesToString(bytes).trim();
