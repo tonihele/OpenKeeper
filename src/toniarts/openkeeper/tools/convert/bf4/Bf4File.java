@@ -90,7 +90,7 @@ public class Bf4File {
         entry.setUnknown1(ConversionUtils.readUnsignedShort(rawBf4));
         entry.setDataSize(ConversionUtils.readInteger(rawBf4));
         entry.setTotalSize(ConversionUtils.readUnsignedInteger(rawBf4));
-        entry.setFlag(FontEntryFlag.toFontEntryFlag(ConversionUtils.toUnsignedByte(rawBf4.readByte())));
+        entry.setFlag(ConversionUtils.parseFlagValue(rawBf4.readUnsignedByte(), FontEntryFlag.class));
         entry.setUnknown2(ConversionUtils.toUnsignedByte(rawBf4.readByte()));
         entry.setUnknown3(ConversionUtils.toUnsignedByte(rawBf4.readByte()));
         entry.setUnknown4(ConversionUtils.toUnsignedByte(rawBf4.readByte()));
@@ -101,6 +101,7 @@ public class Bf4File {
         entry.setOuterWidth(ConversionUtils.readShort(rawBf4));
         bytes = new byte[entry.getDataSize()];
         rawBf4.read(bytes);
+        entry.setImageData(bytes);
         return entry;
     }
 }

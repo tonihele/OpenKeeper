@@ -16,6 +16,9 @@
  */
 package toniarts.openkeeper.tools.convert.bf4;
 
+import java.util.EnumSet;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
+
 /**
  * BF4 entry a.k.a. FontEntry
  *
@@ -23,31 +26,29 @@ package toniarts.openkeeper.tools.convert.bf4;
  */
 public class Bf4Entry {
 
-    public enum FontEntryFlag {
+    /**
+     * Describes the encoding methods used in the font image
+     */
+    public enum FontEntryFlag implements IFlagEnum {
 
-        RLE4_DATA, UNKNOWN;
+        RLE4_DATA(0x0001),
+        UNKNOWN(0x0002);
+        private final long flagValue;
 
-        /**
-         * Font entry flag value to enum
-         *
-         * @param index the flag value
-         * @return returns flag enum
-         */
-        public static FontEntryFlag toFontEntryFlag(int index) {
-            if (index == 0) {
-                return RLE4_DATA;
-            }
-            if (index == 1) {
-                return UNKNOWN;
-            }
-            throw new RuntimeException("Flag must be 0 or 1! Was " + index + "!");
+        private FontEntryFlag(long flagValue) {
+            this.flagValue = flagValue;
         }
-    }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
     private Character character;
     private int unknown1;
     private int dataSize;
     private int totalSize;
-    private FontEntryFlag flag;
+    private EnumSet<FontEntryFlag> flag;
     private short unknown2;
     private short unknown3;
     private short unknown4;
@@ -90,11 +91,11 @@ public class Bf4Entry {
         this.totalSize = totalSize;
     }
 
-    public FontEntryFlag getFlag() {
+    public EnumSet<FontEntryFlag> getFlag() {
         return flag;
     }
 
-    protected void setFlag(FontEntryFlag flag) {
+    protected void setFlag(EnumSet<FontEntryFlag> flag) {
         this.flag = flag;
     }
 
