@@ -31,3 +31,38 @@ openkeeper.properties
 !/src/toniarts/openkeeper/gui/icons/openkeeper64.png
 !/src/toniarts/openkeeper/gui/icons/openkeeper256.png
 !/src/toniarts/openkeeper/gui/icons/openkeeper48.png
+/bin/
+/build/
+test-output
+
+*.so
+
+log/*
+**/nbproject/private/
+
+.gradle
+# Class Files #
+*.class
+
+# Package Files #
+#*.jar
+*.war
+*.ear
+lib/jME3*
+**/bin/
+
+.project
+.classpath
+.settings
+
+**/gen/
+
+**/Thumbs.db
+local.properties
+
+*.dylib
+/build/
+
+.gradle
+# Class Files #
+*.class
