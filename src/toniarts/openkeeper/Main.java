@@ -443,7 +443,10 @@ public class Main extends SimpleApplication {
 
                     // It is all a clever ruge, we don't actually load much here
                     if (!params.containsKey("nomovies") && !params.containsKey("level")) {
-                        Thread.sleep(5000 - (System.currentTimeMillis() - startTime));
+                        long waitTime = 5000 - (System.currentTimeMillis() - startTime);
+                        if (waitTime > 0) {
+                            Thread.sleep(waitTime);
+                        }
                     }
                 } catch (InterruptedException ex) {
                     // Doesn't matter
