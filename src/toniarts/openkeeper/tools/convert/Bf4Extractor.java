@@ -25,6 +25,8 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import javax.imageio.ImageIO;
+import toniarts.openkeeper.tools.convert.bf4.Bf4Entry;
 import toniarts.openkeeper.tools.convert.bf4.Bf4File;
 
 /**
@@ -74,6 +76,14 @@ public class Bf4Extractor {
         //Extract the fonts bitmaps
         for (File file : bf4Files) {
             Bf4File bf4 = new Bf4File(file);
+
+            for (Bf4Entry entry : bf4) {
+                if (entry.getImage() != null) {
+                    String baseDir = destination.concat(ConversionUtils.stripFileName(file.getName())).concat(File.separator);
+                    new File(baseDir).mkdirs();
+                    ImageIO.write(entry.getImage(), "png", new File(baseDir.concat(ConversionUtils.stripFileName(entry.toString()).concat(".png"))));
+                }
+            }
         }
     }
 }

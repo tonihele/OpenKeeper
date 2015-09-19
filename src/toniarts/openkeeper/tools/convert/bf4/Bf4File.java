@@ -16,11 +16,23 @@
  */
 package toniarts.openkeeper.tools.convert.bf4;
 
+import java.awt.Point;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
+import java.awt.image.DataBufferByte;
+import java.awt.image.IndexColorModel;
+import java.awt.image.MultiPixelPackedSampleModel;
+import java.awt.image.Raster;
+import java.awt.image.WritableRaster;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import javax.imageio.stream.MemoryCacheImageInputStream;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.bf4.Bf4Entry.FontEntryFlag;
 
@@ -31,10 +43,22 @@ import toniarts.openkeeper.tools.convert.bf4.Bf4Entry.FontEntryFlag;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Bf4File {
+public class Bf4File implements Iterable<Bf4Entry> {
 
     private static final String BF4_HEADER_IDENTIFIER = "F4FB";
     private final List<Bf4Entry> entries;
+    private static final int BITS_PER_PIXEL = 4;
+    private static final IndexColorModel cm;
+
+    static {
+
+        // Create the palette
+        byte[] levels = new byte[16];
+        for (int c = 0; c < 16; c++) {
+            levels[c] = (byte) (c * 16);
+        }
+        cm = new IndexColorModel(BITS_PER_PIXEL, 16, levels, levels, levels, 0);
+    }
 
     /**
      * Constructs a new BF4 file reader Reads the BF4 file structure
@@ -99,9 +123,108 @@ public class Bf4File {
         entry.setOffsetX(rawBf4.readByte());
         entry.setOffsetY(rawBf4.readByte());
         entry.setOuterWidth(ConversionUtils.readShort(rawBf4));
-        bytes = new byte[entry.getDataSize()];
-        rawBf4.read(bytes);
-        entry.setImageData(bytes);
+        if (entry.getWidth() > 0 && entry.getHeight() > 0) {
+            bytes = new byte[entry.getDataSize()];
+            rawBf4.read(bytes, 0, entry.getDataSize());
+            entry.setImage(decodeFontImage(entry, bytes));
+        }
         return entry;
+    }
+
+    /**
+     * Decodes the given font image and stores returns it as a JAVA image. The
+     * image has 16 color indexed grayscale palette, with 0 being totally
+     * transparent. 4-bits per pixel.
+     *
+     * @param width width of the image
+     * @param height height of the image
+     * @param flag decoding/encoding flags
+     * @param bytes tha data payload
+     * @return image
+     */
+    private BufferedImage decodeFontImage(final Bf4Entry entry, final byte[] bytes) throws IOException {
+
+        // Create the sample model
+        MultiPixelPackedSampleModel sampleModel = new MultiPixelPackedSampleModel(DataBuffer.TYPE_BYTE,
+                entry.getWidth(), entry.getHeight(),
+                BITS_PER_PIXEL);
+
+        // Create the image
+        WritableRaster raster = Raster.createWritableRaster(sampleModel, new Point());
+        BufferedImage bi = new BufferedImage(cm, raster, false, null);
+        byte[] data = (byte[]) ((DataBufferByte) raster.getDataBuffer()).getData();
+
+        // Compressions, the compressions might be applied in sequence, so just apply the decompressions one by one
+        byte[] decodedBytes = new byte[Math.max(entry.getDataSize(), data.length)];
+        System.arraycopy(bytes, 0, decodedBytes, 0, bytes.length);
+        if (entry.getFlag().contains(FontEntryFlag.RLE4_DATA)) {
+            decodeRLE4(decodedBytes, entry.getDataSize());
+        }
+        if (entry.getFlag().contains(FontEntryFlag.UNKNOWN)) {
+            throw new RuntimeException("The font uses unknown encoding!");
+        }
+
+        // Finally set the data to the image
+        System.arraycopy(decodedBytes, 0, data, 0, data.length);
+
+        return bi;
+    }
+
+    /**
+     * Decodes RLE 4-bit
+     *
+     * @param data data buffer, contains the compressed data, and target for the
+     * decompressed data
+     */
+    private void decodeRLE4(byte[] data, int dataSize) throws IOException {
+        int count = 0;
+        int length = 0;
+        int pos = 0;
+        int value;
+        boolean flag = false;
+        int shift = 4;
+        int lineNo = 0;
+//        int lineStride = sampleModel.getScanlineStride();
+        int finished = 0;
+        byte[] values = new byte[data.length];
+        System.arraycopy(data, 0, values, 0, data.length);
+        MemoryCacheImageInputStream iis = new MemoryCacheImageInputStream(new ByteArrayInputStream(values));
+        iis.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+
+        while (iis.getStreamPosition() != dataSize) {
+
+            // Read the value
+            value = (int) iis.readBits(4);
+            switch (value) {
+                case 0:
+                    length = 0;
+                    break;
+                default:
+                    int val;
+                    if (length == 0) {
+                        length = value;
+                        val = (int) iis.readBits(4);
+                    } else {
+                        val = value;
+                    }
+                    for (int i = 0; i < length; i++) {
+                        data[pos] |= val << shift;
+                        shift += 4;
+                        if (shift == 4) {
+                            pos++;
+                            if (pos >= data.length) {
+                                return;
+                            }
+                        }
+                        shift &= 7;
+                    }
+                    break;
+            }
+        }
+    }
+
+    @Override
+    public Iterator<Bf4Entry> iterator() {
+        return entries.iterator();
     }
 }

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.tools.convert.bf4;
 
+import java.awt.image.BufferedImage;
 import java.util.EnumSet;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 
@@ -57,7 +58,7 @@ public class Bf4Entry {
     private byte offsetX;
     private byte offsetY;
     private int outerWidth;
-    private byte[] imageData;
+    private BufferedImage image;
 
     public Character getCharacter() {
         return character;
@@ -163,12 +164,12 @@ public class Bf4Entry {
         this.outerWidth = outerWidth;
     }
 
-    public byte[] getImageData() {
-        return imageData;
+    public BufferedImage getImage() {
+        return image;
     }
 
-    protected void setImageData(byte[] imageData) {
-        this.imageData = imageData;
+    protected void setImage(BufferedImage image) {
+        this.image = image;
     }
 
     @Override
