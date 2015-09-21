@@ -158,7 +158,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
         byte[] decodedBytes = new byte[Math.max(entry.getDataSize(), data.length)];
         System.arraycopy(bytes, 0, decodedBytes, 0, bytes.length);
         if (entry.getFlag().contains(FontEntryFlag.RLE4_DATA)) {
-            decodeRLE4(decodedBytes, entry.getDataSize());
+            decodeRLE4(decodedBytes);
         }
         if (entry.getFlag().contains(FontEntryFlag.UNKNOWN)) {
             throw new RuntimeException("The font uses unknown encoding!");
@@ -176,49 +176,33 @@ public class Bf4File implements Iterable<Bf4Entry> {
      * @param data data buffer, contains the compressed data, and target for the
      * decompressed data
      */
-    private void decodeRLE4(byte[] data, int dataSize) throws IOException {
-        int count = 0;
-        int length = 0;
-        int pos = 0;
+    private void decodeRLE4(byte[] data) throws IOException {
+        int count;
         int value;
-        boolean flag = false;
-        int shift = 4;
-        int lineNo = 0;
-//        int lineStride = sampleModel.getScanlineStride();
-        int finished = 0;
         byte[] values = new byte[data.length];
         System.arraycopy(data, 0, values, 0, data.length);
         MemoryCacheImageInputStream iis = new MemoryCacheImageInputStream(new ByteArrayInputStream(values));
         iis.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+        FourBitWriter writer = new FourBitWriter(data);
 
-        while (iis.getStreamPosition() != dataSize) {
+        while (true) {
 
             // Read the value
             value = (int) iis.readBits(4);
-            switch (value) {
-                case 0:
-                    length = 0;
-                    break;
-                default:
-                    int val;
-                    if (length == 0) {
-                        length = value;
-                        val = (int) iis.readBits(4);
-                    } else {
-                        val = value;
+            if (value == 0) {
+                count = (int) iis.readBits(4);
+                if (count != 0) {
+                    value = (int) iis.readBits(4);
+                    for (int i = 0; i < count; i++) {
+                        writer.write(value);
                     }
-                    for (int i = 0; i < length; i++) {
-                        data[pos] |= val << shift;
-                        shift += 4;
-                        if (shift == 4) {
-                            pos++;
-                            if (pos >= data.length) {
-                                return;
-                            }
-                        }
-                        shift &= 7;
-                    }
-                    break;
+                } else {
+                    break; // End of stream
+                }
+            } else {
+
+                // Just write it
+                writer.write(value);
             }
         }
     }
@@ -226,5 +210,28 @@ public class Bf4File implements Iterable<Bf4Entry> {
     @Override
     public Iterator<Bf4Entry> iterator() {
         return entries.iterator();
+    }
+
+    /**
+     * Small class to write in 4-bits
+     */
+    private class FourBitWriter {
+
+        private final byte[] data;
+        private int position = 0;
+        private boolean wholeByte = true;
+
+        public FourBitWriter(byte[] data) {
+            this.data = data;
+        }
+
+        public void write(int value) {
+            if (wholeByte) {
+                data[position] = (byte) (value << 4);
+            } else {
+                data[position++] |= (value & 0x0F);
+            }
+            wholeByte = !wholeByte;
+        }
     }
 }
