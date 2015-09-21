@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert.bf4;
 
-import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
@@ -150,7 +149,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
                 BITS_PER_PIXEL);
 
         // Create the image
-        WritableRaster raster = Raster.createWritableRaster(sampleModel, new Point());
+        WritableRaster raster = Raster.createWritableRaster(sampleModel, null);
         BufferedImage bi = new BufferedImage(cm, raster, false, null);
         byte[] data = (byte[]) ((DataBufferByte) raster.getDataBuffer()).getData();
 
@@ -164,8 +163,24 @@ public class Bf4File implements Iterable<Bf4Entry> {
             throw new RuntimeException("The font uses unknown encoding!");
         }
 
-        // Finally set the data to the image
-        System.arraycopy(decodedBytes, 0, data, 0, data.length);
+        // Our images have no padding bits at the end of scanline strides, so write line by line if width is odd
+        if (entry.getWidth() % 2 != 0) {
+            MemoryCacheImageInputStream iis = new MemoryCacheImageInputStream(new ByteArrayInputStream(decodedBytes));
+            iis.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+            FourBitWriter writer = new FourBitWriter(data);
+            for (int y = 0; y < entry.getHeight(); y++) {
+                for (int x = 0; x < entry.getWidth(); x++) {
+                    writer.write((int) iis.readBits(4));
+                }
+
+                // Write the padding
+                writer.write(0);
+            }
+        } else {
+
+            // Finally set the data to the image
+            System.arraycopy(decodedBytes, 0, data, 0, data.length);
+        }
 
         return bi;
     }
