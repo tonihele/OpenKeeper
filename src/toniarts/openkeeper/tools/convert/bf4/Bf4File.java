@@ -54,7 +54,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
         // Create the palette
         byte[] levels = new byte[16];
         for (int c = 0; c < 16; c++) {
-            levels[c] = (byte) (c * 16);
+            levels[c] = (byte) ((c + 1) * 16 - 1);
         }
         cm = new IndexColorModel(BITS_PER_PIXEL, 16, levels, levels, levels, 0);
     }
