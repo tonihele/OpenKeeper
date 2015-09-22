@@ -179,6 +179,6 @@ public class Bf4Entry implements Comparable<Bf4Entry> {
 
     @Override
     public int compareTo(Bf4Entry o) {
-        return Integer.compare(character, character);
+        return Integer.compare(character, o.character);
     }
 }
