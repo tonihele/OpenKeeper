@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import javax.imageio.stream.MemoryCacheImageInputStream;
@@ -46,6 +47,10 @@ public class Bf4File implements Iterable<Bf4Entry> {
 
     private static final String BF4_HEADER_IDENTIFIER = "F4FB";
     private final List<Bf4Entry> entries;
+    private short maxWidth;
+    private short maxHeight;
+    private int maxCodePoint = 0;
+    private int glyphCount = 0;
     private static final int BITS_PER_PIXEL = 4;
     private static final IndexColorModel cm;
 
@@ -75,8 +80,8 @@ public class Bf4File implements Iterable<Bf4Entry> {
             if (!BF4_HEADER_IDENTIFIER.equals(ConversionUtils.bytesToString(header))) {
                 throw new RuntimeException("Header should be " + BF4_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
-            short maxWidth = ConversionUtils.toUnsignedByte(rawBf4.readByte()); // This is know to be bogus value
-            short maxHeight = ConversionUtils.toUnsignedByte(rawBf4.readByte());
+            maxWidth = ConversionUtils.toUnsignedByte(rawBf4.readByte()); // This is know to be bogus value
+            maxHeight = ConversionUtils.toUnsignedByte(rawBf4.readByte());
             int offsetsCount = ConversionUtils.readUnsignedShort(rawBf4);
 
             // Read the offsets
@@ -91,6 +96,9 @@ public class Bf4File implements Iterable<Bf4Entry> {
                 rawBf4.seek(offset);
                 entries.add(readFontEntry(rawBf4));
             }
+
+            // Sort them
+            Collections.sort(entries);
         } catch (IOException e) {
 
             // Fug
@@ -126,6 +134,12 @@ public class Bf4File implements Iterable<Bf4Entry> {
             bytes = new byte[entry.getDataSize()];
             rawBf4.read(bytes, 0, entry.getDataSize());
             entry.setImage(decodeFontImage(entry, bytes));
+
+            // Update the max values
+            maxWidth = (short) Math.max(maxWidth, entry.getWidth());
+            maxHeight = (short) Math.max(maxHeight, entry.getHeight());
+            maxCodePoint = Math.max(maxCodePoint, entry.getCharacter());
+            glyphCount++;
         }
         return entry;
     }
@@ -225,6 +239,42 @@ public class Bf4File implements Iterable<Bf4Entry> {
     @Override
     public Iterator<Bf4Entry> iterator() {
         return entries.iterator();
+    }
+
+    /**
+     * Maximum font image height in pixels
+     *
+     * @return image height
+     */
+    public short getMaxHeight() {
+        return maxHeight;
+    }
+
+    /**
+     * Maximum font image width in pixels
+     *
+     * @return image width
+     */
+    public short getMaxWidth() {
+        return maxWidth;
+    }
+
+    /**
+     * Get the largest code point represented by this font file
+     *
+     * @return largest code point
+     */
+    public int getMaxCodePoint() {
+        return maxCodePoint;
+    }
+
+    /**
+     * Not all entries contain a font image
+     *
+     * @return the number of entries with font image
+     */
+    public int getGlyphCount() {
+        return glyphCount;
     }
 
     /**

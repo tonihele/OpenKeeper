@@ -25,7 +25,7 @@ import toniarts.openkeeper.tools.convert.IFlagEnum;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Bf4Entry {
+public class Bf4Entry implements Comparable<Bf4Entry> {
 
     /**
      * Describes the encoding methods used in the font image
@@ -175,5 +175,10 @@ public class Bf4Entry {
     @Override
     public String toString() {
         return character.toString();
+    }
+
+    @Override
+    public int compareTo(Bf4Entry o) {
+        return Integer.compare(character, character);
     }
 }
