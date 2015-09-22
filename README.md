@@ -14,7 +14,7 @@ https://www.youtube.com/user/Kaljis83/videos
 Contact
 ========
 
-We have a super secret lair at IRC channel #OpenKeeper on Freenode. Feel free to idle there.
+We have a super secret lair at [IRC channel #OpenKeeper on Freenode](https://webchat.freenode.net/?channels=OpenKeeper). Feel free to idle there.
 
 Contributing
 =============
