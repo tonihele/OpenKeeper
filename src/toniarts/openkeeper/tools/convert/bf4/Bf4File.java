@@ -51,6 +51,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
     private short maxHeight;
     private int maxCodePoint = 0;
     private int glyphCount = 0;
+    private int avgWidth = 0;
     private static final int BITS_PER_PIXEL = 4;
     private static final IndexColorModel cm;
 
@@ -99,6 +100,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
 
             // Sort them
             Collections.sort(entries);
+            avgWidth = (int) Math.ceil((float) avgWidth / getGlyphCount());
         } catch (IOException e) {
 
             // Fug
@@ -139,6 +141,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
             maxWidth = (short) Math.max(maxWidth, entry.getWidth());
             maxHeight = (short) Math.max(maxHeight, entry.getHeight());
             maxCodePoint = Math.max(maxCodePoint, entry.getCharacter());
+            avgWidth += entry.getWidth();
             glyphCount++;
         }
         return entry;
@@ -236,6 +239,15 @@ public class Bf4File implements Iterable<Bf4Entry> {
         }
     }
 
+    /**
+     * Get average width of the image in pixels
+     *
+     * @return average image width
+     */
+    public int getAvgWidth() {
+        return avgWidth;
+    }
+
     @Override
     public Iterator<Bf4Entry> iterator() {
         return entries.iterator();
@@ -275,6 +287,15 @@ public class Bf4File implements Iterable<Bf4Entry> {
      */
     public int getGlyphCount() {
         return glyphCount;
+    }
+
+    /**
+     * Get the color model of the font file
+     *
+     * @return the color model
+     */
+    public static IndexColorModel getCm() {
+        return cm;
     }
 
     /**
