@@ -54,6 +54,7 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.HiScores;
+import toniarts.openkeeper.tools.convert.bf4.Bf4File;
 import toniarts.openkeeper.tools.convert.hiscores.HiScoresEntry;
 import toniarts.openkeeper.tools.convert.hiscores.HiScoresFile;
 import toniarts.openkeeper.tools.convert.kcs.KcsEntry;
@@ -89,7 +90,8 @@ public abstract class AssetsConverter {
         MUSIC_AND_SOUNDS(4, 1),
         INTERFACE_TEXTS(5, 1),
         PATHS(6, 3),
-        HI_SCORES(7, 1);
+        HI_SCORES(7, 1),
+        FONTS(8, 1);
 
         private ConvertProcess(int processNumber, int version) {
             this.processNumber = processNumber;
@@ -135,6 +137,7 @@ public abstract class AssetsConverter {
     public static final String TEXTURES_FOLDER = "Textures";
     public static final String MODELS_FOLDER = "Models";
     public static final String MOUSE_CURSORS_FOLDER = "Interface".concat(File.separator).concat("Cursors");
+    public static final String FONTS_FOLDER = "Interface".concat(File.separator).concat("Fonts");
     public static final String SOUNDS_FOLDER = "Sounds";
     public static final String MATERIALS_FOLDER = "Materials";
     public static final String TEXTS_FOLDER = "Interface".concat(File.separator).concat("Texts");
@@ -215,6 +218,9 @@ public abstract class AssetsConverter {
 
         //HiScores
         convertHiScores(dungeonKeeperFolder);
+
+        //The fonts
+        convertFonts(dungeonKeeperFolder, currentFolder.concat(FONTS_FOLDER).concat(File.separator));
 
         // Log the time taken
         long duration = System.currentTimeMillis() - start;
@@ -712,6 +718,89 @@ public abstract class AssetsConverter {
             logger.log(Level.WARNING, "Can not convert HiScores!", ex);
 
             // By no means fatal :D
+        }
+    }
+
+    /**
+     * Extract and convert DK II font files (BF4)
+     *
+     * @param dungeonKeeperFolder DK II main folder
+     * @param destination Destination folder
+     */
+    private void convertFonts(String dungeonKeeperFolder, String destination) {
+        if (!ConvertProcess.FONTS.isOutdated()) {
+            return;
+        }
+        logger.log(Level.INFO, "Extracting fonts to: {0}", destination);
+        updateStatus(null, null, ConvertProcess.FONTS);
+
+        try {
+
+            // Find all the font files
+            final List<File> bf4Files = new ArrayList<>();
+            Files.walkFileTree(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Text").concat(File.separator).concat("Default").concat(File.separator)).toPath(), new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+
+                    //Get all the BF4 files
+                    if (attrs.isRegularFile() && file.getFileName().toString().toLowerCase().endsWith(".bf4")) {
+                        bf4Files.add(file.toFile());
+                    }
+
+                    //Always continue
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+
+            // Go through the font files
+            int i = 0;
+            int total = bf4Files.size();
+            Pattern pattern = Pattern.compile("FONT_(?<name>\\D+)(?<size>\\d+)", Pattern.CASE_INSENSITIVE);
+            for (File file : bf4Files) {
+                updateStatus(i, total, ConvertProcess.FONTS);
+
+                // The file names
+                final int fontSize;
+
+                final String imageFileName;
+                final String descriptionFileName;
+                Matcher matcher = pattern.matcher(file.getName());
+                boolean found = matcher.find();
+                if (!found) {
+                    logger.log(Level.SEVERE, "Font name {0} not recognized!", file.getName());
+                    throw new RuntimeException("Unknown font name!");
+                } else {
+                    fontSize = Integer.parseInt(matcher.group("size"));
+                    String baseFileName = matcher.group("name");
+                    baseFileName = destination.concat(Character.toUpperCase(baseFileName.charAt(0)) + baseFileName.substring(1).toLowerCase() + fontSize);
+                    imageFileName = baseFileName.concat(".png");
+                    descriptionFileName = baseFileName.concat(".fnt");
+                }
+
+                // Convert & save the font file
+                FontCreator fc = new FontCreator(new Bf4File(file)) {
+                    @Override
+                    protected int getFontSize() {
+                        return fontSize;
+                    }
+
+                    @Override
+                    protected String getFileName() {
+                        return imageFileName;
+                    }
+                };
+                ImageIO.write(fc.getFontImage(), "png", new File(imageFileName));
+                try (OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(descriptionFileName))) {
+                    out.write(fc.getDescription());
+                }
+
+                i++;
+            }
+
+        } catch (Exception ex) {
+            String msg = "Failed to save the font file to " + destination + "!";
+            logger.log(Level.SEVERE, msg, ex);
+            throw new RuntimeException(msg, ex);
         }
     }
 
