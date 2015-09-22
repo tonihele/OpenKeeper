@@ -727,7 +727,7 @@ public abstract class AssetsConverter {
      * @param dungeonKeeperFolder DK II main folder
      * @param destination Destination folder
      */
-    private void convertFonts(String dungeonKeeperFolder, String destination) {
+    private void convertFonts(final String dungeonKeeperFolder, final String destination) {
         if (!ConvertProcess.FONTS.isOutdated()) {
             return;
         }
@@ -786,7 +786,7 @@ public abstract class AssetsConverter {
 
                     @Override
                     protected String getFileName() {
-                        return imageFileName;
+                        return imageFileName.substring(destination.length());
                     }
                 };
                 ImageIO.write(fc.getFontImage(), "png", new File(imageFileName));
