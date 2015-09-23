@@ -122,17 +122,17 @@ public abstract class FontCreator {
 
     private BufferedImage getFontImage(Bf4File fontFile) {
 
-        // If you want, you can solve this by some "Packing Problem" algorithm
         // Try to create a nice square (power of two is really waste of space...)
-        int a = (int) FastMath.ceil(FastMath.sqrt(fontFile.getGlyphCount()));
-        int maxDim = Math.max(fontFile.getMaxHeight(), fontFile.getAvgWidth()) * a;
-        maxDim = (int) (maxDim * 0.7); // This scaling is just figured out by trials, works for our case
-        if (maxDim % 2 != 0) {
-            maxDim++;
+        int area = fontFile.getMaxHeight() * fontFile.getAvgWidth() * fontFile.getGlyphCount(); // This is how many square pixels we need, approximate
+        int side = (int) FastMath.ceil(FastMath.sqrt(area)) + 10; // The plus is just a bit padding to make sure everything fits
+
+        // Divisible by two
+        if (side % 2 != 0) {
+            side++;
         }
 
         // Create the image
-        return new BufferedImage(maxDim, maxDim, BufferedImage.TYPE_BYTE_BINARY, Bf4File.getCm());
+        return new BufferedImage(side, side, BufferedImage.TYPE_BYTE_BINARY, Bf4File.getCm());
     }
 
     /**
