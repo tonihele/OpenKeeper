@@ -299,6 +299,13 @@ public class Bf4File implements Iterable<Bf4Entry> {
     }
 
     /**
+     * Get the char count
+     */
+    public int getCount() {
+        return entries.size();
+    }
+
+    /**
      * Small class to write in 4-bits
      */
     private class FourBitWriter {
