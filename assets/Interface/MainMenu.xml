@@ -14,24 +14,24 @@
     <registerSound id="menuClick" filename="Sounds/Global/FE BUTTON BIG 5.mp2" />
 
     <style id="menuTextSmall">
-        <attributes font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb" />
+        <attributes font="Interface/Fonts/Frontend20.fnt" color="#bbbcbb" />
     </style>
     <style id="menuText">
-        <attributes font="Interface/Fonts/DungeonKeeperIIBig.fnt" color="#bbbcbb" />
+        <attributes font="Interface/Fonts/Frontend28.fnt" color="#bbbcbb" />
         <effect>
             <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
             <onClick neverStopRendering="true" name="playSound" sound="menuClick"/>
         </effect>
     </style>
     <style id="menuTitleText">
-        <attributes font="Interface/Fonts/DungeonKeeperIIBig.fnt" color="#ff5f00" />
+        <attributes font="Interface/Fonts/Frontend28.fnt" color="#ff5f00" />
     </style>
 
     <style id="nifty-hiscore-head#text">
-        <attributes font="Interface/Fonts/DungeonKeeperII.fnt" color="#ff5f00" />
+        <attributes font="Interface/Fonts/Frontend20.fnt" color="#ff5f00" />
     </style>
     <style id="nifty-hiscore-row#text">
-        <attributes font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb" />
+        <attributes font="Interface/Fonts/Frontend20.fnt" color="#bbbcbb" />
     </style>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->

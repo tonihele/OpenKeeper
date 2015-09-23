@@ -6,10 +6,10 @@
 
     <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
     <style id="textSmall">
-        <attributes font="Interface/Fonts/DungeonKeeperII.fnt" color="#bbbcbb" />
+        <attributes font="Interface/Fonts/Ingame16.fnt" color="#bbbcbb" />
     </style>
     <style id="textNormal">
-        <attributes font="Interface/Fonts/DungeonKeeperIIBig.fnt" color="#bbbcbb" />
+        <attributes font="Interface/Fonts/Ingame28.fnt" color="#bbbcbb" />
     </style>
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- HUD -->
