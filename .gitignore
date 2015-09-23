@@ -2,6 +2,7 @@
 /build/
 /assets/Interface/Texts/*.properties
 /assets/Interface/Paths/*.txt
+/assets/Interface/Fonts/
 # property file which holds the configuration
 openkeeper.properties
 *.png
@@ -17,7 +18,6 @@ openkeeper.properties
 *.psd
 *.dat
 # include custom made assets
-!/assets/Interface/Fonts/*.png
 !/assets/Materials/ModelViewer/*.j3m
 !/assets/Textures/ModelViewer/*.png
 !/assets/Textures/ModelViewer/*.jpg
