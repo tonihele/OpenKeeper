@@ -736,6 +736,9 @@ public abstract class AssetsConverter {
 
         try {
 
+            // Make sure the folder exists
+            new File(destination).mkdirs();
+
             // Find all the font files
             final List<File> bf4Files = new ArrayList<>();
             Files.walkFileTree(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Text").concat(File.separator).concat("Default").concat(File.separator)).toPath(), new SimpleFileVisitor<Path>() {
