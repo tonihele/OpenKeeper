@@ -19,6 +19,8 @@ package toniarts.openkeeper.tools.convert;
 import com.jme3.math.FastMath;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.util.HashSet;
+import java.util.Set;
 import toniarts.openkeeper.tools.convert.bf4.Bf4Entry;
 import toniarts.openkeeper.tools.convert.bf4.Bf4File;
 
@@ -35,6 +37,7 @@ public abstract class FontCreator {
 
     private final String description;
     private final BufferedImage fontImage;
+    private final Set<Integer> insertedChars;
 
     public FontCreator(Bf4File fontFile) {
 
@@ -80,15 +83,19 @@ public abstract class FontCreator {
         Graphics2D g = (Graphics2D) fontImage.getGraphics();
         int x = 0;
         int y = 0;
+        insertedChars = new HashSet<>(fontFile.getCount());
         for (Bf4Entry entry : fontFile) {
-            if (entry.getImage() != null) {
+            if (!insertedChars.contains((int) entry.getCharacter())) {
+                insertedChars.add((int) entry.getCharacter());
+                if (entry.getImage() != null) {
 
-                // See if we still fit & draw
-                if (x + entry.getWidth() > fontImage.getWidth()) {
-                    x = 0;
-                    y += fontFile.getMaxHeight();
+                    // See if we still fit & draw
+                    if (x + entry.getWidth() > fontImage.getWidth()) {
+                        x = 0;
+                        y += fontFile.getMaxHeight();
+                    }
+                    g.drawImage(entry.getImage(), x, y, null);
                 }
-                g.drawImage(entry.getImage(), x, y, null);
 
                 // Update description
                 sb.append("char id=");
@@ -110,8 +117,11 @@ public abstract class FontCreator {
                 sb.append("    page=0");
                 sb.append("    chnl=0\n");
 
-                // Update the x pos
-                x += entry.getWidth();
+                if (entry.getImage() != null) {
+
+                    // Update the x pos
+                    x += entry.getWidth();
+                }
             }
         }
         g.dispose();
