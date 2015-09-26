@@ -39,8 +39,8 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 
 /**
  * This class creates thumbnails from KWD map files. Static helper class. The
- * images are created with quite simple indexed palette. So they are not
- * suitable for super sampling etc.<br>
+ * images can be acquired in variety of high quality sizes. Always super sampled
+ * to fit your individual needs!<br>
  * Issue: https://github.com/tonihele/OpenKeeper/issues/70
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
