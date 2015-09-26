@@ -16,7 +16,10 @@
  */
 package toniarts.openkeeper.world;
 
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import static java.awt.image.BufferedImage.TYPE_INT_RGB;
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
 import java.awt.image.IndexColorModel;
@@ -59,12 +62,17 @@ public class MapThumbnailGenerator {
     }
 
     /**
-     * Get the map thumbnail, the map thumbnail is the size of the map itself
+     * Get the map thumbnail, the map thumbnail is the size of the map itself.
+     * Tries to create the image in manner that maximizes the space usage in
+     * your given dimensions.
      *
      * @param kwd the map to thumbnail
+     * @param width wanted image width, can be null
+     * @param height wanted image height, can be null
+     * @param preserveAspectRatio whether to preserve the map aspect ratio
      * @return the map thumbnail image
      */
-    public static BufferedImage generateMap(KwdFile kwd) {
+    public static BufferedImage generateMap(final KwdFile kwd, final Integer width, final Integer height, final boolean preserveAspectRatio) {
 
         // Get the palette if not gotten already
         if (cm == null) {
@@ -78,19 +86,66 @@ public class MapThumbnailGenerator {
         // Ensure that the kwd is fully loaded
         kwd.load();
 
+        // Determine wanted width/height
+        int imageWidth = kwd.getWidth();
+        int imageHeight = kwd.getHeight();
+        int drawWidth = kwd.getWidth();
+        int drawHeight = kwd.getHeight();
+        if (width != null || height != null) {
+            imageWidth = (width != null ? width : imageWidth);
+            imageHeight = (height != null ? height : imageHeight);
+
+            // Aspect ratio
+            if (preserveAspectRatio) {
+                if (width != null && height == null) {
+
+                    // Go by width
+                    imageHeight = imageWidth * kwd.getHeight() / kwd.getWidth();
+                } else if (height != null && width == null) {
+
+                    // Go by height
+                    imageWidth = imageHeight * kwd.getWidth() / kwd.getHeight();
+                } else {
+
+                    // Max out the image
+                    int byWidthArea = (imageWidth * kwd.getHeight() / kwd.getWidth()) * imageWidth;
+                    int byHeightArea = (imageHeight * kwd.getWidth() / kwd.getHeight()) * imageHeight;
+                    if (byWidthArea > byHeightArea) {
+                        imageHeight = imageWidth * kwd.getHeight() / kwd.getWidth();
+                    } else {
+                        imageWidth = imageHeight * kwd.getWidth() / kwd.getHeight();
+                    }
+                }
+            }
+
+            // We need to draw the map in even steven pixel scale so...
+            drawWidth = kwd.getWidth() * (int) Math.ceil((float) imageWidth / kwd.getWidth());
+            drawHeight = kwd.getHeight() * (int) Math.ceil((float) imageHeight / kwd.getHeight());
+        }
+
         // Format the data models
         int[] bandOffsets = new int[1];
         PixelInterleavedSampleModel sampleModel = new PixelInterleavedSampleModel(DataBuffer.TYPE_BYTE,
-                kwd.getWidth(), kwd.getHeight(),
+                drawWidth, drawHeight,
                 1,
-                kwd.getWidth(),
+                drawWidth,
                 bandOffsets);
         WritableRaster raster = Raster.createWritableRaster(sampleModel, null);
         BufferedImage bi = new BufferedImage(cm, raster, false, null);
         byte[] data = (byte[]) ((DataBufferByte) raster.getDataBuffer()).getData();
 
         // Draw the map itself
-        drawMap(kwd, data);
+        drawMap(kwd, data, drawWidth / kwd.getWidth(), drawHeight / kwd.getHeight());
+
+        // See if we should super sample
+        if (drawWidth != imageWidth || drawHeight != imageHeight) {
+            BufferedImage newImage = new BufferedImage(imageWidth, imageHeight, TYPE_INT_RGB);
+            Graphics2D g = newImage.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g.drawImage(bi, 0, 0, newImage.getWidth(), newImage.getHeight(), 0, 0, bi.getWidth(), bi.getHeight(), null);
+            g.dispose();
+            return newImage;
+        }
 
         return bi;
     }
@@ -123,7 +178,7 @@ public class MapThumbnailGenerator {
         }
     }
 
-    private static void drawMap(KwdFile kwd, byte[] data) {
+    private static void drawMap(final KwdFile kwd, byte[] data, int xScale, int yScale) {
 
         // For now this is very much hard coded, I couldn't find much logic
         for (int y = 0; y < kwd.getHeight(); y++) {
@@ -136,9 +191,9 @@ public class MapThumbnailGenerator {
                 if (x == 0 || y == 0 || y == kwd.getHeight() - 1 || x == kwd.getWidth() - 1) {
                     value = 46; // Edge of maps
                 } else if (kwd.getLava().getTerrainId() == tile.getTerrainId()) {
-                    value = 10;
+                    value = 10; // Lava
                 } else if (kwd.getWater().getTerrainId() == tile.getTerrainId()) {
-                    value = 8;
+                    value = 8; // Water
                 } // Other non-ownable tiles
                 else if (terrainTile.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
                     if (terrainTile.getGoldValue() > 0) {
@@ -167,7 +222,7 @@ public class MapThumbnailGenerator {
                 } else if (terrainTile.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
                     value = (byte) (15 + tile.getPlayerId()); // Wall + owned color
                 } else if (terrainTile.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-                    value = (byte) (25 + tile.getPlayerId()); // Wall + owned color
+                    value = (byte) (25 + tile.getPlayerId()); // Path + owned color
                 } else {
 
                     // Wat
@@ -175,7 +230,12 @@ public class MapThumbnailGenerator {
                 }
 
                 // Write the value
-                data[y * kwd.getWidth() + x] = value;
+                for (int yScaling = 0; yScaling < yScale; yScaling++) {
+                    for (int xScaling = 0; xScaling < xScale; xScaling++) {
+                        data[(y * yScale + yScaling) * kwd.getWidth() * xScale + (x * xScale + xScaling)] = value;
+                    }
+                }
+
             }
         }
     }
