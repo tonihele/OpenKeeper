@@ -52,11 +52,6 @@ public class MapThumbnailGenerator {
     private static volatile IndexColorModel cm;
     private static final Logger logger = Logger.getLogger(MapThumbnailGenerator.class.getName());
 
-    private static boolean isRoom(Terrain tile) {
-        ArtResource ceilingResource = MapLoader.getCeilingResource(tile);
-        return (ceilingResource == null && tile.getCompleteResource() == null);
-    }
-
     private MapThumbnailGenerator() {
         // Nope
     }
@@ -238,5 +233,10 @@ public class MapThumbnailGenerator {
 
             }
         }
+    }
+
+    private static boolean isRoom(Terrain tile) {
+        ArtResource ceilingResource = MapLoader.getCeilingResource(tile);
+        return (ceilingResource == null && tile.getCompleteResource() == null);
     }
 }
