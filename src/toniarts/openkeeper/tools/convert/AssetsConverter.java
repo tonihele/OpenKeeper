@@ -52,7 +52,6 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
@@ -843,7 +842,7 @@ public abstract class AssetsConverter {
             // Read them
             List<KwdFile> maps = new ArrayList<>(files.length);
             for (File file : files) {
-                KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
+                KwdFile kwd = new KwdFile(dungeonKeeperFolder, file, false);
                 if (kwd.getLvlFlags().contains(KwdFile.LevFlag.IS_SKIRMISH_LEVEL) || kwd.getLvlFlags().contains(KwdFile.LevFlag.IS_MULTIPLAYER_LEVEL)) {
                     maps.add(kwd);
                 }
