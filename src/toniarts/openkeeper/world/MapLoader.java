@@ -165,7 +165,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
     }
 
-    private ArtResource getCeilingResource(Terrain terrain) {
+    protected static ArtResource getCeilingResource(Terrain terrain) {
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
                 return terrain.getCompleteResource(); // Claimed top
