@@ -20,6 +20,7 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.TextureKey;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
 import com.jme3.cinematic.events.CinematicEvent;
@@ -89,6 +90,8 @@ import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import static toniarts.openkeeper.tools.convert.AssetsConverter.MAP_THUMBNAILS_FOLDER;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.video.MovieState;
@@ -908,9 +911,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             NiftyUtils.resetContraints(label);
 
             // Map image
-            // TODO: static generator to MapLoader etc. place, I don't really want to use the BMPs
             Element mapImage = screen.findElementByName("mapImage");
-            NiftyImage img = nifty.createImage("Textures/Unique_NoTextureName.png", false);
+            NiftyImage img = getMapThumbnail(selectedSkirmishMap);
             mapImage.getRenderer(ImageRenderer.class).setImage(img);
             mapImage.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
             mapImage.setConstraintHeight(new SizeValue(img.getHeight() + "px"));
@@ -1027,7 +1029,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             // Map image
             // TODO: static generator to MapLoader etc. place, I don't really want to use the BMPs
             Element mapImage = screen.findElementByName("mapImage");
-            NiftyImage img = nifty.createImage("Textures/Unique_NoTextureName.png", false);
+            NiftyImage img = getMapThumbnail(selectedMap);
             mapImage.getRenderer(ImageRenderer.class).setImage(img);
             mapImage.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
             mapImage.setConstraintHeight(new SizeValue(img.getHeight() + "px"));
@@ -1061,6 +1063,23 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             i++;
         }
         listBox.selectItemByIndex(selected);
+    }
+
+    private NiftyImage getMapThumbnail(KwdFile map) {
+
+        // See if the map thumbnail exist, otherwise create one
+        String asset = "Textures/Thumbnails/".concat(ConversionUtils.stripFileName(map.getName())).concat(".png");
+        if (assetManager.locateAsset(new TextureKey(asset)) == null) {
+
+            // Generate
+            try {
+                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getCurrentFolder().concat(MAP_THUMBNAILS_FOLDER).concat(File.separator));
+            } catch (Exception e) {
+                logger.log(java.util.logging.Level.WARNING, "Failed to generate map file out of {0}!", kwdFile);
+                asset = "Textures/Unique_NoTextureName.png";
+            }
+        }
+        return nifty.createImage(asset, true);
     }
 
     private class MyDisplayMode implements Comparable<MyDisplayMode> {

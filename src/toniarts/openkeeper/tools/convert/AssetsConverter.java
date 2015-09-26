@@ -25,8 +25,10 @@ import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.system.AppSettings;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -60,11 +62,13 @@ import toniarts.openkeeper.tools.convert.hiscores.HiScoresFile;
 import toniarts.openkeeper.tools.convert.kcs.KcsEntry;
 import toniarts.openkeeper.tools.convert.kcs.KcsFile;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.tools.convert.str.StrFile;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.textures.loadingscreens.LoadingScreenFile;
 import toniarts.openkeeper.tools.convert.wad.WadFile;
+import toniarts.openkeeper.world.MapThumbnailGenerator;
 
 /**
  *
@@ -91,7 +95,8 @@ public abstract class AssetsConverter {
         INTERFACE_TEXTS(5, 1),
         PATHS(6, 3),
         HI_SCORES(7, 1),
-        FONTS(8, 1);
+        FONTS(8, 1),
+        MAP_THUMBNAILS(9, 1);
 
         private ConvertProcess(int processNumber, int version) {
             this.processNumber = processNumber;
@@ -142,6 +147,7 @@ public abstract class AssetsConverter {
     public static final String MATERIALS_FOLDER = "Materials";
     public static final String TEXTS_FOLDER = "Interface".concat(File.separator).concat("Texts");
     public static final String PATHS_FOLDER = "Interface".concat(File.separator).concat("Paths");
+    public static final String MAP_THUMBNAILS_FOLDER = TEXTURES_FOLDER.concat(File.separator).concat("Thumbnails");
     public static final String MAPS_FOLDER = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator);
     private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
@@ -221,6 +227,9 @@ public abstract class AssetsConverter {
 
         //The fonts
         convertFonts(dungeonKeeperFolder, currentFolder.concat(FONTS_FOLDER).concat(File.separator));
+
+        //The map thumbnails
+        generateMapThumbnails(dungeonKeeperFolder, currentFolder.concat(MAP_THUMBNAILS_FOLDER).concat(File.separator));
 
         // Log the time taken
         long duration = System.currentTimeMillis() - start;
@@ -805,6 +814,66 @@ public abstract class AssetsConverter {
             logger.log(Level.SEVERE, msg, ex);
             throw new RuntimeException(msg, ex);
         }
+    }
+
+    /**
+     * Generates thumbnails out of map files (only the skirmish/mp)
+     *
+     * @param dungeonKeeperFolder DK II main folder
+     * @param destination Destination folder
+     */
+    private void generateMapThumbnails(String dungeonKeeperFolder, String destination) {
+        if (!ConvertProcess.MAP_THUMBNAILS.isOutdated()) {
+            return;
+        }
+        logger.log(Level.INFO, "Generating map thumbnails to: {0}", destination);
+        updateStatus(null, null, ConvertProcess.MAP_THUMBNAILS);
+        try {
+
+            // Get the skirmish/mp maps
+            File f = new File(dungeonKeeperFolder.concat(AssetsConverter.MAPS_FOLDER));
+            File[] files = f.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.toLowerCase().endsWith(".kwd");
+                }
+            });
+
+            // Read them
+            List<KwdFile> maps = new ArrayList<>(files.length);
+            for (File file : files) {
+                KwdFile kwd = new KwdFile(dungeonKeeperFolder, file, false);
+                if (kwd.getLvlFlags().contains(KwdFile.LevFlag.IS_SKIRMISH_LEVEL) || kwd.getLvlFlags().contains(KwdFile.LevFlag.IS_MULTIPLAYER_LEVEL)) {
+                    maps.add(kwd);
+                }
+            }
+
+            // Go through the map files
+            int i = 0;
+            int total = maps.size();
+            for (KwdFile kwd : maps) {
+                updateStatus(i, total, ConvertProcess.MAP_THUMBNAILS);
+                genererateMapThumbnail(kwd, destination);
+                i++;
+            }
+        } catch (Exception ex) {
+            String msg = "Failed to process the map thumbnails to " + destination + "!";
+            logger.log(Level.WARNING, msg, ex); // Not fatal
+        }
+    }
+
+    /**
+     * Generates a map thumbnail out of the given map file
+     *
+     * @param kwd map file
+     * @param destination the folder to save to
+     * @throws IOException may fail
+     */
+    public static void genererateMapThumbnail(KwdFile kwd, String destination) throws IOException {
+
+        // Create the thumbnail & save it
+        BufferedImage thumbnail = MapThumbnailGenerator.generateMap(kwd, 144, 144, false);
+        ImageIO.write(thumbnail, "png", new File(destination.concat(ConversionUtils.stripFileName(kwd.getName())).concat(".png")));
     }
 
     /**
