@@ -1073,7 +1073,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
             // Generate
             try {
-                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getCurrentFolder().concat(MAP_THUMBNAILS_FOLDER).concat(File.separator));
+                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder().concat(MAP_THUMBNAILS_FOLDER).concat(File.separator));
             } catch (Exception e) {
                 logger.log(java.util.logging.Level.WARNING, "Failed to generate map file out of {0}!", kwdFile);
                 asset = "Textures/Unique_NoTextureName.png";
