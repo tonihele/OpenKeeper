@@ -856,7 +856,7 @@ public abstract class AssetsConverter {
                 updateStatus(i, total, ConvertProcess.MAP_THUMBNAILS);
 
                 // Create the thumbnail & save it
-                BufferedImage thumbnail = MapThumbnailGenerator.generateMap(kwd);
+                BufferedImage thumbnail = MapThumbnailGenerator.generateMap(kwd, 144, 144, false);
                 ImageIO.write(thumbnail, "png", new File(destination.concat(ConversionUtils.stripFileName(kwd.getName())).concat(".png")));
                 i++;
             }
