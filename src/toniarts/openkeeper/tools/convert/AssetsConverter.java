@@ -832,7 +832,7 @@ public abstract class AssetsConverter {
         try {
 
             // Get the skirmish/mp maps
-            File f = new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER));
+            File f = new File(dungeonKeeperFolder.concat(AssetsConverter.MAPS_FOLDER));
             File[] files = f.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
@@ -854,16 +854,27 @@ public abstract class AssetsConverter {
             int total = maps.size();
             for (KwdFile kwd : maps) {
                 updateStatus(i, total, ConvertProcess.MAP_THUMBNAILS);
-
-                // Create the thumbnail & save it
-                BufferedImage thumbnail = MapThumbnailGenerator.generateMap(kwd, 144, 144, false);
-                ImageIO.write(thumbnail, "png", new File(destination.concat(ConversionUtils.stripFileName(kwd.getName())).concat(".png")));
+                genererateMapThumbnail(kwd, destination);
                 i++;
             }
         } catch (Exception ex) {
             String msg = "Failed to process the map thumbnails to " + destination + "!";
             logger.log(Level.WARNING, msg, ex); // Not fatal
         }
+    }
+
+    /**
+     * Generates a map thumbnail out of the given map file
+     *
+     * @param kwd map file
+     * @param destination the folder to save to
+     * @throws IOException may fail
+     */
+    public static void genererateMapThumbnail(KwdFile kwd, String destination) throws IOException {
+
+        // Create the thumbnail & save it
+        BufferedImage thumbnail = MapThumbnailGenerator.generateMap(kwd, 144, 144, false);
+        ImageIO.write(thumbnail, "png", new File(destination.concat(ConversionUtils.stripFileName(kwd.getName())).concat(".png")));
     }
 
     /**
