@@ -19,7 +19,9 @@ package toniarts.openkeeper.world;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+
 import static java.awt.image.BufferedImage.TYPE_INT_RGB;
+
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
 import java.awt.image.IndexColorModel;
@@ -29,13 +31,16 @@ import java.awt.image.WritableRaster;
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.imageio.ImageIO;
+
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Map;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Tile;
 
 /**
  * This class creates thumbnails from KWD map files. Static helper class. The
@@ -178,7 +183,7 @@ public class MapThumbnailGenerator {
         // For now this is very much hard coded, I couldn't find much logic
         for (int y = 0; y < kwd.getHeight(); y++) {
             for (int x = 0; x < kwd.getWidth(); x++) {
-                Map tile = kwd.getTile(x, y);
+                Tile tile = kwd.getTile(x, y);
                 byte value = 0;
 
                 // Water and lava

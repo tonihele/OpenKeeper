@@ -325,9 +325,7 @@ public final class KwdFile {
     private java.util.Map<MapDataTypeEnum, FilePath> paths;
     private int unknown[];
     //
-    private Map[][] tiles;
-    private int width;
-    private int height;
+    private Map map;
     private java.util.Map<Short, Player> players;
     private java.util.Map<Short, Terrain> terrainTiles;
     private java.util.Map<Short, Door> doors;
@@ -411,8 +409,8 @@ public final class KwdFile {
             FilePath path = paths.get(MapDataTypeEnum.MAP);
             try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, path.getPath()), "r")) {
                 KwdHeader header = readKwdHeader(data);
-                width = header.getWidth();
-                height = header.getHeight();
+                map.setWidth(header.getWidth());
+                map.setHeight(header.getHeight());
             } catch (Exception e) {
 
                 //Fug
@@ -633,7 +631,7 @@ public final class KwdFile {
      * @return map width
      */
     public int getWidth() {
-        return width;
+        return map.getWidth();
     }
 
     /**
@@ -642,7 +640,7 @@ public final class KwdFile {
      * @return map height
      */
     public int getHeight() {
-        return height;
+        return map.getHeight();
     }
 
     /**
@@ -656,17 +654,14 @@ public final class KwdFile {
 
         // Read the requested MAP file
         logger.info("Reading map!");
-        width = header.getWidth();
-        height = header.getHeight();
-        tiles = new Map[width][height];
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                Map map = new Map();
-                map.setTerrainId((short) file.readUnsignedByte());
-                map.setPlayerId((short) file.readUnsignedByte());
-                map.setFlag(ConversionUtils.parseEnum(file.readUnsignedByte(), Map.BridgeTerrainType.class));
-                map.setUnknown((short) file.readUnsignedByte());
-                tiles[x][y] = map;
+        if (map == null) {
+            map = new Map(header.getWidth(), header.getHeight());
+        }
+        for (int x = 0; x < map.getWidth(); x++) {
+            for (int y = 0; y < map.getHeight(); y++) {
+                Tile tile = new Tile(file);
+                
+                map.setTile(x, y, tile);
             }
         }
     }
@@ -2533,8 +2528,8 @@ public final class KwdFile {
      *
      * @return the map tiles
      */
-    public Map[][] getTiles() {
-        return tiles;
+    public Tile[][] getTiles() {
+        return map.getTiles();
     }
 
     /**
@@ -2544,8 +2539,8 @@ public final class KwdFile {
      * @param y the y
      * @return the tile in given coordinate
      */
-    public Map getTile(int x, int y) {
-        return tiles[x][y];
+    public Tile getTile(int x, int y) {
+    	 return map.getTile(x, y);
     }
 
     /**

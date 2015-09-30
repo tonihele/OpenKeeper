@@ -103,6 +103,10 @@ public class GameState extends AbstractAppState {
                             setProgress(0.25f + ((float) progress / max * 0.75f));
                         }
                     }.load(assetManager, kwdFile));
+                    
+                    //FIXME: add Thingloader
+                    
+                    
                     setProgress(1.0f);
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Failed to load the game!", e);
