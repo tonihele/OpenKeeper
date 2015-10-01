@@ -2476,14 +2476,68 @@ public final class KwdFile {
         if (variables == null) {
             variables = new ArrayList<>(header.getItemCount());
         }
+
         for (int i = 0; i < header.getItemCount(); i++) {
-            Variable variable = new Variable();
             int id = ConversionUtils.readInteger(file);
-            logger.log(Level.INFO, "Id = {0}", id);
-            variable.setX00(id);
-            variable.setValue(ConversionUtils.readInteger(file));
-            variable.setX08(ConversionUtils.readInteger(file));
-            variable.setX0c(ConversionUtils.readInteger(file));
+            Variable variable;
+
+            switch (id) {
+                case Variable.CREATURE_POOL:
+                    variable = new Variable.CreaturePool();
+                    ((Variable.CreaturePool) variable).setCreatureId(ConversionUtils.readInteger(file));
+                    ((Variable.CreaturePool) variable).setValue(ConversionUtils.readInteger(file));
+                    ((Variable.CreaturePool) variable).setPlayerId(ConversionUtils.readInteger(file));
+                    break;
+
+                case Variable.AVAILABILITY:
+                    variable = new Variable.Availability();
+                    ((Variable.Availability) variable).setType(ConversionUtils.parseEnum(ConversionUtils.readUnsignedShort(file), Variable.Availability.AvailabilityType.class));
+                    ((Variable.Availability) variable).setPlayerId(ConversionUtils.readUnsignedShort(file));
+                    ((Variable.Availability) variable).setTypeId(ConversionUtils.readInteger(file));
+                    ((Variable.Availability) variable).setValue(ConversionUtils.parseEnum(ConversionUtils.readInteger(file), Variable.Availability.AvailabilityValue.class));
+                    break;
+
+                case Variable.SACRIFICES_ID: // not changeable (in editor you can, but changes will not save)
+                    variable = new Variable.Sacrifice();
+                    ((Variable.Sacrifice) variable).setType1(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Variable.SacrificeType.class));
+                    ((Variable.Sacrifice) variable).setId1((short) file.readUnsignedByte());
+                    ((Variable.Sacrifice) variable).setType2(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Variable.SacrificeType.class));
+                    ((Variable.Sacrifice) variable).setId2((short) file.readUnsignedByte());
+                    ((Variable.Sacrifice) variable).setType3(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Variable.SacrificeType.class));
+                    ((Variable.Sacrifice) variable).setId3((short) file.readUnsignedByte());
+
+                    ((Variable.Sacrifice) variable).setRewardType(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Variable.SacrificeRewardType.class));
+                    ((Variable.Sacrifice) variable).setSpeechId((short) file.readUnsignedByte());
+                    ((Variable.Sacrifice) variable).setRewardValue(ConversionUtils.readInteger(file));
+                    break;
+
+                case Variable.CREATURE_STATS_ID:
+                    variable = new Variable.CreatureStats();
+                    ((Variable.CreatureStats) variable).setStatId(ConversionUtils.readInteger(file));
+                    ((Variable.CreatureStats) variable).setValue(ConversionUtils.readInteger(file));
+                    ((Variable.CreatureStats) variable).setLevel(ConversionUtils.readInteger(file));
+                    break;
+
+                case Variable.CREATURE_FIRST_PERSON_ID:
+                    variable = new Variable.CreatureFirstPerson();
+                    ((Variable.CreatureFirstPerson) variable).setStatId(ConversionUtils.readInteger(file));
+                    ((Variable.CreatureFirstPerson) variable).setValue(ConversionUtils.readInteger(file));
+                    ((Variable.CreatureFirstPerson) variable).setLevel(ConversionUtils.readInteger(file));
+                    break;
+
+                case 61:
+                case 62:
+                case 63:
+                case Variable.UNKNOWN_2:
+                case 66:
+                default:
+                    variable = new Variable.MiscVariable();
+                    ((Variable.MiscVariable) variable).setVariableId(id);
+                    ((Variable.MiscVariable) variable).setValue(ConversionUtils.readInteger(file));
+                    ((Variable.MiscVariable) variable).setUnknown1(ConversionUtils.readInteger(file));
+                    ((Variable.MiscVariable) variable).setUnknown2(ConversionUtils.readInteger(file));
+                    break;
+            }
 
             // Add to the list
             variables.add(variable);
