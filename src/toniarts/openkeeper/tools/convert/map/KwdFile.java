@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.logging.Level;
@@ -322,7 +321,7 @@ public final class KwdFile {
     //
     private Date timestamp1; // Seem to be the same these two timeStamps, maybe checks?
     private Date timestamp2;
-    private java.util.Map<MapDataTypeEnum, FilePath> paths;
+    private List<FilePath> paths;
     private int unknown[];
     //
     private Map[][] tiles;
@@ -349,6 +348,7 @@ public final class KwdFile {
     private boolean customOverrides = false;
     private boolean loaded = false;
     private final String basePath;
+    private FilePath mapPath;
     //
     private static final Logger logger = Logger.getLogger(KwdFile.class.getName());
     /**
@@ -408,15 +408,14 @@ public final class KwdFile {
         } else {
 
             // We need map width & height, I couldn't figure out where, except the map data
-            FilePath path = paths.get(MapDataTypeEnum.MAP);
-            try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, path.getPath()), "r")) {
+            try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, mapPath.getPath()), "r")) {
                 KwdHeader header = readKwdHeader(data);
                 width = header.getWidth();
                 height = header.getHeight();
             } catch (Exception e) {
 
                 //Fug
-                throw new RuntimeException("Failed to read the file " + path.getPath() + "!", e);
+                throw new RuntimeException("Failed to read the file " + mapPath.getPath() + "!", e);
             }
         }
     }
@@ -430,7 +429,7 @@ public final class KwdFile {
         if (!loaded) {
 
             // Now we have the paths, read all of those in order
-            for (FilePath path : paths.values()) {
+            for (FilePath path : paths) {
 
                 // Open the file
                 try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, path.getPath()), "r")) {
@@ -1351,7 +1350,7 @@ public final class KwdFile {
 
             // Paths and the unknown array
             rawMapInfo.skipBytes(8);
-            paths = new LinkedHashMap<>(pathCount);
+            paths = new ArrayList<>(pathCount);
             for (int x = 0; x < pathCount; x++) {
                 FilePath filePath = new FilePath();
                 filePath.setId(ConversionUtils.parseEnum(ConversionUtils.readUnsignedInteger(rawMapInfo), MapDataTypeEnum.class));
@@ -1372,11 +1371,13 @@ public final class KwdFile {
                 if (filePath.getId() == MapDataTypeEnum.GLOBALS) {
                     customOverrides = true;
                     logger.info("The map uses custom overrides!");
+                } else if (filePath.getId() == MapDataTypeEnum.MAP) {
+                    mapPath = filePath;
                 }
                 //
                 filePath.setPath(path);
 
-                paths.put(filePath.getId(), filePath);
+                paths.add(filePath);
             }
             unknown = new int[unknownCount];
             for (int x = 0; x < unknown.length; x++) {
