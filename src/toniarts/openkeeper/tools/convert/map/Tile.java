@@ -60,13 +60,6 @@ public final class Tile {
         
     }
     
-    public Tile(RandomAccessFile file) throws IOException {
-        this.setTerrainId((short) file.readUnsignedByte());
-        this.setPlayerId((short) file.readUnsignedByte());
-        this.setFlag(ConversionUtils.parseEnum(file.readUnsignedByte(), Tile.BridgeTerrainType.class));
-        this.setUnknown((short) file.readUnsignedByte());
-    }
-
     public short getTerrainId() {
         return terrainId;
     }

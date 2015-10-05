@@ -325,6 +325,8 @@ public final class KwdFile {
     private int unknown[];
     //
     private Map map;
+    private int width;
+    private int height;
     private java.util.Map<Short, Player> players;
     private java.util.Map<Short, Terrain> terrainTiles;
     private java.util.Map<Short, Door> doors;
@@ -408,8 +410,8 @@ public final class KwdFile {
             // We need map width & height, I couldn't figure out where, except the map data
             try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, mapPath.getPath()), "r")) {
                 KwdHeader header = readKwdHeader(data);
-                map.setWidth(header.getWidth());
-                map.setHeight(header.getHeight());
+                width = header.getWidth();
+                height = header.getHeight();
             } catch (Exception e) {
 
                 //Fug
@@ -630,7 +632,7 @@ public final class KwdFile {
      * @return map width
      */
     public int getWidth() {
-        return map.getWidth();
+        return width;
     }
 
     /**
@@ -639,7 +641,7 @@ public final class KwdFile {
      * @return map height
      */
     public int getHeight() {
-        return map.getHeight();
+        return height;
     }
 
     /**
@@ -653,13 +655,16 @@ public final class KwdFile {
 
         // Read the requested MAP file
         logger.info("Reading map!");
-        if (map == null) {
-            map = new Map(header.getWidth(), header.getHeight());
-        }
-        for (int x = 0; x < map.getWidth(); x++) {
-            for (int y = 0; y < map.getHeight(); y++) {
-                Tile tile = new Tile(file);
-                
+        width = header.getWidth();
+        height = header.getHeight();
+        map = new Map(width, height);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Tile tile = new Tile();
+                tile.setTerrainId((short) file.readUnsignedByte());
+                tile.setPlayerId((short) file.readUnsignedByte());
+                tile.setFlag(ConversionUtils.parseEnum(file.readUnsignedByte(), Tile.BridgeTerrainType.class));
+                tile.setUnknown((short) file.readUnsignedByte());
                 map.setTile(x, y, tile);
             }
         }
