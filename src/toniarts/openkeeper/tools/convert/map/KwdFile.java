@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.logging.Level;
@@ -322,7 +321,7 @@ public final class KwdFile {
     //
     private Date timestamp1; // Seem to be the same these two timeStamps, maybe checks?
     private Date timestamp2;
-    private java.util.Map<MapDataTypeEnum, FilePath> paths;
+    private List<FilePath> paths;
     private int unknown[];
     //
     private Map map;
@@ -347,6 +346,7 @@ public final class KwdFile {
     private boolean customOverrides = false;
     private boolean loaded = false;
     private final String basePath;
+    private FilePath mapPath;
     //
     private static final Logger logger = Logger.getLogger(KwdFile.class.getName());
     /**
@@ -406,15 +406,14 @@ public final class KwdFile {
         } else {
 
             // We need map width & height, I couldn't figure out where, except the map data
-            FilePath path = paths.get(MapDataTypeEnum.MAP);
-            try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, path.getPath()), "r")) {
+            try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, mapPath.getPath()), "r")) {
                 KwdHeader header = readKwdHeader(data);
                 map.setWidth(header.getWidth());
                 map.setHeight(header.getHeight());
             } catch (Exception e) {
 
                 //Fug
-                throw new RuntimeException("Failed to read the file " + path.getPath() + "!", e);
+                throw new RuntimeException("Failed to read the file " + mapPath.getPath() + "!", e);
             }
         }
     }
@@ -428,7 +427,7 @@ public final class KwdFile {
         if (!loaded) {
 
             // Now we have the paths, read all of those in order
-            for (FilePath path : paths.values()) {
+            for (FilePath path : paths) {
 
                 // Open the file
                 try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, path.getPath()), "r")) {
@@ -1346,7 +1345,7 @@ public final class KwdFile {
 
             // Paths and the unknown array
             rawMapInfo.skipBytes(8);
-            paths = new LinkedHashMap<>(pathCount);
+            paths = new ArrayList<>(pathCount);
             for (int x = 0; x < pathCount; x++) {
                 FilePath filePath = new FilePath();
                 filePath.setId(ConversionUtils.parseEnum(ConversionUtils.readUnsignedInteger(rawMapInfo), MapDataTypeEnum.class));
@@ -1367,11 +1366,13 @@ public final class KwdFile {
                 if (filePath.getId() == MapDataTypeEnum.GLOBALS) {
                     customOverrides = true;
                     logger.info("The map uses custom overrides!");
+                } else if (filePath.getId() == MapDataTypeEnum.MAP) {
+                    mapPath = filePath;
                 }
                 //
                 filePath.setPath(path);
 
-                paths.put(filePath.getId(), filePath);
+                paths.add(filePath);
             }
             unknown = new int[unknownCount];
             for (int x = 0; x < unknown.length; x++) {
@@ -2471,14 +2472,68 @@ public final class KwdFile {
         if (variables == null) {
             variables = new ArrayList<>(header.getItemCount());
         }
+
         for (int i = 0; i < header.getItemCount(); i++) {
-            Variable variable = new Variable();
             int id = ConversionUtils.readInteger(file);
-            logger.log(Level.INFO, "Id = {0}", id);
-            variable.setX00(id);
-            variable.setValue(ConversionUtils.readInteger(file));
-            variable.setX08(ConversionUtils.readInteger(file));
-            variable.setX0c(ConversionUtils.readInteger(file));
+            Variable variable;
+
+            switch (id) {
+                case Variable.CREATURE_POOL:
+                    variable = new Variable.CreaturePool();
+                    ((Variable.CreaturePool) variable).setCreatureId(ConversionUtils.readInteger(file));
+                    ((Variable.CreaturePool) variable).setValue(ConversionUtils.readInteger(file));
+                    ((Variable.CreaturePool) variable).setPlayerId(ConversionUtils.readInteger(file));
+                    break;
+
+                case Variable.AVAILABILITY:
+                    variable = new Variable.Availability();
+                    ((Variable.Availability) variable).setType(ConversionUtils.parseEnum(ConversionUtils.readUnsignedShort(file), Variable.Availability.AvailabilityType.class));
+                    ((Variable.Availability) variable).setPlayerId(ConversionUtils.readUnsignedShort(file));
+                    ((Variable.Availability) variable).setTypeId(ConversionUtils.readInteger(file));
+                    ((Variable.Availability) variable).setValue(ConversionUtils.parseEnum(ConversionUtils.readInteger(file), Variable.Availability.AvailabilityValue.class));
+                    break;
+
+                case Variable.SACRIFICES_ID: // not changeable (in editor you can, but changes will not save)
+                    variable = new Variable.Sacrifice();
+                    ((Variable.Sacrifice) variable).setType1(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Variable.SacrificeType.class));
+                    ((Variable.Sacrifice) variable).setId1((short) file.readUnsignedByte());
+                    ((Variable.Sacrifice) variable).setType2(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Variable.SacrificeType.class));
+                    ((Variable.Sacrifice) variable).setId2((short) file.readUnsignedByte());
+                    ((Variable.Sacrifice) variable).setType3(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Variable.SacrificeType.class));
+                    ((Variable.Sacrifice) variable).setId3((short) file.readUnsignedByte());
+
+                    ((Variable.Sacrifice) variable).setRewardType(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Variable.SacrificeRewardType.class));
+                    ((Variable.Sacrifice) variable).setSpeechId((short) file.readUnsignedByte());
+                    ((Variable.Sacrifice) variable).setRewardValue(ConversionUtils.readInteger(file));
+                    break;
+
+                case Variable.CREATURE_STATS_ID:
+                    variable = new Variable.CreatureStats();
+                    ((Variable.CreatureStats) variable).setStatId(ConversionUtils.readInteger(file));
+                    ((Variable.CreatureStats) variable).setValue(ConversionUtils.readInteger(file));
+                    ((Variable.CreatureStats) variable).setLevel(ConversionUtils.readInteger(file));
+                    break;
+
+                case Variable.CREATURE_FIRST_PERSON_ID:
+                    variable = new Variable.CreatureFirstPerson();
+                    ((Variable.CreatureFirstPerson) variable).setStatId(ConversionUtils.readInteger(file));
+                    ((Variable.CreatureFirstPerson) variable).setValue(ConversionUtils.readInteger(file));
+                    ((Variable.CreatureFirstPerson) variable).setLevel(ConversionUtils.readInteger(file));
+                    break;
+
+                case 61:
+                case 62:
+                case 63:
+                case Variable.UNKNOWN_2:
+                case 66:
+                default:
+                    variable = new Variable.MiscVariable();
+                    ((Variable.MiscVariable) variable).setVariableId(id);
+                    ((Variable.MiscVariable) variable).setValue(ConversionUtils.readInteger(file));
+                    ((Variable.MiscVariable) variable).setUnknown1(ConversionUtils.readInteger(file));
+                    ((Variable.MiscVariable) variable).setUnknown2(ConversionUtils.readInteger(file));
+                    break;
+            }
 
             // Add to the list
             variables.add(variable);
