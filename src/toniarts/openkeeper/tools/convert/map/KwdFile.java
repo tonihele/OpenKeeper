@@ -1428,11 +1428,47 @@ public final class KwdFile {
             byte[] bytes = new byte[32];
             file.read(bytes);
             creature.setName(ConversionUtils.bytesToString(bytes).trim());
-            ArtResource[] ref1 = new ArtResource[39];
-            for (int x = 0; x < ref1.length; x++) {
-                ref1[x] = readArtResource(file);
-            }
-            creature.setRef1(ref1);
+            // 39 ArtResources (with IMPs these are not 100% same)
+            creature.setUnknown1Resource(readArtResource(file));
+            creature.setAnimWalkResource(readArtResource(file));
+            creature.setAnimRunResource(readArtResource(file));
+            creature.setAnimDraggedPoseResource(readArtResource(file));
+            creature.setAnimRecoilHffResource(readArtResource(file));
+            creature.setAnimMelee1Resource(readArtResource(file));
+            creature.setAnimMagicResource(readArtResource(file));
+            creature.setAnimDieResource(readArtResource(file));
+            creature.setAnimHappyResource(readArtResource(file));
+            creature.setAnimAngryResource(readArtResource(file));
+            creature.setAnimStunnedPoseResource(readArtResource(file));
+            creature.setAnimSwingResource(readArtResource(file));
+            creature.setAnimSleepResource(readArtResource(file));
+            creature.setAnimEatResource(readArtResource(file));
+            creature.setAnimResearchResource(readArtResource(file));
+            creature.setUnknown2Resource(readArtResource(file));
+            creature.setAnimDejectedPoseResource(readArtResource(file));
+            creature.setAnimTortureResource(readArtResource(file));
+            creature.setUnknown3Resource(readArtResource(file));
+            creature.setAnimDrinkResource(readArtResource(file));
+            creature.setAnimIdle1Resource(readArtResource(file));
+            creature.setAnimRecoilHfbResource(readArtResource(file));
+            creature.setUnknown4Resource(readArtResource(file));
+            creature.setAnimPrayResource(readArtResource(file));
+            creature.setAnimFallbackResource(readArtResource(file));
+            creature.setAnimElecResource(readArtResource(file));
+            creature.setAnimElectrocuteResource(readArtResource(file));
+            creature.setAnimGetUpResource(readArtResource(file));
+            creature.setAnimDanceResource(readArtResource(file));
+            creature.setAnimDrunkResource(readArtResource(file));
+            creature.setAnimEntranceResource(readArtResource(file));
+            creature.setAnimIdle2Resource(readArtResource(file));
+            creature.setUnknown5Resource(readArtResource(file));
+            creature.setUnknown6Resource(readArtResource(file));
+            creature.setAnimDrunk2Resource(readArtResource(file));
+            creature.setUnknown7Resource(readArtResource(file));
+            creature.setUnknown8Resource(readArtResource(file));
+            creature.setIcon1Resource(readArtResource(file));
+            creature.setIcon2Resource(readArtResource(file));
+            //
             creature.setUnkcec(ConversionUtils.readUnsignedShort(file));
             creature.setUnkcee(ConversionUtils.readUnsignedInteger(file));
             creature.setUnkcf2(ConversionUtils.readUnsignedInteger(file));
@@ -1617,11 +1653,12 @@ public final class KwdFile {
             creature.setUnk6(ConversionUtils.readUnsignedInteger(file));
             creature.setTortureHpChange(ConversionUtils.readShort(file));
             creature.setTortureMoodChange(ConversionUtils.readShort(file));
-            ArtResource[] ref5 = new ArtResource[6];
-            for (int x = 0; x < ref5.length; x++) {
-                ref5[x] = readArtResource(file);
-            }
-            creature.setRef5(ref5);
+            creature.setAnimMelee2Resource(readArtResource(file));
+            creature.setUnknown9Resource(readArtResource(file));
+            creature.setUnknown10Resource(readArtResource(file));
+            creature.setUnknown11Resource(readArtResource(file));
+            creature.setUnknown12Resource(readArtResource(file));
+            creature.setUnknown13Resource(readArtResource(file));
             Unk7[] unk7s = new Unk7[7];
             for (int x = 0; x < unk7s.length; x++) {
                 Unk7 unk7 = creature.new Unk7();
@@ -1631,7 +1668,7 @@ public final class KwdFile {
                 unk7s[x] = unk7;
             }
             creature.setUnk7(unk7s);
-            creature.setRef6(readArtResource(file));
+            creature.setAnimWalkbackResource(readArtResource(file));
             X1323[] x1323s = new X1323[48];
             for (int x = 0; x < x1323s.length; x++) {
                 X1323 x1323 = creature.new X1323();
@@ -1640,11 +1677,9 @@ public final class KwdFile {
                 x1323s[x] = x1323;
             }
             creature.setX1323(x1323s);
-            ArtResource[] ref7 = new ArtResource[3];
-            for (int x = 0; x < ref7.length; x++) {
-                ref7[x] = readArtResource(file);
-            }
-            creature.setRef7(ref7);
+            creature.setAnimPoseFrameResource(readArtResource(file));
+            creature.setAnimWalk2Resource(readArtResource(file));
+            creature.setAnimDiePoseResource(readArtResource(file));
             creature.setUniqueNameTextId(ConversionUtils.readUnsignedShort(file));
             int[] x14e1 = new int[2];
             for (int x = 0; x < x14e1.length; x++) {
