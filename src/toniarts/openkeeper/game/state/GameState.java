@@ -20,18 +20,23 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.bullet.BulletAppState;
 import com.jme3.input.InputManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
+
 import de.lessvoid.nifty.screen.Screen;
+
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.ThingLoader;
 
 /**
  * The GAME state!
@@ -51,6 +56,7 @@ public class GameState extends AbstractAppState {
     private String level;
     private KwdFile kwdFile;
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
+    private BulletAppState bulletAppState;
 
     /**
      * Single use game states
@@ -104,8 +110,9 @@ public class GameState extends AbstractAppState {
                         }
                     }.load(assetManager, kwdFile));
                     
-                    //FIXME: add Thingloader
-                    
+                    bulletAppState = new BulletAppState();
+                    this.stateManager.attach(bulletAppState);    
+                    rootNode.attachChild(new ThingLoader().load(bulletAppState, assetManager, kwdFile));
                     
                     setProgress(1.0f);
                 } catch (Exception e) {
