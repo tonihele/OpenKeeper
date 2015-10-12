@@ -112,7 +112,7 @@ public class GameState extends AbstractAppState {
                     
                     bulletAppState = new BulletAppState();
                     this.stateManager.attach(bulletAppState);    
-                    rootNode.attachChild(new ThingLoader().load(bulletAppState, assetManager, kwdFile));
+                    worldNode.attachChild(new ThingLoader().load(bulletAppState, assetManager, kwdFile));
                     
                     setProgress(1.0f);
                 } catch (Exception e) {
