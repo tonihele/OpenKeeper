@@ -324,7 +324,7 @@ public final class KwdFile {
     private List<FilePath> paths;
     private int unknown[];
     //
-    private Map[][] tiles;
+    private Map map;
     private int width;
     private int height;
     private java.util.Map<Short, Player> players;
@@ -657,15 +657,15 @@ public final class KwdFile {
         logger.info("Reading map!");
         width = header.getWidth();
         height = header.getHeight();
-        tiles = new Map[width][height];
+        map = new Map(width, height);
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                Map map = new Map();
-                map.setTerrainId((short) file.readUnsignedByte());
-                map.setPlayerId((short) file.readUnsignedByte());
-                map.setFlag(ConversionUtils.parseEnum(file.readUnsignedByte(), Map.BridgeTerrainType.class));
-                map.setUnknown((short) file.readUnsignedByte());
-                tiles[x][y] = map;
+                Tile tile = new Tile();
+                tile.setTerrainId((short) file.readUnsignedByte());
+                tile.setPlayerId((short) file.readUnsignedByte());
+                tile.setFlag(ConversionUtils.parseEnum(file.readUnsignedByte(), Tile.BridgeTerrainType.class));
+                tile.setUnknown((short) file.readUnsignedByte());
+                map.setTile(x, y, tile);
             }
         }
     }
@@ -2623,8 +2623,8 @@ public final class KwdFile {
      *
      * @return the map tiles
      */
-    public Map[][] getTiles() {
-        return tiles;
+    public Tile[][] getTiles() {
+        return map.getTiles();
     }
 
     /**
@@ -2634,8 +2634,8 @@ public final class KwdFile {
      * @param y the y
      * @return the tile in given coordinate
      */
-    public Map getTile(int x, int y) {
-        return tiles[x][y];
+    public Tile getTile(int x, int y) {
+    	 return map.getTile(x, y);
     }
 
     /**

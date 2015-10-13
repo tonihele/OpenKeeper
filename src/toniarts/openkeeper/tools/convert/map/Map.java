@@ -23,62 +23,51 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  *
  * @author Wizand Petteri Loisko petteri.loisko@gmail.com
+ * @author ArchDemon
  *
  * Thank you https://github.com/werkt
  */
 public class Map {
 
-    public enum BridgeTerrainType implements IValueEnum {
-
-        WATER(1), LAVA(2);
-
-        private BridgeTerrainType(int id) {
-            this.id = id;
-        }
-
-        @Override
-        public int getValue() {
-            return id;
-        }
-        private final int id;
+    private Tile[][] tiles;
+    private int width;
+    private int height;
+    
+    public Map(int width, int height) {
+        this.width = width;
+        this.height = height;
+        this.tiles = new Tile[width][height];
     }
-    // Lookup into Terrain kwd with id (BYTE at Terrain Block 0x1d6)
-    private short terrainId;
-    // Lookup into Players kld with id (BYTE at Player Block 0xa8)
-    private short playerId;
-    // Only a '2' bit here is interpreted to do anything special at load, 1 may indicate 'valid', but it is not interpreted as such
-    private BridgeTerrainType flag;
-    private short unknown;
-
-    public short getTerrainId() {
-        return terrainId;
+    
+    protected void setWidth(int width) {
+        this.width = width;
+    }
+    
+    public int getWidth() {
+        return width;
+    }
+    
+    protected void setHeight(int height) {
+        this.height = height;
     }
 
-    protected void setTerrainId(short terrainId) {
-        this.terrainId = terrainId;
+    public int getHeight() {
+        return height;
     }
-
-    public short getPlayerId() {
-        return playerId;
+    
+    protected void setTiles(Tile[][] tiles) {
+        this.tiles = tiles;
     }
-
-    protected void setPlayerId(short playerId) {
-        this.playerId = playerId;
+    
+    protected void setTile(int x, int y, Tile tile) {
+        this.tiles[x][y] = tile;
     }
-
-    public BridgeTerrainType getFlag() {
-        return flag;
+    
+    public Tile[][] getTiles() {
+        return tiles;
     }
-
-    protected void setFlag(BridgeTerrainType flag) {
-        this.flag = flag;
-    }
-
-    public short getUnknown() {
-        return unknown;
-    }
-
-    protected void setUnknown(short unknown) {
-        this.unknown = unknown;
+    
+    public Tile getTile(int x, int y) {
+        return this.tiles[x][y];
     }
 }
