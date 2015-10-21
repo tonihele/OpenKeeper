@@ -267,7 +267,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         nifty.fromXml("Interface/ModelViewer/ModelViewer.xml", "start", this);
 
         // Set default font
-        RenderFont font = nifty.createFont("Interface/Fonts/DungeonKeeperII.fnt");
+        RenderFont font = nifty.createFont("Interface/Fonts/Frontend14.fnt");
         nifty.getRenderEngine().setFont(font);
         nifty.registerMouseCursor("pointer", "Interface/Cursors/Idle.png", 4, 4);
 
