@@ -16,9 +16,9 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.awt.Color;
 import java.util.EnumSet;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
 
 /**
  * Container class for the Terrain & TerrainBlock
@@ -53,6 +53,9 @@ public class Terrain implements Comparable<Terrain> {
         ALLOW_ROOM_WALLS(0x00010000),
         DECAY(0x00020000),
         RANDOM_TEXTURE(0x00040000),
+        COLOR_RED(0x00080000), // If this is set, add 256 to the red value of terrain light
+        COLOR_GREEN(0x00100000), // If this is set, add 256 to the green value of terrain light
+        COLOR_BLUE(0x00200000), // If this is set, add 256 to the blue value of terrain light
         DWARF_CAN_DIG_THROUGH(0x00800000),
         REVEAL_THROUGH_FOG_OF_WAR(0x01000000),
         TERRAIN_LIGHT(0x10000000),
