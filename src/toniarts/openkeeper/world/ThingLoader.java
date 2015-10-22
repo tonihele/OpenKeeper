@@ -42,7 +42,7 @@ public class ThingLoader {
                 if (obj instanceof Thing.Creature) {
 
                     Thing.Creature cr = (Thing.Creature) obj;
-                    GameCreature creature = new GameCreature(bulletAppState, assetManager, (Thing.Creature) obj, kwdFile);
+                    GameCreature creature = new GameCreature(bulletAppState, assetManager, cr, kwdFile);
 
                     nodeCreatures.attachChild(creature);
 
@@ -53,9 +53,9 @@ public class ThingLoader {
 
                     Node nodeObject = (Node) assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + object.getMeshResource().getName() + ".j3o");
                     nodeObject.setLocalTranslation(
-                            objectThing.getPosX() * MapLoader.TILE_WIDTH,
+                            objectThing.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
                             0 * MapLoader.TILE_HEIGHT,
-                            objectThing.getPosY() * MapLoader.TILE_WIDTH);
+                            objectThing.getPosY() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
                     nodeObjects.attachChild(nodeObject);
 
                 }

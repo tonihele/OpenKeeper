@@ -72,9 +72,9 @@ public class GameCreature extends Node {
         String modelName = this.getModelFileName();
         Node model = (Node) assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o");
         model.setLocalTranslation(
-                info.getPosX() * MapLoader.TILE_WIDTH,
+                info.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
                 info.getPosZ() * MapLoader.TILE_HEIGHT,
-                info.getPosY() * MapLoader.TILE_WIDTH);
+                info.getPosY() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
 
         AnimControl animControl = (AnimControl) model.getChild(0).getControl(AnimControl.class);
         if (animControl != null) {
