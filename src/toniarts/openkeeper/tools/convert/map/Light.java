@@ -16,10 +16,10 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.awt.Color;
 import java.util.EnumSet;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
 
 /**
  * Adapted from C-code
@@ -41,7 +41,10 @@ public class Light {
 
         FLICKER(0x0002),
         PULSE(0x0004),
-        PLAYER_COLOURED(0x0080);
+        PLAYER_COLOURED(0x0080),
+        COLOR_RED(0x00000800), // If this is set, add 256 to the red value of the light
+        COLOR_GREEN(0x00001000), // If this is set, add 256 to the green value of the light
+        COLOR_BLUE(0x00002000); // If this is set, add 256 to the blue value of the light
         private final long flagValue;
 
         private LightFlag(long flagValue) {

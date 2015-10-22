@@ -1749,10 +1749,6 @@ public final class KwdFile {
         // Read the data
         light.setmKPos(new Vector3f(ConversionUtils.readInteger(file) / FIXED_POINT_DIVISION, ConversionUtils.readInteger(file) / FIXED_POINT_DIVISION, ConversionUtils.readInteger(file) / FIXED_POINT_DIVISION));
         light.setRadius(ConversionUtils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-
-        //NOTE: interestingly enough, here a uint8 sized flag is enough I think, and the editor seems to read 0-511 (9 bits, or probably 10 bits but the sign bit is always positive) for each color element
-        //      But I also think it might be a mistake in the editor/file format
-        //      Some lights seem to be logical with this structure.... so who knows
         light.setFlags(ConversionUtils.parseFlagValue(ConversionUtils.readUnsignedInteger(file), Light.LightFlag.class));
         light.setColor(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte()));
 
@@ -2635,7 +2631,7 @@ public final class KwdFile {
      * @return the tile in given coordinate
      */
     public Tile getTile(int x, int y) {
-    	 return map.getTile(x, y);
+        return map.getTile(x, y);
     }
 
     /**
