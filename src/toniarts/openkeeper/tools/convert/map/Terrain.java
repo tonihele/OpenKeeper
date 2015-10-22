@@ -53,11 +53,14 @@ public class Terrain implements Comparable<Terrain> {
         ALLOW_ROOM_WALLS(0x00010000),
         DECAY(0x00020000),
         RANDOM_TEXTURE(0x00040000),
-        COLOR_RED(0x00080000), // If this is set, add 256 to the red value of terrain light
-        COLOR_GREEN(0x00100000), // If this is set, add 256 to the green value of terrain light
-        COLOR_BLUE(0x00200000), // If this is set, add 256 to the blue value of terrain light
+        TERRAIN_COLOR_RED(0x00080000), // If this is set, add 256 to the red value of terrain light
+        TERRAIN_COLOR_GREEN(0x00100000), // If this is set, add 256 to the green value of terrain light
+        TERRAIN_COLOR_BLUE(0x00200000), // If this is set, add 256 to the blue value of terrain light
         DWARF_CAN_DIG_THROUGH(0x00800000),
         REVEAL_THROUGH_FOG_OF_WAR(0x01000000),
+        AMBIENT_COLOR_RED(0x02000000), // If this is set, add 256 to the red value of ambient light
+        AMBIENT_COLOR_GREEN(0x04000000), // If this is set, add 256 to the green value of ambient light
+        AMBIENT_COLOR_BLUE(0x08000000), // If this is set, add 256 to the blue value of ambient light
         TERRAIN_LIGHT(0x10000000),
         AMBIENT_LIGHT(0x20000000);
         private final long flagValue;
