@@ -20,7 +20,6 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
-import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -38,7 +37,7 @@ public class Normal {
     }
 
     public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance) {
-        Node n = new Node();
+        Node n = new Node(roomInstance.getRoom().getName());
 
         // Normal rooms
         Point start = roomInstance.getCoordinates().get(0);
@@ -174,9 +173,6 @@ public class Normal {
                         tile.attachChild(part);
                     }
                 }
-
-                // Set the shadows
-                n.setShadowMode(RenderQueue.ShadowMode.Receive);
 
                 n.attachChild(tile);
             }

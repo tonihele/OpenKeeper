@@ -23,14 +23,13 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
-import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Level.LevelType;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
@@ -47,7 +46,7 @@ public class HeroGateFrontEnd {
     }
 
     public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance) {
-        Node n = new Node();
+        Node n = new Node(roomInstance.getRoom().getName());
 
         // The front end hero gate
 
@@ -59,10 +58,6 @@ public class HeroGateFrontEnd {
 
             // Reset
             resetAndMoveSpatial(tile, start, p);
-
-            // Set the shadows
-            // TODO: optimize, set to individual pieces and see zExtend whether it casts or not
-            tile.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 
             n.attachChild(tile);
 

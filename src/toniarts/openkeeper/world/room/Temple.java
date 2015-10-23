@@ -18,8 +18,6 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.renderer.queue.RenderQueue;
-import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -40,6 +38,7 @@ public class Temple extends RoomConstructor {
         Node n = new Node(roomInstance.getRoom().getName());
         String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
         Point start = roomInstance.getCoordinates().get(0);
+
         // Contruct the tiles
         boolean hasHand = false;
 
@@ -54,7 +53,7 @@ public class Temple extends RoomConstructor {
             boolean W = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
             //boolean NW = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
 
-            BatchNode model = new BatchNode();
+            Node model = new Node();
 
             if (!hasHand && p.equals(roomInstance.getCenter())) {
                 Spatial part = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + "Temple_Hand" + ".j3o", false);
@@ -63,9 +62,6 @@ public class Temple extends RoomConstructor {
                 hasHand = true;
 
                 part.move(TILE_WIDTH / 4, -TILE_HEIGHT / 2, TILE_WIDTH / 4);
-                // Set the shadows
-                // TODO: optimize, set to individual pieces and see zExtend whether it casts or not
-                part.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
                 model.attachChild(part);
             }
             for (int i = 0; i < 2; i++) {
@@ -169,9 +165,6 @@ public class Temple extends RoomConstructor {
                         }
                         part.move(TILE_WIDTH / 4 - i * TILE_WIDTH / 2, 0, TILE_WIDTH / 4 - k * TILE_WIDTH / 2);
 
-                        // Set the shadows
-                        // TODO: optimize, set to individual pieces and see zExtend whether it casts or not
-                        part.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
                         model.attachChild(part);
                     } catch (Exception ex) {
                         System.err.println(ex);
@@ -179,9 +172,7 @@ public class Temple extends RoomConstructor {
                 }
             }
 
-            model.batch();
             n.attachChild(model);
-
         }
 
         // Set the transform and scale to our scale and 0 the transform

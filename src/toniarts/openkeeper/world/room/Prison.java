@@ -18,8 +18,6 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.renderer.queue.RenderQueue;
-import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -41,10 +39,12 @@ public class Prison extends RoomConstructor {
         String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
         String modelName2 = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName().toLowerCase();
         Point start = roomInstance.getCoordinates().get(0);
+
         // Contruct the tiles
         boolean hasDoor = false;
 
         for (Point p : roomInstance.getCoordinates()) {
+
             // Figure out which peace by seeing the neighbours
             boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y + 1));
             boolean NE = roomInstance.hasCoordinate(new Point(p.x - 1, p.y + 1));
@@ -62,15 +62,12 @@ public class Prison extends RoomConstructor {
                 hasDoor = true;
                 part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
 
-                // Set the shadows
-                // TODO: optimize, set to individual pieces and see zExtend whether it casts or not
-                part.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
                 n.attachChild(part);
 
                 continue;
             }
 
-            BatchNode model = new BatchNode();
+            Node model = new Node();
 
             for (int i = 0; i < 2; i++) {
                 for (int k = 0; k < 2; k++) {
@@ -186,15 +183,11 @@ public class Prison extends RoomConstructor {
                     }
                     part.move(TILE_WIDTH / 4 - i * TILE_WIDTH / 2, 0, TILE_WIDTH / 4 - k * TILE_WIDTH / 2);
 
-                    // Set the shadows
-                    // TODO: optimize, set to individual pieces and see zExtend whether it casts or not
-                    part.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
                     model.attachChild(part);
 
                 }
             }
 
-            model.batch();
             n.attachChild(model);
         }
 

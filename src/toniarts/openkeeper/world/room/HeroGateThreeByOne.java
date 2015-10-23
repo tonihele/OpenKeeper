@@ -18,8 +18,6 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.renderer.queue.RenderQueue;
-import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -35,7 +33,7 @@ import toniarts.openkeeper.world.MapLoader;
 public class HeroGateThreeByOne {
 
     public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        BatchNode n = new BatchNode();
+        Node n = new Node(roomInstance.getRoom().getName());
         String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
         Point center = roomInstance.getCenter();
         // Contruct the tiles
@@ -52,11 +50,9 @@ public class HeroGateThreeByOne {
                 } else {
                     tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(modelName + (3 * j + i + 1) + ".j3o"));
                 }
+
                 // Reset
                 resetAndMoveSpatial((Node) tile, new Point(0, i));
-                // Set the shadows
-                // TODO: optimize, set to individual pieces and see zExtend whether it casts or not
-                tile.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 
                 n.attachChild(tile);
             }
@@ -78,7 +74,6 @@ public class HeroGateThreeByOne {
         }
         n.move(center.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, center.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
-        n.batch();
 
         return n;
     }

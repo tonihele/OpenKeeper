@@ -18,8 +18,6 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.renderer.queue.RenderQueue;
-import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -61,16 +59,12 @@ public class CombatPit extends RoomConstructor {
                 hasDoor = true;
 
                 part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
-                // Set the shadows
-                // TODO: optimize, set to individual pieces and see zExtend whether it casts or not
-                part.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
                 n.attachChild(part);
 
                 continue;
             }
 
-            BatchNode model = new BatchNode();
-
+            Node model = new Node();
             for (int i = 0; i < 2; i++) {
                 for (int k = 0; k < 2; k++) {
                     // 4 - 8 - walls
@@ -169,18 +163,12 @@ public class CombatPit extends RoomConstructor {
                         part.rotate(0, yAngle, 0);
                     }
                     part.move(TILE_WIDTH / 4 - i * TILE_WIDTH / 2, 0, TILE_WIDTH / 4 - k * TILE_WIDTH / 2);
-
-                    // Set the shadows
-                    // TODO: optimize, set to individual pieces and see zExtend whether it casts or not
-                    part.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
                     model.attachChild(part);
 
                 }
             }
 
-            model.batch();
             n.attachChild(model);
-
         }
 
         // Set the transform and scale to our scale and 0 the transform

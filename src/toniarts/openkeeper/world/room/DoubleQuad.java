@@ -17,7 +17,6 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
-import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -35,6 +34,7 @@ public class DoubleQuad {
         Node n = new Node(roomInstance.getRoom().getName());
         String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
         Point start = roomInstance.getCoordinates().get(0);
+
         // Contruct the tiles
         int i = 0;
         for (Point p : roomInstance.getCoordinates()) {
@@ -56,9 +56,6 @@ public class DoubleQuad {
                     tile.move(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                     break;
             }
-            // Set the shadows
-            // TODO: optimize, set to individual pieces and see zExtend whether it casts or not
-            tile.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 
             n.attachChild(tile);
 

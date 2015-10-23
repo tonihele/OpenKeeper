@@ -23,7 +23,6 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
-import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -42,7 +41,7 @@ public class FiveByFiveRotated {
     }
 
     public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance) {
-        Node n = new Node();
+        Node n = new Node(roomInstance.getRoom().getName());
 
         // 5 by 5
         Point start = roomInstance.getCoordinates().get(0);
@@ -143,9 +142,6 @@ public class FiveByFiveRotated {
                 tile.rotate(quat);
             }
 
-            // Set the shadows
-            n.setShadowMode(RenderQueue.ShadowMode.Receive);
-
             if (tile != null) // Debug
             {
                 n.attachChild(tile);
@@ -154,9 +150,6 @@ public class FiveByFiveRotated {
             // Only observed 5 by 5 is the Dungeon Heart, its object list is empty, so I just hard code these here
             // The center pieces
             if (x == 2 && y == 2) {
-
-                // Set the shadows
-                n.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 
                 // The arches
                 tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart Arches.j3o"));

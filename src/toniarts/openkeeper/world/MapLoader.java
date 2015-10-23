@@ -28,19 +28,16 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
-
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Map;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -70,6 +67,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     public final static float TILE_HEIGHT = 1;
     private final static float WATER_DEPTH = 0.3525f;
     public final static float WATER_LEVEL = 0.075f;
+    private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
+    private List<Node> pages;
     private KwdFile kwdFile;
     private List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
     private List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
@@ -84,27 +83,33 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         //Create a root
         Node root = new Node("Map");
-        BatchNode terrain = new BatchNode("Terrain");
+        Node terrain = new Node("Terrain");
+        generatePages(terrain);
+        terrain.attachChild(new Node("Rooms"));
 
         // Go through the map
         int tilesCount = object.getWidth() * object.getHeight();
         Tile[][] tiles = object.getTiles();
-        for (int width = 0; width < object.getWidth(); width++) {
-            for (int height = 0; height < object.getHeight(); height++) {
+        for (int y = 0; y < object.getHeight(); y++) {
+            for (int x = 0; x < object.getWidth(); x++) {
 
                 try {
-                    handleTile(tiles, width, height, assetManager, terrain);
+                    handleTile(tiles, x, y, assetManager, terrain);
                 } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Failed to handle tile at " + width + ", " + height + "!", e);
+                    logger.log(Level.SEVERE, "Failed to handle tile at " + x + ", " + y + "!", e);
                 }
 
                 // Update progress
-                updateProgress(width * object.getWidth() + height + 1, tilesCount);
+                updateProgress(y * object.getWidth() + x + 1, tilesCount);
             }
         }
 
-        // Batch it
-        terrain.batch();
+        // Batch the terrain pages
+        for (Node page : pages) {
+            ((BatchNode) page.getChild(0)).batch();
+            ((BatchNode) page.getChild(1)).batch();
+            ((BatchNode) page.getChild(2)).batch();
+        }
         root.attachChild(terrain);
 
         // Create the water
@@ -118,6 +123,52 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
 
         return root;
+    }
+
+    /**
+     * Generate the page nodes
+     *
+     * @param root where to generate pages on
+     */
+    private void generatePages(Node root) {
+        pages = new ArrayList<>(((int) Math.ceil(kwdFile.getHeight() / (float) PAGE_SQUARE_SIZE)) * ((int) Math.ceil(kwdFile.getWidth() / (float) PAGE_SQUARE_SIZE)));
+        for (int y = 0; y < (int) Math.ceil(kwdFile.getHeight() / (float) PAGE_SQUARE_SIZE); y++) {
+            for (int x = 0; x < (int) Math.ceil(kwdFile.getWidth() / (float) PAGE_SQUARE_SIZE); x++) {
+                Node page = new Node(x + "_" + y);
+
+                // Create batch nodes for ceiling, floor and walls
+                BatchNode floor = new BatchNode("floor");
+                floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Floors don't cast
+                generateTileNodes(floor, x, y);
+                page.attachChild(floor);
+                BatchNode wall = new BatchNode("wall");
+                wall.setShadowMode(RenderQueue.ShadowMode.CastAndReceive); // Walls cast and receive shadows
+                generateTileNodes(wall, x, y);
+                page.attachChild(wall);
+                BatchNode ceiling = new BatchNode("ceiling");
+                ceiling.setShadowMode(RenderQueue.ShadowMode.Off); // No lights above ceilings
+                generateTileNodes(ceiling, x, y);
+                page.attachChild(ceiling);
+
+                pages.add(page);
+                root.attachChild(page);
+            }
+        }
+    }
+
+    /**
+     * Create tile nodes inside a page
+     *
+     * @param pageBatch the page
+     * @param pageX page x
+     * @param pageY page y
+     */
+    private void generateTileNodes(BatchNode pageBatch, int pageX, int pageY) {
+        for (int y = 0; y < PAGE_SQUARE_SIZE; y++) {
+            for (int x = 0; x < PAGE_SQUARE_SIZE; x++) {
+                pageBatch.attachChild(new Node((x + pageX * PAGE_SQUARE_SIZE) + "_" + (y + pageY * PAGE_SQUARE_SIZE)));
+            }
+        }
     }
 
     private ArtResource getWallNorth(int x, int y, Tile[][] tiles, Terrain terrain) {
@@ -163,7 +214,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         // Move the ceiling to a correct tile
         if (wall != null) {
             wall.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
-            wall.setShadowMode(RenderQueue.ShadowMode.CastAndReceive); // Walls cast and receive shadows
             root.attachChild(wall);
         }
     }
@@ -411,8 +461,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param assetManager the asset manager instance
      * @param root the root node
      */
-    private void handleTile(Tile[][] tiles, int x, int y, AssetManager assetManager, BatchNode root) {
+    private void handleTile(Tile[][] tiles, int x, int y, AssetManager assetManager, Node root) {
         Tile tile = tiles[x][y];
+        Node pageNode = getPageNode(x, y, root);
 
         // Get the terrain
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
@@ -428,8 +479,15 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 findRoom(tiles, p, roomInstance);
                 rooms.add(roomInstance);
 
+                // For each room, create its own batch node
+                // TODO: We need to find it later!
+                BatchNode roomNode = new BatchNode(roomInstance.toString());
+                roomNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive); // Rooms are weird, better to cast & receive shadows
+                ((Node) root.getChild(root.getChildren().size() - 1)).attachChild(roomNode);
+
                 // Construct the actual room
-                handleRoom(tiles, assetManager, root, roomInstance);
+                handleRoom(tiles, assetManager, roomNode, roomInstance);
+                roomNode.batch();
             }
 
             // Swap the terrain if this is a bridge
@@ -442,14 +500,55 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         // Terrain
         if (ceilingResource != null) {
 
+            // Get the nodes
+            Node wallTileNode = getTileNode(x, y, (Node) pageNode.getChild(1));
+            Node ceilingTileNode = getTileNode(x, y, (Node) pageNode.getChild(2));
+
             // Ceiling & wall
-            handleCeilingAndWall(ceilingResource, terrain, tiles, tile, x, y, assetManager, root);
+            handleCeilingAndWall(ceilingResource, terrain, tiles, tile, x, y, assetManager, wallTileNode, ceilingTileNode);
         } else if (terrain.getCompleteResource() != null) {
 
             // Floor, no ceiling, it has a floor
+            Node tileNode = getTileNode(x, y, (Node) pageNode.getChild(0));
             ArtResource floorResource = terrain.getCompleteResource();
-            handleFloor(terrain, tiles, x, y, assetManager, floorResource, root, tile);
+            handleFloor(terrain, tiles, x, y, assetManager, floorResource, tileNode, tile);
         }
+    }
+
+    /**
+     * Get the terrain tile node
+     *
+     * @param x the tile x
+     * @param y the tile y
+     * @param root the page node
+     * @return tile node
+     */
+    private Node getTileNode(int x, int y, Node page) {
+        int tileX = x - ((int) Math.floor(x / (float) PAGE_SQUARE_SIZE)) * PAGE_SQUARE_SIZE;
+        int tileY = y - ((int) Math.floor(y / (float) PAGE_SQUARE_SIZE)) * PAGE_SQUARE_SIZE;
+
+        return (Node) page.getChild(tileY * PAGE_SQUARE_SIZE + tileX);
+    }
+
+    /**
+     * Get the terrain "page" we are on
+     *
+     * @param x the tile x
+     * @param y the tile y
+     * @param root the root node
+     * @return page node
+     */
+    private Node getPageNode(int x, int y, Node root) {
+        int pageX = (int) Math.floor(x / (float) PAGE_SQUARE_SIZE);
+        int pageY = (int) Math.floor(y / (float) PAGE_SQUARE_SIZE);
+
+        // Get the page index
+        int index = pageX;
+        if (pageY > 0) {
+            int pagesPerRow = (int) Math.ceil(kwdFile.getWidth() / (float) PAGE_SQUARE_SIZE);
+            index += pagesPerRow * pageY;
+        }
+        return (Node) root.getChild(index);
     }
 
     /**
@@ -488,9 +587,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param x tile X coordinate
      * @param y tile Y coordinate
      * @param assetManager the asset manager instance
-     * @param root the root node
+     * @param wallTileNode the wall tile node
+     * @param ceilingTileNode the ceiling tile node
      */
-    private void handleCeilingAndWall(ArtResource ceilingResource, Terrain terrain, Tile[][] tiles, Tile tile, int x, int y, AssetManager assetManager, BatchNode root) {
+    private void handleCeilingAndWall(ArtResource ceilingResource, Terrain terrain, Tile[][] tiles, Tile tile, int x, int y, AssetManager assetManager, Node wallTileNode, Node ceilingTileNode) {
 
         // Ceiling
         String modelName = ceilingResource.getName();
@@ -507,8 +607,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             }
         }
         ceiling.move(x * TILE_WIDTH, TILE_HEIGHT, y * TILE_WIDTH);
-        ceiling.setShadowMode(RenderQueue.ShadowMode.Off); // Ceilings never cast or receive, only thing above them would be picked up creatures, and they are solid
-        root.attachChild(ceiling);
+        ceilingTileNode.attachChild(ceiling);
 
         // See the wall status
 
@@ -517,7 +616,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         if (wallNorth != null) {
             Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallNorth.getName() + ".j3o", true);
             wall.move(0, 0, -TILE_WIDTH);
-            addWall(wall, root, x, y);
+            addWall(wall, wallTileNode, x, y);
         }
 
         // South
@@ -528,7 +627,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
             wall.rotate(quat);
             wall.move(-TILE_WIDTH, 0, 0);
-            addWall(wall, root, x, y);
+            addWall(wall, wallTileNode, x, y);
         }
 
         // East
@@ -538,7 +637,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             Quaternion quat = new Quaternion();
             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
             wall.rotate(quat);
-            addWall(wall, root, x, y);
+            addWall(wall, wallTileNode, x, y);
         }
 
         // West
@@ -549,7 +648,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
             wall.rotate(quat);
             wall.move(-TILE_WIDTH, 0, -TILE_WIDTH);
-            addWall(wall, root, x, y);
+            addWall(wall, wallTileNode, x, y);
         }
 
         //
@@ -567,7 +666,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param floorResource the floor resource
      * @param root the root node
      */
-    private void handleFloor(Terrain terrain, Tile[][] tiles, int x, int y, AssetManager assetManager, ArtResource floorResource, BatchNode root, Tile tile) {
+    private void handleFloor(Terrain terrain, Tile[][] tiles, int x, int y, AssetManager assetManager, ArtResource floorResource, Node root, Tile tile) {
 
         // For water construction type (lava & water), there are 8 pieces (0-7 suffix) in complete resource
         // And in the top resource there is the actual lava/water
@@ -590,7 +689,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
             // Finally add it
             floor.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
-            floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
             root.attachChild(floor);
 
             ////
@@ -598,12 +696,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             String modelName = floorResource.getName();
             Spatial floor = constructTerrainQuad(tiles, terrain, tile, x, y, assetManager, modelName);
             floor.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
-            floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
             root.attachChild(floor);
         } else {
             Spatial floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + floorResource.getName() + ".j3o", false);
             floor.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
-            floor.setShadowMode(RenderQueue.ShadowMode.Receive); // Only receive
             root.attachChild(floor);
         }
     }

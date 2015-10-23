@@ -17,7 +17,6 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
-import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -35,7 +34,7 @@ public class ThreeByThree {
     }
 
     public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance) {
-        Node n = new Node();
+        Node n = new Node(roomInstance.getRoom().getName());
 
         // 3 by 3, a simple case
         int i = 0;
@@ -49,10 +48,6 @@ public class ThreeByThree {
                 subSpat.setLocalTranslation(0, 0, 0);
             }
             tile.move(p.x - start.x, -1.0f, p.y - start.y);
-
-            // Set the shadows
-            // TODO: optimize, set to individual pieces and see zExtend whether it casts or not
-            n.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 
             n.attachChild(tile);
             i++;

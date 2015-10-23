@@ -17,8 +17,6 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
-import com.jme3.renderer.queue.RenderQueue;
-import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -36,20 +34,17 @@ public class HeroGateTwoByTwo {
     }
 
     public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance) {
-        BatchNode n = new BatchNode();
+        Node n = new Node(roomInstance.getRoom().getName());
         String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
-
 
         // Contruct the tiles
         int i = 0;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
             Spatial tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(modelName + i++ + ".j3o"));
+
             // Reset
             resetAndMoveSpatial((Node) tile, start, p);
-            // Set the shadows
-            // TODO: optimize, set to individual pieces and see zExtend whether it casts or not
-            tile.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 
             n.attachChild(tile);
         }
@@ -57,7 +52,6 @@ public class HeroGateTwoByTwo {
         // Set the transform and scale to our scale and 0 the transform
         n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
-        n.batch();
 
         return n;
     }
