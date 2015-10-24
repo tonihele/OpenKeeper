@@ -19,6 +19,7 @@ package toniarts.openkeeper.world;
 import com.jme3.asset.AssetManager;
 import com.jme3.bounding.BoundingBox;
 import com.jme3.material.Material;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
@@ -28,6 +29,7 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
+import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1092,6 +1094,53 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      */
     public static Vector3f getCameraPositionOnMapPoint(final int x, final int y) {
         return new Vector3f((x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2), 0f, (y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2));
+    }
+
+    /**
+     * Sets material lighting accorting to the terrain setting
+     *
+     * @param material the material to adjust
+     * @param terrain the terrain data
+     */
+    public static void setTerrainMaterialLighting(Material material, Terrain terrain) {
+
+        // Ambient light
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_LIGHT)) {
+            Color c = terrain.getAmbientLight();
+            int r = c.getRed();
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_RED)) {
+                r += 256;
+            }
+            int g = c.getGreen();
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_GREEN)) {
+                g += 256;
+            }
+            int b = c.getBlue();
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_BLUE)) {
+                b += 256;
+            }
+            material.setColor("Ambient", new ColorRGBA(r / 255f, g / 255f, b / 255f, 0));
+        }
+
+        // Not sure what the terrain light is supposed to be
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_LIGHT)) {
+            Color c = terrain.getTerrainLight();
+            int r = c.getRed();
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_RED)) {
+                r += 256;
+            }
+            int g = c.getGreen();
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_GREEN)) {
+                g += 256;
+            }
+            int b = c.getBlue();
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_BLUE)) {
+                b += 256;
+            }
+            material.setColor("Specular", new ColorRGBA(r / 255f, g / 255f, b / 255f, 0));
+        }
+        material.setColor("Diffuse", ColorRGBA.White);
+        material.setBoolean("UseMaterialColors", false); // Hmm...
     }
 
     /**

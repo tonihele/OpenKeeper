@@ -108,6 +108,7 @@ public class Water {
 
                     // Alpha resource, compile such
                     mat = createMaterial(resource, assetManager);
+                    MapLoader.setTerrainMaterialLighting(mat, entityInstances.get(0).getEntity());
                     break;
                 }
             }
@@ -119,6 +120,7 @@ public class Water {
             TextureKey textureKey = new TextureKey(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(entityInstances.get(0).getEntity().getTopResource().getName()).concat(".png")), false);
             Texture tex = assetManager.loadTexture(textureKey);
             mat.setTexture("DiffuseMap", tex);
+            MapLoader.setTerrainMaterialLighting(mat, entityInstances.get(0).getEntity());
         }
 
         // Set it all
