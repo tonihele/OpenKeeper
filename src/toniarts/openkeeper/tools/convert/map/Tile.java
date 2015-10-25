@@ -16,10 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import java.io.IOException;
-import java.io.RandomAccessFile;
-
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
@@ -32,34 +28,33 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  */
 public final class Tile {
 
-	 public enum BridgeTerrainType implements IValueEnum {
+    public enum BridgeTerrainType implements IValueEnum {
 
-	        WATER(1), LAVA(2);
+        WATER(1), LAVA(2);
 
-	        private BridgeTerrainType(int id) {
-	            this.id = id;
-	        }
+        private BridgeTerrainType(int id) {
+            this.id = id;
+        }
 
-	        @Override
-	        public int getValue() {
-	            return id;
-	        }
-	        private final int id;
-	    }
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private final int id;
+    }
     // Lookup into Terrain kwd with id (BYTE at Terrain Block 0x1d6)
     private short terrainId;
     // Lookup into Players kld with id (BYTE at Player Block 0xa8)
     private short playerId;
-    // Only a '2' bit here is interpreted to do anything special at load, 
+    // Only a '2' bit here is interpreted to do anything special at load,
     // 1 may indicate 'valid', but it is not interpreted as such
     // '2' for Bridge on Lava, 1 for Bridge on Water
     private BridgeTerrainType flag;
     private short unknown;
-    
+
     public Tile() {
-        
     }
-    
+
     public short getTerrainId() {
         return terrainId;
     }
@@ -91,7 +86,7 @@ public final class Tile {
     protected void setUnknown(short unknown) {
         this.unknown = unknown;
     }
-    
+
     @Override
     public String toString() {
         return "Map{" + "terrainId=" + terrainId + ", playerId=" + playerId + ", flag=" + flag + '}';
