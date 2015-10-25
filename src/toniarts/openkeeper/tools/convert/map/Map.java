@@ -16,8 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IValueEnum;
-
 /**
  * Container class for the levelnameMap.kld
  *
@@ -32,21 +30,21 @@ public class Map {
     private Tile[][] tiles;
     private int width;
     private int height;
-    
+
     public Map(int width, int height) {
         this.width = width;
         this.height = height;
         this.tiles = new Tile[width][height];
     }
-    
+
     protected void setWidth(int width) {
         this.width = width;
     }
-    
+
     public int getWidth() {
         return width;
     }
-    
+
     protected void setHeight(int height) {
         this.height = height;
     }
@@ -54,19 +52,19 @@ public class Map {
     public int getHeight() {
         return height;
     }
-    
+
     protected void setTiles(Tile[][] tiles) {
         this.tiles = tiles;
     }
-    
+
     protected void setTile(int x, int y, Tile tile) {
         this.tiles[x][y] = tile;
     }
-    
+
     public Tile[][] getTiles() {
         return tiles;
     }
-    
+
     public Tile getTile(int x, int y) {
         return this.tiles[x][y];
     }
