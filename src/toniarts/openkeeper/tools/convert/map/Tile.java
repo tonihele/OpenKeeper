@@ -26,7 +26,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * Thank you https://github.com/werkt
  */
-public final class Tile {
+public class Tile {
 
     public enum BridgeTerrainType implements IValueEnum {
 
