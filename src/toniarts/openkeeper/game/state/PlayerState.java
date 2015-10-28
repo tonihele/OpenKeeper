@@ -58,9 +58,11 @@ import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerCameraState;
+import toniarts.openkeeper.view.PlayerInteractionState;
 
 /**
  * The player state! GUI, camera, etc. Player interactions
@@ -90,7 +92,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private boolean paused = false;
     private boolean backgroundSet = false;
     private static final String HUD_SCREEN_ID = "hud";
-    private List<AbstractAppState> appStates = new ArrayList<>();
+    private List<AbstractPauseAwareState> appStates = new ArrayList<>();
     private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
 
     @Override
@@ -136,7 +138,9 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             }
 
             // Create app states
-            appStates.add(new PlayerCameraState(gameState.getLevelData().getPlayer((short) 3))); // Keeper 1
+            Player player = gameState.getLevelData().getPlayer((short) 3); // Keeper 1
+            appStates.add(new PlayerCameraState(player));
+            appStates.add(new PlayerInteractionState(player, gameState));
 
             // Load the state
             for (AbstractAppState state : appStates) {
@@ -306,6 +310,11 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
         // Pause / unpause
         gameState.setEnabled(!paused);
+        for (AbstractPauseAwareState state : appStates) {
+            if (state.isPauseable()) {
+                state.setEnabled(!paused);
+            }
+        }
 
         nifty.getCurrentScreen().findElementByName("optionsMenu").setVisible(paused);
         if (paused) {

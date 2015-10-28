@@ -24,19 +24,15 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.input.InputManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
-
 import de.lessvoid.nifty.screen.Screen;
-
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.ThingLoader;
+import toniarts.openkeeper.world.WorldHandler;
 
 /**
  * The GAME state!
@@ -55,6 +51,7 @@ public class GameState extends AbstractAppState {
     private Node worldNode;
     private String level;
     private KwdFile kwdFile;
+    private WorldHandler worldHandler;
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
     private BulletAppState bulletAppState;
 
@@ -101,19 +98,19 @@ public class GameState extends AbstractAppState {
                     }
                     setProgress(0.25f);
 
+                    // Create physics state
+                    bulletAppState = new BulletAppState();
+                    this.stateManager.attach(bulletAppState);
+
                     // Create the actual level
-                    worldNode = new Node("World");
-                    worldNode.attachChild(new MapLoader() {
+                    worldHandler = new WorldHandler(assetManager, kwdFile, bulletAppState) {
                         @Override
                         protected void updateProgress(int progress, int max) {
                             setProgress(0.25f + ((float) progress / max * 0.75f));
                         }
-                    }.load(assetManager, kwdFile));
-                    
-                    bulletAppState = new BulletAppState();
-                    this.stateManager.attach(bulletAppState);    
-                    worldNode.attachChild(new ThingLoader().load(bulletAppState, assetManager, kwdFile));
-                    
+                    };
+                    worldNode = worldHandler.getWorld();
+
                     setProgress(1.0f);
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Failed to load the game!", e);
@@ -147,6 +144,9 @@ public class GameState extends AbstractAppState {
             worldNode = null;
         }
 
+        // Physics away
+        stateManager.detach(bulletAppState);
+
         super.cleanup();
     }
 
@@ -162,5 +162,9 @@ public class GameState extends AbstractAppState {
      */
     public KwdFile getLevelData() {
         return kwdFile;
+    }
+
+    public WorldHandler getWorldHandler() {
+        return worldHandler;
     }
 }

@@ -1,0 +1,177 @@
+/*
+ * Copyright (C) 2014-2015 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.view;
+
+import com.jme3.app.Application;
+import com.jme3.app.state.AppStateManager;
+import com.jme3.asset.AssetManager;
+import com.jme3.input.InputManager;
+import com.jme3.input.MouseInput;
+import com.jme3.input.RawInputListener;
+import com.jme3.input.event.JoyAxisEvent;
+import com.jme3.input.event.JoyButtonEvent;
+import com.jme3.input.event.KeyInputEvent;
+import com.jme3.input.event.MouseButtonEvent;
+import com.jme3.input.event.MouseMotionEvent;
+import com.jme3.input.event.TouchEvent;
+import com.jme3.math.Vector2f;
+import com.jme3.renderer.ViewPort;
+import com.jme3.scene.Node;
+import java.util.logging.Logger;
+import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.state.AbstractPauseAwareState;
+import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.view.selection.SelectionHandler;
+import toniarts.openkeeper.world.WorldHandler;
+
+/**
+ * State for managing player interactions in the world. Heavily drawn from
+ * Philip Willuweit's AgentKeeper code <p.willuweit@gmx.de>.
+ *
+ * @author Toni Helenius <helenius.toni@gmail.com>
+ * @author ArchDemon
+ */
+// TODO: States, now only selection
+public class PlayerInteractionState extends AbstractPauseAwareState implements RawInputListener {
+
+    private Main app;
+    private final GameState gameState;
+    private Node rootNode;
+    private AssetManager assetManager;
+    private AppStateManager stateManager;
+    private InputManager inputManager;
+    private ViewPort viewPort;
+    private final Player player;
+    private SelectionHandler handler;
+    private boolean actionIsPressed = false;
+    private boolean cancelIsPressed = false;
+    private boolean startSet = false;
+    public Vector2f mousePosition = Vector2f.ZERO;
+    private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
+
+    public PlayerInteractionState(Player player, GameState gameState) {
+        this.player = player;
+        this.gameState = gameState;
+    }
+
+    @Override
+    public void initialize(final AppStateManager stateManager, final Application app) {
+        super.initialize(stateManager, app);
+        this.app = (Main) app;
+        rootNode = this.app.getRootNode();
+        assetManager = this.app.getAssetManager();
+        this.stateManager = this.app.getStateManager();
+        inputManager = this.app.getInputManager();
+        viewPort = this.app.getViewPort();
+
+        // Init handler
+        handler = new SelectionHandler(this.app, this);
+
+        // Add listener
+        if (isEnabled()) {
+            setEnabled(true);
+        }
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+
+        if (enabled) {
+            app.getInputManager().addRawInputListener(this);
+        } else {
+            app.getInputManager().removeRawInputListener(this);
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        app.getInputManager().removeRawInputListener(this);
+
+        super.cleanup();
+    }
+
+    @Override
+    public boolean isPauseable() {
+        return true;
+    }
+
+    @Override
+    public void beginInput() {
+    }
+
+    @Override
+    public void endInput() {
+    }
+
+    @Override
+    public void onJoyAxisEvent(JoyAxisEvent evt) {
+    }
+
+    @Override
+    public void onJoyButtonEvent(JoyButtonEvent evt) {
+    }
+
+    @Override
+    public void onMouseMotionEvent(MouseMotionEvent evt) {
+        mousePosition.set(evt.getX(), evt.getY());
+        if (startSet) {
+            handler.getSelectionArea().setEnd(handler.getRoundedMousePos());
+            handler.updateSelectionBox();
+        } else {
+            handler.getSelectionArea().setStart(handler.getRoundedMousePos());
+            handler.getSelectionArea().setEnd(handler.getRoundedMousePos());
+            handler.updateSelectionBox();
+        }
+    }
+
+    @Override
+    public void onMouseButtonEvent(MouseButtonEvent evt) {
+        if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
+
+            if (evt.isPressed()) {
+                if (!startSet) {
+                    handler.getSelectionArea().setStart(handler.getRoundedMousePos());
+                }
+                startSet = true;
+            } else if (evt.isReleased()) {
+                startSet = false;
+                handler.userSubmit(null);
+                handler.getSelectionArea().setStart(handler.getRoundedMousePos());
+                handler.updateSelectionBox();
+                handler.setNoSelectedArea();
+            }
+        } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT) {
+            startSet = false;
+            handler.getSelectionArea().setStart(handler.getRoundedMousePos());
+            handler.updateSelectionBox();
+        }
+    }
+
+    @Override
+    public void onKeyEvent(KeyInputEvent evt) {
+    }
+
+    @Override
+    public void onTouchEvent(TouchEvent evt) {
+    }
+
+    public WorldHandler getWorldHandler() {
+        return gameState.getWorldHandler();
+    }
+}

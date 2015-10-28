@@ -33,7 +33,9 @@ import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -43,7 +45,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.tools.convert.map.Tile;
+import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.world.room.CombatPit;
 import toniarts.openkeeper.world.room.FiveByFiveRotated;
 import toniarts.openkeeper.world.room.HeroGateFrontEnd;
@@ -59,7 +61,7 @@ import toniarts.openkeeper.world.room.WoodenBridge;
 import toniarts.openkeeper.world.terrain.Water;
 
 /**
- * Loads whole maps
+ * Loads whole maps, and handles the maps
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -71,7 +73,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     public final static float WATER_LEVEL = 0.075f;
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
     private List<Node> pages;
-    private KwdFile kwdFile;
+    private final KwdFile kwdFile;
+    private Node map;
+    private final MapData mapData;
+    private final AssetManager assetManager;
     private List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
     private List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
@@ -79,19 +84,26 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
+    public MapLoader(AssetManager assetManager, KwdFile kwdFile) {
+        this.kwdFile = kwdFile;
+        this.assetManager = assetManager;
+
+        // Create modifiable tiles
+        mapData = new MapData(kwdFile);
+    }
+
     @Override
     public Spatial load(AssetManager assetManager, KwdFile object) {
-        this.kwdFile = object;
 
         //Create a root
-        Node root = new Node("Map");
+        map = new Node("Map");
         Node terrain = new Node("Terrain");
         generatePages(terrain);
         terrain.attachChild(new Node("Rooms"));
 
         // Go through the map
         int tilesCount = object.getWidth() * object.getHeight();
-        Tile[][] tiles = object.getTiles();
+        TileData[][] tiles = mapData.getTiles();
         for (int y = 0; y < object.getHeight(); y++) {
             for (int x = 0; x < object.getWidth(); x++) {
 
@@ -112,19 +124,121 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             ((BatchNode) page.getChild(1)).batch();
             ((BatchNode) page.getChild(2)).batch();
         }
-        root.attachChild(terrain);
+        map.attachChild(terrain);
 
         // Create the water
         if (!waterBatches.isEmpty()) {
-            root.attachChild(Water.construct(assetManager, waterBatches));
+            map.attachChild(Water.construct(assetManager, waterBatches));
         }
 
         // And the lava
         if (!lavaBatches.isEmpty()) {
-            root.attachChild(Water.construct(assetManager, lavaBatches));
+            map.attachChild(Water.construct(assetManager, lavaBatches));
         }
 
-        return root;
+        return map;
+    }
+
+    /**
+     * Update the selected tiles (and neighbouring tiles if needed)
+     *
+     * @param mapNode the map node
+     * @param mapData the actual map data
+     * @param updatableTiles list of tiles to update
+     */
+    private void updateTiles(Point... points) {
+
+        // Reconstruct all tiles in the area
+        Set<BatchNode> nodesNeedBatching = new HashSet<>();
+        Node terrainNode = (Node) map.getChild(0);
+        for (Point point : points) {
+
+            // Reconstruct and mark for patching
+            // The tile node needs to created anew, somehow the BatchNode just doesn't get it if I remove children from subnode
+            Node pageNode = getPageNode(point.x, point.y, terrainNode);
+            Node tileNode = getTileNode(point.x, point.y, (Node) pageNode.getChild(0));
+            if (!tileNode.getChildren().isEmpty()) {
+                tileNode.removeFromParent();
+                ((BatchNode) pageNode.getChild(0)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point.x, point.y));
+                nodesNeedBatching.add((BatchNode) pageNode.getChild(0));
+            }
+            tileNode = getTileNode(point.x, point.y, (Node) pageNode.getChild(1));
+            if (!tileNode.getChildren().isEmpty()) {
+                tileNode.removeFromParent();
+                ((BatchNode) pageNode.getChild(1)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point.x, point.y));
+                nodesNeedBatching.add((BatchNode) pageNode.getChild(1));
+            }
+            tileNode = getTileNode(point.x, point.y, (Node) pageNode.getChild(2));
+            if (!tileNode.getChildren().isEmpty()) {
+                tileNode.removeFromParent();
+                ((BatchNode) pageNode.getChild(2)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point.x, point.y));
+                nodesNeedBatching.add((BatchNode) pageNode.getChild(2));
+            }
+
+            // Reconstruct
+            handleTile(mapData.getTiles(), point.x, point.y, assetManager, (Node) map.getChild(0));
+        }
+
+        // Batch
+        for (BatchNode batchNode : nodesNeedBatching) {
+            batchNode.batch();
+        }
+    }
+
+    /**
+     * Set some tiles selected/undelected
+     *
+     * @param selectionArea the selection area
+     * @param select select or unselect
+     */
+    protected void selectTiles(SelectionArea selectionArea, boolean select) {
+        List<Point> updatableTiles = new ArrayList<>();
+        for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(mapData.getWidth(), selectionArea.getEnd().x + 1); x++) {
+            for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(mapData.getHeight(), selectionArea.getEnd().y + 1); y++) {
+                TileData tile = mapData.getTile(x, y);
+                Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+                if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                    continue;
+                }
+                tile.setSelected(select);
+                updatableTiles.add(new Point(x, y));
+            }
+        }
+        updateTiles(updatableTiles.toArray(new Point[updatableTiles.size()]));
+    }
+
+    private void setTaggedMaterialToGeometries(final Node node) {
+
+        // Change the material on geometries
+        node.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (spatial instanceof Geometry) {
+
+                    Geometry g = (Geometry) spatial;
+
+                    // Load new material
+                    // TODO: pre-create these etc. the original materials have only
+                    // few the tagged versions, so just take the texture and apply a
+                    // semitransparent layer to it
+                    Material newMaterial = g.getMaterial().clone();
+                    newMaterial.setColor("Ambient", new ColorRGBA(0, 0, 0.8f, 1));
+                    newMaterial.setBoolean("UseMaterialColors", true);
+                    g.setMaterial(newMaterial);
+                }
+            }
+        });
+    }
+
+    /**
+     * Determine if a tile at x & y is selected or not
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @return is the tile selected
+     */
+    protected boolean isSelected(int x, int y) {
+        return mapData.getTile(x, y).isSelected();
     }
 
     /**
@@ -173,23 +287,23 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
     }
 
-    private ArtResource getWallNorth(int x, int y, Tile[][] tiles, Terrain terrain) {
+    private ArtResource getWallNorth(int x, int y, TileData[][] tiles, Terrain terrain) {
         return getWall(x, y - 1, tiles, terrain);
     }
 
-    private ArtResource getWallSouth(int x, int y, Tile[][] tiles, Terrain terrain) {
+    private ArtResource getWallSouth(int x, int y, TileData[][] tiles, Terrain terrain) {
         return getWall(x, y + 1, tiles, terrain);
     }
 
-    private ArtResource getWallEast(int x, int y, Tile[][] tiles, Terrain terrain) {
+    private ArtResource getWallEast(int x, int y, TileData[][] tiles, Terrain terrain) {
         return getWall(x + 1, y, tiles, terrain);
     }
 
-    private ArtResource getWallWest(int x, int y, Tile[][] tiles, Terrain terrain) {
+    private ArtResource getWallWest(int x, int y, TileData[][] tiles, Terrain terrain) {
         return getWall(x - 1, y, tiles, terrain);
     }
 
-    private ArtResource getWall(int x, int y, Tile[][] tiles, Terrain terrain) {
+    private ArtResource getWall(int x, int y, TileData[][] tiles, Terrain terrain) {
 
         // Check for out of bounds
         if (x < 0 || x >= tiles.length || y < 0 || y >= tiles[x].length) {
@@ -240,7 +354,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param terrain terrain tile to compare with
      * @return are the tiles same
      */
-    private boolean hasSameTile(Tile[][] tiles, int x, int y, Terrain terrain) {
+    private boolean hasSameTile(TileData[][] tiles, int x, int y, Terrain terrain) {
 
         // Check for out of bounds
         if (x < 0 || x >= tiles.length || y < 0 || y >= tiles[x].length) {
@@ -257,7 +371,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param assetManager the asset manager
      * @param spatial the spatial
      */
-    private void setRandomTexture(final AssetManager assetManager, Spatial spatial) {
+    private void setRandomTexture(final AssetManager assetManager, final Spatial spatial, final TileData tile) {
 
         // Check the data on geometry
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
@@ -265,7 +379,17 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             public void visit(Spatial spatial) {
                 Integer texCount = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
                 if (texCount != null) {
-                    int tex = FastMath.rand.nextInt(texCount);
+
+                    // On redrawing, see if we already randomized this
+                    // The principle is bit wrong, the random texture is tied to the tile, and not material etc.
+                    // But it is probably just the tops of few tiles, so...
+                    int tex;
+                    if (tile.getRandomTextureIndex() != null) {
+                        tex = tile.getRandomTextureIndex();
+                    } else {
+                        tex = FastMath.rand.nextInt(texCount);
+                        tile.setRandomTextureIndex(tex);
+                    }
                     if (tex != 0) { // 0 is the default anyway
                         Geometry g = (Geometry) spatial;
                         Material m = g.getMaterial();
@@ -327,7 +451,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param modelName the model name to load
      * @return the loaded model
      */
-    private Spatial constructTerrainQuad(Tile[][] tiles, final Terrain terrain, Tile tile, int x, int y, final AssetManager assetManager, String modelName) {
+    private Spatial constructTerrainQuad(TileData[][] tiles, final Terrain terrain, TileData tile, int x, int y, final AssetManager assetManager, String modelName) {
         boolean ceiling = false;
         if ("CLAIMED TOP".equals(modelName)) {
             modelName = "Claimed Top";
@@ -463,8 +587,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param assetManager the asset manager instance
      * @param root the root node
      */
-    private void handleTile(Tile[][] tiles, int x, int y, AssetManager assetManager, Node root) {
-        Tile tile = tiles[x][y];
+    private void handleTile(TileData[][] tiles, int x, int y, AssetManager assetManager, Node root) {
+        TileData tile = tiles[x][y];
         Node pageNode = getPageNode(x, y, root);
 
         // Get the terrain
@@ -526,10 +650,20 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @return tile node
      */
     private Node getTileNode(int x, int y, Node page) {
+        return (Node) page.getChild(getTileNodeIndex(x, y));
+    }
+
+    /**
+     * Get index for the tile node, where it should be
+     *
+     * @param x the tile x
+     * @param y the tile y
+     * @return the index inside the page
+     */
+    private int getTileNodeIndex(int x, int y) {
         int tileX = x - ((int) Math.floor(x / (float) PAGE_SQUARE_SIZE)) * PAGE_SQUARE_SIZE;
         int tileY = y - ((int) Math.floor(y / (float) PAGE_SQUARE_SIZE)) * PAGE_SQUARE_SIZE;
-
-        return (Node) page.getChild(tileY * PAGE_SQUARE_SIZE + tileX);
+        return tileY * PAGE_SQUARE_SIZE + tileX;
     }
 
     /**
@@ -540,7 +674,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param root the root node
      * @return page node
      */
-    private Node getPageNode(int x, int y, Node root) {
+    protected Node getPageNode(int x, int y, Node root) {
         int pageX = (int) Math.floor(x / (float) PAGE_SQUARE_SIZE);
         int pageY = (int) Math.floor(y / (float) PAGE_SQUARE_SIZE);
 
@@ -562,7 +696,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @return returns null if this is not a bridge, otherwise returns pretty
      * much either water or lava
      */
-    private Terrain getBridgeTerrain(Tile tiles, Terrain terrain) {
+    private Terrain getBridgeTerrain(TileData tiles, Terrain terrain) {
         Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
         if (room != null && !room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
 
@@ -592,7 +726,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param wallTileNode the wall tile node
      * @param ceilingTileNode the ceiling tile node
      */
-    private void handleCeilingAndWall(ArtResource ceilingResource, Terrain terrain, Tile[][] tiles, Tile tile, int x, int y, AssetManager assetManager, Node wallTileNode, Node ceilingTileNode) {
+    private void handleCeilingAndWall(ArtResource ceilingResource, Terrain terrain, TileData[][] tiles, TileData tile, int x, int y, AssetManager assetManager, Node wallTileNode, Node ceilingTileNode) {
 
         // Ceiling
         String modelName = ceilingResource.getName();
@@ -605,7 +739,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             ceiling = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o", false);
 
             if (terrain.getFlags().contains(Terrain.TerrainFlag.RANDOM_TEXTURE)) {
-                setRandomTexture(assetManager, ceiling);
+                setRandomTexture(assetManager, ceiling, tile);
             }
         }
         ceiling.move(x * TILE_WIDTH, TILE_HEIGHT, y * TILE_WIDTH);
@@ -654,6 +788,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
 
         //
+
+        // Just set the selected material here if needed
+        if (tile.isSelected()) {
+            setTaggedMaterialToGeometries(ceilingTileNode);
+            setTaggedMaterialToGeometries(wallTileNode);
+        }
     }
 
     /**
@@ -668,7 +808,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param floorResource the floor resource
      * @param root the root node
      */
-    private void handleFloor(Terrain terrain, Tile[][] tiles, int x, int y, AssetManager assetManager, ArtResource floorResource, Node root, Tile tile) {
+    private void handleFloor(Terrain terrain, TileData[][] tiles, int x, int y, AssetManager assetManager, ArtResource floorResource, Node root, TileData tile) {
 
         // For water construction type (lava & water), there are 8 pieces (0-7 suffix) in complete resource
         // And in the top resource there is the actual lava/water
@@ -717,7 +857,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param floorResource the floor resource
      * @return a water / lava tile
      */
-    private Spatial handleWaterConstruction(Tile[][] tiles, int x, int y, Terrain terrain, AssetManager assetManager, ArtResource floorResource) {
+    private Spatial handleWaterConstruction(TileData[][] tiles, int x, int y, Terrain terrain, AssetManager assetManager, ArtResource floorResource) {
 
         // The bed
         // Figure out which peace by seeing the neighbours
@@ -940,8 +1080,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param p starting point
      * @param roomInstance the room instance
      */
-    private void findRoom(Tile[][] tiles, Point p, RoomInstance roomInstance) {
-        Tile tile = tiles[p.x][p.y];
+    private void findRoom(TileData[][] tiles, Point p, RoomInstance roomInstance) {
+        TileData tile = tiles[p.x][p.y];
 
         // Get the terrain
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
@@ -980,8 +1120,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param p starting point
      * @param entityInstance the batch instance
      */
-    private void findTerrainBatch(Tile[][] tiles, Point p, EntityInstance<Terrain> entityInstance) {
-        Tile tile = tiles[p.x][p.y];
+    private void findTerrainBatch(TileData[][] tiles, Point p, EntityInstance<Terrain> entityInstance) {
+        TileData tile = tiles[p.x][p.y];
 
         if (!terrainBatchCoordinates.containsKey(p)) {
 
@@ -1021,7 +1161,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param root the root node
      * @param roomInstance the room instance
      */
-    private void handleRoom(Tile[][] tiles, AssetManager assetManager, Node root, RoomInstance roomInstance) {
+    private void handleRoom(TileData[][] tiles, AssetManager assetManager, Node root, RoomInstance roomInstance) {
         String roomName = roomInstance.getRoom().getName();
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3:
