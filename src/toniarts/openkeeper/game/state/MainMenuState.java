@@ -169,7 +169,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         // Attach the 3D Front end
         menuNode = new Node("Main menu");
-        menuNode.attachChild(new MapLoader() {
+        menuNode.attachChild(new MapLoader(assetManager, kwdFile) {
             @Override
             protected void updateProgress(int progress, int max) {
                 if (loadingScreen != null) {
