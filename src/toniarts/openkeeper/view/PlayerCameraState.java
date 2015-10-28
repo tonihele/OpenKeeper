@@ -17,7 +17,6 @@
 package toniarts.openkeeper.view;
 
 import com.jme3.app.Application;
-import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.input.InputManager;
@@ -37,6 +36,7 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.world.MapLoader;
@@ -46,7 +46,7 @@ import toniarts.openkeeper.world.MapLoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerCameraState extends AbstractAppState implements ActionListener, AnalogListener {
+public class PlayerCameraState extends AbstractPauseAwareState implements ActionListener, AnalogListener {
 
     private Main app;
     private Node rootNode;
@@ -195,5 +195,10 @@ public class PlayerCameraState extends AbstractAppState implements ActionListene
         } else if (name.equals(Settings.Setting.CAMERA_UP.name())) {
             camera.moveCamera(value, false);
         }
+    }
+
+    @Override
+    public boolean isPauseable() {
+        return false;
     }
 }
