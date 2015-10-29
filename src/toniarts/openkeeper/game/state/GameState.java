@@ -83,6 +83,10 @@ public class GameState extends AbstractAppState {
         inputManager = this.app.getInputManager();
         viewPort = this.app.getViewPort();
 
+        // Create physics state
+        bulletAppState = new BulletAppState();
+        this.stateManager.attach(bulletAppState);
+
         // Set up the loading screen
         SingleBarLoadingState loader = new SingleBarLoadingState() {
             @Override
@@ -98,9 +102,6 @@ public class GameState extends AbstractAppState {
                     }
                     setProgress(0.25f);
 
-                    // Create physics state
-                    bulletAppState = new BulletAppState();
-
                     // Create the actual level
                     worldHandler = new WorldHandler(assetManager, kwdFile, bulletAppState) {
                         @Override
@@ -109,8 +110,6 @@ public class GameState extends AbstractAppState {
                         }
                     };
                     worldNode = worldHandler.getWorld();
-
-                    this.stateManager.attach(bulletAppState);
 
                     setProgress(1.0f);
                 } catch (Exception e) {
