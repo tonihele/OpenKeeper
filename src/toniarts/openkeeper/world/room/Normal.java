@@ -31,7 +31,7 @@ import toniarts.openkeeper.world.MapLoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Normal {
+public class Normal extends RoomConstructor {
 
     private Normal() {
     }
@@ -161,7 +161,7 @@ public class Normal {
                         }
 
                         // Load the piece
-                        Node part = (Node) assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + pieceNumber + ".j3o");
+                        Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + pieceNumber + ".j3o");
                         resetAndMoveSpatial(part, start, new Point(start.x + x, start.y + y));
                         if (quat != null) {
                             part.rotate(quat);
@@ -183,24 +183,6 @@ public class Normal {
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return n;
-    }
-
-    /**
-     * Resets (scale & translation) and moves the spatial to the point. The
-     * point is relative to the start point
-     *
-     * @param tile the tile, spatial
-     * @param start start point
-     * @param p the tile point
-     */
-    private static void resetAndMoveSpatial(Node tile, Point start, Point p) {
-
-        // Reset, really, the size is 1 after this...
-        for (Spatial subSpat : tile.getChildren()) {
-            subSpat.setLocalScale(1);
-            subSpat.setLocalTranslation(0, 0, 0);
-        }
-        tile.move(p.x - start.x, -1f, p.y - start.y);
     }
 
     private static boolean hasSameTile(boolean[][] map, int x, int y) {

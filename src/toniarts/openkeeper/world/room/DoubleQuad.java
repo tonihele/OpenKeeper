@@ -28,7 +28,7 @@ import toniarts.openkeeper.world.MapLoader;
  *
  * @author ArchDemon
  */
-public class DoubleQuad {
+public class DoubleQuad extends RoomConstructor {
 
     public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance) {
         Node n = new Node(roomInstance.getRoom().getName());
@@ -40,7 +40,7 @@ public class DoubleQuad {
         for (Point p : roomInstance.getCoordinates()) {
             Spatial tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(modelName + i + ".j3o"));
             // Reset
-            resetAndMoveSpatial((Node) tile, start, p);
+            resetAndMoveSpatial(tile, start, p);
             // FIXME: this not correct
             switch (i) {
                 case 0:
@@ -77,23 +77,5 @@ public class DoubleQuad {
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return n;
-    }
-
-    /**
-     * Resets (scale & translation) and moves the spatial to the point. The
-     * point is relative to the start point
-     *
-     * @param tile the tile, spatial
-     * @param start start point
-     * @param p the tile point
-     */
-    private static void resetAndMoveSpatial(Node tile, Point start, Point p) {
-
-        // Reset, really, the size is 1 after this...
-        for (Spatial subSpat : tile.getChildren()) {
-            subSpat.setLocalScale(1);
-            subSpat.setLocalTranslation(0, 0, 0);
-        }
-        tile.move(p.x - start.x, -MapLoader.TILE_HEIGHT, p.y - start.y);
     }
 }

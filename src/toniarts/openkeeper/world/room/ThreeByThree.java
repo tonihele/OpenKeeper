@@ -28,7 +28,7 @@ import toniarts.openkeeper.world.MapLoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ThreeByThree {
+public class ThreeByThree extends RoomConstructor {
 
     private ThreeByThree() {
     }
@@ -40,14 +40,9 @@ public class ThreeByThree {
         int i = 0;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Node tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + i + ".j3o"));
+            Spatial tile = (Spatial) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + i + ".j3o"));
 
-            // Reset, really, the size is 1 after this...
-            for (Spatial subSpat : tile.getChildren()) {
-                subSpat.setLocalScale(1);
-                subSpat.setLocalTranslation(0, 0, 0);
-            }
-            tile.move(p.x - start.x, -1.0f, p.y - start.y);
+            resetAndMoveSpatial(tile, start, p);
 
             n.attachChild(tile);
             i++;

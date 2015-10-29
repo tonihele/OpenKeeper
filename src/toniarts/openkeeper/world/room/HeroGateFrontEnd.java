@@ -40,7 +40,7 @@ import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class HeroGateFrontEnd {
+public class HeroGateFrontEnd extends RoomConstructor {
 
     private HeroGateFrontEnd() {
     }
@@ -54,7 +54,7 @@ public class HeroGateFrontEnd {
         int i = 1;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Node tile = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + i + ".j3o"));
+            Spatial tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + i + ".j3o"));
 
             // Reset
             resetAndMoveSpatial(tile, start, p);
@@ -153,24 +153,6 @@ public class HeroGateFrontEnd {
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return n;
-    }
-
-    /**
-     * Resets (scale & translation) and moves the spatial to the point. The
-     * point is relative to the start point
-     *
-     * @param tile the tile, spatial
-     * @param start start point
-     * @param p the tile point
-     */
-    private static void resetAndMoveSpatial(Node tile, Point start, Point p) {
-
-        // Reset, really, the size is 1 after this...
-        for (Spatial subSpat : tile.getChildren()) {
-            subSpat.setLocalScale(1);
-            subSpat.setLocalTranslation(0, 0, 0);
-        }
-        tile.move(p.x - start.x, -1.0f, p.y - start.y);
     }
 
     /**

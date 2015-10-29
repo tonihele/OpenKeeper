@@ -55,7 +55,7 @@ public class CombatPit extends RoomConstructor {
             if (!hasDoor && !S && N && NE && NW && E && W && !SW && !SE) {
                 Spatial part = loadAsset(assetManager, modelName + "14" + ".j3o", false);
 
-                resetAndMoveSpatial((Node) part, start, p);
+                resetAndMoveSpatial(part, start, p);
                 hasDoor = true;
 
                 part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
@@ -158,7 +158,7 @@ public class CombatPit extends RoomConstructor {
                     // Load the piece
                     Spatial part = loadAsset(assetManager, modelName + pieceNumber + ".j3o", false);
 
-                    resetAndMoveSpatial((Node) part, start, p);
+                    resetAndMoveSpatial(part, start, p);
                     if (yAngle != 0) {
                         part.rotate(0, yAngle, 0);
                     }

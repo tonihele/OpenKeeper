@@ -27,12 +27,25 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public abstract class RoomConstructor {
 
-    protected static void resetAndMoveSpatial(Node tile, Point start, Point p) {
+    /**
+     * Resets (scale & translation) and moves the spatial to the point. The
+     * point is relative to the start point
+     *
+     * @param tile the tile, spatial
+     * @param start start point
+     * @param p the tile point
+     */
+    protected static void resetAndMoveSpatial(Spatial tile, Point start, Point p) {
 
         // Reset, really, the size is 1 after this...
-        for (Spatial subSpat : tile.getChildren()) {
-            subSpat.setLocalScale(1);
-            subSpat.setLocalTranslation(0, 0, 0);
+        if (tile instanceof Node) {
+            for (Spatial subSpat : ((Node) tile).getChildren()) {
+                subSpat.setLocalScale(1);
+                subSpat.setLocalTranslation(0, 0, 0);
+            }
+        } else {
+            tile.setLocalScale(1);
+            tile.setLocalTranslation(0, 0, 0);
         }
         tile.move(p.x - start.x, -MapLoader.TILE_HEIGHT, p.y - start.y);
     }
