@@ -100,7 +100,6 @@ public class GameState extends AbstractAppState {
 
                     // Create physics state
                     bulletAppState = new BulletAppState();
-                    this.stateManager.attach(bulletAppState);
 
                     // Create the actual level
                     worldHandler = new WorldHandler(assetManager, kwdFile, bulletAppState) {
@@ -110,6 +109,8 @@ public class GameState extends AbstractAppState {
                         }
                     };
                     worldNode = worldHandler.getWorld();
+
+                    this.stateManager.attach(bulletAppState);
 
                     setProgress(1.0f);
                 } catch (Exception e) {
