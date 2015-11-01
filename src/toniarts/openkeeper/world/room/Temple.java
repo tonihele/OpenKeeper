@@ -58,7 +58,7 @@ public class Temple extends RoomConstructor {
             if (!hasHand && p.equals(roomInstance.getCenter())) {
                 Spatial part = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + "Temple_Hand" + ".j3o", false);
 
-                resetAndMoveSpatial((Node) part, start, p);
+                resetAndMoveSpatial(part, start, p);
                 hasHand = true;
 
                 part.move(TILE_WIDTH / 4, -TILE_HEIGHT / 2, TILE_WIDTH / 4);
@@ -159,7 +159,7 @@ public class Temple extends RoomConstructor {
                         Spatial part = loadAsset(assetManager, modelName + pieceNumber + ".j3o", false);
 
 
-                        resetAndMoveSpatial((Node) part, start, p);
+                        resetAndMoveSpatial(part, start, p);
                         if (yAngle != 0) {
                             part.rotate(0, yAngle, 0);
                         }

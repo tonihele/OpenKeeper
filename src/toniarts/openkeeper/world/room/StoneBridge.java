@@ -99,7 +99,7 @@ public class StoneBridge extends RoomConstructor {
                     }
                     // Load the piece
                     Spatial part = loadAsset(assetManager, modelName + pieceNumber + ".j3o", false);
-                    resetAndMoveSpatial((Node) part, start, p);
+                    resetAndMoveSpatial(part, start, p);
                     if (yAngle != 0) {
                         part.rotate(0, yAngle, 0);
                     }
