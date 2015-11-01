@@ -360,6 +360,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             }
         }
 
+        // Set the menuButton
+        Element menuButton = nifty.getCurrentScreen().findElementByName("menuButton");
+        if (paused) {
+            menuButton.startEffect(EffectEventId.onCustom, null, "select");
+        } else {
+            menuButton.stopEffect(EffectEventId.onCustom);
+        }
+
         nifty.getCurrentScreen().findElementByName("optionsMenu").setVisible(paused);
         if (paused) {
             pauseMenuNavigate(PauseMenuState.MAIN.name(), null, null, null);
@@ -506,6 +514,13 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         interactionState.setInteractionState(PlayerInteractionState.InteractionState.BUILD, Integer.parseInt(roomId));
     }
 
+    /**
+     * Called from the GUI, toggles sell mode
+     */
+    public void sellMode() {
+        interactionState.setInteractionState(PlayerInteractionState.InteractionState.SELL, 0);
+    }
+
     private void updateGUISelectedStatus(PlayerInteractionState.InteractionState interactionState, int id) {
 
         // Update the GUI
@@ -528,6 +543,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             if (e != null) {
                 e.startEffect(EffectEventId.onCustom, null, "select");
             }
+        }
+
+        // The sell button
+        Element sellButton = nifty.getCurrentScreen().findElementByName("sellButton");
+        if (interactionState == PlayerInteractionState.InteractionState.SELL) {
+            sellButton.startEffect(EffectEventId.onCustom, null, "select");
+        } else {
+            sellButton.stopEffect(EffectEventId.onCustom);
         }
     }
 
