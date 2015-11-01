@@ -5,6 +5,7 @@ import com.jme3.material.RenderState.FaceCullMode;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial.CullHint;
 import com.jme3.scene.debug.WireBox;
@@ -135,6 +136,7 @@ public abstract class SelectionHandler {
         this.wireBoxGeo = new Geometry("wireBox", wireBox);
         this.wireBoxGeo.setMaterial(matWireBox);
         this.wireBoxGeo.setCullHint(CullHint.Never);
+        this.wireBoxGeo.setShadowMode(RenderQueue.ShadowMode.Off);
 
         this.app.getRootNode().attachChild(this.wireBoxGeo);
     }
