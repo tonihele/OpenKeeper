@@ -36,6 +36,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.world.WorldHandler;
 
@@ -49,6 +50,10 @@ import toniarts.openkeeper.world.WorldHandler;
 // TODO: States, now only selection
 public class PlayerInteractionState extends AbstractPauseAwareState implements RawInputListener {
 
+    public enum InteractionState {
+
+        NONE, BUILD, SELL, CAST
+    }
     private Main app;
     private final GameState gameState;
     private Node rootNode;
@@ -62,6 +67,8 @@ public class PlayerInteractionState extends AbstractPauseAwareState implements R
     private boolean cancelIsPressed = false;
     private boolean startSet = false;
     public Vector2f mousePosition = Vector2f.ZERO;
+    private InteractionState interactionState = InteractionState.NONE;
+    private int itemId;
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
     public PlayerInteractionState(Player player, GameState gameState) {
@@ -80,7 +87,54 @@ public class PlayerInteractionState extends AbstractPauseAwareState implements R
         viewPort = this.app.getViewPort();
 
         // Init handler
-        handler = new SelectionHandler(this.app, this);
+        handler = new SelectionHandler(this.app, this) {
+            @Override
+            protected boolean isOnView() {
+                Vector2f pos = handler.getRoundedMousePos();
+                return (pos.x >= 0 && pos.x < gameState.getLevelData().getWidth() && pos.y >= 0 && pos.y < gameState.getLevelData().getHeight());
+            }
+
+            @Override
+            protected boolean isVisible() {
+
+                if (!startSet) {
+
+                    // Selling is always visible, and the only thing you can do
+                    // When building, you can even tag taggables
+                    Vector2f pos = handler.getRoundedMousePos();
+                    switch (interactionState) {
+                        case NONE: {
+                            return (isOnView() && getWorldHandler().isTaggable((int) pos.x, (int) pos.y));
+                        }
+                        case BUILD: {
+                            return (isOnView() && (getWorldHandler().isTaggable((int) pos.x, (int) pos.y) || getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(itemId))));
+                        }
+                        case SELL: {
+                            return isOnView();
+                        }
+                        case CAST: {
+                            return false;
+                        }
+                        default:
+                            return false;
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            protected SelectionHandler.SelectionColorIndicator getSelectionColorIndicator() {
+                return (interactionState == InteractionState.SELL ? SelectionColorIndicator.RED : SelectionColorIndicator.BLUE);
+            }
+
+            @Override
+            public void userSubmit(SelectionArea area) {
+
+                // Determine if this is a select/deselect by the starting tile's status
+                boolean select = !getWorldHandler().isSelected((int) Math.max(0, selectionArea.getActualStartingCoordinates().x), (int) Math.max(0, selectionArea.getActualStartingCoordinates().y));
+                getWorldHandler().selectTiles(selectionArea, select);
+            }
+        };
 
         // Add listener
         if (isEnabled()) {
@@ -157,6 +211,10 @@ public class PlayerInteractionState extends AbstractPauseAwareState implements R
                 handler.setNoSelectedArea();
             }
         } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT) {
+
+            // Reset the state
+            interactionState = InteractionState.NONE;
+
             startSet = false;
             handler.getSelectionArea().setStart(handler.getRoundedMousePos());
             handler.updateSelectionBox();
@@ -173,5 +231,16 @@ public class PlayerInteractionState extends AbstractPauseAwareState implements R
 
     public WorldHandler getWorldHandler() {
         return gameState.getWorldHandler();
+    }
+
+    /**
+     * Set the interaction state for the keeper
+     *
+     * @param interactionState state
+     * @param id object id, i.e. build state requires the room id
+     */
+    public void setInteractionState(InteractionState interactionState, int id) {
+        this.interactionState = interactionState;
+        this.itemId = id;
     }
 }

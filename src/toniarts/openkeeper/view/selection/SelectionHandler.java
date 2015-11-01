@@ -18,11 +18,25 @@ import toniarts.openkeeper.world.MapLoader;
  *
  * @author Philip Willuweit p.willuweit@gmx.de
  */
-public class SelectionHandler {
+public abstract class SelectionHandler {
 
+    public enum SelectionColorIndicator {
+
+        BLUE(ColorRGBA.Blue.mult(5)), RED(ColorRGBA.Red.mult(5));
+
+        private SelectionColorIndicator(ColorRGBA color) {
+            this.color = color;
+        }
+
+        public ColorRGBA getColor() {
+            return color;
+        }
+        private final ColorRGBA color;
+    }
     private Main app;
     private final PlayerInteractionState state;
     private float appScaled = MapLoader.TILE_WIDTH;
+    private SelectionColorIndicator selectionColor = SelectionColorIndicator.BLUE;
 
     /* Visuals for Selection */
     private Geometry wireBoxGeo;
@@ -60,12 +74,30 @@ public class SelectionHandler {
         hasSelectedArea = false;
     }
 
-    protected boolean isOnView() {
-        return true; // this.app.getInputManager().getCursorPosition().y > 100;
+    /**
+     * Should the selection be visible
+     *
+     * @return is visible
+     */
+    protected boolean isVisible() {
+        return true;
+    }
+
+    /**
+     * The selection box color, to indicate the action, or its feasibility
+     *
+     * @return the selection indicator color
+     */
+    protected SelectionColorIndicator getSelectionColorIndicator() {
+        return selectionColor;
     }
 
     public SelectionArea getSelectionArea() {
         return selectionArea;
+    }
+
+    protected boolean isOnView() {
+        return true;
     }
 
     public void updateSelectionBox() {
@@ -77,15 +109,25 @@ public class SelectionHandler {
             wireBoxGeo.setLocalTranslation(position.x - 0.5f, appScaled / 2, position.y - 0.5f);
 
             wireBox.updatePositions(appScaled / 2 * dx + 0.01f, appScaled / 2 + 0.01f, appScaled / 2 * dy + 0.01f);
+
+            // Selection color indicator
+            SelectionColorIndicator newSelectionColor = getSelectionColorIndicator();
+            if (!newSelectionColor.equals(selectionColor)) {
+                selectionColor = newSelectionColor;
+                matWireBox.setColor("Color", selectionColor.getColor());
+            }
+        }
+        if (isVisible()) {
+            this.wireBoxGeo.setCullHint(CullHint.Never);
+        } else {
+            this.wireBoxGeo.setCullHint(CullHint.Always);
         }
     }
 
     private void setupVisualsForSelection() {
-
         matWireBox = new Material(this.app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-        // mat.getAdditionalRenderState().setWireframe(true);
         matWireBox.getAdditionalRenderState().setFaceCullMode(FaceCullMode.Off);
-        matWireBox.setColor("Color", ColorRGBA.Blue.mult(5));
+        matWireBox.setColor("Color", selectionColor.getColor());
 
         this.wireBox = new WireBox(appScaled, appScaled, appScaled);
         this.wireBox.setDynamic();
@@ -97,10 +139,5 @@ public class SelectionHandler {
         this.app.getRootNode().attachChild(this.wireBoxGeo);
     }
 
-    public void userSubmit(SelectionArea area) {
-
-        // Determine if this is a select/deselect by the starting tile's status
-        boolean select = !state.getWorldHandler().isSelected((int) Math.max(0, selectionArea.getActualStartingCoordinates().x), (int) Math.max(0, selectionArea.getActualStartingCoordinates().y));
-        state.getWorldHandler().selectTiles(selectionArea, select);
-    }
+    public abstract void userSubmit(SelectionArea area);
 }

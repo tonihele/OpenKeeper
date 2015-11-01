@@ -42,6 +42,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -239,6 +240,48 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      */
     protected boolean isSelected(int x, int y) {
         return mapData.getTile(x, y).isSelected();
+    }
+
+    /**
+     * Determine if a tile at x & y is selectable or not
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @return is the tile selectable
+     */
+    public boolean isTaggable(int x, int y) {
+        TileData tile = mapData.getTile(x, y);
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE);
+    }
+
+    /**
+     * Determine if a tile at x & y is buildable by the player
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param player the player
+     * @param room the room to be build
+     * @return is the tile buildable
+     */
+    public boolean isBuildable(int x, int y, Player player, Room room) {
+        TileData tile = mapData.getTile(x, y);
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+
+        // Ownable tile is needed for land building (and needs to be owned by us)
+        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND) && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getPlayerId() == player.getPlayerId()) {
+            return true;
+        }
+
+        // See if we are dealing with bridges
+        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER) && terrain.getFlags().contains(Terrain.TerrainFlag.WATER)) {
+            return true;
+        }
+        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA) && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

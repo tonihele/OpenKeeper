@@ -20,6 +20,8 @@ import com.jme3.asset.AssetManager;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.scene.Node;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.view.selection.SelectionArea;
 
 /**
@@ -90,5 +92,29 @@ public abstract class WorldHandler {
      */
     public boolean isSelected(int x, int y) {
         return mapLoader.isSelected(x, y);
+    }
+
+    /**
+     * Determine if a tile at x & y is selectable or not
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @return is the tile selectable
+     */
+    public boolean isTaggable(int x, int y) {
+        return mapLoader.isTaggable(x, y);
+    }
+
+    /**
+     * Determine if a tile at x & y is buildable by the player
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param player the player
+     * @param room the room to be build
+     * @return is the tile buildable
+     */
+    public boolean isBuildable(int x, int y, Player player, Room room) {
+        return mapLoader.isBuildable(x, y, player, room);
     }
 }
