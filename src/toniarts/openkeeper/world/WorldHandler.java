@@ -346,7 +346,7 @@ public abstract class WorldHandler {
 
                 // Sell
                 TileData tile = mapLoader.getTile(x, y);
-                tile.setTerrainId((short) 8); // FIXME: Nope!
+                tile.setTerrainId(kwdFile.getClaimedPath().getTerrainId());
 
                 // Get the instance
                 Point p = new Point(x, y);
