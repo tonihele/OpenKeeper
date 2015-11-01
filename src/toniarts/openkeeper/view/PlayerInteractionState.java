@@ -140,6 +140,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
                     // Reset state after successful build
                     setInteractionState(InteractionState.NONE, 0);
+                } else if (PlayerInteractionState.this.interactionState == InteractionState.SELL && getWorldHandler().isSellable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player)) {
+                    getWorldHandler().sell(selectionArea, player);
                 }
             }
         };

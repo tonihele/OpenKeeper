@@ -76,10 +76,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private Node map;
     private final MapData mapData;
     private final AssetManager assetManager;
+    private Node roomsNode;
     private List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
     private List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private HashMap<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
+    private HashMap<RoomInstance, Node> roomNodes = new HashMap<>(); // Room instances by node
     private HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
@@ -98,7 +100,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         map = new Node("Map");
         Node terrain = new Node("Terrain");
         generatePages(terrain);
-        terrain.attachChild(new Node("Rooms"));
+        roomsNode = new Node("Rooms");
+        terrain.attachChild(roomsNode);
 
         // Go through the map
         int tilesCount = object.getWidth() * object.getHeight();
@@ -586,11 +589,14 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 // TODO: We need to find it later!
                 BatchNode roomNode = new BatchNode(roomInstance.toString());
                 roomNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive); // Rooms are weird, better to cast & receive shadows
-                ((Node) root.getChild(root.getChildren().size() - 1)).attachChild(roomNode);
+                roomsNode.attachChild(roomNode);
 
                 // Construct the actual room
                 handleRoom(tiles, assetManager, roomNode, roomInstance);
                 roomNode.batch();
+
+                // Add to registry
+                roomNodes.put(roomInstance, roomNode);
             }
 
             // Swap the terrain if this is a bridge
@@ -1258,6 +1264,41 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
         material.setColor("Diffuse", ColorRGBA.White);
         material.setBoolean("UseMaterialColors", false); // Hmm...
+    }
+
+    /**
+     * Get coordinate / room instance mapping
+     *
+     * @return mapping
+     */
+    protected HashMap<Point, RoomInstance> getRoomCoordinates() {
+        return roomCoordinates;
+    }
+
+    /**
+     * Get list of room instances
+     *
+     * @return room instances
+     */
+    protected List<RoomInstance> getRooms() {
+        return rooms;
+    }
+
+    /**
+     * Remove all the given room instances (and actually removes them from the
+     * scene)
+     *
+     * @param instances room instances to remove
+     */
+    protected void removeRoomInstances(RoomInstance... instances) {
+        for (RoomInstance instance : instances) {
+            roomsNode.detachChild(roomNodes.get(instance));
+            roomNodes.remove(instance);
+            rooms.remove(instance);
+            for (Point p : instance.getCoordinates()) {
+                roomCoordinates.remove(p);
+            }
+        }
     }
 
     /**
