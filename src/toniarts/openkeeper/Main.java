@@ -89,6 +89,7 @@ public class Main extends SimpleApplication {
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
     private final HashMap<String, String> params;
+    private final boolean debug;
     private NiftyJmeDisplay nifty;
     private Settings userSettings;
 
@@ -216,6 +217,7 @@ public class Main extends SimpleApplication {
         super(new StatsAppState(), new DebugKeysAppState());
 
         this.params = params;
+        this.debug = params.containsKey("debug");
     }
 
     private static void initSettings(Main app) {
@@ -673,5 +675,14 @@ public class Main extends SimpleApplication {
             getGuiViewPort().addProcessor(nifty);
         }
         return nifty;
+    }
+
+    /**
+     * Whether the debug flag is on
+     *
+     * @return debug
+     */
+    public boolean isDebug() {
+        return debug;
     }
 }
