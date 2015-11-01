@@ -130,9 +130,17 @@ public class PlayerInteractionState extends AbstractPauseAwareState implements R
             @Override
             public void userSubmit(SelectionArea area) {
 
-                // Determine if this is a select/deselect by the starting tile's status
-                boolean select = !getWorldHandler().isSelected((int) Math.max(0, selectionArea.getActualStartingCoordinates().x), (int) Math.max(0, selectionArea.getActualStartingCoordinates().y));
-                getWorldHandler().selectTiles(selectionArea, select);
+                if (PlayerInteractionState.this.interactionState == InteractionState.NONE || (PlayerInteractionState.this.interactionState == InteractionState.BUILD && getWorldHandler().isTaggable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y))) {
+
+                    // Determine if this is a select/deselect by the starting tile's status
+                    boolean select = !getWorldHandler().isSelected((int) Math.max(0, selectionArea.getActualStartingCoordinates().x), (int) Math.max(0, selectionArea.getActualStartingCoordinates().y));
+                    getWorldHandler().selectTiles(selectionArea, select);
+                } else if (PlayerInteractionState.this.interactionState == InteractionState.BUILD && getWorldHandler().isBuildable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player, gameState.getLevelData().getRoomById(itemId))) {
+                    getWorldHandler().build(selectionArea, player, gameState.getLevelData().getRoomById(itemId));
+
+                    // Reset state after successful build
+                    interactionState = InteractionState.NONE;
+                }
             }
         };
 

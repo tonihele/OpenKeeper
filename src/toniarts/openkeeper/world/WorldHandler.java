@@ -21,7 +21,10 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.scene.Node;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -239,5 +242,33 @@ public abstract class WorldHandler {
         if ((x >= 0 && x < kwdFile.getWidth() && y >= 0 && y < kwdFile.getHeight())) {
             tileCoords.add(new Point(x, y));
         }
+    }
+
+    /**
+     * Build a building to the wanted area
+     *
+     * @param selectionArea the selection area
+     * @param player the player, the new owner
+     * @param room room to build
+     */
+    public void build(SelectionArea selectionArea, Player player, Room room) {
+        Set<Point> updatableTiles = new HashSet<>();
+        for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getWidth(), selectionArea.getEnd().x + 1); x++) {
+            for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getHeight(), selectionArea.getEnd().y + 1); y++) {
+
+                // See that is this valid
+                if (!isBuildable(x, y, player, room)) {
+                    continue;
+                }
+
+                // Build
+                TileData tile = mapLoader.getTile(x, y);
+                tile.setPlayerId(player.getPlayerId());
+                tile.setTerrainId(room.getTerrainId());
+
+                updatableTiles.addAll(Arrays.asList(getSurroundingTiles(new Point(x, y))));
+            }
+        }
+        mapLoader.updateTiles(updatableTiles.toArray(new Point[updatableTiles.size()]));
     }
 }
