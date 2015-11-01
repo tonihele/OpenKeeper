@@ -93,6 +93,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private boolean backgroundSet = false;
     private static final String HUD_SCREEN_ID = "hud";
     private List<AbstractPauseAwareState> appStates = new ArrayList<>();
+    private PlayerInteractionState interactionState;
     private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
 
     @Override
@@ -140,7 +141,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Create app states
             Player player = gameState.getLevelData().getPlayer((short) 3); // Keeper 1
             appStates.add(new PlayerCameraState(player));
-            appStates.add(new PlayerInteractionState(player, gameState));
+            interactionState = new PlayerInteractionState(player, gameState);
+            appStates.add(interactionState);
 
             // Load the state
             for (AbstractAppState state : appStates) {
@@ -258,6 +260,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                                     filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat(room.getGuiIcon().getName()).concat(".png")));
                                     valignCenter();
                                     marginRight("3px");
+                                    interactOnClick("buildMode(" + room.getRoomId() + ")");
                                 }
                             });
                         }
@@ -450,6 +453,16 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
     public void quitToOS() {
         app.stop();
+    }
+
+    /**
+     * Called from the GUI, toggles build mode
+     *
+     * @param roomId the room id to construct
+     *
+     */
+    public void buildMode(String roomId) {
+        interactionState.setInteractionState(PlayerInteractionState.InteractionState.BUILD, Integer.parseInt(roomId));
     }
 
     /**

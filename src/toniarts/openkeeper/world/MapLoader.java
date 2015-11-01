@@ -45,7 +45,6 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.world.room.CombatPit;
 import toniarts.openkeeper.world.room.FiveByFiveRotated;
 import toniarts.openkeeper.world.room.HeroGateFrontEnd;
@@ -140,13 +139,24 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     }
 
     /**
+     * Get the tile data at x & y
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @return the tile data
+     */
+    protected TileData getTile(int x, int y) {
+        return mapData.getTile(x, y);
+    }
+
+    /**
      * Update the selected tiles (and neighbouring tiles if needed)
      *
      * @param mapNode the map node
      * @param mapData the actual map data
      * @param updatableTiles list of tiles to update
      */
-    private void updateTiles(Point... points) {
+    protected void updateTiles(Point... points) {
 
         // Reconstruct all tiles in the area
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
@@ -185,28 +195,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
     }
 
-    /**
-     * Set some tiles selected/undelected
-     *
-     * @param selectionArea the selection area
-     * @param select select or unselect
-     */
-    protected void selectTiles(SelectionArea selectionArea, boolean select) {
-        List<Point> updatableTiles = new ArrayList<>();
-        for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(mapData.getWidth(), selectionArea.getEnd().x + 1); x++) {
-            for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(mapData.getHeight(), selectionArea.getEnd().y + 1); y++) {
-                TileData tile = mapData.getTile(x, y);
-                Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-                if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
-                    continue;
-                }
-                tile.setSelected(select);
-                updatableTiles.add(new Point(x, y));
-            }
-        }
-        updateTiles(updatableTiles.toArray(new Point[updatableTiles.size()]));
-    }
-
     private void setTaggedMaterialToGeometries(final Node node) {
 
         // Change the material on geometries
@@ -228,17 +216,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 }
             }
         });
-    }
-
-    /**
-     * Determine if a tile at x & y is selected or not
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @return is the tile selected
-     */
-    protected boolean isSelected(int x, int y) {
-        return mapData.getTile(x, y).isSelected();
     }
 
     /**
