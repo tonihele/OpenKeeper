@@ -48,7 +48,7 @@ import toniarts.openkeeper.world.WorldHandler;
  * @author ArchDemon
  */
 // TODO: States, now only selection
-public class PlayerInteractionState extends AbstractPauseAwareState implements RawInputListener {
+public abstract class PlayerInteractionState extends AbstractPauseAwareState implements RawInputListener {
 
     public enum InteractionState {
 
@@ -139,7 +139,9 @@ public class PlayerInteractionState extends AbstractPauseAwareState implements R
                     getWorldHandler().build(selectionArea, player, gameState.getLevelData().getRoomById(itemId));
 
                     // Reset state after successful build
-                    interactionState = InteractionState.NONE;
+                    setInteractionState(InteractionState.NONE, 0);
+                } else if (PlayerInteractionState.this.interactionState == InteractionState.SELL && getWorldHandler().isSellable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player)) {
+                    getWorldHandler().sell(selectionArea, player);
                 }
             }
         };
@@ -235,7 +237,7 @@ public class PlayerInteractionState extends AbstractPauseAwareState implements R
             }
 
             // Reset the state
-            interactionState = InteractionState.NONE;
+            setInteractionState(InteractionState.NONE, 0);
 
             startSet = false;
             handler.getSelectionArea().setStart(pos);
@@ -264,5 +266,34 @@ public class PlayerInteractionState extends AbstractPauseAwareState implements R
     public void setInteractionState(InteractionState interactionState, int id) {
         this.interactionState = interactionState;
         this.itemId = id;
+
+        // Call the update
+        onInteractionStateChange(interactionState, id);
     }
+
+    /**
+     * Get the current interaction state
+     *
+     * @return current interaction
+     */
+    public InteractionState getInteractionState() {
+        return interactionState;
+    }
+
+    /**
+     * Get the current interaction state item id
+     *
+     * @return current interaction state item id
+     */
+    public int getInteractionStateItemId() {
+        return itemId;
+    }
+
+    /**
+     * A callback for changing the interaction state
+     *
+     * @param interactionState new state
+     * @param id new id
+     */
+    protected abstract void onInteractionStateChange(InteractionState interactionState, int id);
 }

@@ -31,10 +31,13 @@ import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.builder.EffectBuilder;
+import de.lessvoid.nifty.builder.HoverEffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
+import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
 import de.lessvoid.nifty.render.NiftyImage;
@@ -141,7 +144,12 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Create app states
             Player player = gameState.getLevelData().getPlayer((short) 3); // Keeper 1
             appStates.add(new PlayerCameraState(player));
-            interactionState = new PlayerInteractionState(player, gameState);
+            interactionState = new PlayerInteractionState(player, gameState) {
+                @Override
+                protected void onInteractionStateChange(PlayerInteractionState.InteractionState interactionState, int id) {
+                    PlayerState.this.updateGUISelectedStatus(interactionState, id);
+                }
+            };
             appStates.add(interactionState);
 
             // Load the state
@@ -261,6 +269,21 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                                     valignCenter();
                                     marginRight("3px");
                                     interactOnClick("buildMode(" + room.getRoomId() + ")");
+                                    id("room" + room.getRoomId());
+                                    onHoverEffect(new HoverEffectBuilder("imageOverlay") {
+                                        {
+                                            effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat("GUI/Icons/frame.png")));
+                                            post(true);
+                                        }
+                                    });
+                                    onCustomEffect(new EffectBuilder("imageOverlay") {
+                                        {
+                                            effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat("GUI/Icons/selected-spell.png")));
+                                            effectParameter("customKey", "select");
+                                            post(true);
+                                            neverStopRendering(true);
+                                        }
+                                    });
                                 }
                             });
                         }
@@ -273,6 +296,21 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                                     filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat(spell.getGuiIcon().getName()).concat(".png")));
                                     valignCenter();
                                     marginRight("3px");
+                                    id("spell" + spell.getKeeperSpellId());
+                                    onHoverEffect(new HoverEffectBuilder("imageOverlay") {
+                                        {
+                                            effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat("GUI/Icons/frame.png")));
+                                            post(true);
+                                        }
+                                    });
+                                    onCustomEffect(new EffectBuilder("imageOverlay") {
+                                        {
+                                            effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat("GUI/Icons/selected-room.png")));
+                                            effectParameter("customKey", "select");
+                                            post(true);
+                                            neverStopRendering(true);
+                                        }
+                                    });
                                 }
                             });
                         }
@@ -285,6 +323,9 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             {
             }
         }.build(nifty, screen, contentPanel);
+
+        // Set the selected status
+        updateGUISelectedStatus(interactionState.getInteractionState(), interactionState.getInteractionStateItemId());
 
         // Reset the layout
         contentPanel.resetLayout();
@@ -317,6 +358,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             if (state.isPauseable()) {
                 state.setEnabled(!paused);
             }
+        }
+
+        // Set the menuButton
+        Element menuButton = nifty.getCurrentScreen().findElementByName("menuButton");
+        if (paused) {
+            menuButton.startEffect(EffectEventId.onCustom, null, "select");
+        } else {
+            menuButton.stopEffect(EffectEventId.onCustom);
         }
 
         nifty.getCurrentScreen().findElementByName("optionsMenu").setVisible(paused);
@@ -463,6 +512,46 @@ public class PlayerState extends AbstractAppState implements ScreenController {
      */
     public void buildMode(String roomId) {
         interactionState.setInteractionState(PlayerInteractionState.InteractionState.BUILD, Integer.parseInt(roomId));
+    }
+
+    /**
+     * Called from the GUI, toggles sell mode
+     */
+    public void sellMode() {
+        interactionState.setInteractionState(PlayerInteractionState.InteractionState.SELL, 0);
+    }
+
+    private void updateGUISelectedStatus(PlayerInteractionState.InteractionState interactionState, int id) {
+
+        // Update the GUI
+        Element contentPanel = nifty.getCurrentScreen().findElementByName("tab-content");
+
+        // End the selected effect on others, and set the wanted as selected
+        for (Element e : contentPanel.getElements()) {
+            if (interactionState == PlayerInteractionState.InteractionState.BUILD && e.getId().equals("room" + id)) {
+                e.startEffect(EffectEventId.onCustom, null, "select");
+            } else if (interactionState == PlayerInteractionState.InteractionState.CAST && e.getId().equals("spell" + id)) {
+                e.startEffect(EffectEventId.onCustom, null, "select");
+            } else {
+
+                // Stop the effect
+                e.stopEffect(EffectEventId.onCustom);
+            }
+        }
+        if (interactionState == PlayerInteractionState.InteractionState.BUILD) {
+            Element e = contentPanel.findElementByName("room" + id);
+            if (e != null) {
+                e.startEffect(EffectEventId.onCustom, null, "select");
+            }
+        }
+
+        // The sell button
+        Element sellButton = nifty.getCurrentScreen().findElementByName("sellButton");
+        if (interactionState == PlayerInteractionState.InteractionState.SELL) {
+            sellButton.startEffect(EffectEventId.onCustom, null, "select");
+        } else {
+            sellButton.stopEffect(EffectEventId.onCustom);
+        }
     }
 
     /**

@@ -345,6 +345,7 @@ public final class KwdFile {
     private List<Variable> variables;
     private Terrain water;
     private Terrain lava;
+    private Terrain claimedPath;
     private boolean customOverrides = false;
     private boolean loaded = false;
     private final String basePath;
@@ -871,6 +872,9 @@ public final class KwdFile {
             }
             if (lava == null && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
                 lava = terrain;
+            }
+            if (claimedPath == null && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                claimedPath = terrain;
             }
 
             // Check file offset
@@ -2761,6 +2765,15 @@ public final class KwdFile {
      */
     public Terrain getWater() {
         return water;
+    }
+
+    /**
+     * Get the claimed path terrain tile
+     *
+     * @return claimed path
+     */
+    public Terrain getClaimedPath() {
+        return claimedPath;
     }
 
     /**

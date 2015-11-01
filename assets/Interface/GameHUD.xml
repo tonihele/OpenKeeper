@@ -101,17 +101,19 @@
                                     </effect>
                                 </panel>
 
-                                <panel x="100%" y="0" width="32px" height="32px">
+                                <!--Sell-->
+                                <panel id="sellButton" x="100%" y="0" width="32px" height="32px">
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-01.png" post="true"/>
-                                        <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-01.png" post="true"/>
+                                        <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-01.png" post="true" neverStopRendering="true"  />
                                     </effect>
+                                    <interact onClick="sellMode()"/>
                                 </panel>
-
-                                <panel x="0" y="100%" width="32px" height="32px">
+                                <!--The menu-->
+                                <panel id="menuButton" x="0" y="100%" width="32px" height="32px">
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-02.png" post="true"/>
-                                        <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-02.png" post="true"/>
+                                        <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-02.png" post="true" neverStopRendering="true"  />
                                     </effect>
                                     <interact onClick="pauseMenu()"/>
                                 </panel>

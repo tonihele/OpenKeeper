@@ -30,6 +30,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.world.room.RoomInstance;
 
 /**
  * Handles the handling of game world, physics & visual wise
@@ -190,7 +191,7 @@ public abstract class WorldHandler {
             TileData tile = mapLoader.getTile(x, y);
             Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-            mapLoader.updateTiles(getSurroundingTiles(new Point(x, y)));
+            mapLoader.updateTiles(getSurroundingTiles(new Point(x, y), true));
         }
     }
 
@@ -216,24 +217,26 @@ public abstract class WorldHandler {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                 tile.setPlayerId(player.getPlayerId());
             }
-            mapLoader.updateTiles(getSurroundingTiles(new Point(x, y)));
+            mapLoader.updateTiles(getSurroundingTiles(new Point(x, y), true));
         }
     }
 
-    private Point[] getSurroundingTiles(Point point) {
+    private Point[] getSurroundingTiles(Point point, boolean diagonal) {
 
         // Get all surrounding tiles
-        List<Point> tileCoords = new ArrayList<>(9);
+        List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
         tileCoords.add(point);
 
         addIfValidCoordinate(point.x, point.y - 1, tileCoords); // North
         addIfValidCoordinate(point.x + 1, point.y, tileCoords); // East
         addIfValidCoordinate(point.x, point.y + 1, tileCoords); // South
         addIfValidCoordinate(point.x - 1, point.y, tileCoords); // West
-        addIfValidCoordinate(point.x - 1, point.y - 1, tileCoords); // NW
-        addIfValidCoordinate(point.x + 1, point.y - 1, tileCoords); // NE
-        addIfValidCoordinate(point.x - 1, point.y + 1, tileCoords); // SW
-        addIfValidCoordinate(point.x + 1, point.y + 1, tileCoords); // SE
+        if (diagonal) {
+            addIfValidCoordinate(point.x - 1, point.y - 1, tileCoords); // NW
+            addIfValidCoordinate(point.x + 1, point.y - 1, tileCoords); // NE
+            addIfValidCoordinate(point.x - 1, point.y + 1, tileCoords); // SW
+            addIfValidCoordinate(point.x + 1, point.y + 1, tileCoords); // SE
+        }
 
         return tileCoords.toArray(new Point[tileCoords.size()]);
     }
@@ -253,6 +256,7 @@ public abstract class WorldHandler {
      */
     public void build(SelectionArea selectionArea, Player player, Room room) {
         Set<Point> updatableTiles = new HashSet<>();
+        Set<Point> buildPlots = new HashSet<>();
         for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getWidth(), selectionArea.getEnd().x + 1); x++) {
             for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getHeight(), selectionArea.getEnd().y + 1); y++) {
 
@@ -266,9 +270,99 @@ public abstract class WorldHandler {
                 tile.setPlayerId(player.getPlayerId());
                 tile.setTerrainId(room.getTerrainId());
 
-                updatableTiles.addAll(Arrays.asList(getSurroundingTiles(new Point(x, y))));
+                Point p = new Point(x, y);
+                buildPlots.addAll(Arrays.asList(getSurroundingTiles(p, false)));
+                updatableTiles.addAll(Arrays.asList(getSurroundingTiles(p, true)));
             }
         }
+
+        // See if we hit any of the adjacent rooms
+        Set<RoomInstance> adjacentInstances = new HashSet<>();
+        for (Point p : buildPlots) {
+            if (mapLoader.getRoomCoordinates().containsKey(p) && mapLoader.getRoomCoordinates().get(p).getRoom().equals(room)) {
+
+                // Same room, see that we own it
+                TileData tile = mapLoader.getTile(p.x, p.y);
+                if (tile.getPlayerId() == player.getPlayerId()) {
+
+                    // Bingo!
+                    adjacentInstances.add(mapLoader.getRoomCoordinates().get(p));
+                }
+            }
+        }
+
+        // If any hits, merge, and update whole room
+        if (!adjacentInstances.isEmpty()) {
+
+            // Add the mergeable rooms to updatable tiles as well
+            for (RoomInstance instance : adjacentInstances) {
+                for (Point p : instance.getCoordinates()) {
+                    updatableTiles.addAll(Arrays.asList(getSurroundingTiles(p, true)));
+                }
+            }
+
+            // Remove all the room instances (they will be regenerated)
+            mapLoader.removeRoomInstances(adjacentInstances.toArray(new RoomInstance[adjacentInstances.size()]));
+        }
+
+        mapLoader.updateTiles(updatableTiles.toArray(new Point[updatableTiles.size()]));
+    }
+
+    /**
+     * Is the tile (building) sellable by us
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param player the player, the seller
+     */
+    public boolean isSellable(int x, int y, Player player) {
+        TileData tile = mapLoader.getTile(x, y);
+        Point p = new Point(x, y);
+        if (tile.getPlayerId() == player.getPlayerId() && mapLoader.getRoomCoordinates().containsKey(p)) {
+
+            // We own it, see if sellable
+            RoomInstance instance = mapLoader.getRoomCoordinates().get(p);
+            return instance.getRoom().getFlags().contains(Room.RoomFlag.BUILDABLE);
+        }
+        return false;
+    }
+
+    /**
+     * Sell building(s) from the wanted area
+     *
+     * @param selectionArea the selection area
+     * @param player the player, the new owner
+     */
+    public void sell(SelectionArea selectionArea, Player player) {
+        Set<Point> updatableTiles = new HashSet<>();
+        Set<RoomInstance> soldInstances = new HashSet<>();
+        for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getWidth(), selectionArea.getEnd().x + 1); x++) {
+            for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getHeight(), selectionArea.getEnd().y + 1); y++) {
+
+                // See that is this valid
+                if (!isSellable(x, y, player)) {
+                    continue;
+                }
+
+                // Sell
+                TileData tile = mapLoader.getTile(x, y);
+                tile.setTerrainId(kwdFile.getClaimedPath().getTerrainId());
+
+                // Get the instance
+                Point p = new Point(x, y);
+                soldInstances.add(mapLoader.getRoomCoordinates().get(p));
+                updatableTiles.addAll(Arrays.asList(getSurroundingTiles(p, true)));
+            }
+        }
+
+        // Remove the sold instances (will be regenerated) and add them to updatable
+        for (RoomInstance roomInstance : soldInstances) {
+            for (Point p : roomInstance.getCoordinates()) {
+                updatableTiles.addAll(Arrays.asList(getSurroundingTiles(p, true)));
+            }
+        }
+        mapLoader.removeRoomInstances(soldInstances.toArray(new RoomInstance[soldInstances.size()]));
+
         mapLoader.updateTiles(updatableTiles.toArray(new Point[updatableTiles.size()]));
     }
 }
