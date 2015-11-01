@@ -58,7 +58,7 @@ public interface ISetting<T> {
      *
      * @return key in resource bundle
      */
-    public String getTranslationKey();
+    public Integer getTranslationKey();
 
     /**
      * Get settings by category
@@ -66,5 +66,5 @@ public interface ISetting<T> {
      * @param category the category
      * @return all the settings by category
      */
-    public List<ISetting<T>> getSettings(Settings.SettingCategory category);
+    //public static List<ISetting<T>> getSettings(Settings.SettingCategory category);
 }

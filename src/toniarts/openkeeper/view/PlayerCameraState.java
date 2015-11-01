@@ -200,10 +200,10 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
             camera.zoomCamera(-value, false);
         } else if (name.equals(Settings.Setting.CAMERA_ROTATE_LEFT.name()) && 
                 specialKey == Settings.Setting.CAMERA_ROTATE_LEFT.getSpecialKey()) {
-            camera.rotateCamera(-value);
+            camera.rotateCamera(value);
         } else if (name.equals(Settings.Setting.CAMERA_ROTATE_RIGHT.name()) && 
                 specialKey == Settings.Setting.CAMERA_ROTATE_RIGHT.getSpecialKey()) {
-            camera.rotateCamera(value);
+            camera.rotateCamera(-value);
         } else if (name.equals(Settings.Setting.CAMERA_DOWN.name()) && 
                 specialKey == Settings.Setting.CAMERA_DOWN.getSpecialKey()) {
             camera.moveCamera(-value, false);

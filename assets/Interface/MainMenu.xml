@@ -349,14 +349,50 @@
     <!-- Control Options -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="optionsControl" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" width="100%" childLayout="vertical">
-                <panel width="100%" childLayout="center" align="center" valign="center">
+        <layer childLayout="vertical">
+            <panel width="90%" childLayout="vertical" align="center">
+                <panel width="100%" childLayout="center" height="12%" align="center" valign="center">
                     <text id="optionsControlTitle" style="menuTitleText" text="${menu.98}" />
                 </panel>
-                <panel width="100%" height="*" childLayout="center" align="center" valign="center">
-                    <text style="menuTextSmall" text="Not ready yet" />
+                
+                <!--Spacer-->
+                <panel height="5%" width="100%" align="center" valign="center" />                
+            
+                <panel width="100%" height="*" childLayout="vertical" align="center" valign="center">
+                    <control id="keyboardSetup" name="table" vertical="optional" displayItems="5" selection="Single" 
+                             colCount="2"
+                             col0="${menu.2845};55;java.lang.String;#32050c30"
+                             col1="${menu.2846};45;java.lang.String;#32050c30"
+                    />
                 </panel>
+                
+                <!--Spacer-->
+                <panel height="5%" width="100%" align="center" valign="center" />        
+                
+                <panel align="center" valign="center" childLayout="horizontal" padding="10px,10px">
+                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px,0px,20px">                        
+                        <text style="menuTextSmall" text="${menu.1466}" width="100%" />     
+                        <control id="mouseSensitivity" name="horizontalSlider" min="0.5" max="2" initial="0.7" stepSize="0.1" buttonStepSize="0.1"/>                        
+                    </panel>
+                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px,0px,20px">                        
+                        <text style="menuTextSmall" text="${menu.1469}" width="100%" />
+                        <control id="gameSpeed" name="horizontalSlider" min="0.25" max="4" initial="1.0" stepSize="0.25" buttonStepSize="0.25"/>
+                    </panel>
+                </panel>    
+                
+                <panel align="center" valign="center" childLayout="horizontal" padding="10px,10px">
+                    <panel childLayout="horizontal" align="center" valign="bottom" width="50%" padding="0px,20px,0px,20px">                        
+                        <control name="checkbox" id="invertMouse" />
+                        <text style="menuTextSmall" text=" ${menu.2840}" />                                               
+                    </panel>
+                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px,0px,20px">
+                        <text style="menuTextSmall" text="${menu.1468}" width="100%" />
+                        <control id="scrollSpeed" name="horizontalSlider" min="0.25" max="4" initial="1.0" stepSize="0.25" buttonStepSize="0.25"/>
+                    </panel>
+                </panel> 
+                
+                <panel height="*" align="center" valign="center" />
+               
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control click="goToScreen(optionsMain)" id="back" name="cancelButton" />
