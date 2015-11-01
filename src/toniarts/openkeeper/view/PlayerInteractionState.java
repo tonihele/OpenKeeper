@@ -97,7 +97,7 @@ public class PlayerInteractionState extends AbstractPauseAwareState implements R
             @Override
             protected boolean isVisible() {
 
-                if (!startSet) {
+                if (!startSet && !PlayerInteractionState.this.app.isDebug()) {
 
                     // Selling is always visible, and the only thing you can do
                     // When building, you can even tag taggables
@@ -210,13 +210,27 @@ public class PlayerInteractionState extends AbstractPauseAwareState implements R
                 handler.updateSelectionBox();
                 handler.setNoSelectedArea();
             }
-        } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT) {
+        } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
+
+            Vector2f pos = handler.getRoundedMousePos();
+            if (interactionState == InteractionState.NONE && app.isDebug()) {
+
+                // Debug
+                // taggable -> "dig"
+                if (getWorldHandler().isTaggable((int) pos.x, (int) pos.y)) {
+                    getWorldHandler().digTile((int) pos.x, (int) pos.y);
+                } // ownable -> "claim"
+                else if (getWorldHandler().isClaimable((int) pos.x, (int) pos.y, player)) {
+                    getWorldHandler().claimTile((int) pos.x, (int) pos.y, player);
+                }
+                //
+            }
 
             // Reset the state
             interactionState = InteractionState.NONE;
 
             startSet = false;
-            handler.getSelectionArea().setStart(handler.getRoundedMousePos());
+            handler.getSelectionArea().setStart(pos);
             handler.updateSelectionBox();
         }
     }
