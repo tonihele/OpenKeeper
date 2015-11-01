@@ -31,6 +31,7 @@ import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.builder.HoverEffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
 import de.lessvoid.nifty.controls.Label;
@@ -261,6 +262,12 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                                     valignCenter();
                                     marginRight("3px");
                                     interactOnClick("buildMode(" + room.getRoomId() + ")");
+                                    onHoverEffect(new HoverEffectBuilder("imageOverlay") {
+                                        {
+                                            effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat("GUI/Icons/frame.png")));
+                                            post(true);
+                                        }
+                                    });
                                 }
                             });
                         }
@@ -273,6 +280,12 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                                     filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat(spell.getGuiIcon().getName()).concat(".png")));
                                     valignCenter();
                                     marginRight("3px");
+                                    onHoverEffect(new HoverEffectBuilder("imageOverlay") {
+                                        {
+                                            effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat("GUI/Icons/frame.png")));
+                                            post(true);
+                                        }
+                                    });
                                 }
                             });
                         }
