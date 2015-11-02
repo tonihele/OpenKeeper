@@ -20,6 +20,7 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.input.InputManager;
+import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
@@ -57,24 +58,30 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     private PlayerCamera camera;
     private final Player player;
     private Vector3f startLocation;
-    private boolean rotate = false;
+    private Integer specialKey = null;
     private static final Logger logger = Logger.getLogger(PlayerCameraState.class.getName());
     // Extra keys
     private static final String CAMERA_MOUSE_ZOOM_IN = "CAMERA_MOUSE_ZOOM_IN";
     private static final String CAMERA_MOUSE_ZOOM_OUT = "CAMERA_MOUSE_ZOOM_OUT";
+    private static final String SPECIAL_KEY_CONTROL = "SPECIAL_KEY_CONTROL";
+    private static final String SPECIAL_KEY_ALT = "SPECIAL_KEY_ALT";
+    private static final String SPECIAL_KEY_SHIFT = "SPECIAL_KEY_SHIFT";
     // User set keys
     private static String[] mappings = new String[]{
         Settings.Setting.CAMERA_DOWN.name(),
         Settings.Setting.CAMERA_LEFT.name(),
         Settings.Setting.CAMERA_RIGHT.name(),
-        Settings.Setting.CAMERA_ROTATE.name(),
+        //Settings.Setting.CAMERA_ROTATE.name(),
         Settings.Setting.CAMERA_ROTATE_LEFT.name(),
         Settings.Setting.CAMERA_ROTATE_RIGHT.name(),
         Settings.Setting.CAMERA_UP.name(),
         Settings.Setting.CAMERA_ZOOM_IN.name(),
         Settings.Setting.CAMERA_ZOOM_OUT.name(),
         CAMERA_MOUSE_ZOOM_IN,
-        CAMERA_MOUSE_ZOOM_OUT
+        CAMERA_MOUSE_ZOOM_OUT,
+        SPECIAL_KEY_CONTROL, 
+        SPECIAL_KEY_ALT,
+        SPECIAL_KEY_SHIFT,
     };
 
     public PlayerCameraState(Player player) {
@@ -98,7 +105,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         loadCameraStartLocation();
 
         // The controls
-        rotate = false;
+        specialKey = null;
         registerInput();
     }
 
@@ -135,13 +142,16 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         inputManager.addMapping(Settings.Setting.CAMERA_DOWN.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_DOWN)));
         inputManager.addMapping(Settings.Setting.CAMERA_LEFT.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_LEFT)));
         inputManager.addMapping(Settings.Setting.CAMERA_RIGHT.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_RIGHT)));
-        inputManager.addMapping(Settings.Setting.CAMERA_ROTATE.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_ROTATE)));
+        //inputManager.addMapping(Settings.Setting.CAMERA_ROTATE.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_ROTATE)));
         inputManager.addMapping(Settings.Setting.CAMERA_ROTATE_LEFT.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_ROTATE_LEFT)));
         inputManager.addMapping(Settings.Setting.CAMERA_ROTATE_RIGHT.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_ROTATE_RIGHT)));
         inputManager.addMapping(Settings.Setting.CAMERA_UP.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_UP)));
         inputManager.addMapping(Settings.Setting.CAMERA_ZOOM_IN.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_ZOOM_IN)));
         inputManager.addMapping(Settings.Setting.CAMERA_ZOOM_OUT.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_ZOOM_OUT)));
-
+        
+        inputManager.addMapping(SPECIAL_KEY_ALT, new KeyTrigger(KeyInput.KEY_LMENU), new KeyTrigger(KeyInput.KEY_RMENU));
+        inputManager.addMapping(SPECIAL_KEY_CONTROL, new KeyTrigger(KeyInput.KEY_LCONTROL), new KeyTrigger(KeyInput.KEY_RCONTROL));
+        inputManager.addMapping(SPECIAL_KEY_SHIFT, new KeyTrigger(KeyInput.KEY_LSHIFT), new KeyTrigger(KeyInput.KEY_RSHIFT));
         // Extra
         inputManager.addMapping(CAMERA_MOUSE_ZOOM_IN, new MouseAxisTrigger(MouseInput.AXIS_WHEEL, false));
         inputManager.addMapping(CAMERA_MOUSE_ZOOM_OUT, new MouseAxisTrigger(MouseInput.AXIS_WHEEL, true));
@@ -162,9 +172,16 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         if (!isEnabled()) {
             return;
         }
-
-        if (name.equals(Settings.Setting.CAMERA_ROTATE.name())) {
-            rotate = isPressed;
+        switch (name) {
+            case SPECIAL_KEY_CONTROL:
+                specialKey = isPressed ? KeyInput.KEY_LCONTROL : null;                
+                break;
+            case SPECIAL_KEY_ALT:
+                specialKey = isPressed ? KeyInput.KEY_LMENU : null;
+                break;
+            case SPECIAL_KEY_SHIFT:
+                specialKey = isPressed ? KeyInput.KEY_LSHIFT : null;
+                break;
         }
     }
 
@@ -174,25 +191,30 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
             return;
         }
 
-        if (name.equals(CAMERA_MOUSE_ZOOM_IN)) {
-            camera.zoomCamera(value, true);
-        } else if (name.equals(CAMERA_MOUSE_ZOOM_OUT)) {
-            camera.zoomCamera(-value, true);
-        } else if (name.equals(Settings.Setting.CAMERA_ZOOM_IN.name()) || (rotate && name.equals(Settings.Setting.CAMERA_UP.name()))) {
+        if (name.equals(CAMERA_MOUSE_ZOOM_IN) || name.equals(Settings.Setting.CAMERA_ZOOM_IN.name()) && 
+                specialKey == Settings.Setting.CAMERA_ZOOM_IN.getSpecialKey()) {
             camera.zoomCamera(value, false);
-        } else if (name.equals(CAMERA_MOUSE_ZOOM_OUT) || name.equals(Settings.Setting.CAMERA_ZOOM_OUT.name()) || (rotate && name.equals(Settings.Setting.CAMERA_DOWN.name()))) {
+        } else if (name.equals(CAMERA_MOUSE_ZOOM_OUT) || 
+                name.equals(Settings.Setting.CAMERA_ZOOM_OUT.name()) && 
+                specialKey == Settings.Setting.CAMERA_ZOOM_OUT.getSpecialKey()) {
             camera.zoomCamera(-value, false);
-        } else if (name.equals(Settings.Setting.CAMERA_ROTATE_LEFT.name()) || (rotate && name.equals(Settings.Setting.CAMERA_LEFT.name()))) {
-            camera.rotateCamera(-value);
-        } else if (name.equals(Settings.Setting.CAMERA_ROTATE_RIGHT.name()) || (rotate && name.equals(Settings.Setting.CAMERA_RIGHT.name()))) {
+        } else if (name.equals(Settings.Setting.CAMERA_ROTATE_LEFT.name()) && 
+                specialKey == Settings.Setting.CAMERA_ROTATE_LEFT.getSpecialKey()) {
             camera.rotateCamera(value);
-        } else if (name.equals(Settings.Setting.CAMERA_DOWN.name())) {
+        } else if (name.equals(Settings.Setting.CAMERA_ROTATE_RIGHT.name()) && 
+                specialKey == Settings.Setting.CAMERA_ROTATE_RIGHT.getSpecialKey()) {
+            camera.rotateCamera(-value);
+        } else if (name.equals(Settings.Setting.CAMERA_DOWN.name()) && 
+                specialKey == Settings.Setting.CAMERA_DOWN.getSpecialKey()) {
             camera.moveCamera(-value, false);
-        } else if (name.equals(Settings.Setting.CAMERA_LEFT.name())) {
+        } else if (name.equals(Settings.Setting.CAMERA_LEFT.name()) && 
+                specialKey == Settings.Setting.CAMERA_LEFT.getSpecialKey()) {
             camera.moveCamera(value, true);
-        } else if (name.equals(Settings.Setting.CAMERA_RIGHT.name())) {
+        } else if (name.equals(Settings.Setting.CAMERA_RIGHT.name()) && 
+                specialKey == Settings.Setting.CAMERA_RIGHT.getSpecialKey()) {
             camera.moveCamera(-value, true);
-        } else if (name.equals(Settings.Setting.CAMERA_UP.name())) {
+        } else if (name.equals(Settings.Setting.CAMERA_UP.name()) && 
+                specialKey == Settings.Setting.CAMERA_UP.getSpecialKey()) {
             camera.moveCamera(value, false);
         }
     }
