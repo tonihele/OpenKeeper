@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-styles xmlns="http://nifty-gui.sourceforge.net/nifty-style-file.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://nifty-gui.sourceforge.net/nifty-style-file.xsd http://nifty-gui.sourceforge.net/nifty-style-file.xsd">
+  <!-- ++++++++ -->
+  <!-- vertical -->
+  <!-- ++++++++ -->
+  <style id="nifty-vertical-slider#panel">
+    <attributes childLayout="vertical" width="23px" align="center" focusable="true" />
+  </style>
+  <style id="nifty-vertical-slider#up">
+    <attributes filename="Textures/0-V-Up_Arrow.png" width="32px" height="16px" marginBottom="2px" />
+    <effect>
+      <onClick name="focus" targetElement="#parent" />
+      <!--<onClick name="imageOverlay" filename="slider/slider.png" imageMode="sprite:23,23,5" post="true" />
+      <onFocus name="imageOverlay" filename="slider/slider.png" imageMode="sprite:23,23,4" post="true" />
+	  <onHover name="border" color="#822f" post="true" />-->
+      <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150" />
+      <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150" />
+    </effect>
+  </style>
+  <style id="nifty-vertical-slider#background">
+    <attributes filename="Textures/0-V-Scroll_Bar_BG.png" width="32px" height="*" childLayout="absolute-inside" 
+                imageMode="resize:5,20,5,6,5,20,5,177,5,20,5,6" />
+    <effect>
+      <onClick name="focus" targetElement="#parent" />
+    </effect>
+  </style>
+  <style id="nifty-vertical-slider#down">
+    <attributes filename="Textures/0-V-Down_Arrow.png" width="32px" height="16px" marginTop="2px" />
+    <effect>
+      <onClick name="focus" targetElement="#parent" />
+      <!--<onClick name="imageOverlay" filename="slider/slider.png" imageMode="sprite:23,23,2" post="true" />
+      <onFocus name="imageOverlay" filename="slider/slider.png" imageMode="sprite:23,23,1" post="true" />
+	  <onHover name="border" color="#822f" post="true" />-->
+      <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150" />
+      <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150" />
+    </effect>
+  </style>
+  <style id="nifty-vertical-slider#position">
+    <attributes filename="Textures/0-V-Scroll_Bar.png" x="0px" y="0px" width="32px" height="32px" childLayout="center" />
+    <effect>
+      <onClick name="focus" targetElement="#parent#parent" />
+      <!--<onFocus name="imageOverlay" filename="slider/slider.png" imageMode="sprite-resize:23,23,15,4,15,4,4,4,15,4,15,4,15,4,4" post="true" />
+      <onHover name="imageOverlay" filename="slider/slider.png" imageMode="sprite-resize:23,23,14,4,15,4,4,4,15,4,15,4,15,4,4" post="true" />-->
+      <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150" />
+      <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150" />
+    </effect>
+  </style>
+
+  <!-- ++++++++++ -->
+  <!-- horizontal -->
+  <!-- ++++++++++ -->
+  <style id="nifty-horizontal-slider#panel">
+    <attributes childLayout="horizontal" height="32px" align="center" focusable="true" />
+  </style>
+  <style id="nifty-horizontal-slider#left">
+    <attributes filename="Textures/0-H-Left_Arrow.png" width="16px" height="32px" marginRight="2px" />
+    <effect>
+      <onClick name="focus" targetElement="#parent" />
+      <!--<onClick name="imageOverlay" filename="slider/slider.png" imageMode="sprite:23,23,8" post="true" />
+      <onFocus name="imageOverlay" filename="slider/slider.png" imageMode="sprite:23,23,7" post="true" />
+	  <onHover name="border" color="#822f" post="true" />-->
+      <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150" />
+      <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150" />
+    </effect>
+  </style>
+  <style id="nifty-horizontal-slider#right">
+    <attributes filename="Textures/0-H-Right_Arrow.png" width="16px" height="32px" marginLeft="2px" />
+    <effect>
+      <onClick name="focus" targetElement="#parent" />
+      <!--<onClick name="imageOverlay" filename="slider/slider.png" imageMode="sprite:23,23,11" post="true" />
+      <onFocus name="imageOverlay" filename="slider/slider.png" imageMode="sprite:23,23,10" post="true" />
+	  <onHover name="border" color="#822f" post="true" />-->
+      <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150" />
+      <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150" />
+    </effect>
+  </style>
+  <style id="nifty-horizontal-slider#background">
+    <attributes filename="Textures/0-H-Scroll_Bar_BG.png" width="*" height="32px" childLayout="absolute-inside" 
+                imageMode="resize:6,177,6,5,6,177,6,20,6,177,6,5" />
+    <effect>
+      <onClick name="focus" targetElement="#parent" />
+      <onHover name="border" color="#822f" post="true" />
+    </effect>
+  </style>
+  <style id="nifty-horizontal-slider#position">
+    <attributes filename="Textures/0-H-Scroll_Bar.png" x="0px" y="0px" width="32px" height="32px" />
+    <effect>
+      <onClick name="focus" targetElement="#parent#parent" />
+      <!--<onFocus name="imageOverlay" filename="slider/slider.png" imageMode="sprite-resize:23,23,19,4,15,4,4,4,15,4,15,4,15,4,4" post="true" />
+      <onHover name="imageOverlay" filename="slider/slider.png" imageMode="sprite-resize:23,23,18,4,15,4,4,4,15,4,15,4,15,4,4" post="true" />-->
+      <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150" />
+      <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150" />
+    </effect>
+  </style>
+</nifty-styles>
