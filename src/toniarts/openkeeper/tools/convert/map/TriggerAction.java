@@ -35,26 +35,63 @@ public class TriggerAction extends Trigger {
         MAKE(6), // Or trap??? Or keeper spell ???
         FLAG(7),
         INITIALIZE_TIMER(8),
+        UNKNOWN_9(9),
+        UNKNOWN_10(10),
+        UNKNOWN_11(11),
         CREATE_HERO_PARTY(14),
+        UNKNOWN_15(15),
+        UNKNOWN_17(17),
         SET_ALLIANCE(18),
+        UNKNOWN_20(20),
         ALTER(22),
+        UNKNOWN_24(24),
+        UNKNOWN_26(26),
+        UNKNOWN_31(31),
         COLLAPSE_HERO_GATE(32),
+        UNKNOWN_42(42),
         SET_CREATURE_MOODS(44),
         SET_SYSTEM_MESSAGES(45),
         CHANGE_ROOM_OWNER(49),
         SET_SLAPS_LIMIT(50),
-        SET_TIMER_SPEECH(51);
+        SET_TIMER_SPEECH(51),
+        UNKNOWN_257(257),
+        UNKNOWN_258(258),
+        UNKNOWN_260(260),
+        UNKNOWN_262(262),
+        UNKNOWN_263(263),
+        UNKNOWN_264(264),
+        UNKNOWN_265(265),
+        UNKNOWN_266(266),
+        UNKNOWN_267(267),
+        UNKNOWN_270(270),
+        UNKNOWN_271(271),
+        UNKNOWN_272(272),
+        UNKNOWN_273(273),
+        UNKNOWN_274(274),
+        UNKNOWN_276(276),
+        UNKNOWN_278(278),
+        UNKNOWN_279(279),
+        UNKNOWN_280(280),
+        UNKNOWN_282(282),
+        UNKNOWN_283(283),
+        UNKNOWN_284(284),
+        UNKNOWN_286(286),
+        UNKNOWN_287(287),
+        UNKNOWN_288(288),
+        UNKNOWN_289(289),
+        UNKNOWN_290(290),
+        UNKNOWN_291(291),
+        UNKNOWN_293(293),
+        UNKNOWN_294(294),
+        UNKNOWN_298(298),
+        UNKNOWN_299(299),
+        UNKNOWN_300(300),
+        UNKNOWN_301(301),
+        UNKNOWN_303(303), // MPD (Not in 6)
+        UNKNOWN_305(305),
+        UNKNOWN_306(306),
+        UNKNOWN_307(307);
 
-        // FIXME:  263
-        // FIXME:  264
-        // FIXME:  270
-        // FIXME:  271
-        // FIXME:  272
-        // FIXME:  276
-        // FIXME:  280
-        // FIXME:  282
-        // FIXME:  284
-        // FIXME:  293
         private ActionType(int id) {
             this.id = id;
         }
