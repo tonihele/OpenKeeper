@@ -451,8 +451,6 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             RotatorControl rotator = new RotatorControl();
             rotator.setEnabled(rotate);
             spat.addControl(rotator);
-        } else {
-            spat.setLocalTranslation(-20, 21, -20);
         }
 
         // Hide the floor on maps
