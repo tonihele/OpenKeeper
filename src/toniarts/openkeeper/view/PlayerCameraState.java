@@ -79,10 +79,9 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         Settings.Setting.CAMERA_ZOOM_OUT.name(),
         CAMERA_MOUSE_ZOOM_IN,
         CAMERA_MOUSE_ZOOM_OUT,
-        SPECIAL_KEY_CONTROL, 
+        SPECIAL_KEY_CONTROL,
         SPECIAL_KEY_ALT,
-        SPECIAL_KEY_SHIFT,
-    };
+        SPECIAL_KEY_SHIFT,};
 
     public PlayerCameraState(Player player) {
         this.player = player;
@@ -148,7 +147,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         inputManager.addMapping(Settings.Setting.CAMERA_UP.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_UP)));
         inputManager.addMapping(Settings.Setting.CAMERA_ZOOM_IN.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_ZOOM_IN)));
         inputManager.addMapping(Settings.Setting.CAMERA_ZOOM_OUT.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_ZOOM_OUT)));
-        
+
         inputManager.addMapping(SPECIAL_KEY_ALT, new KeyTrigger(KeyInput.KEY_LMENU), new KeyTrigger(KeyInput.KEY_RMENU));
         inputManager.addMapping(SPECIAL_KEY_CONTROL, new KeyTrigger(KeyInput.KEY_LCONTROL), new KeyTrigger(KeyInput.KEY_RCONTROL));
         inputManager.addMapping(SPECIAL_KEY_SHIFT, new KeyTrigger(KeyInput.KEY_LSHIFT), new KeyTrigger(KeyInput.KEY_RSHIFT));
@@ -174,7 +173,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         }
         switch (name) {
             case SPECIAL_KEY_CONTROL:
-                specialKey = isPressed ? KeyInput.KEY_LCONTROL : null;                
+                specialKey = isPressed ? KeyInput.KEY_LCONTROL : null;
                 break;
             case SPECIAL_KEY_ALT:
                 specialKey = isPressed ? KeyInput.KEY_LMENU : null;
@@ -191,30 +190,30 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
             return;
         }
 
-        if (name.equals(CAMERA_MOUSE_ZOOM_IN) || name.equals(Settings.Setting.CAMERA_ZOOM_IN.name()) && 
-                specialKey == Settings.Setting.CAMERA_ZOOM_IN.getSpecialKey()) {
-            camera.zoomCamera(value, false);
-        } else if (name.equals(CAMERA_MOUSE_ZOOM_OUT) || 
-                name.equals(Settings.Setting.CAMERA_ZOOM_OUT.name()) && 
-                specialKey == Settings.Setting.CAMERA_ZOOM_OUT.getSpecialKey()) {
-            camera.zoomCamera(-value, false);
-        } else if (name.equals(Settings.Setting.CAMERA_ROTATE_LEFT.name()) && 
-                specialKey == Settings.Setting.CAMERA_ROTATE_LEFT.getSpecialKey()) {
+        if (name.equals(CAMERA_MOUSE_ZOOM_IN) || name.equals(Settings.Setting.CAMERA_ZOOM_IN.name())
+                && specialKey == Settings.Setting.CAMERA_ZOOM_IN.getSpecialKey()) {
+            camera.zoomCamera(value, name.equals(CAMERA_MOUSE_ZOOM_IN));
+        } else if (name.equals(CAMERA_MOUSE_ZOOM_OUT)
+                || name.equals(Settings.Setting.CAMERA_ZOOM_OUT.name())
+                && specialKey == Settings.Setting.CAMERA_ZOOM_OUT.getSpecialKey()) {
+            camera.zoomCamera(-value, name.equals(CAMERA_MOUSE_ZOOM_OUT));
+        } else if (name.equals(Settings.Setting.CAMERA_ROTATE_LEFT.name())
+                && specialKey == Settings.Setting.CAMERA_ROTATE_LEFT.getSpecialKey()) {
             camera.rotateCamera(value);
-        } else if (name.equals(Settings.Setting.CAMERA_ROTATE_RIGHT.name()) && 
-                specialKey == Settings.Setting.CAMERA_ROTATE_RIGHT.getSpecialKey()) {
+        } else if (name.equals(Settings.Setting.CAMERA_ROTATE_RIGHT.name())
+                && specialKey == Settings.Setting.CAMERA_ROTATE_RIGHT.getSpecialKey()) {
             camera.rotateCamera(-value);
-        } else if (name.equals(Settings.Setting.CAMERA_DOWN.name()) && 
-                specialKey == Settings.Setting.CAMERA_DOWN.getSpecialKey()) {
+        } else if (name.equals(Settings.Setting.CAMERA_DOWN.name())
+                && specialKey == Settings.Setting.CAMERA_DOWN.getSpecialKey()) {
             camera.moveCamera(-value, false);
-        } else if (name.equals(Settings.Setting.CAMERA_LEFT.name()) && 
-                specialKey == Settings.Setting.CAMERA_LEFT.getSpecialKey()) {
+        } else if (name.equals(Settings.Setting.CAMERA_LEFT.name())
+                && specialKey == Settings.Setting.CAMERA_LEFT.getSpecialKey()) {
             camera.moveCamera(value, true);
-        } else if (name.equals(Settings.Setting.CAMERA_RIGHT.name()) && 
-                specialKey == Settings.Setting.CAMERA_RIGHT.getSpecialKey()) {
+        } else if (name.equals(Settings.Setting.CAMERA_RIGHT.name())
+                && specialKey == Settings.Setting.CAMERA_RIGHT.getSpecialKey()) {
             camera.moveCamera(-value, true);
-        } else if (name.equals(Settings.Setting.CAMERA_UP.name()) && 
-                specialKey == Settings.Setting.CAMERA_UP.getSpecialKey()) {
+        } else if (name.equals(Settings.Setting.CAMERA_UP.name())
+                && specialKey == Settings.Setting.CAMERA_UP.getSpecialKey()) {
             camera.moveCamera(value, false);
         }
     }
