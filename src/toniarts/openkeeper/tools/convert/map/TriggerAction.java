@@ -32,29 +32,75 @@ public class TriggerAction extends Trigger {
     public enum ActionType implements IValueEnum {
 
         CREATE_CREATURE(1),
+        DISPLAY_OBJECTIVE(4),
         MAKE(6), // Or trap??? Or keeper spell ???
         FLAG(7),
         INITIALIZE_TIMER(8),
+        FLASH_BUTTON(9),
+        WIN_GAME(10),
+        LOSE_GAME(11),
         CREATE_HERO_PARTY(14),
+        UNKNOWN_15(15),
+        FLASH_ACTION_POINT(16),
+        REVEAL_ACTION_POINT(17),
         SET_ALLIANCE(18),
-        ALTER(22),
+        UNKNOWN_20(20),
+        ALTER_ROOM_TYPE(22),
+        PLAY_SPEECH(24),
+        DISPLAY_TEXT_MESSAGE(25),
+        ZOOM_TO_ACTION_POINT(26),
+        ROTATE_AROUND_ACTION_POINT(27),
+        GENERATE_CREATURE(28),
+        CAMERA_FOLLOW_PATH(31),
         COLLAPSE_HERO_GATE(32),
+        SET_PORTAL_STATUS(37),
+        SET_WIDESCREEN_MODE(38),
+        MAKE_OBJECTIVE(42),
         SET_CREATURE_MOODS(44),
         SET_SYSTEM_MESSAGES(45),
+        DISPLAY_SLAB_OWNER(46),
+        DISPLAY_NEXT_ROOM_TYPE(47),
         CHANGE_ROOM_OWNER(49),
         SET_SLAPS_LIMIT(50),
-        SET_TIMER_SPEECH(51);
+        SET_TIMER_SPEECH(51),
+        UNKNOWN_257(257),
+        UNKNOWN_258(258),
+        UNKNOWN_260(260),
+        UNKNOWN_262(262),
+        UNKNOWN_263(263),
+        UNKNOWN_264(264),
+        UNKNOWN_265(265),
+        UNKNOWN_266(266),
+        UNKNOWN_267(267),
+        UNKNOWN_270(270),
+        UNKNOWN_271(271),
+        UNKNOWN_272(272),
+        UNKNOWN_273(273),
+        UNKNOWN_274(274),
+        UNKNOWN_276(276),
+        UNKNOWN_278(278),
+        UNKNOWN_279(279),
+        UNKNOWN_280(280),
+        UNKNOWN_282(282),
+        UNKNOWN_283(283),
+        UNKNOWN_284(284),
+        UNKNOWN_286(286),
+        UNKNOWN_287(287),
+        UNKNOWN_288(288),
+        UNKNOWN_289(289),
+        UNKNOWN_290(290),
+        UNKNOWN_291(291),
+        UNKNOWN_293(293),
+        UNKNOWN_294(294),
+        UNKNOWN_298(298),
+        UNKNOWN_299(299),
+        UNKNOWN_300(300),
+        UNKNOWN_301(301),
+        UNKNOWN_303(303), // MPD (Not in 6)
+        UNKNOWN_305(305),
+        UNKNOWN_306(306),
+        UNKNOWN_307(307);
 
-        // FIXME:  263
-        // FIXME:  264
-        // FIXME:  270
-        // FIXME:  271
-        // FIXME:  272
-        // FIXME:  276
-        // FIXME:  280
-        // FIXME:  282
-        // FIXME:  284
-        // FIXME:  293
         private ActionType(int id) {
             this.id = id;
         }

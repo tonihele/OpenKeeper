@@ -35,7 +35,8 @@ public class TriggerGeneric extends Trigger {
         EQUAL_TO(3, "="),
         GREATER_THAN(4, ">"),
         GREATER_OR_EQUAL_TO(5, "\u2265"),
-        NOT_EQUAL_TO(6, "!=");
+        NOT_EQUAL_TO(6, "!="),
+        UNKNOWN_7(7, "?????");
 
         private ComparisonType(int id, String description) {
             this.id = id;
@@ -153,10 +154,24 @@ public class TriggerGeneric extends Trigger {
         TERRAIN_ID(-1), // Slab types point to terrain ID
         VALUE(0), // Use the value
         VALUE1(1), // This isn't quite right, but this means use the value
-        FLAG(2);
+        FLAG(2),
+        UNKNOWN_5(5),
+        UNKNOWN_6(6),
+        BLUEPRINT(9),
+        UNKNOWN_11(11),
+        UNKNOWN_12(12),
+        UNKNOWN_13(13),
+        UNKNOWN_14(14),
+        UNKNOWN_15(15),
+        UNKNOWN_16(16),
+        BUILT(17),
+        UNKNOWN_18(18),
+        UNKNOWN_21(21),
+        UNKNOWN_22(22),
+        UNKNOWN_29(29),
+        UNKNOWN_31(31);
 
         // As in flag value
-        // FIXME: UNKNOWN(14)
         private TargetValueType(int id) {
             this.id = id;
         }
