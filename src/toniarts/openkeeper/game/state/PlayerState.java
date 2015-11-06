@@ -58,6 +58,7 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
+import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -399,35 +400,35 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 optionsMenuTitle.setText("${menu.94}");
 
                 // Column one
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-objective.png", "${menu.537}", "pauseMenu()") {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-objective.png", "${menu.537}", "pauseMenu()") {
                     {
                     }
                 }.build(nifty, screen, optionsColumnOne);
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-game.png", "${menu.97}", "pauseMenu()") {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-game.png", "${menu.97}", "pauseMenu()") {
                     {
                     }
                 }.build(nifty, screen, optionsColumnOne);
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-load.png", "${menu.143}", "pauseMenu()") {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-load.png", "${menu.143}", "pauseMenu()") {
                     {
                     }
                 }.build(nifty, screen, optionsColumnOne);
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-save.png", "${menu.201}", "pauseMenu()") {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-save.png", "${menu.201}", "pauseMenu()") {
                     {
                     }
                 }.build(nifty, screen, optionsColumnOne);
 
                 // Column two
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-quit.png", "${menu.1266}", "pauseMenuNavigate(" + PauseMenuState.QUIT.name() + "," + PauseMenuState.MAIN.name() + ",null,null)") {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-quit.png", "${menu.1266}", "pauseMenuNavigate(" + PauseMenuState.QUIT.name() + "," + PauseMenuState.MAIN.name() + ",null,null)") {
                     {
                     }
                 }.build(nifty, screen, optionsColumnTwo);
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-restart.png", "${menu.1269}", "pauseMenu()") {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-restart.png", "${menu.1269}", "pauseMenu()") {
                     {
                     }
                 }.build(nifty, screen, optionsColumnTwo);
 
                 // Navigation one
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-accept.png", "${menu.142}", "pauseMenu()") {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-accept.png", "${menu.142}", "pauseMenu()") {
                     {
                     }
                 }.build(nifty, screen, optionsNavigationColumnOne);
@@ -437,23 +438,23 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 optionsMenuTitle.setText("${menu.1266}");
 
                 // Column one
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-quit.png", "${menu.12}", "pauseMenuNavigate(" + PauseMenuState.CONFIRMATION.name() + "," + PauseMenuState.QUIT.name() + ",${menu.12},quitToMainMenu())") {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-quit.png", "${menu.12}", "pauseMenuNavigate(" + PauseMenuState.CONFIRMATION.name() + "," + PauseMenuState.QUIT.name() + ",${menu.12},quitToMainMenu())") {
                     {
                     }
                 }.build(nifty, screen, optionsColumnOne);
-                new InGameMenuSelectionControl(Utils.isWindows() ? "Textures/GUI/Options/i-exit_to_windows.png" : "Textures/GUI/Options/i-quit.png", Utils.isWindows() ? "${menu.13}" : "${menu.14}", "pauseMenuNavigate(" + PauseMenuState.CONFIRMATION.name() + "," + PauseMenuState.QUIT.name() + "," + (Utils.isWindows() ? "${menu.13}" : "${menu.14}") + ",quitToOS())") {
+                new IconTextBuilder(null, Utils.isWindows() ? "Textures/GUI/Options/i-exit_to_windows.png" : "Textures/GUI/Options/i-quit.png", Utils.isWindows() ? "${menu.13}" : "${menu.14}", "pauseMenuNavigate(" + PauseMenuState.CONFIRMATION.name() + "," + PauseMenuState.QUIT.name() + "," + (Utils.isWindows() ? "${menu.13}" : "${menu.14}") + ",quitToOS())") {
                     {
                     }
                 }.build(nifty, screen, optionsColumnOne);
 
                 // Navigation one
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-accept.png", "${menu.142}", "pauseMenu()") {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-accept.png", "${menu.142}", "pauseMenu()") {
                     {
                     }
                 }.build(nifty, screen, optionsNavigationColumnOne);
 
                 // Navigation two
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-back.png", "${menu.20}", "pauseMenuNavigate(" + PauseMenuState.MAIN + ",null,null,null)") {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-back.png", "${menu.20}", "pauseMenuNavigate(" + PauseMenuState.MAIN + ",null,null,null)") {
                     {
                     }
                 }.build(nifty, screen, optionsNavigationColumnTwo);
@@ -468,19 +469,19 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         style("textNormal");
                     }
                 }.build(nifty, screen, optionsColumnOne);
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-accept.png", "${menu.21}", confirmMethod) {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-accept.png", "${menu.21}", confirmMethod) {
                     {
                     }
                 }.build(nifty, screen, optionsColumnOne);
 
                 // Navigation one
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-accept.png", "${menu.142}", "pauseMenu()") {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-accept.png", "${menu.142}", "pauseMenu()") {
                     {
                     }
                 }.build(nifty, screen, optionsNavigationColumnOne);
 
                 // Navigation two
-                new InGameMenuSelectionControl("Textures/GUI/Options/i-back.png", "${menu.20}", "pauseMenuNavigate(" + backMenu + ",null,null,null)") {
+                new IconTextBuilder(null, "Textures/GUI/Options/i-back.png", "${menu.20}", "pauseMenuNavigate(" + backMenu + ",null,null,null)") {
                     {
                     }
                 }.build(nifty, screen, optionsNavigationColumnTwo);
@@ -551,21 +552,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             sellButton.startEffect(EffectEventId.onCustom, null, "select");
         } else {
             sellButton.stopEffect(EffectEventId.onCustom);
-        }
-    }
-
-    /**
-     * In-game menu items
-     *
-     * @author Toni Helenius <helenius.toni@gmail.com>
-     */
-    private class InGameMenuSelectionControl extends ControlBuilder {
-
-        private InGameMenuSelectionControl(String glyph, String text, String onClick) {
-            super("inGameMenuSelection");
-            parameter("glyph", glyph);
-            parameter("text", text);
-            parameter("click", onClick);
         }
     }
 }

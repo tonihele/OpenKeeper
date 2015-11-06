@@ -95,12 +95,24 @@
 
     <!--In-game menu options-->
     <controlDefinition style="nifty-panel-style"
-                       name="inGameMenuSelection"
-                       controller="de.lessvoid.nifty.controls.DefaultController">
-        <panel align="left" valign="center" childLayout="horizontal" paddingTop="6px" paddingBottom="6px">
-            <image marginRight="6px" align="right" valign="center" filename="$glyph"/>
-            <text style="textNormal" text="$text"></text>
+                       name="iconText"
+                       controller="toniarts.openkeeper.gui.nifty.icontext.IconTextControl">
+        <panel align="left" valign="center" childLayout="horizontal" paddingTop="6px" paddingBottom="6px" visibleToMouse="true">
+            <image visibleToMouse="false" id="#image" marginRight="6px" align="right" valign="center" filename="$icon">
+                <effect>
+                    <onCustom customKey="hover" name="imageOverlay" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" />
+                </effect>
+            </image>
+            <text id="#text" style="textNormal" text="$text" visibleToMouse="false">
+                <effect>
+                    <onCustom customKey="hover" name="textColor" color="#fff" neverStopRendering="true" />
+                </effect>
+            </text>
             <interact onClick="$click"/>
+            <effect>
+                <onStartHover name="nop" onStartEffect="startHover()" />
+                <onEndHover name="nop" onStartEffect="endHover()" />
+            </effect>
         </panel>
     </controlDefinition>
 
