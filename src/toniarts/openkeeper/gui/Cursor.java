@@ -62,21 +62,24 @@ public class Cursor extends JmeCursor {
         Image img = tex.getImage();
         // width must be a multiple of 16, otherwise the cursor gets distorted
         int width = (img.getWidth() - img.getWidth() % 16) + 16;
-        int height = img.getHeight() / frames;
+        int heightFrame = img.getHeight() / frames;
+        int height = (heightFrame - heightFrame % 16) + 16;
 
         // Image data
         ByteBuffer data = img.getData(0);
         data.rewind();
-        IntBuffer image = BufferUtils.createIntBuffer(img.getHeight() * width);
-        for (int y = 0; y < img.getHeight(); y++) {
-            for (int x = 0; x < width; x++) {
-                int argb = 0;
-                if (x < img.getWidth()) {
-                    int abgr = data.getInt();
-                    argb = ((abgr & 255) << 24) | (abgr >> 8);
-                }
+        IntBuffer image = BufferUtils.createIntBuffer(height * width * frames);
+        for (int z = 0; z < frames; z++) {
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    int argb = 0;
+                    if (x < img.getWidth() && y < heightFrame) {
+                        int abgr = data.getInt();
+                        argb = ((abgr & 255) << 24) | (abgr >> 8);
+                    }
 
-                image.put(argb);
+                    image.put(argb);
+                }
             }
         }
         image.rewind();
