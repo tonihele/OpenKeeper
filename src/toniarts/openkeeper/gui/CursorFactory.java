@@ -48,9 +48,10 @@ public final class CursorFactory {
         DROP_GOLD,
         DROP_THING,
         PICKAXE_TAG,
-        SPELL_CAST,
-        SPELL_POSSESS,
-        NO_SPELL_POSSESS;
+        // We are having issues because of the file format
+        // SPELL_POSSESS,
+        // NO_SPELL_POSSESS,
+        SPELL_CAST;
     }
     private static volatile HashMap<CursorType, JmeCursor> cursors;
     private static final Object lock = new Object();
