@@ -18,15 +18,7 @@ package toniarts.openkeeper.gui;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.cursors.plugins.JmeCursor;
-import com.jme3.texture.Image;
-import com.jme3.texture.Texture;
-import com.jme3.util.BufferUtils;
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 import java.util.HashMap;
-import java.util.regex.Matcher;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 
 /**
  * Small utility for creating cursors from the original DK II assets
