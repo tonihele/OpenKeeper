@@ -61,9 +61,9 @@ public class Cursor extends JmeCursor {
         Texture tex = assetManager.loadTexture(AssetsConverter.MOUSE_CURSORS_FOLDER.concat(File.separator).concat(Filename).replaceAll(Matcher.quoteReplacement(File.separator), "/"));
         Image img = tex.getImage();
         // width must be a multiple of 16, otherwise the cursor gets distorted
-        int width = (img.getWidth() - img.getWidth() % 16) + 16;
+        int width = img.getWidth() % 16 == 0 ? img.getWidth() : (img.getWidth() - img.getWidth() % 16) + 16;
         int heightFrame = img.getHeight() / frames;
-        int height = (heightFrame - heightFrame % 16) + 16;
+        int height = heightFrame % 16 == 0 ? heightFrame : (heightFrame - heightFrame % 16) + 16;
 
         // Image data
         ByteBuffer data = img.getData(0);
