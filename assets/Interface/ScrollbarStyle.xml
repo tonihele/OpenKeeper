@@ -7,46 +7,46 @@
         <attributes childLayout="vertical" width="32px" align="center" focusable="true"/>
     </style>
     <style id="nifty-vertical-scrollbar#up">
-        <attributes filename="Textures/0-V-Up_Arrow.png" valign="center" width="32px" height="16px" paddingBottom="2px"/>
+        <attributes filename="Textures/0-V-Up_Arrow.png" width="32px" height="16px" marginBottom="2px" />
         <effect>
             <onClick name="focus" targetElement="#parent"/>
             <!--<onClick name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,5" post="true"/>-->
             <!--<onFocus name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,4" post="true"/>-->
-            <onHover name="border" color="#f508" post="true"/>
+            <!--<onHover name="border" color="#f508" post="true"/>-->
             <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
             <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
         </effect>
     </style>
     <style id="nifty-vertical-scrollbar#down">
-        <attributes filename="Textures/0-V-Down_Arrow.png" valign="center" width="32px" height="16px" paddingTop="2px"/>
+        <attributes filename="Textures/0-V-Down_Arrow.png" width="32px" height="16px" marginTop="2px"/>
         <effect>
             <onClick name="focus" targetElement="#parent"/>
             <!--<onClick name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,2" post="true"/>-->
             <!--<onFocus name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,1" post="true"/>-->
-            <onHover name="border" color="#f508" post="true"/>
-            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
-            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
+            <!--<onHover name="border" color="#f508" post="true"/>-->
+            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150" />
+            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150" />
         </effect>
     </style>
     <style id="nifty-vertical-scrollbar#background">
-        <attributes filename="Textures/0-V-Scroll_Bar_BG.png" padding="4px,5px,4px,5px" width="32px" height="*" childLayout="absolute"
-                    imageMode="resize:14,1,14,5,14,1,14,197,14,1,14,5"/>
+        <attributes filename="Textures/0-V-Scroll_Bar_BG.png" padding="6px,4px,6px,5px" width="32px" height="*" 
+                    childLayout="absolute-inside" imageMode="resize:14,1,14,5,14,1,14,179,14,1,14,5" />
         <effect>
             <onClick name="focus" targetElement="#parent"/>
+            <onHover name="border" color="#f508" post="true"/>
         </effect>
     </style>
     <style id="nifty-vertical-scrollbar#position">
-        <attributes filename="Textures/0-V-Scroll_Bar.png" x="0px" y="0px" width="23px" height="8px"
-                    childLayout="center"/>
+        <attributes filename="Textures/0-V-Scroll_Bar.png" x="0px" y="0px" width="32px" height="32px" />
         <effect>
-            <onActive name="imageOverlay" filename="scrollbar/scrollbar.png" width="7px" height="8px"
+            <!--<onActive name="imageOverlay" filename="scrollbar/scrollbar.png" width="7px" height="8px"
                       imageMode="subImage:468,0,7,8" post="true" overlay="true" center="true"
-                      hideIfNotEnoughSpace="true"/>
+                      hideIfNotEnoughSpace="true"/>-->
             <onClick name="focus" targetElement="#parent#parent"/>
-            <onFocus name="border" color="#f508" post="true"/>
-            <onHover name="border" color="#f508" post="true"/>
-            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
-            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
+            <!--<onFocus name="border" color="#f508" post="true"/>
+            <onHover name="border" color="#f508" post="true"/>-->
+            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150" />
+            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150" />
         </effect>
     </style>
 
@@ -54,49 +54,48 @@
     <!-- horizontal -->
     <!-- ++++++++++ -->
     <style id="nifty-horizontal-scrollbar#panel">
-        <attributes childLayout="horizontal" height="23px" align="center" focusable="true"/>
+        <attributes childLayout="horizontal" height="32px" align="center" focusable="true" />
     </style>
     <style id="nifty-horizontal-scrollbar#left">
-        <attributes filename="scrollbar/scrollbar.png" width="23px" height="23px" imageMode="sprite:23,23,6"/>
+        <attributes filename="Textures/0-H-Left_Arrow.png" valign="center" width="16px" height="32px" marginRight="2px" />
         <effect>
             <onClick name="focus" targetElement="#parent"/>
-            <onClick name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,8" post="true"/>
+            <!--<onClick name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,8" post="true"/>
             <onFocus name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,7" post="true"/>
-            <onHover name="border" color="#822f" post="true"/>
+            <onHover name="border" color="#822f" post="true"/>-->
             <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
             <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
         </effect>
     </style>
     <style id="nifty-horizontal-scrollbar#right">
-        <attributes filename="scrollbar/scrollbar.png" width="23px" height="23px" imageMode="sprite:23,23,9"/>
+        <attributes filename="Textures/0-H-Right_Arrow.png" valign="center" width="16px" height="32px" marginLeft="2px"/>
         <effect>
             <onClick name="focus" targetElement="#parent"/>
-            <onClick name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,11" post="true"/>
+            <!--<onClick name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,11" post="true"/>
             <onFocus name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,10" post="true"/>
-            <onHover name="border" color="#822f" post="true"/>
+            <onHover name="border" color="#822f" post="true"/>-->
             <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
             <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
         </effect>
     </style>
     <style id="nifty-horizontal-scrollbar#background">
-        <attributes filename="scrollbar/scrollbar.png" width="*" height="23px" childLayout="absolute"
-                    imageMode="sprite-resize:23,23,16,4,15,4,4,4,15,4,15,4,15,4,4"/>
+        <attributes filename="Textures/0-H-Scroll_Bar_BG.png" padding="4px,6px,5px,6px" width="*" height="32px" 
+                    childLayout="absolute-inside" imageMode="sprite-resize:23,23,16,4,15,4,4,4,15,4,15,4,15,4,4"/>
         <effect>
             <onClick name="focus" targetElement="#parent"/>
         </effect>
     </style>
     <style id="nifty-horizontal-scrollbar#position">
-        <attributes filename="scrollbar/scrollbar.png" x="0px" y="0px" width="8px" height="23px"
-                    imageMode="sprite-resize:23,23,17,4,15,4,4,4,15,4,15,4,15,4,4"/>
+        <attributes filename="Textures/0-H-Scroll_Bar.png" x="0px" y="0px" width="32px" height="32px" />
         <effect>
-            <onActive name="imageOverlay" filename="scrollbar/scrollbar.png" width="8px" height="7px"
+            <!--<onActive name="imageOverlay" filename="scrollbar/scrollbar.png" width="8px" height="7px"
                       imageMode="subImage:490,8,8,7" post="true" overlay="true" center="true"
-                      hideIfNotEnoughSpace="true"/>
+                      hideIfNotEnoughSpace="true"/>-->
             <onClick name="focus" targetElement="#parent#parent"/>
-            <onFocus name="imageOverlay" filename="scrollbar/scrollbar.png"
+            <!--<onFocus name="imageOverlay" filename="scrollbar/scrollbar.png"
                      imageMode="sprite-resize:23,23,19,4,15,4,4,4,15,4,15,4,15,4,4" post="true"/>
             <onHover name="imageOverlay" filename="scrollbar/scrollbar.png"
-                     imageMode="sprite-resize:23,23,18,4,15,4,4,4,15,4,15,4,15,4,4" post="true"/>
+                     imageMode="sprite-resize:23,23,18,4,15,4,4,4,15,4,15,4,15,4,4" post="true"/>-->
             <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
             <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
         </effect>
