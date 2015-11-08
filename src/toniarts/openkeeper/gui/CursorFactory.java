@@ -70,23 +70,23 @@ public final class CursorFactory {
         //
         // Animated cursors
         //
-        cursors.put(CursorType.IDLE, new Cursor(assetManager, "Point.png", 6, 21, 41));
-        cursors.put(CursorType.SPELL_CAST, new Cursor(assetManager, "SpellCast.png", 30, 40, 12));
+        cursors.put(CursorType.IDLE, new Cursor(assetManager, "Point.png", 6, 4, 41));
+        cursors.put(CursorType.SPELL_CAST, new Cursor(assetManager, "SpellCast.png", 5, 65, 12));
         //cursors.put(CursorType.SPELL_POSSESS, new Cursor(assetManager, "SpellPossess.png", 2, 2, 6));
         cursors.put(CursorType.DROP_GOLD, new Cursor(assetManager, "DropGold.png", 5, 5, 16));
-        cursors.put(CursorType.DROP_THING, new Cursor(assetManager, "DropThing.png", 50, 50, 14));
-        cursors.put(CursorType.SLAP, new Cursor(assetManager, "Slap.png", 50, 50, 15));
+        cursors.put(CursorType.DROP_THING, new Cursor(assetManager, "DropThing.png", 5, 40, 14));
+        cursors.put(CursorType.SLAP, new Cursor(assetManager, "Slap.png", 5, 40, 15));
 
         //
         // Static mouse cursors
         //
-        cursors.put(CursorType.POINTER, new Cursor(assetManager, "Idle.png", 1, 35));
-        cursors.put(CursorType.PICKAXE_TAG, new Cursor(assetManager, "PickAxeTag.png", 5, 55));
-        cursors.put(CursorType.HOLD_PICKAXE, new Cursor(assetManager, "PickAxeHold.png", 5, 55));
-        cursors.put(CursorType.HOLD_PICKAXE_TAGGING, new Cursor(assetManager, "PickAxeHoldTagging.png", 5, 55));
+        cursors.put(CursorType.POINTER, new Cursor(assetManager, "Idle.png", 1, 2));
+        cursors.put(CursorType.PICKAXE_TAG, new Cursor(assetManager, "PickAxeTag.png", 10, 65));
+        cursors.put(CursorType.HOLD_PICKAXE, new Cursor(assetManager, "PickAxeHold.png", 3, 40));
+        cursors.put(CursorType.HOLD_PICKAXE_TAGGING, new Cursor(assetManager, "PickAxeHoldTagging.png", 10, 65));
         cursors.put(CursorType.HOLD_SPELL, new Cursor(assetManager, "SpellHold.png", 30, 50));
         cursors.put(CursorType.HOLD_GOLD, new Cursor(assetManager, "HoldGold.png", 5, 5));
-        cursors.put(CursorType.HOLD_THING, new Cursor(assetManager, "HoldThing.png", 5, 35));
+        cursors.put(CursorType.HOLD_THING, new Cursor(assetManager, "HoldThing.png", 5, 40));
         //cursors.put(CursorType.NO_SPELL_POSSESS, new Cursor(assetManager, "SpellPossessNoGo.png", 32, 32));
     }
 }
