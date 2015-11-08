@@ -16,11 +16,11 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IValueEnum;
-import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.awt.Color;
 import java.util.EnumSet;
 import java.util.List;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
+import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
  * Container class for the Rooms
@@ -46,7 +46,7 @@ public class Room implements Comparable<Room> {
         NORMAL_TILES(0x0040), // Placement
         BUILDABLE(0x0080),
         SPECIAL_WALLS(0x0100), // Placement
-        UNKNOWN(0x0200),
+        ATTACKABLE(0x0200),
         HAS_FLAME(0x1000),
         IS_GOOD(0x2000);
         private final long flagValue;
