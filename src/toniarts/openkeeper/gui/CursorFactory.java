@@ -18,15 +18,7 @@ package toniarts.openkeeper.gui;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.cursors.plugins.JmeCursor;
-import com.jme3.texture.Image;
-import com.jme3.texture.Texture;
-import com.jme3.util.BufferUtils;
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 import java.util.HashMap;
-import java.util.regex.Matcher;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 
 /**
  * Small utility for creating cursors from the original DK II assets
@@ -35,18 +27,32 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
  */
 public final class CursorFactory {
 
-    public enum Cursor {
+    public enum CursorType {
 
-        IDLE, POINTER;
+        IDLE,
+        POINTER,
+        HOLD_SPELL,
+        HOLD_THING,
+        HOLD_GOLD,
+        HOLD_PICKAXE,
+        HOLD_PICKAXE_TAGGING,
+        SLAP,
+        DROP_GOLD,
+        DROP_THING,
+        PICKAXE_TAG,
+        // We are having issues because of the file format
+        // SPELL_POSSESS,
+        // NO_SPELL_POSSESS,
+        SPELL_CAST;
     }
-    private static volatile HashMap<Cursor, JmeCursor> cursors;
+    private static volatile HashMap<CursorType, JmeCursor> cursors;
     private static final Object lock = new Object();
 
     private CursorFactory() {
         // Nope
     }
 
-    public static JmeCursor getCursor(Cursor cursor, AssetManager assetManager) {
+    public static JmeCursor getCursor(CursorType cursor, AssetManager assetManager) {
         if (cursors == null) {
             synchronized (lock) {
                 if (cursors == null) {
@@ -59,79 +65,28 @@ public final class CursorFactory {
 
     private static void initializeCursors(AssetManager assetManager) {
 
-        cursors = new HashMap<>(Cursor.values().length);
+        cursors = new HashMap<>(CursorType.values().length);
 
         //
-        // IDLE, animated cursor (Point.png)
+        // Animated cursors
         //
-        JmeCursor cursor = new JmeCursor();
-        Texture tex = assetManager.loadTexture(AssetsConverter.MOUSE_CURSORS_FOLDER.concat(File.separator).concat("Point.png").replaceAll(Matcher.quoteReplacement(File.separator), "/"));
-        Image img = tex.getImage();
-
-        // Image data
-        ByteBuffer data = img.getData(0);
-        data.rewind();
-        IntBuffer image = BufferUtils.createIntBuffer(img.getHeight() * 80);
-        for (int y = 0; y < img.getHeight(); y++) {
-            for (int x = 0; x < img.getWidth(); x++) {
-                int abgr = data.getInt();
-
-                // Skip the first 2 columns, since the maximum size for a cursor seems to be 80
-                if (x < 2) {
-                    continue;
-                }
-                int argb = ((abgr & 255) << 24) | (abgr >> 8);
-                image.put(argb);
-            }
-        }
-        image.rewind();
-
-        // Delays
-        IntBuffer delays = BufferUtils.createIntBuffer(41);
-        for (int i = 0; i < 41; i++) {
-            delays.put(30);
-        }
-
-        cursor.setNumImages(41);
-        cursor.setWidth(80);
-        cursor.setHeight(53);
-        cursor.setxHotSpot(6);
-        cursor.setyHotSpot(cursor.getHeight() - 32);
-        cursor.setImagesData(image);
-        cursor.setImagesDelay((IntBuffer) delays.rewind());
-        cursors.put(Cursor.IDLE, cursor);
+        cursors.put(CursorType.IDLE, new Cursor(assetManager, "Point.png", 6, 4, 41));
+        cursors.put(CursorType.SPELL_CAST, new Cursor(assetManager, "SpellCast.png", 5, 65, 12));
+        //cursors.put(CursorType.SPELL_POSSESS, new Cursor(assetManager, "SpellPossess.png", 2, 2, 6));
+        cursors.put(CursorType.DROP_GOLD, new Cursor(assetManager, "DropGold.png", 10, 40, 16));
+        cursors.put(CursorType.DROP_THING, new Cursor(assetManager, "DropThing.png", 5, 40, 14));
+        cursors.put(CursorType.SLAP, new Cursor(assetManager, "Slap.png", 5, 40, 15));
 
         //
-        // GUI point cursor (Idle.png)
+        // Static mouse cursors
         //
-        cursor = new JmeCursor();
-        tex = assetManager.loadTexture(AssetsConverter.MOUSE_CURSORS_FOLDER.concat(File.separator).concat("Idle.png").replaceAll(Matcher.quoteReplacement(File.separator), "/"));
-        img = tex.getImage();
-
-        // Image data
-        data = img.getData(0);
-        data.rewind();
-        image = BufferUtils.createIntBuffer(img.getHeight() * 80);
-        for (int y = 0; y < img.getHeight(); y++) {
-            for (int x = 0; x < img.getWidth(); x++) {
-                int abgr = data.getInt();
-
-                // Skip the first 3 columns, since the maximum size for a cursor seems to be 80
-                if (x < 3) {
-                    continue;
-                }
-                int argb = ((abgr & 255) << 24) | (abgr >> 8);
-                image.put(argb);
-            }
-        }
-        image.rewind();
-
-        cursor.setNumImages(1);
-        cursor.setWidth(80);
-        cursor.setHeight(39);
-        cursor.setxHotSpot(1);
-        cursor.setyHotSpot(cursor.getHeight() - 4);
-        cursor.setImagesData(image);
-        cursors.put(Cursor.POINTER, cursor);
+        cursors.put(CursorType.POINTER, new Cursor(assetManager, "Idle.png", 1, 2));
+        cursors.put(CursorType.PICKAXE_TAG, new Cursor(assetManager, "PickAxeTag.png", 10, 65));
+        cursors.put(CursorType.HOLD_PICKAXE, new Cursor(assetManager, "PickAxeHold.png", 3, 40));
+        cursors.put(CursorType.HOLD_PICKAXE_TAGGING, new Cursor(assetManager, "PickAxeHoldTagging.png", 10, 65));
+        cursors.put(CursorType.HOLD_SPELL, new Cursor(assetManager, "SpellHold.png", 30, 50));
+        cursors.put(CursorType.HOLD_GOLD, new Cursor(assetManager, "HoldGold.png", 5, 5));
+        cursors.put(CursorType.HOLD_THING, new Cursor(assetManager, "HoldThing.png", 5, 40));
+        //cursors.put(CursorType.NO_SPELL_POSSESS, new Cursor(assetManager, "SpellPossessNoGo.png", 32, 32));
     }
 }

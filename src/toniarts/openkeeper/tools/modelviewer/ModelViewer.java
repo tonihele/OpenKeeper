@@ -278,7 +278,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         // Mouse cursor
         inputManager.setCursorVisible(true);
-        inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.Cursor.POINTER, assetManager));
+        inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
 
         // Wireframe
         inputManager.addMapping(KEY_MAPPING_TOGGLE_WIREFRAME, new KeyTrigger(KeyInput.KEY_T));
