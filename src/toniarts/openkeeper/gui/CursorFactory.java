@@ -73,7 +73,7 @@ public final class CursorFactory {
         cursors.put(CursorType.IDLE, new Cursor(assetManager, "Point.png", 6, 4, 41));
         cursors.put(CursorType.SPELL_CAST, new Cursor(assetManager, "SpellCast.png", 5, 65, 12));
         //cursors.put(CursorType.SPELL_POSSESS, new Cursor(assetManager, "SpellPossess.png", 2, 2, 6));
-        cursors.put(CursorType.DROP_GOLD, new Cursor(assetManager, "DropGold.png", 5, 5, 16));
+        cursors.put(CursorType.DROP_GOLD, new Cursor(assetManager, "DropGold.png", 10, 40, 16));
         cursors.put(CursorType.DROP_THING, new Cursor(assetManager, "DropThing.png", 5, 40, 14));
         cursors.put(CursorType.SLAP, new Cursor(assetManager, "Slap.png", 5, 40, 15));
 
