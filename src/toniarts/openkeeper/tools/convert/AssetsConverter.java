@@ -64,6 +64,7 @@ import toniarts.openkeeper.tools.convert.kcs.KcsFile;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
+import toniarts.openkeeper.tools.convert.spr.SprFile;
 import toniarts.openkeeper.tools.convert.str.StrFile;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.textures.loadingscreens.LoadingScreenFile;
@@ -90,7 +91,7 @@ public abstract class AssetsConverter {
 
         TEXTURES(1, 2),
         MODELS(2, 1),
-        MOUSE_CURSORS(3, 1),
+        MOUSE_CURSORS(3, 2),
         MUSIC_AND_SOUNDS(4, 1),
         INTERFACE_TEXTS(5, 1),
         PATHS(6, 3),
@@ -422,13 +423,24 @@ public abstract class AssetsConverter {
         WadFile wadFile = new WadFile(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Sprite.WAD")));
         int i = 0;
         int total = wadFile.getWadFileEntryCount();
+        File destinationFolder = new File(getAssetsFolder().concat(TEXTURES_FOLDER).concat(File.separator).concat("Sprites/"));
+        destinationFolder.mkdirs();
+
         for (String fileName : wadFile.getWadFileEntries()) {
             updateStatus(i, total, ConvertProcess.MOUSE_CURSORS);
             i++;
-            if (fileName.toLowerCase().endsWith(".png")) {
+            //Extract the file
+            File extracted = wadFile.extractFileData(fileName, destination);
 
-                //Extract the file
-                wadFile.extractFileData(fileName, destination);
+            if (fileName.toLowerCase().endsWith(".spr")) {
+                // Extract the spr and delete it afterwards
+                SprFile sprFile = new SprFile(extracted);
+                try {
+                    sprFile.extract(destinationFolder.getPath(), fileName.substring(0, fileName.length() - 4));
+                    extracted.delete();
+                } catch (Exception ex) {
+                    logger.log(Level.SEVERE, "Error Sprite: {0}", ex);
+                }
             }
         }
     }
