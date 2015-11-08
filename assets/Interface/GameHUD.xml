@@ -353,21 +353,21 @@
                 <!--Two columns of options-->
                 <panel width="100%" align="left" valign="top" childLayout="horizontal">
                     <panel id="optionsColumnOne" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px">
-                        <control click="pauseMenu()" text="${menu.537}" glyph="Textures/GUI/Options/i-objective.png" name="inGameMenuSelection" />
-                        <control click="pauseMenu()" text="${menu.97}" glyph="Textures/GUI/Options/i-game.png" name="inGameMenuSelection" />
-                        <control click="pauseMenu()" text="${menu.143}" glyph="Textures/GUI/Options/i-load.png" name="inGameMenuSelection" />
-                        <control click="pauseMenu()" text="${menu.201}" glyph="Textures/GUI/Options/i-save.png" name="inGameMenuSelection" />
+                        <control click="pauseMenu()" text="${menu.537}" glyph="Textures/GUI/Options/i-objective.png" name="iconText" />
+                        <control click="pauseMenu()" text="${menu.97}" glyph="Textures/GUI/Options/i-game.png" name="iconText" />
+                        <control click="pauseMenu()" text="${menu.143}" glyph="Textures/GUI/Options/i-load.png" name="iconText" />
+                        <control click="pauseMenu()" text="${menu.201}" glyph="Textures/GUI/Options/i-save.png" name="iconText" />
                     </panel>
                     <panel id="optionsColumnTwo" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px">
-                        <control click="quitToMainMenu()" text="${menu.1266}" glyph="Textures/GUI/Options/i-quit.png" name="inGameMenuSelection" />
-                        <control click="pauseMenu()" text="${menu.1269}" glyph="Textures/GUI/Options/i-restart.png" name="inGameMenuSelection" />
+                        <control click="quitToMainMenu()" text="${menu.1266}" glyph="Textures/GUI/Options/i-quit.png" name="iconText" />
+                        <control click="pauseMenu()" text="${menu.1269}" glyph="Textures/GUI/Options/i-restart.png" name="iconText" />
                     </panel>
                 </panel>
 
                 <!--Menu navigation-->
                 <panel width="100%" align="left" valign="bottom" childLayout="horizontal" paddingBottom="10px" paddingLeft="3px">
                     <panel id="optionsNavigationColumnOne" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px">
-                        <control click="pauseMenu()" text="${menu.142}" glyph="Textures/GUI/Options/i-accept.png" name="inGameMenuSelection" />
+                        <control click="pauseMenu()" text="${menu.142}" glyph="Textures/GUI/Options/i-accept.png" name="iconText" />
                     </panel>
                     <panel id="optionsNavigationColumnTwo" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px">
                     </panel>
