@@ -211,8 +211,13 @@ public abstract class WorldHandler {
             // Claim
             if (!terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                 tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());
-
             }
+
+            // tile is claimed by another player and needs to be destroyed
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getPlayerId() != player.getPlayerId()) {
+                tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
+            }
+
             terrain = kwdFile.getTerrain(tile.getTerrainId());
             if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                 tile.setPlayerId(player.getPlayerId());
