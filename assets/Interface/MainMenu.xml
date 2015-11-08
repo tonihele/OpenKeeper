@@ -8,12 +8,15 @@
     <useStyles filename="Interface/CheckBoxStyle.xml" />
     <useControls filename="nifty-default-controls.xml" />
     <useControls filename="Interface/MyControls.xml" />
-
+    <useControls filename="Interface/CreditsControl.xml" />
     <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
 
     <registerSound id="buttonClick" filename="Sounds/Global/FE3D CLICK ON T.mp2" />
     <registerSound id="menuClick" filename="Sounds/Global/FE BUTTON BIG 5.mp2" />
 
+    <style id="text">
+        <attributes font="Interface/Fonts/Frontend14.fnt" color="#bbbcbb" />
+    </style>
     <style id="menuTextSmall">
         <attributes font="Interface/Fonts/Frontend20.fnt" color="#bbbcbb" />
     </style>
@@ -25,7 +28,11 @@
         </effect>
     </style>
     <style id="menuTitleText">
-        <attributes font="Interface/Fonts/Frontend28.fnt" color="#ff5f00" />
+        <attributes font="Interface/Fonts/Frontend36.fnt" color="#ff5f00" />
+    </style>
+    
+     <style id="menuSubTitleText">
+        <attributes font="Interface/Fonts/Frontend20.fnt" color="#ffdd33" />
     </style>
 
     <style id="nifty-hiscore-head#text">
@@ -39,63 +46,50 @@
     <!-- empty screen -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="empty" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical"></layer>
+        <layer />
     </screen>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- start screen -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="start" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
-                <panel childLayout="center" align="center" valign="center">
-                    <image filename="Textures/Logo.png" />
-                </panel>
+        <layer childLayout="vertical">
+            <panel height="20%" childLayout="center" valign="center" align="center">
+                <image filename="Textures/Logo.png" align="center" />
             </panel>
-            <panel id="panel2" height="36.875%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="singlePlayer" style="menuText" text="${menu.71}">
+            
+            <panel childLayout="center" height="*" align="center" valign="center">
+                <panel childLayout="vertical" align="center" valign="center" visibleToMouse="true">            
+                    <text style="menuText" text="${menu.71}" align="center">
                         <interact onClick="goToScreen(singlePlayer)" />
-                    </text>
-                </panel>
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="multiplayer" style="menuText" text="${menu.72}">
+                    </text>              
+                    <text style="menuText" text="${menu.72}" align="center">
                         <interact onClick="doTransition(271,multiplayer,273)" />
-                    </text>
-                </panel>
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="mpd" style="menuText" text="${menu.1675}">
+                    </text>              
+                    <text style="menuText" text="${menu.1675}" align="center">
                         <interact onClick="doTransition(262,myPetDungeon,264)" />
                     </text>
-                </panel>
-            </panel>
-            <panel id="panel3" height="7%" width="100%" align="center" valign="center" childLayout="center">
-
-            </panel>
-            <panel id="panel4" height="15.208%" width="100%" align="center" valign="top" childLayout="vertical" visibleToMouse="true">
-                <panel childLayout="center" align="center" valign="top">
-                    <text id="options" style="menuText" text="${menu.94}">
+                    
+                    <text style="text" text="" align="center" /><!-- empty string -->
+                               
+                    <text style="menuText" text="${menu.94}" align="center">
                         <interact onClick="doTransition(256,optionsMain,258)" />
                     </text>
-                </panel>
-                <panel childLayout="center" align="center" valign="top">
-                    <text id="extras" style="menuText" text="${menu.73}">
+                    <text style="menuText" text="${menu.73}" align="center">
                         <interact onClick="doTransition(259,extras,261)" />
                     </text>
-                </panel>
-            </panel>
-            <panel id="panel5" height="5%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
-                <text id="quit" style="menuText" text="${menu.28}" align="center" valign="center">
-                    <interact onClick="goToScreen(quitGame)" />
-                </text>
-            </panel>
-            <panel id="panel6" height="*" width="100%" align="center" valign="top" childLayout="vertical">
-                <panel childLayout="vertical" align="right" valign="top">
-                    <text style="menuTextSmall" color="#bbbcbb" text="*PRE-ALPHA*"/>
-                </panel>
-                <panel childLayout="vertical" align="right" valign="top">
-                    <text style="menuTextSmall" color="#bbbcbb" text="Open Source Edition"/>
-                </panel>
+                    
+                    <text style="text" text="" align="center" /><!-- empty string -->
+                    
+                    <text style="menuText" text="${menu.28}" align="center">
+                        <interact onClick="goToScreen(quitGame)" />
+                    </text>
+                </panel>  
+            </panel>          
+            
+            <panel align="right" valign="bottom" childLayout="vertical" paddingRight="10px">
+                <text style="text" text="*PRE-ALPHA*" align="center"/>    
+                <text style="text" text="Open Source Edition" align="center"/>
             </panel>
         </layer>
     </screen>
@@ -104,38 +98,28 @@
     <!-- single player game -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="singlePlayer" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="singlePlayer" style="menuTitleText" text="${menu.71}" />
-                </panel>
+        <layer childLayout="vertical">
+            <panel height="14%" childLayout="center" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.71}" align="center" />
             </panel>
-            <panel id="panel2" height="25%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="newCampaign" style="menuText" text="${menu.140}" />
-                </panel>
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="continueCampaign" style="menuText" text="${menu.2059}">
+            
+            <panel childLayout="center" height="*" align="center" valign="center">
+                <panel childLayout="vertical" align="center" valign="center" visibleToMouse="true">
+                    <text id="newCampaign" style="menuText" text="${menu.140}" align="center" />
+                    <text style="menuText" text="${menu.2059}" align="center">
                         <interact onClick="doTransition(251,selectCampaignLevel,null)" />
                     </text>
-                </panel>
-            </panel>
-            <panel id="panel3" height="5%" width="100%" align="center" valign="center" childLayout="center">
-
-            </panel>
-            <panel id="panel4" height="*" width="100%" align="center" valign="top" childLayout="vertical" visibleToMouse="true">
-                <panel childLayout="center" align="center" valign="top">
-                    <text id="skirmish" style="menuText" text="${menu.141}">
+                    
+                    <text style="text" text="" align="center" /><!-- empty string -->
+                           
+                    <text style="menuText" text="${menu.141}" align="center">
                         <interact onClick="doTransition(271,skirmish,273)" />
-                    </text>
-                </panel>
-                <panel childLayout="center" align="center" valign="top">
-                    <text id="loadGame" style="menuText" text="${menu.145}" />
+                    </text>              
+                    <text id="loadGame" style="menuText" text="${menu.145}" align="center" />
                 </panel>
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="goToScreen(start)" id="back" name="cancelButton" />
-                <text style="menuText" text="" width="48px" margin="5px" />
+                <control click="goToScreen(start)" name="cancelButton" marginRight="48px" />
             </panel>
         </layer>
     </screen>
@@ -144,20 +128,16 @@
     <!-- quit game -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="quitGame" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" height="40%" width="100%" childLayout="vertical">
-                <panel height="100%" childLayout="center" align="center" valign="bottom">
-                    <text id="singlePlayer" style="menuTitleText" text="${menu.28}" align="center" valign="bottom" />
-                </panel>
+        <layer childLayout="vertical">
+            <panel height="14%" childLayout="center" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.28}" align="center" />
             </panel>
-            <panel id="panel2" height="*" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="newCampaign" style="menuText" text="${menu.15}" />
-                </panel>
+            <panel height="*" align="center" valign="center" childLayout="center" visibleToMouse="true">
+                <text id="quitText" style="menuText" text="${menu.15}" align="center"/>
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="goToScreen(start)" id="back" name="cancelButton" />
-                <control click="quitGame()" id="quit" name="okButton"/>
+                <control name="cancelButton" click="goToScreen(start)" />
+                <control name="okButton" click="quitGame()" />
             </panel>
         </layer>
     </screen>
@@ -166,12 +146,10 @@
     <!-- Campaign map, level selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="selectCampaignLevel" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" width="100%" childLayout="vertical">
-            </panel>
+        <layer childLayout="vertical">
+            <panel height="*" />
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="doTransition(252,singlePlayer,274)" id="back" name="cancelButton" />
-                <text style="menuText" text="" width="48px" margin="5px" />
+                <control name="cancelButton" click="doTransition(252,singlePlayer,274)" marginRight="48px" />
             </panel>
         </layer>
     </screen>
@@ -180,60 +158,58 @@
     <!-- Campaign level briefing -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="campaign" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" width="100%" childLayout="vertical">
-                <panel width="100%" childLayout="center" align="center" valign="center">
-                    <text id="briefingTitle" style="menuTitleText" text="${menu.1476}" />
-                </panel>
-                <panel width="100%" childLayout="center" align="center" valign="center">
-                    <control name="label" id="levelTitle" style="menuTitleText">
-                    </control>
-                </panel>
-                <panel height="5%" width="100%" childLayout="center" align="center" valign="center">
+        <layer childLayout="vertical"> 
+            <panel childLayout="center" align="center" valign="center" height="14%">
+                <text style="menuTitleText" text="${menu.1476}" align="center" />
+            </panel>
 
+            <panel childLayout="center" align="center" valign="center">
+                <control name="label" id="levelTitle" style="menuSubTitleText" align="center" />
+            </panel>
+            
+            <panel height="26px" />
+            <!--Main objectives-->
+            <panel childLayout="horizontal" width="100%" align="center" valign="center">
+                <panel childLayout="center" width="160px" align="center" valign="center">
+                    <image align="center" valign="top" id="mainObjectiveImage" width="144px" />
                 </panel>
-                <!--Main objectives-->
-                <panel height="30%" width="100%" childLayout="horizontal" align="center" valign="center">
-                    <panel width="33%" childLayout="center" align="center" valign="center">
-                        <image align="center" valign="top" id="mainObjectiveImage" width="144px" />
+                <panel childLayout="vertical" width="*" align="left" valign="top">
+                    <panel childLayout="vertical" backgroundColor="#f508" width="100%" >
+                        <text align="left" margin="0,8px" id="mainObjectivesTitle" style="menuSubTitleText" text="${menu.1408}" />
                     </panel>
-                    <panel width="*" childLayout="vertical" align="left" valign="top">
-                        <panel backgroundColor="#f508" width="100%" childLayout="vertical" paddingLeft="2%" marginBottom="2%">
-                            <text align="left" valign="top" id="mainObjectivesTitle" style="menuTitleText" text="${menu.1408}" />
-                        </panel>
-                        <panel backgroundColor="#0008" width="100%" height="*" childLayout="vertical" paddingLeft="2%">
-                            <control width="100%" name="label" style="menuTextSmall" id="mainObjective" textHAlign="left" textVAlign="top" wrap="true" />
-                        </panel>
+                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="4px">
+                        <control name="label" style="menuTextSmall" margin="0,8px" id="mainObjective" 
+                                 textHAlign="left" textVAlign="top" wrap="true" />
                     </panel>
-                </panel>
-                <panel height="3%" width="100%" childLayout="center" align="center" valign="center">
-
-                </panel>
-                <!--Subobjectives-->
-                <panel height="*" id="subObjectivePanel" width="100%" childLayout="horizontal" align="center" valign="center">
-                    <panel width="33%" childLayout="center" align="center" valign="center">
-                        <image align="center" valign="top" id="subObjectiveImage" width="144px" />
-                    </panel>
-                    <panel width="*" childLayout="vertical" align="left" valign="top">
-                        <panel backgroundColor="#f508" width="100%" childLayout="vertical" paddingLeft="2%" marginBottom="2%">
-                            <text align="left" valign="top" id="subObjectivesTitle" style="menuTitleText" text="${menu.1409}" />
-                        </panel>
-                        <panel backgroundColor="#0008" width="100%" height="*" childLayout="vertical" paddingLeft="2%">
-                            <panel width="100%" childLayout="vertical">
-                                <control width="100%" name="label" style="menuTextSmall" id="subObjective1" textHAlign="left" textVAlign="top" wrap="true" />
-                                <control width="100%" name="label" style="menuTextSmall" id="subObjective2" textHAlign="left" textVAlign="top" wrap="true" />
-                                <control width="100%" name="label" style="menuTextSmall" id="subObjective3" textHAlign="left" textVAlign="top" wrap="true" />
-                            </panel>
-                        </panel>
-                    </panel>
-                </panel>
-                <panel height="3%" width="100%" childLayout="center" align="center" valign="center">
-
                 </panel>
             </panel>
+            
+            <panel height="10px" />
+            <!--Subobjectives-->
+            <panel childLayout="horizontal" id="subObjectivePanel" width="100%" align="center" valign="center">
+                <panel childLayout="center" width="160px" align="center" valign="center">
+                    <image align="center" valign="top" id="subObjectiveImage" width="144px"/>
+                </panel>
+                <panel childLayout="vertical" width="*" align="left" valign="top">
+                    <panel childLayout="vertical" width="100%" backgroundColor="#f508" >
+                        <text align="left" margin="0,8px" id="subObjectivesTitle" style="menuSubTitleText" text="${menu.1409}" />
+                    </panel>
+                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="8px">
+                        <control name="label" style="menuTextSmall" id="subObjective1"  margin="0,8px" 
+                                 textHAlign="left" wrap="true" />
+                        <control name="label" style="menuTextSmall" id="subObjective2"  margin="0,8px"
+                                 textHAlign="left" wrap="true" />
+                        <control name="label" style="menuTextSmall" id="subObjective3"  margin="0,8px"
+                                 textHAlign="left" wrap="true" />
+                    </panel>
+                </panel>
+            </panel>
+            
+            <panel height="*" /> 
+            
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="cancelLevelSelect()" id="back" name="cancelButton" />
-                <control click="startCampaignLevel()" id="start" name="okButton" />
+                <control name="cancelButton" click="cancelLevelSelect()" />
+                <control name="okButton" click="startCampaignLevel()" />
             </panel>
         </layer>
     </screen>
@@ -242,27 +218,27 @@
     <!-- Options, main selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="optionsMain" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" width="100%" childLayout="vertical">
-                <panel width="100%" childLayout="center" align="center" valign="center">
-                    <text id="optionsTitle" style="menuTitleText" text="${menu.94}" />
-                </panel>
-                <panel width="100%" height="*" childLayout="center" align="center" valign="center">
-                    <panel width="100%" childLayout="vertical" align="center" valign="center">
-                        <text id="optionsGraphics" style="menuText" text="${menu.96}" align="center">
-                            <interact onClick="goToScreen(optionsGraphics)" />
-                        </text>
-                        <text id="optionsSound" style="menuText" text="${menu.95}" align="center" >
-                            <interact onClick="goToScreen(optionsSound)" />
-                        </text>
-                        <text id="optionsControl" style="menuText" text="${menu.98}" align="center" >
-                            <interact onClick="goToScreen(optionsControl)" />
-                        </text>
-                    </panel>
-                </panel>
+        <layer childLayout="vertical">
+            <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.94}" align="center" />
             </panel>
+  
+            <panel childLayout="center" height="*" align="center" valign="center">
+                <panel childLayout="vertical" align="center" valign="center">
+                    <text style="menuText" text="${menu.96}" align="center">
+                        <interact onClick="goToScreen(optionsGraphics)" />
+                    </text>
+                    <text style="menuText" text="${menu.95}" align="center" >
+                        <interact onClick="goToScreen(optionsSound)" />
+                    </text>
+                    <text style="menuText" text="${menu.98}" align="center" >
+                        <interact onClick="goToScreen(optionsControl)" />
+                    </text>
+                </panel>     
+            </panel>
+
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="doTransition(257,start,274)" id="back" name="okButton" />
+                <control name="okButton" click="doTransition(257,start,274)" />
             </panel>
         </layer>
     </screen>
@@ -271,57 +247,55 @@
     <!-- Graphic options -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="optionsGraphics" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" width="100%" childLayout="vertical">
-                <panel width="100%" childLayout="center" align="center" valign="center">
-                    <text id="briefingTitle" style="menuTitleText" text="${menu.96}" />
-                </panel>
-                <panel width="100%" height="*" childLayout="center" align="center" valign="center">
-                    <panel childLayout="horizontal" valign="center">
-                        <!--Left side options panel-->
-                        <panel childLayout="vertical" align="left" valign="top">
-                            <panel align="left" valign="center" childLayout="vertical" padding="10px">
-                                <text style="menuTextSmall" text="${menu.134}: " />
-                                <control width="250px" name="dropDown" id="resolution" />
-                            </panel>
-                            <panel align="left" valign="center" childLayout="horizontal" padding="10px">
-                                <control name="checkbox" id="fullscreen" />
-                                <text style="menuTextSmall" text=" Fullscreen" />
-                            </panel>
-                            <panel align="left" valign="center" childLayout="vertical" padding="10px">
-                                <text style="menuTextSmall" text="Antialiasing: " />
-                                <control width="100px" name="dropDown" id="antialiasing" />
-                            </panel>
-                            <panel align="left" valign="center" childLayout="vertical" padding="10px">
-                                <text style="menuTextSmall" text="OpenGL: " />
-                                <control width="250px" name="dropDown" id="openGl" />
-                            </panel>
-                            <panel align="left" valign="center" childLayout="horizontal" padding="10px">
-                                <control name="checkbox" id="ssao" />
-                                <text style="menuTextSmall" text=" SSAO" />
-                            </panel>
-                        </panel>
-                        <!--Right side options panel-->
-                        <panel  childLayout="vertical" align="right" valign="top">
-                            <panel align="left" valign="center" childLayout="vertical" padding="10px">
-                                <text style="menuTextSmall" text="Refresh rate: " />
-                                <control width="100px" name="dropDown" id="refreshRate" />
-                            </panel>
-                            <panel align="left" valign="center" childLayout="horizontal" padding="10px">
-                                <control name="checkbox" id="verticalSync" />
-                                <text style="menuTextSmall" text=" Vertical sync" />
-                            </panel>
-                            <panel align="left" valign="center" childLayout="vertical" padding="10px">
-                                <text style="menuTextSmall" text="Anisotropic filtering: " />
-                                <control width="100px" name="dropDown" id="anisotropicFiltering" />
-                            </panel>
-                        </panel>
+        <layer childLayout="vertical">
+            <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.96}" align="center" />
+            </panel>            
+            
+            <panel childLayout="horizontal" height="*" valign="center" align="center">
+                <!--Left side options panel-->
+                <panel childLayout="vertical" align="left" valign="top" padding="10px">
+                    <panel childLayout="vertical" padding="10px">
+                        <text style="menuTextSmall" text="${menu.134}: " />
+                        <control width="250px" name="dropDown" id="resolution" />
+                    </panel>
+                    <panel childLayout="horizontal" padding="10px">
+                        <control name="checkbox" id="fullscreen" />
+                        <text style="menuTextSmall" text=" Fullscreen" />
+                    </panel>
+                    <panel childLayout="vertical" padding="10px">
+                        <text style="menuTextSmall" text="Antialiasing: " />
+                        <control width="100px" name="dropDown" id="antialiasing" />
+                    </panel>
+                    <panel childLayout="vertical" padding="10px">
+                        <text style="menuTextSmall" text="OpenGL: " />
+                        <control width="250px" name="dropDown" id="openGl" />
+                    </panel>
+                    <panel childLayout="horizontal" padding="10px">
+                        <control name="checkbox" id="ssao" />
+                        <text style="menuTextSmall" text=" SSAO" />
                     </panel>
                 </panel>
-            </panel>
+                <!--Right side options panel-->
+                <panel childLayout="vertical" align="right" valign="top" padding="10px">
+                    <panel childLayout="vertical" padding="10px">
+                        <text style="menuTextSmall" text="Refresh rate: " />
+                        <control width="100px" name="dropDown" id="refreshRate" />
+                    </panel>
+                    <panel childLayout="horizontal" padding="10px">
+                        <control name="checkbox" id="verticalSync" />
+                        <text style="menuTextSmall" text=" Vertical sync" />
+                    </panel>
+                    <panel childLayout="vertical" padding="10px">
+                        <text style="menuTextSmall" text="Anisotropic filtering: " />
+                        <control width="100px" name="dropDown" id="anisotropicFiltering" />
+                    </panel>
+                </panel>
+            </panel>            
+            
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="goToScreen(optionsMain)" id="back" name="cancelButton" />
-                <control click="applyGraphicsSettings()" id="start" name="okButton" />
+                <control name="cancelButton" click="goToScreen(optionsMain)" />
+                <control name="okButton" click="applyGraphicsSettings()" />
             </panel>
         </layer>
     </screen>
@@ -330,18 +304,18 @@
     <!-- Sound Options -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="optionsSound" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" width="100%" childLayout="vertical">
-                <panel width="100%" childLayout="center" align="center" valign="center">
-                    <text id="optionsSoundTitle" style="menuTitleText" text="${menu.95}" />
-                </panel>
-                <panel width="100%" height="*" childLayout="center" align="center" valign="center">
-                    <text style="menuTextSmall" text="Not ready yet" />
-                </panel>
+        <layer childLayout="vertical">
+            <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.95}" align="center" />
             </panel>
+            
+            <panel width="100%" height="*" childLayout="center" align="center" valign="center">
+                <text style="menuTextSmall" text="Not ready yet" />
+            </panel>
+            
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="goToScreen(optionsMain)" id="back" name="cancelButton" />
-                <control click="goToScreen(optionsMain)" id="start" name="okButton" />
+                <control name="cancelButton" click="goToScreen(optionsMain)" />
+                <control name="okButton" click="goToScreen(optionsMain)" />
             </panel>
         </layer>
     </screen>
@@ -351,15 +325,13 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="optionsControl" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer childLayout="vertical">
-            <panel width="90%" childLayout="vertical" align="center">
-                <panel width="100%" childLayout="center" height="12%" align="center" valign="center">
-                    <text id="optionsControlTitle" style="menuTitleText" text="${menu.98}" />
-                </panel>
-                
-                <!--Spacer-->
-                <panel height="5%" width="100%" align="center" valign="center" />                
+            <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.98}" align="center" />
+            </panel>
             
-                <panel width="100%" height="*" childLayout="vertical" align="center" valign="center">
+            <panel width="90%" childLayout="vertical" align="center">
+            
+                <panel width="100%" height="100%" childLayout="vertical" align="center" valign="center">
                     <control id="keyboardSetup" name="table" vertical="optional" displayItems="5" selection="Single" 
                              colCount="2"
                              col0="${menu.2845};55;java.lang.String;#32050c30"
@@ -367,37 +339,37 @@
                     />
                 </panel>
                 
-                <!--Spacer-->
-                <panel height="5%" width="100%" align="center" valign="center" />        
-                
                 <panel align="center" valign="center" childLayout="horizontal" padding="10px,10px">
-                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px,0px,20px">                        
+                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px">                        
                         <text style="menuTextSmall" text="${menu.1466}" width="100%" />     
-                        <control id="mouseSensitivity" name="horizontalSlider" min="0.5" max="2" initial="0.7" stepSize="0.1" buttonStepSize="0.1"/>                        
+                        <control id="mouseSensitivity" name="horizontalSlider" min="0.5" max="2" 
+                                 initial="0.7" stepSize="0.1" buttonStepSize="0.1"/>                        
                     </panel>
-                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px,0px,20px">                        
+                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px">                        
                         <text style="menuTextSmall" text="${menu.1469}" width="100%" />
-                        <control id="gameSpeed" name="horizontalSlider" min="0.25" max="4" initial="1.0" stepSize="0.25" buttonStepSize="0.25"/>
+                        <control id="gameSpeed" name="horizontalSlider" min="0.25" max="4" 
+                                 initial="1.0" stepSize="0.25" buttonStepSize="0.25"/>
                     </panel>
                 </panel>    
                 
                 <panel align="center" valign="center" childLayout="horizontal" padding="10px,10px">
-                    <panel childLayout="horizontal" align="center" valign="bottom" width="50%" padding="0px,20px,0px,20px">                        
+                    <panel childLayout="horizontal" align="center" valign="bottom" width="50%" padding="0px,20px">                        
                         <control name="checkbox" id="invertMouse" />
                         <text style="menuTextSmall" text=" ${menu.2840}" />                                               
                     </panel>
-                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px,0px,20px">
+                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px">
                         <text style="menuTextSmall" text="${menu.1468}" width="100%" />
-                        <control id="scrollSpeed" name="horizontalSlider" min="0.25" max="4" initial="1.0" stepSize="0.25" buttonStepSize="0.25"/>
+                        <control id="scrollSpeed" name="horizontalSlider" min="0.25" max="4" 
+                                 initial="1.0" stepSize="0.25" buttonStepSize="0.25"/>
                     </panel>
-                </panel> 
-                
-                <panel height="*" align="center" valign="center" />
-               
+                </panel>   
             </panel>
+            
+            <panel height="*" /> 
+            
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="goToScreen(optionsMain)" id="back" name="cancelButton" />
-                <control click="goToScreen(optionsMain)" id="start" name="okButton" />
+                <control name="cancelButton" click="goToScreen(optionsMain)" />
+                <control name="okButton" click="goToScreen(optionsMain)" />
             </panel>
         </layer>
     </screen>
@@ -406,41 +378,34 @@
     <!-- Extras -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="extras" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="extrasTitle" style="menuTitleText" text="${menu.73}" />
-                </panel>
+        <layer childLayout="vertical">
+            <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.73}" align="center" />
             </panel>
-            <panel id="panel2" height="25%" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="top" style="menuText" text="${menu.2802}">
-                        <interact onClick="goToScreen(hiscores)" />
-                    </text>
-                </panel>
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="movies" style="menuText" text="${menu.93}">
-                        <interact onClick="goToScreen(movies)" />
-                    </text>
-                </panel>
+            
+            <panel childLayout="vertical" height="25%" align="center" visibleToMouse="true">                
+                <text style="menuText" text="${menu.2802}" align="center">
+                    <interact onClick="goToScreen(hiscores)" />
+                </text>
+                <text style="menuText" text="${menu.93}" align="center">
+                    <interact onClick="goToScreen(movies)" />
+                </text>
             </panel>
-            <panel id="panel3" height="5%" width="100%" align="center" valign="center" childLayout="center">
+            
+            <panel height="5%" />
+            
+            <panel childLayout="vertical" height="*" align="center" visibleToMouse="true">                
+                <text style="menuText" text="${menu.86}" align="center">
+                    <interact onClick="playMovie(trailer)" />
+                </text>
 
+                <text style="menuText" text="${menu.372}" align="center">
+                    <interact onClick="doTransition(265,credits,null)" />
+                </text>
             </panel>
-            <panel id="panel4" height="*" width="100%" align="center" valign="top" childLayout="vertical" visibleToMouse="true">
-                <panel childLayout="center" align="center" valign="top">
-                    <text id="trailer" style="menuText" text="${menu.86}">
-                        <interact onClick="playMovie(trailer)" />
-                    </text>
-                </panel>
-                <panel childLayout="center" align="center" valign="top">
-                    <text id="credits" style="menuText" text="${menu.372}">
-                        <interact onClick="doTransition(265,credits,null)" />
-                    </text>
-                </panel>
-            </panel>
+            
             <panel childLayout="vertical" align="right" valign="bottom">
-                <control click="doTransition(260,start,274)" id="back" name="okButton" />
+                <control click="doTransition(260,start,274)" name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -449,19 +414,15 @@
     <!-- Top players -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="hiscores" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" height="20%" width="100%" childLayout="vertical">
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="topTitle" style="menuTitleText" text="${menu.2802}" />
-                </panel>
+        <layer childLayout="vertical">
+            <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.2802}" align="center"/>
             </panel>
-
-            <panel id="hiscoreList" height="*" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
-                <!-- placeholder for hiscores -->
-            </panel>
+            <!-- placeholder for hiscores -->
+            <panel childLayout="vertical" id="hiscoreList" height="*" align="center" valign="center" width="90%" />
 
             <panel childLayout="vertical" align="right" valign="bottom">
-                <control click="goToScreen(extras)" id="back" name="okButton" />
+                <control name="okButton" click="goToScreen(extras)" />
             </panel>
         </layer>
     </screen>
@@ -470,21 +431,19 @@
     <!-- View Movies -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="movies" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" height="12%" width="100%" childLayout="vertical">
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="moviesTitle" style="menuTitleText" text="${menu.93}" />
-                </panel>
+        <layer childLayout="vertical">
+            <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.93}" />
             </panel>
 
-
-            <control id="moviePanel" name="scrollPanel" align="center" valign="center" horizontal="false" height="*" width="80%">
+            <control id="moviePanel" name="scrollPanel" align="center" valign="center" 
+                     horizontal="false" height="*" width="80%">
                 <panel id="movieList" childLayout="vertical">
                     <!-- placeholder for movies -->
                 </panel>
             </control>
             <panel childLayout="center" align="right" valign="bottom">
-                <control click="goToScreen(extras)" id="back" name="okButton" />
+                <control name="okButton" click="goToScreen(extras)" />
             </panel>
         </layer>
     </screen>
@@ -493,14 +452,15 @@
     <!-- Movie still locked message -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="cutsceneLocked" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" height="12%" width="100%" childLayout="vertical">
-            </panel>
+        <layer childLayout="vertical">
+            <panel height="14%" />
+
             <panel width="100%" height="*" childLayout="center" align="center" valign="center">
-                <text width="80%" style="menuText" textAlign="center" text="${menu.2805}" wrap="true" />
+                <text width="80%" style="menuText" align="center" text="${menu.2805}" wrap="true" />
             </panel>
+            
             <panel childLayout="center" align="right" valign="bottom">
-                <control click="goToScreen(movies)" id="back" name="okButton" />
+                <control name="okButton" click="goToScreen(movies)" />
             </panel>
         </layer>
     </screen>
@@ -509,723 +469,15 @@
     <!-- Credits -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="credits" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" height="12%" width="100%" childLayout="vertical">
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="creditsTitle" style="menuTitleText" text="${menu.372}" />
-                </panel>
+        <layer childLayout="vertical">
+            <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.372}" />
             </panel>
             <panel childClip="true" align="center" valign="center" childLayout="vertical" height="*" visibleToMouse="false">
-                <panel id="creditList" width="60%" name="creditList" align="center" valign="center" childLayout="vertical">
-                    <panel childLayout="vertical" width="100%" height="150%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Colin Robinson" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2733}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Nick Goldsworthy" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.377}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Pete Blow" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.379}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Graham Harbour" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.379}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Wayne Frost" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.379}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Jon Lawrence" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2734}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Alex Peters" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.381}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Martin Bell" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.402}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Andy Cakebread" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Paul Carpenter" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Michael A Carr" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Alex Dowdeswell" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="David Foskett" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Colin Moore" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Mark Stacey" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Matthew Whitton" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Thomas Anderson" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Carsten Sorenson" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Mark Huntley" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.416}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Andy McDonald" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.416}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Alistair Milne" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.416}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Ian Shaw" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.415}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Robin Green" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.415}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Jarl Ostensen" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.415}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Mark Feldman" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.415}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Martin Griffiths" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2735}" textHAlign="right" wrap="true" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Austin Ellis" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2737}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Mark Lamport" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.385}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Andy Buchanan" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.385}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="David Amor" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2738}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Shintaro Kanaoya" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2739}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Julian Glover" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2740}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Shelagh Lewins" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2740}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Nick Ricks" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2740}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Sean Cooper" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2742}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Zy Nicholson" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.374}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Alex Trowers" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.374}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Andy Trowers" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.374}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="John Miles" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2743}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Jason Smith" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2744}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Adam Coglan" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2745}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Darren Pattenden" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.388}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Peter Amachree" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.388}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Kevin Duffy" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.388}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Mike Man" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.388}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Graham Bell" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2746}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Jason Lord" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2748}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Jamie Bradshaw" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2748}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Jon Weinbren" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2749}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Gordon Davidson" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2749}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Tracey Charlton" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2750}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Nick Laviers" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2751}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Matt Thurling" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.401}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Adele Kellett" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.401}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Elaine Williams" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.401}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Mark Knight" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.399}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Bill Lusty" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2753}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Andy Hamill" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2754}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Dan Farrant" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2755}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Richard Ridings" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2756}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Patrick Renwick" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2756}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Andrzej Butruk" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2756}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Peter Bolhuis" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2756}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Kate Harbour" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Gavin Robertson" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Nigel Carrington" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Patrick Borg" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Martine Meirhaeghe" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Michel Barbey" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Marloes van den Heuvel" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Bob de Graaff" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Marcel Maas" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Fred Meiier" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Nicholas Calderbank" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2758}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Richard Darbois" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2758}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Andrzej Butruk" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2758}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Bram Bart" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2758}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Lewis MacLeod" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Big Al" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Peter Amachree" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Dene Carter" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Ada Posta" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Andy Nyman" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="James Taylor" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Ben Stevens" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Dirk Vojtilo" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.407}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Katarzyna Gryglewska-Cebrat" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.407}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Julio Valladares" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.407}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Inger Marshall" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.407}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Phuong Tran-Mai" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Vincent Regnault" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Nathalie Fernandez" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Bianca Normann" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="C.T.O. S.p.A." textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Ricardo Martinez" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Cristina Macia" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="U-TRAX Multi Media Productions" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Magnus Jildestad" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Ordhuset i Stockholm AB" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Dicolai Hansen" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Janusz Mrziogod" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Lionel Berrodier" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Giulio Marchionni" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Sofia Engvall" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Lars Berenbrinker" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Antonio Yago" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Alvaro Corral" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="U-TRAX Multi Media Productions" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Kevin Donkin" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.427}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Simon Handby" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.427}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Daren Watson" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.427}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Steven Lawrie" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.398}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Darren Tuckey" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2762}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Lawrence Doyle" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2763}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Dan McDonald" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Phil Mansell" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Tristan Paramor" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Andy Miller" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Nathan Smethurst" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Jez Harris" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Robert Stevens" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Ross Manton" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Stuart Pratt" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Braydon Burgess" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Greg Williams" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="James Pickett" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Ed Law" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Martin Hall" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="John Brunton" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Olly Burne" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Darren King" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Rob Charlish" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Jeff Brutus" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Stephen Harrison" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Dominic Waddel" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Idwal Wynne-Jones" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Anthony Street" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Anthony Pimentel" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Samy Ben Romdhane" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Ben Bryant" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="James Donovan" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Richard Allen" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Simon Smith" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Nicolas Doucet" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Julien Law" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Nick Reigate" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Karl Frazer" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Mark Rose" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="James Harlow" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Sarah Brooks-Fisher" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Adam Phillips" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Matt Price" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2766}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Owen O'Brien" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2767}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Patrick Buechner" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="David Wilson" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Marc Trennheuser" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Melanie Bongartz" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Bernd Reinartz" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Anne Vaganay" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Stephanie Michel" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Karine Dognin" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.423}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Pauline Vivet" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.423}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Chris Plummer" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.423}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Jonathan Harris" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.423}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Carol Aggett" textHAlign="left" width="50%" />
-                        <text style="menuTextSmall" text="${menu.407}" textHAlign="right" width="50%"/>
-                    </panel>
-                    <text style="menuTextSmall" text="" width="100%" />
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="${menu.429}" textHAlign="left" width="50%" />
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Animare &amp; Slash" textHAlign="left" width="50%" />
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Johan Danforth" textHAlign="left" width="50%" />
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Richard Wilson" textHAlign="left" width="50%" />
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Stan Ragan" textHAlign="left" width="50%" />
-                    </panel>
-                    <panel childLayout="horizontal" width="100%">
-                        <text style="menuTextSmall" text="Brian Bonislawsky" textHAlign="left" width="50%" />
-                    </panel>
-
-                    <effect>
-                        <onActive name="autoScroll" length="70000" start="0" end="-8500" inherit="true" onEndEffect="restartCredits()" />
-                    </effect>
-                </panel>
+                <control name="creditsPanel" width="80%"/>
             </panel>
             <panel childLayout="center" align="right" valign="bottom">
-                <control click="doTransition(266,extras,261)" id="back" name="okButton" />
+                <control name="okButton" click="doTransition(266,extras,261)" />
             </panel>
         </layer>
     </screen>
@@ -1234,20 +486,18 @@
     <!-- Multi player game -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="multiplayer" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" height="27.9%" width="100%" childLayout="vertical">
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="multiplayerTitle" style="menuTitleText" text="${menu.149}" />
-                </panel>
+        <layer childLayout="vertical">
+           <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.149}" />
             </panel>
 
-            <panel id="panel2" height="*" width="100%" align="center" valign="center" childLayout="center" visibleToMouse="true">
-                <text style="menuTextSmall" text="Not ready yet" />
+            <panel height="*" align="center" valign="center" childLayout="center" visibleToMouse="true">
+                <text style="menuTextSmall" text="Not ready yet" align="center"/>
             </panel>
 
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="doTransition(272,start,274)" id="back" name="cancelButton" />
-                <control id="ok" name="okButton" />
+                <control name="cancelButton" click="doTransition(272,start,274)" />
+                <control name="okButton" />
             </panel>
         </layer>
     </screen>
@@ -1256,14 +506,12 @@
     <!-- MPD -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="myPetDungeon" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" height="12%" width="100%" childLayout="vertical">
-                <panel childLayout="center" align="center" valign="center">
-                    <text id="myPetDungeonTitle" style="menuTitleText" text="${menu.1675}" />
-                </panel>
+        <layer childLayout="vertical">
+            <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.1675}" />
             </panel>
 
-            <panel id="mpdList" height="*" width="100%" align="center" valign="center" childLayout="vertical" visibleToMouse="true" padding="10px">
+            <panel height="*" align="center" valign="center" childLayout="vertical">
                 <text style="menuText" text="${mpd1.0}" align="center">
                     <interact onClick="selectMPDLevel(1)" />
                 </text>
@@ -1283,11 +531,11 @@
                     <interact onClick="selectMPDLevel(6)" />
                 </text>
                 <!-- TODO -->
-                <text style="menuText" text="${menu.1618}" align="center"/>
+                <text id="mpdOther" style="menuText" text="${menu.1618}" align="center"/>
             </panel>
 
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="doTransition(263,start,274)" id="back" name="cancelButton" />
+                <control name="cancelButton" click="doTransition(263,start,274)" />
                 <text style="menuText" text="" width="48px" margin="5px" />
             </panel>
         </layer>
@@ -1297,86 +545,72 @@
     <!-- Skirmish (& also MP with changes) level selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="skirmish" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" width="100%" childLayout="vertical">
-                <panel width="100%" childLayout="center" align="center" valign="center">
-                    <text id="skirmishTitle" style="menuTitleText" text="${menu.141}" />
+        <layer childLayout="vertical">
+            <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.141}" />
+            </panel>
+            <!--Two panels, left the game stuff, right the map selection stuff-->
+            <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center">
+                <panel id="playersPanel" width="66%" childLayout="vertical" align="center" valign="top" paddingRight="5%">
+                    <control id="playersTable" name="table" vertical="optional" displayItems="4" selection="Single"
+                             colCount="5"
+                             col0="${menu.1688};34;java.lang.String;#32050c30"
+                             col1=";33;java.lang.String;#32050c30"
+                             col2=";11;java.lang.String;#00752430"
+                             col3=";11;java.lang.String;#00779e30"
+                             col4=";11;java.lang.String;#00752430"
+                    />
                 </panel>
-
-                <!--Spacer-->
-                <panel height="5%" width="100%" childLayout="center" align="center" valign="center">
-                </panel>
-
-                <!--Two panels, left the game stuff, right the map selection stuff-->
-                <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center">
-
-                    <panel id="playersPanel" width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
-                        <control id="playersTable" name="table" vertical="optional" displayItems="4" selection="Single"
-                                 colCount="5"
-                                 col0="${menu.1688};34;java.lang.String;#32050c30"
-                                 col1=";33;java.lang.String;#32050c30"
-                                 col2=";11;java.lang.String;#00752430"
-                                 col3=";11;java.lang.String;#00779e30"
-                                 col4=";11;java.lang.String;#00752430"
-                        />
+                <panel width="*" childLayout="vertical" align="center" valign="top">
+                    <panel backgroundColor="#f508" width="100%" childLayout="center" marginBottom="8px">
+                        <control name="label" align="center" id="mapNameTitle" style="menuTextSmall" />
                     </panel>
-                    <panel width="*" childLayout="vertical" align="center" valign="top">
-                        <panel backgroundColor="#f508" width="100%" childLayout="center" marginBottom="8px" valign="top">
-                            <control name="label" align="center" valign="top" id="mapNameTitle" style="menuText" />
-                        </panel>
-                        <panel width="100%" childLayout="horizontal" valign="center" align="center">
-                            <text style="menuText" text="${menu.1492}" />
-                            <control name="label" id="playerCount" style="menuText" />
-                        </panel>
-                        <panel width="100%" childLayout="center" valign="center">
-                            <image valign="center" align="center" id="mapImage" />
-                        </panel>
-                    </panel>
-
-                </panel>
-
-                <!--Two panels, left the game stuff, right the map selection stuff-->
-                <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center">
-
-                    <panel id="playersPanel" width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
-                        <panel width="100%" childLayout="horizontal">
-                            <panel width="50%" childLayout="vertical">
-                                <text style="menuText" text="${menu.270}" align="left">
-                                    <!--<interact onClick="selectMPDLevel(6)" />-->
-                                </text>
-                            </panel>
-                            <panel width="50%" childLayout="vertical">
-                                <text style="menuText" text="${menu.2121}" align="center">
-                                    <!--<interact onClick="selectMPDLevel(6)" />-->
-                                </text>
-                                <text style="menuText" text="${menu.1547}" align="center">
-                                </text>
-                            </panel>
-                        </panel>
-                    </panel>
-                    <panel width="*" childLayout="vertical" align="center" valign="top">
-                        <panel width="100%" childLayout="vertical" align="center" valign="top">
-                            <text style="menuText" text="${menu.1495}" align="center">
-                                <interact onClick="selectMap(skirmish)" />
-                            </text>
-                            <text style="menuText" text="${menu.1496}" align="center">
-                                <interact onClick="selectRandomSkirmishMap()" />
-                            </text>
-                            <text style="menuText" text="${menu.2803}" align="center">
-                            </text>
-                        </panel>
-                    </panel>
-
-                </panel>
-
-                <!--Spacer-->
-                <panel height="3%" width="100%" childLayout="center" align="center" valign="center">
-
+                    <panel childLayout="horizontal" valign="center" align="center">
+                        <text style="menuTextSmall" text="${menu.1492}" />
+                        <control name="label" id="playerCount" style="menuTextSmall" />
+                    </panel>                    
+                    <image align="center" id="mapImage" />                    
                 </panel>
             </panel>
+            <!--Two panels, left the game stuff, right the map selection stuff-->
+            <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center" paddingTop="10px">
+
+                <panel id="playersPanel" width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
+                    <panel width="100%" childLayout="horizontal">
+                        <panel width="50%" childLayout="vertical">
+                            <text style="menuText" text="${menu.270}" align="left">
+                                <!--<interact onClick="kickPlayer()" />-->
+                            </text>
+                        </panel>
+                        <panel width="50%" childLayout="vertical">
+                            <text style="menuText" text="${menu.2121}" align="center">
+                                <!--<interact onClick="changeAI()" />-->
+                            </text>
+                            <text style="menuText" text="${menu.1547}" align="center">
+                                <!--<interact onClick="addComputerPlayer()" />-->
+                            </text>
+                        </panel>
+                    </panel>
+                </panel>
+                <panel width="*" childLayout="vertical" align="center" valign="top">                    
+                    <text style="menuText" text="${menu.1495}" align="center">
+                        <interact onClick="selectMap(skirmish)" />
+                    </text>
+                    <text style="menuText" text="${menu.1496}" align="center">
+                        <interact onClick="selectRandomSkirmishMap()" />
+                    </text>
+                    <text style="menuText" text="${menu.2803}" align="center">
+                        <!--<interact onClick="gameSettings()" />-->
+                    </text>
+                </panel>
+
+            </panel>
+
+            <panel height="*" />
+
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="doTransition(272,singlePlayer,274)" id="back" name="cancelButton" />
-                <control click="startSkirmishLevel()" id="start" name="okButton" />
+                <control name="cancelButton" click="doTransition(272,singlePlayer,274)" />
+                <control name="okButton" click="startSkirmishLevel()" />
             </panel>
         </layer>
     </screen>
@@ -1385,53 +619,39 @@
     <!-- Map selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="skirmishMapSelect" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer id="layer" childLayout="vertical">
-            <panel id="panel1" width="100%" childLayout="vertical">
-                <panel width="100%" childLayout="center" align="center" valign="center">
-                    <text id="skirmishTitle" style="menuTitleText" text="${menu.2800}" />
+        <layer childLayout="vertical">
+            <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.2800}" />
+            </panel>
+            <!--Two panels, left the game stuff, right the map selection stuff-->
+            <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center">
+
+                <panel id="mapsPanel" width="66%" childLayout="vertical" align="center" valign="top" paddingRight="5%">
+                    <control id="mapsTable" name="table" vertical="optional" displayItems="8" 
+                             selection="Single" forceSelection="true" colCount="3"
+                             col0="${menu.1544};50;java.lang.String;#32050c30"
+                             col1="${menu.2960};25;java.lang.String;#32050c30"
+                             col2="${menu.1545};25;java.lang.String;#00752430"
+                    />
                 </panel>
-
-                <!--Spacer-->
-                <panel height="5%" width="100%" childLayout="center" align="center" valign="center">
-                </panel>
-
-                <!--Two panels, left the game stuff, right the map selection stuff-->
-                <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center">
-
-                    <panel id="mapsPanel" width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
-                        <control id="mapsTable" name="table" vertical="optional" displayItems="8" selection="Single" forceSelection="true"
-                                 colCount="3"
-                                 col0="${menu.1544};50;java.lang.String;#32050c30"
-                                 col1="${menu.2960};25;java.lang.String;#32050c30"
-                                 col2="${menu.1545};25;java.lang.String;#00752430"
-                        />
+                <panel width="*" childLayout="vertical" align="center" valign="top">
+                    <panel backgroundColor="#f508" width="100%" childLayout="center" marginBottom="8px">
+                        <control name="label" align="center" id="mapNameTitle" style="menuTextSmall" />
                     </panel>
-                    <panel width="*" childLayout="vertical" align="center" valign="top">
-                        <panel backgroundColor="#f508" width="100%" childLayout="center" marginBottom="8px" valign="top">
-                            <control name="label" align="center" valign="top" id="mapNameTitle" style="menuText" />
-                        </panel>
-                        <panel width="100%" childLayout="horizontal" valign="center" align="center">
-                            <text style="menuText" text="${menu.1492}" />
-                            <control name="label" id="playerCount" style="menuText" />
-                        </panel>
-                        <panel width="100%" childLayout="center" valign="center">
-                            <image valign="center" align="center" id="mapImage" />
-                        </panel>
-                        <panel width="100%" childLayout="center" valign="center" align="center">
-                            <control name="label" id="mapSize" style="menuText" />
-                        </panel>
-                    </panel>
-
-                </panel>
-
-                <!--Spacer-->
-                <panel height="3%" width="100%" childLayout="center" align="center" valign="center">
-
+                    <panel childLayout="horizontal" valign="center" align="center">
+                        <text style="menuTextSmall" text="${menu.1492}" />
+                        <control name="label" id="playerCount" style="menuTextSmall" />
+                    </panel>                    
+                    <image id="mapImage" align="center" />
+                    <control name="label" id="mapSize" style="menuTextSmall" align="center"/>                    
                 </panel>
             </panel>
+
+            <panel height="*" />
+
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control click="cancelMapSelection()" id="back" name="cancelButton" />
-                <control click="mapSelected()" id="start" name="okButton" />
+                <control name="cancelButton" click="cancelMapSelection()" />
+                <control name="okButton" click="mapSelected()" />
             </panel>
         </layer>
     </screen>

@@ -1,0 +1,715 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-controls xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+    <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
+    <controlDefinition style="nifty-panel-style"
+                       name="creditsPanel"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel name="creditList" align="center" valign="center" childLayout="vertical">
+            <panel childLayout="vertical" width="100%" height="150%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Colin Robinson" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2733}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Nick Goldsworthy" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.377}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Pete Blow" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.379}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Graham Harbour" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.379}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Wayne Frost" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.379}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Jon Lawrence" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2734}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Alex Peters" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.381}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Martin Bell" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.402}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Andy Cakebread" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Paul Carpenter" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Michael A Carr" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Alex Dowdeswell" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="David Foskett" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Colin Moore" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Mark Stacey" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Matthew Whitton" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Thomas Anderson" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Carsten Sorenson" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.380}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Mark Huntley" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.416}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Andy McDonald" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.416}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Alistair Milne" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.416}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Ian Shaw" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.415}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Robin Green" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.415}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Jarl Ostensen" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.415}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Mark Feldman" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.415}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Martin Griffiths" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2735}" textHAlign="right" wrap="true" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Austin Ellis" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2737}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Mark Lamport" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.385}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Andy Buchanan" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.385}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="David Amor" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2738}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Shintaro Kanaoya" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2739}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Julian Glover" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2740}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Shelagh Lewins" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2740}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Nick Ricks" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2740}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Sean Cooper" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2742}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Zy Nicholson" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.374}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Alex Trowers" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.374}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Andy Trowers" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.374}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="John Miles" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2743}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Jason Smith" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2744}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Adam Coglan" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2745}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Darren Pattenden" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.388}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Peter Amachree" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.388}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Kevin Duffy" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.388}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Mike Man" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.388}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Graham Bell" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2746}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Jason Lord" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2748}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Jamie Bradshaw" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2748}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Jon Weinbren" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2749}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Gordon Davidson" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2749}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Tracey Charlton" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2750}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Nick Laviers" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2751}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Matt Thurling" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.401}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Adele Kellett" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.401}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Elaine Williams" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.401}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Mark Knight" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.399}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Bill Lusty" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2753}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Andy Hamill" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2754}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Dan Farrant" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2755}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Richard Ridings" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2756}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Patrick Renwick" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2756}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Andrzej Butruk" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2756}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Peter Bolhuis" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2756}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Kate Harbour" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Gavin Robertson" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Nigel Carrington" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Patrick Borg" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Martine Meirhaeghe" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Michel Barbey" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Marloes van den Heuvel" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Bob de Graaff" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Marcel Maas" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Fred Meiier" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2757}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Nicholas Calderbank" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2758}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Richard Darbois" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2758}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Andrzej Butruk" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2758}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Bram Bart" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2758}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Lewis MacLeod" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Big Al" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Peter Amachree" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Dene Carter" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Ada Posta" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Andy Nyman" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="James Taylor" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Ben Stevens" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2759}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Dirk Vojtilo" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.407}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Katarzyna Gryglewska-Cebrat" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.407}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Julio Valladares" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.407}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Inger Marshall" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.407}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Phuong Tran-Mai" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Vincent Regnault" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Nathalie Fernandez" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Bianca Normann" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="C.T.O. S.p.A." textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Ricardo Martinez" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Cristina Macia" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="U-TRAX Multi Media Productions" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Magnus Jildestad" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Ordhuset i Stockholm AB" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Dicolai Hansen" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Janusz Mrziogod" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.410}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Lionel Berrodier" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Giulio Marchionni" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Sofia Engvall" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Lars Berenbrinker" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Antonio Yago" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Alvaro Corral" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="U-TRAX Multi Media Productions" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.406}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Kevin Donkin" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.427}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Simon Handby" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.427}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Daren Watson" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.427}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Steven Lawrie" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.398}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Darren Tuckey" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2762}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Lawrence Doyle" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2763}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Dan McDonald" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Phil Mansell" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Tristan Paramor" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Andy Miller" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Nathan Smethurst" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Jez Harris" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Robert Stevens" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Ross Manton" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Stuart Pratt" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Braydon Burgess" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Greg Williams" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="James Pickett" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Ed Law" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Martin Hall" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="John Brunton" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Olly Burne" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Darren King" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Rob Charlish" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Jeff Brutus" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Stephen Harrison" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Dominic Waddel" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Idwal Wynne-Jones" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Anthony Street" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Anthony Pimentel" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Samy Ben Romdhane" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Ben Bryant" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="James Donovan" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Richard Allen" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Simon Smith" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Nicolas Doucet" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Julien Law" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Nick Reigate" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Karl Frazer" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Mark Rose" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="James Harlow" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Sarah Brooks-Fisher" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Adam Phillips" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.405}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Matt Price" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2766}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Owen O'Brien" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2767}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Patrick Buechner" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="David Wilson" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Marc Trennheuser" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Melanie Bongartz" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Bernd Reinartz" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Anne Vaganay" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Stephanie Michel" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.2768}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Karine Dognin" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.423}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Pauline Vivet" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.423}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Chris Plummer" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.423}" textHAlign="right" width="50%"/>
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Jonathan Harris" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.423}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Carol Aggett" textHAlign="left" width="50%" />
+                <text style="menuTextSmall" text="${menu.407}" textHAlign="right" width="50%"/>
+            </panel>
+            <text style="menuTextSmall" text="" width="100%" />
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="${menu.429}" textHAlign="left" width="50%" />
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Animare &amp; Slash" textHAlign="left" width="50%" />
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Johan Danforth" textHAlign="left" width="50%" />
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Richard Wilson" textHAlign="left" width="50%" />
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Stan Ragan" textHAlign="left" width="50%" />
+            </panel>
+            <panel childLayout="horizontal" width="100%">
+                <text style="menuTextSmall" text="Brian Bonislawsky" textHAlign="left" width="50%" />
+            </panel>
+
+            <effect>
+                <onActive name="autoScroll" length="70000" start="0" end="-8500" inherit="true" onEndEffect="restartCredits()" />
+            </effect>
+        </panel>
+    </controlDefinition>
+</nifty-controls>
