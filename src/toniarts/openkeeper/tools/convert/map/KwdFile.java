@@ -896,7 +896,7 @@ public final class KwdFile {
         byte[] bytes = new byte[64];
         file.read(bytes);
         artResource.setName(ConversionUtils.bytesToString(bytes).trim());
-        int flags = ConversionUtils.readUnsignedInteger(file);
+        long flags = ConversionUtils.readUnsignedIntegerAsLong(file);
         bytes = new byte[12];
         file.read(bytes); // Depends on the type how these are interpreted?
         short type = (short) file.readUnsignedByte();
@@ -1495,7 +1495,7 @@ public final class KwdFile {
             file.read(bytes);
             creature.setTranslationSoundGategory(ConversionUtils.bytesToString(bytes).trim());
             creature.setShuffleSpeed(ConversionUtils.readUnsignedInteger(file) / FIXED_POINT_DIVISION);
-            creature.setCreatureId((short) file.readUnsignedByte());
+            creature.setCloneCreatureId((short) file.readUnsignedByte());
             creature.setFirstPersonGammaEffect(ConversionUtils.parseEnum(file.readUnsignedByte(), Creature.GammaEffect.class));
             creature.setFirstPersonWalkCycleScale((short) file.readUnsignedByte());
             creature.setIntroCameraPathIndex((short) file.readUnsignedByte());
