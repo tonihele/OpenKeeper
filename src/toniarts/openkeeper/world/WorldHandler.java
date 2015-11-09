@@ -17,6 +17,7 @@
 package toniarts.openkeeper.world;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.audio.AudioNode;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.scene.Node;
 import java.awt.Point;
@@ -25,6 +26,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -364,5 +367,24 @@ public abstract class WorldHandler {
         mapLoader.removeRoomInstances(soldInstances.toArray(new RoomInstance[soldInstances.size()]));
 
         mapLoader.updateTiles(updatableTiles.toArray(new Point[updatableTiles.size()]));
+    }
+
+    /**
+     * Plays a positional sound in an given tile
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param soundFile the sound file
+     */
+    public void playSoundAtTile(int x, int y, String soundFile) {
+
+        // We might cache these per file? Then they would be persistent, just move them, does it matter?
+        // Since creation of new objects and all, I don't know if they stay in the scene graph..
+        AudioNode audio = new AudioNode(assetManager, ConversionUtils.getCanonicalAssetKey(AssetsConverter.SOUNDS_FOLDER + soundFile));
+        audio.setPositional(true);
+        audio.setReverbEnabled(false);
+        audio.setLocalTranslation(x, 0, y);
+        worldNode.attachChild(audio);
+        audio.play();
     }
 }
