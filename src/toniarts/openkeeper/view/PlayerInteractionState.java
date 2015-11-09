@@ -133,7 +133,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
             @Override
             protected SelectionHandler.SelectionColorIndicator getSelectionColorIndicator() {
-                Vector2f pos = handler.getRoundedMousePos();
+                Vector2f pos;
+                if (startSet) {
+                    pos = handler.getSelectionArea().getActualStartingCoordinates();
+                } else {
+                    pos = handler.getRoundedMousePos();
+                }
                 if (interactionState == InteractionState.SELL) {
                     return SelectionColorIndicator.RED;
                 } else if (interactionState == InteractionState.BUILD && !isTaggable && !getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(itemId))) {
