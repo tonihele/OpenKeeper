@@ -132,6 +132,10 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
 
     @Override
     public void update(float tpf) {
+
+        // Update audio listener position
+        app.getListener().setLocation(app.getCamera().getLocation());
+        app.getListener().setRotation(app.getCamera().getRotation());
     }
 
     private void registerInput() {

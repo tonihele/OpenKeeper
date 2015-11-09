@@ -89,6 +89,7 @@ import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
+import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -268,6 +269,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         // Enable cursor
         app.getInputManager().setCursorVisible(true);
+        if (app.getUserSettings().getSettingBoolean(Settings.Setting.USE_CURSORS)) {
+            app.getInputManager().setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
+        }
 
         // Set the camera position
         loadCameraStartLocation();
@@ -381,7 +385,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 break;
             case "optionsControl":
                 setControlSettingsToGUI();
-                break;             
+                break;
             case "movies":
                 generateMovieList();
                 break;
@@ -829,26 +833,26 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
         ssao.setChecked(app.getUserSettings().getSettingBoolean(Settings.Setting.SSAO));
     }
-    
+
     private void setControlSettingsToGUI() {
         ListBox<TableRow> listBox = screen.findNiftyControl("keyboardSetup", ListBox.class);
         int i = 0;
         int selected = 0;
         KeyNames kNames = new KeyNames();
         listBox.clear();
-        List<Setting> settings = Settings.Setting.getSettings(Settings.SettingCategory.CONTROLS);        
-        
+        List<Setting> settings = Settings.Setting.getSettings(Settings.SettingCategory.CONTROLS);
+
         for (Setting setting : settings) {
             /*
              if (map.equals(selectedMap)) {
-                selected = i;
-            }
-            */
+             selected = i;
+             }
+             */
             String keys = "";
             if (setting.getSpecialKey() != null) {
                 keys = (kNames.getName(setting.getSpecialKey()) + " + ").replace("Left ", "").replace("Right ", "");
             }
-            keys += kNames.getName((int)setting.getDefaultValue()).replace("Left ", "").replace("Right ", "");
+            keys += kNames.getName((int) setting.getDefaultValue()).replace("Left ", "").replace("Right ", "");
             TableRow row = new TableRow(i++, String.format("${menu.%s}", setting.getTranslationKey()), keys);
             listBox.addItem(row);
         }

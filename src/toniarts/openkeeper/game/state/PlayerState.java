@@ -133,6 +133,11 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Load the HUD
             app.getNifty().getNifty().gotoScreen(HUD_SCREEN_ID);
 
+            // Get GUI area constraints
+            Element top = app.getNifty().getNifty().getScreen(HUD_SCREEN_ID).findElementByName("top");
+            int guiConstraintTop = top.getY() + top.getHeight();
+            int guiConstraintBottom = app.getNifty().getNifty().getScreen(HUD_SCREEN_ID).findElementByName("bottom").getY();
+
             // Cursor
             app.getInputManager().setCursorVisible(true);
 
@@ -145,7 +150,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Create app states
             Player player = gameState.getLevelData().getPlayer((short) 3); // Keeper 1
             appStates.add(new PlayerCameraState(player));
-            interactionState = new PlayerInteractionState(player, gameState) {
+            interactionState = new PlayerInteractionState(player, gameState, guiConstraintTop, guiConstraintBottom) {
                 @Override
                 protected void onInteractionStateChange(PlayerInteractionState.InteractionState interactionState, int id) {
                     PlayerState.this.updateGUISelectedStatus(interactionState, id);

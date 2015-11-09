@@ -33,8 +33,10 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
@@ -69,11 +71,19 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public Vector2f mousePosition = Vector2f.ZERO;
     private InteractionState interactionState = InteractionState.NONE;
     private int itemId;
+    private final int guiConstraintTop;
+    private final int guiConstraintBottom;
+    private boolean isOnGui = false;
+    private boolean isTaggable = false;
+    private boolean isTagging = false;
+    private boolean isOnView = false;
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
-    public PlayerInteractionState(Player player, GameState gameState) {
+    public PlayerInteractionState(Player player, GameState gameState, final int guiConstraintTop, final int guiConstraintBottom) {
         this.player = player;
         this.gameState = gameState;
+        this.guiConstraintTop = guiConstraintTop;
+        this.guiConstraintBottom = guiConstraintBottom;
     }
 
     @Override
@@ -90,8 +100,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         handler = new SelectionHandler(this.app, this) {
             @Override
             protected boolean isOnView() {
-                Vector2f pos = handler.getRoundedMousePos();
-                return (pos.x >= 0 && pos.x < gameState.getLevelData().getWidth() && pos.y >= 0 && pos.y < gameState.getLevelData().getHeight());
+                return isOnView;
             }
 
             @Override
@@ -104,13 +113,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     Vector2f pos = handler.getRoundedMousePos();
                     switch (interactionState) {
                         case NONE: {
-                            return (isOnView() && getWorldHandler().isTaggable((int) pos.x, (int) pos.y));
+                            return (isTaggable);
                         }
                         case BUILD: {
-                            return (isOnView() && (getWorldHandler().isTaggable((int) pos.x, (int) pos.y) || getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(itemId))));
+                            return (isOnView && (isTaggable || getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(itemId))));
                         }
                         case SELL: {
-                            return isOnView();
+                            return isOnView;
                         }
                         case CAST: {
                             return false;
@@ -194,12 +203,16 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     @Override
     public void onMouseMotionEvent(MouseMotionEvent evt) {
         mousePosition.set(evt.getX(), evt.getY());
+        Vector2f pos = handler.getRoundedMousePos();
+        if (setStateFlags()) {
+            setCursor();
+        }
         if (startSet) {
-            handler.getSelectionArea().setEnd(handler.getRoundedMousePos());
+            handler.getSelectionArea().setEnd(pos);
             handler.updateSelectionBox();
         } else {
-            handler.getSelectionArea().setStart(handler.getRoundedMousePos());
-            handler.getSelectionArea().setEnd(handler.getRoundedMousePos());
+            handler.getSelectionArea().setStart(pos);
+            handler.getSelectionArea().setEnd(pos);
             handler.updateSelectionBox();
         }
     }
@@ -213,12 +226,27 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     handler.getSelectionArea().setStart(handler.getRoundedMousePos());
                 }
                 startSet = true;
+
+                // I suppose we are tagging
+                if (isTaggable) {
+                    isTagging = true;
+                    setCursor();
+
+                    // The tagging sound is positional and played against the cursor change, not the action itself
+                    Vector2f pos = handler.getRoundedMousePos();
+                    getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, "/Global/dk1tag.mp2");
+                }
+
             } else if (evt.isReleased()) {
                 startSet = false;
                 handler.userSubmit(null);
                 handler.getSelectionArea().setStart(handler.getRoundedMousePos());
                 handler.updateSelectionBox();
                 handler.setNoSelectedArea();
+                if (isTagging) {
+                    isTagging = false;
+                    setCursor();
+                }
             }
         } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
 
@@ -238,6 +266,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
             // Reset the state
             setInteractionState(InteractionState.NONE, 0);
+            if (setStateFlags()) {
+                setCursor();
+            }
 
             startSet = false;
             handler.getSelectionArea().setStart(pos);
@@ -287,6 +318,67 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
      */
     public int getInteractionStateItemId() {
         return itemId;
+    }
+
+    /**
+     * Set the state flags according to what user can do. Rather clumsy. Fix if
+     * you can.
+     *
+     * @return has the state being changed
+     *
+     */
+    private boolean setStateFlags() {
+        boolean changed = false;
+        boolean value = isCursorOnGUI();
+        if (!changed && isOnGui != value) {
+            changed = true;
+        }
+        isOnGui = value;
+
+        value = isOnView();
+        if (!changed && isOnView != value) {
+            changed = true;
+        }
+        isOnView = value;
+
+        value = isTaggable();
+        if (!changed && isTaggable != value) {
+            changed = true;
+        }
+        isTaggable = value;
+
+        return changed;
+    }
+
+    private boolean isCursorOnGUI() {
+        return app.getContext().getSettings().getHeight() - mousePosition.y <= guiConstraintTop || app.getContext().getSettings().getHeight() - mousePosition.y >= guiConstraintBottom;
+    }
+
+    private boolean isTaggable() {
+        Vector2f pos = handler.getRoundedMousePos();
+        return (interactionState == InteractionState.BUILD || interactionState == InteractionState.NONE) && isOnView && getWorldHandler().isTaggable((int) pos.x, (int) pos.y);
+    }
+
+    private boolean isOnView() {
+        if (isOnGui) {
+            return false;
+        }
+        Vector2f pos = handler.getRoundedMousePos();
+        return (pos.x >= 0 && pos.x < gameState.getLevelData().getWidth() && pos.y >= 0 && pos.y < gameState.getLevelData().getHeight());
+    }
+
+    protected void setCursor() {
+        if (app.getUserSettings().getSettingBoolean(Settings.Setting.USE_CURSORS)) {
+            if (isOnGui) {
+                inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
+            } else if (isTagging) {
+                inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE_TAGGING, assetManager));
+            } else if (isTaggable) {
+                inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE, assetManager));
+            } else {
+                inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.IDLE, assetManager));
+            }
+        }
     }
 
     /**
