@@ -143,8 +143,13 @@ public abstract class WorldHandler {
         TileData tile = mapLoader.getTile(x, y);
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
 
+        // Check that this is not already a room
+        if (mapLoader.getRoomCoordinates().containsKey(new Point(x, y))) {
+            return false;
+        }
+
         // Ownable tile is needed for land building (and needs to be owned by us)
-        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND) && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getPlayerId() == player.getPlayerId()) {
+        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getPlayerId() == player.getPlayerId()) {
             return true;
         }
 
