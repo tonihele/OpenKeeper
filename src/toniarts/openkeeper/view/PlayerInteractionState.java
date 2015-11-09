@@ -113,10 +113,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     Vector2f pos = handler.getRoundedMousePos();
                     switch (interactionState) {
                         case NONE: {
-                            return (isTaggable);
+                            return isTaggable;
                         }
                         case BUILD: {
-                            return (isOnView && (isTaggable || getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(itemId))));
+                            return isOnView;
                         }
                         case SELL: {
                             return isOnView;
@@ -133,7 +133,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
             @Override
             protected SelectionHandler.SelectionColorIndicator getSelectionColorIndicator() {
-                return (interactionState == InteractionState.SELL ? SelectionColorIndicator.RED : SelectionColorIndicator.BLUE);
+                Vector2f pos = handler.getRoundedMousePos();
+                if (interactionState == InteractionState.SELL) {
+                    return SelectionColorIndicator.RED;
+                } else if (interactionState == InteractionState.BUILD && !isTaggable && !getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(itemId))) {
+                    return SelectionColorIndicator.RED;
+                }
+                return SelectionColorIndicator.BLUE;
             }
 
             @Override
