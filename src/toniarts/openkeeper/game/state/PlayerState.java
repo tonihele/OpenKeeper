@@ -239,6 +239,16 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             element.markForRemoval();
         }
 
+        // Get the tabs and stop the active effects
+        final Element tabCreatures = nifty.getCurrentScreen().findElementByName("tab-creatures");
+        tabCreatures.stopEffect(EffectEventId.onCustom);
+        final Element tabRooms = nifty.getCurrentScreen().findElementByName("tab-rooms");
+        tabRooms.stopEffect(EffectEventId.onCustom);
+        final Element tabSpells = nifty.getCurrentScreen().findElementByName("tab-spells");
+        tabSpells.stopEffect(EffectEventId.onCustom);
+        final Element tabWorkshop = nifty.getCurrentScreen().findElementByName("tab-workshop");
+        tabWorkshop.stopEffect(EffectEventId.onCustom);
+
         // Rebuild it
         if (category == TabCategory.CREATURES) {
             new ControlBuilder("tab-workers", "workerAmount") {
@@ -268,6 +278,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 // FIXME: Somekind of wrapper here for these
                 switch (category) {
                     case ROOMS: {
+                        tabRooms.startEffect(EffectEventId.onCustom, null, "select");
                         for (final Room room : getAvailableRoomsToBuild()) {
                             image(new ImageBuilder() {
                                 {
@@ -296,6 +307,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         break;
                     }
                     case SPELLS: {
+                        tabSpells.startEffect(EffectEventId.onCustom, null, "select");
                         for (final KeeperSpell spell : getAvailableKeeperSpells()) {
                             image(new ImageBuilder() {
                                 {
@@ -320,6 +332,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                                 }
                             });
                         }
+                        break;
+                    }
+                    case CREATURES: {
+                        tabCreatures.startEffect(EffectEventId.onCustom, null, "select");
+                        break;
+                    }
+                    case WORKSHOP_ITEMS: {
+                        tabWorkshop.startEffect(EffectEventId.onCustom, null, "select");
                         break;
                     }
                 }

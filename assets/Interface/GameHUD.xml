@@ -113,7 +113,7 @@
                                 <panel id="menuButton" x="0" y="100%" width="32px" height="32px">
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-02.png" post="true"/>
-                                        <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-02.png" post="true" neverStopRendering="true"  />
+                                        <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-02.png" post="true" neverStopRendering="true" />
                                     </effect>
                                     <interact onClick="pauseMenu()"/>
                                 </panel>
@@ -133,31 +133,31 @@
                             <!--The tab category buttons-->
                             <panel height="64px" width="100%" valign="top" childLayout="horizontal" padding="0px,0px,0px,10px">
                                 <panel childLayout="horizontal" width="*">
-                                    <image valign="center" filename="Textures/GUI/Tabs/t-creatures.png" >
+                                    <image id="tab-creatures" valign="center" filename="Textures/GUI/Tabs/t-creatures.png" >
                                         <effect>
                                             <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
-                                            <onClick name="imageOverlay" filename="Textures/GUI/Icons/selected-creature.png" post="true"/>
+                                            <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Icons/selected-creature.png" post="true" neverStopRendering="true"/>
                                         </effect>
                                         <interact onClick="guiTabClick(creatures)" />
                                     </image>
-                                    <image valign="center" filename="Textures/GUI/Tabs/t-rooms.png" margin="0px,0px,0px,6px">
+                                    <image id="tab-rooms" valign="center" filename="Textures/GUI/Tabs/t-rooms.png" margin="0px,0px,0px,6px">
                                         <effect>
                                             <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
-                                            <onClick name="imageOverlay" filename="Textures/GUI/Icons/selected-room.png" post="true"/>
+                                            <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Icons/selected-room.png" post="true" neverStopRendering="true"/>
                                         </effect>
                                         <interact onClick="guiTabClick(rooms)" />
                                     </image>
-                                    <image valign="center" filename="Textures/GUI/Tabs/t-spells.png" margin="0px,0px,0px,6px">
+                                    <image id="tab-spells" valign="center" filename="Textures/GUI/Tabs/t-spells.png" margin="0px,0px,0px,6px">
                                         <effect>
                                             <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
-                                            <onClick name="imageOverlay" filename="Textures/GUI/Icons/selected-spell.png" post="true"/>
+                                            <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Icons/selected-spell.png" post="true" neverStopRendering="true"/>
                                         </effect>
                                         <interact onClick="guiTabClick(spells)" />
                                     </image>
-                                    <image valign="center" filename="Textures/GUI/Tabs/t-workshop.png" margin="0px,0px,0px,6px">
+                                    <image id="tab-workshop" valign="center" filename="Textures/GUI/Tabs/t-workshop.png" margin="0px,0px,0px,6px">
                                         <effect>
                                             <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
-                                            <onClick name="imageOverlay" filename="Textures/GUI/Icons/selected-workshop.png" post="true"/>
+                                            <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Icons/selected-workshop.png" post="true" neverStopRendering="true"/>
                                         </effect>
                                         <interact onClick="guiTabClick(workshopItems)" />
                                     </image>
