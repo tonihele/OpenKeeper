@@ -98,6 +98,13 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private static final String HUD_SCREEN_ID = "hud";
     private List<AbstractPauseAwareState> appStates = new ArrayList<>();
     private PlayerInteractionState interactionState;
+    
+    private Label mana;
+    private Label manaGet;
+    private Label manaLose;
+    private Label gold;
+    private Label tooltip;
+    
     private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
 
     @Override
@@ -186,6 +193,26 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     public void onStartScreen() {
         switch (nifty.getCurrentScreen().getScreenId()) {
             case HUD_SCREEN_ID: {
+                
+                if (mana == null) {
+                    mana = screen.findNiftyControl("mana", Label.class);
+                }
+                
+                if (manaGet == null) {
+                    manaGet = screen.findNiftyControl("manaGet", Label.class);
+                }
+                
+                if (manaLose == null) {
+                    manaLose = screen.findNiftyControl("manaLose", Label.class);
+                }
+                
+                if (gold == null) {
+                    gold = screen.findNiftyControl("gold", Label.class);
+                }
+                
+                if (tooltip == null) {
+                    tooltip = screen.findNiftyControl("tooltip", Label.class);
+                }
 
                 if (!backgroundSet) {
 
@@ -355,6 +382,18 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
         // Reset the layout
         contentPanel.resetLayout();
+    }
+       
+    @Override
+    public void update(float tpf) {
+         // FIXME using const 3 is not correct for MultiPlayer
+        mana.setText(String.format("%s", gameState.getLevelData().getPlayer((short)3).getStartingMana())); 
+        gold.setText(String.format("%s", gameState.getLevelData().getPlayer((short)3).getStartingGold()));
+        //gameState.getLevelData().getPlayer((short)3);
+        
+        //manaGet.setText("");
+        
+        super.update(tpf);
     }
 
     private List<Room> getAvailableRoomsToBuild() {

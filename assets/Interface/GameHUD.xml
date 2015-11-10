@@ -5,8 +5,14 @@
     <useControls filename="Interface/MyControls.xml" />
 
     <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
+     <style id="textManaChange">
+        <attributes font="Interface/Fonts/Ingame10.fnt" />
+    </style>
     <style id="textSmall">
         <attributes font="Interface/Fonts/Ingame16.fnt" color="#bbbcbb" />
+    </style>
+    <style id="text">
+        <attributes font="Interface/Fonts/Ingame18.fnt" />
     </style>
     <style id="textNormal">
         <attributes font="Interface/Fonts/Ingame28.fnt" color="#bbbcbb" />
@@ -17,9 +23,8 @@
     <screen id="hud" controller="toniarts.openkeeper.game.state.PlayerState">
 
         <layer childLayout="vertical">
-
             <!--The upper panel-->
-            <panel id="top" height="72px" width="100%" align="left" valign="top" childLayout="center">
+            <panel height="72px" width="100%" align="left" valign="top" childLayout="center">
 
                 <panel width="100%" childLayout="horizontal">
                     <panel height="65%" width="*" valign="center" backgroundImage="Textures/GUI/Windows/Bar-00.png" imageMode="repeat:0,0,128,64" />
@@ -40,11 +45,17 @@
                                     </effect>
                                 </image>
                             </panel>
-                            <control width="*" name="label" align="left" valign="center" />
+                            <panel childLayout="vertical" valign="center" padding="0px,14px,0px,10px">
+                                <control name="label" id="mana" color="#27d067" style="text" width="100%" text="0" textHAlign="right" valign="center" />
+                                <panel childLayout="horizontal" valign="center">
+                                    <control name="label" id="manaGet" color="#27d067" text="0" style="textManaChange" width="50%" textHAlign="left" />
+                                    <control name="label" id="manaLose" color="#ec0000" text="0" style="textManaChange" width="*" textHAlign="right" />
+                                </panel>
+                            </panel>
                         </panel>
                     </panel>
-
-                    <panel width="256px" align="left" valign="center" childLayout="overlay" margin="0px,0px,0px,16px">
+                    <panel width="16px" /> 
+                    <panel width="256px" align="left" valign="center" childLayout="overlay">
                         <panel childLayout="horizontal" align="left" valign="center">
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-00.png" />
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" />
@@ -53,21 +64,23 @@
                             <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center">
                                 <image filename="Textures/GUI/Windows/payday-BG.png" align="left" valign="center" />
                             </panel>
-                            <control width="*" name="label" align="left" valign="center" />
+                            <panel childLayout="center" valign="center" align="center" padding="0px,14px,0px,36px">
+                                <control name="label" id="gold" color="#D3B000" text="0" style="text" width="100%" textHAlign="right" valign="center" />
+                            </panel>
                         </panel>
                     </panel>
 
-                    <panel width="*" align="left" valign="center" childLayout="center"  padding="10px">
-                        <text id="Help" style="textSmall" />
+                    <panel width="*" align="left" valign="center" childLayout="center">
+                        <control name="label" id="tooltip" style="textSmall" text="" />
                     </panel>
                     <panel width="64px" align="left" valign="center" />
                 </panel>
             </panel>
             <!--Empty center-->
-            <panel id="center" height="*" width="100%" childLayout="horizontal" />
+            <panel height="*" width="100%" />
 
             <!--The bottom panel-->
-            <panel id="bottom" height="212px" width="100%" align="left" valign="bottom" childLayout="center">
+            <panel height="212px" width="100%" align="left" valign="bottom" childLayout="center">
 
                 <panel childLayout="vertical" width="100%">
                     <!--The top bar-->
