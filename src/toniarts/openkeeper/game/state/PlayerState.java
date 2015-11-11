@@ -23,6 +23,7 @@ import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.DesktopAssetManager;
 import com.jme3.asset.TextureKey;
+import com.jme3.font.Rectangle;
 import com.jme3.input.InputManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
@@ -147,6 +148,10 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
             // Cursor
             app.getInputManager().setCursorVisible(true);
+            
+            // Get GUI area constraints
+            Element middle = app.getNifty().getNifty().getScreen(HUD_SCREEN_ID).findElementByName("middle");
+            Rectangle guiConstraint = new Rectangle(middle.getX(), middle.getY(), middle.getWidth(), middle.getHeight());
 
             // Set the pause state
             if (nifty != null) {
@@ -372,10 +377,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 }
             }
         }.build(nifty, screen, contentPanel);
-        new ControlBuilder("tab-reaper", "reaperTalisman") {
-            {
-            }
-        }.build(nifty, screen, contentPanel);
+        
 
         // Set the selected status
         updateGUISelectedStatus(interactionState.getInteractionState(), interactionState.getInteractionStateItemId());

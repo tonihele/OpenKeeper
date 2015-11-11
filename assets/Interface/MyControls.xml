@@ -48,7 +48,11 @@
                     <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true" neverStopRendering="true" />
                 </effect>
             </image>
-            <image filename="Textures/GUI/Pages/page_back.png" />
+            <image filename="Textures/GUI/Pages/page_back.png">
+                <effect>
+                    <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true" neverStopRendering="true" />
+                </effect>
+            </image>
         </panel>
     </controlDefinition>
 
@@ -61,9 +65,23 @@
 
     <!-- Reaper -->
     <controlDefinition style="nifty-panel-style" name="reaperTalisman" controller="de.lessvoid.nifty.controls.DefaultController">
-        <panel marginRight="3px" valign="center" align="right" childLayout="horizontal" id="reaper">
-            <image marginRight="3px" align="right" valign="center" filename="Textures/GUI/Spells/reaper_talisman-00.png"/>
-        </panel>
+        <image align="center" valign="center" filename="Textures/GUI/Spells/reaper_talisman-00.png"/>
+    </controlDefinition>
+    
+    <!-- Reaper -->
+    <controlDefinition style="nifty-panel-style" name="fight" controller="de.lessvoid.nifty.controls.DefaultController">
+        <image filename="Textures/GUI/Icons/a-fight-00.png" valign="center" visible="$visible">
+            <effect>
+                <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" 
+                         post="true" neverStopRendering="true" />
+                <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/a-fight-01.png" 
+                          post="true" neverStopRendering="true" />
+                <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/a-fight-02.png" 
+                          post="true" neverStopRendering="true" />
+                <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/a-fight-03.png" 
+                          post="true" neverStopRendering="true" />
+            </effect>
+        </image>
     </controlDefinition>
 
     <!-- Movie Button -->
