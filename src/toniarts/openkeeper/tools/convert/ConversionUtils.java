@@ -427,12 +427,31 @@ public class ConversionUtils {
      * @return the set
      */
     public static <E extends Enum<E> & IFlagEnum> EnumSet<E> parseFlagValue(long flag, Class<E> enumeration) {
+        long leftOver = flag;
         EnumSet<E> set = EnumSet.noneOf(enumeration);
         for (E e : enumeration.getEnumConstants()) {
             long flagValue = e.getFlagValue();
             if ((flagValue & flag) == flagValue) {
                 set.add(e);
+                leftOver = leftOver - flagValue;
             }
+        }
+        if (leftOver > 0) {
+
+            // Check the values not defined (there must be a better way to do this but me and numbers...)
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 64; i++) {
+                long val = (int) Math.pow(2, i);
+                if (val > leftOver) {
+                    break;
+                } else if ((val & leftOver) == val) {
+                    if (sb.length() > 0) {
+                        sb.append(", ");
+                    }
+                    sb.append(val);
+                }
+            }
+            logger.log(Level.WARNING, "Value(s) {0} not specified for enum set class {1}!", new java.lang.Object[]{sb.toString(), enumeration.getName()});
         }
         return set;
     }
@@ -453,6 +472,8 @@ public class ConversionUtils {
         }
         logger.log(Level.WARNING, "Value {0} not specified for enum class {1}!", new java.lang.Object[]{value, enumeration.getName()});
         return null;
+
+
     }
 
     /**
