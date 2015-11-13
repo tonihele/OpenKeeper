@@ -16,37 +16,90 @@
  */
 package toniarts.openkeeper.world.room;
 
-import com.jme3.scene.Node;
+import com.jme3.asset.AssetManager;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.world.MapLoader;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
+import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.DOUBLE_QUAD;
+import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.HERO_GATE_2_BY_2;
+import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.HERO_GATE_3_BY_1;
+import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.HERO_GATE_FRONT_END;
+import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.NORMAL;
+import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.QUAD;
+import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction._3_BY_3;
+import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction._5_BY_5_ROTATED;
+import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
+ * A factory class you can use to build buildings
  *
  * @author ArchDemon
  */
-public abstract class RoomConstructor {
+public final class RoomConstructor {
 
-    /**
-     * Resets (scale & translation) and moves the spatial to the point. The
-     * point is relative to the start point
-     *
-     * @param tile the tile, spatial
-     * @param start start point
-     * @param p the tile point
-     */
-    protected static void resetAndMoveSpatial(Spatial tile, Point start, Point p) {
+    private static final Logger logger = Logger.getLogger(RoomConstructor.class.getName());
 
-        // Reset, really, the size is 1 after this...
-        if (tile instanceof Node) {
-            for (Spatial subSpat : ((Node) tile).getChildren()) {
-                subSpat.setLocalScale(1);
-                subSpat.setLocalTranslation(0, 0, 0);
-            }
-        } else {
-            tile.setLocalScale(1);
-            tile.setLocalTranslation(0, 0, 0);
+    private RoomConstructor() {
+        // Nope
+    }
+
+    public static Spatial constructRoom(RoomInstance roomInstance, AssetManager assetManager, KwdFile kwdFile) {
+        String roomName = roomInstance.getRoom().getName();
+        switch (roomInstance.getRoom().getTileConstruction()) {
+            case _3_BY_3:
+                return new ThreeByThree(assetManager, roomInstance, null).construct();
+
+            case HERO_GATE_FRONT_END:
+                return new HeroGateFrontEnd(assetManager, roomInstance, null).construct();
+
+            case HERO_GATE_2_BY_2:
+                return new HeroGateTwoByTwo(assetManager, roomInstance, null).construct();
+
+            case HERO_GATE_3_BY_1:
+                Thing.Room.Direction direction = Thing.Room.Direction.NORTH;
+                for (Thing thing : kwdFile.getThings()) {
+                    if (thing instanceof Thing.Room) {
+                        Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
+                        if (roomInstance.hasCoordinate(p)) {
+                            direction = ((Thing.Room) thing).getDirection();
+                        }
+                    }
+                }
+
+                return new HeroGateThreeByOne(assetManager, roomInstance, direction).construct();
+
+            case _5_BY_5_ROTATED:
+                return new FiveByFiveRotated(assetManager, roomInstance, null).construct();
+
+            case NORMAL:
+                return new Normal(assetManager, roomInstance, null).construct();
+
+            case QUAD:
+                if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
+                    return new StoneBridge(assetManager, roomInstance, null).construct();
+                } else {
+                    return new WoodenBridge(assetManager, roomInstance, null).construct();
+                }
+
+            case DOUBLE_QUAD:
+                if (roomName.equalsIgnoreCase("Prison")) {
+                    return new Prison(assetManager, roomInstance, null).construct();
+                } else if (roomName.equalsIgnoreCase("Combat Pit")) {
+                    return new CombatPit(assetManager, roomInstance, null).construct();
+                } else if (roomName.equalsIgnoreCase("Temple")) {
+                    return new Temple(assetManager, roomInstance, null).construct();
+                }
+                // TODO use quad construction for different rooms
+                // root.attachChild(DoubleQuad.construct(assetManager, roomInstance));
+                break;
+
+            default:
+
+                // TODO
+                logger.log(Level.WARNING, "Room {0} not exist", roomName);
         }
-        tile.move(p.x - start.x, -MapLoader.TILE_HEIGHT, p.y - start.y);
+        return null;
     }
 }

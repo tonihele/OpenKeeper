@@ -44,19 +44,8 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.room.CombatPit;
-import toniarts.openkeeper.world.room.FiveByFiveRotated;
-import toniarts.openkeeper.world.room.HeroGateFrontEnd;
-import toniarts.openkeeper.world.room.HeroGateThreeByOne;
-import toniarts.openkeeper.world.room.HeroGateTwoByTwo;
-import toniarts.openkeeper.world.room.Normal;
-import toniarts.openkeeper.world.room.Prison;
+import toniarts.openkeeper.world.room.RoomConstructor;
 import toniarts.openkeeper.world.room.RoomInstance;
-import toniarts.openkeeper.world.room.StoneBridge;
-import toniarts.openkeeper.world.room.Temple;
-import toniarts.openkeeper.world.room.ThreeByThree;
-import toniarts.openkeeper.world.room.WoodenBridge;
 import toniarts.openkeeper.world.terrain.Water;
 
 /**
@@ -81,7 +70,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private HashMap<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
-    private HashMap<RoomInstance, Node> roomNodes = new HashMap<>(); // Room instances by node
+    private HashMap<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
@@ -583,17 +572,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             if (!roomCoordinates.containsKey(p)) {
                 RoomInstance roomInstance = new RoomInstance(kwdFile.getRoomByTerrain(terrain.getTerrainId()));
                 findRoom(tiles, p, roomInstance);
+                findRoomWallSections(tiles, roomInstance);
                 rooms.add(roomInstance);
 
-                // For each room, create its own batch node
-                // TODO: We need to find it later!
-                BatchNode roomNode = new BatchNode(roomInstance.toString());
-                roomNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive); // Rooms are weird, better to cast & receive shadows
-                roomsNode.attachChild(roomNode);
-
                 // Construct the actual room
-                handleRoom(tiles, assetManager, roomNode, roomInstance);
-                roomNode.batch();
+                Spatial roomNode = handleRoom(assetManager, roomInstance);
+                roomsNode.attachChild(roomNode);
 
                 // Add to registry
                 roomNodes.put(roomInstance, roomNode);
@@ -1139,73 +1123,11 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     /**
      * Constructs the given room
      *
-     * @param tiles the tiles
      * @param assetManager the asset manager instance
-     * @param root the root node
      * @param roomInstance the room instance
      */
-    private void handleRoom(TileData[][] tiles, AssetManager assetManager, Node root, RoomInstance roomInstance) {
-        String roomName = roomInstance.getRoom().getName();
-        switch (roomInstance.getRoom().getTileConstruction()) {
-            case _3_BY_3:
-                root.attachChild(ThreeByThree.construct(assetManager, roomInstance));
-                break;
-
-            case HERO_GATE_FRONT_END:
-                root.attachChild(HeroGateFrontEnd.construct(assetManager, roomInstance));
-                break;
-
-            case HERO_GATE_2_BY_2:
-                root.attachChild(HeroGateTwoByTwo.construct(assetManager, roomInstance));
-                break;
-
-            case HERO_GATE_3_BY_1:
-                Thing.Room.Direction direction = Thing.Room.Direction.NORTH;
-                for (Thing thing : kwdFile.getThings()) {
-                    if (thing instanceof Thing.Room) {
-                        Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
-                        if (roomInstance.hasCoordinate(p)) {
-                            direction = ((Thing.Room) thing).getDirection();
-                        }
-                    }
-                }
-
-                root.attachChild(HeroGateThreeByOne.construct(assetManager, roomInstance, direction));
-                break;
-
-            case _5_BY_5_ROTATED:
-                root.attachChild(FiveByFiveRotated.construct(assetManager, roomInstance));
-                break;
-
-            case NORMAL:
-                root.attachChild(Normal.construct(assetManager, roomInstance));
-                break;
-
-            case QUAD:
-                if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
-                    root.attachChild(StoneBridge.construct(assetManager, roomInstance));
-                } else {
-                    root.attachChild(WoodenBridge.construct(assetManager, roomInstance));
-                }
-                break;
-
-            case DOUBLE_QUAD:
-                if (roomName.equalsIgnoreCase("Prison")) {
-                    root.attachChild(Prison.construct(assetManager, roomInstance));
-                } else if (roomName.equalsIgnoreCase("Combat Pit")) {
-                    root.attachChild(CombatPit.construct(assetManager, roomInstance));
-                } else if (roomName.equalsIgnoreCase("Temple")) {
-                    root.attachChild(Temple.construct(assetManager, roomInstance));
-                }
-                // TODO use quad construction for different rooms
-                // root.attachChild(DoubleQuad.construct(assetManager, roomInstance));
-                break;
-
-            default:
-                // TODO
-                logger.log(Level.WARNING, "Room {0} not exist", roomName);
-                break;
-        }
+    private Spatial handleRoom(AssetManager assetManager, RoomInstance roomInstance) {
+        return RoomConstructor.constructRoom(roomInstance, assetManager, kwdFile);
     }
 
     /**
@@ -1299,6 +1221,17 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 roomCoordinates.remove(p);
             }
         }
+    }
+
+    /**
+     * Find room wall sections
+     *
+     * @param tiles tiles
+     * @param roomInstance room instance
+     */
+    private void findRoomWallSections(TileData[][] tiles, RoomInstance roomInstance) {
+        List<List<Point>> sections = new ArrayList<>();
+
     }
 
     /**

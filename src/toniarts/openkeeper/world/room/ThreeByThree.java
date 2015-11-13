@@ -22,18 +22,21 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ThreeByThree extends RoomConstructor {
+public class ThreeByThree extends GenericRoom {
 
-    private ThreeByThree() {
+    public ThreeByThree(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
+        super(assetManager, roomInstance, direction);
     }
 
-    public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance) {
+    @Override
+    protected Spatial contructFloor() {
         Node n = new Node(roomInstance.getRoom().getName());
 
         // 3 by 3, a simple case

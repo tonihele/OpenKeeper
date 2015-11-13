@@ -24,6 +24,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -31,12 +32,14 @@ import toniarts.openkeeper.world.MapLoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Normal extends RoomConstructor {
+public class Normal extends GenericRoom {
 
-    private Normal() {
+    public Normal(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
+        super(assetManager, roomInstance, direction);
     }
 
-    public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance) {
+    @Override
+    protected Spatial contructFloor() {
         Node n = new Node(roomInstance.getRoom().getName());
 
         // Normal rooms
@@ -185,7 +188,7 @@ public class Normal extends RoomConstructor {
         return n;
     }
 
-    private static boolean hasSameTile(boolean[][] map, int x, int y) {
+    private boolean hasSameTile(boolean[][] map, int x, int y) {
 
         // Check for out of bounds
         if (x < 0 || x >= map.length || y < 0 || y >= map[x].length) {
