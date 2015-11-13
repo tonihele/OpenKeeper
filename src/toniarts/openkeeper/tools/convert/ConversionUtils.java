@@ -46,6 +46,9 @@ public class ConversionUtils {
     private static final Logger logger = Logger.getLogger(ConversionUtils.class.getName());
     private static final HashMap<String, String> fileNameCache = new HashMap<>();
     private static final Object fileNameLock = new Object();
+    
+    public static final float FLOAT = 4096f; // or DIVIDER_FLOAT Fixed Point Single Precision Divider
+    public static final float DOUBLE = 65536f; // or DIVIDER_DOUBLE Fixed Point Double Precision Divider 
 
     /**
      * Reads 4 bytes and converts it to JAVA int from LITTLE ENDIAN unsigned
@@ -222,6 +225,21 @@ public class ConversionUtils {
         file.read(bytes);
         return bytesToString(bytes);
     }
+    
+    /**
+     * Reads bytes from a file and converts them to a string
+     *
+     * @param file the file
+     * @param length string length
+     * @see #bytesToStringUtf16(byte[])
+     * @return fresh String
+     * @throws IOException the reading may fail
+     */
+    public static String bytesToStringUtf16(RandomAccessFile file, int length) throws IOException {
+        byte[] bytes = new byte[length * 2];
+        file.read(bytes);
+        return bytesToStringUtf16(bytes);
+    }
 
     /**
      * Converts a byte array to a JAVA String<br>
@@ -247,7 +265,7 @@ public class ConversionUtils {
         byte[] bytes = new byte[size];
         file.read(bytes);
 
-        List<Byte> result = new ArrayList<>(size);
+        List<Byte> result = new ArrayList<>();
 
         for (int i = 0; i < bytes.length; i += 2) {
             if (bytes[i] == 0 && bytes[i + 1] == 0) {
