@@ -99,11 +99,11 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private static final String HUD_SCREEN_ID = "hud";
     private List<AbstractPauseAwareState> appStates = new ArrayList<>();
     private PlayerInteractionState interactionState;
-    
-    private Label mana;
+    private float tick = 0;
+    private Label manaCurrent;
     private Label manaGet;
     private Label manaLose;
-    private Label gold;
+    private Label goldCurrent;
     private Label tooltip;
     
     private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
@@ -148,7 +148,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
             // Cursor
             app.getInputManager().setCursorVisible(true);
-            
+
             // Get GUI area constraints
             Element middle = app.getNifty().getNifty().getScreen(HUD_SCREEN_ID).findElementByName("middle");
             Rectangle guiConstraint = new Rectangle(middle.getX(), middle.getY(), middle.getWidth(), middle.getHeight());
@@ -193,14 +193,27 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         this.nifty = nifty;
         this.screen = screen;
     }
+    
+    @Override
+    public void update(float tpf) {
+        tick += tpf;
+        if (tick >= 1) {
+            manaCurrent.setText(String.format("%s", gameState.getPlayerManaControl().getMana()));           
+            tick -= 1;
+        } 
+        manaGet.setText(String.format("+ %s", gameState.getPlayerManaControl().getManaGain()));            
+        manaLose.setText(String.format("- %s", gameState.getPlayerManaControl().getManaLose()));
+        
+        super.update(tpf);
+    }
 
     @Override
     public void onStartScreen() {
         switch (nifty.getCurrentScreen().getScreenId()) {
             case HUD_SCREEN_ID: {
                 
-                if (mana == null) {
-                    mana = screen.findNiftyControl("mana", Label.class);
+                if (manaCurrent == null) {
+                    manaCurrent = screen.findNiftyControl("mana", Label.class);
                 }
                 
                 if (manaGet == null) {
@@ -210,9 +223,9 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 if (manaLose == null) {
                     manaLose = screen.findNiftyControl("manaLose", Label.class);
                 }
-                
-                if (gold == null) {
-                    gold = screen.findNiftyControl("gold", Label.class);
+
+                if (goldCurrent == null) {
+                    goldCurrent = screen.findNiftyControl("gold", Label.class);
                 }
                 
                 if (tooltip == null) {
@@ -377,25 +390,13 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 }
             }
         }.build(nifty, screen, contentPanel);
-        
+
 
         // Set the selected status
         updateGUISelectedStatus(interactionState.getInteractionState(), interactionState.getInteractionStateItemId());
 
         // Reset the layout
         contentPanel.resetLayout();
-    }
-       
-    @Override
-    public void update(float tpf) {
-         // FIXME using const 3 is not correct for MultiPlayer
-        mana.setText(String.format("%s", gameState.getLevelData().getPlayer((short)3).getStartingMana())); 
-        gold.setText(String.format("%s", gameState.getLevelData().getPlayer((short)3).getStartingGold()));
-        //gameState.getLevelData().getPlayer((short)3);
-        
-        //manaGet.setText("");
-        
-        super.update(tpf);
     }
 
     private List<Room> getAvailableRoomsToBuild() {
