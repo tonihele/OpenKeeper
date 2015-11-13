@@ -200,6 +200,20 @@ public abstract class WorldHandler {
             Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
             mapLoader.updateTiles(mapLoader.getSurroundingTiles(new Point(x, y), true));
+
+            // See if room walls are allowed and does this touch any rooms
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
+                List<RoomInstance> wallUpdatesNeeded = new ArrayList<>();
+                for (Point p : mapLoader.getSurroundingTiles(new Point(x, y), false)) {
+                    RoomInstance room = mapLoader.getRoomCoordinates().get(p);
+                    if (room != null && room.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
+                        wallUpdatesNeeded.add(room);
+                    }
+                }
+                if (!wallUpdatesNeeded.isEmpty()) {
+                    mapLoader.updateRoomWalls(wallUpdatesNeeded);
+                }
+            }
         }
     }
 

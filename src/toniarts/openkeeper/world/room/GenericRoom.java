@@ -49,6 +49,7 @@ public abstract class GenericRoom {
         if (roomInstance.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
             roomInstance.addWallIndexes(7, 8);
         }
+        roomInstance.setRoomConstructor(this);
     }
 
     public Spatial construct() {
@@ -214,5 +215,17 @@ public abstract class GenericRoom {
             subSpat.setLocalTranslation(0, 0, 0);
         }
         tile.move(start.x, -MapLoader.TILE_HEIGHT, start.y);
+    }
+
+    /**
+     * Redraw the walls, and the walls only
+     *
+     * @param node the room
+     */
+    public void updateWalls(Spatial node) {
+        BatchNode wallNode = (BatchNode) ((Node) node).getChild("Wall");
+        wallNode.detachAllChildren();
+        wallNode.attachChild(contructWall());
+        wallNode.batch();
     }
 }

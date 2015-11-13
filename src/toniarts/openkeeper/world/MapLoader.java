@@ -49,6 +49,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomConstructor;
 import toniarts.openkeeper.world.room.RoomInstance;
 import toniarts.openkeeper.world.room.WallSection;
@@ -1134,7 +1135,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param roomInstance the room instance
      */
     private Spatial handleRoom(AssetManager assetManager, RoomInstance roomInstance) {
-        return RoomConstructor.constructRoom(roomInstance, assetManager, kwdFile);
+        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, kwdFile);
+        return room.construct();
     }
 
     /**
@@ -1320,6 +1322,18 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private void addIfValidCoordinate(final int x, final int y, List<Point> tileCoords) {
         if ((x >= 0 && x < kwdFile.getWidth() && y >= 0 && y < kwdFile.getHeight())) {
             tileCoords.add(new Point(x, y));
+        }
+    }
+
+    /**
+     * Update the selected rooms' walls
+     *
+     * @param rooms the rooms to update
+     */
+    protected void updateRoomWalls(List<RoomInstance> rooms) {
+        for (RoomInstance room : rooms) {
+            findRoomWallSections(mapData.getTiles(), room);
+            room.getRoomConstructor().updateWalls(roomNodes.get(room));
         }
     }
 
