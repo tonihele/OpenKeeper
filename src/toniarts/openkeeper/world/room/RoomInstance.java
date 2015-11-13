@@ -30,7 +30,8 @@ import toniarts.openkeeper.world.EntityInstance;
 public class RoomInstance extends EntityInstance<Room> {
 
     private List<Integer> wallIndexes = new ArrayList<>();
-    private int wallPointer = 0;
+    private int wallPointer = -1;
+    private List<WallSection> wallPoints;
 
     public RoomInstance(Room room) {
         super(room);
@@ -45,9 +46,18 @@ public class RoomInstance extends EntityInstance<Room> {
     }
 
     public int getWallIndexNext() {
+        wallPointer++;
         if (wallPointer >= wallIndexes.size()) {
             wallPointer = 0;
         }
         return wallIndexes.get(wallPointer);
+    }
+
+    public void setWallPoints(List<WallSection> wallPoints) {
+        this.wallPoints = wallPoints;
+    }
+
+    public List<WallSection> getWallPoints() {
+        return wallPoints;
     }
 }

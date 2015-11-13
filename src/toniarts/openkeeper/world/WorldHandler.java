@@ -199,7 +199,7 @@ public abstract class WorldHandler {
             TileData tile = mapLoader.getTile(x, y);
             Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-            mapLoader.updateTiles(getSurroundingTiles(new Point(x, y), true));
+            mapLoader.updateTiles(mapLoader.getSurroundingTiles(new Point(x, y), true));
         }
     }
 
@@ -230,33 +230,7 @@ public abstract class WorldHandler {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                 tile.setPlayerId(player.getPlayerId());
             }
-            mapLoader.updateTiles(getSurroundingTiles(new Point(x, y), true));
-        }
-    }
-
-    private Point[] getSurroundingTiles(Point point, boolean diagonal) {
-
-        // Get all surrounding tiles
-        List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
-        tileCoords.add(point);
-
-        addIfValidCoordinate(point.x, point.y - 1, tileCoords); // North
-        addIfValidCoordinate(point.x + 1, point.y, tileCoords); // East
-        addIfValidCoordinate(point.x, point.y + 1, tileCoords); // South
-        addIfValidCoordinate(point.x - 1, point.y, tileCoords); // West
-        if (diagonal) {
-            addIfValidCoordinate(point.x - 1, point.y - 1, tileCoords); // NW
-            addIfValidCoordinate(point.x + 1, point.y - 1, tileCoords); // NE
-            addIfValidCoordinate(point.x - 1, point.y + 1, tileCoords); // SW
-            addIfValidCoordinate(point.x + 1, point.y + 1, tileCoords); // SE
-        }
-
-        return tileCoords.toArray(new Point[tileCoords.size()]);
-    }
-
-    private void addIfValidCoordinate(final int x, final int y, List<Point> tileCoords) {
-        if ((x >= 0 && x < kwdFile.getWidth() && y >= 0 && y < kwdFile.getHeight())) {
-            tileCoords.add(new Point(x, y));
+            mapLoader.updateTiles(mapLoader.getSurroundingTiles(new Point(x, y), true));
         }
     }
 
@@ -284,8 +258,8 @@ public abstract class WorldHandler {
                 tile.setTerrainId(room.getTerrainId());
 
                 Point p = new Point(x, y);
-                buildPlots.addAll(Arrays.asList(getSurroundingTiles(p, false)));
-                updatableTiles.addAll(Arrays.asList(getSurroundingTiles(p, true)));
+                buildPlots.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, false)));
+                updatableTiles.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, true)));
             }
         }
 
@@ -310,7 +284,7 @@ public abstract class WorldHandler {
             // Add the mergeable rooms to updatable tiles as well
             for (RoomInstance instance : adjacentInstances) {
                 for (Point p : instance.getCoordinates()) {
-                    updatableTiles.addAll(Arrays.asList(getSurroundingTiles(p, true)));
+                    updatableTiles.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, true)));
                 }
             }
 
@@ -364,14 +338,14 @@ public abstract class WorldHandler {
                 // Get the instance
                 Point p = new Point(x, y);
                 soldInstances.add(mapLoader.getRoomCoordinates().get(p));
-                updatableTiles.addAll(Arrays.asList(getSurroundingTiles(p, true)));
+                updatableTiles.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, true)));
             }
         }
 
         // Remove the sold instances (will be regenerated) and add them to updatable
         for (RoomInstance roomInstance : soldInstances) {
             for (Point p : roomInstance.getCoordinates()) {
-                updatableTiles.addAll(Arrays.asList(getSurroundingTiles(p, true)));
+                updatableTiles.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, true)));
             }
         }
         mapLoader.removeRoomInstances(soldInstances.toArray(new RoomInstance[soldInstances.size()]));

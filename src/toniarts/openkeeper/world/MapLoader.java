@@ -32,9 +32,14 @@ import com.jme3.scene.Spatial;
 import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -46,6 +51,8 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.room.RoomConstructor;
 import toniarts.openkeeper.world.room.RoomInstance;
+import toniarts.openkeeper.world.room.WallSection;
+import toniarts.openkeeper.world.room.WallSection.WallDirection;
 import toniarts.openkeeper.world.terrain.Water;
 
 /**
@@ -1224,14 +1231,96 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     }
 
     /**
-     * Find room wall sections
+     * Find room wall sections, continuous sections facing the same way
      *
      * @param tiles tiles
      * @param roomInstance room instance
      */
     private void findRoomWallSections(TileData[][] tiles, RoomInstance roomInstance) {
-        List<List<Point>> sections = new ArrayList<>();
+        if (roomInstance.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
+            List<WallSection> sections = new ArrayList<>();
+            Map<Point, Point> wallablePoints = new LinkedHashMap<>();
+            // FIXME: is there a faster and simpler way?
+            for (Point p : roomInstance.getCoordinates()) {
 
+                // Get all the adjacent tiles that allow wall tiles
+                // It doesn't matter who ones the wall (claimed wall), it still does room walls for all players
+                for (Point wallP : getSurroundingTiles(p, false)) {
+                    TileData tile = tiles[wallP.x][wallP.y];
+                    Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+                    if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
+                        wallablePoints.put(wallP, p);
+                    }
+                }
+            }
+
+            // Get all the adjacent tiles to form whole segments of walls
+            Set<Point> adjacentWallPoints = new HashSet<>(wallablePoints.keySet());
+            for (Entry<Point, Point> entry : wallablePoints.entrySet()) {
+                if (adjacentWallPoints.contains(entry.getKey())) {
+
+                    // Get direction
+                    WallDirection direction;
+                    if (entry.getKey().equals(new Point(entry.getValue().x, entry.getValue().y - 1))) {
+                        direction = WallDirection.NORTH;
+                    } else if (entry.getKey().equals(new Point(entry.getValue().x + 1, entry.getValue().y))) {
+                        direction = WallDirection.EAST;
+                    } else if (entry.getKey().equals(new Point(entry.getValue().x, entry.getValue().y + 1))) {
+                        direction = WallDirection.SOUTH;
+                    } else {
+                        direction = WallDirection.WEST;
+                    }
+
+                    adjacentWallPoints.remove(entry.getKey());
+                    List<Point> section = new ArrayList<>();
+                    section.add(entry.getValue());
+                    for (Point p : getAdjacentPoints(entry.getKey(), adjacentWallPoints)) {
+                        section.add(wallablePoints.get(p));
+                    }
+                    sections.add(new WallSection(direction, section));
+                }
+            }
+            roomInstance.setWallPoints(sections);
+        }
+    }
+
+    private Collection<Point> getAdjacentPoints(Point p, Set<Point> adjacentWallPoints) {
+        Point[] surroundingTiles = getSurroundingTiles(p, false);
+        Set<Point> adjacentTiles = new LinkedHashSet<>();
+        for (Point surroundingP : surroundingTiles) {
+            if (adjacentWallPoints.contains(surroundingP) && !adjacentTiles.contains(surroundingP)) {
+                adjacentWallPoints.remove(surroundingP);
+                adjacentTiles.add(surroundingP);
+                adjacentTiles.addAll(getAdjacentPoints(surroundingP, adjacentWallPoints));
+            }
+        }
+        return adjacentTiles;
+    }
+
+    protected Point[] getSurroundingTiles(Point point, boolean diagonal) {
+
+        // Get all surrounding tiles
+        List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
+        tileCoords.add(point);
+
+        addIfValidCoordinate(point.x, point.y - 1, tileCoords); // North
+        addIfValidCoordinate(point.x + 1, point.y, tileCoords); // East
+        addIfValidCoordinate(point.x, point.y + 1, tileCoords); // South
+        addIfValidCoordinate(point.x - 1, point.y, tileCoords); // West
+        if (diagonal) {
+            addIfValidCoordinate(point.x - 1, point.y - 1, tileCoords); // NW
+            addIfValidCoordinate(point.x + 1, point.y - 1, tileCoords); // NE
+            addIfValidCoordinate(point.x - 1, point.y + 1, tileCoords); // SW
+            addIfValidCoordinate(point.x + 1, point.y + 1, tileCoords); // SE
+        }
+
+        return tileCoords.toArray(new Point[tileCoords.size()]);
+    }
+
+    private void addIfValidCoordinate(final int x, final int y, List<Point> tileCoords) {
+        if ((x >= 0 && x < kwdFile.getWidth() && y >= 0 && y < kwdFile.getHeight())) {
+            tileCoords.add(new Point(x, y));
+        }
     }
 
     /**
