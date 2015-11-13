@@ -99,10 +99,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private static final String HUD_SCREEN_ID = "hud";
     private List<AbstractPauseAwareState> appStates = new ArrayList<>();
     private PlayerInteractionState interactionState;
-    private float tick = 0;
-    private Label manaCurrent;
-    private Label manaGet;
-    private Label manaLose;
+
     private Label goldCurrent;
     private Label tooltip;
     
@@ -141,11 +138,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Load the HUD
             app.getNifty().getNifty().gotoScreen(HUD_SCREEN_ID);
 
-            // Get GUI area constraints
-            Element top = app.getNifty().getNifty().getScreen(HUD_SCREEN_ID).findElementByName("top");
-            int guiConstraintTop = top.getY() + top.getHeight();
-            int guiConstraintBottom = app.getNifty().getNifty().getScreen(HUD_SCREEN_ID).findElementByName("bottom").getY();
-
             // Cursor
             app.getInputManager().setCursorVisible(true);
 
@@ -162,7 +154,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Create app states
             Player player = gameState.getLevelData().getPlayer((short) 3); // Keeper 1
             appStates.add(new PlayerCameraState(player));
-            interactionState = new PlayerInteractionState(player, gameState, guiConstraintTop, guiConstraintBottom) {
+            interactionState = new PlayerInteractionState(player, gameState, guiConstraint) {
                 @Override
                 protected void onInteractionStateChange(PlayerInteractionState.InteractionState interactionState, int id) {
                     PlayerState.this.updateGUISelectedStatus(interactionState, id);
@@ -195,35 +187,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
     
     @Override
-    public void update(float tpf) {
-        tick += tpf;
-        if (tick >= 1) {
-            manaCurrent.setText(String.format("%s", gameState.getPlayerManaControl().getMana()));           
-            tick -= 1;
-        } 
-        manaGet.setText(String.format("+ %s", gameState.getPlayerManaControl().getManaGain()));            
-        manaLose.setText(String.format("- %s", gameState.getPlayerManaControl().getManaLose()));
-        
-        super.update(tpf);
-    }
-
-    @Override
     public void onStartScreen() {
         switch (nifty.getCurrentScreen().getScreenId()) {
             case HUD_SCREEN_ID: {
                 
-                if (manaCurrent == null) {
-                    manaCurrent = screen.findNiftyControl("mana", Label.class);
-                }
-                
-                if (manaGet == null) {
-                    manaGet = screen.findNiftyControl("manaGet", Label.class);
-                }
-                
-                if (manaLose == null) {
-                    manaLose = screen.findNiftyControl("manaLose", Label.class);
-                }
-
+                gameState.getPlayerManaControl().addManaListener(screen.findNiftyControl("mana", Label.class));
+                gameState.getPlayerManaControl().addManaGetListener(screen.findNiftyControl("manaGet", Label.class));  
+                gameState.getPlayerManaControl().addManaLoseListener(screen.findNiftyControl("manaLose", Label.class));
+              
                 if (goldCurrent == null) {
                     goldCurrent = screen.findNiftyControl("gold", Label.class);
                 }
@@ -284,16 +255,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             element.markForRemoval();
         }
 
-        // Get the tabs and stop the active effects
-        final Element tabCreatures = nifty.getCurrentScreen().findElementByName("tab-creatures");
-        tabCreatures.stopEffect(EffectEventId.onCustom);
-        final Element tabRooms = nifty.getCurrentScreen().findElementByName("tab-rooms");
-        tabRooms.stopEffect(EffectEventId.onCustom);
-        final Element tabSpells = nifty.getCurrentScreen().findElementByName("tab-spells");
-        tabSpells.stopEffect(EffectEventId.onCustom);
-        final Element tabWorkshop = nifty.getCurrentScreen().findElementByName("tab-workshop");
-        tabWorkshop.stopEffect(EffectEventId.onCustom);
-
         // Rebuild it
         if (category == TabCategory.CREATURES) {
             new ControlBuilder("tab-workers", "workerAmount") {
@@ -323,7 +284,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 // FIXME: Somekind of wrapper here for these
                 switch (category) {
                     case ROOMS: {
-                        tabRooms.startEffect(EffectEventId.onCustom, null, "select");
                         for (final Room room : getAvailableRoomsToBuild()) {
                             image(new ImageBuilder() {
                                 {
@@ -352,7 +312,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         break;
                     }
                     case SPELLS: {
-                        tabSpells.startEffect(EffectEventId.onCustom, null, "select");
                         for (final KeeperSpell spell : getAvailableKeeperSpells()) {
                             image(new ImageBuilder() {
                                 {
@@ -377,14 +336,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                                 }
                             });
                         }
-                        break;
-                    }
-                    case CREATURES: {
-                        tabCreatures.startEffect(EffectEventId.onCustom, null, "select");
-                        break;
-                    }
-                    case WORKSHOP_ITEMS: {
-                        tabWorkshop.startEffect(EffectEventId.onCustom, null, "select");
                         break;
                     }
                 }

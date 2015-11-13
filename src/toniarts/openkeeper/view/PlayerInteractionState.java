@@ -19,6 +19,7 @@ package toniarts.openkeeper.view;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.font.Rectangle;
 import com.jme3.input.InputManager;
 import com.jme3.input.MouseInput;
 import com.jme3.input.RawInputListener;
@@ -71,19 +72,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public Vector2f mousePosition = Vector2f.ZERO;
     private InteractionState interactionState = InteractionState.NONE;
     private int itemId;
-    private final int guiConstraintTop;
-    private final int guiConstraintBottom;
     private boolean isOnGui = false;
     private boolean isTaggable = false;
     private boolean isTagging = false;
     private boolean isOnView = false;
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
-    public PlayerInteractionState(Player player, GameState gameState, final int guiConstraintTop, final int guiConstraintBottom) {
+    public PlayerInteractionState(Player player, GameState gameState, Rectangle rect) {
         this.player = player;
         this.gameState = gameState;
-        this.guiConstraintTop = guiConstraintTop;
-        this.guiConstraintBottom = guiConstraintBottom;
     }
 
     @Override

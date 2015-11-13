@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game;
 
-import toniarts.openkeeper.tools.convert.map.Tile;
+import de.lessvoid.nifty.controls.Label;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldHandler;
@@ -29,6 +29,9 @@ import toniarts.openkeeper.world.WorldHandler;
 public class PlayerManaControl {
     private short playerId;
     private WorldHandler worldHandler;
+    private Label manaListener = null;
+    private Label manaGetListener = null;
+    private Label manaLoseListener = null;
     
     private int manaCurrent;
     private int manaMax;
@@ -84,11 +87,17 @@ public class PlayerManaControl {
     }
     
     public void updateManaGet() {
-        this.manaGet = this.manaGetBase + this.manaGetFromTiles;
+        manaGet = manaGetBase + manaGetFromTiles;
+        if (manaGetListener != null) {
+            manaGetListener.setText(String.format("+ %s", manaGet));  
+        }
     }
     
     public void updateManaLose() {
-        this.manaLose = this.manaLoseFromCreatures;
+        manaLose = manaLoseFromCreatures;
+        if (manaLoseListener != null) {
+            manaLoseListener.setText(String.format("- %s", manaLose));  
+        }
     }
         
     public void update() {
@@ -99,6 +108,10 @@ public class PlayerManaControl {
         
         if (this.manaCurrent > this.manaMax) {
             this.manaCurrent = this.manaMax;
+        }
+        
+        if (manaListener != null) {
+            manaListener.setText(String.format("%s", manaCurrent));  
         }
     }
     
@@ -112,5 +125,23 @@ public class PlayerManaControl {
     
     public int getManaLose() {
         return this.manaLose;
+    }
+    
+    public void addManaListener(Label label) {
+        if (this.manaListener == null) {
+            this.manaListener = label;
+        }
+    }
+    
+    public void addManaGetListener(Label label) {
+        if (this.manaGetListener == null) {
+            this.manaGetListener = label;
+        }
+    }
+    
+    public void addManaLoseListener(Label label) {
+        if (this.manaLoseListener == null) {
+            this.manaLoseListener = label;
+        }
     }
 }
