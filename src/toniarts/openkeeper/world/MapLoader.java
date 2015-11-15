@@ -32,14 +32,10 @@ import com.jme3.scene.Spatial;
 import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -1241,62 +1237,114 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private void findRoomWallSections(TileData[][] tiles, RoomInstance roomInstance) {
         if (roomInstance.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
             List<WallSection> sections = new ArrayList<>();
-            Map<Point, Point> wallablePoints = new LinkedHashMap<>();
-            // FIXME: is there a faster and simpler way?
+            Map<Point, List<WallDirection>> alreadyWalledPoints = new HashMap<>();
             for (Point p : roomInstance.getCoordinates()) {
 
-                // Get all the adjacent tiles that allow wall tiles
-                // It doesn't matter who ones the wall (claimed wall), it still does room walls for all players
-                for (Point wallP : getSurroundingTiles(p, false)) {
-                    TileData tile = tiles[wallP.x][wallP.y];
-                    Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-                    if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
-                        wallablePoints.put(wallP, p);
-                    }
+                // Traverse in all four directions to find wallable sections facing the same direction
+                List<WallDirection> alreadyTraversedDirections = alreadyWalledPoints.get(p);
+                if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(WallDirection.NORTH)) {
+                    traverseRoomWalls(p, tiles, roomInstance, WallDirection.NORTH, sections, alreadyWalledPoints);
                 }
-            }
-
-            // Get all the adjacent tiles to form whole segments of walls
-            Set<Point> adjacentWallPoints = new HashSet<>(wallablePoints.keySet());
-            for (Entry<Point, Point> entry : wallablePoints.entrySet()) {
-                if (adjacentWallPoints.contains(entry.getKey())) {
-
-                    // Get direction
-                    WallDirection direction;
-                    if (entry.getKey().equals(new Point(entry.getValue().x, entry.getValue().y - 1))) {
-                        direction = WallDirection.NORTH;
-                    } else if (entry.getKey().equals(new Point(entry.getValue().x + 1, entry.getValue().y))) {
-                        direction = WallDirection.EAST;
-                    } else if (entry.getKey().equals(new Point(entry.getValue().x, entry.getValue().y + 1))) {
-                        direction = WallDirection.SOUTH;
-                    } else {
-                        direction = WallDirection.WEST;
-                    }
-
-                    adjacentWallPoints.remove(entry.getKey());
-                    List<Point> section = new ArrayList<>();
-                    section.add(entry.getValue());
-                    for (Point p : getAdjacentPoints(entry.getKey(), adjacentWallPoints)) {
-                        section.add(wallablePoints.get(p));
-                    }
-                    sections.add(new WallSection(direction, section));
+                if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(WallDirection.EAST)) {
+                    traverseRoomWalls(p, tiles, roomInstance, WallDirection.EAST, sections, alreadyWalledPoints);
+                }
+                if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(WallDirection.SOUTH)) {
+                    traverseRoomWalls(p, tiles, roomInstance, WallDirection.SOUTH, sections, alreadyWalledPoints);
+                }
+                if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(WallDirection.WEST)) {
+                    traverseRoomWalls(p, tiles, roomInstance, WallDirection.WEST, sections, alreadyWalledPoints);
                 }
             }
             roomInstance.setWallPoints(sections);
         }
     }
 
-    private Collection<Point> getAdjacentPoints(Point p, Set<Point> adjacentWallPoints) {
-        Point[] surroundingTiles = getSurroundingTiles(p, false);
-        Set<Point> adjacentTiles = new LinkedHashSet<>();
-        for (Point surroundingP : surroundingTiles) {
-            if (adjacentWallPoints.contains(surroundingP) && !adjacentTiles.contains(surroundingP)) {
-                adjacentWallPoints.remove(surroundingP);
-                adjacentTiles.add(surroundingP);
-                adjacentTiles.addAll(getAdjacentPoints(surroundingP, adjacentWallPoints));
+    /**
+     * Traverses room walls facing in certain direction from a room point. Finds
+     * a section.
+     *
+     * @param p starting room point
+     * @param tiles tiles
+     * @param roomInstance the room instance of which walls we need to find
+     * @param direction the direction of which the want the walls to face
+     * @param sections list of already find sections
+     * @param alreadyWalledPoints already found wall points
+     */
+    private void traverseRoomWalls(Point p, TileData[][] tiles, RoomInstance roomInstance, WallDirection direction, List<WallSection> sections, Map<Point, List<WallDirection>> alreadyWalledPoints) {
+        List<Point> section = getRoomWalls(p, tiles, roomInstance, direction);
+        if (section != null) {
+
+            // Add section
+            sections.add(new WallSection(direction, section));
+
+            // Add to known points
+            for (Point sectionPoint : section) {
+                List<WallDirection> directions = alreadyWalledPoints.get(sectionPoint);
+                if (directions == null) {
+                    directions = new ArrayList<>(4);
+                }
+                directions.add(direction);
+                alreadyWalledPoints.put(sectionPoint, directions);
             }
         }
-        return adjacentTiles;
+    }
+
+    private List<Point> getRoomWalls(Point p, TileData[][] tiles, RoomInstance roomInstance, WallDirection wallDirection) {
+
+        // See if the starting point has a wall to the given direction
+        TileData tile;
+        if (wallDirection == WallDirection.NORTH) {
+            tile = tiles[p.x][p.y - 1];
+        } else if (wallDirection == WallDirection.EAST) {
+            tile = tiles[p.x + 1][p.y];
+        } else if (wallDirection == WallDirection.SOUTH) {
+            tile = tiles[p.x][p.y + 1];
+        } else {
+            tile = tiles[p.x - 1][p.y]; // West
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
+
+            // Found wallable
+            List<Point> wallPoints = new ArrayList<>();
+            wallPoints.add(p);
+
+            // Traverse possible directions, well one direction, "to the right"
+            List<Point> adjacentWallPoints = null;
+            if (wallDirection == WallDirection.NORTH) {
+                Point nextPoint = new Point(p.x + 1, p.y); // East
+                RoomInstance instance = roomCoordinates.get(nextPoint);
+                if (instance != null && instance.equals(roomInstance)) {
+                    adjacentWallPoints = getRoomWalls(nextPoint, tiles, roomInstance, wallDirection);
+                }
+            } else if (wallDirection == WallDirection.EAST) {
+                Point nextPoint = new Point(p.x, p.y + 1); // South
+                RoomInstance instance = roomCoordinates.get(nextPoint);
+                if (instance != null && instance.equals(roomInstance)) {
+                    adjacentWallPoints = getRoomWalls(nextPoint, tiles, roomInstance, wallDirection);
+                }
+            } else if (wallDirection == WallDirection.SOUTH) {
+                Point nextPoint = new Point(p.x + 1, p.y); // East, sorting, so right is left now
+                RoomInstance instance = roomCoordinates.get(nextPoint);
+                if (instance != null && instance.equals(roomInstance)) {
+                    adjacentWallPoints = getRoomWalls(nextPoint, tiles, roomInstance, wallDirection);
+                }
+            } else {
+                Point nextPoint = new Point(p.x, p.y + 1); // South, sorting, so right is left now
+                RoomInstance instance = roomCoordinates.get(nextPoint);
+                if (instance != null && instance.equals(roomInstance)) {
+                    adjacentWallPoints = getRoomWalls(nextPoint, tiles, roomInstance, wallDirection);
+                }
+            }
+
+            // Add the point(s)
+            if (adjacentWallPoints != null) {
+                wallPoints.addAll(adjacentWallPoints);
+            }
+            return wallPoints;
+        }
+
+        return null;
     }
 
     protected Point[] getSurroundingTiles(Point point, boolean diagonal) {
