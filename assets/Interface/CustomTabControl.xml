@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-controls xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+    <controlDefinition controller="toniarts.openkeeper.gui.nifty.CustomTabGroupControl" name="customTabGroup" 
+                       childRootId="#tab-content-panel" style="nifty-tabs">
+        <panel id="#tabs-panel" childLayout="vertical">
+            <panel valign="center" childLayout="horizontal" id="#tab-button-panel">
+                <control id="#button-template" name="buttonImage" style="nifty-tab-button-active" />                    
+            </panel>
+            <panel valign="center" childLayout="center" id="#tab-content-panel"/>
+        </panel>
+    </controlDefinition>
+        
+    <controlDefinition controller="toniarts.openkeeper.gui.nifty.CustomTabControl" name="customTab" style="nifty-tab"
+                       childLayout="center" childRootId="#content">
+        <panel id="#content"/>
+    </controlDefinition>
+    
+    <controlDefinition style="nifty-button" name="buttonImage" controller="de.lessvoid.nifty.controls.button.ButtonControl"
+                       inputMapping="de.lessvoid.nifty.input.mapping.MenuInputMapping">        
+        <image valign="center" filename="$image">
+            <image id="#selector" valign="center" filename="$active" />       
+            <interact onClick="onClick()"/>
+            <text id="#text" style="#text" text=""/>
+        </image> 
+    </controlDefinition>
+</nifty-controls>
