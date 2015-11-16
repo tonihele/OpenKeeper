@@ -41,13 +41,12 @@ public abstract class GenericRoom {
     protected final RoomInstance roomInstance;
     protected final Thing.Room.Direction direction;
     private int wallPointer = -1;
+    private static int[] wallIndexes = new int[]{8, 7};
 
     public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         this.assetManager = assetManager;
         this.roomInstance = roomInstance;
         this.direction = direction;
-
-        roomInstance.setRoomConstructor(this);
     }
 
     public Spatial construct() {
@@ -231,10 +230,21 @@ public abstract class GenericRoom {
         wallNode.batch();
     }
 
+    /**
+     * Get the wall indexes, whole wall sections. The index means the index
+     * suffix on a wall model
+     *
+     * @return list of wall indexes
+     */
     protected int[] getWallIndexes() {
-        return new int[]{8, 7};
+        return wallIndexes;
     }
 
+    /**
+     * Get next wall index
+     *
+     * @return the next wall index
+     */
     public int getWallIndexNext() {
         wallPointer++;
         if (wallPointer >= getWallIndexes().length) {
@@ -243,6 +253,9 @@ public abstract class GenericRoom {
         return getWallIndexes()[wallPointer];
     }
 
+    /**
+     * Restart the wall counter
+     */
     public void resetWallIndex() {
         wallPointer = -1;
     }

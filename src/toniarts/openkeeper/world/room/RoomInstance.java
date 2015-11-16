@@ -28,7 +28,6 @@ import toniarts.openkeeper.world.EntityInstance;
 public class RoomInstance extends EntityInstance<Room> {
 
     private List<WallSection> wallPoints;
-    private GenericRoom room;
 
     public RoomInstance(Room room) {
         super(room);
@@ -44,13 +43,5 @@ public class RoomInstance extends EntityInstance<Room> {
 
     public List<WallSection> getWallPoints() {
         return wallPoints;
-    }
-
-    protected void setRoomConstructor(GenericRoom room) {
-        this.room = room;
-    }
-
-    public GenericRoom getRoomConstructor() {
-        return room;
     }
 }

@@ -1377,7 +1377,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     protected void updateRoomWalls(List<RoomInstance> rooms) {
         for (RoomInstance room : rooms) {
             findRoomWallSections(mapData.getTiles(), room);
-            room.getRoomConstructor().updateWalls(roomNodes.get(room));
+            RoomConstructor.constructRoom(room, assetManager, kwdFile).updateWalls(roomNodes.get(room));
         }
     }
 
