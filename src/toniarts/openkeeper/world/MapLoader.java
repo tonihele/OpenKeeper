@@ -1242,19 +1242,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             for (Point p : roomInstance.getCoordinates()) {
 
                 // Traverse in all four directions to find wallable sections facing the same direction
-                Set<WallDirection> alreadyTraversedDirections = alreadyWalledPoints.get(p);
-                if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(WallDirection.NORTH)) {
-                    traverseRoomWalls(p, tiles, roomInstance, WallDirection.NORTH, sections, alreadyWalledPoints);
-                }
-                if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(WallDirection.EAST)) {
-                    traverseRoomWalls(p, tiles, roomInstance, WallDirection.EAST, sections, alreadyWalledPoints);
-                }
-                if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(WallDirection.SOUTH)) {
-                    traverseRoomWalls(p, tiles, roomInstance, WallDirection.SOUTH, sections, alreadyWalledPoints);
-                }
-                if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(WallDirection.WEST)) {
-                    traverseRoomWalls(p, tiles, roomInstance, WallDirection.WEST, sections, alreadyWalledPoints);
-                }
+                traverseRoomWalls(p, tiles, roomInstance, WallDirection.NORTH, sections, alreadyWalledPoints);
+                traverseRoomWalls(p, tiles, roomInstance, WallDirection.EAST, sections, alreadyWalledPoints);
+                traverseRoomWalls(p, tiles, roomInstance, WallDirection.SOUTH, sections, alreadyWalledPoints);
+                traverseRoomWalls(p, tiles, roomInstance, WallDirection.WEST, sections, alreadyWalledPoints);
             }
             roomInstance.setWallPoints(sections);
         }
@@ -1272,20 +1263,24 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param alreadyWalledPoints already found wall points
      */
     private void traverseRoomWalls(Point p, TileData[][] tiles, RoomInstance roomInstance, WallDirection direction, List<WallSection> sections, Map<Point, Set<WallDirection>> alreadyWalledPoints) {
-        List<Point> section = getRoomWalls(p, tiles, roomInstance, direction);
-        if (section != null) {
+        Set<WallDirection> alreadyTraversedDirections = alreadyWalledPoints.get(p);
+        if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(direction)) {
 
-            // Add section
-            sections.add(new WallSection(direction, section));
+            List<Point> section = getRoomWalls(p, tiles, roomInstance, direction);
+            if (section != null) {
 
-            // Add to known points
-            for (Point sectionPoint : section) {
-                Set<WallDirection> directions = alreadyWalledPoints.get(sectionPoint);
-                if (directions == null) {
-                    directions = EnumSet.noneOf(WallDirection.class);
+                // Add section
+                sections.add(new WallSection(direction, section));
+
+                // Add to known points
+                for (Point sectionPoint : section) {
+                    Set<WallDirection> directions = alreadyWalledPoints.get(sectionPoint);
+                    if (directions == null) {
+                        directions = EnumSet.noneOf(WallDirection.class);
+                    }
+                    directions.add(direction);
+                    alreadyWalledPoints.put(sectionPoint, directions);
                 }
-                directions.add(direction);
-                alreadyWalledPoints.put(sectionPoint, directions);
             }
         }
     }
