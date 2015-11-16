@@ -40,15 +40,13 @@ public abstract class GenericRoom {
     protected final AssetManager assetManager;
     protected final RoomInstance roomInstance;
     protected final Thing.Room.Direction direction;
+    private int wallPointer = -1;
 
     public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         this.assetManager = assetManager;
         this.roomInstance = roomInstance;
         this.direction = direction;
 
-        if (roomInstance.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
-            roomInstance.addWallIndexes(7, 8);
-        }
         roomInstance.setRoomConstructor(this);
     }
 
@@ -88,6 +86,10 @@ public abstract class GenericRoom {
             Point start = roomInstance.getCoordinates().get(0);
             for (WallSection section : roomInstance.getWallPoints()) {
                 int i = 0;
+
+                // Reset wall index for each wall section
+                resetWallIndex();
+
                 for (Point p : section.getCoordinates()) {
 
                     // 4,5,6 are half walls
@@ -149,7 +151,7 @@ public abstract class GenericRoom {
                     } else {
 
                         // Complete walls, 8, 7, 8, 7 and so forth
-                        Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + roomInstance.getWallIndexNext() + ".j3o");
+                        Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + getWallIndexNext() + ".j3o");
                         resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
                         if (section.getDirection() == WallSection.WallDirection.WEST) {
                             Quaternion quat = new Quaternion();
@@ -227,5 +229,21 @@ public abstract class GenericRoom {
         wallNode.detachAllChildren();
         wallNode.attachChild(contructWall());
         wallNode.batch();
+    }
+
+    protected int[] getWallIndexes() {
+        return new int[]{8, 7};
+    }
+
+    public int getWallIndexNext() {
+        wallPointer++;
+        if (wallPointer >= getWallIndexes().length) {
+            wallPointer = 0;
+        }
+        return getWallIndexes()[wallPointer];
+    }
+
+    public void resetWallIndex() {
+        wallPointer = -1;
     }
 }

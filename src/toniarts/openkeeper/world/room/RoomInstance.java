@@ -16,8 +16,6 @@
  */
 package toniarts.openkeeper.world.room;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.world.EntityInstance;
@@ -29,8 +27,6 @@ import toniarts.openkeeper.world.EntityInstance;
  */
 public class RoomInstance extends EntityInstance<Room> {
 
-    private List<Integer> wallIndexes = new ArrayList<>();
-    private int wallPointer = -1;
     private List<WallSection> wallPoints;
     private GenericRoom room;
 
@@ -40,18 +36,6 @@ public class RoomInstance extends EntityInstance<Room> {
 
     public Room getRoom() {
         return super.getEntity();
-    }
-
-    public void addWallIndexes(Integer... index) {
-        this.wallIndexes.addAll(Arrays.asList(index));
-    }
-
-    public int getWallIndexNext() {
-        wallPointer++;
-        if (wallPointer >= wallIndexes.size()) {
-            wallPointer = 0;
-        }
-        return wallIndexes.get(wallPointer);
     }
 
     public void setWallPoints(List<WallSection> wallPoints) {
