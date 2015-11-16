@@ -32,6 +32,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1237,11 +1238,11 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private void findRoomWallSections(TileData[][] tiles, RoomInstance roomInstance) {
         if (roomInstance.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
             List<WallSection> sections = new ArrayList<>();
-            Map<Point, List<WallDirection>> alreadyWalledPoints = new HashMap<>();
+            Map<Point, Set<WallDirection>> alreadyWalledPoints = new HashMap<>();
             for (Point p : roomInstance.getCoordinates()) {
 
                 // Traverse in all four directions to find wallable sections facing the same direction
-                List<WallDirection> alreadyTraversedDirections = alreadyWalledPoints.get(p);
+                Set<WallDirection> alreadyTraversedDirections = alreadyWalledPoints.get(p);
                 if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(WallDirection.NORTH)) {
                     traverseRoomWalls(p, tiles, roomInstance, WallDirection.NORTH, sections, alreadyWalledPoints);
                 }
@@ -1270,7 +1271,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param sections list of already find sections
      * @param alreadyWalledPoints already found wall points
      */
-    private void traverseRoomWalls(Point p, TileData[][] tiles, RoomInstance roomInstance, WallDirection direction, List<WallSection> sections, Map<Point, List<WallDirection>> alreadyWalledPoints) {
+    private void traverseRoomWalls(Point p, TileData[][] tiles, RoomInstance roomInstance, WallDirection direction, List<WallSection> sections, Map<Point, Set<WallDirection>> alreadyWalledPoints) {
         List<Point> section = getRoomWalls(p, tiles, roomInstance, direction);
         if (section != null) {
 
@@ -1279,9 +1280,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
             // Add to known points
             for (Point sectionPoint : section) {
-                List<WallDirection> directions = alreadyWalledPoints.get(sectionPoint);
+                Set<WallDirection> directions = alreadyWalledPoints.get(sectionPoint);
                 if (directions == null) {
-                    directions = new ArrayList<>(4);
+                    directions = EnumSet.noneOf(WallDirection.class);
                 }
                 directions.add(direction);
                 alreadyWalledPoints.put(sectionPoint, directions);
