@@ -35,7 +35,7 @@ import java.util.logging.Logger;
 
 
 public class CustomTabControl extends AbstractController implements Tab, TabGroupMember {
-    
+
     private static final Logger log = Logger.getLogger(CustomTabControl.class.getName());
     /**
      * The tab group that is the parent of this tab. This might be {@code null} for the time this tab is not a part of tab
@@ -55,15 +55,19 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
             final Nifty nifty,
             final Screen screen,
             final Element element,
-            final Properties parameter, 
+            final Properties parameter,
             final Attributes controlDefinitionAttributes) {
         bind(element);
-        
+
+        if (element.getId() == null) {
+            log.warning("Button element has no ID and can't publish any events properly.");
+        }
+
         String image = parameter.get("image").toString();
         if (image != null) {
             setImage(image);
         }
-        
+
         String imageActiver = parameter.get("active").toString();
         if (imageActiver != null) {
             setImageActive(imageActiver);
@@ -76,12 +80,9 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
     public void setImage(final String imageUrl) {
         if (!imageUrl.equals(tabImage)) {
           tabImage = imageUrl;
-              if (parentGroup != null) {
-                parentGroup.setTabImage(this, imageUrl);
-              }
         }
     }
-    
+
     public void setImageActive(final String imageUrl) {
         if (!imageUrl.equals(tabImage)) {
             tabImageActive = imageUrl;
@@ -93,12 +94,11 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
         return parentGroup != null;
     }
 
-
     @Override
-    public String getCaption() {    
+    public String getCaption() {
         return "";
     }
-    
+
     public String getImage() {
         if (tabImage == null) {
             log.warning("Tab image is not set yet.");
@@ -106,7 +106,7 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
         }
         return tabImage;
     }
-    
+
     public String getImageActive() {
         if (tabImage == null) {
             log.warning("Tab image is not set yet.");
@@ -141,8 +141,5 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
     @Override
     public void setParentTabGroup( final TabGroup tabGroup) {
         parentGroup = (CustomTabGroupControl) tabGroup;
-        if (parentGroup != null) {
-            //parentGroup.setTabImage(this, getImage());
-        }
     }
 }

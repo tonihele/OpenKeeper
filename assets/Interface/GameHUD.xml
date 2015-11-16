@@ -55,7 +55,7 @@
                             </panel>
                         </panel>
                     </panel>
-                    <panel width="16px" /> 
+                    <panel width="16px" />
                     <panel width="256px" align="left" valign="center" childLayout="overlay">
                         <panel childLayout="horizontal" align="left" valign="center">
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-00.png" />
@@ -112,12 +112,14 @@
                             </panel>
 
                             <!--Sell-->
-                            <panel id="sellButton" x="100%" y="0" width="32px" height="32px">
-                                <effect>
-                                    <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-01.png" post="true"/>
-                                    <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-01.png" post="true" neverStopRendering="true"  />
-                                </effect>
-                                <interact onClick="sellMode()"/>
+                            <panel x="100%" y="0" width="32px" height="32px" childLayout="center" id="tab-sell-content">
+                                <panel id="sell_0">
+                                    <effect>
+                                        <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-01.png" post="true" />
+                                        <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-01.png" post="true" neverStopRendering="true" />
+                                    </effect>
+                                    <interact onClick="select(sell,0)" />
+                                </panel>
                             </panel>
                             <!--The menu-->
                             <panel id="menuButton" x="0" y="100%" width="32px" height="32px">
@@ -174,125 +176,60 @@
                             <panel width="100%" height="*" />
                         </panel>
                         <!--The rest-->
-                            <control name="customTabGroup" height="100%" width="100%" valign="top" >
-                                    
-                                <control name="customTab" image="Textures/GUI/Tabs/t-creatures.png" active="Textures/GUI/Icons/selected-creature.png">
-                                    <panel childLayout="horizontal" align="left">
-                                         <!--The worker amount & status-->
-                                        <control name="workerAmount"  />
-                                        <!--The tab contents scroll-->
-                                        <control name="tabScroll" />
-                                        <!--The =, shown for creatures-->
-                                        <control name="workerEqual" />
+                        <control name="customTabGroup" height="100%" width="100%" valign="top" id="tabs-hud">
 
-                                        <image filename="Textures/GUI/Creatures/Evil/firefly-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Evil/goblin-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Evil/warlock-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Evil/troll-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Evil/bile_demon-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Evil/skeleton-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Evil/dark_elf-bg.png" valign="center" marginRight="3px" />
-
-                                        <image filename="Textures/GUI/Creatures/Good/dwarf-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Good/elf-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Good/fairy-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Good/giant-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Good/guard-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Good/knight-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Good/monk-bg.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Creatures/Good/wizard-bg.png" valign="center" marginRight="3px" />
-
+                            <control name="customTab" id="tab-creature" image="Textures/GUI/Tabs/t-creatures.png"
+                                     active="Textures/GUI/Icons/selected-creature.png">
+                                <panel childLayout="horizontal" align="left">
+                                     <!--The worker amount & status-->
+                                    <control name="workerAmount"  />
+                                    <!--The tab contents scroll-->
+                                    <control name="tabScroll" />
+                                    <!--The =, shown for creatures-->
+                                    <control name="workerEqual" />
+                                    <panel childLayout="horizontal" id="tab-creature-content">
+                                        <control name="creature" filename="Textures/GUI/Creatures/Evil/firefly-bg.png" total="0"/>
+                                        <control name="creature" filename="Textures/GUI/Creatures/Good/dwarf-bg.png" total="0"/>
                                     </panel>
-                                </control>
-
-                                <control name="customTab" image="Textures/GUI/Tabs/t-rooms.png" active="Textures/GUI/Icons/selected-room.png">                           
-                                    <panel childLayout="vertical" align="left">
-                                        <panel childLayout="horizontal" padding="3px,3px,0">
-                                            <image filename="Textures/GUI/Rooms/lair.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/dark_library.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/Treasury.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/casino.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/Bridge_Wooden.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/torture.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/graveyard.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/temple.png" valign="center" marginRight="3px" />
-                                        </panel>
-                                        <panel childLayout="horizontal" padding="3px,3px,3px">
-                                            <image filename="Textures/GUI/Rooms/hatchery.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/training.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/workshop.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/guard_room.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/prison.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/Bridge_Stone.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/pit.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Rooms/tba.png" valign="center" marginRight="3px" />
-                                        </panel>
-                                    </panel>
-                                </control>
-
-                                <control name="customTab" image="Textures/GUI/Tabs/t-spells.png" active="Textures/GUI/Icons/selected-spell.png">
-                                    <panel childLayout="vertical" align="left">
-                                            <panel childLayout="horizontal" padding="3px,3px,0">
-                                            <image filename="Textures/GUI/Spells/create_imp.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Spells/possess.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Spells/sight_of_evil.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Spells/tremor.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Spells/create_gold.png" valign="center" marginRight="3px" />
-                                        </panel>
-                                        <panel childLayout="horizontal" padding="3px,3px,3px">
-                                            <image filename="Textures/GUI/Spells/thunderbolt.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Spells/heal.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Spells/call_to_arms.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Spells/turncoat.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Spells/inferno.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Spells/s-tba.png" valign="center" marginRight="3px" />
-                                        </panel>
-                                    </panel>
-                                </control>
-
-                                <control name="customTab" image="Textures/GUI/Tabs/t-workshop.png" active="Textures/GUI/Icons/selected-workshop.png">
-                                    <panel childLayout="vertical" align="left">
-                                        <panel childLayout="horizontal" padding="3px,3px,0">
-                                            <image filename="Textures/GUI/Doors/wood_door.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Doors/braced.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Doors/magic_door.png" valign="center" marginRight="3px" />
-
-                                            <image filename="Textures/GUI/Traps/sentry.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Traps/fear.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Traps/gas.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Traps/trigger.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Traps/freeze.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Traps/fireburst.png" valign="center" marginRight="3px" />
-                                        </panel>
-                                        <panel childLayout="horizontal" padding="3px,3px,3px">
-                                            <image filename="Textures/GUI/Doors/barricade.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Doors/steel_door.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Doors/secret_door.png" valign="center" marginRight="3px" />
-
-                                            <image filename="Textures/GUI/Traps/Guard_Post.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Traps/alarm.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Traps/spike.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Traps/boulder.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Traps/lightning.png" valign="center" marginRight="3px" />
-                                            <image filename="Textures/GUI/Traps/w-tba.png" valign="center" marginRight="3px" />
-                                        </panel>
-                                    </panel>
-                                </control>   
+                                </panel>
                             </control>
-                      
+
+                            <control name="customTab" id="tab-room" image="Textures/GUI/Tabs/t-rooms.png"
+                                     active="Textures/GUI/Icons/selected-room.png">
+                                <panel childLayout="vertical" align="left">
+                                    <panel childLayout="horizontal" padding="3px,3px,0" id="tab-room-content" />
+                                </panel>
+                            </control>
+
+                            <control name="customTab" id="tab-spell" image="Textures/GUI/Tabs/t-spells.png"
+                                     active="Textures/GUI/Icons/selected-spell.png">
+                                <panel childLayout="vertical" align="left">
+                                    <panel childLayout="horizontal" padding="3px,3px,0" id="tab-spell-content" />
+                                </panel>
+                            </control>
+
+                            <control name="customTab" id="tab-workshop" image="Textures/GUI/Tabs/t-workshop.png"
+                                     active="Textures/GUI/Icons/selected-workshop.png">
+                                <panel childLayout="vertical" align="left">
+                                    <panel childLayout="horizontal" padding="3px,3px,0" id="tab-door-content" />
+                                    <panel childLayout="horizontal" padding="3px,3px,3px" id="tab-trap-content" />
+                                </panel>
+                            </control>
+                        </control>
+
                     </panel>
-                    <!-- bottom right -->                
+                    <!-- bottom right -->
                     <panel width="128px" height="100%" valign="center" align="right" childLayout="vertical">
                         <panel height="64px" childLayout="horizontal">
                             <!-- place for fight or call to arm -->
                             <control name="fight" visible="false" />
                         </panel>
                         <!-- Reaper -->
-                        <panel childLayout="center" align="center" valign="center" height="*" width="100%">                            
+                        <panel childLayout="center" align="center" valign="center" height="*" width="100%">
                             <control name="reaperTalisman"/>
                         </panel>
                     </panel>
-                </panel>                
+                </panel>
             </panel>
         </layer>
 
@@ -340,29 +277,24 @@
 
     <screen id="cinematic" controller="toniarts.openkeeper.game.state.PlayerState">
 
-        <layer id="background" childLayout="vertical">
-
+        <layer childLayout="vertical">
             <!--The upper panel-->
-            <panel id="top" height="72px" width="100%" align="left" valign="top" childLayout="horizontal">
+            <panel height="72px" width="100%" align="left" valign="top" childLayout="horizontal">
                 <panel height="65%" width="*" valign="center" backgroundImage="Textures/GUI/Windows/Bar-00.png" imageMode="repeat:0,0,128,64" />
                 <panel height="80%" width="64px" valign="center" backgroundImage="Textures/GUI/Windows/Bar-02.png" imageMode="repeat:0,0,128,64" />
             </panel>
-
             <!--Empty center-->
-            <panel id="center" height="*" width="100%" childLayout="horizontal" />
-
+            <panel height="*" width="100%" childLayout="horizontal" />
             <!--The bottom panel-->
-            <panel id="bottom" height="180px" width="100%" align="left" valign="bottom" childLayout="vertical">
-
+            <panel height="180px" width="100%" align="left" valign="bottom" childLayout="vertical">
                 <!--The top bar-->
                 <panel height="64px" width="100%" childLayout="horizontal" align="left" valign="top">
                     <panel height="65%" width="*" valign="center" backgroundImage="Textures/GUI/Windows/Bar-00.png" imageMode="repeat:0,0,128,64" />
                     <panel height="90%" width="128px" valign="center" backgroundImage="Textures/GUI/Windows/Bar-02.png" imageMode="repeat:0,0,128,64" />
                 </panel>
-
                 <!--Map (place for it) & the works-->
                 <panel height="*" width="100%" childLayout="horizontal" align="left" valign="top" padding="6px,10px,6px,10px">
-                    <panel width="180px" />
+                    <panel width="200px" />
                     <panel id="bottomBackgroundPanel" width="*" height="*" backgroundImage="Textures/GUI/Windows/Panel-BG.png"
                            imageMode="repeat:0,0,64,64"  margin="0px,6px,0px,10px"/>
                 </panel>

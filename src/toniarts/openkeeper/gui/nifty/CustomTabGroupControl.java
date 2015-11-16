@@ -28,7 +28,6 @@ import de.lessvoid.nifty.controls.tabs.builder.TabBuilder;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.events.ElementShowEvent;
-import de.lessvoid.nifty.elements.render.ImageRenderer;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.loaderv2.types.ElementType;
 import de.lessvoid.nifty.screen.Screen;
@@ -252,7 +251,7 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
          final Nifty nifty,
          final Screen screen,
          final Element element,
-         final Properties parameter, 
+         final Properties parameter,
          final Attributes controlDefinitionAttributes) {
       bind(element);
 
@@ -463,7 +462,7 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
           if (!"nifty-tab-button-active".equals(button.getStyle())) {
             button.setStyle("nifty-tab-button-active");
             button.findElementByName("#selector").setVisible(true);
-            button.startEffect(EffectEventId.onCustom, null, "select");            
+            button.startEffect(EffectEventId.onCustom, null, "select");
             //addMargin(i, button);
           }
           button.setRenderOrder(100000);
@@ -472,7 +471,7 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
             tab.hide();
           }
           if (!"nifty-tab-button".equals(button.getStyle())) {
-            button.setStyle("nifty-tab-button");    
+            button.setStyle("nifty-tab-button");
             button.findElementByName("#selector").setVisible(false);
             button.stopEffect(EffectEventId.onCustom);
             //addMargin(i, button);
@@ -558,29 +557,6 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
 
     @Override
     public void setTabCaption(final int index,  final String caption) { }
-
-
-    public void setTabImage(final int index,  final String imageUrl) {
-        if ((index < 0) || (index >= getTabCount())) {
-          throw new IndexOutOfBoundsException("Index out of bounds: " + index);
-        }
-
-        Element buttonElement = getButton(index);
-        if (buttonElement == null) {
-          log.severe("Tab control seems corrupted. Expected button element not located.");
-        } else {
-            ImageRenderer imageRenderer = buttonElement.getRenderer(ImageRenderer.class);
-            imageRenderer.setImage( nifty.getRenderEngine().createImage(screen, imageUrl, false));           
-        }
-    }
-
-    public void setTabImage( final Tab tab,  final String imageUrl) {
-        final int index = indexOf(tab);
-        if (index == -1) {
-            throw new IllegalArgumentException("The tab to remove is not part of this tab group.");
-        }
-        setTabImage(index, imageUrl);
-    }
 
     @Override
     public void setTabCaption( final Tab tab,  final String caption) { }

@@ -55,7 +55,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     public enum InteractionState {
 
-        NONE, BUILD, SELL, CAST
+        NONE, ROOM, SELL, SPELL, TRAP, DOOR, CREATURE
     }
     private Main app;
     private final GameState gameState;
@@ -112,13 +112,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                         case NONE: {
                             return isTaggable;
                         }
-                        case BUILD: {
+                        case ROOM: {
                             return isOnView;
                         }
                         case SELL: {
                             return isOnView;
                         }
-                        case CAST: {
+                        case SPELL: {
                             return false;
                         }
                         default:
@@ -138,7 +138,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 }
                 if (interactionState == InteractionState.SELL) {
                     return SelectionColorIndicator.RED;
-                } else if (interactionState == InteractionState.BUILD && !isTaggable && !getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(itemId))) {
+                } else if (interactionState == InteractionState.ROOM && !isTaggable && !getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(itemId))) {
                     return SelectionColorIndicator.RED;
                 }
                 return SelectionColorIndicator.BLUE;
@@ -147,12 +147,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             @Override
             public void userSubmit(SelectionArea area) {
 
-                if (PlayerInteractionState.this.interactionState == InteractionState.NONE || (PlayerInteractionState.this.interactionState == InteractionState.BUILD && getWorldHandler().isTaggable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y))) {
+                if (PlayerInteractionState.this.interactionState == InteractionState.NONE || (PlayerInteractionState.this.interactionState == InteractionState.ROOM && getWorldHandler().isTaggable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y))) {
 
                     // Determine if this is a select/deselect by the starting tile's status
                     boolean select = !getWorldHandler().isSelected((int) Math.max(0, selectionArea.getActualStartingCoordinates().x), (int) Math.max(0, selectionArea.getActualStartingCoordinates().y));
                     getWorldHandler().selectTiles(selectionArea, select);
-                } else if (PlayerInteractionState.this.interactionState == InteractionState.BUILD && getWorldHandler().isBuildable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player, gameState.getLevelData().getRoomById(itemId))) {
+                } else if (PlayerInteractionState.this.interactionState == InteractionState.ROOM && getWorldHandler().isBuildable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player, gameState.getLevelData().getRoomById(itemId))) {
                     getWorldHandler().build(selectionArea, player, gameState.getLevelData().getRoomById(itemId));
 
                     // Reset state after successful build
@@ -364,7 +364,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     private boolean isTaggable() {
         Vector2f pos = handler.getRoundedMousePos();
-        return (interactionState == InteractionState.BUILD || interactionState == InteractionState.NONE) && isOnView && getWorldHandler().isTaggable((int) pos.x, (int) pos.y);
+        return (interactionState == InteractionState.ROOM || interactionState == InteractionState.NONE) && isOnView && getWorldHandler().isTaggable((int) pos.x, (int) pos.y);
     }
 
     private boolean isOnView() {
