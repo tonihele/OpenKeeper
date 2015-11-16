@@ -16,32 +16,33 @@
  */
 package toniarts.openkeeper.world.room;
 
+import java.awt.Point;
 import java.util.List;
-import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.world.EntityInstance;
 
 /**
- * Holds a room instance, series of coordinates that together form a room
+ * Single wall section
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class RoomInstance extends EntityInstance<Room> {
+public class WallSection {
 
-    private List<WallSection> wallPoints;
+    public enum WallDirection {
 
-    public RoomInstance(Room room) {
-        super(room);
+        NORTH, EAST, SOUTH, WEST;
+    }
+    private final WallDirection direction;
+    private final List<Point> coordinates;
+
+    public WallSection(WallDirection direction, List<Point> coordinates) {
+        this.direction = direction;
+        this.coordinates = coordinates;
     }
 
-    public Room getRoom() {
-        return super.getEntity();
+    public List<Point> getCoordinates() {
+        return coordinates;
     }
 
-    public void setWallPoints(List<WallSection> wallPoints) {
-        this.wallPoints = wallPoints;
-    }
-
-    public List<WallSection> getWallPoints() {
-        return wallPoints;
+    public WallDirection getDirection() {
+        return direction;
     }
 }

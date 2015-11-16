@@ -22,6 +22,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 import static toniarts.openkeeper.world.MapLoader.loadAsset;
@@ -30,9 +31,14 @@ import static toniarts.openkeeper.world.MapLoader.loadAsset;
  *
  * @author ArchDemon
  */
-public class Quad extends RoomConstructor {
+public class Quad extends GenericRoom {
 
-    public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance) {
+    public Quad(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
+        super(assetManager, roomInstance, direction);
+    }
+
+    @Override
+    protected Spatial contructFloor() {
         Node n = new Node(roomInstance.getRoom().getName());
         String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
         Point start = roomInstance.getCoordinates().get(0);

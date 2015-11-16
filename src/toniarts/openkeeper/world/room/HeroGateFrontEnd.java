@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Level.LevelType;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
@@ -40,12 +41,93 @@ import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class HeroGateFrontEnd extends RoomConstructor {
+public class HeroGateFrontEnd extends GenericRoom {
 
-    private HeroGateFrontEnd() {
+    public HeroGateFrontEnd(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
+        super(assetManager, roomInstance, direction);
     }
 
-    public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance) {
+    /**
+     * Load an object asset
+     *
+     * @param model the model string
+     * @param assetManager the asset manager instance
+     * @param start starting point
+     * @param p the current point
+     * @param randomizeAnimation randomize object animation (speed and start
+     * time)
+     * @return reseted and ready to go model (also animated if there is a such
+     * option)
+     */
+    private Spatial loadObject(String model, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
+        Node object = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + model + ".j3o"));
+
+        // Reset
+        resetAndMoveSpatial(object, start, p);
+        object.move(0, 1f, 0);
+
+        // Animate
+        AnimControl animControl = (AnimControl) object.getChild(0).getControl(AnimControl.class);
+        if (animControl != null) {
+            AnimChannel channel = animControl.createChannel();
+            channel.setAnim("anim");
+            channel.setLoopMode(LoopMode.Loop);
+            if (randomizeAnimation) {
+                channel.setSpeed(FastMath.nextRandomInt(6, 10) / 10f);
+                channel.setTime(FastMath.nextRandomFloat() * channel.getAnimMaxTime());
+            }
+
+            // Don't batch animated objects, seems not to work
+            object.setBatchHint(Spatial.BatchHint.Never);
+        }
+
+        return object;
+    }
+
+    /**
+     * Adds two candles to the tile, one to each side
+     *
+     * @param n node to attach to
+     * @param assetManager the asset manager instance
+     * @param start starting point for the room
+     * @param p this tile coordinate
+     */
+    private void addCandles(Node n, AssetManager assetManager, Point start, Point p) {
+
+        // The "candles"
+        n.attachChild(loadObject("chain_swing", assetManager, start, p, true).move(-1f, 0, 0));
+        Quaternion quat = new Quaternion();
+        quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
+        n.attachChild(loadObject("chain_swing", assetManager, start, p, true).rotate(quat).move(1f, 0, 1f));
+    }
+
+    /**
+     * Creates and attach the level node, creates a control for it
+     *
+     * @param map node to attach to
+     * @param type level type
+     * @param level level number
+     * @param variation variation, like level "a" etc.
+     * @param assetManager the asset manager instance
+     * @param start starting point for the room
+     * @param p this tile coordinate
+     * @param randomizeAnimation randomize object animation (speed and start
+     * time)
+     */
+    private void attachAndCreateLevel(Node map, LevelType type, int levelnumber, String variation, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
+        String objName = "3dmap_level";
+        if (type.equals(LevelType.Secret)) {
+            objName = "Secret_Level";
+        }
+
+        Spatial lvl = loadObject(objName + levelnumber + (variation == null ? "" : variation), assetManager, start, p, randomizeAnimation);
+        lvl.addControl(new FrontEndLevelControl(new Level(type, levelnumber, variation), assetManager));
+        lvl.setBatchHint(Spatial.BatchHint.Never);
+        map.attachChild(lvl);
+    }
+
+    @Override
+    protected Spatial contructFloor() {
         Node n = new Node(roomInstance.getRoom().getName());
 
         // The front end hero gate
@@ -153,84 +235,5 @@ public class HeroGateFrontEnd extends RoomConstructor {
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return n;
-    }
-
-    /**
-     * Load an object asset
-     *
-     * @param model the model string
-     * @param assetManager the asset manager instance
-     * @param start starting point
-     * @param p the current point
-     * @param randomizeAnimation randomize object animation (speed and start
-     * time)
-     * @return reseted and ready to go model (also animated if there is a such
-     * option)
-     */
-    private static Spatial loadObject(String model, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
-        Node object = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + model + ".j3o"));
-
-        // Reset
-        resetAndMoveSpatial(object, start, p);
-        object.move(0, 1f, 0);
-
-        // Animate
-        AnimControl animControl = (AnimControl) object.getChild(0).getControl(AnimControl.class);
-        if (animControl != null) {
-            AnimChannel channel = animControl.createChannel();
-            channel.setAnim("anim");
-            channel.setLoopMode(LoopMode.Loop);
-            if (randomizeAnimation) {
-                channel.setSpeed(FastMath.nextRandomInt(6, 10) / 10f);
-                channel.setTime(FastMath.nextRandomFloat() * channel.getAnimMaxTime());
-            }
-
-            // Don't batch animated objects, seems not to work
-            object.setBatchHint(Spatial.BatchHint.Never);
-        }
-
-        return object;
-    }
-
-    /**
-     * Adds two candles to the tile, one to each side
-     *
-     * @param n node to attach to
-     * @param assetManager the asset manager instance
-     * @param start starting point for the room
-     * @param p this tile coordinate
-     */
-    private static void addCandles(Node n, AssetManager assetManager, Point start, Point p) {
-
-        // The "candles"
-        n.attachChild(loadObject("chain_swing", assetManager, start, p, true).move(-1f, 0, 0));
-        Quaternion quat = new Quaternion();
-        quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
-        n.attachChild(loadObject("chain_swing", assetManager, start, p, true).rotate(quat).move(1f, 0, 1f));
-    }
-
-    /**
-     * Creates and attach the level node, creates a control for it
-     *
-     * @param map node to attach to
-     * @param type level type
-     * @param level level number
-     * @param variation variation, like level "a" etc.
-     * @param assetManager the asset manager instance
-     * @param start starting point for the room
-     * @param p this tile coordinate
-     * @param randomizeAnimation randomize object animation (speed and start
-     * time)
-     */
-    private static void attachAndCreateLevel(Node map, LevelType type, int levelnumber, String variation, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
-        String objName = "3dmap_level";
-        if (type.equals(LevelType.Secret)) {
-            objName = "Secret_Level";
-        }
-
-        Spatial lvl = loadObject(objName + levelnumber + (variation == null ? "" : variation), assetManager, start, p, randomizeAnimation);
-        lvl.addControl(new FrontEndLevelControl(new Level(type, levelnumber, variation), assetManager));
-        lvl.setBatchHint(Spatial.BatchHint.Never);
-        map.attachChild(lvl);
     }
 }

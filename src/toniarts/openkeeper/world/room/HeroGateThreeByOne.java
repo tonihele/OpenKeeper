@@ -24,15 +24,23 @@ import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import static toniarts.openkeeper.tools.convert.map.Thing.Room.Direction.EAST;
+import static toniarts.openkeeper.tools.convert.map.Thing.Room.Direction.NORTH;
+import static toniarts.openkeeper.tools.convert.map.Thing.Room.Direction.SOUTH;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
  *
  * @author ArchDemon
  */
-public class HeroGateThreeByOne {
+public class HeroGateThreeByOne extends GenericRoom {
 
-    public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
+    public HeroGateThreeByOne(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
+        super(assetManager, roomInstance, direction);
+    }
+
+    @Override
+    protected Spatial contructFloor() {
         Node n = new Node(roomInstance.getRoom().getName());
         String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
         Point center = roomInstance.getCenter();
@@ -76,22 +84,5 @@ public class HeroGateThreeByOne {
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return n;
-    }
-
-    /**
-     * Resets (scale & translation) and moves the spatial to the point. The
-     * point is relative to the start point
-     *
-     * @param tile the tile, spatial
-     * @param start start point
-     */
-    private static void resetAndMoveSpatial(Node tile, Point start) {
-
-        // Reset, really, the size is 1 after this...
-        for (Spatial subSpat : tile.getChildren()) {
-            subSpat.setLocalScale(MapLoader.TILE_WIDTH);
-            subSpat.setLocalTranslation(0, 0, 0);
-        }
-        tile.move(start.x, -MapLoader.TILE_HEIGHT, start.y);
     }
 }

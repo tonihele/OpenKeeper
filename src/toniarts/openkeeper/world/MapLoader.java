@@ -32,9 +32,11 @@ import com.jme3.scene.Spatial;
 import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,19 +46,11 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.room.CombatPit;
-import toniarts.openkeeper.world.room.FiveByFiveRotated;
-import toniarts.openkeeper.world.room.HeroGateFrontEnd;
-import toniarts.openkeeper.world.room.HeroGateThreeByOne;
-import toniarts.openkeeper.world.room.HeroGateTwoByTwo;
-import toniarts.openkeeper.world.room.Normal;
-import toniarts.openkeeper.world.room.Prison;
+import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.world.room.RoomConstructor;
 import toniarts.openkeeper.world.room.RoomInstance;
-import toniarts.openkeeper.world.room.StoneBridge;
-import toniarts.openkeeper.world.room.Temple;
-import toniarts.openkeeper.world.room.ThreeByThree;
-import toniarts.openkeeper.world.room.WoodenBridge;
+import toniarts.openkeeper.world.room.WallSection;
+import toniarts.openkeeper.world.room.WallSection.WallDirection;
 import toniarts.openkeeper.world.terrain.Water;
 
 /**
@@ -81,7 +75,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private HashMap<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
-    private HashMap<RoomInstance, Node> roomNodes = new HashMap<>(); // Room instances by node
+    private HashMap<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
@@ -583,17 +577,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             if (!roomCoordinates.containsKey(p)) {
                 RoomInstance roomInstance = new RoomInstance(kwdFile.getRoomByTerrain(terrain.getTerrainId()));
                 findRoom(tiles, p, roomInstance);
+                findRoomWallSections(tiles, roomInstance);
                 rooms.add(roomInstance);
 
-                // For each room, create its own batch node
-                // TODO: We need to find it later!
-                BatchNode roomNode = new BatchNode(roomInstance.toString());
-                roomNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive); // Rooms are weird, better to cast & receive shadows
-                roomsNode.attachChild(roomNode);
-
                 // Construct the actual room
-                handleRoom(tiles, assetManager, roomNode, roomInstance);
-                roomNode.batch();
+                Spatial roomNode = handleRoom(assetManager, roomInstance);
+                roomsNode.attachChild(roomNode);
 
                 // Add to registry
                 roomNodes.put(roomInstance, roomNode);
@@ -1139,73 +1128,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     /**
      * Constructs the given room
      *
-     * @param tiles the tiles
      * @param assetManager the asset manager instance
-     * @param root the root node
      * @param roomInstance the room instance
      */
-    private void handleRoom(TileData[][] tiles, AssetManager assetManager, Node root, RoomInstance roomInstance) {
-        String roomName = roomInstance.getRoom().getName();
-        switch (roomInstance.getRoom().getTileConstruction()) {
-            case _3_BY_3:
-                root.attachChild(ThreeByThree.construct(assetManager, roomInstance));
-                break;
-
-            case HERO_GATE_FRONT_END:
-                root.attachChild(HeroGateFrontEnd.construct(assetManager, roomInstance));
-                break;
-
-            case HERO_GATE_2_BY_2:
-                root.attachChild(HeroGateTwoByTwo.construct(assetManager, roomInstance));
-                break;
-
-            case HERO_GATE_3_BY_1:
-                Thing.Room.Direction direction = Thing.Room.Direction.NORTH;
-                for (Thing thing : kwdFile.getThings()) {
-                    if (thing instanceof Thing.Room) {
-                        Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
-                        if (roomInstance.hasCoordinate(p)) {
-                            direction = ((Thing.Room) thing).getDirection();
-                        }
-                    }
-                }
-
-                root.attachChild(HeroGateThreeByOne.construct(assetManager, roomInstance, direction));
-                break;
-
-            case _5_BY_5_ROTATED:
-                root.attachChild(FiveByFiveRotated.construct(assetManager, roomInstance));
-                break;
-
-            case NORMAL:
-                root.attachChild(Normal.construct(assetManager, roomInstance));
-                break;
-
-            case QUAD:
-                if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
-                    root.attachChild(StoneBridge.construct(assetManager, roomInstance));
-                } else {
-                    root.attachChild(WoodenBridge.construct(assetManager, roomInstance));
-                }
-                break;
-
-            case DOUBLE_QUAD:
-                if (roomName.equalsIgnoreCase("Prison")) {
-                    root.attachChild(Prison.construct(assetManager, roomInstance));
-                } else if (roomName.equalsIgnoreCase("Combat Pit")) {
-                    root.attachChild(CombatPit.construct(assetManager, roomInstance));
-                } else if (roomName.equalsIgnoreCase("Temple")) {
-                    root.attachChild(Temple.construct(assetManager, roomInstance));
-                }
-                // TODO use quad construction for different rooms
-                // root.attachChild(DoubleQuad.construct(assetManager, roomInstance));
-                break;
-
-            default:
-                // TODO
-                logger.log(Level.WARNING, "Room {0} not exist", roomName);
-                break;
-        }
+    private Spatial handleRoom(AssetManager assetManager, RoomInstance roomInstance) {
+        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, kwdFile);
+        return room.construct();
     }
 
     /**
@@ -1298,6 +1226,158 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             for (Point p : instance.getCoordinates()) {
                 roomCoordinates.remove(p);
             }
+        }
+    }
+
+    /**
+     * Find room wall sections, continuous sections facing the same way
+     *
+     * @param tiles tiles
+     * @param roomInstance room instance
+     */
+    private void findRoomWallSections(TileData[][] tiles, RoomInstance roomInstance) {
+        if (roomInstance.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
+            List<WallSection> sections = new ArrayList<>();
+            Map<Point, Set<WallDirection>> alreadyWalledPoints = new HashMap<>();
+            for (Point p : roomInstance.getCoordinates()) {
+
+                // Traverse in all four directions to find wallable sections facing the same direction
+                traverseRoomWalls(p, tiles, roomInstance, WallDirection.NORTH, sections, alreadyWalledPoints);
+                traverseRoomWalls(p, tiles, roomInstance, WallDirection.EAST, sections, alreadyWalledPoints);
+                traverseRoomWalls(p, tiles, roomInstance, WallDirection.SOUTH, sections, alreadyWalledPoints);
+                traverseRoomWalls(p, tiles, roomInstance, WallDirection.WEST, sections, alreadyWalledPoints);
+            }
+            roomInstance.setWallPoints(sections);
+        }
+    }
+
+    /**
+     * Traverses room walls facing in certain direction from a room point. Finds
+     * a section.
+     *
+     * @param p starting room point
+     * @param tiles tiles
+     * @param roomInstance the room instance of which walls we need to find
+     * @param direction the direction of which the want the walls to face
+     * @param sections list of already find sections
+     * @param alreadyWalledPoints already found wall points
+     */
+    private void traverseRoomWalls(Point p, TileData[][] tiles, RoomInstance roomInstance, WallDirection direction, List<WallSection> sections, Map<Point, Set<WallDirection>> alreadyWalledPoints) {
+        Set<WallDirection> alreadyTraversedDirections = alreadyWalledPoints.get(p);
+        if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(direction)) {
+
+            List<Point> section = getRoomWalls(p, tiles, roomInstance, direction);
+            if (section != null) {
+
+                // Add section
+                sections.add(new WallSection(direction, section));
+
+                // Add to known points
+                for (Point sectionPoint : section) {
+                    Set<WallDirection> directions = alreadyWalledPoints.get(sectionPoint);
+                    if (directions == null) {
+                        directions = EnumSet.noneOf(WallDirection.class);
+                    }
+                    directions.add(direction);
+                    alreadyWalledPoints.put(sectionPoint, directions);
+                }
+            }
+        }
+    }
+
+    private List<Point> getRoomWalls(Point p, TileData[][] tiles, RoomInstance roomInstance, WallDirection wallDirection) {
+
+        // See if the starting point has a wall to the given direction
+        TileData tile;
+        if (wallDirection == WallDirection.NORTH) {
+            tile = tiles[p.x][p.y - 1];
+        } else if (wallDirection == WallDirection.EAST) {
+            tile = tiles[p.x + 1][p.y];
+        } else if (wallDirection == WallDirection.SOUTH) {
+            tile = tiles[p.x][p.y + 1];
+        } else {
+            tile = tiles[p.x - 1][p.y]; // West
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
+
+            // Found wallable
+            List<Point> wallPoints = new ArrayList<>();
+            wallPoints.add(p);
+
+            // Traverse possible directions, well one direction, "to the right"
+            List<Point> adjacentWallPoints = null;
+            if (wallDirection == WallDirection.NORTH) {
+                Point nextPoint = new Point(p.x + 1, p.y); // East
+                RoomInstance instance = roomCoordinates.get(nextPoint);
+                if (instance != null && instance.equals(roomInstance)) {
+                    adjacentWallPoints = getRoomWalls(nextPoint, tiles, roomInstance, wallDirection);
+                }
+            } else if (wallDirection == WallDirection.EAST) {
+                Point nextPoint = new Point(p.x, p.y + 1); // South
+                RoomInstance instance = roomCoordinates.get(nextPoint);
+                if (instance != null && instance.equals(roomInstance)) {
+                    adjacentWallPoints = getRoomWalls(nextPoint, tiles, roomInstance, wallDirection);
+                }
+            } else if (wallDirection == WallDirection.SOUTH) {
+                Point nextPoint = new Point(p.x + 1, p.y); // East, sorting, so right is left now
+                RoomInstance instance = roomCoordinates.get(nextPoint);
+                if (instance != null && instance.equals(roomInstance)) {
+                    adjacentWallPoints = getRoomWalls(nextPoint, tiles, roomInstance, wallDirection);
+                }
+            } else {
+                Point nextPoint = new Point(p.x, p.y + 1); // South, sorting, so right is left now
+                RoomInstance instance = roomCoordinates.get(nextPoint);
+                if (instance != null && instance.equals(roomInstance)) {
+                    adjacentWallPoints = getRoomWalls(nextPoint, tiles, roomInstance, wallDirection);
+                }
+            }
+
+            // Add the point(s)
+            if (adjacentWallPoints != null) {
+                wallPoints.addAll(adjacentWallPoints);
+            }
+            return wallPoints;
+        }
+
+        return null;
+    }
+
+    protected Point[] getSurroundingTiles(Point point, boolean diagonal) {
+
+        // Get all surrounding tiles
+        List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
+        tileCoords.add(point);
+
+        addIfValidCoordinate(point.x, point.y - 1, tileCoords); // North
+        addIfValidCoordinate(point.x + 1, point.y, tileCoords); // East
+        addIfValidCoordinate(point.x, point.y + 1, tileCoords); // South
+        addIfValidCoordinate(point.x - 1, point.y, tileCoords); // West
+        if (diagonal) {
+            addIfValidCoordinate(point.x - 1, point.y - 1, tileCoords); // NW
+            addIfValidCoordinate(point.x + 1, point.y - 1, tileCoords); // NE
+            addIfValidCoordinate(point.x - 1, point.y + 1, tileCoords); // SW
+            addIfValidCoordinate(point.x + 1, point.y + 1, tileCoords); // SE
+        }
+
+        return tileCoords.toArray(new Point[tileCoords.size()]);
+    }
+
+    private void addIfValidCoordinate(final int x, final int y, List<Point> tileCoords) {
+        if ((x >= 0 && x < kwdFile.getWidth() && y >= 0 && y < kwdFile.getHeight())) {
+            tileCoords.add(new Point(x, y));
+        }
+    }
+
+    /**
+     * Update the selected rooms' walls
+     *
+     * @param rooms the rooms to update
+     */
+    protected void updateRoomWalls(List<RoomInstance> rooms) {
+        for (RoomInstance room : rooms) {
+            findRoomWallSections(mapData.getTiles(), room);
+            RoomConstructor.constructRoom(room, assetManager, kwdFile).updateWalls(roomNodes.get(room));
         }
     }
 

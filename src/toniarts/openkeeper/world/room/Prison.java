@@ -22,19 +22,24 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 import static toniarts.openkeeper.world.MapLoader.loadAsset;
-import static toniarts.openkeeper.world.room.RoomConstructor.resetAndMoveSpatial;
 
 /**
  * TODO: not completed
  *
  * @author ArchDemon
  */
-public class Prison extends RoomConstructor {
+public class Prison extends GenericRoom {
 
-    public static Spatial construct(AssetManager assetManager, RoomInstance roomInstance) {
+    public Prison(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
+        super(assetManager, roomInstance, direction);
+    }
+
+    @Override
+    protected Spatial contructFloor() {
         Node n = new Node(roomInstance.getRoom().getName());
         String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
         String modelName2 = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName().toLowerCase();
