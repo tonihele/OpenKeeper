@@ -54,16 +54,15 @@ public abstract class GenericRoom {
 
         // Add the floor
         BatchNode floorNode = new BatchNode("Floor");
-        floorNode.attachChild(contructFloor());
+        contructFloor(floorNode);
         floorNode.setShadowMode(getFloorShadowMode());
         floorNode.batch();
         node.attachChild(floorNode);
 
         // Add the wall
-        Spatial wall = contructWall();
-        if (wall != null) {
-            BatchNode wallNode = new BatchNode("Wall");
-            wallNode.attachChild(wall);
+        BatchNode wallNode = new BatchNode("Wall");
+        contructWall(wallNode);
+        if (!wallNode.getChildren().isEmpty()) {
             wallNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
             wallNode.batch();
             node.attachChild(wallNode);
@@ -71,15 +70,14 @@ public abstract class GenericRoom {
         return node;
     }
 
-    protected abstract Spatial contructFloor();
+    protected abstract void contructFloor(Node root);
 
     protected RenderQueue.ShadowMode getFloorShadowMode() {
         return RenderQueue.ShadowMode.Receive;
     }
 
-    protected Spatial contructWall() {
+    protected void contructWall(Node root) {
         if (roomInstance.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
-            Node node = new Node(roomInstance.getRoom().getName());
 
             // Get the wall points
             Point start = roomInstance.getCoordinates().get(0);
@@ -126,7 +124,7 @@ public abstract class GenericRoom {
                         } else if (section.getDirection() == WallSection.WallDirection.EAST) {
                             part.move(0.5f, 0, 0);
                         }
-                        node.attachChild(part);
+                        root.attachChild(part);
 
                         int secondPiece = (i == (section.getCoordinates().size() - 1) ? 5 : 6);
                         if (secondPiece == 5 && (section.getDirection() == WallSection.WallDirection.WEST || section.getDirection() == WallSection.WallDirection.SOUTH)) {
@@ -146,7 +144,7 @@ public abstract class GenericRoom {
                         } else if (section.getDirection() == WallSection.WallDirection.EAST) {
                             part.move(0, 0, 0.5f);
                         }
-                        node.attachChild(part);
+                        root.attachChild(part);
                     } else {
 
                         // Complete walls, 8, 7, 8, 7 and so forth
@@ -166,16 +164,13 @@ public abstract class GenericRoom {
                             part.rotate(quat);
                         }
                         part.move(-0.5f, 0, -0.5f);
-                        node.attachChild(part);
+                        root.attachChild(part);
                     }
 
                     i++;
                 }
             }
-
-            return node;
         }
-        return null;
     }
 
     /**
@@ -226,7 +221,7 @@ public abstract class GenericRoom {
     public void updateWalls(Spatial node) {
         BatchNode wallNode = (BatchNode) ((Node) node).getChild("Wall");
         wallNode.detachAllChildren();
-        wallNode.attachChild(contructWall());
+        contructWall(wallNode);
         wallNode.batch();
     }
 

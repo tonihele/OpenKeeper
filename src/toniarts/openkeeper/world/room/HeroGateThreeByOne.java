@@ -40,8 +40,7 @@ public class HeroGateThreeByOne extends GenericRoom {
     }
 
     @Override
-    protected Spatial contructFloor() {
-        Node n = new Node(roomInstance.getRoom().getName());
+    protected void contructFloor(Node n) {
         String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
         Point center = roomInstance.getCenter();
         // Contruct the tiles
@@ -82,7 +81,5 @@ public class HeroGateThreeByOne extends GenericRoom {
         }
         n.move(center.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, center.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
-
-        return n;
     }
 }

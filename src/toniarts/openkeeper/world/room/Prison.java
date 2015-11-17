@@ -39,8 +39,7 @@ public class Prison extends GenericRoom {
     }
 
     @Override
-    protected Spatial contructFloor() {
-        Node n = new Node(roomInstance.getRoom().getName());
+    protected void contructFloor(Node n) {
         String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
         String modelName2 = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName().toLowerCase();
         Point start = roomInstance.getCoordinates().get(0);
@@ -199,7 +198,5 @@ public class Prison extends GenericRoom {
         // Set the transform and scale to our scale and 0 the transform
         n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
-
-        return n;
     }
 }
