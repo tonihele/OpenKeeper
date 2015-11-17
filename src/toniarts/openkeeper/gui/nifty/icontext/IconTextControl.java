@@ -17,6 +17,7 @@
 package toniarts.openkeeper.gui.nifty.icontext;
 
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.controls.Controller;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
@@ -24,6 +25,7 @@ import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.xml.xpp3.Attributes;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 /**
  * A small class combining an image and a text, with on hover effect
@@ -39,6 +41,11 @@ public class IconTextControl implements Controller {
     private Attributes controlDefinitionAttributes;
     private Element image;
     private Element text;
+    
+    /**
+     * The logger that takes care for the output of log messages in this class.
+     */
+    private static final Logger log = Logger.getLogger(IconTextControl.class.getName());
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Properties parameter, Attributes controlDefinitionAttributes) {
@@ -47,14 +54,20 @@ public class IconTextControl implements Controller {
         this.properties = parameter;
         this.element = element;
         this.controlDefinitionAttributes = controlDefinitionAttributes;
-
+        
+        if (this.element.getId() == null) {
+            this.element.setId("IconText-" + NiftyIdCreator.generate());
+            //log.log(Level.INFO, "element {0} have no id", element.toString());
+        }
         // Get the elements
         image = this.element.findElementByName("#image");
+        //image.setId(this.element.getId() + "#image");
         text = this.element.findElementByName("#text");
+        //text.setId(this.element.getId() + "#image");
     }
 
     @Override
-    public void init(Properties parameter, Attributes controlDefinitionAttributes) {
+    public void init(Properties parameter, Attributes controlDefinitionAttributes) {        
     }
 
     @Override

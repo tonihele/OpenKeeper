@@ -32,6 +32,7 @@ import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
+import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.HoverEffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
@@ -54,10 +55,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.PlayerManaControl;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -190,9 +193,9 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         switch (nifty.getCurrentScreen().getScreenId()) {
             case HUD_SCREEN_ID: {
 
-                gameState.getPlayerManaControl().addManaListener(screen.findNiftyControl("mana", Label.class));
-                gameState.getPlayerManaControl().addManaGetListener(screen.findNiftyControl("manaGet", Label.class));
-                gameState.getPlayerManaControl().addManaLoseListener(screen.findNiftyControl("manaLose", Label.class));
+                gameState.getPlayerManaControl().addListener(screen.findNiftyControl("mana", Label.class), PlayerManaControl.Type.CURRENT);
+                gameState.getPlayerManaControl().addListener(screen.findNiftyControl("manaGet", Label.class), PlayerManaControl.Type.GET);
+                gameState.getPlayerManaControl().addListener(screen.findNiftyControl("manaLose", Label.class), PlayerManaControl.Type.LOSE);
 
                 Element contentPanel = screen.findElementByName("tab-room-content");
                 for (final Room room : getAvailableRoomsToBuild()) {
@@ -447,98 +450,61 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         for (Element element : optionsNavigationColumnTwo.getElements()) {
             element.markForRemoval();
         }
-        // TODO: Maybe you can just put some lists to the enum, and just loop each column and construct
+
+        // TODO: @ArchDemon: I think we need to do modern (not original) game menu
+        List<GameMenu> items = new ArrayList<>();
         switch (PauseMenuState.valueOf(menu)) {
-            case MAIN: {
+            case MAIN:
                 optionsMenuTitle.setText("${menu.94}");
-                // FIXME id="#image" and "#text" already exist
-                // Column one
-                new IconTextBuilder(null, "Textures/GUI/Options/i-objective.png", "${menu.537}", "pauseMenu()") {
-                    {
-                    }
-                }.build(nifty, screen, optionsColumnOne);
-                new IconTextBuilder(null, "Textures/GUI/Options/i-game.png", "${menu.97}", "pauseMenu()") {
-                    {
-                    }
-                }.build(nifty, screen, optionsColumnOne);
-                new IconTextBuilder(null, "Textures/GUI/Options/i-load.png", "${menu.143}", "pauseMenu()") {
-                    {
-                    }
-                }.build(nifty, screen, optionsColumnOne);
-                new IconTextBuilder(null, "Textures/GUI/Options/i-save.png", "${menu.201}", "pauseMenu()") {
-                    {
-                    }
-                }.build(nifty, screen, optionsColumnOne);
 
-                // Column two
-                new IconTextBuilder(null, "Textures/GUI/Options/i-quit.png", "${menu.1266}", "pauseMenuNavigate(" + PauseMenuState.QUIT.name() + "," + PauseMenuState.MAIN.name() + ",null,null)") {
-                    {
-                    }
-                }.build(nifty, screen, optionsColumnTwo);
-                new IconTextBuilder(null, "Textures/GUI/Options/i-restart.png", "${menu.1269}", "pauseMenu()") {
-                    {
-                    }
-                }.build(nifty, screen, optionsColumnTwo);
+                items.add(new GameMenu("i-objective", "${menu.537}", "pauseMenu()", optionsColumnOne));
+                items.add(new GameMenu("i-game", "${menu.97}", "pauseMenu()", optionsColumnOne));
+                items.add(new GameMenu("i-load", "${menu.143}", "pauseMenu()", optionsColumnOne));
+                items.add(new GameMenu("i-save", "${menu.201}", "pauseMenu()", optionsColumnOne));
+                items.add(new GameMenu("i-quit", "${menu.1266}", String.format("pauseMenuNavigate(%s,%s,null,null)",
+                        PauseMenuState.QUIT.name(), PauseMenuState.MAIN.name()), optionsColumnTwo));
+                items.add(new GameMenu("i-restart", "${menu.1269}", "pauseMenu()", optionsColumnTwo));
+                items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
 
-                // Navigation one
-                new IconTextBuilder(null, "Textures/GUI/Options/i-accept.png", "${menu.142}", "pauseMenu()") {
-                    {
-                    }
-                }.build(nifty, screen, optionsNavigationColumnOne);
                 break;
-            }
-            case QUIT: {
+
+            case QUIT:
                 optionsMenuTitle.setText("${menu.1266}");
 
-                // Column one
-                new IconTextBuilder(null, "Textures/GUI/Options/i-quit.png", "${menu.12}", "pauseMenuNavigate(" + PauseMenuState.CONFIRMATION.name() + "," + PauseMenuState.QUIT.name() + ",${menu.12},quitToMainMenu())") {
-                    {
-                    }
-                }.build(nifty, screen, optionsColumnOne);
-                new IconTextBuilder(null, Utils.isWindows() ? "Textures/GUI/Options/i-exit_to_windows.png" : "Textures/GUI/Options/i-quit.png", Utils.isWindows() ? "${menu.13}" : "${menu.14}", "pauseMenuNavigate(" + PauseMenuState.CONFIRMATION.name() + "," + PauseMenuState.QUIT.name() + "," + (Utils.isWindows() ? "${menu.13}" : "${menu.14}") + ",quitToOS())") {
-                    {
-                    }
-                }.build(nifty, screen, optionsColumnOne);
-
-                // Navigation one
-                new IconTextBuilder(null, "Textures/GUI/Options/i-accept.png", "${menu.142}", "pauseMenu()") {
-                    {
-                    }
-                }.build(nifty, screen, optionsNavigationColumnOne);
-
-                // Navigation two
-                new IconTextBuilder(null, "Textures/GUI/Options/i-back.png", "${menu.20}", "pauseMenuNavigate(" + PauseMenuState.MAIN + ",null,null,null)") {
-                    {
-                    }
-                }.build(nifty, screen, optionsNavigationColumnTwo);
+                items.add(new GameMenu("i-quit", "${menu.12}", String.format("pauseMenuNavigate(%s,%s,${menu.12},quitToMainMenu())",
+                         PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), optionsColumnOne));
+                items.add(new GameMenu(Utils.isWindows() ? "i-exit_to_windows" : "i-quit", Utils.isWindows() ? "${menu.13}" : "${menu.14}",
+                        String.format("pauseMenuNavigate(%s,%s,%s,quitToOS())", PauseMenuState.CONFIRMATION.name(),
+                        PauseMenuState.QUIT.name(), (Utils.isWindows() ? "${menu.13}" : "${menu.14}")), optionsColumnOne));
+                items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
+                items.add(new GameMenu("i-back", "${menu.20}", String.format("pauseMenuNavigate(%s,null,null,null)", PauseMenuState.MAIN),
+                        optionsNavigationColumnTwo));
                 break;
-            }
-            case CONFIRMATION: {
-                optionsMenuTitle.setText(confirmationTitle);
 
+            case CONFIRMATION:
+                optionsMenuTitle.setText(confirmationTitle);
                 // Column one
                 new LabelBuilder("confirmLabel", "${menu.15}") {
                     {
                         style("textNormal");
                     }
                 }.build(nifty, screen, optionsColumnOne);
-                new IconTextBuilder(null, "Textures/GUI/Options/i-accept.png", "${menu.21}", confirmMethod) {
-                    {
-                    }
-                }.build(nifty, screen, optionsColumnOne);
 
-                // Navigation one
-                new IconTextBuilder(null, "Textures/GUI/Options/i-accept.png", "${menu.142}", "pauseMenu()") {
-                    {
-                    }
-                }.build(nifty, screen, optionsNavigationColumnOne);
+                items.add(new GameMenu("i-accept", "${menu.21}", confirmMethod, optionsColumnOne));
+                items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
+                items.add(new GameMenu("i-back", "${menu.20}", String.format("pauseMenuNavigate(%s,null,null,null)", backMenu),
+                        optionsNavigationColumnTwo));
 
-                // Navigation two
-                new IconTextBuilder(null, "Textures/GUI/Options/i-back.png", "${menu.20}", "pauseMenuNavigate(" + backMenu + ",null,null,null)") {
-                    {
-                    }
-                }.build(nifty, screen, optionsNavigationColumnTwo);
+                break;
             }
+
+        // build menu items
+        // FIXME id="#image" and "#text" already exist
+        for (GameMenu item : items) {
+            new IconTextBuilder("menu-" + NiftyIdCreator.generate(), String.format("Textures/GUI/Options/%s.png", item.id), item.title, item.action) {
+                {
+                }
+            }.build(nifty, screen, item.parent);
         }
 
         // Fix layout
@@ -594,5 +560,24 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             return;
         }
         item.startEffect(EffectEventId.onCustom, null, "select");
+    }
+
+
+    private class GameMenu {
+        protected String title;
+        //protected String icon;
+        protected String action;
+        protected String id;
+        protected Element parent;
+
+        public GameMenu() { }
+
+        public GameMenu(String id, String title, String action, Element parent) {
+            this.id = id;
+            this.title = title;
+            //this.icon = icon;
+            this.action = action;
+            this.parent = parent;
+        }
     }
 }

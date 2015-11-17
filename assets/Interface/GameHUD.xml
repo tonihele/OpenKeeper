@@ -234,43 +234,28 @@
         </layer>
 
         <layer id="optionsMenu" childLayout="vertical" visible="false">
-            <panel id="top" height="72px" width="100%" align="left" valign="top" childLayout="center">
-                <!--Filler-->
-            </panel>
+            <panel height="72px" width="100%" align="left" valign="top" childLayout="center" />
 
-            <panel id="menu" backgroundColor="#0008" height="*" width="100%" align="left" valign="top" childLayout="vertical" visibleToMouse="true" paddingLeft="3px">
+            <panel backgroundColor="#0008" height="*" width="100%" align="left" valign="top" childLayout="vertical" visibleToMouse="true" paddingLeft="3px">
                 <panel width="100%" align="left" valign="top" childLayout="vertical">
-                    <control name="label" id="optionsMenuTitle" style="textNormal" text="${menu.94}"></control>
+                    <control name="label" id="optionsMenuTitle" style="textNormal" text="${menu.94}" />
                 </panel>
 
                 <!--Two columns of options-->
                 <panel width="100%" align="left" valign="top" childLayout="horizontal">
-                    <panel id="optionsColumnOne" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px">
-                        <control click="pauseMenu()" text="${menu.537}" glyph="Textures/GUI/Options/i-objective.png" name="iconText" />
-                        <control click="pauseMenu()" text="${menu.97}" glyph="Textures/GUI/Options/i-game.png" name="iconText" />
-                        <control click="pauseMenu()" text="${menu.143}" glyph="Textures/GUI/Options/i-load.png" name="iconText" />
-                        <control click="pauseMenu()" text="${menu.201}" glyph="Textures/GUI/Options/i-save.png" name="iconText" />
-                    </panel>
-                    <panel id="optionsColumnTwo" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px">
-                        <control click="quitToMainMenu()" text="${menu.1266}" glyph="Textures/GUI/Options/i-quit.png" name="iconText" />
-                        <control click="pauseMenu()" text="${menu.1269}" glyph="Textures/GUI/Options/i-restart.png" name="iconText" />
-                    </panel>
+                    <panel id="optionsColumnOne" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px" />
+                    <panel id="optionsColumnTwo" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px" />
                 </panel>
 
                 <!--Menu navigation-->
                 <panel width="100%" align="left" valign="bottom" childLayout="horizontal" paddingBottom="10px" paddingLeft="3px">
-                    <panel id="optionsNavigationColumnOne" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px">
-                        <control click="pauseMenu()" text="${menu.142}" glyph="Textures/GUI/Options/i-accept.png" name="iconText" />
-                    </panel>
-                    <panel id="optionsNavigationColumnTwo" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px">
-                    </panel>
+                    <panel id="optionsNavigationColumnOne" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px" />
+                    <panel id="optionsNavigationColumnTwo" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px" />
                 </panel>
             </panel>
 
             <!--The bottom panel-->
-            <panel id="bottom" height="212px" width="100%" align="left" valign="bottom" childLayout="center">
-                <!--Filler-->
-            </panel>
+            <panel height="212px" width="100%" align="left" valign="bottom" childLayout="center" />
         </layer>
 
     </screen>
@@ -279,28 +264,15 @@
 
         <layer childLayout="vertical">
             <!--The upper panel-->
-            <panel height="72px" width="100%" align="left" valign="top" childLayout="horizontal">
-                <panel height="65%" width="*" valign="center" backgroundImage="Textures/GUI/Windows/Bar-00.png" imageMode="repeat:0,0,128,64" />
-                <panel height="80%" width="64px" valign="center" backgroundImage="Textures/GUI/Windows/Bar-02.png" imageMode="repeat:0,0,128,64" />
+            <panel height="12%" width="100%" valign="top" childLayout="center" backgroundColor="#000">
+                <image align="right" filename="Textures/GUI/Icons/i-camera-no_go.png"  marginRight="10px" />
             </panel>
             <!--Empty center-->
             <panel height="*" width="100%" childLayout="horizontal" />
             <!--The bottom panel-->
-            <panel height="180px" width="100%" align="left" valign="bottom" childLayout="vertical">
-                <!--The top bar-->
-                <panel height="64px" width="100%" childLayout="horizontal" align="left" valign="top">
-                    <panel height="65%" width="*" valign="center" backgroundImage="Textures/GUI/Windows/Bar-00.png" imageMode="repeat:0,0,128,64" />
-                    <panel height="90%" width="128px" valign="center" backgroundImage="Textures/GUI/Windows/Bar-02.png" imageMode="repeat:0,0,128,64" />
-                </panel>
-                <!--Map (place for it) & the works-->
-                <panel height="*" width="100%" childLayout="horizontal" align="left" valign="top" padding="6px,10px,6px,10px">
-                    <panel width="200px" />
-                    <panel id="bottomBackgroundPanel" width="*" height="*" backgroundImage="Textures/GUI/Windows/Panel-BG.png"
-                           imageMode="repeat:0,0,64,64"  margin="0px,6px,0px,10px"/>
-                </panel>
-            </panel>
-
+            <panel height="12%" width="100%" valign="bottom" backgroundColor="#000" />
         </layer>
+
     </screen>
 
 </nifty>

@@ -72,15 +72,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public Vector2f mousePosition = Vector2f.ZERO;
     private InteractionState interactionState = InteractionState.NONE;
     private int itemId;
+    private final Rectangle guiConstraint;
     private boolean isOnGui = false;
     private boolean isTaggable = false;
     private boolean isTagging = false;
     private boolean isOnView = false;
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
-    public PlayerInteractionState(Player player, GameState gameState, Rectangle rect) {
+    public PlayerInteractionState(Player player, GameState gameState, Rectangle guiConstraint) {
         this.player = player;
         this.gameState = gameState;
+        this.guiConstraint = guiConstraint;
     }
 
     @Override
@@ -327,7 +329,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public int getInteractionStateItemId() {
         return itemId;
     }
-
+    
+    private boolean isCursorOnGUI() {
+        // if mouse not in rectangle guiConstraint => true
+        return mousePosition.x <= guiConstraint.x 
+                || mousePosition.x >= guiConstraint.x + guiConstraint.width 
+                || app.getContext().getSettings().getHeight() - mousePosition.y <= guiConstraint.y
+                || app.getContext().getSettings().getHeight() - mousePosition.y >= guiConstraint.y + guiConstraint.height;
+    }
+    
     /**
      * Set the state flags according to what user can do. Rather clumsy. Fix if
      * you can.
@@ -358,9 +368,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         return changed;
     }
 
-    private boolean isCursorOnGUI() {
-        return app.getContext().getSettings().getHeight() - mousePosition.y <= guiConstraintTop || app.getContext().getSettings().getHeight() - mousePosition.y >= guiConstraintBottom;
-    }
 
     private boolean isTaggable() {
         Vector2f pos = handler.getRoundedMousePos();

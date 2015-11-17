@@ -17,46 +17,51 @@
 package toniarts.openkeeper.game;
 
 import de.lessvoid.nifty.controls.Label;
+import java.util.HashMap;
+import java.util.Map;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldHandler;
 
 /**
  * Ingame player information
- *
+ * TODO: use level Variables to get mana lose and gain information
  * @author ArchDemon
  */
 public class PlayerManaControl {
+
+    public enum Type {
+        CURRENT, GET, LOSE;
+    }
+
     private short playerId;
     private WorldHandler worldHandler;
-    private Label manaListener = null;
-    private Label manaGetListener = null;
-    private Label manaLoseListener = null;
-    
+    private Map<Type, Label> listeners = new HashMap();
+
     private int manaCurrent;
     private int manaMax;
-    private int manaGet;  // mana get per second    
+    private int manaGet;  // mana get per second
     private int manaGetBase = 30;  // I think this dungeon heart
     private int manaGetFromTiles;
-    
-    private int manaLose;  // mana lose per second    
+
+    private int manaLose;  // mana lose per second
     private int manaLosePerImp = 7;  // I don`t find in Creature.java
-    private int manaLoseFromCreatures;  
-    
+    private int manaLoseFromCreatures;
+
     public PlayerManaControl(short playerId, WorldHandler worldHandler) {
         this.playerId = playerId;
-        this.worldHandler = worldHandler;        
-        
+        this.worldHandler = worldHandler;
+
         this.manaGetFromTiles = 0;
         this.updateManaFromTiles();
         this.manaLoseFromCreatures = 0;
         this.updateManaFromCreatures();
         this.manaMax = 200000;
     }
-    
+
     public final void updateManaFromTiles() {
         int result = 0;
-                
+
         for (int x = 0; x < worldHandler.getLevelData().getWidth(); x++) {
             for (int y = 0; y < worldHandler.getLevelData().getHeight(); y++) {
                 TileData tile = worldHandler.getMapLoader().getTile(x, y);
@@ -65,83 +70,75 @@ public class PlayerManaControl {
                 }
             }
         }
-        
+
         this.manaGetFromTiles = result;
     }
-    
+
     public final void updateManaFromCreatures() {
         int result = 0;
 
         for (Thing thing : worldHandler.getLevelData().getThings()) {
-            if (!(thing instanceof Thing.KeeperCreature)) { 
+            if (!(thing instanceof Thing.KeeperCreature)) {
                 continue;
             }
-            
+
             Thing.KeeperCreature creature = ((Thing.KeeperCreature)thing);
             if (creature.getPlayerId() == this.playerId && creature.getCreatureId() == 1) {
                 result++;
             }
         }
-        
+
         this.manaLoseFromCreatures = result * this.manaLosePerImp;
     }
-    
+
     public void updateManaGet() {
         manaGet = manaGetBase + manaGetFromTiles;
-        if (manaGetListener != null) {
-            manaGetListener.setText(String.format("+ %s", manaGet));  
+        if (listeners.containsKey(Type.GET)) {
+            listeners.get(Type.GET).setText(String.format("+ %s", manaGet));
         }
     }
-    
+
     public void updateManaLose() {
         manaLose = manaLoseFromCreatures;
-        if (manaLoseListener != null) {
-            manaLoseListener.setText(String.format("- %s", manaLose));  
+        if (listeners.containsKey(Type.LOSE)) {
+            listeners.get(Type.LOSE).setText(String.format("- %s", manaLose));
         }
     }
-        
+
     public void update() {
         this.updateManaGet();
         this.updateManaLose();
-        
+
         this.manaCurrent += this.manaGet - this.manaLose;
-        
+
         if (this.manaCurrent > this.manaMax) {
             this.manaCurrent = this.manaMax;
         }
-        
-        if (manaListener != null) {
-            manaListener.setText(String.format("%s", manaCurrent));  
+
+        if (listeners.containsKey(Type.CURRENT)) {
+            listeners.get(Type.CURRENT).setText(String.format("%s", manaCurrent));
         }
     }
-    
+
     public int getMana() {
         return this.manaCurrent;
     }
-    
+
     public int getManaGain() {
         return this.manaGet;
     }
-    
+
     public int getManaLose() {
         return this.manaLose;
     }
-    
-    public void addManaListener(Label label) {
-        if (this.manaListener == null) {
-            this.manaListener = label;
+
+    public void addListener(Label label, Type type) {
+        if (!listeners.containsKey(type)) {
+            listeners.put(type, label);
         }
     }
-    
-    public void addManaGetListener(Label label) {
-        if (this.manaGetListener == null) {
-            this.manaGetListener = label;
-        }
-    }
-    
-    public void addManaLoseListener(Label label) {
-        if (this.manaLoseListener == null) {
-            this.manaLoseListener = label;
-        }
+
+    public void removeListeners() {
+        listeners.clear();
     }
 }
