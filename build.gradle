@@ -6,26 +6,29 @@ apply plugin: 'maven'
 ext {
 	jmonkeyengine_version = '3.0.10'
 }
+
 repositories {
-		mavenLocal()
-		mavenCentral()
-		maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
-		maven { url 'http://updates.jmonkeyengine.org/maven' }
-		maven { url 'http://jcenter.bintray.com' }
-		maven { url "https://jitpack.io" }
-	}
+	mavenLocal()
+	mavenCentral()
+	maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+	maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+	maven { url 'http://updates.jmonkeyengine.org/maven' }
+	maven { url 'http://jcenter.bintray.com' }
+	maven { url "https://jitpack.io" }
+}
 
 task sourcesJar(type: Jar, dependsOn: classes) {
-		classifier = 'sources'
-		from sourceSets.main.allSource
-	}
-	artifacts {
-		archives sourcesJar
-//		archives javadocJar
-	}
+	classifier = 'sources'
+	from sourceSets.main.allSource
+}
+
+artifacts {
+	archives sourcesJar
+//	archives javadocJar
+}
 
 mainClassName = 'toniarts.openkeeper.Main'
+
 if (!hasProperty('mainClass')) {
 	ext.mainClass = 'toniarts.openkeeper.Main'
 }
@@ -41,7 +44,6 @@ dependencies {
 	compile "com.jme3:jme3-lwjgl:$jmonkeyengine_version"
 	compile "com.jme3:jme3-niftygui:$jmonkeyengine_version"
 	compile 'org.bushe:eventbus:1.4'
-	
 }
 
 sourceSets {
@@ -60,15 +62,14 @@ eclipse {
 		sourceCompatibility = 1.7
 		targetCompatibility = 1.7
 	}
-
 	project { 
 		natures 'org.springsource.ide.eclipse.gradle.core.nature'
 	}
 }
 
-	compileJava {
-		sourceCompatibility = '1.7'
-	}
+compileJava {
+	sourceCompatibility = '1.7'
+}
 
 task wrapper(type: Wrapper) {
 	gradleVersion = '2.2.1'
