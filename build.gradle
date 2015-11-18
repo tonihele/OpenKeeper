@@ -4,7 +4,7 @@ apply plugin: 'eclipse'
 apply plugin: 'maven'
 
 ext {
-    jmonkeyengine_version = '3.0.10'
+	jmonkeyengine_version = '3.0.10'
 }
 repositories {
 		mavenLocal()
@@ -37,7 +37,7 @@ dependencies {
 	compile "com.jme3:jme3-networking:$jmonkeyengine_version"
 	compile "com.jme3:jme3-blender:$jmonkeyengine_version"
 	compile "com.jme3:jme3-jbullet:$jmonkeyengine_version"
-//    	compile "com.jme3:jme3-desktop:$jmonkeyengine_version"
+//	compile "com.jme3:jme3-desktop:$jmonkeyengine_version"
 	compile "com.jme3:jme3-lwjgl:$jmonkeyengine_version"
 	compile "com.jme3:jme3-niftygui:$jmonkeyengine_version"
 	compile 'org.bushe:eventbus:1.4'
@@ -55,7 +55,7 @@ sourceSets {
 eclipse {
 	classpath {
 		downloadSources=true
-	 }
+	}
 	jdt {
 		sourceCompatibility = 1.7
 		targetCompatibility = 1.7
@@ -67,8 +67,8 @@ eclipse {
 }
 
 	compileJava {
-		sourceCompatibility = '1.8'
-	 }
+		sourceCompatibility = '1.7'
+	}
 
 task wrapper(type: Wrapper) {
 	gradleVersion = '2.2.1'
