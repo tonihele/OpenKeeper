@@ -7,6 +7,8 @@ Goal is to fully implement the game (version 1.7 with 3 bonus packs) as open sou
 
 Implementation is done in JAVA using JMonkeyEngine (http://jmonkeyengine.org/). Currently we are using JME 3.0 + JAVA 7.
 
+[![Build Status](https://travis-ci.org/tonihele/OpenKeeper.svg)](https://travis-ci.org/tonihele/OpenKeeper)
+
 My YouTube channel where I sometimes publish videos of the progress:
 
 https://www.youtube.com/user/Kaljis83/videos
