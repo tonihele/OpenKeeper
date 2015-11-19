@@ -60,11 +60,13 @@ public abstract class GenericRoom {
         node.attachChild(floorNode);
 
         // Add the wall
-        BatchNode wallNode = new BatchNode("Wall");
-        contructWall(wallNode);
-        if (!wallNode.getChildren().isEmpty()) {
-            wallNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
-            wallNode.batch();
+        if (roomInstance.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
+            BatchNode wallNode = new BatchNode("Wall");
+            contructWall(wallNode);
+            if (!wallNode.getChildren().isEmpty()) {
+                wallNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+                wallNode.batch();
+            }
             node.attachChild(wallNode);
         }
         return node;
@@ -77,98 +79,96 @@ public abstract class GenericRoom {
     }
 
     protected void contructWall(Node root) {
-        if (roomInstance.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
 
-            // Get the wall points
-            Point start = roomInstance.getCoordinates().get(0);
-            for (WallSection section : roomInstance.getWallPoints()) {
-                int i = 0;
+        // Get the wall points
+        Point start = roomInstance.getCoordinates().get(0);
+        for (WallSection section : roomInstance.getWallPoints()) {
+            int i = 0;
 
-                // Reset wall index for each wall section
-                resetWallIndex();
+            // Reset wall index for each wall section
+            resetWallIndex();
 
-                for (Point p : section.getCoordinates()) {
+            for (Point p : section.getCoordinates()) {
 
-                    // 4,5,6 are half walls
-                    // First
-                    if (i == 0 || i == (section.getCoordinates().size() - 1)) {
+                // 4,5,6 are half walls
+                // First
+                if (i == 0 || i == (section.getCoordinates().size() - 1)) {
 
-                        int firstPiece = (i == 0 ? 4 : 6);
-                        if (firstPiece == 4 && (section.getDirection() == WallSection.WallDirection.WEST || section.getDirection() == WallSection.WallDirection.SOUTH)) {
-                            firstPiece = 5; // The sorting direction forces us to do this
-                        }
-
-                        Quaternion quat = null;
-                        if (section.getDirection() == WallSection.WallDirection.WEST) {
-                            quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                        } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
-                            quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
-                        } else if (section.getDirection() == WallSection.WallDirection.EAST) {
-                            quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                        }
-
-                        // Load the piece
-                        Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + firstPiece + ".j3o");
-                        resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
-                        if (quat != null) {
-                            part.rotate(quat);
-                        }
-                        part.move(-0.75f, 0, -0.75f);
-                        if (section.getDirection() == WallSection.WallDirection.WEST) {
-                            part.move(0, 0, 0);
-                        } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
-                            part.move(0, 0, 0.5f);
-                        } else if (section.getDirection() == WallSection.WallDirection.EAST) {
-                            part.move(0.5f, 0, 0);
-                        }
-                        root.attachChild(part);
-
-                        int secondPiece = (i == (section.getCoordinates().size() - 1) ? 5 : 6);
-                        if (secondPiece == 5 && (section.getDirection() == WallSection.WallDirection.WEST || section.getDirection() == WallSection.WallDirection.SOUTH)) {
-                            secondPiece = 4; // The sorting direction forces us to do this
-                        }
-
-                        part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + secondPiece + ".j3o");
-                        resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
-                        if (quat != null) {
-                            part.rotate(quat);
-                        }
-                        part.move(-0.25f, 0, -0.75f);
-                        if (section.getDirection() == WallSection.WallDirection.WEST) {
-                            part.move(-0.5f, 0, 0.5f);
-                        } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
-                            part.move(0, 0, 0.5f);
-                        } else if (section.getDirection() == WallSection.WallDirection.EAST) {
-                            part.move(0, 0, 0.5f);
-                        }
-                        root.attachChild(part);
-                    } else {
-
-                        // Complete walls, 8, 7, 8, 7 and so forth
-                        Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + getWallIndexNext() + ".j3o");
-                        resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
-                        if (section.getDirection() == WallSection.WallDirection.WEST) {
-                            Quaternion quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                            part.rotate(quat);
-                        } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
-                            Quaternion quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
-                            part.rotate(quat);
-                        } else if (section.getDirection() == WallSection.WallDirection.EAST) {
-                            Quaternion quat = new Quaternion();
-                            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                            part.rotate(quat);
-                        }
-                        part.move(-0.5f, 0, -0.5f);
-                        root.attachChild(part);
+                    int firstPiece = (i == 0 ? 4 : 6);
+                    if (firstPiece == 4 && (section.getDirection() == WallSection.WallDirection.WEST || section.getDirection() == WallSection.WallDirection.SOUTH)) {
+                        firstPiece = 5; // The sorting direction forces us to do this
                     }
 
-                    i++;
+                    Quaternion quat = null;
+                    if (section.getDirection() == WallSection.WallDirection.WEST) {
+                        quat = new Quaternion();
+                        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                    } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
+                        quat = new Quaternion();
+                        quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                    } else if (section.getDirection() == WallSection.WallDirection.EAST) {
+                        quat = new Quaternion();
+                        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                    }
+
+                    // Load the piece
+                    Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + firstPiece + ".j3o");
+                    resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
+                    if (quat != null) {
+                        part.rotate(quat);
+                    }
+                    part.move(-0.75f, 0, -0.75f);
+                    if (section.getDirection() == WallSection.WallDirection.WEST) {
+                        part.move(0, 0, 0);
+                    } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
+                        part.move(0, 0, 0.5f);
+                    } else if (section.getDirection() == WallSection.WallDirection.EAST) {
+                        part.move(0.5f, 0, 0);
+                    }
+                    root.attachChild(part);
+
+                    int secondPiece = (i == (section.getCoordinates().size() - 1) ? 5 : 6);
+                    if (secondPiece == 5 && (section.getDirection() == WallSection.WallDirection.WEST || section.getDirection() == WallSection.WallDirection.SOUTH)) {
+                        secondPiece = 4; // The sorting direction forces us to do this
+                    }
+
+                    part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + secondPiece + ".j3o");
+                    resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
+                    if (quat != null) {
+                        part.rotate(quat);
+                    }
+                    part.move(-0.25f, 0, -0.75f);
+                    if (section.getDirection() == WallSection.WallDirection.WEST) {
+                        part.move(-0.5f, 0, 0.5f);
+                    } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
+                        part.move(0, 0, 0.5f);
+                    } else if (section.getDirection() == WallSection.WallDirection.EAST) {
+                        part.move(0, 0, 0.5f);
+                    }
+                    root.attachChild(part);
+                } else {
+
+                    // Complete walls, 8, 7, 8, 7 and so forth
+                    Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + getWallIndexNext() + ".j3o");
+                    resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
+                    if (section.getDirection() == WallSection.WallDirection.WEST) {
+                        Quaternion quat = new Quaternion();
+                        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                        part.rotate(quat);
+                    } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
+                        Quaternion quat = new Quaternion();
+                        quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                        part.rotate(quat);
+                    } else if (section.getDirection() == WallSection.WallDirection.EAST) {
+                        Quaternion quat = new Quaternion();
+                        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                        part.rotate(quat);
+                    }
+                    part.move(-0.5f, 0, -0.5f);
+                    root.attachChild(part);
                 }
+
+                i++;
             }
         }
     }
