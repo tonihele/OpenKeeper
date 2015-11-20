@@ -142,7 +142,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param y y coordinate
      * @return the tile data
      */
-    protected TileData getTile(int x, int y) {
+    public TileData getTile(int x, int y) {
         return mapData.getTile(x, y);
     }
 

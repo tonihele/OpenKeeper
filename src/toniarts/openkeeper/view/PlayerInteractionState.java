@@ -19,6 +19,7 @@ package toniarts.openkeeper.view;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.font.Rectangle;
 import com.jme3.input.InputManager;
 import com.jme3.input.MouseInput;
 import com.jme3.input.RawInputListener;
@@ -54,7 +55,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     public enum InteractionState {
 
-        NONE, BUILD, SELL, CAST
+        NONE, ROOM, SELL, SPELL, TRAP, DOOR, CREATURE
     }
     private Main app;
     private final GameState gameState;
@@ -71,19 +72,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public Vector2f mousePosition = Vector2f.ZERO;
     private InteractionState interactionState = InteractionState.NONE;
     private int itemId;
-    private final int guiConstraintTop;
-    private final int guiConstraintBottom;
+    private final Rectangle guiConstraint;
     private boolean isOnGui = false;
     private boolean isTaggable = false;
     private boolean isTagging = false;
     private boolean isOnView = false;
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
-    public PlayerInteractionState(Player player, GameState gameState, final int guiConstraintTop, final int guiConstraintBottom) {
+    public PlayerInteractionState(Player player, GameState gameState, Rectangle guiConstraint) {
         this.player = player;
         this.gameState = gameState;
-        this.guiConstraintTop = guiConstraintTop;
-        this.guiConstraintBottom = guiConstraintBottom;
+        this.guiConstraint = guiConstraint;
     }
 
     @Override
@@ -115,13 +114,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                         case NONE: {
                             return isTaggable;
                         }
-                        case BUILD: {
+                        case ROOM: {
                             return isOnView;
                         }
                         case SELL: {
                             return isOnView;
                         }
-                        case CAST: {
+                        case SPELL: {
                             return false;
                         }
                         default:
@@ -141,7 +140,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 }
                 if (interactionState == InteractionState.SELL) {
                     return SelectionColorIndicator.RED;
-                } else if (interactionState == InteractionState.BUILD && !isTaggable && !getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(itemId))) {
+                } else if (interactionState == InteractionState.ROOM && !isTaggable && !getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(itemId))) {
                     return SelectionColorIndicator.RED;
                 }
                 return SelectionColorIndicator.BLUE;
@@ -150,12 +149,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             @Override
             public void userSubmit(SelectionArea area) {
 
-                if (PlayerInteractionState.this.interactionState == InteractionState.NONE || (PlayerInteractionState.this.interactionState == InteractionState.BUILD && getWorldHandler().isTaggable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y))) {
+                if (PlayerInteractionState.this.interactionState == InteractionState.NONE || (PlayerInteractionState.this.interactionState == InteractionState.ROOM && getWorldHandler().isTaggable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y))) {
 
                     // Determine if this is a select/deselect by the starting tile's status
                     boolean select = !getWorldHandler().isSelected((int) Math.max(0, selectionArea.getActualStartingCoordinates().x), (int) Math.max(0, selectionArea.getActualStartingCoordinates().y));
                     getWorldHandler().selectTiles(selectionArea, select);
-                } else if (PlayerInteractionState.this.interactionState == InteractionState.BUILD && getWorldHandler().isBuildable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player, gameState.getLevelData().getRoomById(itemId))) {
+                } else if (PlayerInteractionState.this.interactionState == InteractionState.ROOM && getWorldHandler().isBuildable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player, gameState.getLevelData().getRoomById(itemId))) {
                     getWorldHandler().build(selectionArea, player, gameState.getLevelData().getRoomById(itemId));
 
                     // Reset state after successful build
@@ -330,7 +329,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public int getInteractionStateItemId() {
         return itemId;
     }
-
+    
+    private boolean isCursorOnGUI() {
+        // if mouse not in rectangle guiConstraint => true
+        return mousePosition.x <= guiConstraint.x 
+                || mousePosition.x >= guiConstraint.x + guiConstraint.width 
+                || app.getContext().getSettings().getHeight() - mousePosition.y <= guiConstraint.y
+                || app.getContext().getSettings().getHeight() - mousePosition.y >= guiConstraint.y + guiConstraint.height;
+    }
+    
     /**
      * Set the state flags according to what user can do. Rather clumsy. Fix if
      * you can.
@@ -361,13 +368,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         return changed;
     }
 
-    private boolean isCursorOnGUI() {
-        return app.getContext().getSettings().getHeight() - mousePosition.y <= guiConstraintTop || app.getContext().getSettings().getHeight() - mousePosition.y >= guiConstraintBottom;
-    }
 
     private boolean isTaggable() {
         Vector2f pos = handler.getRoundedMousePos();
-        return (interactionState == InteractionState.BUILD || interactionState == InteractionState.NONE) && isOnView && getWorldHandler().isTaggable((int) pos.x, (int) pos.y);
+        return (interactionState == InteractionState.ROOM || interactionState == InteractionState.NONE) && isOnView && getWorldHandler().isTaggable((int) pos.x, (int) pos.y);
     }
 
     private boolean isOnView() {

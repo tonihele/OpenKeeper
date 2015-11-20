@@ -35,35 +35,88 @@
     <controlDefinition style="nifty-panel-style" name="workerAmount" controller="de.lessvoid.nifty.controls.DefaultController">
         <panel marginLeft="3px" valign="center" childLayout="horizontal" id="tab-workers" visible="true">
             <image filename="Textures/GUI/Tabs/t-cp-imp.png" valign="center" />
-            <image filename="Textures/GUI/Creatures/Evil/imp-bg.png" valign="center" marginRight="3px" />
-            <image filename="Textures/GUI/Tabs/t-creature_panel-0.png" valign="center" marginRight="3px" />
+            <image filename="Textures/GUI/Creatures/Evil/imp-bg.png" valign="center" childLayout="vertical"
+                   padding="6px,6px,6px,0px">
+                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#amount" height="25%" width="100%" />
+                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#idle" height="25%" width="100%" />
+                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#busy" height="25%" width="100%" />
+                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#fighting" height="25%" width="100%" />
+            </image>
+            <image id="attributes" filename="Textures/GUI/Tabs/t-creature_panel-0.png" valign="center" marginLeft="3px"
+                   childLayout="vertical" padding="6px">
+                <panel id="#total" height="25%" width="100%" backgroundImage="Textures/GUI/Tabs/t-cp-hilight.png"><!-- need button with custom style -->
+                    <interact onClick="workersAmount(total)" />
+                </panel>
+                <panel id="#jobs" height="25%" width="100%" >
+                    <interact onClick="workersAmount(jobs)" />
+                </panel>
+                <panel id="#combat" height="25%" width="100%" >
+                    <interact onClick="workersAmount(combat)" />
+                </panel>
+                <panel id="#moods" height="25%" width="100%" >
+                    <interact onClick="workersAmount(moods)" />
+                </panel>
+            </image>
         </panel>
     </controlDefinition>
 
     <!--The tab contents scroll-->
     <controlDefinition style="nifty-panel-style" name="tabScroll" controller="de.lessvoid.nifty.controls.DefaultController">
-        <panel marginRight="3px" childLayout="vertical" valign="center" id="tab-scroll">
+        <panel marginLeft="3px" childLayout="vertical" valign="center" id="tab-scroll">
             <image filename="Textures/GUI/Pages/page_forward.png" >
                 <effect>
                     <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true" neverStopRendering="true" />
                 </effect>
             </image>
-            <image filename="Textures/GUI/Pages/page_back.png" />
+            <image filename="Textures/GUI/Pages/page_back.png">
+                <effect>
+                    <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Hilight.png" post="true" neverStopRendering="true" />
+                </effect>
+            </image>
         </panel>
     </controlDefinition>
 
     <!--The =, shown for creatures-->
     <controlDefinition style="nifty-panel-style" name="workerEqual" controller="de.lessvoid.nifty.controls.DefaultController">
         <panel marginLeft="3px" valign="center" childLayout="horizontal" id="tab-workers-equal" visible="true">
-            <image filename="Textures/GUI/Tabs/t-cp-total.png" valign="center" marginRight="3px" />
+            <image filename="Textures/GUI/Tabs/t-cp-total.png" valign="center" />
+            <!-- <image filename="Textures/GUI/Tabs/t-cp-jobs.png" valign="center" /> -->
+            <!-- <image filename="Textures/GUI/Tabs/t-cp-fights.png" valign="center" /> -->
+            <!-- <image filename="Textures/GUI/Tabs/t-cp-moods.png" valign="center" /> -->
+        </panel>
+    </controlDefinition>
+
+     <!--Players creature -->
+    <controlDefinition style="nifty-panel-style" name="creature" controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel marginLeft="3px" valign="center" childLayout="center" visibleToMouse="true">
+            <image filename="$filename" valign="center" >
+                <effect>
+                    <onHover name="imageOverlay" filename="Textures/GUI/Icons/selected_group.png" post="true" neverStopRendering="true" />
+                </effect>
+            </image>
+            <control name="label" text="$total" style="text" textHAlign="center" textVAlign="center" />
         </panel>
     </controlDefinition>
 
     <!-- Reaper -->
     <controlDefinition style="nifty-panel-style" name="reaperTalisman" controller="de.lessvoid.nifty.controls.DefaultController">
-        <panel marginRight="3px" valign="center" align="right" childLayout="horizontal" id="reaper">
-            <image marginRight="3px" align="right" valign="center" filename="Textures/GUI/Spells/reaper_talisman-00.png"/>
-        </panel>
+        <image align="center" valign="center" filename="Textures/GUI/Spells/reaper_talisman-00.png"/>
+    </controlDefinition>
+
+    <!-- Fight Icon -->
+    <controlDefinition style="nifty-panel-style" name="fight" controller="de.lessvoid.nifty.controls.DefaultController">
+        <image filename="Textures/GUI/Icons/a-fight-00.png" valign="center" visible="$visible">
+            <effect>
+                <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png"
+                         post="true" neverStopRendering="true" />
+                <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/a-fight-01.png"
+                          post="true" neverStopRendering="true" />
+                <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/a-fight-02.png"
+                          post="true" neverStopRendering="true" />
+                <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/a-fight-03.png"
+                          post="true" neverStopRendering="true" />
+            </effect>
+        </image>
     </controlDefinition>
 
     <!-- Movie Button -->

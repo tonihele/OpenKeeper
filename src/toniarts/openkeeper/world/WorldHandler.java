@@ -83,6 +83,14 @@ public abstract class WorldHandler {
     public Node getWorld() {
         return worldNode;
     }
+    
+    public KwdFile getLevelData() {
+        return this.kwdFile;
+    }
+    
+    public MapLoader getMapLoader() {
+        return this.mapLoader;
+    }
 
     /**
      * Set some tiles selected/undelected

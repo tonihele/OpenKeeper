@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-styles xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+
+    <!-- The Tabs require the Nifty-Panel to be displayed properly. -->
+    <useStyles filename="panel/nifty-panel.xml"/>
+
+    <!-- This style is applied to the panel that holds the content of each tab. -->
+    <style id="nifty-tabs#panel" width="100%">
+        <attributes />
+    </style>
+
+    <!-- This style is applied to the panel that holds the button -->
+    <style id="nifty-tabs#tab-button-panel">
+        <attributes childLayout="horizontal" valign="top" width="100%" />
+    </style>
+
+    <!-- The style of a single tab element. -->
+    <style id="nifty-tab">
+        <attributes width="100%" height="100%"/>
+    </style>
+
+    <!-- The style of a tab button that is not the activated one. -->
+    <style id="nifty-tab-button">
+        <attributes marginLeft="4px" width="64px" height="64px" childLayout="center" visibleToMouse="true" />
+        <effect>
+            <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
+        </effect>
+    </style>
+    <!-- The style of a tab button that is the activated one. -->
+    <style id="nifty-tab-button-active">
+        <attributes marginLeft="4px" width="64px" height="64px" childLayout="center" visibleToMouse="true"/> 
+    </style>
+</nifty-styles>

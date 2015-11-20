@@ -2776,6 +2776,28 @@ public final class KwdFile {
     }
 
     /**
+     * Get the list of all doors
+     *
+     * @return list of all doors
+     */
+    public List<Door> getDoors() {
+        List<Door> c = new ArrayList(doors.values());
+        Collections.sort(c);
+        return c;
+    }
+
+    /**
+     * Get the list of all traps
+     *
+     * @return list of all traps
+     */
+    public List<Trap> getTraps() {
+        List<Trap> c = new ArrayList(traps.values());
+        Collections.sort(c);
+        return c;
+    }
+
+    /**
      * Get the lava terrain tile
      *
      * @return lava

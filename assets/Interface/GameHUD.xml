@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <nifty xmlns="http://nifty-gui.sourceforge.net/nifty-1.3.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <useStyles filename="nifty-default-styles.xml" />
+    <useStyles filename="Interface/CustomTabStyle.xml" />
     <useControls filename="nifty-default-controls.xml" />
     <useControls filename="Interface/MyControls.xml" />
-
+    <useControls filename="Interface/CustomTabControl.xml" />
     <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
+     <style id="textManaChange">
+        <attributes font="Interface/Fonts/Ingame10.fnt" />
+    </style>
     <style id="textSmall">
         <attributes font="Interface/Fonts/Ingame16.fnt" color="#bbbcbb" />
+    </style>
+    <style id="text">
+        <attributes font="Interface/Fonts/Ingame18.fnt" />
     </style>
     <style id="textNormal">
         <attributes font="Interface/Fonts/Ingame28.fnt" color="#bbbcbb" />
@@ -17,9 +24,8 @@
     <screen id="hud" controller="toniarts.openkeeper.game.state.PlayerState">
 
         <layer childLayout="vertical">
-
             <!--The upper panel-->
-            <panel id="top" height="72px" width="100%" align="left" valign="top" childLayout="center">
+            <panel height="72px" width="100%" align="left" valign="top" childLayout="center">
 
                 <panel width="100%" childLayout="horizontal">
                     <panel height="65%" width="*" valign="center" backgroundImage="Textures/GUI/Windows/Bar-00.png" imageMode="repeat:0,0,128,64" />
@@ -40,11 +46,17 @@
                                     </effect>
                                 </image>
                             </panel>
-                            <control width="*" name="label" align="left" valign="center" />
+                            <panel childLayout="vertical" valign="center" padding="0px,14px,0px,10px">
+                                <control name="label" id="mana" color="#27d067" style="text" width="100%" text="0" textHAlign="right" valign="center" />
+                                <panel childLayout="horizontal" valign="center">
+                                    <control name="label" id="manaGet" color="#27d067" text="0" style="textManaChange" width="50%" textHAlign="left" />
+                                    <control name="label" id="manaLose" color="#ec0000" text="0" style="textManaChange" width="*" textHAlign="right" />
+                                </panel>
+                            </panel>
                         </panel>
                     </panel>
-
-                    <panel width="256px" align="left" valign="center" childLayout="overlay" margin="0px,0px,0px,16px">
+                    <panel width="16px" />
+                    <panel width="256px" align="left" valign="center" childLayout="overlay">
                         <panel childLayout="horizontal" align="left" valign="center">
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-00.png" />
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" />
@@ -53,366 +65,214 @@
                             <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center">
                                 <image filename="Textures/GUI/Windows/payday-BG.png" align="left" valign="center" />
                             </panel>
-                            <control width="*" name="label" align="left" valign="center" />
+                            <panel childLayout="center" valign="center" align="center" padding="0px,14px,0px,36px">
+                                <control name="label" id="gold" color="#D3B000" text="0" style="text" width="100%" textHAlign="right" valign="center" />
+                            </panel>
                         </panel>
                     </panel>
 
-                    <panel width="*" align="left" valign="center" childLayout="center"  padding="10px">
-                        <text id="Help" style="textSmall" />
+                    <panel width="*" align="left" valign="center" childLayout="center">
+                        <control name="label" id="tooltip" style="textSmall" text="" />
                     </panel>
                     <panel width="64px" align="left" valign="center" />
                 </panel>
             </panel>
             <!--Empty center-->
-            <panel id="center" height="*" width="100%" childLayout="horizontal" />
-
+            <panel height="*" width="100%" id="middle" />
             <!--The bottom panel-->
-            <panel id="bottom" height="212px" width="100%" align="left" valign="bottom" childLayout="center">
-
-                <panel childLayout="vertical" width="100%">
+            <panel height="214px" width="100%" align="left" valign="bottom" childLayout="overlay">
+                <!-- first bottom layer -->
+                <panel childLayout="vertical" width="100%" align="left" valign="top">
                     <!--The top bar-->
                     <panel height="64px" width="100%" childLayout="horizontal" align="left" valign="top">
                         <panel height="75%" width="*" valign="center" backgroundImage="Textures/GUI/Windows/Bar-00.png" imageMode="repeat:0,0,128,64" />
                         <panel height="100%" width="128px" valign="center" backgroundImage="Textures/GUI/Windows/Bar-02.png" imageMode="repeat:0,0,128,64" />
                     </panel>
                     <!--Map (place for it) & the works-->
-                    <panel height="*" width="100%" childLayout="horizontal" align="left" valign="top" padding="6px,10px,6px,10px">
-                        <panel width="180px" />
+                    <panel height="*" width="100%" childLayout="horizontal" align="left" valign="top" padding="6px,0px,6px,0px">
+                        <panel width="200px" />
                         <panel id="bottomBackgroundPanel" width="*" height="*" backgroundImage="Textures/GUI/Windows/Panel-BG.png"
-                               imageMode="repeat:0,0,64,64"  margin="0px,6px,0px,10px"/>
+                               imageMode="repeat:0,0,64,64" />
                     </panel>
                 </panel>
-
-                <panel childLayout="vertical" width="100%">
-                    <!--The top bar begins here-->
-                    <panel height="100%" width="*" childLayout="horizontal" align="left" valign="top" padding="0px,0px,0px,10px">
-
-                        <!--The map-->
-                        <panel height="100%" width="180px" valign="top" childLayout="overlay">
-                            <panel padding="10px,10px,10px,10px" childLayout="center">
-                                <panel backgroundImage="Textures/GUI/Map/Map-BG.png" />
-                            </panel>
-                            <panel valign="center" backgroundImage="Textures/GUI/Map/map.png" childLayout="absolute-inside" width="100%"
-                                   imageMode="resize:54,2,54,54,54,2,54,2,54,2,54,54">
-                                <panel x="0" y="0" width="32px" height="32px">
-                                    <effect>
-                                        <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-00.png" post="true"/>
-                                        <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-00.png" post="true"/>
-                                    </effect>
-                                </panel>
-
-                                <!--Sell-->
-                                <panel id="sellButton" x="100%" y="0" width="32px" height="32px">
-                                    <effect>
-                                        <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-01.png" post="true"/>
-                                        <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-01.png" post="true" neverStopRendering="true"  />
-                                    </effect>
-                                    <interact onClick="sellMode()"/>
-                                </panel>
-                                <!--The menu-->
-                                <panel id="menuButton" x="0" y="100%" width="32px" height="32px">
-                                    <effect>
-                                        <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-02.png" post="true"/>
-                                        <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-02.png" post="true" neverStopRendering="true" />
-                                    </effect>
-                                    <interact onClick="pauseMenu()"/>
-                                </panel>
-
-                                <panel x="100%" y="100%" width="32px" height="32px">
-                                    <effect>
-                                        <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-03.png" post="true"/>
-                                        <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-03.png" post="true"/>
-                                    </effect>
-                                </panel>
-                            </panel>
+                 <!-- second bottom layer -->
+                <panel childLayout="horizontal" width="100%" align="left" valign="top">
+                    <!--The map-->
+                    <panel height="100%" width="200px" valign="top" childLayout="center" padding="0px,6px,6px,6px">
+                        <panel padding="10px,10px,10px,10px" childLayout="center">
+                            <panel backgroundImage="Textures/GUI/Map/Map-BG.png" />
                         </panel>
-
-                        <!--The rest-->
-                        <panel height="100%" width="*" valign="top" childLayout="vertical">
-
-                            <!--The tab category buttons-->
-                            <panel height="64px" width="100%" valign="top" childLayout="horizontal" padding="0px,0px,0px,10px">
-                                <panel childLayout="horizontal" width="*">
-                                    <image id="tab-creatures" valign="center" filename="Textures/GUI/Tabs/t-creatures.png" >
-                                        <effect>
-                                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
-                                            <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Icons/selected-creature.png" post="true" neverStopRendering="true"/>
-                                        </effect>
-                                        <interact onClick="guiTabClick(creatures)" />
-                                    </image>
-                                    <image id="tab-rooms" valign="center" filename="Textures/GUI/Tabs/t-rooms.png" margin="0px,0px,0px,6px">
-                                        <effect>
-                                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
-                                            <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Icons/selected-room.png" post="true" neverStopRendering="true"/>
-                                        </effect>
-                                        <interact onClick="guiTabClick(rooms)" />
-                                    </image>
-                                    <image id="tab-spells" valign="center" filename="Textures/GUI/Tabs/t-spells.png" margin="0px,0px,0px,6px">
-                                        <effect>
-                                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
-                                            <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Icons/selected-spell.png" post="true" neverStopRendering="true"/>
-                                        </effect>
-                                        <interact onClick="guiTabClick(spells)" />
-                                    </image>
-                                    <image id="tab-workshop" valign="center" filename="Textures/GUI/Tabs/t-workshop.png" margin="0px,0px,0px,6px">
-                                        <effect>
-                                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true"/>
-                                            <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Icons/selected-workshop.png" post="true" neverStopRendering="true"/>
-                                        </effect>
-                                        <interact onClick="guiTabClick(workshopItems)" />
-                                    </image>
-
-                                    <!-- Objective -->
-                                    <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-objective-00.png" margin="0px,0px,0px,6px">
-                                        <effect>
-                                            <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-objective-01.png" post="true"/>
-                                        </effect>
-                                    </image>
-
-                                    <!-- Messages -->
-                                    <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-info-00.png" margin="0px,0px,0px,2px">
-                                        <effect>
-                                            <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-info-01.png" post="true"/>
-                                        </effect>
-                                    </image>
-                                    <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-creature-00.png" margin="0px,0px,0px,2px" visible="false">
-                                        <effect>
-                                            <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-creature-01.png" post="true"/>
-                                        </effect>
-                                    </image>
-                                    <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-fight-00.png" margin="0px,0px,0px,2px" visible="false">
-                                        <effect>
-                                            <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-fight-01.png" post="true"/>
-                                            <onActive name="imageOverlayPulsate" filename="Textures/GUI/Tabs/Messages/mt-fight-02.png" post="true"/>
-                                        </effect>
-                                    </image>
-                                    <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-info-00.png" margin="0px,0px,0px,2px" visible="false">
-                                        <effect>
-                                            <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-info-01.png" post="true"/>
-                                            <onActive name="imageOverlayPulsate" filename="Textures/GUI/Tabs/Messages/mt-info-02.png" post="true"/>
-                                        </effect>
-                                    </image>
-                                </panel>
-                                <panel valign="top" childLayout="horizontal" width="128px" >
-                                    <image filename="Textures/GUI/Icons/a-fight-00.png" valign="center" visible="false">
-                                        <effect>
-                                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true" neverStopRendering="true" />
-                                            <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/a-fight-01.png" post="true" neverStopRendering="true" />
-                                            <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/a-fight-02.png" post="true" neverStopRendering="true" />
-                                            <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/a-fight-03.png" post="true" neverStopRendering="true" />
-                                        </effect>
-                                    </image>
-                                </panel>
+                        <panel valign="center" backgroundImage="Textures/GUI/Map/map.png" childLayout="absolute-inside" width="100%"
+                               imageMode="resize:54,2,54,54,54,2,54,2,54,2,54,54">
+                            <panel x="0" y="0" width="32px" height="32px">
+                                <effect>
+                                    <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-00.png" post="true"/>
+                                    <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-00.png" post="true"/>
+                                </effect>
                             </panel>
 
-                            <!--Tab contents-->
-                            <panel height="*" width="100%" valign="top" childLayout="overlay" padding="4px,14px,14px,10px">
-
-                                <panel width="*" childLayout="horizontal" id="tab-content" visible="true">
-
-                                    <!--The worker amount & status-->
-                                    <control name="workerAmount" />
-
-                                    <!--The tab contents scroll-->
-                                    <control name="tabScroll" />
-
-                                    <!--The =, shown for creatures-->
-                                    <control name="workerEqual" />
-
-                                    <panel width="*" marginLeft="3px" valign="center" align="left" childLayout="horizontal" id="tab-content-content" visible="true">
-                                    </panel>
-
-                                    <!-- Reaper -->
-                                    <control name="reaperTalisman" />
-
+                            <!--Sell-->
+                            <panel x="100%" y="0" width="32px" height="32px" childLayout="center" id="tab-sell-content">
+                                <panel id="sell_0">
+                                    <effect>
+                                        <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-01.png" post="true" />
+                                        <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-01.png" post="true" neverStopRendering="true" />
+                                    </effect>
+                                    <interact onClick="select(sell,0)" />
                                 </panel>
+                            </panel>
+                            <!--The menu-->
+                            <panel id="menuButton" x="0" y="100%" width="32px" height="32px">
+                                <effect>
+                                    <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-02.png" post="true"/>
+                                    <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-02.png" post="true" neverStopRendering="true"  />
+                                </effect>
+                                <interact onClick="pauseMenu()"/>
+                            </panel>
 
-                                <panel width="*" childLayout="vertical" id="tab-rooms" visible="false">
-                                    <panel childLayout="horizontal" padding="3px,3px,0">
-                                        <image filename="Textures/GUI/Rooms/lair.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/dark_library.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/Treasury.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/casino.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/Bridge_Wooden.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/torture.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/graveyard.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/temple.png" valign="center" marginRight="3px" />
-                                    </panel>
-                                    <panel childLayout="horizontal" padding="3px,3px,3px">
-                                        <image filename="Textures/GUI/Rooms/hatchery.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/training.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/workshop.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/guard_room.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/prison.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/Bridge_Stone.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/pit.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Rooms/tba.png" valign="center" marginRight="3px" visible="false" />
-                                    </panel>
-                                </panel>
-
-                                <panel width="*" childLayout="horizontal" id="tab-creatures" visible="false">
-                                    <image filename="Textures/GUI/Tabs/t-cp-imp.png" valign="center" />
-                                    <image filename="Textures/GUI/Creatures/Evil/imp-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Tabs/t-creature_panel-0.png" valign="center" marginRight="3px" />
-                                    <panel marginRight="3px" childLayout="vertical" valign="center">
-                                        <image filename="Textures/GUI/Pages/page_forward.png" >
-                                            <effect>
-                                                <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true" neverStopRendering="true" />
-                                            </effect>
-                                        </image>
-                                        <image filename="Textures/GUI/Pages/page_back.png" />
-                                    </panel>
-                                    <image filename="Textures/GUI/Tabs/t-cp-total.png" valign="center" marginRight="3px" />
-
-                                    <image filename="Textures/GUI/Creatures/Evil/firefly-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Evil/goblin-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Evil/warlock-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Evil/troll-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Evil/bile_demon-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Evil/skeleton-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Evil/dark_elf-bg.png" valign="center" marginRight="3px" />
-
-                                    <image filename="Textures/GUI/Creatures/Good/dwarf-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Good/elf-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Good/fairy-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Good/giant-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Good/guard-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Good/knight-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Good/monk-bg.png" valign="center" marginRight="3px" />
-                                    <image filename="Textures/GUI/Creatures/Good/wizard-bg.png" valign="center" marginRight="3px" />
-
-                                </panel>
-
-                                <panel width="*" childLayout="vertical" id="tab-spells" visible="false">
-                                    <panel childLayout="horizontal" padding="3px,3px,0">
-                                        <image filename="Textures/GUI/Spells/create_imp.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Spells/possess.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Spells/sight_of_evil.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Spells/tremor.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Spells/create_gold.png" valign="center" marginRight="3px" />
-                                    </panel>
-                                    <panel childLayout="horizontal" padding="3px,3px,3px">
-                                        <image filename="Textures/GUI/Spells/thunderbolt.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Spells/heal.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Spells/call_to_arms.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Spells/turncoat.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Spells/inferno.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Spells/s-tba.png" valign="center" marginRight="3px" visible="false" />
-                                    </panel>
-                                </panel>
-
-                                <panel width="*" childLayout="vertical" id="tab-workshop" visible="false">
-                                    <panel childLayout="horizontal" padding="3px,3px,0">
-                                        <image filename="Textures/GUI/Doors/wood_door.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Doors/braced.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Doors/magic_door.png" valign="center" marginRight="3px" />
-
-                                        <image filename="Textures/GUI/Traps/sentry.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Traps/fear.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Traps/gas.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Traps/trigger.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Traps/freeze.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Traps/fireburst.png" valign="center" marginRight="3px" />
-                                    </panel>
-                                    <panel childLayout="horizontal" padding="3px,3px,3px">
-                                        <image filename="Textures/GUI/Doors/barricade.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Doors/steel_door.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Doors/secret_door.png" valign="center" marginRight="3px" />
-
-                                        <image filename="Textures/GUI/Traps/Guard_Post.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Traps/alarm.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Traps/spike.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Traps/boulder.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Traps/lightning.png" valign="center" marginRight="3px" />
-                                        <image filename="Textures/GUI/Traps/w-tba.png" valign="center" marginRight="3px" visible="false" />
-                                    </panel>
-                                </panel>
-
-                                <!-- Reaper -->
-                                <panel width="*" height="100%" valign="center" align="right" childLayout="vertical" id="reaper" visible="false">
-                                    <image marginRight="3px" align="right" valign="center" filename="Textures/GUI/Spells/reaper_talisman-00.png"/>
-                                </panel>
+                            <panel x="100%" y="100%" width="32px" height="32px">
+                                <effect>
+                                    <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-03.png" post="true"/>
+                                    <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-03.png" post="true"/>
+                                </effect>
                             </panel>
                         </panel>
                     </panel>
+                    <!-- bottom middle -->
+                    <panel height="100%" width="*" childLayout="overlay">
+                        <!-- popup messages and objective -->
+                        <panel width="100%" height="100%" childLayout="vertical">
+                            <panel childLayout="horizontal" width="*" height="64px" paddingLeft="280px">
+                                <!-- Objective -->
+                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-objective-00.png" marginLeft="6px">
+                                    <effect>
+                                        <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-objective-01.png" post="true"/>
+                                    </effect>
+                                </image>
+                                <!-- Messages -->
+                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-info-00.png" marginLeft="4px">
+                                    <effect>
+                                        <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-info-01.png" post="true"/>
+                                    </effect>
+                                </image>
+                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-creature-00.png" marginLeft="4px" visible="false">
+                                    <effect>
+                                        <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-creature-01.png" post="true"/>
+                                    </effect>
+                                </image>
+                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-fight-00.png" marginLeft="4px" visible="false">
+                                    <effect>
+                                        <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-fight-01.png" post="true"/>
+                                        <onActive name="imageOverlayPulsate" filename="Textures/GUI/Tabs/Messages/mt-fight-02.png" post="true"/>
+                                    </effect>
+                                </image>
+                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-info-00.png" marginLeft="4px" visible="false">
+                                    <effect>
+                                        <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-info-01.png" post="true"/>
+                                        <onActive name="imageOverlayPulsate" filename="Textures/GUI/Tabs/Messages/mt-info-02.png" post="true"/>
+                                    </effect>
+                                </image>
+                            </panel>
+                            <panel width="100%" height="*" />
+                        </panel>
+                        <!--The rest-->
+                        <control name="customTabGroup" height="100%" width="100%" valign="top" id="tabs-hud">
 
+                            <control name="customTab" id="tab-creature" image="Textures/GUI/Tabs/t-creatures.png"
+                                     active="Textures/GUI/Icons/selected-creature.png">
+                                <panel childLayout="horizontal" align="left">
+                                     <!--The worker amount & status-->
+                                    <control name="workerAmount"  />
+                                    <!--The tab contents scroll-->
+                                    <control name="tabScroll" />
+                                    <!--The =, shown for creatures-->
+                                    <control name="workerEqual" />
+                                    <panel childLayout="horizontal" id="tab-creature-content">
+                                        <control name="creature" filename="Textures/GUI/Creatures/Evil/firefly-bg.png" total="0"/>
+                                        <control name="creature" filename="Textures/GUI/Creatures/Good/dwarf-bg.png" total="0"/>
+                                    </panel>
+                                </panel>
+                            </control>
+
+                            <control name="customTab" id="tab-room" image="Textures/GUI/Tabs/t-rooms.png"
+                                     active="Textures/GUI/Icons/selected-room.png">
+                                <panel childLayout="vertical" align="left">
+                                    <panel childLayout="horizontal" padding="3px,3px,0" id="tab-room-content" />
+                                </panel>
+                            </control>
+
+                            <control name="customTab" id="tab-spell" image="Textures/GUI/Tabs/t-spells.png"
+                                     active="Textures/GUI/Icons/selected-spell.png">
+                                <panel childLayout="vertical" align="left">
+                                    <panel childLayout="horizontal" padding="3px,3px,0" id="tab-spell-content" />
+                                </panel>
+                            </control>
+
+                            <control name="customTab" id="tab-workshop" image="Textures/GUI/Tabs/t-workshop.png"
+                                     active="Textures/GUI/Icons/selected-workshop.png">
+                                <panel childLayout="vertical" align="left">
+                                    <panel childLayout="horizontal" padding="3px,3px,0" id="tab-door-content" />
+                                    <panel childLayout="horizontal" padding="3px,3px,3px" id="tab-trap-content" />
+                                </panel>
+                            </control>
+                        </control>
+
+                    </panel>
+                    <!-- bottom right -->
+                    <panel width="128px" height="100%" valign="center" align="right" childLayout="vertical">
+                        <panel height="64px" childLayout="horizontal">
+                            <!-- place for fight or call to arm -->
+                            <control name="fight" visible="false" />
+                        </panel>
+                        <!-- Reaper -->
+                        <panel childLayout="center" align="center" valign="center" height="*" width="100%">
+                            <control name="reaperTalisman"/>
+                        </panel>
+                    </panel>
                 </panel>
             </panel>
         </layer>
 
         <layer id="optionsMenu" childLayout="vertical" visible="false">
-            <panel id="top" height="72px" width="100%" align="left" valign="top" childLayout="center">
-                <!--Filler-->
-            </panel>
+            <panel height="72px" width="100%" align="left" valign="top" childLayout="center" />
 
-            <panel id="menu" backgroundColor="#0008" height="*" width="100%" align="left" valign="top" childLayout="vertical" visibleToMouse="true" paddingLeft="3px">
+            <panel backgroundColor="#0008" height="*" width="100%" align="left" valign="top" childLayout="vertical" visibleToMouse="true" paddingLeft="3px">
                 <panel width="100%" align="left" valign="top" childLayout="vertical">
-                    <control name="label" id="optionsMenuTitle" style="textNormal" text="${menu.94}"></control>
+                    <control name="label" id="optionsMenuTitle" style="textNormal" text="${menu.94}" />
                 </panel>
 
                 <!--Two columns of options-->
                 <panel width="100%" align="left" valign="top" childLayout="horizontal">
-                    <panel id="optionsColumnOne" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px">
-                        <control click="pauseMenu()" text="${menu.537}" glyph="Textures/GUI/Options/i-objective.png" name="iconText" />
-                        <control click="pauseMenu()" text="${menu.97}" glyph="Textures/GUI/Options/i-game.png" name="iconText" />
-                        <control click="pauseMenu()" text="${menu.143}" glyph="Textures/GUI/Options/i-load.png" name="iconText" />
-                        <control click="pauseMenu()" text="${menu.201}" glyph="Textures/GUI/Options/i-save.png" name="iconText" />
-                    </panel>
-                    <panel id="optionsColumnTwo" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px">
-                        <control click="quitToMainMenu()" text="${menu.1266}" glyph="Textures/GUI/Options/i-quit.png" name="iconText" />
-                        <control click="pauseMenu()" text="${menu.1269}" glyph="Textures/GUI/Options/i-restart.png" name="iconText" />
-                    </panel>
+                    <panel id="optionsColumnOne" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px" />
+                    <panel id="optionsColumnTwo" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px" />
                 </panel>
 
                 <!--Menu navigation-->
                 <panel width="100%" align="left" valign="bottom" childLayout="horizontal" paddingBottom="10px" paddingLeft="3px">
-                    <panel id="optionsNavigationColumnOne" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px">
-                        <control click="pauseMenu()" text="${menu.142}" glyph="Textures/GUI/Options/i-accept.png" name="iconText" />
-                    </panel>
-                    <panel id="optionsNavigationColumnTwo" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px">
-                    </panel>
+                    <panel id="optionsNavigationColumnOne" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px" />
+                    <panel id="optionsNavigationColumnTwo" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px" />
                 </panel>
             </panel>
 
             <!--The bottom panel-->
-            <panel id="bottom" height="212px" width="100%" align="left" valign="bottom" childLayout="center">
-                <!--Filler-->
-            </panel>
+            <panel height="212px" width="100%" align="left" valign="bottom" childLayout="center" />
         </layer>
 
     </screen>
 
     <screen id="cinematic" controller="toniarts.openkeeper.game.state.PlayerState">
 
-        <layer id="background" childLayout="vertical">
-
+        <layer childLayout="vertical">
             <!--The upper panel-->
-            <panel id="top" height="72px" width="100%" align="left" valign="top" childLayout="horizontal">
-                <panel height="65%" width="*" valign="center" backgroundImage="Textures/GUI/Windows/Bar-00.png" imageMode="repeat:0,0,128,64" />
-                <panel height="80%" width="64px" valign="center" backgroundImage="Textures/GUI/Windows/Bar-02.png" imageMode="repeat:0,0,128,64" />
+            <panel height="12%" width="100%" valign="top" childLayout="center" backgroundColor="#000">
+                <image align="right" filename="Textures/GUI/Icons/i-camera-no_go.png"  marginRight="10px" />
             </panel>
-
             <!--Empty center-->
-            <panel id="center" height="*" width="100%" childLayout="horizontal" />
-
+            <panel height="*" width="100%" childLayout="horizontal" />
             <!--The bottom panel-->
-            <panel id="bottom" height="180px" width="100%" align="left" valign="bottom" childLayout="vertical">
-
-                <!--The top bar-->
-                <panel height="64px" width="100%" childLayout="horizontal" align="left" valign="top">
-                    <panel height="65%" width="*" valign="center" backgroundImage="Textures/GUI/Windows/Bar-00.png" imageMode="repeat:0,0,128,64" />
-                    <panel height="90%" width="128px" valign="center" backgroundImage="Textures/GUI/Windows/Bar-02.png" imageMode="repeat:0,0,128,64" />
-                </panel>
-
-                <!--Map (place for it) & the works-->
-                <panel height="*" width="100%" childLayout="horizontal" align="left" valign="top" padding="6px,10px,6px,10px">
-                    <panel width="180px" />
-                    <panel id="bottomBackgroundPanel" width="*" height="*" backgroundImage="Textures/GUI/Windows/Panel-BG.png"
-                           imageMode="repeat:0,0,64,64"  margin="0px,6px,0px,10px"/>
-                </panel>
-            </panel>
-
+            <panel height="12%" width="100%" valign="bottom" backgroundColor="#000" />
         </layer>
+
     </screen>
 
 </nifty>

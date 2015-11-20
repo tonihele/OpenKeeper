@@ -29,6 +29,7 @@ import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.PlayerManaControl;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -54,7 +55,8 @@ public class GameState extends AbstractAppState {
     private WorldHandler worldHandler;
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
     private BulletAppState bulletAppState;
-
+    private float tick = 0;
+    private PlayerManaControl manaControl;
     /**
      * Single use game states
      *
@@ -110,7 +112,8 @@ public class GameState extends AbstractAppState {
                         }
                     };
                     worldNode = worldHandler.getWorld();
-
+                    manaControl = new PlayerManaControl((short) 3, worldHandler);
+                    
                     setProgress(1.0f);
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Failed to load the game!", e);
@@ -152,7 +155,20 @@ public class GameState extends AbstractAppState {
 
     @Override
     public void update(float tpf) {
-        // Game loop
+        tick += tpf;
+        if (tick >= 1) {
+            if (manaControl != null) {
+                manaControl.update();
+                manaControl.updateManaFromTiles();
+                manaControl.updateManaFromCreatures();
+            }
+            tick -= 1;
+        }
+        if (manaControl != null) {
+            manaControl.updateManaGet();
+            manaControl.updateManaLose();
+        }
+        super.update(tpf);
     }
 
     /**
@@ -166,5 +182,9 @@ public class GameState extends AbstractAppState {
 
     public WorldHandler getWorldHandler() {
         return worldHandler;
+    }
+    
+    public PlayerManaControl getPlayerManaControl() {
+        return this.manaControl;
     }
 }
