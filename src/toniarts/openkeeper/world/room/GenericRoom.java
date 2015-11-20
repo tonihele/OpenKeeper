@@ -42,6 +42,7 @@ public abstract class GenericRoom {
     protected final Thing.Room.Direction direction;
     private int wallPointer = -1;
     private static int[] wallIndexes = new int[]{8, 7};
+    private Node root;
 
     public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         this.assetManager = assetManager;
@@ -50,14 +51,13 @@ public abstract class GenericRoom {
     }
 
     public Spatial construct() {
-        Node node = new Node(roomInstance.getRoom().getName());
 
         // Add the floor
         BatchNode floorNode = new BatchNode("Floor");
         contructFloor(floorNode);
         floorNode.setShadowMode(getFloorShadowMode());
         floorNode.batch();
-        node.attachChild(floorNode);
+        getRootNode().attachChild(floorNode);
 
         // Add the wall
         if (roomInstance.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
@@ -67,9 +67,21 @@ public abstract class GenericRoom {
                 wallNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
                 wallNode.batch();
             }
-            node.attachChild(wallNode);
+            getRootNode().attachChild(wallNode);
         }
-        return node;
+        return getRootNode();
+    }
+
+    /**
+     * Get the room's root node
+     *
+     * @return the root node
+     */
+    public Node getRootNode() {
+        if (root == null) {
+            root = new Node(roomInstance.getRoom().getName());
+        }
+        return root;
     }
 
     protected abstract void contructFloor(Node root);
