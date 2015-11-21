@@ -18,6 +18,7 @@ package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 
@@ -261,22 +262,46 @@ public class GameLevel {
     public String getName() {
         return name;
     }
+    
+    protected void setName(String name) {
+        this.name = name;
+    }
 
     public String getDescription() {
         return description;
     }
+    
+    protected void setDescription(String description) {
+        this.description = description;
+    }
+
 
     public String getAuthor() {
         return author;
     }
+    
+    protected void setAuthor(String author) {
+        this.author = author;
+    }
+
 
     public String getEmail() {
         return email;
     }
+    
+    protected void setEmail(String email) {
+        this.email = email;
+    }
+
 
     public String getInformation() {
         return information;
     }
+    
+    protected void setInformation(String information) {
+        this.information = information;
+    }
+
     
     /**
      * Get level flags
@@ -286,6 +311,10 @@ public class GameLevel {
     public EnumSet<LevFlag> getLvlFlags() {
         return lvlFlags;
     }
+    
+    public void setLvlFlags(EnumSet<LevFlag> flags) {
+        this.lvlFlags = flags;
+    }
 
     /**
      * Get number of players supported by the map
@@ -294,6 +323,274 @@ public class GameLevel {
      */
     public short getPlayerCount() {
         return playerCount;
+    }
+    
+    public void setPlayerCount(short playerCount) {
+         this.playerCount = playerCount;
+    }
+
+    public int getTriggerId() {
+        return triggerId;
+    }
+
+    public void setTriggerId(int triggerId) {
+        this.triggerId = triggerId;
+    }
+
+    public int getTicksPerSec() {
+        return ticksPerSec;
+    }
+
+    public void setTicksPerSec(int ticksPerSec) {
+        this.ticksPerSec = ticksPerSec;
+    }
+
+    public short[] getX01184() {
+        return x01184;
+    }
+
+    public void setX01184(short[] x01184) {
+        this.x01184 = x01184;
+    }
+
+    public List<String> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(List<String> messages) {
+        this.messages = messages;
+    }
+
+    public String getSpeechStr() {
+        return speechStr;
+    }
+
+    public void setSpeechStr(String speechStr) {
+        this.speechStr = speechStr;
+    }
+
+    public short getTalismanPieces() {
+        return talismanPieces;
+    }
+
+    public void setTalismanPieces(short talismanPieces) {
+        this.talismanPieces = talismanPieces;
+    }
+
+    public List<LevelReward> getRewardPrev() {
+        return rewardPrev;
+    }
+
+    public void setRewardPrev(List<LevelReward> rewardPrev) {
+        this.rewardPrev = rewardPrev;
+    }
+
+    public List<LevelReward> getRewardNext() {
+        return rewardNext;
+    }
+
+    public void setRewardNext(List<LevelReward> rewardNext) {
+        this.rewardNext = rewardNext;
+    }
+
+    public short getSoundTrack() {
+        return soundTrack;
+    }
+
+    public void setSoundTrack(short soundTrack) {
+        this.soundTrack = soundTrack;
+    }
+
+    public TextTable getTextTableId() {
+        return textTableId;
+    }
+
+    public void setTextTableId(TextTable textTableId) {
+        this.textTableId = textTableId;
+    }
+
+    public int getTextTitleId() {
+        return textTitleId;
+    }
+
+    public void setTextTitleId(int textTitleId) {
+        this.textTitleId = textTitleId;
+    }
+
+    public int getTextPlotId() {
+        return textPlotId;
+    }
+
+    public void setTextPlotId(int textPlotId) {
+        this.textPlotId = textPlotId;
+    }
+
+    public int getTextDebriefId() {
+        return textDebriefId;
+    }
+
+    public void setTextDebriefId(int textDebriefId) {
+        this.textDebriefId = textDebriefId;
+    }
+
+    public int getTextObjectvId() {
+        return textObjectvId;
+    }
+
+    public void setTextObjectvId(int textObjectvId) {
+        this.textObjectvId = textObjectvId;
+    }
+
+    public int getX063c3() {
+        return x063c3;
+    }
+
+    public void setX063c3(int x063c3) {
+        this.x063c3 = x063c3;
+    }
+
+    public int getTextSubobjctvId1() {
+        return textSubobjctvId1;
+    }
+
+    public void setTextSubobjctvId1(int textSubobjctvId1) {
+        this.textSubobjctvId1 = textSubobjctvId1;
+    }
+
+    public int getTextSubobjctvId2() {
+        return textSubobjctvId2;
+    }
+
+    public void setTextSubobjctvId2(int textSubobjctvId2) {
+        this.textSubobjctvId2 = textSubobjctvId2;
+    }
+
+    public int getTextSubobjctvId3() {
+        return textSubobjctvId3;
+    }
+
+    public void setTextSubobjctvId3(int textSubobjctvId3) {
+        this.textSubobjctvId3 = textSubobjctvId3;
+    }
+
+    public int getSpeclvlIdx() {
+        return speclvlIdx;
+    }
+
+    public void setSpeclvlIdx(int speclvlIdx) {
+        this.speclvlIdx = speclvlIdx;
+    }
+
+    public Map<Short, Integer> getIntroductionOverrideTextIds() {
+        return introductionOverrideTextIds;
+    }
+
+    public void setIntroductionOverrideTextIds(Map<Short, Integer> introductionOverrideTextIds) {
+        this.introductionOverrideTextIds = introductionOverrideTextIds;
+    }
+
+    public String getTerrainPath() {
+        return terrainPath;
+    }
+
+    public void setTerrainPath(String terrainPath) {
+        this.terrainPath = terrainPath;
+    }
+
+    public short getOneShotHornyLev() {
+        return oneShotHornyLev;
+    }
+
+    public void setOneShotHornyLev(short oneShotHornyLev) {
+        this.oneShotHornyLev = oneShotHornyLev;
+    }
+
+    public short getX06405() {
+        return x06405;
+    }
+
+    public void setX06405(short x06405) {
+        this.x06405 = x06405;
+    }
+
+    public short getX06406() {
+        return x06406;
+    }
+
+    public void setX06406(short x06406) {
+        this.x06406 = x06406;
+    }
+
+    public int getSpeechHornyId() {
+        return speechHornyId;
+    }
+
+    public void setSpeechHornyId(int speechHornyId) {
+        this.speechHornyId = speechHornyId;
+    }
+
+    public int getSpeechPrelvlId() {
+        return speechPrelvlId;
+    }
+
+    public void setSpeechPrelvlId(int speechPrelvlId) {
+        this.speechPrelvlId = speechPrelvlId;
+    }
+
+    public int getSpeechPostlvlWin() {
+        return speechPostlvlWin;
+    }
+
+    public void setSpeechPostlvlWin(int speechPostlvlWin) {
+        this.speechPostlvlWin = speechPostlvlWin;
+    }
+
+    public int getSpeechPostlvlLost() {
+        return speechPostlvlLost;
+    }
+
+    public void setSpeechPostlvlLost(int speechPostlvlLost) {
+        this.speechPostlvlLost = speechPostlvlLost;
+    }
+
+    public int getSpeechPostlvlNews() {
+        return speechPostlvlNews;
+    }
+
+    public void setSpeechPostlvlNews(int speechPostlvlNews) {
+        this.speechPostlvlNews = speechPostlvlNews;
+    }
+
+    public int getSpeechPrelvlGenr() {
+        return speechPrelvlGenr;
+    }
+
+    public void setSpeechPrelvlGenr(int speechPrelvlGenr) {
+        this.speechPrelvlGenr = speechPrelvlGenr;
+    }
+
+    public String getHeroName() {
+        return heroName;
+    }
+
+    public void setHeroName(String heroName) {
+        this.heroName = heroName;
+    }
+
+    public List<FilePath> getPaths() {
+        return paths;
+    }
+
+    public void setPaths(List<FilePath> paths) {
+        this.paths = paths;
+    }
+
+    public int[] getUnknown() {
+        return unknown;
+    }
+
+    public void setUnknown(int[] unknown) {
+        this.unknown = unknown;
     }
     
     public String getFile(MapDataTypeEnum type) {

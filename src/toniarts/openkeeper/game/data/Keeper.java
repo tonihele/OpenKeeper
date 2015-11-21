@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.data;
 
-import toniarts.openkeeper.tools.convert.map.Player.AIType;
+import toniarts.openkeeper.tools.convert.map.AI.AIType;
 
 /**
  * Your friendly neighbourhood Keeper, or not
