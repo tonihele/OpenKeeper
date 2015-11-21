@@ -49,8 +49,8 @@ public class HiScoresFile {
             while (data.getFilePointer() < data.length()) {
                 HiScoresEntry entry = new HiScoresEntry();
                 entry.setScore(ConversionUtils.readUnsignedInteger(data));
-                entry.setName(ConversionUtils.readVaryingLengthStringUtf16(data, 64).trim());
-                entry.setLevel(ConversionUtils.readVaryingLengthStringUtf16(data, 64).trim());
+                entry.setName(ConversionUtils.readVaryingLengthStringUtf16(data, 32).trim());
+                entry.setLevel(ConversionUtils.readVaryingLengthStringUtf16(data, 32).trim());
 
                 hiScoresEntries.add(entry);
             }

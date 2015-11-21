@@ -30,6 +30,10 @@ public class Map {
     private Tile[][] tiles;
     private int width;
     private int height;
+    
+    private Terrain water;
+    private Terrain lava;
+    private Terrain claimedPath;
 
     public Map(int width, int height) {
         this.width = width;
@@ -67,5 +71,44 @@ public class Map {
 
     public Tile getTile(int x, int y) {
         return this.tiles[x][y];
+    }
+    
+    protected void setLava(Terrain lava) {
+        this.lava = lava;
+    }
+    
+    /**
+     * Get the lava terrain tile
+     *
+     * @return lava
+     */
+    public Terrain getLava() {
+        return lava;
+    }
+    
+    protected void setWater(Terrain water) {
+        this.water = water;
+    }
+
+    /**
+     * Get the water terrain tile
+     *
+     * @return water
+     */
+    public Terrain getWater() {
+        return water;
+    }
+    
+    protected void setClaimedPath(Terrain path) {
+        this.claimedPath = path;
+    }
+
+    /**
+     * Get the claimed path terrain tile
+     *
+     * @return claimed path
+     */
+    public Terrain getClaimedPath() {
+        return claimedPath;
     }
 }

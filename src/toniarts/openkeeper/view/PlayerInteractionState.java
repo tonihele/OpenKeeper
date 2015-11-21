@@ -379,7 +379,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             return false;
         }
         Vector2f pos = handler.getRoundedMousePos();
-        return (pos.x >= 0 && pos.x < gameState.getLevelData().getWidth() && pos.y >= 0 && pos.y < gameState.getLevelData().getHeight());
+        return (pos.x >= 0 && pos.x < gameState.getLevelData().getMap().getWidth() && pos.y >= 0 && pos.y < gameState.getLevelData().getMap().getHeight());
     }
 
     protected void setCursor() {

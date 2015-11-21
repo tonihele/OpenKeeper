@@ -62,6 +62,7 @@ import toniarts.openkeeper.tools.convert.hiscores.HiScoresFile;
 import toniarts.openkeeper.tools.convert.kcs.KcsEntry;
 import toniarts.openkeeper.tools.convert.kcs.KcsFile;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
+import toniarts.openkeeper.tools.convert.map.GameLevel.LevFlag;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.tools.convert.spr.SprFile;
@@ -855,7 +856,8 @@ public abstract class AssetsConverter {
             List<KwdFile> maps = new ArrayList<>(files.length);
             for (File file : files) {
                 KwdFile kwd = new KwdFile(dungeonKeeperFolder, file, false);
-                if (kwd.getLvlFlags().contains(KwdFile.LevFlag.IS_SKIRMISH_LEVEL) || kwd.getLvlFlags().contains(KwdFile.LevFlag.IS_MULTIPLAYER_LEVEL)) {
+                if (kwd.getGameLevel().getLvlFlags().contains(LevFlag.IS_SKIRMISH_LEVEL) 
+                        || kwd.getGameLevel().getLvlFlags().contains(LevFlag.IS_MULTIPLAYER_LEVEL)) {
                     maps.add(kwd);
                 }
             }
@@ -885,7 +887,7 @@ public abstract class AssetsConverter {
 
         // Create the thumbnail & save it
         BufferedImage thumbnail = MapThumbnailGenerator.generateMap(kwd, 144, 144, false);
-        ImageIO.write(thumbnail, "png", new File(destination.concat(ConversionUtils.stripFileName(kwd.getName())).concat(".png")));
+        ImageIO.write(thumbnail, "png", new File(destination + ConversionUtils.stripFileName(kwd.getGameLevel().getName()) + ".png"));
     }
 
     /**

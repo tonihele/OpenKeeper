@@ -51,11 +51,13 @@ public class TriggerAction extends Trigger {
         ZOOM_TO_ACTION_POINT(26),
         ROTATE_AROUND_ACTION_POINT(27),
         GENERATE_CREATURE(28),
+        UNKNOWN_30(30), // FIXME
         CAMERA_FOLLOW_PATH(31),
         COLLAPSE_HERO_GATE(32),
         SET_PORTAL_STATUS(37),
         SET_WIDESCREEN_MODE(38),
         MAKE_OBJECTIVE(42),
+        UNKNOWN_43(43), // FIXME
         SET_CREATURE_MOODS(44),
         SET_SYSTEM_MESSAGES(45),
         DISPLAY_SLAB_OWNER(46),

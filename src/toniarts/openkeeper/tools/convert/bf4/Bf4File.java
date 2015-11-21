@@ -117,9 +117,8 @@ public class Bf4File implements Iterable<Bf4Entry> {
      */
     private Bf4Entry readFontEntry(RandomAccessFile rawBf4) throws IOException {
         Bf4Entry entry = new Bf4Entry();
-        byte[] bytes = new byte[2];
-        rawBf4.read(bytes);
-        entry.setCharacter(ConversionUtils.bytesToStringUtf16(bytes).charAt(0));
+        
+        entry.setCharacter(ConversionUtils.bytesToStringUtf16(rawBf4, 1).charAt(0));
         entry.setUnknown1(ConversionUtils.readUnsignedShort(rawBf4));
         entry.setDataSize(ConversionUtils.readInteger(rawBf4));
         entry.setTotalSize(ConversionUtils.readUnsignedInteger(rawBf4));
@@ -132,6 +131,8 @@ public class Bf4File implements Iterable<Bf4Entry> {
         entry.setOffsetX(rawBf4.readByte());
         entry.setOffsetY(rawBf4.readByte());
         entry.setOuterWidth(ConversionUtils.readShort(rawBf4));
+        
+        byte[] bytes;
         if (entry.getWidth() > 0 && entry.getHeight() > 0) {
             bytes = new byte[entry.getDataSize()];
             rawBf4.read(bytes, 0, entry.getDataSize());

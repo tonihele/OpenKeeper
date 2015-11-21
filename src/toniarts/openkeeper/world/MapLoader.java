@@ -98,10 +98,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         terrain.attachChild(roomsNode);
 
         // Go through the map
-        int tilesCount = object.getWidth() * object.getHeight();
+        int tilesCount = object.getMap().getWidth() * object.getMap().getHeight();
         TileData[][] tiles = mapData.getTiles();
-        for (int y = 0; y < object.getHeight(); y++) {
-            for (int x = 0; x < object.getWidth(); x++) {
+        for (int y = 0; y < object.getMap().getHeight(); y++) {
+            for (int x = 0; x < object.getMap().getWidth(); x++) {
 
                 try {
                     handleTile(tiles, x, y, assetManager, terrain);
@@ -110,7 +110,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 }
 
                 // Update progress
-                updateProgress(y * object.getWidth() + x + 1, tilesCount);
+                updateProgress(y * object.getMap().getWidth() + x + 1, tilesCount);
             }
         }
 
@@ -221,9 +221,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param root where to generate pages on
      */
     private void generatePages(Node root) {
-        pages = new ArrayList<>(((int) Math.ceil(kwdFile.getHeight() / (float) PAGE_SQUARE_SIZE)) * ((int) Math.ceil(kwdFile.getWidth() / (float) PAGE_SQUARE_SIZE)));
-        for (int y = 0; y < (int) Math.ceil(kwdFile.getHeight() / (float) PAGE_SQUARE_SIZE); y++) {
-            for (int x = 0; x < (int) Math.ceil(kwdFile.getWidth() / (float) PAGE_SQUARE_SIZE); x++) {
+        pages = new ArrayList<>(((int) Math.ceil(kwdFile.getMap().getHeight() / (float) PAGE_SQUARE_SIZE)) * ((int) Math.ceil(kwdFile.getMap().getWidth() / (float) PAGE_SQUARE_SIZE)));
+        for (int y = 0; y < (int) Math.ceil(kwdFile.getMap().getHeight() / (float) PAGE_SQUARE_SIZE); y++) {
+            for (int x = 0; x < (int) Math.ceil(kwdFile.getMap().getWidth() / (float) PAGE_SQUARE_SIZE); x++) {
                 Node page = new Node(x + "_" + y);
 
                 // Create batch nodes for ceiling, floor and walls
@@ -653,7 +653,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         // Get the page index
         int index = pageX;
         if (pageY > 0) {
-            int pagesPerRow = (int) Math.ceil(kwdFile.getWidth() / (float) PAGE_SQUARE_SIZE);
+            int pagesPerRow = (int) Math.ceil(kwdFile.getMap().getWidth() / (float) PAGE_SQUARE_SIZE);
             index += pagesPerRow * pageY;
         }
         return (Node) root.getChild(index);
@@ -675,10 +675,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             // It is a bridge
             switch (tiles.getFlag()) {
                 case WATER: {
-                    return kwdFile.getWater();
+                    return kwdFile.getMap().getWater();
                 }
                 case LAVA: {
-                    return kwdFile.getLava();
+                    return kwdFile.getMap().getLava();
                 }
             }
         }
@@ -1364,7 +1364,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     }
 
     private void addIfValidCoordinate(final int x, final int y, List<Point> tileCoords) {
-        if ((x >= 0 && x < kwdFile.getWidth() && y >= 0 && y < kwdFile.getHeight())) {
+        if ((x >= 0 && x < kwdFile.getMap().getWidth() && y >= 0 && y < kwdFile.getMap().getHeight())) {
             tileCoords.add(new Point(x, y));
         }
     }

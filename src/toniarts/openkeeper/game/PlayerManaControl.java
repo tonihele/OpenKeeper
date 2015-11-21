@@ -62,8 +62,8 @@ public class PlayerManaControl {
     public final void updateManaFromTiles() {
         int result = 0;
 
-        for (int x = 0; x < worldHandler.getLevelData().getWidth(); x++) {
-            for (int y = 0; y < worldHandler.getLevelData().getHeight(); y++) {
+        for (int x = 0; x < worldHandler.getLevelData().getMap().getWidth(); x++) {
+            for (int y = 0; y < worldHandler.getLevelData().getMap().getHeight(); y++) {
                 TileData tile = worldHandler.getMapLoader().getTile(x, y);
                 if (tile.getPlayerId() == this.playerId) {
                     result += worldHandler.getLevelData().getTerrain(tile.getTerrainId()).getManaGain();
