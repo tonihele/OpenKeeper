@@ -41,11 +41,13 @@ import toniarts.openkeeper.world.room.WallSection.WallDirection;
 public class Normal extends GenericRoom {
 
     protected final boolean[][] map;
+    protected final Point start;
 
     public Normal(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, roomInstance, direction);
 
         map = roomInstance.getCoordinatesAsMatrix();
+        start = roomInstance.getMatrixStartPoint();
     }
 
     @Override
@@ -70,9 +72,13 @@ public class Normal extends GenericRoom {
     protected void contructFloor(Node n) {
 
         // Normal rooms
-        Point start = roomInstance.getCoordinates().get(0);
         for (int x = 0; x < map.length; x++) {
             for (int y = 0; y < map[x].length; y++) {
+
+                // Skip non-room tiles
+                if (!map[x][y]) {
+                    continue;
+                }
 
                 // There are 4 different floor pieces and pillars
                 Node tile = new Node();
@@ -240,7 +246,6 @@ public class Normal extends GenericRoom {
         // Pillars go into all at least 3x3 corners, there can be more than 4 pillars per room
 
         // Go through all the points and see if they are fit for pillar placement
-        Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
 
             // See that we have 2 "free" neigbouring tiles
