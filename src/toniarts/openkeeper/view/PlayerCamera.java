@@ -67,7 +67,6 @@ public class PlayerCamera {
 
     protected void rotateCamera(float value) {
 
-        // TODO: Now spinning around the Y axis
         // Rotating is circling around the camera look at point, or similar
         Matrix3f mat = new Matrix3f();
         mat.fromAngleNormalAxis(ROTATION_SPEED * value, Vector3f.UNIT_Y.clone());
@@ -76,14 +75,20 @@ public class PlayerCamera {
         Vector3f left = cam.getLeft();
         Vector3f dir = cam.getDirection();
 
+        Vector3f pos = cam.getLocation();
+        Vector3f look = dir.mult(-pos.y / dir.y).add(pos); // Where lookAt camera
+        pos.subtractLocal(look);
+
         mat.mult(up, up);
         mat.mult(left, left);
         mat.mult(dir, dir);
+        mat.mult(pos, pos);
 
         Quaternion q = new Quaternion();
         q.fromAxes(left, up, dir);
         q.normalizeLocal();
 
+        cam.setLocation(look.addLocal(pos));
         cam.setAxes(q);
     }
 }
