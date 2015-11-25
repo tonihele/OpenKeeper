@@ -292,6 +292,22 @@ public class Normal extends GenericRoom {
                     // Contruct a pillar
                     Spatial part = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "_Pillar.j3o"));
                     resetAndMoveSpatial(part, new Point(0, 0), p);
+
+                    // Face "in" diagonally
+                    if (freeDirections.contains(WallDirection.NORTH) && freeDirections.contains(WallDirection.EAST)) {
+                        Quaternion quat = new Quaternion();
+                        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                        part.rotate(quat);
+                    } else if (freeDirections.contains(WallDirection.SOUTH) && freeDirections.contains(WallDirection.EAST)) {
+                        Quaternion quat = new Quaternion();
+                        quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                        part.rotate(quat);
+                    } else if (freeDirections.contains(WallDirection.SOUTH) && freeDirections.contains(WallDirection.WEST)) {
+                        Quaternion quat = new Quaternion();
+                        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                        part.rotate(quat);
+                    }
+
                     part.move(-0.5f, MapLoader.TILE_HEIGHT, -0.5f);
                     node.attachChild(part);
                 }
