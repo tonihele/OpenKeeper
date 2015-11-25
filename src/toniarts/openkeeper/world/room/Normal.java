@@ -290,7 +290,7 @@ public class Normal extends GenericRoom {
                 if (found) {
 
                     // Contruct a pillar
-                    Spatial part = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "_Pillar.j3o"));
+                    Spatial part = assetManager.loadModel(getPillarResource());
                     resetAndMoveSpatial(part, new Point(0, 0), p);
 
                     // Face "in" diagonally
@@ -313,5 +313,15 @@ public class Normal extends GenericRoom {
                 }
             }
         }
+    }
+
+    /**
+     * Get the pillar resource. These are actually in object list. But there are
+     * no mapping to my knowledge. So hard code :(
+     *
+     * @return room pillar resource
+     */
+    protected String getPillarResource() {
+        return ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "_Pillar.j3o");
     }
 }

@@ -73,6 +73,27 @@ public final class RoomConstructor {
                 return new FiveByFiveRotated(assetManager, roomInstance, null);
 
             case NORMAL:
+                if (roomName.equalsIgnoreCase("Lair")) {
+                    return new Lair(assetManager, roomInstance, null);
+                }
+                if (roomName.equalsIgnoreCase("Library")) {
+                    return new Library(assetManager, roomInstance, null);
+                }
+                if (roomName.equalsIgnoreCase("Training Room")) {
+                    return new TrainingRoom(assetManager, roomInstance, null);
+                }
+                if (roomName.equalsIgnoreCase("Workshop")) {
+                    return new Workshop(assetManager, roomInstance, null);
+                }
+                if (roomName.equalsIgnoreCase("Guard Room")) {
+                    return new GuardRoom(assetManager, roomInstance, null);
+                }
+                if (roomName.equalsIgnoreCase("Casino")) {
+                    return new Casino(assetManager, roomInstance, null);
+                }
+                if (roomName.equalsIgnoreCase("Graveyard")) {
+                    return new Graveyard(assetManager, roomInstance, null);
+                }
                 return new Normal(assetManager, roomInstance, null);
 
             case QUAD:
