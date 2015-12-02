@@ -43,11 +43,11 @@ public final class MapData {
     }
 
     public int getWidth() {
-        return kwdFile.getWidth();
+        return kwdFile.getMap().getWidth();
     }
 
     public int getHeight() {
-        return kwdFile.getHeight();
+        return kwdFile.getMap().getHeight();
     }
 
     protected void setTile(int x, int y, TileData tile) {

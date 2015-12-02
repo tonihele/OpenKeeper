@@ -87,10 +87,10 @@ public class MapThumbnailGenerator {
         kwd.load();
 
         // Determine wanted width/height
-        int imageWidth = kwd.getWidth();
-        int imageHeight = kwd.getHeight();
-        int drawWidth = kwd.getWidth();
-        int drawHeight = kwd.getHeight();
+        int imageWidth = kwd.getMap().getWidth();
+        int imageHeight = kwd.getMap().getHeight();
+        int drawWidth = kwd.getMap().getWidth();
+        int drawHeight = kwd.getMap().getHeight();
         if (width != null || height != null) {
             imageWidth = (width != null ? width : imageWidth);
             imageHeight = (height != null ? height : imageHeight);
@@ -100,27 +100,27 @@ public class MapThumbnailGenerator {
                 if (width != null && height == null) {
 
                     // Go by width
-                    imageHeight = imageWidth * kwd.getHeight() / kwd.getWidth();
+                    imageHeight = imageWidth * kwd.getMap().getHeight() / kwd.getMap().getWidth();
                 } else if (height != null && width == null) {
 
                     // Go by height
-                    imageWidth = imageHeight * kwd.getWidth() / kwd.getHeight();
+                    imageWidth = imageHeight * kwd.getMap().getWidth() / kwd.getMap().getHeight();
                 } else {
 
                     // Max out the image
-                    int byWidthArea = (imageWidth * kwd.getHeight() / kwd.getWidth()) * imageWidth;
-                    int byHeightArea = (imageHeight * kwd.getWidth() / kwd.getHeight()) * imageHeight;
+                    int byWidthArea = (imageWidth * kwd.getMap().getHeight() / kwd.getMap().getWidth()) * imageWidth;
+                    int byHeightArea = (imageHeight * kwd.getMap().getWidth() / kwd.getMap().getHeight()) * imageHeight;
                     if (byWidthArea > byHeightArea) {
-                        imageHeight = imageWidth * kwd.getHeight() / kwd.getWidth();
+                        imageHeight = imageWidth * kwd.getMap().getHeight() / kwd.getMap().getWidth();
                     } else {
-                        imageWidth = imageHeight * kwd.getWidth() / kwd.getHeight();
+                        imageWidth = imageHeight * kwd.getMap().getWidth() / kwd.getMap().getHeight();
                     }
                 }
             }
 
             // We need to draw the map in even steven pixel scale so...
-            drawWidth = kwd.getWidth() * (int) Math.ceil((float) imageWidth / kwd.getWidth());
-            drawHeight = kwd.getHeight() * (int) Math.ceil((float) imageHeight / kwd.getHeight());
+            drawWidth = kwd.getMap().getWidth() * (int) Math.ceil((float) imageWidth / kwd.getMap().getWidth());
+            drawHeight = kwd.getMap().getHeight() * (int) Math.ceil((float) imageHeight / kwd.getMap().getHeight());
         }
 
         // Format the data models
@@ -135,7 +135,7 @@ public class MapThumbnailGenerator {
         byte[] data = (byte[]) ((DataBufferByte) raster.getDataBuffer()).getData();
 
         // Draw the map itself
-        drawMap(kwd, data, drawWidth / kwd.getWidth(), drawHeight / kwd.getHeight());
+        drawMap(kwd, data, drawWidth / kwd.getMap().getWidth(), drawHeight / kwd.getMap().getHeight());
 
         // See if we should super sample
         if (drawWidth != imageWidth || drawHeight != imageHeight) {
@@ -181,18 +181,18 @@ public class MapThumbnailGenerator {
     private static void drawMap(final KwdFile kwd, byte[] data, int xScale, int yScale) {
 
         // For now this is very much hard coded, I couldn't find much logic
-        for (int y = 0; y < kwd.getHeight(); y++) {
-            for (int x = 0; x < kwd.getWidth(); x++) {
+        for (int y = 0; y < kwd.getMap().getHeight(); y++) {
+            for (int x = 0; x < kwd.getMap().getWidth(); x++) {
                 Tile tile = kwd.getTile(x, y);
                 byte value = 0;
 
                 // Water and lava
                 Terrain terrainTile = kwd.getTerrain(tile.getTerrainId());
-                if (x == 0 || y == 0 || y == kwd.getHeight() - 1 || x == kwd.getWidth() - 1) {
+                if (x == 0 || y == 0 || y == kwd.getMap().getHeight() - 1 || x == kwd.getMap().getWidth() - 1) {
                     value = 46; // Edge of maps
-                } else if (kwd.getLava().getTerrainId() == tile.getTerrainId()) {
+                } else if (kwd.getMap().getLava().getTerrainId() == tile.getTerrainId()) {
                     value = 10; // Lava
-                } else if (kwd.getWater().getTerrainId() == tile.getTerrainId()) {
+                } else if (kwd.getMap().getWater().getTerrainId() == tile.getTerrainId()) {
                     value = 8; // Water
                 } // Other non-ownable tiles
                 else if (terrainTile.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
@@ -232,7 +232,7 @@ public class MapThumbnailGenerator {
                 // Write the value
                 for (int yScaling = 0; yScaling < yScale; yScaling++) {
                     for (int xScaling = 0; xScaling < xScale; xScaling++) {
-                        data[(y * yScale + yScaling) * kwd.getWidth() * xScale + (x * xScale + xScaling)] = value;
+                        data[(y * yScale + yScaling) * kwd.getMap().getWidth() * xScale + (x * xScale + xScaling)] = value;
                     }
                 }
 

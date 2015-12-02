@@ -512,25 +512,26 @@ public abstract class Thing {
 //        };
 
     // FIXME: these were camera positions, but found in variables???
+    // Contains in GlobalVariables.kwd only
     public static class Thing12 extends Thing {
 
         private Vector3f x00;
         private Vector3f x0c;
         private Vector3f x18;
-        private int x24;
-        private int x28;
-        private int x2c;
-        private int x30;
-        private int x34;
-        private int x38;
-        private int x3c;
-        private int x40;
-        private int x44;
+        private float x24; // maybe float ??? maybe Vector3f ???
+        private float x28; // maybe float ???
+        private float x2c; // maybe float ???
+        private float x30; // maybe float ??? maybe Vector3f ???
+        private float x34; // maybe float ???
+        private float x38; // maybe float ???
+        private float x3c; // maybe Vector3f ???
+        private float x40;
+        private float x44;
         private int x48; // flags
         private int x4c;
-        private int x4e;
-        private int x50;
-        private short id;
+        private int x4e; // 512, 0
+        private int x50; // 0, 220
+        private short id; // maybe levelId ??? because it`s repeat
 
         public Vector3f getX00() {
             return x00;
@@ -556,75 +557,75 @@ public abstract class Thing {
             this.x18 = x18;
         }
 
-        public int getX24() {
+        public float getX24() {
             return x24;
         }
 
-        protected void setX24(int x24) {
+        protected void setX24(float x24) {
             this.x24 = x24;
         }
 
-        public int getX28() {
+        public float getX28() {
             return x28;
         }
 
-        protected void setX28(int x28) {
+        protected void setX28(float x28) {
             this.x28 = x28;
         }
 
-        public int getX2c() {
+        public float getX2c() {
             return x2c;
         }
 
-        protected void setX2c(int x2c) {
+        protected void setX2c(float x2c) {
             this.x2c = x2c;
         }
 
-        public int getX30() {
+        public float getX30() {
             return x30;
         }
 
-        protected void setX30(int x30) {
+        protected void setX30(float x30) {
             this.x30 = x30;
         }
 
-        public int getX34() {
+        public float getX34() {
             return x34;
         }
 
-        protected void setX34(int x34) {
+        protected void setX34(float x34) {
             this.x34 = x34;
         }
 
-        public int getX38() {
+        public float getX38() {
             return x38;
         }
 
-        protected void setX38(int x38) {
+        protected void setX38(float x38) {
             this.x38 = x38;
         }
 
-        public int getX3c() {
+        public float getX3c() {
             return x3c;
         }
 
-        protected void setX3c(int x3c) {
+        protected void setX3c(float x3c) {
             this.x3c = x3c;
         }
 
-        public int getX40() {
+        public float getX40() {
             return x40;
         }
 
-        protected void setX40(int x40) {
+        protected void setX40(float x40) {
             this.x40 = x40;
         }
 
-        public int getX44() {
+        public float getX44() {
             return x44;
         }
 
-        protected void setX44(int x44) {
+        protected void setX44(float x44) {
             this.x44 = x44;
         }
 
@@ -666,6 +667,14 @@ public abstract class Thing {
 
         protected void setId(short id) {
             this.id = id;
+        }
+
+        @Override
+        public String toString() {
+            return "Thing12{" + "x00=" + x00 + ", x0c=" + x0c + ", x18=" + x18 + ", x24=" + x24 + ", x28=" + x28 
+                    + ", x2c=" + x2c + ", x30=" + x30 + ", x34=" + x34 + ", x38=" + x38 + ", x3c=" + x3c + ", x40=" 
+                    + x40 + ", x44=" + x44 + ", x48=" + x48 + ", x4c=" + x4c + ", x4e=" + x4e + ", x50=" + x50 
+                    + ", id=" + id + '}';
         }
     }
 

@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.Objects;
+
 /**
  * Container for file paths found in in the KWD file
  *
@@ -26,6 +28,14 @@ public class FilePath {
     private MapDataTypeEnum id; // unsigned int
     private int unknown2;
     private String path; // 64
+    
+    public FilePath() { }
+    
+    public FilePath(MapDataTypeEnum id, String path) {
+        this.id = id;
+        this.path = path;
+        this.unknown2 = 0;
+    }
 
     public MapDataTypeEnum getId() {
         return id;
@@ -49,6 +59,28 @@ public class FilePath {
 
     protected void setPath(String path) {
         this.path = path;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 23 * hash + Objects.hashCode(this.id);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(java.lang.Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final FilePath other = (FilePath) obj;
+        if (this.id != other.id) {
+            return false;
+        }
+        return true;
     }
 
     @Override

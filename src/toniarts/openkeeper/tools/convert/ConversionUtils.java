@@ -28,9 +28,12 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -215,13 +218,13 @@ public class ConversionUtils {
      * Reads bytes from a file and converts them to a string
      *
      * @param file the file
-     * @param size the number of bytes to read
+     * @param length string length
      * @see #bytesToString(byte[])
      * @return fresh String
      * @throws IOException the reading may fail
      */
-    public static String bytesToString(RandomAccessFile file, int size) throws IOException {
-        byte[] bytes = new byte[size];
+    public static String bytesToString(RandomAccessFile file, int length) throws IOException {
+        byte[] bytes = new byte[length];
         file.read(bytes);
         return bytesToString(bytes);
     }
@@ -256,13 +259,13 @@ public class ConversionUtils {
      * Reads strings of varying length (UTF16 NULL terminated) from the file
      *
      * @param file the file to read from
-     * @param size number of Strings to read
+     * @param length max length of string
      * @return string read from the file
      * @throws IOException
      */
-    public static String readVaryingLengthStringUtf16(RandomAccessFile file, int size) throws IOException {
+    public static String readVaryingLengthStringUtf16(RandomAccessFile file, int length) throws IOException {
 
-        byte[] bytes = new byte[size];
+        byte[] bytes = new byte[length * 2];
         file.read(bytes);
 
         List<Byte> result = new ArrayList<>();
@@ -277,6 +280,28 @@ public class ConversionUtils {
 
         return ConversionUtils.bytesToStringUtf16(toByteArray(result));
     }
+    
+    /**
+        * Reads a DK2 style timestamp
+        *
+        * @param file the file to read from
+        * @return the date in current locale
+        * @throws IOException may fail
+        */
+       public static Date readTimestamp(RandomAccessFile file) throws IOException {
+
+           // Dates are in UTC
+           Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+           cal.set(Calendar.YEAR, ConversionUtils.readUnsignedShort(file));
+           cal.set(Calendar.DAY_OF_MONTH, file.readUnsignedByte());
+           cal.set(Calendar.MONTH, file.readUnsignedByte());
+           file.skipBytes(2);
+           cal.set(Calendar.HOUR_OF_DAY, file.readUnsignedByte());
+           cal.set(Calendar.MINUTE, file.readUnsignedByte());
+           cal.set(Calendar.SECOND, file.readUnsignedByte());
+           file.skipBytes(1);
+           return cal.getTime();
+       }
 
     /**
      * Convert a byte to unsigned byte

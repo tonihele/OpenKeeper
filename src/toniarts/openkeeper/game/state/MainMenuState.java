@@ -95,6 +95,7 @@ import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.MAP_THUMBNAILS_FOLDER;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.GameLevel.LevFlag;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.video.MovieState;
@@ -897,10 +898,10 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         skirmishMaps = new ArrayList<>(files.length);
         for (File file : files) {
             KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
-            if (kwd.getLvlFlags().contains(KwdFile.LevFlag.IS_SKIRMISH_LEVEL)) {
+            if (kwd.getGameLevel().getLvlFlags().contains(LevFlag.IS_SKIRMISH_LEVEL)) {
                 skirmishMaps.add(kwd);
             }
-            if (kwd.getLvlFlags().contains(KwdFile.LevFlag.IS_MULTIPLAYER_LEVEL)) {
+            if (kwd.getGameLevel().getLvlFlags().contains(LevFlag.IS_MULTIPLAYER_LEVEL)) {
                 multiplayerMaps.add(kwd);
             }
         }
@@ -909,7 +910,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         Comparator c = new Comparator<KwdFile>() {
             @Override
             public int compare(KwdFile o1, KwdFile o2) {
-                return o1.getName().compareToIgnoreCase(o2.getName());
+                return o1.getGameLevel().getName().compareToIgnoreCase(o2.getGameLevel().getName());
             }
         };
         Collections.sort(skirmishMaps, c);
@@ -934,14 +935,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         // The map title
         Label label = screen.findNiftyControl("mapNameTitle", Label.class);
-        label.setText(selectedSkirmishMap == null ? "No maps found from " + AssetsConverter.MAPS_FOLDER : selectedSkirmishMap.getName());
+        label.setText(selectedSkirmishMap == null ? "No maps found from " + AssetsConverter.MAPS_FOLDER : selectedSkirmishMap.getGameLevel().getName());
         NiftyUtils.resetContraints(label);
 
         if (selectedSkirmishMap != null) {
 
             // Player count
             label = screen.findNiftyControl("playerCount", Label.class);
-            label.setText(": " + selectedSkirmishMap.getPlayerCount());
+            label.setText(": " + selectedSkirmishMap.getGameLevel().getPlayerCount());
             NiftyUtils.resetContraints(label);
 
             // Map image
@@ -952,8 +953,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             mapImage.setConstraintHeight(new SizeValue(img.getHeight() + "px"));
 
             // We can't have more players than the map supports
-            if (skirmishPlayers.size() > selectedSkirmishMap.getPlayerCount()) {
-                skirmishPlayers.subList(selectedSkirmishMap.getPlayerCount(), skirmishPlayers.size()).clear();
+            if (skirmishPlayers.size() > selectedSkirmishMap.getGameLevel().getPlayerCount()) {
+                skirmishPlayers.subList(selectedSkirmishMap.getGameLevel().getPlayerCount(), skirmishPlayers.size()).clear();
             }
             populateSkirmishPlayerTable();
         }
@@ -1050,14 +1051,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         // The map title
         Label label = screen.findNiftyControl("mapNameTitle", Label.class);
-        label.setText(selectedMap == null ? "No maps found from " + AssetsConverter.MAPS_FOLDER : selectedMap.getName());
+        label.setText(selectedMap == null ? "No maps found from " + AssetsConverter.MAPS_FOLDER : selectedMap.getGameLevel().getName());
         NiftyUtils.resetContraints(label);
 
         if (selectedMap != null) {
 
             // Player count
             label = screen.findNiftyControl("playerCount", Label.class);
-            label.setText(": " + selectedMap.getPlayerCount());
+            label.setText(": " + selectedMap.getGameLevel().getPlayerCount());
             NiftyUtils.resetContraints(label);
 
             // Map image
@@ -1070,7 +1071,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
             // Map size
             label = screen.findNiftyControl("mapSize", Label.class);
-            label.setText(selectedMap.getWidth() + " x " + selectedMap.getHeight());
+            label.setText(selectedMap.getMap().getWidth() + " x " + selectedMap.getMap().getHeight());
             NiftyUtils.resetContraints(label);
         }
 
@@ -1081,19 +1082,21 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     /**
      * Populate the map selection with given maps
      *
-     * @param maps map selection
+     * @param kwds map selection
      * @param selectedMap the selected map
      */
-    private void populateMapSelection(List<KwdFile> maps, KwdFile selectedMap) {
+    private void populateMapSelection(List<KwdFile> kwds, KwdFile selectedMap) {
         ListBox<TableRow> listBox = screen.findNiftyControl("mapsTable", ListBox.class);
         int i = 0;
         int selected = 0;
         listBox.clear();
-        for (KwdFile map : maps) {
-            if (map.equals(selectedMap)) {
+        for (KwdFile kwd : kwds) {
+            if (kwd.equals(selectedMap)) {
                 selected = i;
             }
-            listBox.addItem(new TableRow(i, map.getName(), String.valueOf(map.getPlayerCount()), map.getWidth() + " x " + map.getHeight()));
+            listBox.addItem(new TableRow(i, kwd.getGameLevel().getName(), 
+                    String.valueOf(kwd.getGameLevel().getPlayerCount()), 
+                    kwd.getMap().getWidth() + " x " + kwd.getMap().getHeight()));
             i++;
         }
         listBox.selectItemByIndex(selected);
@@ -1102,7 +1105,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private NiftyImage getMapThumbnail(KwdFile map) {
 
         // See if the map thumbnail exist, otherwise create one
-        String asset = "Textures/Thumbnails/".concat(ConversionUtils.stripFileName(map.getName())).concat(".png");
+        String asset = "Textures/Thumbnails/" + ConversionUtils.stripFileName(map.getGameLevel().getName()) + ".png";
         if (assetManager.locateAsset(new TextureKey(asset)) == null) {
 
             // Generate

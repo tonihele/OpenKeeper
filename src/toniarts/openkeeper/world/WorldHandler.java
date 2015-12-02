@@ -100,8 +100,8 @@ public abstract class WorldHandler {
      */
     public void selectTiles(SelectionArea selectionArea, boolean select) {
         List<Point> updatableTiles = new ArrayList<>();
-        for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getWidth(), selectionArea.getEnd().x + 1); x++) {
-            for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getHeight(), selectionArea.getEnd().y + 1); y++) {
+        for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getMap().getWidth(), selectionArea.getEnd().x + 1); x++) {
+            for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getMap().getHeight(), selectionArea.getEnd().y + 1); y++) {
                 TileData tile = mapLoader.getTile(x, y);
                 Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
                 if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
@@ -266,8 +266,8 @@ public abstract class WorldHandler {
     public void build(SelectionArea selectionArea, Player player, Room room) {
         Set<Point> updatableTiles = new HashSet<>();
         Set<Point> buildPlots = new HashSet<>();
-        for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getWidth(), selectionArea.getEnd().x + 1); x++) {
-            for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getHeight(), selectionArea.getEnd().y + 1); y++) {
+        for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getMap().getWidth(), selectionArea.getEnd().x + 1); x++) {
+            for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getMap().getHeight(), selectionArea.getEnd().y + 1); y++) {
 
                 // See that is this valid
                 if (!isBuildable(x, y, player, room)) {
@@ -345,8 +345,8 @@ public abstract class WorldHandler {
     public void sell(SelectionArea selectionArea, Player player) {
         Set<Point> updatableTiles = new HashSet<>();
         Set<RoomInstance> soldInstances = new HashSet<>();
-        for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getWidth(), selectionArea.getEnd().x + 1); x++) {
-            for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getHeight(), selectionArea.getEnd().y + 1); y++) {
+        for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getMap().getWidth(), selectionArea.getEnd().x + 1); x++) {
+            for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getMap().getHeight(), selectionArea.getEnd().y + 1); y++) {
 
                 // See that is this valid
                 if (!isSellable(x, y, player)) {
@@ -355,7 +355,7 @@ public abstract class WorldHandler {
 
                 // Sell
                 TileData tile = mapLoader.getTile(x, y);
-                tile.setTerrainId(kwdFile.getClaimedPath().getTerrainId());
+                tile.setTerrainId(kwdFile.getMap().getClaimedPath().getTerrainId());
 
                 // Get the instance
                 Point p = new Point(x, y);
