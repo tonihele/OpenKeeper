@@ -64,15 +64,20 @@ import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSpell;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
+import toniarts.openkeeper.view.PossessionCameraState;
+import toniarts.openkeeper.view.PossessionInteractionState;
 
 /**
  * The player state! GUI, camera, etc. Player interactions
@@ -97,8 +102,12 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private boolean paused = false;
     private boolean backgroundSet = false;
     private static final String HUD_SCREEN_ID = "hud";
+    private static final String POSSESSION_SCREEN_ID = "possession";
     private List<AbstractPauseAwareState> appStates = new ArrayList<>();
+    private List<AbstractPauseAwareState> storedAppStates;
     private PlayerInteractionState interactionState;
+    private PossessionInteractionState possessionState;
+
     private Label goldCurrent;
     private Label tooltip;
     private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
@@ -155,10 +164,54 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Create app states
             Player player = gameState.getLevelData().getPlayer((short) 3); // Keeper 1
             appStates.add(new PlayerCameraState(player));
+
+            possessionState = new PossessionInteractionState(gameState) {
+
+                @Override
+                protected void onExit() {
+                    super.onExit();
+                    // Detach states
+                    for (AbstractAppState state : appStates) {
+                        stateManager.detach(state);
+                    }
+                    appStates = new ArrayList<>(storedAppStates);
+                    // Load the state
+                    for (AbstractAppState state : appStates) {
+                        stateManager.attach(state);
+                    }
+
+                    nifty.gotoScreen(HUD_SCREEN_ID);
+                }
+
+                @Override
+                protected void onActionChange(PossessionInteractionState.Action action) {
+                    PlayerState.this.updatePossessionSelectedItem(action);
+                }
+            };
+
             interactionState = new PlayerInteractionState(player, gameState, guiConstraint) {
                 @Override
                 protected void onInteractionStateChange(InteractionState interactionState, int id) {
                     PlayerState.this.updateSelectedItem(interactionState, id);
+                }
+
+                @Override
+                protected void onPossession(Thing.KeeperCreature creature) {
+                    // Detach states
+                    for (AbstractAppState state : appStates) {
+                        stateManager.detach(state);
+                    }
+                    storedAppStates = new ArrayList<>(appStates);
+                    appStates.clear();
+                    appStates.add(possessionState);
+                    // TODO not Thing.KeeperCreature need wrapper around KeeperCreature
+                    possessionState.setTarget(creature);
+                    appStates.add(new PossessionCameraState(creature, PlayerState.this.gameState.getLevelData()));
+                    // Load the state
+                    for (AbstractAppState state : appStates) {
+                        stateManager.attach(state);
+                    }
+                    nifty.gotoScreen(POSSESSION_SCREEN_ID);
                 }
             };
             appStates.add(interactionState);
@@ -167,6 +220,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             for (AbstractAppState state : appStates) {
                 stateManager.attach(state);
             }
+            // Load the HUD
+            // app.getNifty().getNifty().gotoScreen(HUD_SCREEN_ID);
         } else {
 
             // Detach states
@@ -283,7 +338,147 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
                 break;
             }
+            case POSSESSION_SCREEN_ID:
+                // what we need? abitities and spells, also melee
+                Creature creature = possessionState.getTargetCreature();
+
+                Element contentPanel = screen.findElementByName("creature-icon");
+                createCreatureIcon(creature.getIcon1Resource().getName()).build(nifty, screen, contentPanel);
+
+                creature.getFirstPersonFilterResource();
+                creature.getFirstPersonGammaEffect();
+
+                contentPanel = screen.findElementByName("creature-abilities");
+                if (contentPanel != null) {
+
+                    String ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility1());
+                    if (ability != null) {
+                        createCreatureAbilityIcon(ability, 1).build(nifty, screen, contentPanel);
+                    }
+
+                    ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility2());
+                    if (ability != null) {
+                        createCreatureAbilityIcon(ability, 2).build(nifty, screen, contentPanel);
+                    }
+                }
+
+                contentPanel = screen.findElementByName("creature-attacks");
+                if (contentPanel != null) {
+                    for (Element element : contentPanel.getElements()) {
+                        element.markForRemoval();
+                    }
+
+                    createCreatureMeleeIcon(creature.getFirstPersonMeleeResource().getName()).build(nifty, screen, contentPanel);
+
+                    int index = 1;
+                    for (Creature.Spell s : creature.getSpells()) {
+                        // TODO: check creature level availiablity
+                        if (s.getCreatureSpellId() == 0) {
+                            continue;
+                        }
+                        CreatureSpell cs = gameState.getLevelData().getCreatureSpellById(s.getCreatureSpellId());
+                        createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
+                    }
+                }
+
+                break;
         }
+    }
+
+    // FIXME I doesn`t find resources to abilities
+    private String getAbilityResourceName(Creature.SpecialAbility ability) {
+        String name = null;
+        switch (ability) {
+            case HYPNOTISE:
+                name = "GUI/Icons/1st-person/hypnotise-mode";
+                break;
+            case TURN_TO_BAT:
+                name = "GUI/Icons/1st-person/bat-mode";
+                break;
+            case PICK_UP_WORKERS:
+                // Throw_Imp-Mode
+                // throw_book-mode
+                name = "GUI/Icons/1st-person/throw-mode";
+                break;
+            case PRAY:
+                name = "GUI/Icons/1st-person/pray-mode";
+                break;
+            case SNIPER_MODE:
+                name = "GUI/Icons/1st-person/sniper-mode";
+                break;
+            case DISGUISE_N_STEAL:
+                name = "GUI/Icons/1st-person/sneak-mode";
+                break;
+        }
+        return name;
+    }
+
+    private ImageBuilder createCreatureAbilityIcon(final String name, final int index) {
+
+         return new ImageBuilder() {
+            {
+                valignCenter();
+                marginLeft("6px");
+                focusable(true);
+                id("creature-abitity_" + index);
+                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + name + ".png"));
+                valignCenter();
+                onFocusEffect(new EffectBuilder("imageOverlay") {
+                    {
+                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER +
+                                File.separator + "GUI/Icons/selected-creature.png"));
+                        post(true);
+                    }
+                });
+            }
+        };
+    }
+
+    private ImageBuilder createCreatureIcon(final String name) {
+         return new ImageBuilder() {
+            {
+                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + name + ".png"));
+                valignCenter();
+            }
+        };
+    }
+
+    private ImageBuilder createCreatureMeleeIcon(final String name) {
+         return new ImageBuilder() {
+            {
+                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + name + ".png"));
+                valignCenter();
+                marginLeft("6px");
+                focusable(true);
+                id("creature-melee");
+                onFocusEffect(new EffectBuilder("imageOverlay") {
+                    {
+                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER +
+                                File.separator + "GUI/Icons/selected-creature.png"));
+                        post(true);
+                    }
+                });
+            }
+        };
+    }
+
+    private ImageBuilder createCreatureSpellIcon(final CreatureSpell cs, final int index) {
+         return new ImageBuilder() {
+            {
+                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + cs.getGuiIcon().getName() + ".png"));
+                valignCenter();
+                marginLeft("6px");
+                focusable(true);
+                id("creature-spell_" + index);
+                onFocusEffect(new EffectBuilder("imageOverlay") {
+                    {
+                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER +
+                                File.separator + "GUI/Icons/selected-spell.png"));
+                        post(true);
+                    }
+                });
+            }
+        };
     }
 
     private ImageBuilder createRoomIcon(final Room room) {
@@ -302,7 +497,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 });
                 onCustomEffect(new EffectBuilder("imageOverlay") {
                     {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat("GUI/Icons/selected-spell.png")));
+                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat("GUI/Icons/selected-room.png")));
                         effectParameter("customKey", "select");
                         post(true);
                         neverStopRendering(true);
@@ -328,7 +523,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 });
                 onCustomEffect(new EffectBuilder("imageOverlay") {
                     {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-room.png"));
+                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-spell.png"));
                         effectParameter("customKey", "select");
                         post(true);
                         neverStopRendering(true);
@@ -584,8 +779,18 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         item.startEffect(EffectEventId.onCustom, null, "select");
     }
 
-    private class GameMenu {
+    public void action(String action) {
+        updatePossessionSelectedItem(PossessionInteractionState.Action.valueOf(action.toUpperCase()));
+    }
 
+    private void updatePossessionSelectedItem(PossessionInteractionState.Action action) {
+         Element element = screen.findElementByName("creature-" + action.toString().toLowerCase());
+         if (element != null) {
+            element.setFocus();
+         }
+    }
+
+    private class GameMenu {
         protected String title;
         protected String action;
         protected String id;

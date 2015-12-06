@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.world.WorldHandler;
@@ -226,31 +227,46 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public void onMouseButtonEvent(MouseButtonEvent evt) {
         if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
 
-            if (evt.isPressed()) {
-                if (!startSet) {
+            if (interactionState == InteractionState.SPELL  && itemId == 2) { // possession
+                if (evt.isReleased()) {
+                    // TODO make normal selection, not first keeper creature
+                    for (Thing t : gameState.getLevelData().getThings()) {
+                        if (t instanceof Thing.KeeperCreature) {
+                            onPossession((Thing.KeeperCreature)t);
+                            break;
+                        }
+                    }                    
+                    // Reset the state
+                    // TODO disable selection box
+                    setInteractionState(InteractionState.NONE, 0);
+                }
+            } else {
+                if (evt.isPressed()) {
+                    if (!startSet) {
+                        handler.getSelectionArea().setStart(handler.getRoundedMousePos());
+                    }
+                    startSet = true;
+
+                    // I suppose we are tagging
+                    if (isTaggable) {
+                        isTagging = true;
+                        setCursor();
+
+                        // The tagging sound is positional and played against the cursor change, not the action itself
+                        Vector2f pos = handler.getRoundedMousePos();
+                        getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, "/Global/dk1tag.mp2");
+                    }
+
+                } else if (evt.isReleased()) {
+                    startSet = false;
+                    handler.userSubmit(null);
                     handler.getSelectionArea().setStart(handler.getRoundedMousePos());
-                }
-                startSet = true;
-
-                // I suppose we are tagging
-                if (isTaggable) {
-                    isTagging = true;
-                    setCursor();
-
-                    // The tagging sound is positional and played against the cursor change, not the action itself
-                    Vector2f pos = handler.getRoundedMousePos();
-                    getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, "/Global/dk1tag.mp2");
-                }
-
-            } else if (evt.isReleased()) {
-                startSet = false;
-                handler.userSubmit(null);
-                handler.getSelectionArea().setStart(handler.getRoundedMousePos());
-                handler.updateSelectionBox();
-                handler.setNoSelectedArea();
-                if (isTagging) {
-                    isTagging = false;
-                    setCursor();
+                    handler.updateSelectionBox();
+                    handler.setNoSelectedArea();
+                    if (isTagging) {
+                        isTagging = false;
+                        setCursor();
+                    }
                 }
             }
         } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
@@ -397,4 +413,5 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
      * @param id new id
      */
     protected abstract void onInteractionStateChange(InteractionState interactionState, int id);
+    protected abstract void onPossession(Thing.KeeperCreature creature);
 }
