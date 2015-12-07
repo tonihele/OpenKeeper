@@ -22,7 +22,6 @@ import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import com.sun.istack.internal.Nullable;
 import java.awt.Point;
 import java.util.EnumSet;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -87,7 +86,7 @@ public class Workshop extends Normal {
         }
     }
 
-    private Spatial constructPillar(Node node, Point p, @Nullable Quaternion quat) {
+    private Spatial constructPillar(Node node, Point p, Quaternion quat) {
         Spatial part = assetManager.loadModel(getPillarResource());
         resetAndMoveSpatial(part, new Point(0, 0), p);
 
