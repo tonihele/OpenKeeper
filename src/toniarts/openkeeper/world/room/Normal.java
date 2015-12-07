@@ -20,12 +20,18 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.queue.RenderQueue;
+import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import java.util.Arrays;
+import java.util.EnumSet;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.room.WallSection.WallDirection;
 
 /**
  * Constructs "normal" rooms
@@ -34,22 +40,47 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class Normal extends GenericRoom {
 
+    protected final boolean[][] map;
+    protected final Point start;
+
     public Normal(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, roomInstance, direction);
+
+        map = roomInstance.getCoordinatesAsMatrix();
+        start = roomInstance.getMatrixStartPoint();
+    }
+
+    @Override
+    public Spatial construct() {
+        super.construct();
+
+        // Pillars
+        if (hasPillars()) {
+            BatchNode pillarsNode = new BatchNode("Pillars");
+            contructPillars(pillarsNode);
+            if (!pillarsNode.getChildren().isEmpty()) {
+                pillarsNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+                pillarsNode.batch();
+                getRootNode().attachChild(pillarsNode);
+            }
+        }
+
+        return getRootNode();
     }
 
     @Override
     protected void contructFloor(Node n) {
 
         // Normal rooms
-        Point start = roomInstance.getCoordinates().get(0);
-        boolean[][] map = roomInstance.getCoordinatesAsMatrix();
         for (int x = 0; x < map.length; x++) {
             for (int y = 0; y < map[x].length; y++) {
 
+                // Skip non-room tiles
+                if (!map[x][y]) {
+                    continue;
+                }
+
                 // There are 4 different floor pieces and pillars
-                // NOTE: I don't understand how the pillars are referenced, they are neither in Terrain nor Room, but they are listed in the Objects. Even Lair has pillars, but I've never seem the in-game
-                // Pillars go into all at least 3x3 corners, there can be more than 4 pillars per room
                 Node tile = new Node();
 
                 // Figure out which piece by seeing the neighbours
@@ -185,12 +216,112 @@ public class Normal extends GenericRoom {
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
     }
 
-    private boolean hasSameTile(boolean[][] map, int x, int y) {
+    protected boolean hasSameTile(boolean[][] map, int x, int y) {
 
         // Check for out of bounds
         if (x < 0 || x >= map.length || y < 0 || y >= map[x].length) {
             return false;
         }
         return map[x][y];
+    }
+
+    /**
+     * Does the room have pillars
+     *
+     * @return has pillars
+     */
+    protected boolean hasPillars() {
+        return true; // I have no idea where to get this data
+    }
+
+    /**
+     * Construct room pillars. Info in:
+     * https://github.com/tonihele/OpenKeeper/issues/116
+     *
+     * @param node the pillar node
+     */
+    protected void contructPillars(Node node) {
+
+        // NOTE: I don't understand how the pillars are referenced, they are neither in Terrain nor Room, but they are listed in the Objects. Even Lair has pillars, but I've never seem the in-game
+        // Pillars go into all at least 3x3 corners, there can be more than 4 pillars per room
+
+        // Go through all the points and see if they are fit for pillar placement
+        for (Point p : roomInstance.getCoordinates()) {
+
+            // See that we have 2 "free" neigbouring tiles
+            EnumSet<WallDirection> freeDirections = EnumSet.noneOf(WallDirection.class);
+            if (!hasSameTile(map, p.x - start.x, p.y - start.y - 1)) { // North
+                freeDirections.add(WallDirection.NORTH);
+            }
+            if (!hasSameTile(map, p.x - start.x, p.y - start.y + 1)) { // South
+                freeDirections.add(WallDirection.SOUTH);
+            }
+            if (!hasSameTile(map, p.x - start.x + 1, p.y - start.y)) { // East
+                freeDirections.add(WallDirection.EAST);
+            }
+            if (!hasSameTile(map, p.x - start.x - 1, p.y - start.y)) { // West
+                freeDirections.add(WallDirection.WEST);
+            }
+
+            // If we have 2, see the other directions that they have 3x3 the same tile
+            if (freeDirections.size() == 2 && !freeDirections.containsAll(Arrays.asList(WallDirection.NORTH, WallDirection.SOUTH)) && !freeDirections.containsAll(Arrays.asList(WallDirection.WEST, WallDirection.EAST))) {
+                boolean found = true;
+                loop:
+                for (int y = 0; y < 3; y++) {
+                    for (int x = 0; x < 3; x++) {
+
+                        // Get the tile from wanted direction
+                        int xPoint = x;
+                        int yPoint = y;
+                        if (freeDirections.contains(WallDirection.EAST)) { // Go west
+                            xPoint = -x;
+                        }
+                        if (freeDirections.contains(WallDirection.SOUTH)) { // Go north
+                            yPoint = -y;
+                        }
+                        if (!hasSameTile(map, p.x - start.x + xPoint, p.y - start.y + yPoint)) {
+                            found = false;
+                            break loop;
+                        }
+                    }
+                }
+
+                // Add
+                if (found) {
+
+                    // Contruct a pillar
+                    Spatial part = assetManager.loadModel(getPillarResource());
+                    resetAndMoveSpatial(part, new Point(0, 0), p);
+
+                    // Face "in" diagonally
+                    if (freeDirections.contains(WallDirection.NORTH) && freeDirections.contains(WallDirection.EAST)) {
+                        Quaternion quat = new Quaternion();
+                        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                        part.rotate(quat);
+                    } else if (freeDirections.contains(WallDirection.SOUTH) && freeDirections.contains(WallDirection.EAST)) {
+                        Quaternion quat = new Quaternion();
+                        quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                        part.rotate(quat);
+                    } else if (freeDirections.contains(WallDirection.SOUTH) && freeDirections.contains(WallDirection.WEST)) {
+                        Quaternion quat = new Quaternion();
+                        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                        part.rotate(quat);
+                    }
+
+                    part.move(-0.5f, MapLoader.TILE_HEIGHT, -0.5f);
+                    node.attachChild(part);
+                }
+            }
+        }
+    }
+
+    /**
+     * Get the pillar resource. These are actually in object list. But there are
+     * no mapping to my knowledge. So hard code :(
+     *
+     * @return room pillar resource
+     */
+    protected String getPillarResource() {
+        return ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "_Pillar.j3o");
     }
 }

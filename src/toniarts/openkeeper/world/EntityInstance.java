@@ -32,6 +32,7 @@ public class EntityInstance<T> {
 
     private final T entity;
     private List<Point> coordinates = new ArrayList<>();
+    private Point matrixStartPoint;
     private int minX = Integer.MAX_VALUE;
     private int maxX = Integer.MIN_VALUE;
     private int minY = Integer.MAX_VALUE;
@@ -83,18 +84,31 @@ public class EntityInstance<T> {
      * @return coordinates as matrix, true value signifies presense of the room
      * instance in the coordinate
      * @see #getCoordinates()
+     * @see #getMatrixStartPoint()
      */
     public boolean[][] getCoordinatesAsMatrix() {
         int width = maxX - minX + 1;
-        Point start = coordinates.get(0);
-        int height = coordinates.get(coordinates.size() - 1).y - start.y + 1;
+        matrixStartPoint = new Point(minX, coordinates.get(0).y);
+        int height = coordinates.get(coordinates.size() - 1).y - matrixStartPoint.y + 1;
         boolean[][] matrix = new boolean[width][height];
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                matrix[x][y] = (Collections.binarySearch(coordinates, new Point(start.x + x, start.y + y), new PointComparator()) > -1);
+                matrix[x][y] = (Collections.binarySearch(coordinates, new Point(matrixStartPoint.x + x, matrixStartPoint.y + y), new PointComparator()) > -1);
             }
         }
         return matrix;
+    }
+
+    /**
+     * If you have acquired the matrix already, you can get the matrix start
+     * point (the corner) from here. Otherwise you can't know what real
+     * coordinates the matrix cells represent.
+     *
+     * @return the upper left corner point of the matrix as real map coordinate
+     * @see #getCoordinatesAsMatrix()
+     */
+    public Point getMatrixStartPoint() {
+        return matrixStartPoint;
     }
 
     @Override
