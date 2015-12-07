@@ -82,7 +82,7 @@ public final class RoomConstructor {
                 if (roomName.equalsIgnoreCase("Training Room")) {
                     return new TrainingRoom(assetManager, roomInstance, null);
                 }
-                if (roomName.equalsIgnoreCase("Workshop")) {
+                if (roomName.equalsIgnoreCase("Work Shop")) {
                     return new Workshop(assetManager, roomInstance, null);
                 }
                 if (roomName.equalsIgnoreCase("Guard Room")) {
