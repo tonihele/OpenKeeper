@@ -216,7 +216,7 @@ public class Normal extends GenericRoom {
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
     }
 
-    private boolean hasSameTile(boolean[][] map, int x, int y) {
+    protected boolean hasSameTile(boolean[][] map, int x, int y) {
 
         // Check for out of bounds
         if (x < 0 || x >= map.length || y < 0 || y >= map[x].length) {
