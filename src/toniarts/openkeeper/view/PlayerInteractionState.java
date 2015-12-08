@@ -66,8 +66,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private ViewPort viewPort;
     private final Player player;
     private SelectionHandler handler;
-    private boolean actionIsPressed = false;
-    private boolean cancelIsPressed = false;
     private boolean startSet = false;
     public Vector2f mousePosition = Vector2f.ZERO;
     private InteractionState interactionState = InteractionState.NONE;
@@ -109,7 +107,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
                     // Selling is always visible, and the only thing you can do
                     // When building, you can even tag taggables
-                    Vector2f pos = handler.getRoundedMousePos();
                     switch (interactionState) {
                         case NONE: {
                             return isTaggable;
@@ -156,9 +153,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     getWorldHandler().selectTiles(selectionArea, select);
                 } else if (PlayerInteractionState.this.interactionState == InteractionState.ROOM && getWorldHandler().isBuildable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player, gameState.getLevelData().getRoomById(itemId))) {
                     getWorldHandler().build(selectionArea, player, gameState.getLevelData().getRoomById(itemId));
-
-                    // Reset state after successful build
-                    setInteractionState(InteractionState.NONE, 0);
                 } else if (PlayerInteractionState.this.interactionState == InteractionState.SELL && getWorldHandler().isSellable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player)) {
                     getWorldHandler().sell(selectionArea, player);
                 }
@@ -329,15 +323,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public int getInteractionStateItemId() {
         return itemId;
     }
-    
+
     private boolean isCursorOnGUI() {
         // if mouse not in rectangle guiConstraint => true
-        return mousePosition.x <= guiConstraint.x 
-                || mousePosition.x >= guiConstraint.x + guiConstraint.width 
+        return mousePosition.x <= guiConstraint.x
+                || mousePosition.x >= guiConstraint.x + guiConstraint.width
                 || app.getContext().getSettings().getHeight() - mousePosition.y <= guiConstraint.y
                 || app.getContext().getSettings().getHeight() - mousePosition.y >= guiConstraint.y + guiConstraint.height;
     }
-    
+
     /**
      * Set the state flags according to what user can do. Rather clumsy. Fix if
      * you can.
@@ -367,7 +361,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
         return changed;
     }
-
 
     private boolean isTaggable() {
         Vector2f pos = handler.getRoundedMousePos();
