@@ -513,25 +513,52 @@ public abstract class Thing {
 
     // FIXME: these were camera positions, but found in variables???
     // Contains in GlobalVariables.kwd only
-    public static class Thing12 extends Thing {
+    public static class Camera extends Thing {
+        
+        public enum CameraFlag implements IFlagEnum {
+            DISABLE_CHANGE(0x80), // Never used. camera not enter and leave possession.
+            DISABLE_MOVE(0x40),
+            UNKNOWN_20(0x20),
+            UNKNOWN_10(0x10),
+            DISABLE_ZOOM(0x08),
+            DISABLE_PITCH(0x04),
+            DISABLE_ROLL(0x02),
+            DISABLE_YAW(0x01);
+            
+            private CameraFlag(long flagValue) {
+                this.flagValue = flagValue;
+            }
 
+            @Override
+            public long getFlagValue() {
+                return flagValue;
+            }
+            
+            private final long flagValue;
+        };
+        
         private Vector3f x00;
         private Vector3f x0c;
         private Vector3f x18;
-        private float x24; // maybe float ??? maybe Vector3f ???
-        private float x28; // maybe float ???
-        private float x2c; // maybe float ???
-        private float x30; // maybe float ??? maybe Vector3f ???
-        private float x34; // maybe float ???
-        private float x38; // maybe float ???
-        private float x3c; // maybe Vector3f ???
-        private float x40;
-        private float x44;
-        private int x48; // flags
-        private int x4c;
-        private int x4e; // 512, 0
-        private int x50; // 0, 220
-        private short id; // maybe levelId ??? because it`s repeat
+        private float x24; // fog from
+        private float x28; // fog or distance of view
+        private float x2c; // fog to
+        private float heightDefault; // in game default zoom
+        private float heightMin; // in game min zoom
+        private float heightMax; // in game max zoom
+        private float x3c; // frustumRightTop maybe
+        private float x40; // frustumLeftBottom maybe
+        private float near; // change field of view
+        private EnumSet<CameraFlag> flags; // 
+        private int x4c; // maybe angle yaw. always 0
+        private int angleRoll; // rotate camera around direction vector.
+        private int anglePitch; // rotate camera around Left vector. 512 = front.
+        
+        /* 2 - possession camera
+         * 3 - game camera
+         * other never used ?
+         */
+        private short id;
 
         public Vector3f getX00() {
             return x00;
@@ -581,28 +608,28 @@ public abstract class Thing {
             this.x2c = x2c;
         }
 
-        public float getX30() {
-            return x30;
+        public float getHeightDefault() {
+            return heightDefault;
         }
 
-        protected void setX30(float x30) {
-            this.x30 = x30;
+        protected void setHeightDefault(float height) {
+            this.heightDefault = height;
         }
 
-        public float getX34() {
-            return x34;
+        public float getHeightMin() {
+            return heightMin;
         }
 
-        protected void setX34(float x34) {
-            this.x34 = x34;
+        protected void setHeightMin(float height) {
+            this.heightMin = height;
         }
 
-        public float getX38() {
-            return x38;
+        public float getHeightMax() {
+            return heightMax;
         }
 
-        protected void setX38(float x38) {
-            this.x38 = x38;
+        protected void setHeightMax(float height) {
+            this.heightMax = height;
         }
 
         public float getX3c() {
@@ -621,20 +648,20 @@ public abstract class Thing {
             this.x40 = x40;
         }
 
-        public float getX44() {
-            return x44;
+        public float getNear() {
+            return near;
         }
 
-        protected void setX44(float x44) {
-            this.x44 = x44;
+        protected void setNear(float near) {
+            this.near = near;
         }
 
-        public int getX48() {
-            return x48;
+        public EnumSet<CameraFlag> getFlags() {
+            return flags;
         }
 
-        protected void setX48(int x48) {
-            this.x48 = x48;
+        protected void setFlags(EnumSet<CameraFlag> flags) {
+            this.flags = flags;
         }
 
         public int getX4c() {
@@ -645,20 +672,20 @@ public abstract class Thing {
             this.x4c = x4c;
         }
 
-        public int getX4e() {
-            return x4e;
+        public int getAngleRoll() {
+            return angleRoll;
         }
 
-        protected void setX4e(int x4e) {
-            this.x4e = x4e;
+        protected void setAngleRoll(int angle) {
+            this.angleRoll = angle;
         }
 
-        public int getX50() {
-            return x50;
+        public int getAnglePitch() {
+            return anglePitch;
         }
 
-        protected void setX50(int x50) {
-            this.x50 = x50;
+        protected void setAnglePitch(int angle) {
+            this.anglePitch = angle;
         }
 
         public short getId() {
@@ -671,10 +698,11 @@ public abstract class Thing {
 
         @Override
         public String toString() {
-            return "Thing12{" + "x00=" + x00 + ", x0c=" + x0c + ", x18=" + x18 + ", x24=" + x24 + ", x28=" + x28 
-                    + ", x2c=" + x2c + ", x30=" + x30 + ", x34=" + x34 + ", x38=" + x38 + ", x3c=" + x3c + ", x40=" 
-                    + x40 + ", x44=" + x44 + ", x48=" + x48 + ", x4c=" + x4c + ", x4e=" + x4e + ", x50=" + x50 
-                    + ", id=" + id + '}';
+            return "Camera{" + "x00=" + x00 + ", x0c=" + x0c + ", x18=" + x18 + ", x24=" + x24 + ", x28=" + x28 
+                    + ", x2c=" + x2c + ", heightNormal=" + heightDefault + ", heightMin=" + heightMin + 
+                    ", heightMax=" + heightMax + ", x3c=" + x3c + ", x40=" 
+                    + x40 + ", near=" + near + ", flags=" + flags + ", x4c=" + x4c + 
+                    ", angleRoll=" + angleRoll + ", anglePitch=" + anglePitch + ", id=" + id + '}';
         }
     }
 
