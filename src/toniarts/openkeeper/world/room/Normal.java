@@ -94,7 +94,7 @@ public class Normal extends GenericRoom {
                 boolean NW = hasSameTile(map, x - 1, y - 1);
 
                 // If we are completely covered, use a big tile
-                if (N && NE && E && SE && S && SW && W && NW) {
+                if (N && NE && E && SE && S && SW && W && NW && useBigFloorTile(x, y)) {
                     Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "9.j3o");
                     resetAndMoveSpatial(part, start, new Point(start.x + x, start.y + y));
                     tile.attachChild(part);
@@ -343,5 +343,16 @@ public class Normal extends GenericRoom {
      */
     protected String getPillarResource() {
         return ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "_Pillar.j3o");
+    }
+
+    /**
+     * Use the big floor tile at the specified point
+     *
+     * @param x the x coordinate
+     * @param y the y coordinate
+     * @return use big tile
+     */
+    protected boolean useBigFloorTile(int x, int y) {
+        return true;
     }
 }
