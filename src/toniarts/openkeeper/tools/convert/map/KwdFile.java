@@ -69,7 +69,6 @@ import toniarts.openkeeper.tools.convert.map.Thing.GoodCreature;
 import toniarts.openkeeper.tools.convert.map.Thing.HeroParty;
 import toniarts.openkeeper.tools.convert.map.Thing.KeeperCreature;
 import toniarts.openkeeper.tools.convert.map.Thing.NeutralCreature;
-import toniarts.openkeeper.tools.convert.map.Thing.Thing12;
 
 /**
  * Reads a DK II map file, the KWD is the file name of the main map identifier,
@@ -2042,30 +2041,31 @@ public final class KwdFile {
                 case 205: {
 
                     // TODO: decode values
-                    thing = new Thing12();
-                    ((Thing12) thing).setX00(new Vector3f(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT, 
+                    thing = new Thing.Camera();
+                    ((Thing.Camera) thing).setX00(new Vector3f(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT, 
                             ConversionUtils.readInteger(file) / ConversionUtils.FLOAT, 
                             ConversionUtils.readInteger(file) / ConversionUtils.FLOAT));
-                    ((Thing12) thing).setX0c(new Vector3f(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT, 
+                    ((Thing.Camera) thing).setX0c(new Vector3f(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT, 
                             ConversionUtils.readInteger(file) / ConversionUtils.FLOAT, 
                             ConversionUtils.readInteger(file) / ConversionUtils.FLOAT));
-                    ((Thing12) thing).setX18(new Vector3f(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT, 
+                    ((Thing.Camera) thing).setX18(new Vector3f(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT, 
                             ConversionUtils.readInteger(file) / ConversionUtils.FLOAT, 
                             ConversionUtils.readInteger(file) / ConversionUtils.FLOAT));
-                    ((Thing12) thing).setX24(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing12) thing).setX28(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing12) thing).setX2c(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing12) thing).setX30(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing12) thing).setX34(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing12) thing).setX38(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing12) thing).setX3c(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing12) thing).setX40(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing12) thing).setX44(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing12) thing).setX48(ConversionUtils.readInteger(file));
-                    ((Thing12) thing).setX4c(ConversionUtils.readUnsignedShort(file));
-                    ((Thing12) thing).setX4e(ConversionUtils.readUnsignedShort(file));
-                    ((Thing12) thing).setX50(ConversionUtils.readUnsignedShort(file));
-                    ((Thing12) thing).setId((short)ConversionUtils.readUnsignedShort(file));
+                    ((Thing.Camera) thing).setX24(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setX28(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setX2c(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setHeightDefault(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setHeightMin(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setHeightMax(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setX3c(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setX40(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setNear(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setFlags(ConversionUtils.parseFlagValue(ConversionUtils.readInteger(file),
+                            Thing.Camera.CameraFlag.class));
+                    ((Thing.Camera) thing).setX4c(ConversionUtils.readUnsignedShort(file));
+                    ((Thing.Camera) thing).setAngleRoll(ConversionUtils.readUnsignedShort(file));
+                    ((Thing.Camera) thing).setAnglePitch(ConversionUtils.readUnsignedShort(file));
+                    ((Thing.Camera) thing).setId((short)ConversionUtils.readUnsignedShort(file));
                     break;
                 }
                 default: {
