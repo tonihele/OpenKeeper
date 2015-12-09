@@ -34,8 +34,30 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class Workshop extends Normal {
 
+    private boolean[][] bigTiles;
+
     public Workshop(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, roomInstance, direction);
+
+        // Big tile map
+        bigTiles = new boolean[map.length][map[0].length];
+    }
+
+    @Override
+    protected boolean useBigFloorTile(int x, int y) {
+
+        // In workshop a big tile can't be in touch with other big tiles (except diagonally)
+        // There is also catch, not always the big tile (a grill), sometimes normal + saw table
+        // The logic is unknown to me, something maybe to do with the coordinates, not totally random it seems
+        boolean N = hasSameTile(bigTiles, x, y - 1);
+        boolean E = hasSameTile(bigTiles, x + 1, y);
+        boolean S = hasSameTile(bigTiles, x, y + 1);
+        boolean W = hasSameTile(bigTiles, x - 1, y);
+        if (!N && !E && !S && !W) {
+            bigTiles[x][y] = true;
+            return true;
+        }
+        return false;
     }
 
     @Override

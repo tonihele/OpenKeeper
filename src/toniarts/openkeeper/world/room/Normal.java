@@ -80,7 +80,7 @@ public class Normal extends GenericRoom {
                     continue;
                 }
 
-                // There are 4 different floor pieces and pillars
+                // There are 4 different floor pieces
                 Node tile = new Node();
 
                 // Figure out which piece by seeing the neighbours
@@ -93,117 +93,137 @@ public class Normal extends GenericRoom {
                 boolean W = hasSameTile(map, x - 1, y);
                 boolean NW = hasSameTile(map, x - 1, y - 1);
 
-                for (int i = 0; i < 2; i++) {
-                    for (int k = 0; k < 2; k++) {
+                // If we are completely covered, use a big tile
+                if (N && NE && E && SE && S && SW && W && NW && useBigFloorTile(x, y)) {
+                    Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "9.j3o");
+                    resetAndMoveSpatial(part, start, new Point(start.x + x, start.y + y));
+                    tile.attachChild(part);
+                } else {
+                    for (int i = 0; i < 2; i++) {
+                        for (int k = 0; k < 2; k++) {
 
-                        int pieceNumber = 0;
-                        Quaternion quat = null;
-                        Vector3f movement = null;
+                            int pieceNumber = 0;
+                            Quaternion quat = null;
+                            Vector3f movement = null;
 
-                        // Determine the piece
-                        if (i == 0 && k == 0) { // North west corner
-                            if (N && W && NW) {
-                                pieceNumber = 3;
-                            } else if (!N && W && NW) {
-                                pieceNumber = 0;
-                                quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                            } else if (!NW && N && W) {
-                                pieceNumber = 2;
-                            } else if (!N && !W) {
-                                pieceNumber = 1;
-                                quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                            } else if (W && !NW && !N) {
-                                pieceNumber = 0;
-                            } else if (!W && !NW && N) {
-                                pieceNumber = 0;
-                                quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                            } else {
-                                pieceNumber = 0;
-                            }
-//                            movement = new Vector3f(-0.5f, -0.5f, 0);
-                        } else if (i == 1 && k == 0) { // North east corner
-                            if (N && E && NE) {
-                                pieceNumber = 3;
-                                quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                            } else if (!N && E && NE) {
-                                pieceNumber = 0;
-                            } else if (!NE && N && E) {
-                                pieceNumber = 2;
-                            } else if (!N && !E) {
-                                pieceNumber = 1;
-                            } else if (!E && NE && N) {
-                                pieceNumber = 0;
-                            } else if (!E && !NE && N) {
-                                pieceNumber = 0;
-                                quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                            } else {
-                                pieceNumber = 0;
-                            }
-//                            movement = new Vector3f(0, -0.5f, 0);
-                        } else if (i == 0 && k == 1) { // South west corner
-                            if (S && W && SW) {
-                                pieceNumber = 3;
-                            } else if (!S && W && SW) {
-                                pieceNumber = 4;
-                            } else if (!SW && S && W) {
-                                pieceNumber = 2;
-                            } else if (!S && !W) {
-                                pieceNumber = 1;
-                                quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
-                            } else if (!W && SW && S) {
-                                pieceNumber = 0;
-                            } else if (!W && !SW && S) {
-                                pieceNumber = 0;
-                                quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                            } else {
-                                pieceNumber = 0;
-                                quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                            // Determine the piece
+                            if (i == 0 && k == 0) { // North west corner
+                                if (N && W && NW) {
+                                    pieceNumber = 3;
+                                } else if (!N && W && NW) {
+                                    pieceNumber = 0;
+                                } else if (!NW && N && W) {
+                                    pieceNumber = 2;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                                } else if (!N && !W) {
+                                    pieceNumber = 1;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                                } else if (W && !NW && !N) {
+                                    pieceNumber = 0;
+                                } else if (!W && !NW && N) {
+                                    pieceNumber = 0;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                                } else {
+                                    pieceNumber = 0;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                                }
+                            } else if (i == 1 && k == 0) { // North east corner
+                                if (N && E && NE) {
+                                    pieceNumber = 3;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                                } else if (!N && E && NE) {
+                                    pieceNumber = 0;
+                                } else if (!NE && N && E) {
+                                    pieceNumber = 2;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                                } else if (!N && !E) {
+                                    pieceNumber = 1;
+                                } else if (!E && NE && N) {
+                                    pieceNumber = 0;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                                } else if (!E && !NE && N) {
+                                    pieceNumber = 0;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                                } else {
+                                    pieceNumber = 0;
+                                }
+                            } else if (i == 0 && k == 1) { // South west corner
+                                if (S && W && SW) {
+                                    pieceNumber = 3;
+                                } else if (!S && W && SW) {
+                                    pieceNumber = 0;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                                } else if (!SW && S && W) {
+                                    pieceNumber = 2;
+                                } else if (!S && !W) {
+                                    pieceNumber = 1;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                                } else if (!W && SW && S) {
+                                    pieceNumber = 0;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                                } else if (!W && !SW && S) {
+                                    pieceNumber = 0;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                                } else {
+                                    pieceNumber = 0;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                                }
+
+                            } else if (i == 1 && k == 1) { // South east corner
+                                if (S && E && SE) {
+                                    pieceNumber = 3;
+                                } else if (!S && E && SE) {
+                                    pieceNumber = 0;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
+                                } else if (!SE && S && E) {
+                                    pieceNumber = 2;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+                                } else if (!S && !E) {
+                                    pieceNumber = 1;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                                } else if (!E && SE && S) {
+                                    pieceNumber = 0;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                                } else if (!E && !SE && S) {
+                                    pieceNumber = 0;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+                                } else {
+                                    pieceNumber = 0;
+                                    quat = new Quaternion();
+                                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                                }
                             }
 
-//                            movement = new Vector3f(-0.5f, 0, 0);
-                        } else if (i == 1 && k == 1) { // South east corner
-                            if (S && E && SE) {
-                                pieceNumber = 3;
-                            } else if (!S && E && SE) {
-                                pieceNumber = 0;
-                            } else if (!SE && S && E) {
-                                pieceNumber = 2;
-                            } else if (!S && !E) {
-                                pieceNumber = 1;
-                                quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                            } else if (!E && SE && S) {
-                                pieceNumber = 4;
-                            } else if (!E && !SE && S) {
-                                pieceNumber = 0;
-                                quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                            } else {
-                                pieceNumber = 0;
-                                quat = new Quaternion();
-                                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+                            // Load the piece
+                            Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + pieceNumber + ".j3o");
+                            resetAndMoveSpatial(part, start, new Point(start.x + x, start.y + y));
+                            if (quat != null) {
+                                part.rotate(quat);
                             }
+                            if (movement != null) {
+                                part.move(movement);
+                            }
+                            part.move(i * 0.5f - 0.25f, 0, k * 0.5f - 0.25f);
+                            tile.attachChild(part);
                         }
-
-                        // Load the piece
-                        Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + pieceNumber + ".j3o");
-                        resetAndMoveSpatial(part, start, new Point(start.x + x, start.y + y));
-                        if (quat != null) {
-                            part.rotate(quat);
-                        }
-                        if (movement != null) {
-                            part.move(movement);
-                        }
-                        part.move(i * 0.5f - 0.25f, 0, k * 0.5f - 0.25f);
-                        tile.attachChild(part);
                     }
                 }
 
@@ -323,5 +343,16 @@ public class Normal extends GenericRoom {
      */
     protected String getPillarResource() {
         return ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "_Pillar.j3o");
+    }
+
+    /**
+     * Use the big floor tile at the specified point
+     *
+     * @param x the x coordinate
+     * @param y the y coordinate
+     * @return use big tile
+     */
+    protected boolean useBigFloorTile(int x, int y) {
+        return true;
     }
 }
