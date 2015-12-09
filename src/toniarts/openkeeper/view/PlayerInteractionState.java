@@ -179,6 +179,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     @Override
     public void cleanup() {
         app.getInputManager().removeRawInputListener(this);
+        handler.cleanup();
 
         super.cleanup();
     }

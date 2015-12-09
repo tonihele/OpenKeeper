@@ -141,5 +141,12 @@ public abstract class SelectionHandler {
         this.app.getRootNode().attachChild(this.wireBoxGeo);
     }
 
+    /**
+     * Detaches the selection box
+     */
+    public void cleanup() {
+        this.app.getRootNode().detachChild(this.wireBoxGeo);
+    }
+
     public abstract void userSubmit(SelectionArea area);
 }
