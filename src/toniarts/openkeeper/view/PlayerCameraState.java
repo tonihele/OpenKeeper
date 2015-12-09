@@ -27,6 +27,7 @@ import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.Camera;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import java.io.File;
@@ -56,6 +57,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     private InputManager inputManager;
     private ViewPort viewPort;
     private PlayerCamera camera;
+    private Camera storedCamera;
     private final Player player;
     private Vector3f startLocation;
     private Integer specialKey = null;
@@ -106,6 +108,19 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         // The controls
         specialKey = null;
         registerInput();
+    }
+    
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+
+        if (enabled) {
+            Camera cam = app.getCamera();
+            cam.setAxes(storedCamera.getLeft(), storedCamera.getUp(), storedCamera.getDirection());
+            cam.setLocation(new Vector3f(cam.getLocation().x, storedCamera.getLocation().y, cam.getLocation().z));
+        } else {
+            storedCamera = app.getCamera().clone();
+        }
     }
 
     /**

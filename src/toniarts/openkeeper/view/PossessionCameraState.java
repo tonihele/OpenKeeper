@@ -64,10 +64,12 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
     private PossessionCamera camera;
     //private Integer specialKey = null;
     
-    private static final String CAMERA_VIEW_LEFT = "CAMERA_X_LEFT";
-    private static final String CAMERA_VIEW_UP = "CAMERA_Y_UP";
-    private static final String CAMERA_VIEW_RIGHT = "CAMERA_X_RIGHT";
-    private static final String CAMERA_VIEW_DOWN = "CAMERA_Y_DOWN";
+    private static final String POSSESSION = "POSSESSION_";
+    
+    private static final String CAMERA_VIEW_LEFT = "CAMERA_VIEW_LEFT";
+    private static final String CAMERA_VIEW_UP = "CAMERA_VIEW_UP";
+    private static final String CAMERA_VIEW_RIGHT = "CAMERA_VIEW_RIGHT";
+    private static final String CAMERA_VIEW_DOWN = "CAMERA_VIEW_DOWN";
     
     private static final String SPECIAL_KEY_CONTROL = "SPECIAL_KEY_CONTROL";
     private static final String SPECIAL_KEY_ALT = "SPECIAL_KEY_ALT";
@@ -80,10 +82,10 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
         CAMERA_VIEW_RIGHT,
         CAMERA_VIEW_DOWN,
         // movement
-        Settings.Setting.CAMERA_UP.name(),
-        Settings.Setting.CAMERA_DOWN.name(),
-        Settings.Setting.CAMERA_LEFT.name(),
-        Settings.Setting.CAMERA_RIGHT.name(),
+        POSSESSION + Settings.Setting.CAMERA_UP.name(),
+        POSSESSION + Settings.Setting.CAMERA_DOWN.name(),
+        POSSESSION + Settings.Setting.CAMERA_LEFT.name(),
+        POSSESSION + Settings.Setting.CAMERA_RIGHT.name(),
         Settings.Setting.POSSESSED_RUN.name(),
         Settings.Setting.POSSESSED_CREEP.name(),        
         // attack
@@ -145,10 +147,10 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
 
         // Add the keys
         Settings settings = app.getUserSettings();
-        inputManager.addMapping(Settings.Setting.CAMERA_UP.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_UP)));
-        inputManager.addMapping(Settings.Setting.CAMERA_DOWN.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_DOWN)));
-        inputManager.addMapping(Settings.Setting.CAMERA_LEFT.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_LEFT)));
-        inputManager.addMapping(Settings.Setting.CAMERA_RIGHT.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_RIGHT)));
+        inputManager.addMapping(POSSESSION + Settings.Setting.CAMERA_UP.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_UP)));
+        inputManager.addMapping(POSSESSION + Settings.Setting.CAMERA_DOWN.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_DOWN)));
+        inputManager.addMapping(POSSESSION + Settings.Setting.CAMERA_LEFT.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_LEFT)));
+        inputManager.addMapping(POSSESSION + Settings.Setting.CAMERA_RIGHT.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.CAMERA_RIGHT)));
         
         inputManager.addMapping(Settings.Setting.POSSESSED_RUN.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.POSSESSED_RUN)));
         inputManager.addMapping(Settings.Setting.POSSESSED_CREEP.name(), new KeyTrigger(settings.getSettingInteger(Settings.Setting.POSSESSED_CREEP)));
@@ -207,13 +209,13 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
             camera.rotate(-value, false);
         }
 
-        if (name.equals(Settings.Setting.CAMERA_UP.name())) {
+        if (name.equals(POSSESSION + Settings.Setting.CAMERA_UP.name())) {
             camera.move(value, false);
-        } else if (name.equals(Settings.Setting.CAMERA_DOWN.name())) {
+        } else if (name.equals(POSSESSION + Settings.Setting.CAMERA_DOWN.name())) {
             camera.move(-value, false);        
-        } else if (name.equals(Settings.Setting.CAMERA_LEFT.name())) {
+        } else if (name.equals(POSSESSION + Settings.Setting.CAMERA_LEFT.name())) {
             camera.move(value, true);
-        } else if (name.equals(Settings.Setting.CAMERA_RIGHT.name())) {
+        } else if (name.equals(POSSESSION + Settings.Setting.CAMERA_RIGHT.name())) {
             camera.move(-value, true);
         } 
     }
@@ -236,6 +238,9 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
 
     @Override
     public void update(float tpf) {
+        // Update audio listener position
+        app.getListener().setLocation(app.getCamera().getLocation());
+        app.getListener().setRotation(app.getCamera().getRotation());
     }
     
 }

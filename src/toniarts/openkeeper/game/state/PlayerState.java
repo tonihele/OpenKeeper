@@ -171,13 +171,13 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 protected void onExit() {
                     super.onExit();
                     // Detach states
-                    for (AbstractAppState state : appStates) {
+                    for (AbstractAppState state : storedAppStates) {
                         stateManager.detach(state);
                     }
-                    appStates = new ArrayList<>(storedAppStates);
+
                     // Load the state
                     for (AbstractAppState state : appStates) {
-                        stateManager.attach(state);
+                        state.setEnabled(true);
                     }
 
                     nifty.gotoScreen(HUD_SCREEN_ID);
@@ -199,16 +199,15 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 protected void onPossession(Thing.KeeperCreature creature) {
                     // Detach states
                     for (AbstractAppState state : appStates) {
-                        stateManager.detach(state);
+                        state.setEnabled(false);
                     }
-                    storedAppStates = new ArrayList<>(appStates);
-                    appStates.clear();
-                    appStates.add(possessionState);
+                    storedAppStates = new ArrayList<>();
+                    storedAppStates.add(possessionState);
                     // TODO not Thing.KeeperCreature need wrapper around KeeperCreature
                     possessionState.setTarget(creature);
-                    appStates.add(new PossessionCameraState(creature, PlayerState.this.gameState.getLevelData()));
+                    storedAppStates.add(new PossessionCameraState(creature, PlayerState.this.gameState.getLevelData()));
                     // Load the state
-                    for (AbstractAppState state : appStates) {
+                    for (AbstractAppState state : storedAppStates) {
                         stateManager.attach(state);
                     }
                     nifty.gotoScreen(POSSESSION_SCREEN_ID);
