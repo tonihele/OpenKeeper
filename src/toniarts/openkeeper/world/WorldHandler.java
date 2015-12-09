@@ -32,6 +32,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.world.room.RoomInstance;
 
@@ -83,11 +84,11 @@ public abstract class WorldHandler {
     public Node getWorld() {
         return worldNode;
     }
-    
+
     public KwdFile getLevelData() {
         return this.kwdFile;
     }
-    
+
     public MapLoader getMapLoader() {
         return this.mapLoader;
     }
@@ -355,7 +356,18 @@ public abstract class WorldHandler {
 
                 // Sell
                 TileData tile = mapLoader.getTile(x, y);
-                tile.setTerrainId(kwdFile.getMap().getClaimedPath().getTerrainId());
+                Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+                if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
+                    tile.setTerrainId(kwdFile.getMap().getClaimedPath().getTerrainId());
+                } else {
+
+                    // Water or lava
+                    if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
+                        tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
+                    } else {
+                        tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
+                    }
+                }
 
                 // Get the instance
                 Point p = new Point(x, y);
