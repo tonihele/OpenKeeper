@@ -55,7 +55,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -86,7 +85,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
         MAIN, QUIT, CONFIRMATION;
     }
-
     private Main app;
     private Node rootNode;
     private AssetManager assetManager;
@@ -101,10 +99,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private static final String HUD_SCREEN_ID = "hud";
     private List<AbstractPauseAwareState> appStates = new ArrayList<>();
     private PlayerInteractionState interactionState;
-
     private Label goldCurrent;
     private Label tooltip;
-
     private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
 
     @Override
@@ -139,6 +135,9 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
             // Load the HUD
             app.getNifty().getNifty().gotoScreen(HUD_SCREEN_ID);
+
+            // Init the HUD items
+            initHudItems();
 
             // Cursor
             app.getInputManager().setCursorVisible(true);
@@ -182,6 +181,61 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         }
     }
 
+    /**
+     * Initializes the HUD items, such as buildings, spells etc. to level
+     * initials
+     */
+    private void initHudItems() {
+        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+
+        gameState.getPlayerManaControl().addListener(hud.findNiftyControl("mana", Label.class), PlayerManaControl.Type.CURRENT);
+        gameState.getPlayerManaControl().addListener(hud.findNiftyControl("manaGet", Label.class), PlayerManaControl.Type.GET);
+        gameState.getPlayerManaControl().addListener(hud.findNiftyControl("manaLose", Label.class), PlayerManaControl.Type.LOSE);
+
+        Element contentPanel = hud.findElementByName("tab-room-content");
+        removeAllChildElements(contentPanel);
+        for (final Room room : getAvailableRoomsToBuild()) {
+            createRoomIcon(room).build(nifty, hud, contentPanel);
+        }
+
+        contentPanel = hud.findElementByName("tab-spell-content");
+        removeAllChildElements(contentPanel);
+        for (final KeeperSpell spell : getAvailableKeeperSpells()) {
+            createSpellIcon(spell).build(nifty, hud, contentPanel);
+        }
+
+        contentPanel = hud.findElementByName("tab-door-content");
+        removeAllChildElements(contentPanel);
+        for (final Door door : getAvailableDoors()) {
+            createDoorIcon(door).build(nifty, hud, contentPanel);
+        }
+
+        contentPanel = hud.findElementByName("tab-trap-content");
+        removeAllChildElements(contentPanel);
+        for (final Trap trap : getAvailableTraps()) {
+            createTrapIcon(trap).build(nifty, hud, contentPanel);
+        }
+
+        if (goldCurrent == null) {
+            goldCurrent = hud.findNiftyControl("gold", Label.class);
+        }
+
+        if (tooltip == null) {
+            tooltip = hud.findNiftyControl("tooltip", Label.class);
+        }
+    }
+
+    /**
+     * Deletes all children from element
+     *
+     * @param element parent
+     */
+    private void removeAllChildElements(Element element) {
+        for (Element e : element.getElements()) {
+            e.markForRemoval();
+        }
+    }
+
     @Override
     public void bind(Nifty nifty, Screen screen) {
         this.nifty = nifty;
@@ -192,38 +246,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     public void onStartScreen() {
         switch (nifty.getCurrentScreen().getScreenId()) {
             case HUD_SCREEN_ID: {
-
-                gameState.getPlayerManaControl().addListener(screen.findNiftyControl("mana", Label.class), PlayerManaControl.Type.CURRENT);
-                gameState.getPlayerManaControl().addListener(screen.findNiftyControl("manaGet", Label.class), PlayerManaControl.Type.GET);
-                gameState.getPlayerManaControl().addListener(screen.findNiftyControl("manaLose", Label.class), PlayerManaControl.Type.LOSE);
-
-                Element contentPanel = screen.findElementByName("tab-room-content");
-                for (final Room room : getAvailableRoomsToBuild()) {
-                    createRoomIcon(room).build(nifty, screen, contentPanel);
-                }
-
-                contentPanel = screen.findElementByName("tab-spell-content");
-                for (final KeeperSpell spell : getAvailableKeeperSpells()) {
-                    createSpellIcon(spell).build(nifty, screen, contentPanel);
-                }
-
-                contentPanel = screen.findElementByName("tab-door-content");
-                for (final Door door : getAvailableDoors()) {
-                    createDoorIcon(door).build(nifty, screen, contentPanel);
-                }
-
-                contentPanel = screen.findElementByName("tab-trap-content");
-                for (final Trap trap : getAvailableTraps()) {
-                    createTrapIcon(trap).build(nifty, screen, contentPanel);
-                }
-
-                if (goldCurrent == null) {
-                    goldCurrent = screen.findNiftyControl("gold", Label.class);
-                }
-
-                if (tooltip == null) {
-                    tooltip = screen.findNiftyControl("tooltip", Label.class);
-                }
 
                 if (!backgroundSet) {
 
@@ -245,7 +267,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         ((DesktopAssetManager) assetManager).addToCache(new TextureKey("HUDBackground"), tex);
 
                         // Add the scaled one
-                        NiftyImage niftyImage = nifty.createImage("HUDBackground", false);
+                        NiftyImage niftyImage = nifty.createImage("HUDBackground", true);
                         String resizeString = "repeat:0,0," + newImage.getWidth() + "," + newImage.getHeight();
                         String areaProviderProperty = ImageModeHelper.getAreaProviderProperty(resizeString);
                         String renderStrategyProperty = ImageModeHelper.getRenderStrategyProperty(resizeString);
@@ -472,7 +494,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 optionsMenuTitle.setText("${menu.1266}");
 
                 items.add(new GameMenu("i-quit", "${menu.12}", String.format("pauseMenuNavigate(%s,%s,${menu.12},quitToMainMenu())",
-                         PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), optionsColumnOne));
+                        PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), optionsColumnOne));
                 items.add(new GameMenu(Utils.isWindows() ? "i-exit_to_windows" : "i-quit", Utils.isWindows() ? "${menu.13}" : "${menu.14}",
                         String.format("pauseMenuNavigate(%s,%s,%s,quitToOS())", PauseMenuState.CONFIRMATION.name(),
                         PauseMenuState.QUIT.name(), (Utils.isWindows() ? "${menu.13}" : "${menu.14}")), optionsColumnOne));
@@ -496,7 +518,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         optionsNavigationColumnTwo));
 
                 break;
-            }
+        }
 
         // build menu items
         // FIXME id="#image" and "#text" already exist
@@ -528,7 +550,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         interactionState.setInteractionState(InteractionState.valueOf(state.toUpperCase()), Integer.valueOf(id));
     }
 
-    @NiftyEventSubscriber(id="tabs-hud")
+    @NiftyEventSubscriber(id = "tabs-hud")
     public void onTabChange(String id, TabSelectedEvent event) {
         // TODO: maybe change selected item state when tab change
     }
@@ -562,20 +584,19 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         item.startEffect(EffectEventId.onCustom, null, "select");
     }
 
-
     private class GameMenu {
+
         protected String title;
-        //protected String icon;
         protected String action;
         protected String id;
         protected Element parent;
 
-        public GameMenu() { }
+        public GameMenu() {
+        }
 
         public GameMenu(String id, String title, String action, Element parent) {
             this.id = id;
             this.title = title;
-            //this.icon = icon;
             this.action = action;
             this.parent = parent;
         }
