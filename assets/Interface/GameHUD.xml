@@ -277,6 +277,10 @@
     </screen>
 
     <screen id="possession" controller="toniarts.openkeeper.game.state.PlayerState">
+        <!-- creature filter -->
+        <layer childLayout="overlay">
+            <panel childLayout="overlay" width="100%" height="100%" id="creature-filter" />
+        </layer>
 
         <layer childLayout="vertical">
             <!--The upper panel-->
@@ -334,8 +338,8 @@
                     <panel width="*" childLayout="horizontal" valign="center" id="creature-attacks" />
                 </panel>
             </panel>
-             <!-- creature filter -->
-            <panel height="*" width="100%" id="creature-filter" />
+            <!-- creature attack -->
+            <panel height="*" width="100%" id="creature-action" />
             <!--The bottom panel-->
             <panel height="220px" width="100%" align="left" valign="bottom" childLayout="overlay">
                 <panel childLayout="vertical">

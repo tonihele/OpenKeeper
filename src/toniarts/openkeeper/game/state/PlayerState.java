@@ -42,11 +42,13 @@ import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
+import de.lessvoid.nifty.elements.render.PanelRenderer;
 import de.lessvoid.nifty.render.NiftyImage;
 import de.lessvoid.nifty.render.image.ImageModeFactory;
 import de.lessvoid.nifty.render.image.ImageModeHelper;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
+import de.lessvoid.nifty.tools.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -339,13 +341,30 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             }
             case POSSESSION_SCREEN_ID:
                 // what we need? abitities and spells, also melee
-                Creature creature = possessionState.getTargetCreature();
+                //final Creature creature = gameState.getLevelData().getCreature((short)13);
+                final Creature creature = possessionState.getTargetCreature();
 
                 Element contentPanel = screen.findElementByName("creature-icon");
-                createCreatureIcon(creature.getIcon1Resource().getName()).build(nifty, screen, contentPanel);
+                if (contentPanel != null) {
+                    createCreatureIcon(creature.getIcon1Resource().getName()).build(nifty, screen, contentPanel);
+                }
 
-                creature.getFirstPersonFilterResource();
-                creature.getFirstPersonGammaEffect();
+                contentPanel = screen.findElementByName("creature-filter");
+                if (contentPanel != null) {
+                    if (creature.getFirstPersonFilterResource() != null) {
+                        new ImageBuilder() {{
+                            filename(creature.getFirstPersonFilterResource().getName());
+                        }}.build(nifty, screen, contentPanel);
+                    } else if (getFilterResourceName(creature.getCreatureId()) != null) {
+                        new ImageBuilder() {{
+                            filename(getFilterResourceName(creature.getCreatureId()));
+                        }}.build(nifty, screen, contentPanel);
+                    }
+
+                    if (creature.getFirstPersonGammaEffect() != null) {
+                         contentPanel.getRenderer(PanelRenderer.class).setBackgroundColor(getGammaEffectColor(creature.getFirstPersonGammaEffect()));
+                    }
+                }
 
                 contentPanel = screen.findElementByName("creature-abilities");
                 if (contentPanel != null) {
@@ -384,6 +403,66 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         }
     }
 
+    // FIXME where filter resource?
+    private String getFilterResourceName(int id) {
+        String resource = null;
+        switch (id) {
+            case 12:
+                resource = "Textures/GUI/Filters/F-FireFly.png";
+                break;
+            case 13:
+                resource = "Textures/GUI/Filters/F-Knight.png";
+                break;
+            case 22:
+                resource = "Textures/GUI/Filters/F-Black_Knight.png";
+                break;
+            case 25:
+                resource = "Textures/GUI/Filters/F-Guard.png";
+                break;
+        }
+        return resource;
+    }
+
+    // FIXME Gamma Effect not a Color. It`s post effect of render.
+    private Color getGammaEffectColor(Creature.GammaEffect type) {
+        Color c = new Color(0, 0, 0, 0);
+
+        switch (type) {
+            case NORMAL:
+                c = new Color(1f, 1f, 1f, 0);
+                break;
+
+            case VAMPIRE_RED:
+                c = new Color(0.8f, 0, 0, 0.2f);
+                break;
+
+            case DARK_ELF_PURPLE:
+                 c = new Color(0.9f, 0, 0.9f, 0.2f);
+                break;
+
+            case SKELETON_BLACK_N_WHITE:
+                c = new Color(0, 0, 1f, 0.1f);
+                break;
+
+            case SALAMANDER_INFRARED:
+                c = new Color(1f, 0, 0, 0.1f);
+                break;
+
+            case DARK_ANGER_BRIGHT_BLUE:
+            case DEATH_VIEW_HALF_RED:
+            case FREEZE_VIEW_ONLY_BLUE:
+            case BLACKOUT:
+            case GHOST:
+            case MAIDEN:
+            case REDOUT:
+            case WHITEOUT:
+                break;
+
+        }
+
+        return c;
+    }
+
     // FIXME I doesn`t find resources to abilities
     private String getAbilityResourceName(Creature.SpecialAbility ability) {
         String name = null;
@@ -417,9 +496,9 @@ public class PlayerState extends AbstractAppState implements ScreenController {
          return new ImageBuilder() {
             {
                 valignCenter();
-                marginLeft("6px");
+                marginRight("6px");
                 focusable(true);
-                id("creature-abitity_" + index);
+                id("creature-ability_" + index);
                 filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + name + ".png"));
                 valignCenter();
                 onFocusEffect(new EffectBuilder("imageOverlay") {
