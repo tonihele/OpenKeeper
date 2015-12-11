@@ -344,21 +344,21 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 //final Creature creature = gameState.getLevelData().getCreature((short)13);
                 final Creature creature = possessionState.getTargetCreature();
 
-                Element contentPanel = screen.findElementByName("creature-icon");
+                Element contentPanel = nifty.getCurrentScreen().findElementByName("creature-icon");
                 if (contentPanel != null) {
-                    createCreatureIcon(creature.getIcon1Resource().getName()).build(nifty, screen, contentPanel);
+                    createCreatureIcon(creature.getIcon1Resource().getName()).build(nifty, nifty.getCurrentScreen(), contentPanel);
                 }
 
-                contentPanel = screen.findElementByName("creature-filter");
+                contentPanel = nifty.getCurrentScreen().findElementByName("creature-filter");
                 if (contentPanel != null) {
                     if (creature.getFirstPersonFilterResource() != null) {
                         new ImageBuilder() {{
                             filename(creature.getFirstPersonFilterResource().getName());
-                        }}.build(nifty, screen, contentPanel);
+                        }}.build(nifty, nifty.getCurrentScreen(), contentPanel);
                     } else if (getFilterResourceName(creature.getCreatureId()) != null) {
                         new ImageBuilder() {{
                             filename(getFilterResourceName(creature.getCreatureId()));
-                        }}.build(nifty, screen, contentPanel);
+                        }}.build(nifty, nifty.getCurrentScreen(), contentPanel);
                     }
 
                     if (creature.getFirstPersonGammaEffect() != null) {
@@ -366,27 +366,27 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                     }
                 }
 
-                contentPanel = screen.findElementByName("creature-abilities");
+                contentPanel = nifty.getCurrentScreen().findElementByName("creature-abilities");
                 if (contentPanel != null) {
 
                     String ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility1());
                     if (ability != null) {
-                        createCreatureAbilityIcon(ability, 1).build(nifty, screen, contentPanel);
+                        createCreatureAbilityIcon(ability, 1).build(nifty, nifty.getCurrentScreen(), contentPanel);
                     }
 
                     ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility2());
                     if (ability != null) {
-                        createCreatureAbilityIcon(ability, 2).build(nifty, screen, contentPanel);
+                        createCreatureAbilityIcon(ability, 2).build(nifty, nifty.getCurrentScreen(), contentPanel);
                     }
                 }
 
-                contentPanel = screen.findElementByName("creature-attacks");
+                contentPanel = nifty.getCurrentScreen().findElementByName("creature-attacks");
                 if (contentPanel != null) {
                     for (Element element : contentPanel.getElements()) {
                         element.markForRemoval();
                     }
 
-                    createCreatureMeleeIcon(creature.getFirstPersonMeleeResource().getName()).build(nifty, screen, contentPanel);
+                    createCreatureMeleeIcon(creature.getFirstPersonMeleeResource().getName()).build(nifty, nifty.getCurrentScreen(), contentPanel);
 
                     int index = 1;
                     for (Creature.Spell s : creature.getSpells()) {
@@ -395,7 +395,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                             continue;
                         }
                         CreatureSpell cs = gameState.getLevelData().getCreatureSpellById(s.getCreatureSpellId());
-                        createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
+                        createCreatureSpellIcon(cs, index++).build(nifty, nifty.getCurrentScreen(), contentPanel);
                     }
                 }
 
@@ -783,7 +783,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                     {
                         style("textNormal");
                     }
-                }.build(nifty, screen, optionsColumnOne);
+                }.build(nifty, nifty.getCurrentScreen(), optionsColumnOne);
 
                 items.add(new GameMenu("i-accept", "${menu.21}", confirmMethod, optionsColumnOne));
                 items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
@@ -799,7 +799,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             new IconTextBuilder("menu-" + NiftyIdCreator.generate(), String.format("Textures/GUI/Options/%s.png", item.id), item.title, item.action) {
                 {
                 }
-            }.build(nifty, screen, item.parent);
+            }.build(nifty, nifty.getCurrentScreen(), item.parent);
         }
 
         // Fix layout
@@ -831,7 +831,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private void updateSelectedItem(InteractionState state, int id) {
 
         for (InteractionState interaction : InteractionState.values()) {
-            Element content = screen.findElementByName("tab-" + interaction.toString().toLowerCase() + "-content");
+            Element content = nifty.getCurrentScreen().findElementByName("tab-" + interaction.toString().toLowerCase() + "-content");
             if (content == null) {
                 continue;
             }
@@ -849,7 +849,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         }
 
         String itemId = state.toString().toLowerCase() + "_" + id;
-        Element item = screen.findElementByName(itemId);
+        Element item = nifty.getCurrentScreen().findElementByName(itemId);
         if (item == null) {
             System.err.println(itemId + " not found"); // FIXME remove this line after debug
             return;
@@ -862,7 +862,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     private void updatePossessionSelectedItem(PossessionInteractionState.Action action) {
-         Element element = screen.findElementByName("creature-" + action.toString().toLowerCase());
+         Element element = nifty.getCurrentScreen().findElementByName("creature-" + action.toString().toLowerCase());
          if (element != null) {
             element.setFocus();
          }
