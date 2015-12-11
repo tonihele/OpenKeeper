@@ -2544,6 +2544,10 @@ public final class KwdFile {
     public GameLevel getGameLevel() {
         return gameLevel;
     }
+    
+    public CreatureSpell getCreatureSpellById(short spellId) {
+        return creatureSpells.get(spellId);
+    }
 
     /**
      * Not all the data types are of the length that suits us, do our best to
