@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.world;
 
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
 /**
@@ -28,11 +29,18 @@ public final class TileData extends Tile {
     private boolean selected = false;
     private Integer randomTextureIndex;
 
-    protected TileData(Tile tile) {
+    protected TileData(Tile tile, Terrain terrain) {
         this.setFlag(tile.getFlag());
         this.setPlayerId(tile.getPlayerId());
         this.setTerrainId(tile.getTerrainId());
         this.setUnknown(tile.getUnknown());
+
+        // The water/lava under the bridge is set only when there is an actual bridge, but we might as well set it here, it doesn't change
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
+            this.setFlag(BridgeTerrainType.LAVA);
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER)) {
+            this.setFlag(BridgeTerrainType.WATER);
+        }
     }
 
     public boolean isSelected() {
