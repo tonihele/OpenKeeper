@@ -154,7 +154,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     getWorldHandler().selectTiles(selectionArea, select);
                 } else if (PlayerInteractionState.this.interactionState == InteractionState.ROOM && getWorldHandler().isBuildable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player, gameState.getLevelData().getRoomById(itemId))) {
                     getWorldHandler().build(selectionArea, player, gameState.getLevelData().getRoomById(itemId));
-                } else if (PlayerInteractionState.this.interactionState == InteractionState.SELL && getWorldHandler().isSellable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player)) {
+                } else if (PlayerInteractionState.this.interactionState == InteractionState.SELL) {
                     getWorldHandler().sell(selectionArea, player);
                 }
             }
@@ -227,15 +227,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public void onMouseButtonEvent(MouseButtonEvent evt) {
         if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
 
-            if (interactionState == InteractionState.SPELL  && itemId == 2) { // possession
+            if (interactionState == InteractionState.SPELL && itemId == 2) { // possession
                 if (evt.isReleased()) {
                     // TODO make normal selection, not first keeper creature
                     for (Thing t : gameState.getLevelData().getThings()) {
                         if (t instanceof Thing.KeeperCreature) {
-                            onPossession((Thing.KeeperCreature)t);
+                            onPossession((Thing.KeeperCreature) t);
                             break;
                         }
-                    }                    
+                    }
                     // Reset the state
                     // TODO disable selection box
                     setInteractionState(InteractionState.NONE, 0);
@@ -413,5 +413,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
      * @param id new id
      */
     protected abstract void onInteractionStateChange(InteractionState interactionState, int id);
+
     protected abstract void onPossession(Thing.KeeperCreature creature);
 }
