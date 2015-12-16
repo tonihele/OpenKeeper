@@ -241,7 +241,6 @@ public class MapThumbnailGenerator {
     }
 
     private static boolean isRoom(Terrain tile) {
-        ArtResource ceilingResource = MapLoader.getCeilingResource(tile);
-        return (ceilingResource == null && tile.getCompleteResource() == null);
+        return tile.getFlags().contains(Terrain.TerrainFlag.ROOM);
     }
 }
