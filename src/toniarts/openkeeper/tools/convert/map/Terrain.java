@@ -39,6 +39,7 @@ public class Terrain implements Comparable<Terrain> {
         IMPENETRABLE(0x00000002),
         OWNABLE(0x00000004),
         TAGGABLE(0x00000008),
+        ROOM(0x00000010), // is room terrain
         ATTACKABLE(0x00000020),
         TORCH(0x00000040), // has torch?
         WATER(0x00000080),
