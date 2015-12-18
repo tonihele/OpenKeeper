@@ -208,6 +208,7 @@ public abstract class WorldHandler {
             TileData tile = mapLoader.getTile(x, y);
             Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
+            tile.setSelected(false);
             mapLoader.updateTiles(mapLoader.getSurroundingTiles(new Point(x, y), true));
 
             // See if room walls are allowed and does this touch any rooms
