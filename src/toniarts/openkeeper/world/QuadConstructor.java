@@ -18,7 +18,6 @@ package toniarts.openkeeper.world;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -34,7 +33,7 @@ import static toniarts.openkeeper.world.MapLoader.loadAsset;
  */
 
 public class QuadConstructor extends TileConstructor {
-    
+
     public QuadConstructor(KwdFile kwdFile) {
         super(kwdFile);
     }
@@ -53,12 +52,14 @@ public class QuadConstructor extends TileConstructor {
      */
     @Override
     public Spatial construct(TileData[][] tiles, int x, int y, final Terrain terrain, final AssetManager assetManager, String modelName) {
-        //boolean ceiling = false;
-        if ("CLAIMED TOP".equals(modelName)) {
-            modelName = "Claimed Top";
-            //ceiling = true;
-        } else if ("CLAIMED FLOOR".equals(modelName)) {
-            modelName = "Claimed Floor";
+
+        switch (modelName) {
+            case "CLAIMED TOP":
+                modelName = "Claimed Top";
+                break;
+            case "CLAIMED FLOOR":
+                modelName = "Claimed Floor";
+                break;
         }
 
         // If ownable, playerId is first
@@ -68,17 +69,17 @@ public class QuadConstructor extends TileConstructor {
         }
 
         // It needs to be parsed together from tiles
-
+        boolean solid = isSolidTile(tiles, x, y);
         // Figure out which peace by seeing the neighbours
         // This is slightly different with the top
-        boolean N = hasSameTile(tiles, x, y - 1, terrain) || isSolidTile(tiles, x, y - 1);
-        boolean NE = hasSameTile(tiles, x + 1, y - 1, terrain) || isSolidTile(tiles, x + 1, y - 1);
-        boolean E = hasSameTile(tiles, x + 1, y, terrain) || isSolidTile(tiles, x + 1, y);
-        boolean SE = hasSameTile(tiles, x + 1, y + 1, terrain) || isSolidTile(tiles, x + 1, y + 1);
-        boolean S = hasSameTile(tiles, x, y + 1, terrain) || isSolidTile(tiles, x, y + 1);
-        boolean SW = hasSameTile(tiles, x - 1, y + 1, terrain) || isSolidTile(tiles, x - 1, y + 1);
-        boolean W = hasSameTile(tiles, x - 1, y, terrain) || isSolidTile(tiles, x - 1, y);
-        boolean NW = hasSameTile(tiles, x - 1, y - 1, terrain) || isSolidTile(tiles, x - 1, y - 1);
+        boolean N = hasSameTile(tiles, x, y - 1, terrain)      || (solid && isSolidTile(tiles, x, y - 1));
+        boolean NE = hasSameTile(tiles, x + 1, y - 1, terrain) || (solid && isSolidTile(tiles, x + 1, y - 1));
+        boolean E = hasSameTile(tiles, x + 1, y, terrain)      || (solid && isSolidTile(tiles, x + 1, y));
+        boolean SE = hasSameTile(tiles, x + 1, y + 1, terrain) || (solid && isSolidTile(tiles, x + 1, y + 1));
+        boolean S = hasSameTile(tiles, x, y + 1, terrain)      || (solid && isSolidTile(tiles, x, y + 1));
+        boolean SW = hasSameTile(tiles, x - 1, y + 1, terrain) || (solid && isSolidTile(tiles, x - 1, y + 1));
+        boolean W = hasSameTile(tiles, x - 1, y, terrain)      || (solid && isSolidTile(tiles, x - 1, y));
+        boolean NW = hasSameTile(tiles, x - 1, y - 1, terrain) || (solid && isSolidTile(tiles, x - 1, y - 1));
 
         // 2x2
         Spatial model = new Node();
@@ -86,88 +87,64 @@ public class QuadConstructor extends TileConstructor {
             for (int k = 0; k < 2; k++) {
 
                 int pieceNumber = 0;
-                Quaternion quat = null;
+                float yAngle = 0;
                 Vector3f movement = null;
 
                 // Determine the piece
                 if (i == 0 && k == 0) { // North west corner
                     if (N && W && NW) {
                         pieceNumber = 3;
-                    } else if (!N && W && NW) {
-                        pieceNumber = 0;
-                    } else if (!NW && N && W) {
+                    } else if (N && W && !NW) {
                         pieceNumber = 2;
                     } else if (!N && !W) {
                         pieceNumber = 1;
-                    } else if (!W && NW && N) {
+                    } else if (N && !W) {
                         pieceNumber = 4;
-                    } else if (!W && !NW && N) {
-                        pieceNumber = 4;
-                    } else {
-                        pieceNumber = 0;
                     }
-                    quat = new Quaternion();
-                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
+
+                    yAngle = FastMath.PI;
                     movement = new Vector3f(-TILE_WIDTH * 2, 0, 0);
                 } else if (i == 1 && k == 0) { // North east corner
                     if (N && E && NE) {
                         pieceNumber = 3;
-                    } else if (!N && E && NE) {
-                        pieceNumber = 4;
-                    } else if (!NE && N && E) {
+                    } else if (N && E && !NE) {
                         pieceNumber = 2;
                     } else if (!N && !E) {
                         pieceNumber = 1;
-                    } else if (!E && NE && N) {
-                        pieceNumber = 0;
-                    } else if (!E && !NE && N) {
-                        pieceNumber = 0;
-                    } else {
+                    } else if (!N && E) {
                         pieceNumber = 4;
                     }
-                    quat = new Quaternion();
-                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
+
+                    yAngle = FastMath.HALF_PI;
                 } else if (i == 0 && k == 1) { // South west corner
                     if (S && W && SW) {
                         pieceNumber = 3;
-                    } else if (!S && W && SW) {
-                        pieceNumber = 4;
-                    } else if (!SW && S && W) {
+                    } else if (S && W && !SW) {
                         pieceNumber = 2;
                     } else if (!S && !W) {
                         pieceNumber = 1;
-                    } else if (!W && SW && S) {
-                        pieceNumber = 0;
-                    } else if (!W && !SW && S) {
-                        pieceNumber = 0;
-                    } else {
+                    } else if (!S && W) {
                         pieceNumber = 4;
                     }
-                    quat = new Quaternion();
-                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+
+                    yAngle = -FastMath.HALF_PI;
                     movement = new Vector3f(-TILE_WIDTH * 2, 0, 0);
                 } else if (i == 1 && k == 1) { // South east corner
                     if (S && E && SE) {
                         pieceNumber = 3;
-                    } else if (!S && E && SE) {
-                        pieceNumber = 0;
-                    } else if (!SE && S && E) {
+                    } else if (S && E && !SE) {
                         pieceNumber = 2;
                     } else if (!S && !E) {
                         pieceNumber = 1;
-                    } else if (!E && SE && S) {
+                    } else if (S && !E) {
                         pieceNumber = 4;
-                    } else if (!E && !SE && S) {
-                        pieceNumber = 4;
-                    } else {
-                        pieceNumber = 0;
                     }
                 }
 
                 // Load the piece
                 Spatial part = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + "_" + pieceNumber + ".j3o", false);
-                if (quat != null) {
-                    part.rotate(quat);
+                if (yAngle != 0) {
+                    part.rotate(0, yAngle, 0);
                 }
                 if (movement != null) {
                     part.move(movement);

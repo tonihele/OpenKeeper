@@ -40,13 +40,13 @@ public class PathFinder {
 
     public PathFinder(KwdFile kwdFile) {
 
-        Tile[][] tiles = kwdFile.getTiles();
+        Tile[][] tiles = kwdFile.getMap().getTiles();
         this.original = new Integer[tiles.length][tiles[0].length];
 
         for (int x = 0; x < tiles.length; x++) {
             for (int y = 0; y < tiles[x].length; y++) {
 
-                Terrain terrain = kwdFile.getTerrain(kwdFile.getTile(x, y).getTerrainId());
+                Terrain terrain = kwdFile.getTerrain(kwdFile.getMap().getTile(x, y).getTerrainId());
                 original[x][y] = (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) ? -1 : -2;
             }
         }

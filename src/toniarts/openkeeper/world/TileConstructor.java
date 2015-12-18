@@ -20,7 +20,6 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import static toniarts.openkeeper.world.MapLoader.getBridgeTerrain;
 
 /**
  *
@@ -29,11 +28,11 @@ import static toniarts.openkeeper.world.MapLoader.getBridgeTerrain;
 
 abstract class TileConstructor {
     protected final KwdFile kwdFile;
-    
+
     public TileConstructor(KwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
-    
+
     /**
      * Compares the given terrain tile to terrain tile at the given coordinates
      *
@@ -49,10 +48,10 @@ abstract class TileConstructor {
         if (x < 0 || x >= tiles.length || y < 0 || y >= tiles[x].length) {
             return false;
         }
-        Terrain bridgeTerrain = getBridgeTerrain(tiles[x][y], kwdFile.getTerrain(tiles[x][y].getTerrainId()), kwdFile);
+        Terrain bridgeTerrain = kwdFile.getTerrainBridge(tiles[x][y].getFlag(), kwdFile.getTerrain(tiles[x][y].getTerrainId()));
         return (tiles[x][y].getTerrainId() == terrain.getTerrainId() || (bridgeTerrain != null && bridgeTerrain.getTerrainId() == terrain.getTerrainId()));
     }
-    
+
     protected boolean isSolidTile(TileData[][] tiles, int x, int y) {
         // Check for out of bounds
         if (x < 0 || x >= tiles.length || y < 0 || y >= tiles[x].length) {
@@ -60,6 +59,6 @@ abstract class TileConstructor {
         }
         return kwdFile.getTerrain(tiles[x][y].getTerrainId()).getFlags().contains(Terrain.TerrainFlag.SOLID);
     }
-    
+
     abstract public Spatial construct(TileData[][] tiles, int x, int y, final Terrain terrain, final AssetManager assetManager, String model);
 }

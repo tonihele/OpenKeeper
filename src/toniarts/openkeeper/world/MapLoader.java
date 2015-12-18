@@ -21,7 +21,6 @@ import com.jme3.bounding.BoundingBox;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.BatchNode;
@@ -46,8 +45,6 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import static toniarts.openkeeper.tools.convert.map.Tile.BridgeTerrainType.LAVA;
-import static toniarts.openkeeper.tools.convert.map.Tile.BridgeTerrainType.WATER;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomConstructor;
 import toniarts.openkeeper.world.room.RoomInstance;
@@ -64,7 +61,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
-    
+
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
     private List<Node> pages;
     private final KwdFile kwdFile;
@@ -222,7 +219,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param root where to generate pages on
      */
     private void generatePages(Node root) {
-        pages = new ArrayList<>(((int) Math.ceil(kwdFile.getMap().getHeight() / (float) PAGE_SQUARE_SIZE)) * ((int) Math.ceil(kwdFile.getMap().getWidth() / (float) PAGE_SQUARE_SIZE)));
+        pages = new ArrayList<>(((int) Math.ceil(kwdFile.getMap().getHeight() / (float) PAGE_SQUARE_SIZE))
+                * ((int) Math.ceil(kwdFile.getMap().getWidth() / (float) PAGE_SQUARE_SIZE)));
         for (int y = 0; y < (int) Math.ceil(kwdFile.getMap().getHeight() / (float) PAGE_SQUARE_SIZE); y++) {
             for (int x = 0; x < (int) Math.ceil(kwdFile.getMap().getWidth() / (float) PAGE_SQUARE_SIZE); x++) {
                 Node page = new Node(x + "_" + y);
@@ -262,54 +260,40 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
     }
 
-    private ArtResource getWallNorth(int x, int y, TileData[][] tiles, Terrain terrain) {
-        return getWall(x, y - 1, tiles, terrain);
-    }
-
-    private ArtResource getWallSouth(int x, int y, TileData[][] tiles, Terrain terrain) {
-        return getWall(x, y + 1, tiles, terrain);
-    }
-
-    private ArtResource getWallEast(int x, int y, TileData[][] tiles, Terrain terrain) {
-        return getWall(x + 1, y, tiles, terrain);
-    }
-
-    private ArtResource getWallWest(int x, int y, TileData[][] tiles, Terrain terrain) {
-        return getWall(x - 1, y, tiles, terrain);
-    }
-
-    private ArtResource getWall(int x, int y, TileData[][] tiles, Terrain terrain) {
+    private boolean hasWall(int x, int y, TileData[][] tiles, Terrain terrain) {
 
         // Check for out of bounds
         if (x < 0 || x >= tiles.length || y < 0 || y >= tiles[x].length) {
-            return terrain.getSideResource();
+            return true;
         }
 
-        // The tile next to this needs to have its own ceiling
         Terrain neigbourTerrain = kwdFile.getTerrain(tiles[x][y].getTerrainId());
         if (neigbourTerrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-
-            // Rooms are built separately, so just ignore any room walls
-            if (!(terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS) && hasRoomWalls(neigbourTerrain))) {
-
-                // Use our terrain wall
-                return terrain.getSideResource();
-            }
+            return false;
         }
 
-        return null;
+        // Rooms are built separately, so just ignore any room walls
+        if (!(terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS) && hasRoomWalls(neigbourTerrain))) {
+            // Use our terrain wall
+            return true;
+        }
+
+        return false;
     }
 
-    private void addWall(Spatial wall, Node root, int x, int y) {
+    private void addWall(Spatial wall, Node root, int x, int y, float yAngle) {
 
         // Move the ceiling to a correct tile
         if (wall != null) {
+            if (yAngle != 0) {
+                wall.rotate(0, yAngle, 0);
+            }
             wall.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
             root.attachChild(wall);
         }
     }
 
-    
+
 
     /**
      * Sets random material (from the list) to all the geometries that have been
@@ -385,7 +369,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         return spatial;
     }
 
-    
+
 
     /**
      * Handle single tile from the map, represented by the X & Y coordinates
@@ -398,41 +382,41 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      */
     private void handleTile(TileData[][] tiles, int x, int y, AssetManager assetManager, Node root) {
         TileData tile = tiles[x][y];
-        Node pageNode = getPageNode(x, y, root);
-
         // Get the terrain
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        
+
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             // Construct the actual room
             Point p = new Point(x, y);
             Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
             if (!roomCoordinates.containsKey(p)) {
-                
+
                 RoomInstance roomInstance = new RoomInstance(room);
                 findRoom(tiles, p, roomInstance);
                 findRoomWallSections(tiles, roomInstance);
                 rooms.add(roomInstance);
-                
+
                 Spatial roomNode = handleRoom(assetManager, roomInstance);
                 roomsNode.attachChild(roomNode);
 
                 // Add to registry
                 roomNodes.put(roomInstance, roomNode);
             }
-            
+
             // Swap the terrain if this is a bridge
-            terrain = getBridgeTerrain(tile, room, kwdFile);            
-        }       
-        
-        if (terrain != null) {
-            handleTop(terrain, tiles, tile, x, y, assetManager, pageNode);
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                handleSide(terrain, tiles, tile, x, y, assetManager, pageNode);            
+            terrain = kwdFile.getTerrainBridge(tile.getFlag(), room);
+            if (terrain == null) {
+                return;
             }
         }
+
+        Node pageNode = getPageNode(x, y, root);
+        handleTop(terrain, tiles, tile, x, y, assetManager, pageNode);
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            handleSide(terrain, tiles, tile, x, y, assetManager, pageNode);
+        }
     }
-    
+
     /**
      * Handle top construction on the tile
      *
@@ -445,9 +429,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param pageNode page node
      */
     private void handleTop(Terrain terrain, TileData[][] tiles, TileData tile, int x, int y, AssetManager assetManager, Node pageNode) {
-        // Ceiling
-        String modelName;
-        // If this resource is type quad, parse it together
+
+        ArtResource model = terrain.getCompleteResource();
+
         Spatial spatial;
         // For water construction type (lava & water), there are 8 pieces (0-7 suffix) in complete resource
         // And in the top resource there is the actual lava/water
@@ -465,88 +449,70 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 }
             }
 
-            modelName = terrain.getCompleteResource().getName();
-            spatial = new WaterConstructor(kwdFile).construct(tiles, x, y, terrain, assetManager, modelName);
-            
+            spatial = new WaterConstructor(kwdFile).construct(tiles, x, y, terrain, assetManager, model.getName());
+
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
-            
-            modelName = terrain.getCompleteResource().getName();
-            spatial =  new QuadConstructor(kwdFile).construct(tiles, x, y, terrain, assetManager, modelName);
-            
+            // If this resource is type quad, parse it together
+            spatial = new QuadConstructor(kwdFile).construct(tiles, x, y, terrain, assetManager, model.getName());
+
         } else {
-            
+
             if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                modelName = terrain.getTopResource().getName();
-            } else {                
-                modelName = terrain.getCompleteResource().getName();              
+                model = terrain.getTopResource();
             }
-            spatial = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o", false);
+            spatial = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model.getName() + ".j3o", false);
         }
-        
+
         if (terrain.getFlags().contains(Terrain.TerrainFlag.RANDOM_TEXTURE)) {
             setRandomTexture(assetManager, spatial, tile);
         }
-                
+
+        Node topTileNode;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            Node topTileNode = getTileNode(x, y, (Node) pageNode.getChild(2));            
-            // FIXME tagging only SOLID tiles not universal
-            if (tile.isSelected()) {
-                // Just set the selected material here if needed
-                setTaggedMaterialToGeometries(topTileNode);
-            }
-        
+            topTileNode = getTileNode(x, y, (Node) pageNode.getChild(2));
             spatial.move(x * TILE_WIDTH, TILE_HEIGHT, y * TILE_WIDTH);
-            topTileNode.attachChild(spatial);
+
         } else {
-            Node floorTileNode = getTileNode(x, y, (Node) pageNode.getChild(0));
+            topTileNode = getTileNode(x, y, (Node) pageNode.getChild(0));
             spatial.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
-            floorTileNode.attachChild(spatial);
+        }
+        topTileNode.attachChild(spatial);
+        if (tile.isSelected()) { // Just set the selected material here if needed
+            setTaggedMaterialToGeometries(topTileNode);
         }
     }
-    
+
     private void handleSide(Terrain terrain, TileData[][] tiles, TileData tile, int x, int y, AssetManager assetManager, Node pageNode) {
         Node sideTileNode = getTileNode(x, y, (Node) pageNode.getChild(1));
-        
+        String modelName = terrain.getSideResource().getName();
+
         // North
-        ArtResource wallNorth = getWallNorth(x, y, tiles, terrain);
-        if (wallNorth != null) {
-            Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallNorth.getName() + ".j3o", true);
+        if (hasWall(x, y - 1, tiles, terrain)) {
+            Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o", true);
             wall.move(0, 0, -TILE_WIDTH);
-            addWall(wall, sideTileNode, x, y);
+            addWall(wall, sideTileNode, x, y, 0);
         }
 
         // South
-        ArtResource wallSouth = getWallSouth(x, y, tiles, terrain);
-        if (wallSouth != null) {
-            Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallSouth.getName() + ".j3o", true);
-            Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
-            wall.rotate(quat);
+        if (hasWall(x, y + 1, tiles, terrain)) {
+            Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o", true);
             wall.move(-TILE_WIDTH, 0, 0);
-            addWall(wall, sideTileNode, x, y);
+            addWall(wall, sideTileNode, x, y, -FastMath.PI);
         }
 
         // East
-        ArtResource wallEast = getWallEast(x, y, tiles, terrain);
-        if (wallEast != null) {
-            Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallEast.getName() + ".j3o", true);
-            Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-            wall.rotate(quat);
-            addWall(wall, sideTileNode, x, y);
+        if (hasWall(x + 1, y, tiles, terrain)) {
+            Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o", true);
+            addWall(wall, sideTileNode, x, y, -FastMath.HALF_PI);
         }
 
         // West
-        ArtResource wallWest = getWallWest(x, y, tiles, terrain);
-        if (wallWest != null) {
-            Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + wallWest.getName() + ".j3o", true);
-            Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-            wall.rotate(quat);
+        if (hasWall(x - 1, y, tiles, terrain)) {
+            Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o", true);
             wall.move(-TILE_WIDTH, 0, -TILE_WIDTH);
-            addWall(wall, sideTileNode, x, y);
+            addWall(wall, sideTileNode, x, y, FastMath.HALF_PI);
         }
-        
+
         if (tile.isSelected()) {
             setTaggedMaterialToGeometries(sideTileNode);
         }
@@ -599,36 +565,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     }
 
     /**
-     * Bridges are a bit special, identifies one and returns the terrain that
-     * should be under it
-     *
-     * @param tile the tile
-     * @param terrain the terrain tile
-     * @return returns null if this is not a bridge, otherwise returns pretty
-     * much either water or lava
-     */
-    protected static Terrain getBridgeTerrain(TileData tile, Terrain terrain, KwdFile kwdFile) {
-        Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-        
-        return getBridgeTerrain(tile, room, kwdFile);
-    }
-    
-    protected static Terrain getBridgeTerrain(TileData tile, Room room, KwdFile kwdFile) {
-        // Swap the terrain if this is a bridge
-        if (room != null && !room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
-            // It is a bridge
-            switch (tile.getFlag()) {
-                case WATER:
-                    return kwdFile.getMap().getWater();                
-                case LAVA:
-                    return kwdFile.getMap().getLava();                
-            }
-        }
-        
-        return null;
-    }
-    
-    /**
      * Checks if this terrain piece is actually a room and the room type has
      * walls
      *
@@ -639,8 +575,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
 
             Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-            return room.getFlags().contains(Room.RoomFlag.HAS_WALLS) 
-                    || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_FRONT_END 
+            return room.getFlags().contains(Room.RoomFlag.HAS_WALLS)
+                    || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_FRONT_END
                     || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_3_BY_1;
         }
         return false;
@@ -699,7 +635,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
             // Get the terrain
             Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-            Terrain bridgeTerrain = getBridgeTerrain(tile, terrain, kwdFile);
+            Terrain bridgeTerrain = kwdFile.getTerrainBridge(tile.getFlag(), terrain);
             if (bridgeTerrain != null) {
                 terrain = bridgeTerrain;
             }
@@ -862,7 +798,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param sections list of already find sections
      * @param alreadyWalledPoints already found wall points
      */
-    private void traverseRoomWalls(Point p, TileData[][] tiles, RoomInstance roomInstance, WallDirection direction, List<WallSection> sections, Map<Point, Set<WallDirection>> alreadyWalledPoints) {
+    private void traverseRoomWalls(Point p, TileData[][] tiles, RoomInstance roomInstance, WallDirection direction,
+            List<WallSection> sections, Map<Point, Set<WallDirection>> alreadyWalledPoints) {
         Set<WallDirection> alreadyTraversedDirections = alreadyWalledPoints.get(p);
         if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(direction)) {
 
