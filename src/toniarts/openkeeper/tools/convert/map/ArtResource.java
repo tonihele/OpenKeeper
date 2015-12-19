@@ -16,9 +16,9 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IValueEnum;
-import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
+import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
  * Placeholder for the container class for the ArtResource
@@ -32,6 +32,7 @@ public class ArtResource {
 
     public enum ArtResourceFlag implements IFlagEnum {
 
+        UNKNOWN(0x0001),
         PLAYER_COLOURED(0x0002),
         ANIMATING_TEXTURE(0x0004),
         HAS_START_ANIMATION(0x0008),
