@@ -183,7 +183,7 @@ public class MapThumbnailGenerator {
         // For now this is very much hard coded, I couldn't find much logic
         for (int y = 0; y < kwd.getMap().getHeight(); y++) {
             for (int x = 0; x < kwd.getMap().getWidth(); x++) {
-                Tile tile = kwd.getTile(x, y);
+                Tile tile = kwd.getMap().getTile(x, y);
                 byte value = 0;
 
                 // Water and lava
@@ -241,7 +241,6 @@ public class MapThumbnailGenerator {
     }
 
     private static boolean isRoom(Terrain tile) {
-        ArtResource ceilingResource = MapLoader.getCeilingResource(tile);
-        return (ceilingResource == null && tile.getCompleteResource() == null);
+        return tile.getFlags().contains(Terrain.TerrainFlag.ROOM);
     }
 }

@@ -50,6 +50,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.EntityInstance;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.WaterConstructor;
 
 /**
  * Don't let the name fool you, this bad boy also handles lava construction. The
@@ -166,10 +167,10 @@ public class Water {
                 Vector2f textureCoord4 = new Vector2f(1, 1);
 
                 // Vertices
-                Vector3f vertice1 = new Vector3f(tile.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH, -MapLoader.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH);
-                Vector3f vertice2 = new Vector3f(tile.x * MapLoader.TILE_WIDTH, -MapLoader.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH);
-                Vector3f vertice3 = new Vector3f(tile.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH, -MapLoader.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH);
-                Vector3f vertice4 = new Vector3f(tile.x * MapLoader.TILE_WIDTH, -MapLoader.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH);
+                Vector3f vertice1 = new Vector3f(tile.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH, -WaterConstructor.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH);
+                Vector3f vertice2 = new Vector3f(tile.x * MapLoader.TILE_WIDTH, -WaterConstructor.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH);
+                Vector3f vertice3 = new Vector3f(tile.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH, -WaterConstructor.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH);
+                Vector3f vertice4 = new Vector3f(tile.x * MapLoader.TILE_WIDTH, -WaterConstructor.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH);
                 int vertice1Index = addVertice(verticeHash, vertice1, vertices, textureCoord1, textureCoordinates, normals, shareVertices);
                 int vertice2Index = addVertice(verticeHash, vertice2, vertices, textureCoord2, textureCoordinates, normals, shareVertices);
                 int vertice3Index = addVertice(verticeHash, vertice3, vertices, textureCoord3, textureCoordinates, normals, shareVertices);
