@@ -663,6 +663,7 @@ public abstract class AssetsConverter {
         for (final String entry : wad.getWadFileEntries()) {
             try {
                 updateStatus(i, total, ConvertProcess.PATHS);
+                i++;
 
                 // Convert all the KCS entries
                 if (entry.toLowerCase().endsWith(".kcs")) {
