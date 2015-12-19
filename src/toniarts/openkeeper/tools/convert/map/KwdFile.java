@@ -48,6 +48,7 @@ import toniarts.openkeeper.tools.convert.map.GameLevel.LevFlag;
 import toniarts.openkeeper.tools.convert.map.GameLevel.LevelReward;
 import toniarts.openkeeper.tools.convert.map.GameLevel.TextTable;
 import static toniarts.openkeeper.tools.convert.map.MapDataTypeEnum.MAP;
+import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Thing.ActionPoint;
 import toniarts.openkeeper.tools.convert.map.Thing.ActionPoint.ActionPointFlag;
 import toniarts.openkeeper.tools.convert.map.Thing.GoodCreature;
@@ -73,7 +74,6 @@ public final class KwdFile {
 
     private GameLevel gameLevel;
     private Map map;
-
     private java.util.Map<Short, Player> players;
     private java.util.Map<Short, Terrain> terrainTiles;
     private java.util.Map<Short, Door> doors;
@@ -90,11 +90,9 @@ public final class KwdFile {
     private java.util.Map<Short, Shot> shots;
     private java.util.Map<Integer, Trigger> triggers;
     private List<Variable> variables;
-
     private boolean customOverrides = false;
     private boolean loaded = false;
     private final String basePath;
-
     private static final Logger logger = Logger.getLogger(KwdFile.class.getName());
 
     /**
@@ -132,31 +130,35 @@ public final class KwdFile {
         }
         this.basePath = basePath;
 
-        // We need map width & height, I couldn't figure out where, except the map data
-        try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, gameLevel.getFile(MAP)), "r")) {
-            KwdHeader header = readKwdHeader(data);
-            map = new Map(header.getWidth(), header.getHeight());
-        } catch (Exception e) {
-            //Fug
-            throw new RuntimeException("Failed to read the file " + gameLevel.getFile(MAP) + "!", e);
-        }
         // See if we need to load the actual data
         if (load) {
             load();
+        } else {
+
+            // We need map width & height if not loaded fully, I couldn't figure out where, except the map data
+            try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, gameLevel.getFile(MAP)), "r")) {
+                KwdHeader header = readKwdHeader(data);
+                map = new Map(header.getWidth(), header.getHeight());
+            } catch (Exception e) {
+
+                //Fug
+                throw new RuntimeException("Failed to read the file " + gameLevel.getFile(MAP) + "!", e);
+            }
         }
     }
 
     private void readFileContents(File file) throws IOException {
-        //try (RandomAccessFile data = new RandomAccessFile(, "r")) {
-        RandomAccessFile data = new RandomAccessFile(file, "r");
-        while (data.getFilePointer() < data.length()) {
-            // Read header (and put the file pointer to the data start)
-            KwdHeader header = readKwdHeader(data);
-            readFileContents(header, data);
-        }
+        try (RandomAccessFile data = new RandomAccessFile(file, "r")) {
+            while (data.getFilePointer() < data.length()) {
 
-        if (data.getFilePointer() != data.length()) {
-            throw new RuntimeException("Failded to parse file");
+                // Read header (and put the file pointer to the data start)
+                KwdHeader header = readKwdHeader(data);
+                readFileContents(header, data);
+            }
+
+            if (data.getFilePointer() != data.length()) {
+                throw new RuntimeException("Failed to parse file");
+            }
         }
     }
 
@@ -167,18 +169,36 @@ public final class KwdFile {
      */
     public void load() throws RuntimeException {
         if (!loaded) {
-            File file = null;
-            // Now we have the paths, read all of those in order
+
+            // Read the map data first (we store some data to the map)
             for (FilePath path : gameLevel.getPaths()) {
-                // Open the file
-                try {
-                    file = new File(ConversionUtils.getRealFileName(basePath, path.getPath()));
-                    readFileContents(file);
-                } catch (Exception e) {
-                    throw new RuntimeException("Failed to read the file " + file + "!", e);
+                if (path.getId() == MapDataTypeEnum.MAP) {
+                    readFilePath(path);
+                    break;
                 }
             }
+
+            // Now we have the paths, read all of those in order
+            for (FilePath path : gameLevel.getPaths()) {
+
+                if (path.getId() == MapDataTypeEnum.MAP) {
+                    continue;
+                }
+
+                // Open the file
+                readFilePath(path);
+            }
             loaded = true;
+        }
+    }
+
+    private void readFilePath(FilePath path) {
+        File file = null;
+        try {
+            file = new File(ConversionUtils.getRealFileName(basePath, path.getPath()));
+            readFileContents(file);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to read the file " + file + "!", e);
         }
     }
 
@@ -354,13 +374,10 @@ public final class KwdFile {
     private void readMap(KwdHeader header, RandomAccessFile file) throws IOException {
 
         // Read the requested MAP file
+        logger.info("Reading map!");
         if (map == null) {
-            logger.info("Reading map!");
             map = new Map(header.getWidth(), header.getHeight());
-        } else {
-            logger.warning("Overrides map!");
         }
-
         for (int y = 0; y < map.getHeight(); y++) {
             for (int x = 0; x < map.getWidth(); x++) {
                 Tile tile = new Tile();
@@ -2050,7 +2067,7 @@ public final class KwdFile {
                     ((Thing.Camera) thing).setX4c(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Camera) thing).setAngleRoll(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Camera) thing).setAnglePitch(ConversionUtils.readUnsignedShort(file));
-                    ((Thing.Camera) thing).setId((short)ConversionUtils.readUnsignedShort(file));
+                    ((Thing.Camera) thing).setId((short) ConversionUtils.readUnsignedShort(file));
                     break;
                 }
                 default: {
@@ -2600,6 +2617,7 @@ public final class KwdFile {
         //     };
         //     unsigned int x0c[7];
         // };
+
         private MapDataTypeEnum id;
         private int headerSize = 56; // Well, header and the id data
         private long size;
