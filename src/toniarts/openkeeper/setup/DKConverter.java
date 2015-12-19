@@ -36,6 +36,9 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
     private final String dungeonKeeperFolder;
     private final AssetManager assetManager;
     private static final Logger logger = Logger.getLogger(DKConverter.class.getName());
+    private int totalProcesses = 0;
+    private int currentProcessNumber = 0;
+    private AssetsConverter.ConvertProcess currentProcess = null;
 
     /**
      * Creates new form DKConverter
@@ -52,6 +55,11 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
      * Call to start the conversion
      */
     public void startConversion() {
+        for (AssetsConverter.ConvertProcess item : AssetsConverter.ConvertProcess.values()) {
+            if (item.isOutdated()) {
+                totalProcesses++;
+            }
+        }
 
         // Start conversion
         Converter converter = new Converter(dungeonKeeperFolder, assetManager, this);
@@ -195,8 +203,12 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
     }
 
     private void updateStatus(Integer currentProgress, Integer totalProgress, AssetsConverter.ConvertProcess process) {
-        totalProgressBar.setMaximum(AssetsConverter.ConvertProcess.values().length);
-        totalProgressBar.setValue(process.getProcessNumber() - 1);
+        if (!process.equals(currentProcess)) {
+            currentProcessNumber++;
+            currentProcess = process;
+        }
+        totalProgressBar.setMaximum(totalProcesses);
+        totalProgressBar.setValue(currentProcessNumber);
         String progress = "Converting " + process.toString().toLowerCase();
         if (currentProgress != null && totalProgress != null) {
             progress += " (" + currentProgress + " / " + totalProgress + ")";

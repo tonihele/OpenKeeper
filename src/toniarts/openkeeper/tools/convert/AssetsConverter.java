@@ -90,23 +90,18 @@ public abstract class AssetsConverter {
      */
     public enum ConvertProcess {
 
-        TEXTURES(1, 2),
-        MODELS(2, 1),
-        MOUSE_CURSORS(3, 2),
-        MUSIC_AND_SOUNDS(4, 1),
-        INTERFACE_TEXTS(5, 1),
-        PATHS(6, 3),
-        HI_SCORES(7, 1),
-        FONTS(8, 1),
-        MAP_THUMBNAILS(9, 1);
+        TEXTURES(2),
+        MODELS(1),
+        MOUSE_CURSORS(2),
+        MUSIC_AND_SOUNDS(1),
+        INTERFACE_TEXTS(1),
+        PATHS(3),
+        HI_SCORES(1),
+        FONTS(1),
+        MAP_THUMBNAILS(1);
 
-        private ConvertProcess(int processNumber, int version) {
-            this.processNumber = processNumber;
+        private ConvertProcess(int version) {
             this.version = version;
-        }
-
-        public int getProcessNumber() {
-            return this.processNumber;
         }
 
         public int getVersion() {
@@ -134,7 +129,6 @@ public abstract class AssetsConverter {
         public String toString() {
             return super.toString().replace('_', ' ');
         }
-        private final int processNumber;
         private final int version;
         private boolean outdated = false;
     }
