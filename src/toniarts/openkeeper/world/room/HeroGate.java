@@ -18,8 +18,6 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
-import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -31,39 +29,42 @@ import toniarts.openkeeper.world.MapLoader;
  *
  * @author ArchDemon
  */
-
 public class HeroGate extends GenericRoom {
 
     public HeroGate(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, roomInstance, direction);
     }
-    
+
     @Override
     protected void contructFloor(Node n) {
-        // Contruct the tiles        
+        // Contruct the tiles
         Point start = roomInstance.getCoordinates().get(0);
+        String modelName = roomInstance.getRoom().getCompleteResource().getName();
         for (Point p : roomInstance.getCoordinates()) {
+            Spatial tile;
             int piece = 2;
             float yAngle = 0;
             // Figure out which peace by seeing the neighbours
-            boolean N = roomInstance.hasCoordinate(new Point(p.x,     p.y - 1));           
+            boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
             boolean E = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
-            boolean S = roomInstance.hasCoordinate(new Point(p.x,     p.y + 1));
+            boolean S = roomInstance.hasCoordinate(new Point(p.x, p.y + 1));
             boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
-            
+
             if (!N && E && W) {
                 piece = 1;
             } else if (!S && !E && !W) {
-                // FIXME
+                tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCapResource().getName() + ".j3o");
+                resetAndMoveSpatial(tile, start, p);
+                n.attachChild(tile);
                 piece = 9;
             } else if (!W) {
-                piece = 3;                
+                piece = 3;
             } else if (!E) {
                 piece = 3;
                 yAngle = - 2 * FastMath.HALF_PI;
             }
 
-            Node tile = (Node) assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + piece + ".j3o");
+            tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
 
             // Reset
             resetAndMoveSpatial(tile, start, p);
@@ -73,75 +74,71 @@ public class HeroGate extends GenericRoom {
             // Set the shadows
             //tile.setShadowMode(RenderQueue.ShadowMode.Receive);
 
-            n.attachChild(tile);            
+            n.attachChild(tile);
         }
 
         // Set the transform and scale to our scale and 0 the transform
         n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2);
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
     }
-    
+
     @Override
     protected void contructWall(Node root) {
-
         // Get the wall points
         Point start = roomInstance.getCoordinates().get(0);
+        String modelName = roomInstance.getRoom().getCompleteResource().getName();
+        int south = 0;
         for (WallSection section : roomInstance.getWallPoints()) {
             int i = 0;
-
-            // Reset wall index for each wall section
-            resetWallIndex();
-
             for (Point p : section.getCoordinates()) {
                 int piece;
-                
+
+                Spatial part;
+                float yAngle = 0;
                 if (section.getDirection() == WallSection.WallDirection.NORTH) {
-                    piece = (i == 1) ? 5 : 7;
-                    
-                    Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + piece + ".j3o");
-                    resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
-                    part.move(-0.5f, 0, -0.5f);
-                    root.attachChild(part);
-                    
-                    i++;
-                    
-                } else if (section.getDirection() == WallSection.WallDirection.WEST) {
-                    piece = 7;
-                    Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + piece + ".j3o");
-                    resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
-                    part.rotate(0, FastMath.HALF_PI, 0);
-                    part.move(-0.5f, 0, -0.5f);
-                    root.attachChild(part);
-                    
-                } else if (section.getDirection() == WallSection.WallDirection.EAST) {
-                    piece = 7;
-                    
-                    Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + piece + ".j3o");
-                    resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
-                    part.rotate(0, -FastMath.HALF_PI, 0);
-                    part.move(-0.5f, 0, -0.5f);
-                    root.attachChild(part);
-                    
-                } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
-                    //FIXME
-                    if (i == 0) {
-                        piece = 4;
-                    } else if (i == 1) {
-                        piece = 5;
+                    if (section.getCoordinates().size() == 1) {
+                        piece = 6; // gate
                     } else {
-                        piece = 8;
+                        piece = (i == 1) ? 5 : 7;
                     }
-                    
-                    Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + piece + ".j3o");
-                    resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
-                    part.rotate(0, FastMath.PI, 0);
-                    part.move(-0.5f, 0, -0.5f);
-                    root.attachChild(part);
-                    
-                    i++;
+
+                } else if (section.getDirection() == WallSection.WallDirection.WEST) {
+                    // FIXME if gate skip walls ???
+                    if (section.getCoordinates().size() == 1) {
+                        continue;
+                    }
+                    piece = 7;
+                    yAngle = FastMath.HALF_PI;
+
+                } else if (section.getDirection() == WallSection.WallDirection.EAST) {
+                    // FIXME if gate skip walls ???
+                    if (section.getCoordinates().size() == 1) {
+                        continue;
+                    }
+                    piece = 7;
+                    yAngle = -FastMath.HALF_PI;
+
+                } else { // WallSection.WallDirection.SOUTH
+                    // FIXME looks good, but ... ugly code
+                    if (south == 0) {
+                        piece = 4;
+                    } else if (south == 1) {
+                        piece = 8;
+                    } else {
+                        piece = 6; // gate
+                    }
+                    south++;
+                    yAngle = FastMath.PI;
                 }
-                
-                
+
+                i++;
+                part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
+                if (yAngle != 0) {
+                    part.rotate(0, yAngle, 0);
+                }
+                resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
+                part.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                root.attachChild(part);
             }
         }
     }
