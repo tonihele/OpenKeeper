@@ -60,7 +60,7 @@ public abstract class GenericRoom {
         getRootNode().attachChild(floorNode);
 
         // Add the wall
-        if (roomInstance.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
+        if (MapLoader.hasRoomWalls(roomInstance.getRoom())) {
             BatchNode wallNode = new BatchNode("Wall");
             contructWall(wallNode);
             if (!wallNode.getChildren().isEmpty()) {
