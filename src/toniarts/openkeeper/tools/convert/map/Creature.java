@@ -138,10 +138,10 @@ public class Creature implements Comparable<Creature> {
         LEAVE(10),
         DESTROY_ENEMY_ROOMS(11),
         DESTROY_WALLS(12),
-        STEAL_ENEMY_GOLD(13),
         SULK(15),
         REBEL(16),
         EXPLORE(24),
+        STEAL_ENEMY_GOLD(25),
         TOLLING(28);
 
         private JobType(int id) {
