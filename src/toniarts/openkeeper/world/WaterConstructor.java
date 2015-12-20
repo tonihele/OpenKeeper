@@ -31,7 +31,6 @@ import static toniarts.openkeeper.world.MapLoader.loadAsset;
  *
  * @author ArchDemon
  */
-
 public class WaterConstructor extends TileConstructor {
 
     private final static float WATER_DEPTH = 0.3525f;
@@ -91,14 +90,13 @@ public class WaterConstructor extends TileConstructor {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + "2" + ".j3o", false);
         } else if (!SE && S && SW && E && W && N && NE && NW) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + "2" + ".j3o", false);
-            floor.rotate(0, -FastMath.PI, 0);
+            floor.rotate(0, -FastMath.HALF_PI, 0);
             floor.move(-TILE_WIDTH, 0, 0);
         } else if (!NW && S && SW && E && W && N && NE && SE) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + "2" + ".j3o", false);
             floor.rotate(0, FastMath.HALF_PI, 0);
             floor.move(0, 0, -TILE_WIDTH);
-        }
-        // Land corner
+        } // Land corner
         else if (!N && !NW && !W && S && SE && E) {
             floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + "1" + ".j3o", false);
 
