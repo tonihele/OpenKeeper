@@ -22,17 +22,16 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import static toniarts.openkeeper.tools.convert.map.Thing.Room.Direction.EAST;
-import static toniarts.openkeeper.tools.convert.map.Thing.Room.Direction.NORTH;
-import static toniarts.openkeeper.tools.convert.map.Thing.Room.Direction.SOUTH;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.room.WallSection.WallDirection;
+import toniarts.openkeeper.tools.convert.map.Thing.Room.Direction;
 
 /**
  *
  * @author ArchDemon
  */
+
 public class HeroGateThreeByOne extends GenericRoom {
 
     public HeroGateThreeByOne(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
@@ -41,45 +40,64 @@ public class HeroGateThreeByOne extends GenericRoom {
 
     @Override
     protected void contructFloor(Node n) {
-        String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
+        String modelName = roomInstance.getRoom().getCompleteResource().getName();
         Point center = roomInstance.getCenter();
         // Contruct the tiles
-        for (int j = 0; j < 2; j++) {
-            for (int i = -2; i < 3; i++) {
-                Spatial tile;
-                if (i == -2 || i == 2) {
-                    if (j != 0) {
-                        continue;
-                    }
-                    tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(modelName + "6" + ".j3o"));
-                    tile.rotate(0, -FastMath.PI / i, 0);
-                    tile.move(0, 0, -i / 2);
-                } else {
-                    tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(modelName + (3 * j + i + 1) + ".j3o"));
-                }
+        int j = 0;
+        for (Point p : roomInstance.getCoordinates()) {
+            int piece = (direction == Direction.WEST || direction == Direction.SOUTH) ? j + 3 : 5 - j;
+            Spatial tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
+            j++;
+            resetAndMoveSpatial(tile, center, new Point(center.x + p.x, center.y + p.y));
+            n.attachChild(tile);
 
-                // Reset
-                resetAndMoveSpatial((Node) tile, new Point(0, i));
-
-                n.attachChild(tile);
+            // Set the transform and scale to our scale and 0 the transform
+            switch (direction) {
+                case NORTH:
+                    tile.rotate(0, -FastMath.HALF_PI, 0);
+                    break;
+                case EAST:
+                    tile.rotate(0, FastMath.PI, 0);
+                    break;
+                case SOUTH:
+                    tile.rotate(0, FastMath.HALF_PI, 0);
+                    break;
             }
         }
+        n.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+        // n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+    }
 
-        // Set the transform and scale to our scale and 0 the transform
-        switch (direction) {
-            case NORTH:
-                n.rotate(0, -FastMath.HALF_PI, 0);
-                break;
-            case EAST:
-                n.rotate(0, FastMath.PI, 0);
-                break;
-            case SOUTH:
-                n.rotate(0, FastMath.HALF_PI, 0);
-                break;
-            default:
-                break;
+    @Override
+    protected void contructWall(Node root) {
+        // Get the wall points
+        Point center = roomInstance.getCenter();
+        String modelName = roomInstance.getRoom().getCompleteResource().getName();
+        for (WallSection section : roomInstance.getWallPoints()) {
+
+            int i = 0;
+            int sectionSize = section.getCoordinates().size();
+
+            for (Point p : section.getCoordinates()) {
+
+                int piece;
+                if (sectionSize == 3) {
+                    piece = (section.getDirection() == WallDirection.WEST || section.getDirection() == WallDirection.SOUTH) ? 2 - i : i;
+                } else {
+                    piece = 6;
+                }
+                i++;
+
+                float yAngle = section.getDirection().ordinal() * FastMath.HALF_PI;
+
+                Spatial tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
+                if (yAngle != 0) {
+                    tile.rotate(0, yAngle, 0);
+                }
+                resetAndMoveSpatial(tile, center, new Point(center.x + p.x, center.y + p.y));
+                tile.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                root.attachChild(tile);
+            }
         }
-        n.move(center.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, center.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
     }
 }

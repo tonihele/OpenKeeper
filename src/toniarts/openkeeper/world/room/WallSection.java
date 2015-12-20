@@ -28,7 +28,7 @@ public class WallSection {
 
     public enum WallDirection {
 
-        NORTH, EAST, SOUTH, WEST;
+        EAST, NORTH, WEST, SOUTH;
     }
     private final WallDirection direction;
     private final List<Point> coordinates;

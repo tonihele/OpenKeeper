@@ -575,13 +575,16 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
 
             Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-            return room.getFlags().contains(Room.RoomFlag.HAS_WALLS)
-                    || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_FRONT_END
-                    || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_3_BY_1;
+            return hasRoomWalls(room);
         }
         return false;
     }
 
+    public static boolean hasRoomWalls(Room room) {
+        return room.getFlags().contains(Room.RoomFlag.HAS_WALLS)
+                || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_FRONT_END
+                || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_3_BY_1;
+    }
     /**
      * Find the room starting from a certain point, rooms are never diagonally
      * attached
@@ -772,7 +775,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param roomInstance room instance
      */
     private void findRoomWallSections(TileData[][] tiles, RoomInstance roomInstance) {
-        if (roomInstance.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
+        if (hasRoomWalls(roomInstance.getRoom())) {
             List<WallSection> sections = new ArrayList<>();
             Map<Point, Set<WallDirection>> alreadyWalledPoints = new HashMap<>();
             for (Point p : roomInstance.getCoordinates()) {
