@@ -62,10 +62,10 @@ public class QuadConstructor extends TileConstructor {
                 break;
         }
 
-        // If ownable, playerId is first
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+        // If ownable, playerId is first. With fixed Hero Lair
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && terrain.getTerrainId() != 35) {
             TileData tile = tiles[x][y];
-            modelName += tile.getPlayerId() - 1;
+            modelName += tile.getPlayerId() - 1 + "_";
         }
 
         // It needs to be parsed together from tiles
@@ -142,7 +142,7 @@ public class QuadConstructor extends TileConstructor {
                 }
 
                 // Load the piece
-                Spatial part = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + "_" + pieceNumber + ".j3o", false);
+                Spatial part = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + pieceNumber + ".j3o", false);
                 if (yAngle != 0) {
                     part.rotate(0, yAngle, 0);
                 }

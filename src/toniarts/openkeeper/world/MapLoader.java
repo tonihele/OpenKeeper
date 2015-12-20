@@ -452,8 +452,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             spatial = new WaterConstructor(kwdFile).construct(tiles, x, y, terrain, assetManager, model.getName());
 
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
-            // If this resource is type quad, parse it together
-            spatial = new QuadConstructor(kwdFile).construct(tiles, x, y, terrain, assetManager, model.getName());
+            // If this resource is type quad, parse it together. With fixed Hero Lair
+            String modelName = (model == null && terrain.getTerrainId() == 35) ? "hero_outpost_floor" : model.getName();
+            spatial = new QuadConstructor(kwdFile).construct(tiles, x, y, terrain, assetManager, modelName);
 
         } else {
 
