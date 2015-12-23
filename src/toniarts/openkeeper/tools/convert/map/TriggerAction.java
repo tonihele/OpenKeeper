@@ -40,68 +40,35 @@ public class TriggerAction extends Trigger {
         WIN_GAME(10),
         LOSE_GAME(11),
         CREATE_HERO_PARTY(14),
-        UNKNOWN_15(15),
+        UNKNOWN_15(15), // FIXME unknown flag
         FLASH_ACTION_POINT(16),
         REVEAL_ACTION_POINT(17),
         SET_ALLIANCE(18),
-        UNKNOWN_20(20),
-        ALTER_ROOM_TYPE(22),
+        ATTACH_PORTAL_GEM(20),
+        ALTER_TERRAIN_TYPE(22),
         PLAY_SPEECH(24),
         DISPLAY_TEXT_MESSAGE(25),
         ZOOM_TO_ACTION_POINT(26),
         ROTATE_AROUND_ACTION_POINT(27),
         GENERATE_CREATURE(28),
-        UNKNOWN_30(30), // FIXME
+        MAKE_HUNGRY(29),
+        SHOW_HEALTH_FLOWER(30),
         CAMERA_FOLLOW_PATH(31),
         COLLAPSE_HERO_GATE(32),
+        SET_SPEED(33),
+        REMOVE_FROM_MAP(35),
+        SET_FIGHT_FLAG(36),
         SET_PORTAL_STATUS(37),
         SET_WIDESCREEN_MODE(38),
         MAKE_OBJECTIVE(42),
-        UNKNOWN_43(43), // FIXME
+        ZOOM_TO(43), // e.g. to creature
         SET_CREATURE_MOODS(44),
         SET_SYSTEM_MESSAGES(45),
         DISPLAY_SLAB_OWNER(46),
         DISPLAY_NEXT_ROOM_TYPE(47),
         CHANGE_ROOM_OWNER(49),
         SET_SLAPS_LIMIT(50),
-        SET_TIMER_SPEECH(51),
-        UNKNOWN_257(257),
-        UNKNOWN_258(258),
-        UNKNOWN_260(260),
-        UNKNOWN_262(262),
-        UNKNOWN_263(263),
-        UNKNOWN_264(264),
-        UNKNOWN_265(265),
-        UNKNOWN_266(266),
-        UNKNOWN_267(267),
-        UNKNOWN_270(270),
-        UNKNOWN_271(271),
-        UNKNOWN_272(272),
-        UNKNOWN_273(273),
-        UNKNOWN_274(274),
-        UNKNOWN_276(276),
-        UNKNOWN_278(278),
-        UNKNOWN_279(279),
-        UNKNOWN_280(280),
-        UNKNOWN_282(282),
-        UNKNOWN_283(283),
-        UNKNOWN_284(284),
-        UNKNOWN_286(286),
-        UNKNOWN_287(287),
-        UNKNOWN_288(288),
-        UNKNOWN_289(289),
-        UNKNOWN_290(290),
-        UNKNOWN_291(291),
-        UNKNOWN_293(293),
-        UNKNOWN_294(294),
-        UNKNOWN_298(298),
-        UNKNOWN_299(299),
-        UNKNOWN_300(300),
-        UNKNOWN_301(301),
-        UNKNOWN_303(303), // MPD (Not in 6)
-        UNKNOWN_305(305),
-        UNKNOWN_306(306),
-        UNKNOWN_307(307);
+        SET_TIMER_SPEECH(51);
 
         private ActionType(int id) {
             this.id = id;
@@ -183,7 +150,7 @@ public class TriggerAction extends Trigger {
     private short available; // TODO: for Make set Available = 1 or Unavailable = 0. Maybe boolean ? <-- depends, can be also 41, 42 (Create creature) etc
     private int actionTargetValue1; // Short, at least with creatures this is x coordinate, also seems to be the ID of the action point for hero party, with flags this is the value
     private int actionTargetValue2; // Short, at least with creatures y coordinate
-    private short[] unknown1; // 2
+    private short[] unknown1; // 2 FIXME unknown value
     private ActionType actionType; // Short, probably just a byte...
 
     public TriggerAction(KwdFile kwdFile) {
@@ -293,6 +260,13 @@ public class TriggerAction extends Trigger {
             result += " " + (actionTargetId + 1) + " = " + (flagTargetValueActionTypes.contains(FlagTargetValueActionType.EQUAL) ? "" : actionType.toString() + " " + (actionTargetId + 1) + " " + operation + " ") + (flagTargetValueActionTypes.contains(FlagTargetValueActionType.VALUE) ? actionTargetValue1 : actionType.toString() + " " + (actionTargetValue1 + 1));
         } else if (actionType == ActionType.INITIALIZE_TIMER) {
             result += " " + (actionTargetId + 1);
+        } else if (actionType == ActionType.SHOW_HEALTH_FLOWER) {
+            result += " [ " + actionTargetId + " Seconds ]";
+        } else if (actionType == ActionType.SET_SPEED) {
+            result += " [ " + (actionTargetId == 0 ? "Walk" : "Run") + " ]";
+        } else if (actionType == ActionType.SET_FIGHT_FLAG) {
+            result += " [ " + (actionTargetId == 0 ? "Dont`t Fight" : "Fight") + " ]";
+
         } else if (actionType == ActionType.MAKE) {
 
             // TODO: Not very elegant

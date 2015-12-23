@@ -26,6 +26,7 @@ public abstract class Trigger {
     protected KwdFile kwdFile; // For toStrings()
     private int id;
     private int idNext; // SiblingID
+    private short repeatTimes; // Repeat x times, 255 = always
 
     public Trigger(KwdFile kwdFile) {
         this.kwdFile = kwdFile;
@@ -45,6 +46,14 @@ public abstract class Trigger {
 
     protected void setIdNext(int id) {
         this.idNext = id;
+    }
+
+    public short getRepeatTimes() {
+        return repeatTimes;
+    }
+
+    protected void setRepeatTimes(short repeatTimes) {
+        this.repeatTimes = repeatTimes;
     }
 
     /**

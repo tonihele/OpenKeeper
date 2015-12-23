@@ -198,7 +198,6 @@ public class TriggerGeneric extends Trigger {
     private int targetValue; // Target value
     private int idChild; // ChildID
     private TargetType target;
-    private short repeatTimes; // Repeat x times, 255 = always
     private short terrainId; // Slab types have the targetValueType as terrain ID
 
     public TriggerGeneric(KwdFile kwdFile) {
@@ -245,6 +244,7 @@ public class TriggerGeneric extends Trigger {
         this.targetValue = targetValue;
     }
 
+    @Override
     public int getIdChild() {
         return idChild;
     }
@@ -259,14 +259,6 @@ public class TriggerGeneric extends Trigger {
 
     protected void setTarget(TargetType target) {
         this.target = target;
-    }
-
-    public short getRepeatTimes() {
-        return repeatTimes;
-    }
-
-    protected void setRepeatTimes(short repeatTimes) {
-        this.repeatTimes = repeatTimes;
     }
 
     public short getTerrainId() {

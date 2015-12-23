@@ -2189,11 +2189,11 @@ public final class KwdFile {
                     short targetValueType = (short) file.readUnsignedByte();
                     ((TriggerGeneric) trigger).setTargetValueFlagId((short) file.readUnsignedByte());
                     ((TriggerGeneric) trigger).setTargetValue(ConversionUtils.readInteger(file));
-                    ((TriggerGeneric) trigger).setId(ConversionUtils.readUnsignedShort(file));
-                    ((TriggerGeneric) trigger).setIdNext(ConversionUtils.readUnsignedShort(file)); // SiblingID
+                    trigger.setId(ConversionUtils.readUnsignedShort(file));
+                    trigger.setIdNext(ConversionUtils.readUnsignedShort(file)); // SiblingID
                     ((TriggerGeneric) trigger).setIdChild(ConversionUtils.readUnsignedShort(file)); // ChildID
                     ((TriggerGeneric) trigger).setTarget(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.TargetType.class));
-                    ((TriggerGeneric) trigger).setRepeatTimes((short) file.readUnsignedByte());
+                    trigger.setRepeatTimes((short) file.readUnsignedByte());
                     if (TriggerGeneric.TargetType.SLAP_TYPES.equals(((TriggerGeneric) trigger).getTarget())) {
 
                         // The target value type is actually a terrain ID
@@ -2216,14 +2216,15 @@ public final class KwdFile {
                     ((TriggerAction) trigger).setAvailable((short) file.readUnsignedByte());
                     ((TriggerAction) trigger).setActionTargetValue1(ConversionUtils.readUnsignedShort(file));
                     ((TriggerAction) trigger).setActionTargetValue2(ConversionUtils.readUnsignedShort(file));
-                    ((TriggerAction) trigger).setId(ConversionUtils.readUnsignedShort(file)); // ID
-                    ((TriggerAction) trigger).setIdNext(ConversionUtils.readUnsignedShort(file)); // SiblingID
+                    trigger.setId(ConversionUtils.readUnsignedShort(file)); // ID
+                    trigger.setIdNext(ConversionUtils.readUnsignedShort(file)); // SiblingID
                     short[] unknown1 = new short[2];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();
                     }
                     ((TriggerAction) trigger).setUnknown1(unknown1);
-                    ((TriggerAction) trigger).setActionType(ConversionUtils.parseEnum(ConversionUtils.readUnsignedShort(file), TriggerAction.ActionType.class));
+                    ((TriggerAction) trigger).setActionType(ConversionUtils.parseEnum(file.readUnsignedByte(), TriggerAction.ActionType.class));
+                    trigger.setRepeatTimes((short) file.readUnsignedByte());
                     break;
                 }
                 default: {
