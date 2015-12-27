@@ -138,10 +138,20 @@ public class Creature implements Comparable<Creature> {
         LEAVE(10),
         DESTROY_ENEMY_ROOMS(11),
         DESTROY_WALLS(12),
+        STEAL_GOLD(13),
+        STEAL_SPELLS(14),
         SULK(15),
         REBEL(16),
+        STEAL_MANUFACTURE_CRATES(17),
+        KILL_CREATURES(18),
+        KILL_PLAYER(19),
+        TUNNELLING(20), // FIXME or 21 or both
+        WAIT(22),
+        SEND_TO_ACTION_POINT(23),
         EXPLORE(24),
         STEAL_ENEMY_GOLD(25),
+        COMBAT_PIT_SPECTATE(26),
+        JAIL_BREAK(27),
         TOLLING(28);
 
         private JobType(int id) {
@@ -151,6 +161,30 @@ public class Creature implements Comparable<Creature> {
         @Override
         public int getValue() {
             return id;
+        }
+
+        public static JobType fromValue(int value) throws IllegalArgumentException {
+            try {
+                return JobType.values()[value];
+            } catch (ArrayIndexOutOfBoundsException e) {
+                throw new IllegalArgumentException("Unknown enum value: " + value);
+            }
+            /*
+             for(JobType e : JobType.values()){
+             if(code == e.value) return e;
+             }
+             return null;
+             */
+        }
+
+        @Override
+        public String toString() {
+            String[] splitted = name().split("_");
+            String result = "";
+            for (String s : splitted) {
+                result = result.concat(" ").concat(s.substring(0, 1).toUpperCase()).concat(s.substring(1).toLowerCase());
+            }
+            return result.trim();
         }
         private int id;
     }

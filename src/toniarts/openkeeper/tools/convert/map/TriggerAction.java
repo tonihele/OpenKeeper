@@ -32,20 +32,27 @@ public class TriggerAction extends Trigger {
     public enum ActionType implements IValueEnum {
 
         CREATE_CREATURE(1),
-        DISPLAY_OBJECTIVE(4),
-        MAKE(6), // Or trap??? Or keeper spell ???
+        CREATE_PORTAL_GEM(2), // text like [ X, Y ]
+        SEND_TO_AP(3), // or only sent
+        DISPLAY_OBJECTIVE(4), // text like X [ Zoom To AP Y ]
+        INFORMATION(5), // text like X [ Zoom To AP Y ]
+        MAKE(6),
         FLAG(7),
         INITIALIZE_TIMER(8),
         FLASH_BUTTON(9),
         WIN_GAME(10),
         LOSE_GAME(11),
+        WIN_SUBOBJECTIVE(12),
+        LOSE_SUBOBJECTIVE(13),
         CREATE_HERO_PARTY(14),
-        UNKNOWN_15(15), // FIXME unknown flag
+        SET_OBJECTIVE(15),
         FLASH_ACTION_POINT(16),
         REVEAL_ACTION_POINT(17),
-        SET_ALLIANCE(18),
+        SET_ALLIANCE(18), // CREATE_ALLIANCE
         ATTACH_PORTAL_GEM(20),
+        FORCE_FIRST_PERSON(21),
         ALTER_TERRAIN_TYPE(22),
+        SET_TIME_LIMIT(23), // text like : X Seconds
         PLAY_SPEECH(24),
         DISPLAY_TEXT_MESSAGE(25),
         ZOOM_TO_ACTION_POINT(26),
@@ -56,16 +63,18 @@ public class TriggerAction extends Trigger {
         CAMERA_FOLLOW_PATH(31),
         COLLAPSE_HERO_GATE(32),
         SET_SPEED(33),
+        SET_MUSIC_LEVEL(34), // text like X
         REMOVE_FROM_MAP(35),
         SET_FIGHT_FLAG(36),
         SET_PORTAL_STATUS(37),
         SET_WIDESCREEN_MODE(38),
         MAKE_OBJECTIVE(42),
-        ZOOM_TO(43), // e.g. to creature
+        ZOOM_TO(43),
         SET_CREATURE_MOODS(44),
         SET_SYSTEM_MESSAGES(45),
-        DISPLAY_SLAB_OWNER(46),
+        DISPLAY_SLAB_OWNER(46), // text like [ On | Off ] Of [ X, 1635980 ]
         DISPLAY_NEXT_ROOM_TYPE(47),
+        TOGGLE_EFFECT_GENERATOR(48), // text like X [ On | Off ]
         CHANGE_ROOM_OWNER(49),
         SET_SLAPS_LIMIT(50),
         SET_TIMER_SPEECH(51);
@@ -116,13 +125,21 @@ public class TriggerAction extends Trigger {
             }
             return result.trim();
         }
+
+        public static MakeType fromValue(int value) throws IllegalArgumentException {
+            try {
+                return MakeType.values()[value];
+            } catch (ArrayIndexOutOfBoundsException e) {
+                throw new IllegalArgumentException("Unknown enum value: " + value);
+            }
+        }
         private final int id;
     }
 
     public enum FlagTargetValueActionType implements IFlagEnum {
 
         VALUE(0x002, null), // Use value
-        TARGET(0x002, null), // Use flag
+        TARGET(0x004, null), // Use flag
         EQUAL(0x008, "="),
         PLUS(0x010, "+"),
         MINUS(0x020, "-");
@@ -151,7 +168,7 @@ public class TriggerAction extends Trigger {
     private int actionTargetValue1; // Short, at least with creatures this is x coordinate, also seems to be the ID of the action point for hero party, with flags this is the value
     private int actionTargetValue2; // Short, at least with creatures y coordinate
     private short[] unknown1; // 2 FIXME unknown value
-    private ActionType actionType; // Short, probably just a byte...
+    private ActionType actionType;
 
     public TriggerAction(KwdFile kwdFile) {
         super(kwdFile);
@@ -244,43 +261,83 @@ public class TriggerAction extends Trigger {
     @Override
     public String toString() {
         String result = actionType.toString();
-        if (actionType == ActionType.CREATE_CREATURE) {
-            result += " " + kwdFile.getCreature(actionTargetId) + " [" + creatureLevel + "] [" + (actionTargetValue1 + 1) + "," + (actionTargetValue2 + 1) + "] [" + kwdFile.getPlayer(playerId) + "]";
-        } else if (actionType == ActionType.CREATE_HERO_PARTY) {
-            result += " " + (actionTargetId + 1) + " at AP " + actionTargetValue1;
-        } else if (actionType == ActionType.FLAG) {
-            EnumSet<FlagTargetValueActionType> flagTargetValueActionTypes = getFlagTargetValueActionTypes();
-            String operation = null;
-            for (FlagTargetValueActionType type : flagTargetValueActionTypes) {
-                operation = type.toString(); // Not very elegant
-                if (operation != null) {
-                    break;
+
+        switch(actionType) {
+            case CREATE_CREATURE:
+                result += " " + kwdFile.getCreature(actionTargetId) + " [" + creatureLevel + "] [" + (actionTargetValue1 + 1) + ","
+                    + (actionTargetValue2 + 1) + "] [" + kwdFile.getPlayer(playerId) + "]";
+                break;
+            case CREATE_HERO_PARTY:
+                result += " " + (actionTargetId + 1) + " at AP " + creatureLevel;
+                break;
+            case FLAG:
+                EnumSet<FlagTargetValueActionType> flagTargetValueActionTypes = getFlagTargetValueActionTypes();
+                String operation = null;
+                for (FlagTargetValueActionType type : flagTargetValueActionTypes) {
+                    operation = type.toString(); // Not very elegant
+                    if (operation != null) {
+                        break;
+                    }
                 }
-            }
-            result += " " + (actionTargetId + 1) + " = " + (flagTargetValueActionTypes.contains(FlagTargetValueActionType.EQUAL) ? "" : actionType.toString() + " " + (actionTargetId + 1) + " " + operation + " ") + (flagTargetValueActionTypes.contains(FlagTargetValueActionType.VALUE) ? actionTargetValue1 : actionType.toString() + " " + (actionTargetValue1 + 1));
-        } else if (actionType == ActionType.INITIALIZE_TIMER) {
-            result += " " + (actionTargetId + 1);
-        } else if (actionType == ActionType.SHOW_HEALTH_FLOWER) {
-            result += " [ " + actionTargetId + " Seconds ]";
-        } else if (actionType == ActionType.SET_SPEED) {
-            result += " [ " + (actionTargetId == 0 ? "Walk" : "Run") + " ]";
-        } else if (actionType == ActionType.SET_FIGHT_FLAG) {
-            result += " [ " + (actionTargetId == 0 ? "Dont`t Fight" : "Fight") + " ]";
-
-        } else if (actionType == ActionType.MAKE) {
-
-            // TODO: Not very elegant
-            if (playerId == MakeType.ROOM.getValue()) {
-                result += " " + MakeType.ROOM + " [" + kwdFile.getRoomById(creatureLevel).getName() + "]";
-            } else if (playerId == MakeType.DOOR.getValue()) {
-                result += " " + MakeType.DOOR + " [" + kwdFile.getDoorById(creatureLevel).getName() + "]";
-            } else if (playerId == MakeType.TRAP.getValue()) {
-                result += " " + MakeType.TRAP + " [" + kwdFile.getTrapById(creatureLevel).getName() + "]";
-            } else {
-                result += " " + MakeType.KEEPER_SPELL + " [" + kwdFile.getKeeperSpellById(creatureLevel).getName() + "]";
-            }
-            result += " " + (available == 1 ? "Available" : "Unavailable") + " To " + kwdFile.getPlayer((short) actionTargetId).getName();
+                result += " " + (actionTargetId + 1)
+                        + " = " + (flagTargetValueActionTypes.contains(FlagTargetValueActionType.EQUAL) ? "" : actionType.toString()
+                        + " " + (actionTargetId + 1) + " " + operation + " ")
+                        + (flagTargetValueActionTypes.contains(FlagTargetValueActionType.VALUE) ? actionTargetValue1 : actionType.toString()
+                        + " " + (actionTargetValue1 + 1));
+                break;
+            case INITIALIZE_TIMER:
+                result += " " + (actionTargetId + 1);
+                break;
+            case SHOW_HEALTH_FLOWER:
+                result += " [ " + actionTargetId + " Seconds ]";
+                break;
+            case SET_SPEED:
+                result += " [ " + (actionTargetId == 0 ? "Walk" : "Run") + " ]";
+                break;
+            case SET_FIGHT_FLAG:
+                result += " [ " + (actionTargetId == 0 ? "Dont`t Fight" : "Fight") + " ]";
+                break;
+            case SET_OBJECTIVE:
+                result += " [ " + Creature.JobType.fromValue(playerId) + " [ " + kwdFile.getPlayer((short) actionTargetId).getName() + " ]]";
+                break;
+            case CREATE_PORTAL_GEM:
+                result += " [ 1, 1 ]";
+                break;
+            case DISPLAY_OBJECTIVE:
+            case INFORMATION:
+            case SET_MUSIC_LEVEL:
+                result += " " + actionTargetId;
+                break;
+            case TOGGLE_EFFECT_GENERATOR:
+                result += " " + (actionTargetId + 1) + " [ " + (playerId == 1 ? "On" : "Off") + " ]";
+                break;
+            case DISPLAY_SLAB_OWNER:
+                result += " [ " + (actionTargetId == 0 ? "Off" : "On") + " ] Of [  , 1635980 ]";
+                break;
+            case SET_TIME_LIMIT:
+                result += ": " + actionTargetId + " Seconds";
+                break;
+            case MAKE:
+                MakeType type = MakeType.fromValue(playerId);
+                result += " " + type;
+                switch (type) {
+                    case DOOR:
+                        result += " [" + kwdFile.getDoorById(creatureLevel).getName() + "]";
+                        break;
+                    case ROOM:
+                        result += " [" + kwdFile.getRoomById(creatureLevel).getName() + "]";
+                        break;
+                    case TRAP:
+                        result += " [" + kwdFile.getTrapById(creatureLevel).getName() + "]";
+                        break;
+                    default:
+                        result += " [" + kwdFile.getKeeperSpellById(creatureLevel).getName() + "]";
+                        break;
+                }
+                result += " " + (available == 1 ? "Available" : "Unavailable") + " To " + kwdFile.getPlayer((short) actionTargetId).getName();
+                break;
         }
+
         return result;
     }
 }
