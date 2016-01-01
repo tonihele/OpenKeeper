@@ -145,7 +145,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             gameState = stateManager.getState(GameState.class);
 
             // Load the HUD
-            app.getNifty().getNifty().gotoScreen(HUD_SCREEN_ID);
+            nifty = app.getNifty().getNifty();
+            nifty.gotoScreen(HUD_SCREEN_ID);
 
             // Init the HUD items
             initHudItems();
