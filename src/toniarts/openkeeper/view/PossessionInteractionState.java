@@ -153,19 +153,19 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
 
     @Override
     public void onKeyEvent(KeyInputEvent evt) {
-        if (evt.getKeyCode() == Settings.Setting.POSSESSED_SELECT_MELEE.getDefaultValue() && evt.isReleased()) {
+        if (evt.getKeyCode() == (int)Settings.Setting.POSSESSED_SELECT_MELEE.getDefaultValue() && evt.isReleased()) {
             changeAction(Action.MELEE);           
-        } else if (evt.getKeyCode() == Settings.Setting.POSSESSED_SELECT_SPELL_1.getDefaultValue() && evt.isReleased()) {
+        } else if (evt.getKeyCode() == (int)Settings.Setting.POSSESSED_SELECT_SPELL_1.getDefaultValue() && evt.isReleased()) {
             changeAction(Action.SPELL_1);
-        } else if (evt.getKeyCode() == Settings.Setting.POSSESSED_SELECT_SPELL_2.getDefaultValue() && evt.isReleased()) {
+        } else if (evt.getKeyCode() == (int)Settings.Setting.POSSESSED_SELECT_SPELL_2.getDefaultValue() && evt.isReleased()) {
             changeAction(Action.SPELL_2);
-        } else if (evt.getKeyCode() == Settings.Setting.POSSESSED_SELECT_SPELL_3.getDefaultValue() && evt.isReleased()) {
+        } else if (evt.getKeyCode() == (int)Settings.Setting.POSSESSED_SELECT_SPELL_3.getDefaultValue() && evt.isReleased()) {
             changeAction(Action.SPELL_3);
-        } else if (evt.getKeyCode() == Settings.Setting.POSSESSED_SELECT_ABILITY_1.getDefaultValue() && evt.isReleased()) {
+        } else if (evt.getKeyCode() == (int)Settings.Setting.POSSESSED_SELECT_ABILITY_1.getDefaultValue() && evt.isReleased()) {
             changeAction(Action.ABILITY_1);
-        } else if (evt.getKeyCode() == Settings.Setting.POSSESSED_SELECT_ABILITY_2.getDefaultValue() && evt.isReleased()) {
+        } else if (evt.getKeyCode() == (int)Settings.Setting.POSSESSED_SELECT_ABILITY_2.getDefaultValue() && evt.isReleased()) {
             changeAction(Action.ABILITY_2);
-        } else if (evt.getKeyCode() == Settings.Setting.POSSESSED_SELECT_GROUP.getDefaultValue() && evt.isReleased()) {
+        } else if (evt.getKeyCode() == (int)Settings.Setting.POSSESSED_SELECT_GROUP.getDefaultValue() && evt.isReleased()) {
             changeAction(Action.GROUP);
         }
     }
