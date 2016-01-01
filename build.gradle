@@ -74,6 +74,7 @@ eclipse {
 
 compileJava {
     sourceCompatibility = '1.8'
+    options.incremental = true
 }
 
 task wrapper(type: Wrapper) {
