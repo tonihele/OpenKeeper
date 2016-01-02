@@ -5,7 +5,7 @@ Dungeon Keeper II clone
 
 Goal is to fully implement the game (version 1.7 with 3 bonus packs) as open source cross platform version, with minimal or no changes at all, using the original game assets. So it will require the original game to play / develop. Futher development could have fan made graphics (to at least enable standalone version) and features.
 
-Implementation is done in JAVA using JMonkeyEngine (http://jmonkeyengine.org/). Currently we are using JME 3.0 + JAVA 7.
+Implementation is done in JAVA using JMonkeyEngine (http://jmonkeyengine.org/). Currently we are using JME 3.0 + JAVA 8.
 
 [![Build Status](https://travis-ci.org/tonihele/OpenKeeper.svg)](https://travis-ci.org/tonihele/OpenKeeper)
 
@@ -21,7 +21,7 @@ We have a super secret lair at [IRC channel #OpenKeeper on Freenode](https://web
 Contributing
 =============
 
-We are always looking for talented people to join us. I'll try to create as many issues I possibly can and keep them simple and small. You can start from these or come join us on IRC or email. Pull requests are always welcome!
+We are always looking for talented people to join us. I'll try to create as many issues I possibly can and keep them simple and small. You can start from these or come join us on IRC or email. Pull requests are always welcome! See [how to set up the project](https://github.com/tonihele/OpenKeeper/wiki/How-to-set-up-OpenKeeper).
 
 Please keep in mind:
  - Learn to use GIT (forking, pull requests, etc)
