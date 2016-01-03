@@ -54,6 +54,7 @@ sourceSets {
         }
         resources {
             srcDirs 'assets', 'src'
+            exclude 'Converted/**'
         }
     }
 }

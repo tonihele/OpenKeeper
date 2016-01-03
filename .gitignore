@@ -1,36 +1,11 @@
 /nbproject/private/
 /build/
-/assets/Interface/Texts/*.properties
-/assets/Interface/Paths/*.txt
-/assets/Interface/Fonts/
+/assets/Converted/
 # property file which holds the configuration
 openkeeper.properties
-*.png
-*.j3m
-*.j3o
-*.mp2
-*.wav
 *.dll
-*.dict
-*.444
-*.bmp
-*.gif
-*.psd
-*.dat
-# include custom made assets
-!/assets/Materials/ModelViewer/*.j3m
-!/assets/Textures/ModelViewer/*.png
-!/assets/Textures/ModelViewer/*.jpg
-*.csd
 /dist/
 /HiScores.okh
-!/src/toniarts/openkeeper/gui/icons/openkeeper24.png
-!/src/toniarts/openkeeper/gui/icons/openkeeper16.png
-!/src/toniarts/openkeeper/gui/icons/openkeeper128.png
-!/src/toniarts/openkeeper/gui/icons/openkeeper32.png
-!/src/toniarts/openkeeper/gui/icons/openkeeper64.png
-!/src/toniarts/openkeeper/gui/icons/openkeeper256.png
-!/src/toniarts/openkeeper/gui/icons/openkeeper48.png
 /bin/
 /build/
 test-output
@@ -62,7 +37,3 @@ local.properties
 
 *.dylib
 /build/
-
-.gradle
-# Class Files #
-*.class

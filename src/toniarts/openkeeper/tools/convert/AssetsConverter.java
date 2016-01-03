@@ -90,15 +90,15 @@ public abstract class AssetsConverter {
      */
     public enum ConvertProcess {
 
-        TEXTURES(2),
-        MODELS(1),
-        MOUSE_CURSORS(2),
-        MUSIC_AND_SOUNDS(1),
-        INTERFACE_TEXTS(1),
-        PATHS(3),
-        HI_SCORES(1),
-        FONTS(1),
-        MAP_THUMBNAILS(1);
+        TEXTURES(3),
+        MODELS(2),
+        MOUSE_CURSORS(3),
+        MUSIC_AND_SOUNDS(2),
+        INTERFACE_TEXTS(2),
+        PATHS(4),
+        HI_SCORES(2),
+        FONTS(2),
+        MAP_THUMBNAILS(2);
 
         private ConvertProcess(int version) {
             this.version = version;
@@ -134,7 +134,7 @@ public abstract class AssetsConverter {
     }
     private final String dungeonKeeperFolder;
     private final AssetManager assetManager;
-    private static final String ASSETS_FOLDER = "assets";
+    private static final String ASSETS_FOLDER = "assets/Converted";
     public static final String TEXTURES_FOLDER = "Textures";
     public static final String MODELS_FOLDER = "Models";
     public static final String MOUSE_CURSORS_FOLDER = "Interface".concat(File.separator).concat("Cursors");
@@ -198,7 +198,6 @@ public abstract class AssetsConverter {
 
         //TODO: We need to search the normal assets before extracting do we actually already
         //have a user made asset there
-
         //First and foremost, we need the textures
         convertTextures(dungeonKeeperFolder, currentFolder.concat(TEXTURES_FOLDER).concat(File.separator));
 
@@ -851,7 +850,7 @@ public abstract class AssetsConverter {
             List<KwdFile> maps = new ArrayList<>(files.length);
             for (File file : files) {
                 KwdFile kwd = new KwdFile(dungeonKeeperFolder, file, false);
-                if (kwd.getGameLevel().getLvlFlags().contains(LevFlag.IS_SKIRMISH_LEVEL) 
+                if (kwd.getGameLevel().getLvlFlags().contains(LevFlag.IS_SKIRMISH_LEVEL)
                         || kwd.getGameLevel().getLvlFlags().contains(LevFlag.IS_MULTIPLAYER_LEVEL)) {
                     maps.add(kwd);
                 }
