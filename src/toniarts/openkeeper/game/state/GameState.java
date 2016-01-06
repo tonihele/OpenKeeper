@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.state;
 
+import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
@@ -57,6 +58,7 @@ public class GameState extends AbstractAppState {
     private BulletAppState bulletAppState;
     private float tick = 0;
     private PlayerManaControl manaControl;
+
     /**
      * Single use game states
      *
@@ -113,7 +115,7 @@ public class GameState extends AbstractAppState {
                     };
                     worldNode = worldHandler.getWorld();
                     manaControl = new PlayerManaControl((short) 3, worldHandler);
-                    
+
                     setProgress(1.0f);
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Failed to load the game!", e);
@@ -168,7 +170,9 @@ public class GameState extends AbstractAppState {
             manaControl.updateManaGet();
             manaControl.updateManaLose();
         }
-        super.update(tpf);
+
+        // Update time for AI
+        GdxAI.getTimepiece().update(tpf);
     }
 
     /**
@@ -183,7 +187,7 @@ public class GameState extends AbstractAppState {
     public WorldHandler getWorldHandler() {
         return worldHandler;
     }
-    
+
     public PlayerManaControl getPlayerManaControl() {
         return this.manaControl;
     }

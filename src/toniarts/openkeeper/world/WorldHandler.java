@@ -65,7 +65,7 @@ public abstract class WorldHandler {
         worldNode.attachChild(mapLoader.load(assetManager, kwdFile));
 
         // Things
-        worldNode.attachChild(new ThingLoader().load(bulletAppState, assetManager, kwdFile));
+        worldNode.attachChild(new ThingLoader(this).load(bulletAppState, assetManager, kwdFile));
     }
 
     /**
