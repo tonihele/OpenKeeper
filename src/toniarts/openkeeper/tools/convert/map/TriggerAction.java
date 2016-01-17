@@ -60,7 +60,7 @@ public class TriggerAction extends Trigger {
         GENERATE_CREATURE(28),
         MAKE_HUNGRY(29),
         SHOW_HEALTH_FLOWER(30),
-        CAMERA_FOLLOW_PATH(31),
+        FOLLOW_CAMERA_PATH(31),
         COLLAPSE_HERO_GATE(32),
         SET_SPEED(33),
         SET_MUSIC_LEVEL(34), // text like X

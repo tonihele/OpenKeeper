@@ -105,6 +105,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private boolean backgroundSet = false;
     private static final String HUD_SCREEN_ID = "hud";
     private static final String POSSESSION_SCREEN_ID = "possession";
+    private static final String CINEMATIC_SCREEN_ID = "cinematic";
     private List<AbstractPauseAwareState> appStates = new ArrayList<>();
     private List<AbstractPauseAwareState> storedAppStates;
     private PlayerInteractionState interactionState;
@@ -216,6 +217,45 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 }
             };
             appStates.add(interactionState);
+
+            if (app.isDebug()) {
+                TriggerState ts = new TriggerState(gameState.getLevelData()) {
+                    @Override
+                    public void onWideScreenMode(boolean state) {
+                        if (state) {
+                            nifty.gotoScreen(CINEMATIC_SCREEN_ID);
+                        } else {
+                            nifty.gotoScreen(HUD_SCREEN_ID);
+                        }
+                    }
+
+                    @Override
+                    public void onCameraFollow(int path, Thing.ActionPoint point) {
+                        //this.setEnabled(false);
+                        PlayerCameraState ps = stateManager.getState(PlayerCameraState.class);
+                        ps.setCameraLocation(point);
+                        ps.doTransition(path);
+                    }
+
+                    @Override
+                    public void onFlashActionPoint(Thing.ActionPoint point, boolean state) {
+                        // TODO pulsate red color on tiles in AP
+                    }
+
+                    @Override
+                    public void onZoomToActionPoint(Thing.ActionPoint point) {
+                        PlayerCameraState ps = stateManager.getState(PlayerCameraState.class);
+                        ps.setCameraLookAt(point);
+                    }
+
+                    @Override
+                    public void onPlaySpeech(int id) {
+                        // TODO play speech
+                    }
+                };
+                stateManager.attach(ts);
+            }
+
 
             // Load the state
             for (AbstractAppState state : appStates) {

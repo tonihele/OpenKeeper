@@ -35,6 +35,7 @@ import java.awt.Point;
 import java.io.File;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.world.MapLoader;
 
@@ -67,6 +68,10 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      */
     public Cinematic(AssetManager assetManager, Camera cam, Point start, String cameraSweepFile, Node scene, AppStateManager stateManager) {
         this(assetManager, cam, MapLoader.getCameraPositionOnMapPoint(start.x, start.y), cameraSweepFile, scene, stateManager);
+    }
+    
+    public Cinematic(final Main app, String cameraSweepFile) {
+        this(app.getAssetManager(), app.getCamera(), app.getCamera().getLocation().clone(), cameraSweepFile, app.getRootNode(), app.getStateManager());
     }
 
     /**

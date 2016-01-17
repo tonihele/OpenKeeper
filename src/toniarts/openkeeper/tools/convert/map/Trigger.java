@@ -33,6 +33,7 @@ public abstract class Trigger {
     private int idChild; // ChildID
     private short repeatTimes; // Repeat x times, 255 = always
     protected HashMap<String, Number> userData = null;
+    private boolean closed = false;
 
     public Trigger(KwdFile kwdFile) {
         this.kwdFile = kwdFile;
@@ -86,6 +87,12 @@ public abstract class Trigger {
         this.idNext = id;
     }
 
+    /**
+     * Get the child trigger id
+     *
+     * @see #hasChildren()
+     * @return the child ID, or 0 if no children
+     */
     public int getIdChild() {
         return idChild;
     }
@@ -100,6 +107,38 @@ public abstract class Trigger {
 
     protected void setRepeatTimes(short repeatTimes) {
         this.repeatTimes = repeatTimes;
+    }
+
+    public void subRepeatTimes() {
+        if (repeatTimes != 255 && !closed) {
+            if (--repeatTimes <= 0) {
+                closed = true;
+            }
+        }
+    }
+
+    /**
+     * Does this trigger have next trigger
+     *
+     * @see #getIdNext()
+     * @return true if we have for sure
+     */
+    public boolean hasNext() {
+        return (getIdNext() != 0);
+    }
+
+    /**
+     * Does this trigger have children
+     *
+     * @see #getIdChild()
+     * @return true if we have for sure
+     */
+    public boolean hasChildren() {
+        return (getIdChild() != 0);
+    }
+
+    public boolean isClosed() {
+        return closed;
     }
 
     @Override

@@ -19,6 +19,8 @@ package toniarts.openkeeper.view;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.cinematic.events.CinematicEvent;
+import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
@@ -30,17 +32,14 @@ import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
-import java.io.File;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.cinematics.CameraSweepData;
-import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
-import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
+import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -128,12 +127,44 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
      */
     private void loadCameraStartLocation() {
         startLocation = new Vector3f(MapLoader.getCameraPositionOnMapPoint(player.getStartingCameraX(), player.getStartingCameraY()));
+        app.getCamera().setLocation(startLocation);
+    }
 
-        // Set the actual camera location
-        CameraSweepData csd = (CameraSweepData) assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat("EnginePath201".concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
-        CameraSweepDataEntry lastEntry = csd.getEntries().get(csd.getEntries().size() - 1);
-        app.getCamera().setRotation(lastEntry.getRotation().clone());
-        app.getCamera().setLocation(startLocation.addLocal(csd.getEntries().get(csd.getEntries().size() - 1).getPosition()).clone());
+    public void setCameraLocation(Thing.ActionPoint point) {
+        //Vector3f location = new Vector3f((point.getStartX() + point.getEndX()) / 2, 0f, (point.getStartY() + point.getEndY()) / 2);
+        Vector3f location = MapLoader.getCameraPositionOnMapPoint(point.getStartX(), point.getStartY());
+        app.getCamera().setLocation(location);
+    }
+
+    public void setCameraLookAt(Thing.ActionPoint point) {
+        Vector3f dir = app.getCamera().getDirection();
+        float yPosition = app.getCamera().getLocation().y;
+        dir.multLocal(yPosition / -dir.y);
+        Vector3f location = new Vector3f(MapLoader.getCameraPositionOnMapPoint(point.getStartX(), point.getStartY()));
+        app.getCamera().setLocation(location.subtract(dir));
+    }
+
+    public void doTransition(int sweepFileId) {
+        String sweepFile = "EnginePath" + sweepFileId;
+        // Do cinematic transition
+        Cinematic c = new Cinematic(app, sweepFile);
+        c.addListener(new CinematicEventListener() {
+            @Override
+            public void onPlay(CinematicEvent cinematic) {
+                GameState.setTransition(true);
+            }
+
+            @Override
+            public void onPause(CinematicEvent cinematic) {
+            }
+
+            @Override
+            public void onStop(CinematicEvent cinematic) {
+                GameState.setTransition(false);
+            }
+        });
+        stateManager.attach(c);
+        c.play();
     }
 
     @Override

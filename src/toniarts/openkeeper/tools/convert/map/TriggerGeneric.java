@@ -281,12 +281,10 @@ public class TriggerGeneric extends Trigger {
         return buf.toString();
     }
 
-    public boolean hasChildren() {
-        return (getIdChild() != 0);
-    }
-
     @Override
     public String toString() {
-        return "When " + target + (target == TargetType.FLAG || target == TargetType.TIMER ? " " + (targetFlagId + 1) : "") + (targetValueComparison != ComparisonType.NONE ? " " + targetValueComparison + " " + getTargetValueString() : "");
+        return "When " + target + (target == TargetType.FLAG || target == TargetType.TIMER ? " "
+                + (targetFlagId + 1) : "") + (targetValueComparison != ComparisonType.NONE ? " "
+                + targetValueComparison + " " + getTargetValueString() : "");
     }
 }

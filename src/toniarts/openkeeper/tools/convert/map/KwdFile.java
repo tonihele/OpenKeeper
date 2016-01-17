@@ -2493,7 +2493,7 @@ public final class KwdFile {
                             break;
 
                         case PLAY_SPEECH:
-                            trigger.setUserData("actionPointId", ConversionUtils.readUnsignedInteger(file)); // speechId, limit 32767
+                            trigger.setUserData("speechId", ConversionUtils.readUnsignedInteger(file)); // speechId, limit 32767
                             trigger.setUserData("text", (short) file.readUnsignedByte()); // 0 = Show Text, !0 = Without text
                             trigger.setUserData("introduction", (short) file.readUnsignedByte()); // 0 = No Introduction, !0 = Introduction
                             trigger.setUserData("pathId", ConversionUtils.readUnsignedShort(file)); // pathId
@@ -2529,9 +2529,9 @@ public final class KwdFile {
                             trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file)); // Seconds
                             break;
 
-                        case CAMERA_FOLLOW_PATH:
+                        case FOLLOW_CAMERA_PATH:
                             trigger.setUserData("pathId", (short) file.readUnsignedByte());
-                            trigger.setUserData("ationPointId", (short) file.readUnsignedByte());
+                            trigger.setUserData("actionPointId", (short) file.readUnsignedByte());
                             trigger.setUserData("available", (short) file.readUnsignedByte()); // 0 = Show Ceiling, !0 = Hide Ceiling
                             ConversionUtils.checkNull(file, 5); // file.skipBytes(5);
                             break;
@@ -2783,6 +2783,10 @@ public final class KwdFile {
         return players.get(id);
     }
 
+    public java.util.Map<Short, Player> getPlayers() {
+        return players;
+    }
+
     /**
      * Get the creature with the specified ID
      *
@@ -2863,6 +2867,10 @@ public final class KwdFile {
      */
     public Trigger getTrigger(int id) {
         return triggers.get(id);
+    }
+
+    public java.util.Map<Integer, Trigger> getTriggers() {
+        return triggers;
     }
 
     /**
