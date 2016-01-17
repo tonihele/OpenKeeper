@@ -100,9 +100,32 @@ public class TriggerAction extends Trigger {
         private final int id;
     }
 
+    public enum CreatureFlag implements IFlagEnum {
+
+        WILL_FIGHT(0x001),
+        LEADER(0x002), // FIXME maybe
+        DIES_INSTANTLY(0x004),
+        WILL_BE_ATTACKED(0x008),
+        RETURN_TO_HERO_LAIR(0x010),
+        FREE_FRIENDS_ON_JAIL_BREAK(0x020),
+        ACT_AS_DROPPED(0x040),
+        START_AS_DYING(0x080);
+        private final long flagValue;
+
+        private CreatureFlag(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
+
     public enum MakeType implements IValueEnum {
 
         ROOM(1),
+        CREATURE(2),
         DOOR(3),
         TRAP(4),
         KEEPER_SPELL(5);
@@ -167,74 +190,17 @@ public class TriggerAction extends Trigger {
     private short available; // TODO: for Make set Available = 1 or Unavailable = 0. Maybe boolean ? <-- depends, can be also 41, 42 (Create creature) etc
     private int actionTargetValue1; // Short, at least with creatures this is x coordinate, also seems to be the ID of the action point for hero party, with flags this is the value
     private int actionTargetValue2; // Short, at least with creatures y coordinate
-    private short[] unknown1; // 2 FIXME unknown value
     private ActionType actionType;
 
     public TriggerAction(KwdFile kwdFile) {
         super(kwdFile);
     }
 
-    public short getActionTargetId() {
-        return actionTargetId;
-    }
-
-    protected void setActionTargetId(short actionTargetId) {
-        this.actionTargetId = actionTargetId;
-    }
-
-    public short getPlayerId() {
-        return playerId;
-    }
-
-    protected void setPlayerId(short playerId) {
-        this.playerId = playerId;
-    }
-
-    public short getCreatureLevel() {
-        return creatureLevel;
-    }
-
-    protected void setCreatureLevel(short creatureLevel) {
-        this.creatureLevel = creatureLevel;
-    }
-
-    public short getAvailable() {
-        return available;
-    }
-
-    protected void setAvailable(short available) {
-        this.available = available;
-    }
-
-    public int getActionTargetValue1() {
-        return actionTargetValue1;
-    }
-
-    protected void setActionTargetValue1(int actionTargetValue1) {
-        this.actionTargetValue1 = actionTargetValue1;
-    }
-
-    public int getActionTargetValue2() {
-        return actionTargetValue2;
-    }
-
-    protected void setActionTargetValue2(int actionTargetValue2) {
-        this.actionTargetValue2 = actionTargetValue2;
-    }
-
-    public short[] getUnknown1() {
-        return unknown1;
-    }
-
-    protected void setUnknown1(short[] unknown1) {
-        this.unknown1 = unknown1;
-    }
-
-    public ActionType getActionType() {
+    public ActionType getType() {
         return actionType;
     }
 
-    protected void setActionType(ActionType actionType) {
+    protected void setType(ActionType actionType) {
         this.actionType = actionType;
     }
 
@@ -246,16 +212,6 @@ public class TriggerAction extends Trigger {
      */
     private EnumSet<FlagTargetValueActionType> getFlagTargetValueActionTypes() {
         return ConversionUtils.parseFlagValue(playerId, FlagTargetValueActionType.class);
-    }
-
-    @Override
-    public boolean hasChildren() {
-        return false; // We never have
-    }
-
-    @Override
-    public int getIdChild() {
-        return 0;
     }
 
     @Override
