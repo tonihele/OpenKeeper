@@ -97,6 +97,7 @@ public class Main extends SimpleApplication {
 
         // Create main application instance
         final Main app = new Main(parseArguments(args));
+        app.setPauseOnLostFocus(false);
 
         // Read settings and convert resources if needed
         app.showSettings = false;
