@@ -23,6 +23,7 @@ import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.DesktopAssetManager;
 import com.jme3.asset.TextureKey;
+import com.jme3.audio.AudioNode;
 import com.jme3.font.Rectangle;
 import com.jme3.input.InputManager;
 import com.jme3.renderer.ViewPort;
@@ -105,6 +106,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private boolean backgroundSet = false;
     private static final String HUD_SCREEN_ID = "hud";
     private static final String POSSESSION_SCREEN_ID = "possession";
+    private static final String CINEMATIC_SCREEN_ID = "cinematic";
     private List<AbstractPauseAwareState> appStates = new ArrayList<>();
     private List<AbstractPauseAwareState> storedAppStates;
     private PlayerInteractionState interactionState;
@@ -218,6 +220,52 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             };
             appStates.add(interactionState);
 
+            if (app.isDebug()) {
+                TriggerState ts = new TriggerState(gameState.getLevelData()) {
+                    @Override
+                    public void onWideScreenMode(boolean state) {
+                        // TODO restore camera position
+                        if (state) {
+                            nifty.gotoScreen(CINEMATIC_SCREEN_ID);
+                        } else {
+                            nifty.gotoScreen(HUD_SCREEN_ID);
+                        }
+                    }
+
+                    @Override
+                    public void onCameraFollow(int path, Thing.ActionPoint point) {
+                        // TODO hide cursor, disable control
+                        //this.setEnabled(false);
+                        PlayerCameraState ps = stateManager.getState(PlayerCameraState.class);
+                        ps.setCameraLocation(point);
+                        ps.doTransition(path);
+                    }
+
+                    @Override
+                    public void onFlashActionPoint(Thing.ActionPoint point, boolean state) {
+                        // TODO pulsate red color on tiles in AP
+                    }
+
+                    @Override
+                    public void onZoomToActionPoint(Thing.ActionPoint point) {
+                        // TODO make cinematic move
+                        PlayerCameraState ps = stateManager.getState(PlayerCameraState.class);
+                        ps.setCameraLookAt(point);
+                    }
+
+                    @Override
+                    public void onPlaySpeech(int id) {
+                        String file = String.format("Sounds/speech_%s/lvlspe%02d.mp2", gameState.getLevel().toLowerCase(), id);
+                        AudioNode speech = new AudioNode(assetManager, file, false);
+                        speech.setLooping(false);
+                        speech.setPositional(true);
+                        speech.play();
+                    }
+                };
+                stateManager.attach(ts);
+            }
+
+
             // Load the state
             for (AbstractAppState state : appStates) {
                 stateManager.attach(state);
@@ -243,6 +291,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
      * initials
      */
     private void initHudItems() {
+        nifty = app.getNifty().getNifty();
+
         Screen hud = nifty.getScreen(HUD_SCREEN_ID);
 
         gameState.getPlayerManaControl().addListener(hud.findNiftyControl("mana", Label.class), PlayerManaControl.Type.CURRENT);

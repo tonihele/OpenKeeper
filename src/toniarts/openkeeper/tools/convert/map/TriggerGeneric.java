@@ -35,8 +35,7 @@ public class TriggerGeneric extends Trigger {
         EQUAL_TO(3, "="),
         GREATER_THAN(4, ">"),
         GREATER_OR_EQUAL_TO(5, "\u2265"),
-        NOT_EQUAL_TO(6, "!="),
-        UNKNOWN_7(7, "?????");
+        NOT_EQUAL_TO(6, "!=");
 
         private ComparisonType(int id, String description) {
             this.id = id;
@@ -61,20 +60,20 @@ public class TriggerGeneric extends Trigger {
         NONE(0),
         FLAG(1),
         TIMER(2),
-        CREATED(3), // Event, This creature is
-        KILLED(4), // Event, This creature is
-        SLAPPED(5), // Event, This creature is
-        ATTACKED(6), // Event, This creature is
-        IMPRISONED(7), // Event, This creature is
-        TORTURED(8), // Event, This creature is
-        CONVERTED(9), // Event, This creature is
-        CLAIMED(10), // Event, This creature is
-        ANGRY(11), // Event, This creature is
-        AFRAID(12), // Event, This creature is
-        STEALS(13), // Event, This creature is
-        LEAVES(14), // Event, This creature is
-        STUNNED(15), // Event, This creature is
-        DYING(16), // Event, This creature is
+        CREATURE_CREATED(3), // Event, This creature is
+        CREATURE_KILLED(4), // Event, This creature is
+        CREATURE_SLAPPED(5), // Event, This creature is
+        CREATURE_ATTACKED(6), // Event, This creature is
+        CREATURE_IMPRISONED(7), // Event, This creature is
+        CREATURE_TORTURED(8), // Event, This creature is
+        CREATURE_CONVERTED(9), // Event, This creature is
+        CREATURE_CLAIMED(10), // Event, This creature is
+        CREATURE_ANGRY(11), // Event, This creature is
+        CREATURE_AFRAID(12), // Event, This creature is
+        CREATURE_STEALS(13), // Event, This creature is
+        CREATURE_LEAVES(14), // Event, This creature is
+        CREATURE_STUNNED(15), // Event, This creature is
+        CREATURE_DYING(16), // Event, This creature is
         PLAYER_CREATURES(19), // Player
         PLAYER_HAPPY_CREATURES(20), // Player
         PLAYER_ANGRY_CREATURES(21), // Player
@@ -90,40 +89,40 @@ public class TriggerGeneric extends Trigger {
         PLAYER_GOLD_MINED(31), // Player
         PLAYER_MANA(32), // Player
         PLAYER_DESTROYS(33), // Player
-        TIME(34), // Attribute, This level's...
-        CREATURES(35), // Attribute, This level's...
-        HEALTH(36), // Attribute, This creature's...
-        GOLD_HELD(37), // Attribute, This creature's...
-        CONGREGATE_IN(39), // Action point
-        CLAIM_PART_OF(40), // Action point
-        CLAIM_ALL_OF(41), // Action point
-        SLAP_TYPES(42), // Action point
+        LEVEL_TIME(34), // Attribute, This level's...
+        LEVEL_CREATURES(35), // Attribute, This level's...
+        CREATURE_HEALTH(36), // Attribute, This creature's...
+        CREATURE_GOLD_HELD(37), // Attribute, This creature's...
+        AP_CONGREGATE_IN(39), // Action point
+        AP_CLAIM_PART_OF(40), // Action point
+        AP_CLAIM_ALL_OF(41), // Action point
+        AP_SLAP_TYPES(42), // Action point
         PARTY_CREATED(43), // Party
-        MEMBERS_KILLED(44), // Party
-        MEMBERS_CAPTURED(45), // Party
-        PAY_DAY(46), // Event, This level's...
+        PARTY_MEMBERS_KILLED(44), // Party
+        PARTY_MEMBERS_CAPTURED(45), // Party
+        LEVEL_PAY_DAY(46), // Event, This level's...
         PLAYER_KILLED(47), // Event, This player's...
-        EXPERIENCE_LEVEL(49), // Attribute, This creature's...
+        CREATURE_EXPERIENCE_LEVEL(49), // Attribute, This creature's...
         PLAYER_CREATURES_AT_LEVEL(52), // Player
-        BUTTON_PRESSED(53), // GUI
-        HUNGER_SATED(54), // Event, This creature is
-        PICKS_UP_PORTAL_GEM(55), // Event, This creature is
-        DUNGEON_BREACHED(56), // Event, This player's...
-        ENEMY_BREACHED(57), // Event, This player's...
-        CREATURE_PICKED_UP(58), // Event, This player's...
-        CREATURE_DROPPED(59), // Event, This player's...
-        CREATURE_SLAPPED(60), // Event, This player's...
-        CREATURE_SACKED(61), // Event, This player's...
-        TAG_PART_OF(62), // Action point
-        SACKED(63), // Event, This creature is
-        MEMBERS_INCAPACITATED(64), // Party
-        PICKED_UP(65), // Event, This creature is
-        PLAYED(67), // Attribute, This level's...
+        GUI_BUTTON_PRESSED(53), // GUI
+        CREATURE_HUNGER_SATED(54), // Event, This creature is
+        CREATURE_PICKS_UP_PORTAL_GEM(55), // Event, This creature is
+        PLAYER_DUNGEON_BREACHED(56), // Event, This player's...
+        PLAYER_ENEMY_BREACHED(57), // Event, This player's...
+        PLAYER_CREATURE_PICKED_UP(58), // Event, This player's...
+        PLAYER_CREATURE_DROPPED(59), // Event, This player's...
+        PLAYER_CREATURE_SLAPPED(60), // Event, This player's...
+        PLAYER_CREATURE_SACKED(61), // Event, This player's...
+        AP_TAG_PART_OF(62), // Action point
+        CREATURE_SACKED(63), // Event, This creature is
+        PARTY_MEMBERS_INCAPACITATED(64), // Party
+        CREATURE_PICKED_UP(65), // Event, This creature is
+        LEVEL_PLAYED(67), // Attribute, This level's...
         PLAYER_ROOM_FURNITURE(68), // Player
-        TAG_ALL_OF(69), // Action point
-        POSESSED_CREATURE_ENTERS(70), // Action point
+        AP_TAG_ALL_OF(69), // Action point
+        AP_POSESSED_CREATURE_ENTERS(70), // Action point
         PLAYER_SLAPS(71), // Player
-        TRANSITION_ENDS(72), // GUI
+        GUI_TRANSITION_ENDS(72), // GUI
         PLAYER_CREATURES_GROUPED(73), // Player
         PLAYER_CREATURES_DYING(74);
 
@@ -149,38 +148,18 @@ public class TriggerGeneric extends Trigger {
         private final int id;
     }
 
-    public enum TargetValueType implements IValueEnum {
+    public enum TargetValueType {
 
-        TERRAIN_ID(-1), // Slab types point to terrain ID
-        VALUE(0), // Use the value
-        VALUE1(1), // This isn't quite right, but this means use the value
-        FLAG(2),
-        UNKNOWN_5(5),
-        UNKNOWN_6(6),
-        BLUEPRINT(9),
-        UNKNOWN_11(11),
-        UNKNOWN_12(12),
-        UNKNOWN_13(13),
-        UNKNOWN_14(14),
-        UNKNOWN_15(15),
-        UNKNOWN_16(16),
-        BUILT(17),
-        UNKNOWN_18(18),
-        UNKNOWN_21(21),
-        UNKNOWN_22(22),
-        UNKNOWN_29(29),
-        UNKNOWN_31(31);
-
-        // As in flag value
-        private TargetValueType(int id) {
-            this.id = id;
-        }
-
-        @Override
-        public int getValue() {
-            return id;
-        }
-        private final int id;
+        VALUE,
+        TERRAIN, // Slab types point to terrain ID
+        DOOR,
+        TRAP,
+        KEEPER_SPELL,
+        ROOM,
+        CREATURE,
+        BUTTON,
+        FLAG,
+        TIMER;
     }
     //    struct TriggerBlock {
     //        int x00;
@@ -192,14 +171,9 @@ public class TriggerGeneric extends Trigger {
     //        uint8_t x0f;
     //        };
     private ComparisonType targetValueComparison; // Target comparison type
-    private short targetFlagId;
-    private TargetValueType targetValueType; // targetValueComparison is just byte for sure
-    private short targetValueFlagId;
     private int targetValue; // Target value
-    private int idChild; // ChildID
     private TargetType target;
-    private short repeatTimes; // Repeat x times, 255 = always
-    private short terrainId; // Slab types have the targetValueType as terrain ID
+
 
     public TriggerGeneric(KwdFile kwdFile) {
         super(kwdFile);
@@ -213,30 +187,6 @@ public class TriggerGeneric extends Trigger {
         this.targetValueComparison = targetValueComparison;
     }
 
-    public short getTargetFlagId() {
-        return targetFlagId;
-    }
-
-    protected void setTargetFlagId(short targetFlagId) {
-        this.targetFlagId = targetFlagId;
-    }
-
-    public TargetValueType getTargetValueType() {
-        return targetValueType;
-    }
-
-    protected void setTargetValueType(TargetValueType targetValueType) {
-        this.targetValueType = targetValueType;
-    }
-
-    public short getTargetValueFlagId() {
-        return targetValueFlagId;
-    }
-
-    protected void setTargetValueFlagId(short targetValueFlagId) {
-        this.targetValueFlagId = targetValueFlagId;
-    }
-
     public int getTargetValue() {
         return targetValue;
     }
@@ -245,68 +195,58 @@ public class TriggerGeneric extends Trigger {
         this.targetValue = targetValue;
     }
 
-    public int getIdChild() {
-        return idChild;
-    }
-
-    protected void setIdChild(int id) {
-        this.idChild = id;
-    }
-
-    public TargetType getTarget() {
+    public TargetType getType() {
         return target;
     }
 
-    protected void setTarget(TargetType target) {
+    protected void setType(TargetType target) {
         this.target = target;
-    }
-
-    public short getRepeatTimes() {
-        return repeatTimes;
-    }
-
-    protected void setRepeatTimes(short repeatTimes) {
-        this.repeatTimes = repeatTimes;
-    }
-
-    public short getTerrainId() {
-        return terrainId;
-    }
-
-    protected void setTerrainId(short terrainId) {
-        this.terrainId = terrainId;
-    }
-
-    private String getTargetValueString() {
-        StringBuilder buf = new StringBuilder();
-        switch (targetValueType) {
-            case FLAG: {
-                buf.append(target).append(" ").append(targetValueFlagId + 1);
-                break;
-            }
-            case TERRAIN_ID: {
-                Terrain terrain = kwdFile.getTerrain(terrainId);
-                buf.append(targetValue).append(" ").append(terrain);
-                if (targetFlagId > 0 && terrain != null && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-                    buf.append(" [").append(kwdFile.getPlayer(targetFlagId)).append("]");
-                }
-                break;
-            }
-            default: {
-                buf.append(targetValue);
-                break;
-            }
-        }
-        return buf.toString();
-    }
-
-    @Override
-    public boolean hasChildren() {
-        return (getIdChild() != 0);
     }
 
     @Override
     public String toString() {
-        return "When " + target + (target == TargetType.FLAG || target == TargetType.TIMER ? " " + (targetFlagId + 1) : "") + (targetValueComparison != ComparisonType.NONE ? " " + targetValueComparison + " " + getTargetValueString() : "");
+        String result = "When " + target;
+        switch (target) {
+            case FLAG:
+            case TIMER:
+                result += " " + ((Short) getUserData("targetId") + 1);
+                break;
+        }
+
+        if (targetValueComparison != null) {
+            result += " " + targetValueComparison;
+        }
+
+        result += " " + getUserData("value");
+
+        if (userData != null) {
+            for (java.util.Map.Entry<String, Number> entry : userData.entrySet()) {
+                String key = entry.getKey();
+                Number value = entry.getValue();
+
+                switch (key) {
+                    case "playerId":
+                        result += " [ " + (((Short) value == 0) ? "Any" : (kwdFile.getPlayer((short) ((Short) value)).getName())) + " ]";
+                        break;
+
+                    case "creatureId":
+                        result += " [ " + (((Short) value == 0) ? "Any" : (kwdFile.getCreature((short) ((Short) value)).getName())) + " ]";
+                        break;
+
+                    case "roomId":
+                        result += " [ " + (((Short) value == 0) ? "Any" : (kwdFile.getRoomById((short) ((Short) value)).getName())) + " ]";
+                        break;
+
+                    case "terrainId":
+                        result += " [ " + (((Short) value == 0) ? "Any" : (kwdFile.getTerrain((short) ((Short) value)).getName())) + " ]";
+                        //if (targetFlagId > 0 && terrain != null && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                        //    result += " [ " + kwdFile.getPlayer(targetFlagId) + " ]";
+                        //}
+                        break;
+                }
+            }
+        }
+
+        return result;
     }
 }

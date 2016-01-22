@@ -2167,7 +2167,7 @@ public final class KwdFile {
             logger.info("Reading triggers!");
             triggers = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides shots!");
+            logger.warning("Overrides triggers!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -2181,49 +2181,458 @@ public final class KwdFile {
             // Figure out the type
             switch (triggerTag[0]) {
                 case 213: {
-
                     // TriggerGeneric
+                    long start = file.getFilePointer();
+                    file.seek(start + triggerTag[1] - 2);
+
                     trigger = new TriggerGeneric(this);
-                    ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
-                    ((TriggerGeneric) trigger).setTargetFlagId((short) file.readUnsignedByte());
-                    short targetValueType = (short) file.readUnsignedByte();
-                    ((TriggerGeneric) trigger).setTargetValueFlagId((short) file.readUnsignedByte());
-                    ((TriggerGeneric) trigger).setTargetValue(ConversionUtils.readInteger(file));
-                    ((TriggerGeneric) trigger).setId(ConversionUtils.readUnsignedShort(file));
-                    ((TriggerGeneric) trigger).setIdNext(ConversionUtils.readUnsignedShort(file)); // SiblingID
-                    ((TriggerGeneric) trigger).setIdChild(ConversionUtils.readUnsignedShort(file)); // ChildID
-                    ((TriggerGeneric) trigger).setTarget(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.TargetType.class));
-                    ((TriggerGeneric) trigger).setRepeatTimes((short) file.readUnsignedByte());
-                    if (TriggerGeneric.TargetType.SLAP_TYPES.equals(((TriggerGeneric) trigger).getTarget())) {
+                    ((TriggerGeneric) trigger).setType(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.TargetType.class));
+                    trigger.setRepeatTimes((short) file.readUnsignedByte());
 
-                        // The target value type is actually a terrain ID
-                        ((TriggerGeneric) trigger).setTargetValueType(TriggerGeneric.TargetValueType.TERRAIN_ID);
-                        ((TriggerGeneric) trigger).setTerrainId(targetValueType);
-                    } else {
+                    file.seek(start);
+                    switch (((TriggerGeneric) trigger).getType()) {
+                        case AP_CONGREGATE_IN:
+                        case AP_POSESSED_CREATURE_ENTERS:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            trigger.setUserData("targetId", (short) file.readUnsignedByte()); // creatureId, objectId
+                            trigger.setUserData("targetType", (short) file.readUnsignedByte()); // 3 = Creature, 6 = Object
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
 
-                        // Assign type normally
-                        ((TriggerGeneric) trigger).setTargetValueType(ConversionUtils.parseEnum(targetValueType, TriggerGeneric.TargetValueType.class));
+                        case AP_SLAP_TYPES:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            trigger.setUserData("terrainId", (short) file.readUnsignedByte());
+                            ConversionUtils.checkNull(file, 1); // file.skipBytes(1); // 0 = None
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
+
+                        case AP_TAG_PART_OF:
+                        case AP_TAG_ALL_OF:
+                        case AP_CLAIM_PART_OF:
+                        case AP_CLAIM_ALL_OF:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            ConversionUtils.checkNull(file, 2); // file.skipBytes(2);
+                            // trigger.setUserData("targetId", (short) file.readUnsignedByte()); // 0 = None
+                            // trigger.setUserData("targetType", (short) file.readUnsignedByte()); // 0 = None
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
+
+                        case PLAYER_DUNGEON_BREACHED:
+                        case PLAYER_ENEMY_BREACHED:
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte()); // 0 = Any
+                            ConversionUtils.checkNull(file, 7); // file.skipBytes(7);
+                            break;
+
+                        case PLAYER_KILLED:
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte()); // 0 = Any
+                            ConversionUtils.checkNull(file, 3); // file.skipBytes(7);
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file)); // FIXME unknown value
+                            break;
+
+                        case PLAYER_CREATURE_PICKED_UP:
+                        case PLAYER_CREATURE_SLAPPED:
+                        case PLAYER_CREATURE_SACKED:
+                            trigger.setUserData("creatureId", (short) file.readUnsignedByte()); // 0 = Any
+                            ConversionUtils.checkNull(file, 7); // file.skipBytes(7);
+                            break;
+
+                        case PLAYER_CREATURE_DROPPED:
+                            trigger.setUserData("creatureId", (short) file.readUnsignedByte()); // 0 = Any
+                            trigger.setUserData("roomId", (short) file.readUnsignedByte()); // 0 = Any
+                            ConversionUtils.checkNull(file, 6); // file.skipBytes(6);
+                            break;
+
+                        case PLAYER_CREATURES:
+                        case PLAYER_HAPPY_CREATURES:
+                        case PLAYER_ANGRY_CREATURES:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("creatureId", (short) file.readUnsignedByte());
+                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
+
+                        case PLAYER_CREATURES_KILLED:
+                        case PLAYER_KILLS_CREATURES:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("targetId", (short) file.readUnsignedByte()); // playerId
+                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
+
+                        case PLAYER_ROOMS:
+                        case PLAYER_ROOM_SLAPS:
+                        case PLAYER_ROOM_SIZE:
+                        case PLAYER_ROOM_FURNITURE:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("roomId", (short) file.readUnsignedByte());
+                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
+
+                        case PLAYER_DOORS:
+                        case PLAYER_TRAPS:
+                        case PLAYER_KEEPER_SPELL:
+                        case PLAYER_DESTROYS:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("targetId", (short) file.readUnsignedByte()); // doorId, trapId, keeperSpellId,
+                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
+
+                        case PLAYER_SLAPS:
+                        case PLAYER_GOLD:
+                        case PLAYER_GOLD_MINED:
+                        case PLAYER_MANA:
+                        case PLAYER_CREATURES_GROUPED:
+                        case PLAYER_CREATURES_DYING:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            ConversionUtils.checkNull(file, 1); // file.skipBytes(1);
+                            // trigger.setUserData("targetId", (short) file.readUnsignedByte()); // = 0
+                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
+
+                        case PLAYER_CREATURES_AT_LEVEL:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            // FIXME some bug in editor
+                            trigger.setUserData("targetId", (short) file.readUnsignedByte()); // = 0, must be a level
+                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte()); // level also
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
+
+                        case LEVEL_PAY_DAY:
+                        case CREATURE_KILLED:
+                        case CREATURE_SLAPPED:
+                        case CREATURE_ATTACKED:
+                        case CREATURE_IMPRISONED:
+                        case CREATURE_TORTURED:
+                        case CREATURE_CONVERTED:
+                        case CREATURE_CLAIMED:
+                        case CREATURE_ANGRY:
+                        case CREATURE_AFRAID:
+                        case CREATURE_STEALS:
+                        case CREATURE_LEAVES:
+                        case CREATURE_STUNNED:
+                        case CREATURE_DYING:
+                        case GUI_TRANSITION_ENDS:
+                        case CREATURE_PICKED_UP:
+                        case CREATURE_SACKED:
+                        case CREATURE_PICKS_UP_PORTAL_GEM:
+                        case CREATURE_HUNGER_SATED:
+                        case PARTY_CREATED:
+                            ConversionUtils.checkNull(file, 8); // file.skipBytes(8);
+                            break;
+
+                        case CREATURE_CREATED:
+                            ConversionUtils.checkNull(file, 4); // file.skipBytes(4);
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file)); // FIXME unknown value
+                            break;
+
+                        case LEVEL_PLAYED:
+                        case PARTY_MEMBERS_CAPTURED:
+                        case CREATURE_EXPERIENCE_LEVEL:
+                        case CREATURE_GOLD_HELD:
+                        case CREATURE_HEALTH:
+                        case LEVEL_TIME:
+                        case LEVEL_CREATURES:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            ConversionUtils.checkNull(file, 3); // file.skipBytes(3);
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
+
+                        case PARTY_MEMBERS_KILLED:
+                        case PARTY_MEMBERS_INCAPACITATED:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("unknown", (short) file.readUnsignedByte()); // FIXME unknown value
+                            ConversionUtils.checkNull(file, 2); // file.skipBytes(2);
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
+
+                        case GUI_BUTTON_PRESSED:
+                            // Misc Button = 0, Room = 1, Creature = 2, Door = 3, Trap = 4, Keeper Spell = 5
+                            trigger.setUserData("targetType", (short) file.readUnsignedByte());
+                            trigger.setUserData("targetId", (short) file.readUnsignedByte()); // buttonId, roomId, creatureId ...
+                            ConversionUtils.checkNull(file, 2); // file.skipBytes(2);
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file)); // FIXME unknown value
+                            break;
+
+                        case FLAG:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("targetId", (short) file.readUnsignedByte()); // flagId
+                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = Flag
+                            trigger.setUserData("flagId", (short) file.readUnsignedByte());
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
+
+                        case TIMER:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("targetId", (short) file.readUnsignedByte()); // timerId
+                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = Flag
+                            trigger.setUserData("timerId", (short) file.readUnsignedByte());
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            break;
+
+                        default:
+                            ConversionUtils.checkNull(file, 8); // file.skipBytes(8);
+                            logger.warning("Unsupported Type of TriggerGeneric");
+                            break;
+
                     }
+
+                    trigger.setId(ConversionUtils.readUnsignedShort(file));
+                    trigger.setIdNext(ConversionUtils.readUnsignedShort(file)); // SiblingID
+                    trigger.setIdChild(ConversionUtils.readUnsignedShort(file)); // ChildID
+
+                    file.skipBytes(2);
                     break;
                 }
                 case 214: {
-
                     // TriggerAction
+                    long start = file.getFilePointer();
+                    file.seek(start + triggerTag[1] - 2);
+
                     trigger = new TriggerAction(this);
-                    ((TriggerAction) trigger).setActionTargetId((short) file.readUnsignedByte());
-                    ((TriggerAction) trigger).setPlayerId((short) file.readUnsignedByte());
-                    ((TriggerAction) trigger).setCreatureLevel((short) file.readUnsignedByte());
-                    ((TriggerAction) trigger).setAvailable((short) file.readUnsignedByte());
-                    ((TriggerAction) trigger).setActionTargetValue1(ConversionUtils.readUnsignedShort(file));
-                    ((TriggerAction) trigger).setActionTargetValue2(ConversionUtils.readUnsignedShort(file));
-                    ((TriggerAction) trigger).setId(ConversionUtils.readUnsignedShort(file)); // ID
-                    ((TriggerAction) trigger).setIdNext(ConversionUtils.readUnsignedShort(file)); // SiblingID
-                    short[] unknown1 = new short[2];
-                    for (int x = 0; x < unknown1.length; x++) {
-                        unknown1[x] = (short) file.readUnsignedByte();
+                    ((TriggerAction) trigger).setType(ConversionUtils.parseEnum(file.readUnsignedByte(), TriggerAction.ActionType.class));
+                    trigger.setRepeatTimes((short) file.readUnsignedByte());
+
+                    file.seek(start);
+                    switch (((TriggerAction) trigger).getType()) {
+                        // in levels triggers
+                        case ALTER_TERRAIN_TYPE:
+                            trigger.setUserData("terrainId", (short) file.readUnsignedByte());
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            ConversionUtils.checkNull(file, 2); // file.skipBytes(2);
+                            trigger.setUserData("posX", ConversionUtils.readUnsignedShort(file));
+                            trigger.setUserData("posY", ConversionUtils.readUnsignedShort(file));
+                            break;
+
+                        case COLLAPSE_HERO_GATE:
+                            ConversionUtils.checkNull(file, 4); // file.skipBytes(4);
+                            trigger.setUserData("posX", ConversionUtils.readUnsignedShort(file));
+                            trigger.setUserData("posY", ConversionUtils.readUnsignedShort(file));
+                            break;
+
+                        case CHANGE_ROOM_OWNER:
+                            ConversionUtils.checkNull(file, 1); // file.skipBytes(1);
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            ConversionUtils.checkNull(file, 2); // file.skipBytes(2);
+                            trigger.setUserData("posX", ConversionUtils.readUnsignedShort(file));
+                            trigger.setUserData("posY", ConversionUtils.readUnsignedShort(file));
+                            break;
+
+                        case SET_ALLIANCE:
+                            trigger.setUserData("playerOneId", (short) file.readUnsignedByte());
+                            trigger.setUserData("playerTwoId", file.readUnsignedByte());
+                            trigger.setUserData("available", (short) file.readUnsignedByte()); // 0 = Create, !0 = Break
+                            ConversionUtils.checkNull(file, 5); // file.skipBytes(5);
+                            break;
+
+                        case SET_CREATURE_MOODS:
+                        case SET_SYSTEM_MESSAGES:
+                        case SET_TIMER_SPEECH:
+                        case SET_WIDESCREEN_MODE:
+                        case SET_SPEED:  // 0 = Walk, !0 = Run
+                        case SET_FIGHT_FLAG: // 0 = Don`t Fight, !0 = Fight
+                        case SET_PORTAL_STATUS: // 0 = Closed, !0 = Open
+                            trigger.setUserData("available", (short) file.readUnsignedByte());  // 0 = Off, !0 = On
+                            ConversionUtils.checkNull(file, 7); // file.skipBytes(7);
+                            break;
+
+                        case SET_SLAPS_LIMIT:
+                            ConversionUtils.checkNull(file, 4); // file.skipBytes(4);
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file)); // limit 4 bytes, 0 = Off
+                            break;
+
+                        case INITIALIZE_TIMER:
+                            trigger.setUserData("timerId", (short) file.readUnsignedByte()); // timerId + 1, 16 - Time Limit
+                            ConversionUtils.checkNull(file, 3); // file.skipBytes(3);
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file)); // limit 4 bytes, only for Time limit (max 100 s)
+                            break;
+
+                        case FLAG:
+                            trigger.setUserData("flagId", (short) file.readUnsignedByte()); // flagId + 1, 128 - level score
+                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // flag = Equal = 12 | Plus = 20 | Minus = 36
+                            ConversionUtils.checkNull(file, 2); // file.skipBytes(2);
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file)); // limit 4 bytes
+                            break;
+
+                        case MAKE:
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            trigger.setUserData("type", (short) file.readUnsignedByte()); // type = TriggerAction.MakeType.
+                            trigger.setUserData("targetId", (short) file.readUnsignedByte());
+                            trigger.setUserData("available", (short) file.readUnsignedByte()); // 0 = Unavailable, !0 = Available
+                            ConversionUtils.checkNull(file, 4); // file.skipBytes(4);
+                            break;
+                        // in player triggers
+                        case DISPLAY_SLAB_OWNER:
+                            // FIXME Show wrong values in editor
+                            trigger.setUserData("available", file.readUnsignedByte());  // 0 = Off, !0 = On
+                            //((TriggerAction) trigger).setActionTargetValue1(ConversionUtils.readUnsignedInteger(file)); // limit 4 bytes
+                            // 1635984
+                            ConversionUtils.checkNull(file, 7); // file.skipBytes(7);
+                            break;
+
+                        case DISPLAY_NEXT_ROOM_TYPE: // 0 = Off or roomId
+                        case MAKE_OBJECTIVE: // 0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert
+                        case ZOOM_TO_ACTION_POINT: // actionPointId
+                            trigger.setUserData("targetId", (short) file.readUnsignedByte());
+                            ConversionUtils.checkNull(file, 7); // file.skipBytes(7);
+                            break;
+
+                        case DISPLAY_OBJECTIVE:
+                            trigger.setUserData("objectiveId", ConversionUtils.readUnsignedInteger(file)); // objectiveId, limit 32767
+                            trigger.setUserData("actionPointId", (short) file.readUnsignedByte()); // if != 0 => Zoom To AP = this
+                            ConversionUtils.checkNull(file, 3); // file.skipBytes(3);
+                            break;
+
+                        case PLAY_SPEECH:
+                            trigger.setUserData("speechId", ConversionUtils.readUnsignedInteger(file)); // speechId, limit 32767
+                            trigger.setUserData("text", (short) file.readUnsignedByte()); // 0 = Show Text, !0 = Without text
+                            trigger.setUserData("introduction", (short) file.readUnsignedByte()); // 0 = No Introduction, !0 = Introduction
+                            trigger.setUserData("pathId", ConversionUtils.readUnsignedShort(file)); // pathId
+                            break;
+
+                        case DISPLAY_TEXT_MESSAGE:
+                            trigger.setUserData("textId", ConversionUtils.readUnsignedInteger(file)); // textId, limit 32767
+                            // FIXME Maybe Zoom to AP X
+                            ConversionUtils.checkNull(file, 4); // file.skipBytes(4);
+                            break;
+                        // creature triggers
+                        case ATTACH_PORTAL_GEM:
+                        case MAKE_HUNGRY:
+                        case REMOVE_FROM_MAP:
+                        case ZOOM_TO:
+                        case WIN_GAME:
+                        case LOSE_GAME:
+                        case FORCE_FIRST_PERSON:
+                        case LOSE_SUBOBJECTIVE:
+                        case WIN_SUBOBJECTIVE:
+                            ConversionUtils.checkNull(file, 8); // file.skipBytes(8); // no other parameters
+                            break;
+
+                        case SET_MUSIC_LEVEL: // level
+                        case SHOW_HEALTH_FLOWER: // limit Seconds
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
+                            ConversionUtils.checkNull(file, 4); // file.skipBytes(4);
+                            break;
+
+                        case SET_TIME_LIMIT:
+                            trigger.setUserData("timerId", (short) file.readUnsignedByte()); // timerId + 1, 16 - Time Limit
+                            ConversionUtils.checkNull(file, 3); // file.skipBytes(3);
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file)); // Seconds
+                            break;
+
+                        case FOLLOW_CAMERA_PATH:
+                            trigger.setUserData("pathId", (short) file.readUnsignedByte());
+                            trigger.setUserData("actionPointId", (short) file.readUnsignedByte());
+                            trigger.setUserData("available", (short) file.readUnsignedByte()); // 0 = Show Ceiling, !0 = Hide Ceiling
+                            ConversionUtils.checkNull(file, 5); // file.skipBytes(5);
+                            break;
+
+                        case FLASH_BUTTON:
+                            trigger.setUserData("type", (short) file.readUnsignedByte()); // TriggerAction.MakeType.
+                            trigger.setUserData("targetId", (short) file.readUnsignedByte());
+                            trigger.setUserData("available", (short) file.readUnsignedByte()); // 0 = Off, !0 & !time = Until selected
+                            ConversionUtils.checkNull(file, 1); // file.skipBytes(1);
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file)); // Seconds
+                            break;
+
+                        case FLASH_ACTION_POINT:
+                            trigger.setUserData("actionPointId", (short) file.readUnsignedByte());
+                            trigger.setUserData("available", (short) file.readUnsignedByte()); // 0 = Off, !0 & !time = Until switched off
+                            ConversionUtils.checkNull(file, 2); // file.skipBytes(2);
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file)); // Seconds
+                            break;
+
+                        case REVEAL_ACTION_POINT:
+                            trigger.setUserData("actionPointId", (short) file.readUnsignedByte());
+                            trigger.setUserData("available", (short) file.readUnsignedByte()); // 0 = Reveal, !0 = Conceal
+                            ConversionUtils.checkNull(file, 6); // file.skipBytes(6);
+                            break;
+
+                        case ROTATE_AROUND_ACTION_POINT:
+                            trigger.setUserData("actionPointId", (short) file.readUnsignedByte());
+                            trigger.setUserData("available", (short) file.readUnsignedByte()); // 0 = Relative, !0 = Absolute
+                            trigger.setUserData("angle", ConversionUtils.readUnsignedShort(file)); // degrees
+                            trigger.setUserData("time", ConversionUtils.readUnsignedInteger(file)); // seconds
+                            break;
+
+                        case CREATE_CREATURE:
+                            trigger.setUserData("creatureId", (short) file.readUnsignedByte());
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            trigger.setUserData("level", (short) file.readUnsignedByte());
+                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // TriggerAction.CreatureFlag.
+                            trigger.setUserData("posX", ConversionUtils.readUnsignedShort(file));
+                            trigger.setUserData("posY", ConversionUtils.readUnsignedShort(file));
+                            break;
+
+                        case SET_OBJECTIVE:
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            trigger.setUserData("type", (short) file.readUnsignedByte()); // Creature.JobType
+                            ConversionUtils.checkNull(file, 2); // file.skipBytes(2);
+                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file)); // FIXME unknown value
+                            break;
+
+                        case CREATE_HERO_PARTY:
+                            trigger.setUserData("partyId", (short) file.readUnsignedByte()); // partyId + 1
+                            trigger.setUserData("type", (short) file.readUnsignedByte()); // 0 = None, 1 = IP, 2 = IP Random
+                            ConversionUtils.checkNull(file, 2); // file.skipBytes(2);
+                            trigger.setUserData("actionPointId", (short) file.readUnsignedByte()); //
+                            ConversionUtils.checkNull(file, 3); // file.skipBytes(3);
+                            break;
+
+                        case TOGGLE_EFFECT_GENERATOR:
+                            trigger.setUserData("generatorId", (short) file.readUnsignedByte()); // generatorId + 1
+                            trigger.setUserData("available", (short) file.readUnsignedByte()); // 0 = Off, !0 = On
+                            ConversionUtils.checkNull(file, 6); // file.skipBytes(6);
+                            break;
+
+                        case GENERATE_CREATURE:
+                            trigger.setUserData("creatureId", (short) file.readUnsignedByte()); // creatureId + 1
+                            trigger.setUserData("level", (short) file.readUnsignedByte());
+                            ConversionUtils.checkNull(file, 6); // file.skipBytes(6);
+                            break;
+
+                        case INFORMATION:
+                            trigger.setUserData("informationId", ConversionUtils.readUnsignedInteger(file));
+                            trigger.setUserData("actionPointId", (short) file.readUnsignedByte());
+                            ConversionUtils.checkNull(file, 3); // file.skipBytes(3);
+                            break;
+
+                        case SEND_TO_AP:
+                            ConversionUtils.checkNull(file, 4); // file.skipBytes(4);
+                            trigger.setUserData("actionPointId", (short) file.readUnsignedByte());
+                            ConversionUtils.checkNull(file, 3); // file.skipBytes(3);
+                            break;
+
+                        case CREATE_PORTAL_GEM:
+                            trigger.setUserData("objectId", (short) file.readUnsignedByte());
+                            trigger.setUserData("playerId", (short) file.readUnsignedByte());
+                            ConversionUtils.checkNull(file, 2); // file.skipBytes(2);
+                            trigger.setUserData("posX", ConversionUtils.readUnsignedShort(file)); // posX + 1
+                            trigger.setUserData("posY", ConversionUtils.readUnsignedShort(file)); // posY + 1
+                            break;
+
+                        default:
+                            ConversionUtils.checkNull(file, 8); // file.skipBytes(8);
+                            logger.warning("Unsupported Type of TriggerAction");
+                            break;
                     }
-                    ((TriggerAction) trigger).setUnknown1(unknown1);
-                    ((TriggerAction) trigger).setActionType(ConversionUtils.parseEnum(ConversionUtils.readUnsignedShort(file), TriggerAction.ActionType.class));
+
+                    trigger.setId(ConversionUtils.readUnsignedShort(file)); // ID
+                    trigger.setIdNext(ConversionUtils.readUnsignedShort(file)); // SiblingID
+                    trigger.setIdChild(ConversionUtils.readUnsignedShort(file)); // ChildID
+
+                    file.skipBytes(2);
                     break;
                 }
                 default: {
@@ -2376,6 +2785,10 @@ public final class KwdFile {
         return players.get(id);
     }
 
+    public java.util.Map<Short, Player> getPlayers() {
+        return players;
+    }
+
     /**
      * Get the creature with the specified ID
      *
@@ -2456,6 +2869,10 @@ public final class KwdFile {
      */
     public Trigger getTrigger(int id) {
         return triggers.get(id);
+    }
+
+    public java.util.Map<Integer, Trigger> getTriggers() {
+        return triggers;
     }
 
     /**

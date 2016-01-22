@@ -26,11 +26,16 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import de.lessvoid.nifty.screen.Screen;
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.PlayerManaControl;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
+import toniarts.openkeeper.game.trigger.TriggerControl;
+import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.world.WorldHandler;
@@ -57,6 +62,12 @@ public class GameState extends AbstractAppState {
     private BulletAppState bulletAppState;
     private float tick = 0;
     private PlayerManaControl manaControl;
+    private static Map<Short, Integer> flags = new HashMap<>(127);
+    // TODO What timer class we should take ?
+    private static Map<Byte, GameTimer> timers = new HashMap<>(15);
+    private static int gameScore = 0;
+    private static boolean isTransition = false;
+    private static float gameTime = 0;
     /**
      * Single use game states
      *
@@ -113,7 +124,7 @@ public class GameState extends AbstractAppState {
                     };
                     worldNode = worldHandler.getWorld();
                     manaControl = new PlayerManaControl((short) 3, worldHandler);
-                    
+
                     setProgress(1.0f);
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Failed to load the game!", e);
@@ -133,6 +144,14 @@ public class GameState extends AbstractAppState {
 
                 // Enable player state
                 stateManager.getState(PlayerState.class).setEnabled(true);
+
+                for (short i = 0; i < 128; i++) {
+                    GameState.flags.put(i, 0);
+                }
+
+                for (byte i = 0; i < 16; i++) {
+                    GameState.timers.put(i, new GameTimer());
+                }
             }
         };
         stateManager.attach(loader);
@@ -168,6 +187,9 @@ public class GameState extends AbstractAppState {
             manaControl.updateManaGet();
             manaControl.updateManaLose();
         }
+
+        gameTime += tpf;
+
         super.update(tpf);
     }
 
@@ -183,8 +205,40 @@ public class GameState extends AbstractAppState {
     public WorldHandler getWorldHandler() {
         return worldHandler;
     }
-    
+
     public PlayerManaControl getPlayerManaControl() {
-        return this.manaControl;
+        return manaControl;
+    }
+
+    public static int getFlag(int id) {
+        return flags.get((short) id);
+    }
+
+    public static void setFlag(int id, int value) {
+        flags.put((short) id, value);
+    }
+
+    public static GameTimer getTimer(int id) {
+        return timers.get((byte) id);
+    }
+
+    public static void setTransition(boolean value) {
+        isTransition = value;
+    }
+
+    public static boolean getTransition() {
+        return isTransition;
+    }
+
+    public static int getGameScore() {
+        return gameScore;
+    }
+
+    public static float getGameTime() {
+        return gameTime;
+    }
+
+    public String getLevel() {
+        return level;
     }
 }
