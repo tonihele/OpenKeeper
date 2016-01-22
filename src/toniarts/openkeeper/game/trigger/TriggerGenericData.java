@@ -14,9 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.state.trigger;
+package toniarts.openkeeper.game.trigger;
 
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
@@ -34,6 +35,7 @@ public class TriggerGenericData extends TriggerData {
     private short repeatTimes; // Repeat x times, 255 = always
     private LinkedHashMap<Integer, TriggerData> children = new LinkedHashMap<>();
     private static final Logger logger = Logger.getLogger(TriggerGenericData.class.getName());
+    private Integer cycle = null;
 
     public TriggerGenericData() {
         super();
@@ -43,8 +45,8 @@ public class TriggerGenericData extends TriggerData {
         super(id);
     }
 
-    public TriggerGenericData(int id, TriggerGenericData parent, short repeatTimes) {
-        super(id, parent);
+    public TriggerGenericData(int id, short repeatTimes) {
+        super(id);
         this.repeatTimes = repeatTimes;
     }
 
@@ -131,6 +133,23 @@ public class TriggerGenericData extends TriggerData {
         return false;
     }
 
+    public boolean isCycleEnd() {
+        boolean result = (Integer.valueOf(0).equals(cycle));
+
+        if (cycle == null || cycle == 0) {
+            cycle = 0;
+            for (Map.Entry<Integer, TriggerData> entry : children.entrySet()) {
+                TriggerData t = entry.getValue();
+
+                if (t instanceof TriggerGenericData) {
+                    cycle++;
+                }
+            }
+        }
+
+        return result;
+    }
+
     /**
      * Returns all children to this TriggerGenericData. Note that modifying that given list is not allowed.
      *
@@ -211,7 +230,7 @@ public class TriggerGenericData extends TriggerData {
 
         if (child.getParent() == this) {
             if (children.containsValue(child)) {
-                detachChildId((short) child.getId());
+                detachChildId(child.getId());
             }
             return child.getId();
         }

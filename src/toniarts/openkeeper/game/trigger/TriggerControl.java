@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.state.trigger;
+package toniarts.openkeeper.game.trigger;
 
 import java.util.Map;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -46,19 +46,29 @@ public class TriggerControl {
             TriggerData t;
 
             if (trigger instanceof TriggerGeneric) {
-                t = new TriggerGenericData(id, parent, trigger.getRepeatTimes());
+                t = new TriggerGenericData(id, trigger.getRepeatTimes());
                 ((TriggerGenericData) t).setType(((TriggerGeneric) trigger).getType());
                 ((TriggerGenericData) t).setComparison(((TriggerGeneric) trigger).getTargetValueComparison());
-                root.attachChild(id, t);
+
+                for (String key : trigger.getUserDataKeys()) {
+                    t.setUserData(key, trigger.getUserData(key));
+                }
+                
+                parent.attachChild(id, t);
 
                 if (trigger.hasChildren()) {
                     initialize(((TriggerGenericData) t), trigger.getIdChild());
                 }
 
             } else if (trigger instanceof TriggerAction) {
-                t = new TriggerActionData(id, parent);
+                t = new TriggerActionData(id);
                 ((TriggerActionData) t).setType(((TriggerAction) trigger).getType());
-                root.attachChild(id, t);
+
+                for (String key : trigger.getUserDataKeys()) {
+                    t.setUserData(key, trigger.getUserData(key));
+                }
+
+                parent.attachChild(id, t);
 
             } else {
                 throw new RuntimeException("Unexpected class");

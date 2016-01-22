@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.state.trigger;
+package toniarts.openkeeper.game.trigger;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -122,7 +122,7 @@ public abstract class TriggerData {
         }
     }
 
-    public <T> T getUserData(String key) {
+    public <T extends Number> T getUserData(String key) {
         if (userData == null) {
             return null;
         }
@@ -137,6 +137,14 @@ public abstract class TriggerData {
         }
 
         return Collections.EMPTY_SET;
+    }
+
+    public boolean hasUserDataKey(String key) {
+        if (userData != null) {
+            return userData.containsKey(key);
+        }
+
+        return false;
     }
 
     @Override

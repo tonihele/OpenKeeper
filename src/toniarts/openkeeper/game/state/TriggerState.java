@@ -17,12 +17,15 @@
 package toniarts.openkeeper.game.state;
 
 import com.jme3.app.state.AbstractAppState;
+import java.util.ArrayList;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.trigger.TriggerActionData;
+import toniarts.openkeeper.game.trigger.TriggerControl;
+import toniarts.openkeeper.game.trigger.TriggerData;
+import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.tools.convert.map.Trigger;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
@@ -32,82 +35,83 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  */
 
 public abstract class TriggerState extends AbstractAppState {
-    private int triggerId;
-    private int triggerStartId;
+    private TriggerGenericData trigger;
     private final KwdFile kwdFile;
-    private Map<Integer, Trigger> triggers;
+    private TriggerGenericData root;
     private static final Logger logger = Logger.getLogger(TriggerState.class.getName());
 
-    public TriggerState(KwdFile level) {
-        kwdFile = level;
-        triggers = kwdFile.getTriggers();
-        triggerStartId = kwdFile.getPlayer((short) 3).getTriggerId();
-        //this.triggerStartId = kwdFile.getGameLevel().getTriggerId();
-        this.triggerId = triggerStartId;
+    public TriggerState(KwdFile kwdFile) {
+        this.kwdFile = kwdFile;
+        this.initialize();
+    }
+
+    private void initialize() {
+        int triggerStartId = kwdFile.getPlayer((short) 3).getTriggerId();
+        //int triggerStartId = kwdFile.getGameLevel().getTriggerId();
+        root = new TriggerControl(kwdFile, triggerStartId).getTriggers();
+
+        trigger = root;
     }
 
     @Override
     public void update(float tpf) {
+        TriggerGenericData next = null;
+        
+        if (trigger.getQuantity() != 0) {
+            ArrayList<Integer> remove = new ArrayList<>();
+            System.out.println(String.format("Trigger Generic: %s at %s", trigger, GameState.getGameTime()));
+            trigger.subRepeatTimes();
 
-        Trigger value = triggers.get(triggerId);
+            for (Map.Entry<Integer, TriggerData> entry : trigger.getChildren().entrySet()) {                
+                TriggerData value = entry.getValue();
 
-        checkTrigger(value, false, value.isClosed());
+                if (value instanceof TriggerGenericData) {
 
-        if (value.hasNext()) {
-            triggerId = value.getIdNext();
-        } else {
-            triggerId = triggerStartId;
+                    if (isActive((TriggerGenericData) value) && next == null && !((TriggerGenericData) trigger).isCycleEnd()) {
+                        next = (TriggerGenericData) value;                        
+                    } else if (trigger.getParent() != null && next == null) {
+                        next = trigger.getParent();
+                    }
+
+                } else if (value instanceof TriggerActionData) {
+
+                    doAction((TriggerActionData) value);
+                    if (!trigger.subRepeatTimes()) {
+                        remove.add(value.getId());
+                    }
+                }
+            }
+
+            // remove actions
+            for (Integer id : remove) {
+                trigger.detachChildId(id);
+            }
+        } 
+
+        if (trigger.getQuantity() == 0 && trigger.getParent() != null) {
+            if (next == null) {
+                next = trigger.getParent();
+            }
+            trigger.getParent().detachChildId(trigger.getId());
+        }
+
+        if (next != null) {
+            trigger = next;
         }
         super.update(tpf);
     }
 
-    private void checkTrigger(Trigger value, boolean next, boolean closed) {
-
-        if (value instanceof TriggerGeneric) {
-
-            TriggerGeneric trigger = (TriggerGeneric) value;
-
-            if (isActive(trigger)) {
-                System.out.println(String.format("Trigger Generic: %s at %s", value, GameState.getGameTime()));
-
-                if (value.hasChildren()) {
-                    int childId = value.getIdChild();
-                    checkTrigger(triggers.get(childId), true, value.isClosed());
-                }
-
-                value.subRepeatTimes();
-            }
-
-        } else if (value instanceof TriggerAction) {
-
-            if (!closed) {
-                TriggerAction trigger = (TriggerAction) value;
-                doAction(trigger);
-            }
-
-        } else {
-            logger.log(Level.SEVERE, "Unkwown trigger class {0}", value);
-            // throw new RuntimeException("Unkwown trigger class");
-            return;
-        }
-
-        if (value.hasNext() && next) {
-            int nextId = value.getIdNext();
-            checkTrigger(triggers.get(nextId), true, closed);
-        }
-    }
-
-    private boolean isActive(TriggerGeneric trigger) {
+    private boolean isActive(TriggerGenericData trigger) {
         TriggerGeneric.TargetType targetType = trigger.getType();
         float target;
         boolean result = false;
 
         switch (targetType) {
             case FLAG:
-                target = GameState.getFlag(trigger.getTargetFlagId());
+                target = GameState.getFlag((Short) trigger.getUserData("targetId"));
                 break;
             case TIMER:
-                target = GameState.getTimer(trigger.getTargetFlagId()).getTime();
+                target = GameState.getTimer((Short) trigger.getUserData("targetId")).getTime();
                 break;
             case CREATURE_CREATED:
                 return false;
@@ -136,6 +140,20 @@ public abstract class TriggerState extends AbstractAppState {
             case CREATURE_STUNNED:
                 return false;
             case CREATURE_DYING:
+                return false;
+            case CREATURE_HEALTH:
+                return false;
+            case CREATURE_GOLD_HELD:
+                return false;
+            case CREATURE_EXPERIENCE_LEVEL:
+                return false;
+            case CREATURE_HUNGER_SATED:
+                return false;
+            case CREATURE_PICKS_UP_PORTAL_GEM:
+                return false;
+            case CREATURE_SACKED:
+                return false;
+            case CREATURE_PICKED_UP:
                 return false;
             case PLAYER_CREATURES:
                 return false;
@@ -167,42 +185,9 @@ public abstract class TriggerState extends AbstractAppState {
                 return false;
             case PLAYER_DESTROYS:
                 return false;
-            case LEVEL_TIME:
-                target = GameState.getGameTime();
-                break;
-            case LEVEL_CREATURES:
-                return false;
-            case CREATURE_HEALTH:
-                return false;
-            case CREATURE_GOLD_HELD:
-                return false;
-            case AP_CONGREGATE_IN:
-                return false;
-            case AP_CLAIM_PART_OF:
-                return false;
-            case AP_CLAIM_ALL_OF:
-                return false;
-            case AP_SLAP_TYPES:
-                return false;
-            case PARTY_CREATED:
-                return false;
-            case PARTY_MEMBERS_KILLED:
-                return false;
-            case PARTY_MEMBERS_CAPTURED:
-                return false;
-            case LEVEL_PAY_DAY:
-                return false;
-            case PLAYER_KILLED:
-                return false;
-            case CREATURE_EXPERIENCE_LEVEL:
-                return false;
             case PLAYER_CREATURES_AT_LEVEL:
                 return false;
-            case GUI_BUTTON_PRESSED:
-                return false;
-            case CREATURE_HUNGER_SATED:
-                return false;
-            case CREATURE_PICKS_UP_PORTAL_GEM:
+            case PLAYER_KILLED:
                 return false;
             case PLAYER_DUNGEON_BREACHED:
                 return false;
@@ -216,37 +201,55 @@ public abstract class TriggerState extends AbstractAppState {
                 return false;
             case PLAYER_CREATURE_SACKED:
                 return false;
-            case AP_TAG_PART_OF:
+            case PLAYER_ROOM_FURNITURE:
                 return false;
-            case CREATURE_SACKED:
+            case PLAYER_SLAPS:
                 return false;
-            case PARTY_MEMBERS_INCAPACITATED:
+            case PLAYER_CREATURES_GROUPED:
                 return false;
-            case CREATURE_PICKED_UP:
+            case PLAYER_CREATURES_DYING:
+                return false;
+            case LEVEL_TIME:
+                target = GameState.getGameTime();
+                break;
+            case LEVEL_CREATURES:
+                return false;
+            case LEVEL_PAY_DAY:
                 return false;
             case LEVEL_PLAYED:
                 return false;
-            case PLAYER_ROOM_FURNITURE:
+            case AP_CONGREGATE_IN:
+                return false;
+            case AP_CLAIM_PART_OF:
+                return false;
+            case AP_CLAIM_ALL_OF:
+                return false;
+            case AP_SLAP_TYPES:
+                return false;
+            case AP_TAG_PART_OF:
                 return false;
             case AP_TAG_ALL_OF:
                 return false;
             case AP_POSESSED_CREATURE_ENTERS:
                 return false;
-            case PLAYER_SLAPS:
+            case PARTY_CREATED:
+                return false;
+            case PARTY_MEMBERS_KILLED:
+                return false;
+            case PARTY_MEMBERS_CAPTURED:
+                return false;
+            case PARTY_MEMBERS_INCAPACITATED:
                 return false;
             case GUI_TRANSITION_ENDS:
                 return !GameState.getTransition();
-            case PLAYER_CREATURES_GROUPED:
-                return false;
-            case PLAYER_CREATURES_DYING:
+            case GUI_BUTTON_PRESSED:
                 return false;
             default:
                 logger.warning("Target Type not supported");
                 return false;
         }
 
-
-        TriggerGeneric.ComparisonType comparisonType = trigger.getTargetValueComparison();
+        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
         if (comparisonType != null) {
             result = compare(target, comparisonType, (int) trigger.getUserData("value"));
         }
@@ -254,7 +257,7 @@ public abstract class TriggerState extends AbstractAppState {
         return result;
     }
 
-    private void doAction(TriggerAction trigger) {
+    private void doAction(TriggerActionData trigger) {
         System.out.println(String.format("\t Trigger Action: %s", trigger)); // TODO remove this line
         TriggerAction.ActionType type = trigger.getType();
 
@@ -267,11 +270,11 @@ public abstract class TriggerState extends AbstractAppState {
                 break;
             case FLAG:
                 // TODO make not only value and gameScore
-                GameState.setFlag((int) trigger.getUserData("flagId"), (int) trigger.getUserData("value"));
+                GameState.setFlag((Short) trigger.getUserData("flagId"), (int) trigger.getUserData("value"));
                 break;
             case INITIALIZE_TIMER:
                 // TODO make time limit
-                GameState.getTimer((int) trigger.getUserData("timerId")).setActive(true);
+                GameState.getTimer((Short) trigger.getUserData("timerId")).setActive(true);
                 break;
             case FLASH_BUTTON:
                 break;
@@ -284,8 +287,8 @@ public abstract class TriggerState extends AbstractAppState {
             case SET_OBJECTIVE:
                 break;
             case FLASH_ACTION_POINT:
-                Thing.ActionPoint ap = getActionPoint((int) trigger.getUserData("actionPointId"));
-                onFlashActionPoint(ap, (int) trigger.getUserData("available") != 0);
+                Thing.ActionPoint ap = getActionPoint((Short) trigger.getUserData("actionPointId"));
+                onFlashActionPoint(ap, (Short) trigger.getUserData("available") != 0);
                 break;
             case REVEAL_ACTION_POINT:
                 // remove fog of war from tiles in action point
@@ -304,7 +307,7 @@ public abstract class TriggerState extends AbstractAppState {
             case DISPLAY_TEXT_MESSAGE:
                 break;
             case ZOOM_TO_ACTION_POINT:
-                ap = getActionPoint((int) trigger.getUserData("targetId"));
+                ap = getActionPoint((Short) trigger.getUserData("targetId"));
                 onZoomToActionPoint(ap);
                 break;
             case ROTATE_AROUND_ACTION_POINT:
@@ -314,15 +317,15 @@ public abstract class TriggerState extends AbstractAppState {
             case SHOW_HEALTH_FLOWER:
                 break;
             case FOLLOW_CAMERA_PATH:
-                ap = getActionPoint((int) trigger.getUserData("actionPointId"));
-                onCameraFollow((int) trigger.getUserData("pathId"), ap);
+                ap = getActionPoint((Short) trigger.getUserData("actionPointId"));
+                onCameraFollow((Short) trigger.getUserData("pathId"), ap);
                 break;
             case COLLAPSE_HERO_GATE:
                 break;
             case SET_PORTAL_STATUS:
                 break;
             case SET_WIDESCREEN_MODE:
-                onWideScreenMode((int) trigger.getUserData("available") != 0);
+                onWideScreenMode((Short) trigger.getUserData("available") != 0);
                 break;
             case MAKE_OBJECTIVE:
                 break;

@@ -148,38 +148,18 @@ public class TriggerGeneric extends Trigger {
         private final int id;
     }
 
-    public enum TargetValueType implements IValueEnum {
-        // TODO maybe delete section or refactor ?
-        TERRAIN_ID(-1), // Slab types point to terrain ID
-        VALUE(0), // Use the value
-        VALUE1(1), // This isn't quite right, but this means use the value
-        FLAG(2),
-        UNKNOWN_5(5),
-        UNKNOWN_6(6),
-        BLUEPRINT(9),
-        UNKNOWN_11(11),
-        UNKNOWN_12(12),
-        UNKNOWN_13(13),
-        UNKNOWN_14(14),
-        UNKNOWN_15(15),
-        UNKNOWN_16(16),
-        BUILT(17),
-        UNKNOWN_18(18),
-        UNKNOWN_21(21),
-        UNKNOWN_22(22),
-        UNKNOWN_29(29),
-        UNKNOWN_31(31);
+    public enum TargetValueType {
 
-        // As in flag value
-        private TargetValueType(int id) {
-            this.id = id;
-        }
-
-        @Override
-        public int getValue() {
-            return id;
-        }
-        private final int id;
+        VALUE,
+        TERRAIN, // Slab types point to terrain ID
+        DOOR,
+        TRAP,
+        KEEPER_SPELL,
+        ROOM,
+        CREATURE,
+        BUTTON,
+        FLAG,
+        TIMER;
     }
     //    struct TriggerBlock {
     //        int x00;
@@ -191,12 +171,9 @@ public class TriggerGeneric extends Trigger {
     //        uint8_t x0f;
     //        };
     private ComparisonType targetValueComparison; // Target comparison type
-    private short targetFlagId;
-    private TargetValueType targetValueType; // targetValueComparison is just byte for sure
-    private short targetValueFlagId;
     private int targetValue; // Target value
     private TargetType target;
-    private short terrainId; // Slab types have the targetValueType as terrain ID
+
 
     public TriggerGeneric(KwdFile kwdFile) {
         super(kwdFile);
@@ -208,30 +185,6 @@ public class TriggerGeneric extends Trigger {
 
     protected void setTargetValueComparison(ComparisonType targetValueComparison) {
         this.targetValueComparison = targetValueComparison;
-    }
-
-    public short getTargetFlagId() {
-        return targetFlagId;
-    }
-
-    protected void setTargetFlagId(short targetFlagId) {
-        this.targetFlagId = targetFlagId;
-    }
-
-    public TargetValueType getTargetValueType() {
-        return targetValueType;
-    }
-
-    protected void setTargetValueType(TargetValueType targetValueType) {
-        this.targetValueType = targetValueType;
-    }
-
-    public short getTargetValueFlagId() {
-        return targetValueFlagId;
-    }
-
-    protected void setTargetValueFlagId(short targetValueFlagId) {
-        this.targetValueFlagId = targetValueFlagId;
     }
 
     public int getTargetValue() {
@@ -250,41 +203,50 @@ public class TriggerGeneric extends Trigger {
         this.target = target;
     }
 
-    public short getTerrainId() {
-        return terrainId;
-    }
-
-    protected void setTerrainId(short terrainId) {
-        this.terrainId = terrainId;
-    }
-
-    private String getTargetValueString() {
-        StringBuilder buf = new StringBuilder();
-        switch (targetValueType) {
-            case FLAG: {
-                buf.append(target).append(" ").append(targetValueFlagId + 1);
-                break;
-            }
-            case TERRAIN_ID: {
-                Terrain terrain = kwdFile.getTerrain(terrainId);
-                buf.append(targetValue).append(" ").append(terrain);
-                if (targetFlagId > 0 && terrain != null && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-                    buf.append(" [").append(kwdFile.getPlayer(targetFlagId)).append("]");
-                }
-                break;
-            }
-            default: {
-                buf.append(targetValue);
-                break;
-            }
-        }
-        return buf.toString();
-    }
-
     @Override
     public String toString() {
-        return "When " + target + (target == TargetType.FLAG || target == TargetType.TIMER ? " "
-                + (targetFlagId + 1) : "") + (targetValueComparison != ComparisonType.NONE ? " "
-                + targetValueComparison + " " + getTargetValueString() : "");
+        String result = "When " + target;
+        switch (target) {
+            case FLAG:
+            case TIMER:
+                result += " " + ((Short) getUserData("targetId") + 1);
+                break;
+        }
+
+        if (targetValueComparison != null) {
+            result += " " + targetValueComparison;
+        }
+
+        result += " " + getUserData("value");
+
+        if (userData != null) {
+            for (java.util.Map.Entry<String, Number> entry : userData.entrySet()) {
+                String key = entry.getKey();
+                Number value = entry.getValue();
+
+                switch (key) {
+                    case "playerId":
+                        result += " [ " + (((Short) value == 0) ? "Any" : (kwdFile.getPlayer((short) ((Short) value)).getName())) + " ]";
+                        break;
+
+                    case "creatureId":
+                        result += " [ " + (((Short) value == 0) ? "Any" : (kwdFile.getCreature((short) ((Short) value)).getName())) + " ]";
+                        break;
+
+                    case "roomId":
+                        result += " [ " + (((Short) value == 0) ? "Any" : (kwdFile.getRoomById((short) ((Short) value)).getName())) + " ]";
+                        break;
+
+                    case "terrainId":
+                        result += " [ " + (((Short) value == 0) ? "Any" : (kwdFile.getTerrain((short) ((Short) value)).getName())) + " ]";
+                        //if (targetFlagId > 0 && terrain != null && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                        //    result += " [ " + kwdFile.getPlayer(targetFlagId) + " ]";
+                        //}
+                        break;
+                }
+            }
+        }
+
+        return result;
     }
 }

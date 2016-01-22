@@ -23,6 +23,7 @@ import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.DesktopAssetManager;
 import com.jme3.asset.TextureKey;
+import com.jme3.audio.AudioNode;
 import com.jme3.font.Rectangle;
 import com.jme3.input.InputManager;
 import com.jme3.renderer.ViewPort;
@@ -222,6 +223,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 TriggerState ts = new TriggerState(gameState.getLevelData()) {
                     @Override
                     public void onWideScreenMode(boolean state) {
+                        // TODO restore camera position
                         if (state) {
                             nifty.gotoScreen(CINEMATIC_SCREEN_ID);
                         } else {
@@ -231,6 +233,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
                     @Override
                     public void onCameraFollow(int path, Thing.ActionPoint point) {
+                        // TODO hide cursor, disable control
                         //this.setEnabled(false);
                         PlayerCameraState ps = stateManager.getState(PlayerCameraState.class);
                         ps.setCameraLocation(point);
@@ -244,13 +247,18 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
                     @Override
                     public void onZoomToActionPoint(Thing.ActionPoint point) {
+                        // TODO make cinematic move
                         PlayerCameraState ps = stateManager.getState(PlayerCameraState.class);
                         ps.setCameraLookAt(point);
                     }
 
                     @Override
                     public void onPlaySpeech(int id) {
-                        // TODO play speech
+                        String file = String.format("Sounds/speech_%s/lvlspe%02d.mp2", gameState.getLevel().toLowerCase(), id);
+                        AudioNode speech = new AudioNode(assetManager, file, false);
+                        speech.setLooping(false);
+                        speech.setPositional(true);
+                        speech.play();
                     }
                 };
                 stateManager.attach(ts);
@@ -282,6 +290,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
      * initials
      */
     private void initHudItems() {
+        nifty = app.getNifty().getNifty();
+
         Screen hud = nifty.getScreen(HUD_SCREEN_ID);
 
         gameState.getPlayerManaControl().addListener(hud.findNiftyControl("mana", Label.class), PlayerManaControl.Type.CURRENT);

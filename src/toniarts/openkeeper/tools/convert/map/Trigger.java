@@ -33,7 +33,6 @@ public abstract class Trigger {
     private int idChild; // ChildID
     private short repeatTimes; // Repeat x times, 255 = always
     protected HashMap<String, Number> userData = null;
-    private boolean closed = false;
 
     public Trigger(KwdFile kwdFile) {
         this.kwdFile = kwdFile;
@@ -53,8 +52,7 @@ public abstract class Trigger {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T getUserData(String key) {
+    public <T extends Number> T getUserData(String key) {
         if (userData == null) {
             return null;
         }
@@ -109,14 +107,6 @@ public abstract class Trigger {
         this.repeatTimes = repeatTimes;
     }
 
-    public void subRepeatTimes() {
-        if (repeatTimes != 255 && !closed) {
-            if (--repeatTimes <= 0) {
-                closed = true;
-            }
-        }
-    }
-
     /**
      * Does this trigger have next trigger
      *
@@ -135,10 +125,6 @@ public abstract class Trigger {
      */
     public boolean hasChildren() {
         return (getIdChild() != 0);
-    }
-
-    public boolean isClosed() {
-        return closed;
     }
 
     @Override

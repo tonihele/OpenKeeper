@@ -34,8 +34,8 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.PlayerManaControl;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
-import toniarts.openkeeper.game.state.trigger.TriggerControl;
-import toniarts.openkeeper.game.state.trigger.TriggerGenericData;
+import toniarts.openkeeper.game.trigger.TriggerControl;
+import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.world.WorldHandler;
@@ -152,9 +152,6 @@ public class GameState extends AbstractAppState {
                 for (byte i = 0; i < 16; i++) {
                     GameState.timers.put(i, new GameTimer());
                 }
-
-                TriggerControl tc = new TriggerControl(kwdFile, kwdFile.getGameLevel().getTriggerId());
-                TriggerGenericData tgd = tc.getTriggers();
             }
         };
         stateManager.attach(loader);
@@ -239,5 +236,9 @@ public class GameState extends AbstractAppState {
 
     public static float getGameTime() {
         return gameTime;
+    }
+
+    public String getLevel() {
+        return level;
     }
 }

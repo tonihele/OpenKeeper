@@ -149,13 +149,6 @@ public class TriggerAction extends Trigger {
             return result.trim();
         }
 
-        public static MakeType fromValue(int value) throws IllegalArgumentException {
-            try {
-                return MakeType.values()[value];
-            } catch (ArrayIndexOutOfBoundsException e) {
-                throw new IllegalArgumentException("Unknown enum value: " + value);
-            }
-        }
         private final int id;
     }
 
@@ -164,8 +157,8 @@ public class TriggerAction extends Trigger {
         VALUE(0x002, null), // Use value
         TARGET(0x004, null), // Use flag
         EQUAL(0x008, "="),
-        PLUS(0x010, "+"),
-        MINUS(0x020, "-");
+        PLUS(0x010, "+="),
+        MINUS(0x020, "-=");
 
         private FlagTargetValueActionType(int flagValue, String description) {
             this.flagValue = flagValue;
@@ -184,12 +177,7 @@ public class TriggerAction extends Trigger {
         private final int flagValue;
         private final String description;
     }
-    private short actionTargetId; // For creatures, creature ID; create hero party, hero party ID; for flags, flag # + 1
-    private short playerId; // For flags, this has a special meaning
-    private short creatureLevel;
-    private short available; // TODO: for Make set Available = 1 or Unavailable = 0. Maybe boolean ? <-- depends, can be also 41, 42 (Create creature) etc
-    private int actionTargetValue1; // Short, at least with creatures this is x coordinate, also seems to be the ID of the action point for hero party, with flags this is the value
-    private int actionTargetValue2; // Short, at least with creatures y coordinate
+
     private ActionType actionType;
 
     public TriggerAction(KwdFile kwdFile) {
@@ -204,93 +192,88 @@ public class TriggerAction extends Trigger {
         this.actionType = actionType;
     }
 
-    /**
-     * For flags, the player ID serves another purpose, it means how the flag
-     * value is processed
-     *
-     * @return the action to peform on this flag with the value
-     */
-    private EnumSet<FlagTargetValueActionType> getFlagTargetValueActionTypes() {
-        return ConversionUtils.parseFlagValue(playerId, FlagTargetValueActionType.class);
-    }
-
     @Override
     public String toString() {
         String result = actionType.toString();
 
         switch(actionType) {
             case CREATE_CREATURE:
-                result += " " + kwdFile.getCreature(actionTargetId) + " [" + creatureLevel + "] [" + (actionTargetValue1 + 1) + ","
-                    + (actionTargetValue2 + 1) + "] [" + kwdFile.getPlayer(playerId) + "]";
+                result += " " + kwdFile.getCreature((Short) getUserData("creatureId"))
+                        + " [" + getUserData("level") + "] [" + ((Short) getUserData("posX") + 1) + ","
+                        + ((Short) getUserData("posY") + 1) + "] [" + kwdFile.getPlayer((Short) getUserData("playerId")) + "]";
                 break;
             case CREATE_HERO_PARTY:
-                result += " " + (actionTargetId + 1) + " at AP " + creatureLevel;
+                result += " " + ((Short) getUserData("partyId") + 1) + " at AP " + getUserData("actionPointId");
                 break;
             case FLAG:
-                EnumSet<FlagTargetValueActionType> flagTargetValueActionTypes = getFlagTargetValueActionTypes();
+                EnumSet<FlagTargetValueActionType> flagType = ConversionUtils.parseFlagValue((Short) getUserData("flag"), FlagTargetValueActionType.class);
                 String operation = null;
-                for (FlagTargetValueActionType type : flagTargetValueActionTypes) {
-                    operation = type.toString(); // Not very elegant
+                for (FlagTargetValueActionType t : flagType) {
+                    operation = t.toString(); // Not very elegant
                     if (operation != null) {
                         break;
                     }
                 }
-                result += " " + (actionTargetId + 1)
-                        + " = " + (flagTargetValueActionTypes.contains(FlagTargetValueActionType.EQUAL) ? "" : actionType.toString()
-                        + " " + (actionTargetId + 1) + " " + operation + " ")
-                        + (flagTargetValueActionTypes.contains(FlagTargetValueActionType.VALUE) ? actionTargetValue1 : actionType.toString()
-                        + " " + (actionTargetValue1 + 1));
+                result += " " + ((Short) getUserData("flagId") + 1) + " " + operation + " "
+                        + (flagType.contains(FlagTargetValueActionType.VALUE) ? (Integer) getUserData("value") : actionType
+                        + " " + ((Integer) getUserData("value") + 1));
                 break;
             case INITIALIZE_TIMER:
-                result += " " + (actionTargetId + 1);
+                result += " " + ((Short) getUserData("timerId") + 1);
                 break;
             case SHOW_HEALTH_FLOWER:
-                result += " [ " + actionTargetId + " Seconds ]";
+                result += " [ " + getUserData("value") + " Seconds ]";
                 break;
             case SET_SPEED:
-                result += " [ " + (actionTargetId == 0 ? "Walk" : "Run") + " ]";
+                result += " [ " + ((Short) getUserData("available") == 0 ? "Walk" : "Run") + " ]";
                 break;
             case SET_FIGHT_FLAG:
-                result += " [ " + (actionTargetId == 0 ? "Dont`t Fight" : "Fight") + " ]";
+                result += " [ " + ((Short) getUserData("available") == 0 ? "Dont`t Fight" : "Fight") + " ]";
+                break;
+            case SET_PORTAL_STATUS:
+                result += " [ " + ((Short) getUserData("available") == 0 ? "Closed" : "Open") + " ]";
                 break;
             case SET_OBJECTIVE:
-                result += " [ " + Creature.JobType.fromValue(playerId) + " [ " + kwdFile.getPlayer((short) actionTargetId).getName() + " ]]";
+                result += " [ " + ConversionUtils.parseEnum((Short) getUserData("type"), Creature.JobType.class)
+                        + " [ " + kwdFile.getPlayer((Short) getUserData("playerId")).getName() + " ]]";
                 break;
             case CREATE_PORTAL_GEM:
-                result += " [ 1, 1 ]";
+                result += " [ " + ((Integer) getUserData("posX") + 1) + ", " + ((Integer) getUserData("posY") + 1) + " ]";
                 break;
             case DISPLAY_OBJECTIVE:
             case INFORMATION:
             case SET_MUSIC_LEVEL:
-                result += " " + actionTargetId;
+                result += " " + getUserData("value");
                 break;
             case TOGGLE_EFFECT_GENERATOR:
-                result += " " + (actionTargetId + 1) + " [ " + (playerId == 1 ? "On" : "Off") + " ]";
+                result += " " + ((Short) getUserData("generatorId") + 1)
+                        + " [ " + ((Short) getUserData("available") == 0 ? "Off" : "On") + " ]";
                 break;
             case DISPLAY_SLAB_OWNER:
-                result += " [ " + (actionTargetId == 0 ? "Off" : "On") + " ] Of [  , 1635980 ]";
+                result += " [ " + ((Short) getUserData("available") == 0 ? "Off" : "On") + " ] Of [  , 1635980 ]";
                 break;
             case SET_TIME_LIMIT:
-                result += ": " + actionTargetId + " Seconds";
+                result += ": " + getUserData("value") + " Seconds";
                 break;
             case MAKE:
-                MakeType type = MakeType.fromValue(playerId);
+                MakeType type = ConversionUtils.parseEnum((Short) getUserData("type"), MakeType.class);
                 result += " " + type;
                 switch (type) {
                     case DOOR:
-                        result += " [" + kwdFile.getDoorById(creatureLevel).getName() + "]";
+                        result += " [" + kwdFile.getDoorById((Short) getUserData("targetId")).getName() + "]";
                         break;
                     case ROOM:
-                        result += " [" + kwdFile.getRoomById(creatureLevel).getName() + "]";
+                        result += " [" + kwdFile.getRoomById((Short) getUserData("targetId")).getName() + "]";
                         break;
                     case TRAP:
-                        result += " [" + kwdFile.getTrapById(creatureLevel).getName() + "]";
+                        result += " [" + kwdFile.getTrapById((Short) getUserData("targetId")).getName() + "]";
                         break;
                     default:
-                        result += " [" + kwdFile.getKeeperSpellById(creatureLevel).getName() + "]";
+                        result += " [" + kwdFile.getKeeperSpellById((Short) getUserData("targetId")).getName() + "]";
                         break;
                 }
-                result += " " + (available == 1 ? "Available" : "Unavailable") + " To " + kwdFile.getPlayer((short) actionTargetId).getName();
+                result += " " + ((Short) getUserData("available") == 0 ? "Unavailable" : "Available")
+                        + " To " + kwdFile.getPlayer((Short) getUserData("playerId")).getName();
                 break;
         }
 

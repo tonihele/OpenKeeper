@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.state.trigger;
+package toniarts.openkeeper.game.trigger;
 
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;

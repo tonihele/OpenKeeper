@@ -2203,8 +2203,8 @@ public final class KwdFile {
                         case AP_SLAP_TYPES:
                             ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
                             trigger.setUserData("playerId", (short) file.readUnsignedByte());
-                            trigger.setUserData("targetId", (short) file.readUnsignedByte()); // terrainId
-                            trigger.setUserData("targetType", (short) file.readUnsignedByte()); // 0 = None
+                            trigger.setUserData("terrainId", (short) file.readUnsignedByte());
+                            ConversionUtils.checkNull(file, 1); // file.skipBytes(1); // 0 = None
                             trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
                             break;
 
@@ -2214,8 +2214,9 @@ public final class KwdFile {
                         case AP_CLAIM_ALL_OF:
                             ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
                             trigger.setUserData("playerId", (short) file.readUnsignedByte());
-                            trigger.setUserData("targetId", (short) file.readUnsignedByte()); // 0 = None
-                            trigger.setUserData("targetType", (short) file.readUnsignedByte()); // 0 = None
+                            ConversionUtils.checkNull(file, 2); // file.skipBytes(2);
+                            // trigger.setUserData("targetId", (short) file.readUnsignedByte()); // 0 = None
+                            // trigger.setUserData("targetType", (short) file.readUnsignedByte()); // 0 = None
                             trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
                             break;
 
@@ -2292,7 +2293,8 @@ public final class KwdFile {
                         case PLAYER_CREATURES_GROUPED:
                         case PLAYER_CREATURES_DYING:
                             ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("targetId", (short) file.readUnsignedByte()); // = 0
+                            ConversionUtils.checkNull(file, 1); // file.skipBytes(1);
+                            // trigger.setUserData("targetId", (short) file.readUnsignedByte()); // = 0
                             trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
                             trigger.setUserData("playerId", (short) file.readUnsignedByte());
                             trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));

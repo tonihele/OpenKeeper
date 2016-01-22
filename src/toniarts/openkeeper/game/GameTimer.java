@@ -50,7 +50,7 @@ public final class GameTimer {
     public float getTime() {
         // FIXME
         if (active) {
-            time += 0.2f;
+            time += 0.01f;
         }
         return time;
     }
