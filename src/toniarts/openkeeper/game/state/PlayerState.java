@@ -26,6 +26,7 @@ import com.jme3.asset.TextureKey;
 import com.jme3.audio.AudioNode;
 import com.jme3.font.Rectangle;
 import com.jme3.input.InputManager;
+import com.jme3.math.FastMath;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.texture.Texture;
@@ -258,8 +259,16 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         String file = String.format("Sounds/speech_%s/lvlspe%02d.mp2", gameState.getLevel().toLowerCase(), id);
                         AudioNode speech = new AudioNode(assetManager, file, false);
                         speech.setLooping(false);
-                        speech.setPositional(true);
+                        speech.setDirectional(false);
+                        speech.setPositional(false);
                         speech.play();
+                    }
+
+                    @Override
+                    public void onRotateAroundActionPoint(Thing.ActionPoint point, boolean relative, int angle, int time) {
+                        PlayerCameraState ps = stateManager.getState(PlayerCameraState.class);
+                        ps.setCameraLookAt(point);
+                        ps.addRotation(angle * FastMath.DEG_TO_RAD, time);
                     }
                 };
                 stateManager.attach(ts);

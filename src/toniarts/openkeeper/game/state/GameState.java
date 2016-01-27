@@ -68,6 +68,7 @@ public class GameState extends AbstractAppState {
     private static int gameScore = 0;
     private static boolean isTransition = false;
     private static float gameTime = 0;
+    private static Float timeLimit = null;
     /**
      * Single use game states
      *
@@ -190,6 +191,10 @@ public class GameState extends AbstractAppState {
 
         gameTime += tpf;
 
+        if (timeLimit != null && timeLimit > 0) {
+            timeLimit -= tpf;
+        }
+
         super.update(tpf);
     }
 
@@ -234,11 +239,23 @@ public class GameState extends AbstractAppState {
         return gameScore;
     }
 
+    public static void setGameScore(int gameScore) {
+        GameState.gameScore = gameScore;
+    }
+
     public static float getGameTime() {
         return gameTime;
     }
 
     public String getLevel() {
         return level;
+    }
+
+    public static Float getTimeLimit() {
+        return timeLimit;
+    }
+
+    public static void setTimeLimit(float timeLimit) {
+        GameState.timeLimit = timeLimit;
     }
 }
