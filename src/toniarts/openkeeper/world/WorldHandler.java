@@ -123,7 +123,11 @@ public abstract class WorldHandler {
      * @return is the tile selected
      */
     public boolean isSelected(int x, int y) {
-        return mapLoader.getTile(x, y).isSelected();
+        TileData tile = mapLoader.getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
+        return tile.isSelected();
     }
 
     /**
@@ -135,6 +139,9 @@ public abstract class WorldHandler {
      */
     public boolean isTaggable(int x, int y) {
         TileData tile = mapLoader.getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         return terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE);
     }
@@ -150,6 +157,10 @@ public abstract class WorldHandler {
      */
     public boolean isBuildable(int x, int y, Player player, Room room) {
         TileData tile = mapLoader.getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
+
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
 
         // Check that this is not already a room

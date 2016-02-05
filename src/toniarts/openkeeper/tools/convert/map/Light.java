@@ -39,6 +39,7 @@ public class Light {
      */
     public enum LightFlag implements IFlagEnum {
 
+        UNKNOWN(0x0001),  // FIXME unknown flag
         FLICKER(0x0002),
         PULSE(0x0004),
         PLAYER_COLOURED(0x0080),

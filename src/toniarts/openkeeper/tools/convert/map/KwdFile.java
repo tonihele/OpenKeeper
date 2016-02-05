@@ -644,6 +644,13 @@ public final class KwdFile {
         // And alphas and images probably share the same attributes
         ResourceType resourceType = artResource.new ResourceType();
         switch (type) {
+            case 0: // skip empty type
+                break;
+
+            case 8: // FIXME nothing todo ?!
+                logger.log(Level.WARNING, "Skip artResource type {0}", type);
+                break;
+
             case 1:
             case 2:
             case 3: { // Images of different type
@@ -681,6 +688,9 @@ public final class KwdFile {
 
 
             }
+            default:
+                logger.log(Level.WARNING, "Unknown artResource type {0}", type);
+                break;
         }
 
         // Add the common values
@@ -1146,7 +1156,9 @@ public final class KwdFile {
 
             creature.setName(ConversionUtils.bytesToString(file, 32).trim());
             // 39 ArtResources (with IMPs these are not 100% same)
-            creature.setUnknown1Resource(readArtResource(file));
+            byte[] bytes = new byte[84];
+            file.read(bytes);
+            creature.setUnknown1Resource(bytes);  // all 0: Maiden Of The Nest, Prince Balder, Horny. Other the same
             creature.setAnimWalkResource(readArtResource(file));
             creature.setAnimRunResource(readArtResource(file));
             creature.setAnimDraggedPoseResource(readArtResource(file));
@@ -1363,7 +1375,7 @@ public final class KwdFile {
             creature.setFirstPersonFilterResource(readArtResource(file));
             creature.setUnkfcb(ConversionUtils.readUnsignedShort(file));
             creature.setUnk4(ConversionUtils.readUnsignedInteger(file));
-            creature.setRef3(readArtResource(file));
+            creature.setDrunkIdle(readArtResource(file));
             creature.setSpecial1Swipe(ConversionUtils.parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
             creature.setSpecial2Swipe(ConversionUtils.parseEnum(file.readUnsignedByte(), Creature.Swipe.class));
             creature.setFirstPersonMeleeResource(readArtResource(file));
@@ -2053,18 +2065,18 @@ public final class KwdFile {
                     ((Thing.Camera) thing).setX18(new Vector3f(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT,
                             ConversionUtils.readInteger(file) / ConversionUtils.FLOAT,
                             ConversionUtils.readInteger(file) / ConversionUtils.FLOAT));
-                    ((Thing.Camera) thing).setX24(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing.Camera) thing).setX28(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing.Camera) thing).setX2c(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing.Camera) thing).setHeightDefault(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setFog(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setFogMin(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setFogMax(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setHeight(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
                     ((Thing.Camera) thing).setHeightMin(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
                     ((Thing.Camera) thing).setHeightMax(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing.Camera) thing).setX3c(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing.Camera) thing).setX40(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
-                    ((Thing.Camera) thing).setNear(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setFov(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setFovMin(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
+                    ((Thing.Camera) thing).setFovMax(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
                     ((Thing.Camera) thing).setFlags(ConversionUtils.parseFlagValue(ConversionUtils.readInteger(file),
                             Thing.Camera.CameraFlag.class));
-                    ((Thing.Camera) thing).setX4c(ConversionUtils.readUnsignedShort(file));
+                    ((Thing.Camera) thing).setAngleYaw(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Camera) thing).setAngleRoll(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Camera) thing).setAnglePitch(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Camera) thing).setId((short) ConversionUtils.readUnsignedShort(file));
@@ -2727,9 +2739,10 @@ public final class KwdFile {
                     ((Variable.CreatureFirstPerson) variable).setLevel(ConversionUtils.readInteger(file));
                     break;
 
-                case Variable.UNKNOWN_17: // FIXME
-                case Variable.UNKNOWN_66: // FIXME
-                case Variable.UNKNOWN_0: // FIXME
+                case Variable.UNKNOWN_17: // FIXME unknown value
+                case Variable.UNKNOWN_66: // FIXME unknown value
+                case Variable.UNKNOWN_0: // FIXME unknownn value
+                case Variable.UNKNOWN_77: // FIXME unknownn value
                     variable = new Variable.Unknown();
                     ((Variable.Unknown) variable).setVariableId(id);
                     ((Variable.Unknown) variable).setValue(ConversionUtils.readInteger(file));

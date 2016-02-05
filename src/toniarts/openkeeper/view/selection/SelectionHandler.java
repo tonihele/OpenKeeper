@@ -5,6 +5,7 @@ import com.jme3.material.RenderState.FaceCullMode;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.Camera;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial.CullHint;
@@ -36,7 +37,7 @@ public abstract class SelectionHandler {
     }
     private Main app;
     private final PlayerInteractionState state;
-    private float appScaled = MapLoader.TILE_WIDTH;
+    private final float appScaled = MapLoader.TILE_WIDTH;
     private SelectionColorIndicator selectionColor = SelectionColorIndicator.BLUE;
 
     /* Visuals for Selection */
@@ -61,11 +62,13 @@ public abstract class SelectionHandler {
      * @return The position of the mouse
      */
     public Vector2f getRoundedMousePos() {
-        Vector3f tmp = app.getCamera().getWorldCoordinates(state.mousePosition, 0f).clone();
-        Vector3f dir = app.getCamera().getWorldCoordinates(state.mousePosition, 1f).subtractLocal(tmp).normalizeLocal();
-        dir.multLocal(-app.getCamera().getLocation().y / dir.y).addLocal(app.getCamera().getLocation());
+        Camera cam = app.getCamera();
+        Vector3f pos = cam.getLocation();
+        Vector3f tmp = cam.getWorldCoordinates(state.mousePosition, 0f).clone();
+        Vector3f dir = cam.getWorldCoordinates(state.mousePosition, 1f).subtractLocal(tmp).normalizeLocal();
+        dir.multLocal((MapLoader.TILE_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
 
-        Vector2f ret = new Vector2f((int) (dir.getX() + appScaled * 1.5), (int) (dir.getZ() + appScaled * 1.5));
+        Vector2f ret = new Vector2f(Math.round(dir.getX() + appScaled / 2), Math.round(dir.getZ() + appScaled / 2));
         ret.multLocal(appScaled);
 
         return ret;
@@ -107,7 +110,7 @@ public abstract class SelectionHandler {
             float dy = selectionArea.getDeltaY();
 
             Vector2f position = selectionArea.getCenter();
-            wireBoxGeo.setLocalTranslation(position.x - 0.5f, appScaled / 2, position.y - 0.5f);
+            wireBoxGeo.setLocalTranslation(position.x - appScaled / 2, appScaled / 2, position.y - appScaled / 2);
 
             wireBox.updatePositions(appScaled / 2 * dx + 0.01f, appScaled / 2 + 0.01f, appScaled / 2 * dy + 0.01f);
 
