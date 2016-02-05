@@ -70,8 +70,8 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         this(assetManager, cam, MapLoader.getCameraPositionOnMapPoint(start.x, start.y), cameraSweepFile, scene, stateManager);
     }
 
-    public Cinematic(final Main app, String cameraSweepFile) {
-        this(app.getAssetManager(), app.getCamera(), app.getCamera().getLocation().clone(), cameraSweepFile, app.getRootNode(), app.getStateManager());
+    public Cinematic(final Main app, String cameraSweepFile, int x, int y) {
+        this(app.getAssetManager(), app.getCamera(), MapLoader.getCameraPositionOnMapPoint(x, y), cameraSweepFile, app.getRootNode(), app.getStateManager());
     }
 
     /**

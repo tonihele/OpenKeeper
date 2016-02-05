@@ -235,11 +235,11 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
                     @Override
                     public void onCameraFollow(int path, Thing.ActionPoint point) {
-                        // TODO hide cursor, disable control
+                        // TODO disable control
                         //this.setEnabled(false);
                         PlayerCameraState ps = stateManager.getState(PlayerCameraState.class);
                         ps.setCameraLocation(point);
-                        ps.doTransition(path);
+                        ps.doTransition(path, point);
                     }
 
                     @Override
@@ -258,10 +258,12 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                     public void onPlaySpeech(int id) {
                         String file = String.format("Sounds/speech_%s/lvlspe%02d.mp2", gameState.getLevel().toLowerCase(), id);
                         AudioNode speech = new AudioNode(assetManager, file, false);
+                        speech.setName("speech");
                         speech.setLooping(false);
                         speech.setDirectional(false);
                         speech.setPositional(false);
                         speech.play();
+                        rootNode.attachChild(speech);
                     }
 
                     @Override

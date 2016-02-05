@@ -151,14 +151,15 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         app.getCamera().setLocation(location.subtract(dir));
     }
 
-    public void doTransition(int sweepFileId) {
+    public void doTransition(int sweepFileId, final Thing.ActionPoint point) {
         String sweepFile = "EnginePath" + sweepFileId;
         // Do cinematic transition
-        Cinematic c = new Cinematic(app, sweepFile);
+        Cinematic c = new Cinematic(app, sweepFile, point.getStartX(), point.getStartY());
         c.addListener(new CinematicEventListener() {
             @Override
             public void onPlay(CinematicEvent cinematic) {
                 GameState.setTransition(true);
+                inputManager.setCursorVisible(false);
             }
 
             @Override
@@ -168,6 +169,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
             @Override
             public void onStop(CinematicEvent cinematic) {
                 GameState.setTransition(false);
+                inputManager.setCursorVisible(true);
             }
         });
         stateManager.attach(c);
