@@ -680,14 +680,16 @@ public abstract class AssetsConverter {
 
                         // Convert the rotation matrix to quatenion
                         Matrix3f mat = new Matrix3f();
-                        Vector3f direction = convertVector(kcsEntry.getDirection());
-                        Vector3f left = convertVector(kcsEntry.getLeft());
-                        Vector3f up = convertVector(kcsEntry.getUp());
+                        Vector3f direction = ConversionUtils.convertVector(kcsEntry.getDirection());
+                        Vector3f left = ConversionUtils.convertVector(kcsEntry.getLeft());
+                        Vector3f up = ConversionUtils.convertVector(kcsEntry.getUp());
                         mat.setColumn(0, new Vector3f(-direction.x, direction.y, direction.z));
                         mat.setColumn(1, new Vector3f(left.x, -left.y, -left.z));
                         mat.setColumn(2, new Vector3f(-up.x, up.y, up.z));
 
-                        entries.add(new CameraSweepDataEntry(convertVector(kcsEntry.getPosition()), new Quaternion().fromRotationMatrix(mat), FastMath.RAD_TO_DEG * kcsEntry.getFov(), kcsEntry.getNear()));
+                        entries.add(new CameraSweepDataEntry(ConversionUtils.convertVector(kcsEntry.getPosition()),
+                                new Quaternion().fromRotationMatrix(mat), FastMath.RAD_TO_DEG * kcsEntry.getFov(),
+                                kcsEntry.getNear()));
                     }
                     CameraSweepData cameraSweepData = new CameraSweepData(entries);
 
@@ -882,16 +884,5 @@ public abstract class AssetsConverter {
         // Create the thumbnail & save it
         BufferedImage thumbnail = MapThumbnailGenerator.generateMap(kwd, 144, 144, false);
         ImageIO.write(thumbnail, "png", new File(destination + ConversionUtils.stripFileName(kwd.getGameLevel().getName()) + ".png"));
-    }
-
-    /**
-     * Converts JAVAX 3f vector to JME vector (also converts the coordinate
-     * system)
-     *
-     * @param v vector
-     * @return JME vector
-     */
-    private static Vector3f convertVector(javax.vecmath.Vector3f v) {
-        return new Vector3f(v.x, -v.z, v.y);
     }
 }

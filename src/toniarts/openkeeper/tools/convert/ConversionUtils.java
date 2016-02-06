@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.tools.convert;
 
+import com.jme3.math.Vector3f;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -279,6 +280,16 @@ public class ConversionUtils {
         }
 
         return ConversionUtils.bytesToStringUtf16(toByteArray(result));
+    }
+
+    /**
+     * Converts JAVAX 3f vector to JME vector (also converts the coordinate system)
+     *
+     * @param v vector
+     * @return JME vector
+     */
+    public static Vector3f convertVector(javax.vecmath.Vector3f v) {
+        return new Vector3f(v.x, -v.z, v.y);
     }
 
     /**

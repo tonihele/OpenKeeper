@@ -68,7 +68,7 @@ public class GameLevel {
 
     public enum LevFlag implements IFlagEnum {
 
-        //UNKNOWN(0x0004), // unknown; always on in maps
+        UNKNOWN(0x0004), // FIXME unknown flag. Always on in maps
         ALWAYS_IMPRISON_ENEMIES(0x0008), // Always imprison enemies
         ONE_SHOT_HORNY(0x0010), // Set if one shot Horny spell is available
         IS_SECRET_LEVEL(0x0020), // The map is Secret level
@@ -134,6 +134,7 @@ public class GameLevel {
         MY_PET_DUNGEON_4(37),
         MY_PET_DUNGEON_5(38),
         MY_PET_DUNGEON_6(39),
+        UNKNOWN_40(40), // FIXME unknown flag
         MULTI_PLAYER_2(41),
         MULTI_PLAYER_3(42),
         MULTI_PLAYER_4(43),

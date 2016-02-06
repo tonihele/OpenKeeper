@@ -138,9 +138,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      *
      * @param x x coordinate
      * @param y y coordinate
-     * @return the tile data
+     * @return the tile data or null if uncorrect x or|and y
      */
     public TileData getTile(int x, int y) {
+        if (x < 0 || y < 0 || x >= mapData.getWidth() || y >= mapData.getHeight()) {
+            return null;
+        }
         return mapData.getTile(x, y);
     }
 

@@ -102,11 +102,11 @@ public class Settings {
         //RIGHT(Integer.class, null, KeyInput.KEY_RIGHT, SettingCategory.CONTROLS, 107),
         //ROTATE(Integer.class, null, KeyInput.KEY_LCONTROL, SettingCategory.CONTROLS, 120),
 
-        Speed_Scroll(Integer.class, null, KeyInput.KEY_LSHIFT, SettingCategory.CONTROLS, 121),
+        SPEED_SCROLL(Integer.class, null, KeyInput.KEY_LSHIFT, SettingCategory.CONTROLS, 121),
         //ROTATE_VIEW_LEFT(Integer.class, null, KeyInput.KEY_DELETE, SettingCategory.CONTROLS, 122);
         //ROTATE_VIEW_RIGHT(Integer.class, null, KeyInput.KEY_PGDN, SettingCategory.CONTROLS, 123);
         PAUSE_OR_OPTIONS(Integer.class, null, KeyInput.KEY_ESCAPE, SettingCategory.CONTROLS, 1727),
-        Screen_Shot(Integer.class, null, KeyInput.KEY_SYSRQ, SettingCategory.CONTROLS, 1728),
+        SCREEN_SHOT(Integer.class, null, KeyInput.KEY_SYSRQ, SettingCategory.CONTROLS, 1728),
         PICKUP_OBJECTS_ONLY(Integer.class, null, KeyInput.KEY_PGUP, SettingCategory.CONTROLS, 1744),
         SEND_MESSAGE_TO_All_PLAYERS(Integer.class, null, KeyInput.KEY_TAB, SettingCategory.CONTROLS, 2831),
         SEND_MESSAGE_TO_Allies(Integer.class, KeyInput.KEY_LMENU, KeyInput.KEY_A, SettingCategory.CONTROLS, 2830),
@@ -118,7 +118,7 @@ public class Settings {
         INCREASE_AMBIENT_LIGHT(Integer.class, null, KeyInput.KEY_EQUALS, SettingCategory.CONTROLS, 1749),
         DECREASE_AMBIENT_LIGHT(Integer.class, null, KeyInput.KEY_MINUS, SettingCategory.CONTROLS, 1750),
         ISOMETRIC_CAMERA(Integer.class, null, KeyInput.KEY_F1, SettingCategory.CONTROLS, 1741),
-        Top_Down_CAMERA(Integer.class, null, KeyInput.KEY_F2, SettingCategory.CONTROLS, 1742),
+        TOP_DOWN_CAMERA(Integer.class, null, KeyInput.KEY_F2, SettingCategory.CONTROLS, 1742),
         OBLIQUE_CAMERA(Integer.class, null, KeyInput.KEY_F3, SettingCategory.CONTROLS, 1743),
         USER_CAMERA_1(Integer.class, null, KeyInput.KEY_F4, SettingCategory.CONTROLS, 1486),
         USER_CAMERA_2(Integer.class, null, KeyInput.KEY_F5, SettingCategory.CONTROLS, 1487),
