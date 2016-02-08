@@ -238,7 +238,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         // TODO disable control
                         //this.setEnabled(false);
                         PlayerCameraState ps = stateManager.getState(PlayerCameraState.class);
-                        ps.setCameraLocation(point);
                         ps.doTransition(path, point);
                     }
 

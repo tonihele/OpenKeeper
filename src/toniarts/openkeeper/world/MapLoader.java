@@ -133,6 +133,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         return map;
     }
 
+    public MapData getMapData() {
+        return mapData;
+    }
+
     /**
      * Get the tile data at x & y
      *
