@@ -17,16 +17,20 @@
 package toniarts.openkeeper.game.state;
 
 import com.jme3.app.state.AbstractAppState;
+import com.jme3.math.Vector2f;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
+import toniarts.openkeeper.tools.convert.map.TriggerAction.FlagTargetValueActionType;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 /**
@@ -56,19 +60,19 @@ public abstract class TriggerState extends AbstractAppState {
     @Override
     public void update(float tpf) {
         TriggerGenericData next = null;
-        
+
         if (trigger.getQuantity() != 0) {
             ArrayList<Integer> remove = new ArrayList<>();
             System.out.println(String.format("Trigger Generic: %s at %s", trigger, GameState.getGameTime()));
             trigger.subRepeatTimes();
 
-            for (Map.Entry<Integer, TriggerData> entry : trigger.getChildren().entrySet()) {                
+            for (Map.Entry<Integer, TriggerData> entry : trigger.getChildren().entrySet()) {
                 TriggerData value = entry.getValue();
 
                 if (value instanceof TriggerGenericData) {
 
                     if (isActive((TriggerGenericData) value) && next == null && !((TriggerGenericData) trigger).isCycleEnd()) {
-                        next = (TriggerGenericData) value;                        
+                        next = (TriggerGenericData) value;
                     } else if (trigger.getParent() != null && next == null) {
                         next = trigger.getParent();
                     }
@@ -86,7 +90,7 @@ public abstract class TriggerState extends AbstractAppState {
             for (Integer id : remove) {
                 trigger.detachChildId(id);
             }
-        } 
+        }
 
         if (trigger.getQuantity() == 0 && trigger.getParent() != null) {
             if (next == null) {
@@ -104,15 +108,28 @@ public abstract class TriggerState extends AbstractAppState {
     private boolean isActive(TriggerGenericData trigger) {
         TriggerGeneric.TargetType targetType = trigger.getType();
         float target;
+        float value;
         boolean result = false;
 
         switch (targetType) {
             case FLAG:
                 target = GameState.getFlag((Short) trigger.getUserData("targetId"));
+                if ((Short) trigger.getUserData("flag") == 1) {
+                    value = (Integer) trigger.getUserData("value");
+                } else {
+                    value = GameState.getFlag((Short) trigger.getUserData("flagId"));
+                }
                 break;
+
             case TIMER:
                 target = GameState.getTimer((Short) trigger.getUserData("targetId")).getTime();
+                if ((Short) trigger.getUserData("flag") == 1) {
+                    value = (Integer) trigger.getUserData("value");
+                } else {
+                    value = GameState.getTimer((Short) trigger.getUserData("timerId")).getTime();
+                }
                 break;
+
             case CREATURE_CREATED:
                 return false;
             case CREATURE_KILLED:
@@ -211,6 +228,7 @@ public abstract class TriggerState extends AbstractAppState {
                 return false;
             case LEVEL_TIME:
                 target = GameState.getGameTime();
+                value = (Integer) trigger.getUserData("value");
                 break;
             case LEVEL_CREATURES:
                 return false;
@@ -251,7 +269,7 @@ public abstract class TriggerState extends AbstractAppState {
 
         TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
         if (comparisonType != null) {
-            result = compare(target, comparisonType, (int) trigger.getUserData("value"));
+            result = compare(target, comparisonType, value);
         }
 
         return result;
@@ -267,14 +285,46 @@ public abstract class TriggerState extends AbstractAppState {
             case DISPLAY_OBJECTIVE:
                 break;
             case MAKE:
+                TriggerAction.MakeType flag = ConversionUtils.parseEnum((Short) trigger.getUserData("type"), TriggerAction.MakeType.class);
+                boolean available = (Short) trigger.getUserData("available") != 0;
+                short playerId = (Short) trigger.getUserData("playerId");
+
+                switch (flag) {
+                    case CREATURE:
+                        break;
+                    case DOOR:
+                        break;
+                    case KEEPER_SPELL:
+                        break;
+                    case ROOM:
+                        break;
+                    case TRAP:
+                        break;
+                }
                 break;
+
             case FLAG:
-                // TODO make not only value and gameScore
-                GameState.setFlag((Short) trigger.getUserData("flagId"), (int) trigger.getUserData("value"));
+                short flagId = (Short) trigger.getUserData("flagId");
+                if (flagId == 128) {
+                    EnumSet<FlagTargetValueActionType> flagType = ConversionUtils.parseFlagValue((Short) trigger.getUserData("flag"), FlagTargetValueActionType.class);
+                    if (flagType.contains(FlagTargetValueActionType.EQUAL)) {
+                        GameState.setGameScore((int) trigger.getUserData("value"));
+                    } else if (flagType.contains(FlagTargetValueActionType.PLUS)) {
+                        GameState.setGameScore(GameState.getGameScore() + (int) trigger.getUserData("value"));
+                    } else if (flagType.contains(FlagTargetValueActionType.MINUS)) {
+                        GameState.setGameScore(GameState.getGameScore() - (int) trigger.getUserData("value"));
+                    }
+                } else {
+                    GameState.setFlag(flagId, (int) trigger.getUserData("value"));
+                }
                 break;
             case INITIALIZE_TIMER:
-                // TODO make time limit
-                GameState.getTimer((Short) trigger.getUserData("timerId")).setActive(true);
+                short timerId = (Short) trigger.getUserData("timerId");
+                if (timerId == 16) {
+                    GameState.setTimeLimit((int) trigger.getUserData("value"));
+                } else {
+                    GameState.getTimer((Short) trigger.getUserData("timerId")).setActive(true);
+                }
                 break;
             case FLASH_BUTTON:
                 break;
@@ -300,18 +350,32 @@ public abstract class TriggerState extends AbstractAppState {
             case ATTACH_PORTAL_GEM:
                 break;
             case ALTER_TERRAIN_TYPE:
+                Vector2f pos = new Vector2f((int) trigger.getUserData("posX"), (int) trigger.getUserData("posY"));
+                short terrainId = (Short) trigger.getUserData("terrainId");
+                playerId = (Short) trigger.getUserData("playerId");
                 break;
+
             case PLAY_SPEECH:
                 onPlaySpeech((int) trigger.getUserData("speechId"));
                 break;
+
             case DISPLAY_TEXT_MESSAGE:
+                int textId = (int) trigger.getUserData("textId");
                 break;
+
             case ZOOM_TO_ACTION_POINT:
                 ap = getActionPoint((Short) trigger.getUserData("targetId"));
                 onZoomToActionPoint(ap);
                 break;
+
             case ROTATE_AROUND_ACTION_POINT:
+                ap = getActionPoint((Short) trigger.getUserData("targetId"));
+                boolean relative = (Short) trigger.getUserData("available") == 0;
+                int angle = (Integer) trigger.getUserData("angle");
+                int time = (Integer) trigger.getUserData("time");
+                onRotateAroundActionPoint(ap, relative, angle, time);
                 break;
+
             case GENERATE_CREATURE:
                 break;
             case SHOW_HEALTH_FLOWER:
@@ -320,6 +384,7 @@ public abstract class TriggerState extends AbstractAppState {
                 ap = getActionPoint((Short) trigger.getUserData("actionPointId"));
                 onCameraFollow((Short) trigger.getUserData("pathId"), ap);
                 break;
+
             case COLLAPSE_HERO_GATE:
                 break;
             case SET_PORTAL_STATUS:
@@ -327,6 +392,7 @@ public abstract class TriggerState extends AbstractAppState {
             case SET_WIDESCREEN_MODE:
                 onWideScreenMode((Short) trigger.getUserData("available") != 0);
                 break;
+
             case MAKE_OBJECTIVE:
                 break;
             case ZOOM_TO:
@@ -396,6 +462,8 @@ public abstract class TriggerState extends AbstractAppState {
     public abstract void onFlashActionPoint(Thing.ActionPoint point, boolean state);
 
     public abstract void onZoomToActionPoint(Thing.ActionPoint point);
+
+    public abstract void onRotateAroundActionPoint(Thing.ActionPoint point, boolean relative, int angle, int time);
 
     public abstract void onPlaySpeech(int id);
 }

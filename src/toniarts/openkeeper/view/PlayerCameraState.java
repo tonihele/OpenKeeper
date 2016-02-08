@@ -60,6 +60,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     private final Player player;
     private Vector3f startLocation;
     private Integer specialKey = null;
+    private float timer = 0;
+    private float rotate = 0;
     private static final Logger logger = Logger.getLogger(PlayerCameraState.class.getName());
     // Extra keys
     private static final String CAMERA_MOUSE_ZOOM_IN = "CAMERA_MOUSE_ZOOM_IN";
@@ -122,6 +124,11 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         }
     }
 
+    public void addRotation(float angle, int time) {
+        timer = time;
+        rotate = angle;
+    }
+
     /**
      * Load the initial main menu camera position
      */
@@ -144,14 +151,15 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         app.getCamera().setLocation(location.subtract(dir));
     }
 
-    public void doTransition(int sweepFileId) {
+    public void doTransition(int sweepFileId, final Thing.ActionPoint point) {
         String sweepFile = "EnginePath" + sweepFileId;
         // Do cinematic transition
-        Cinematic c = new Cinematic(app, sweepFile);
+        Cinematic c = new Cinematic(app, sweepFile, point.getStartX(), point.getStartY());
         c.addListener(new CinematicEventListener() {
             @Override
             public void onPlay(CinematicEvent cinematic) {
                 GameState.setTransition(true);
+                inputManager.setCursorVisible(false);
             }
 
             @Override
@@ -161,6 +169,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
             @Override
             public void onStop(CinematicEvent cinematic) {
                 GameState.setTransition(false);
+                inputManager.setCursorVisible(true);
             }
         });
         stateManager.attach(c);
@@ -182,6 +191,11 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         // Update audio listener position
         app.getListener().setLocation(app.getCamera().getLocation());
         app.getListener().setRotation(app.getCamera().getRotation());
+
+        if (timer > 0) {
+            timer -= tpf;
+            camera.rotateCamera(rotate * tpf);
+        }
     }
 
     private void registerInput() {
