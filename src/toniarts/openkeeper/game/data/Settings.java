@@ -145,6 +145,12 @@ public class Settings {
         QUICK_LOAD(Integer.class, KeyInput.KEY_LCONTROL, KeyInput.KEY_L, SettingCategory.CONTROLS, 1753),
         QUICK_SAVE(Integer.class, KeyInput.KEY_LCONTROL, KeyInput.KEY_S, SettingCategory.CONTROLS, 1754),
         RESTART_LEVEL(Integer.class, KeyInput.KEY_LCONTROL, KeyInput.KEY_R, SettingCategory.CONTROLS, 1269),
+        // Mouse Controls
+        MOUSE_SENSITIVITY(Float.class, 1.0f, SettingCategory.MISCELLANEOUS, 1466),
+        MOUSE_INVERT(Boolean.class, false, SettingCategory.MISCELLANEOUS, 2840),
+        // Other Controls
+        SCROLL_SPEED(Float.class, 1.0f, SettingCategory.MISCELLANEOUS, 1468),
+        GAME_SPEED(Float.class, 1.0f, SettingCategory.MISCELLANEOUS, 1469),
         // Screen recorder
         RECORDER_QUALITY(Float.class, 0.8f, SettingCategory.MISCELLANEOUS),
         RECORDER_FPS(Integer.class, 60, SettingCategory.MISCELLANEOUS),
