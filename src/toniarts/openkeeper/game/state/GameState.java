@@ -16,16 +16,11 @@
  */
 package toniarts.openkeeper.game.state;
 
+import toniarts.openkeeper.game.trigger.TriggerControl;
 import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
-import com.jme3.asset.AssetManager;
-import com.jme3.bullet.BulletAppState;
-import com.jme3.input.InputManager;
-import com.jme3.renderer.ViewPort;
-import com.jme3.scene.Node;
-import de.lessvoid.nifty.screen.Screen;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,11 +28,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
-import toniarts.openkeeper.game.PlayerManaControl;
+import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.world.WorldHandler;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  * The GAME state!
@@ -47,28 +42,21 @@ import toniarts.openkeeper.world.WorldHandler;
 public class GameState extends AbstractAppState {
 
     private Main app;
-    private Node rootNode;
-    private AssetManager assetManager;
+
     private AppStateManager stateManager;
-    private InputManager inputManager;
-    private ViewPort viewPort;
-    private Screen screen;
-    private Node worldNode;
+
     private String level;
     private KwdFile kwdFile;
-    private WorldHandler worldHandler;
-    private static final Logger logger = Logger.getLogger(GameState.class.getName());
-    private BulletAppState bulletAppState;
-    private float tick = 0;
-    private PlayerManaControl manaControl;
-    private static Map<Short, Integer> flags = new HashMap<>(127);
+    
+    private TriggerControl triggerControl = null;
+    private Map<Short, Integer> flags = new HashMap<>(127);
     // TODO What timer class we should take ?
-    private static Map<Byte, GameTimer> timers = new HashMap<>(15);
+    private Map<Byte, GameTimer> timers = new HashMap<>(15);
     private static int gameScore = 0;
     private static boolean isTransition = false;
     private static float gameTime = 0;
     private static Float timeLimit = null;
-
+    private static final Logger logger = Logger.getLogger(GameState.class.getName());
     /**
      * Single use game states
      *
@@ -89,17 +77,9 @@ public class GameState extends AbstractAppState {
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
-        super.initialize(stateManager, app);
-        this.app = (Main) app;
-        rootNode = this.app.getRootNode();
-        assetManager = this.app.getAssetManager();
-        this.stateManager = this.app.getStateManager();
-        inputManager = this.app.getInputManager();
-        viewPort = this.app.getViewPort();
 
-        // Create physics state
-        bulletAppState = new BulletAppState();
-        this.stateManager.attach(bulletAppState);
+        this.app = (Main) app;
+        this.stateManager = stateManager;
 
         // Set up the loading screen
         SingleBarLoadingState loader = new SingleBarLoadingState() {
@@ -110,21 +90,31 @@ public class GameState extends AbstractAppState {
 
                     // Load the level data
                     if (level != null) {
-                        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER.concat(level).concat(".kwd"))));
+                        kwdFile = new KwdFile(Main.getDkIIFolder(),
+                                new File(Main.getDkIIFolder() + AssetsConverter.MAPS_FOLDER + level + ".kwd"));
                     } else {
                         kwdFile.load();
                     }
-                    setProgress(0.25f);
+                    setProgress(0.1f);
 
                     // Create the actual level
-                    worldHandler = new WorldHandler(assetManager, kwdFile, bulletAppState) {
+                    WorldState worldState = new WorldState() {
                         @Override
                         protected void updateProgress(int progress, int max) {
-                            setProgress(0.25f + ((float) progress / max * 0.75f));
+                            setProgress(0.1f + ((float) progress / max * 0.7f));
                         }
                     };
-                    worldNode = worldHandler.getWorld();
-                    manaControl = new PlayerManaControl((short) 3, worldHandler);
+
+                    stateManager.attach(worldState);
+                    // attach ActionPointState
+                    stateManager.attach(new ActionPointState(false));
+                    setProgress(0.80f);
+
+                    int triggerId = kwdFile.getGameLevel().getTriggerId();
+                    if (triggerId != 0) {
+                        triggerControl = new TriggerControl(app, triggerId);
+                        setProgress(0.90f);
+                    }
 
                     setProgress(1.0f);
                 } catch (Exception e) {
@@ -136,29 +126,27 @@ public class GameState extends AbstractAppState {
 
             @Override
             public void onLoadComplete() {
-
+                GameState.super.initialize(stateManager, app);
                 // Set the processors
                 GameState.this.app.setViewProcessors();
 
-                // Attach the world
-                rootNode.attachChild(worldNode);
-
                 // Enable player state
                 stateManager.getState(PlayerState.class).setEnabled(true);
+                stateManager.getState(ActionPointState.class).setEnabled(true);
 
                 for (short i = 0; i < 128; i++) {
-                    GameState.flags.put(i, 0);
+                    flags.put(i, 0);
                 }
 
                 for (byte i = 0; i < 16; i++) {
-                    GameState.timers.put(i, new GameTimer());
+                    timers.put(i, new GameTimer());
                 }
             }
         };
         stateManager.attach(loader);
     }
-
-    @Override
+    /*
+     @Override
     public void cleanup() {
 
         // Detach our map
@@ -173,20 +161,11 @@ public class GameState extends AbstractAppState {
         super.cleanup();
     }
 
+     */
     @Override
     public void update(float tpf) {
-        tick += tpf;
-        if (tick >= 1) {
-            if (manaControl != null) {
-                manaControl.update();
-                manaControl.updateManaFromTiles();
-                manaControl.updateManaFromCreatures();
-            }
-            tick -= 1;
-        }
-        if (manaControl != null) {
-            manaControl.updateManaGet();
-            manaControl.updateManaLose();
+        if (!isEnabled() || !isInitialized()) {
+            return;
         }
 
         // Update time for AI
@@ -196,6 +175,15 @@ public class GameState extends AbstractAppState {
         if (timeLimit != null && timeLimit > 0) {
             timeLimit -= tpf;
         }
+
+        for (GameTimer timer : timers.values()) {
+            timer.update(tpf);
+        }
+
+        if (triggerControl != null) {
+            triggerControl.update(tpf);
+        }
+
 
         super.update(tpf);
     }
@@ -209,23 +197,15 @@ public class GameState extends AbstractAppState {
         return kwdFile;
     }
 
-    public WorldHandler getWorldHandler() {
-        return worldHandler;
-    }
-
-    public PlayerManaControl getPlayerManaControl() {
-        return manaControl;
-    }
-
-    public static int getFlag(int id) {
+    public int getFlag(int id) {
         return flags.get((short) id);
     }
 
-    public static void setFlag(int id, int value) {
+    public void setFlag(int id, int value) {
         flags.put((short) id, value);
     }
 
-    public static GameTimer getTimer(int id) {
+    public GameTimer getTimer(int id) {
         return timers.get((byte) id);
     }
 

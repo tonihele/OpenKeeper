@@ -14,59 +14,93 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game;
+package toniarts.openkeeper.game.player;
 
+import com.jme3.app.state.AppStateManager;
+import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.ViewPort;
+import com.jme3.scene.control.AbstractControl;
 import de.lessvoid.nifty.controls.Label;
 import java.util.HashMap;
 import java.util.Map;
+import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
-import toniarts.openkeeper.world.WorldHandler;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  * Ingame player information
  * TODO: use level Variables to get mana lose and gain information
  * @author ArchDemon
  */
-public class PlayerManaControl {
+public class PlayerManaControl extends AbstractControl {
 
     public enum Type {
         CURRENT, GET, LOSE;
     }
-
+    private float tick = 0;
     private short playerId;
-    private WorldHandler worldHandler;
+    private AppStateManager stateManager;
     private Map<Type, Label> listeners = new HashMap();
 
     private int manaCurrent;
-    private int manaMax;
+    private int manaMax = 200000;
     private int manaGet;  // mana get per second
     private int manaGetBase = 30;  // I think this dungeon heart
-    private int manaGetFromTiles;
+    private int manaGetFromTiles = 0;
 
     private int manaLose;  // mana lose per second
     private int manaLosePerImp = 7;  // I don`t find in Creature.java
-    private int manaLoseFromCreatures;
+    private int manaLoseFromCreatures = 0;
 
-    public PlayerManaControl(short playerId, WorldHandler worldHandler) {
+    public PlayerManaControl(short playerId, AppStateManager stateManager) {
         this.playerId = playerId;
-        this.worldHandler = worldHandler;
+        this.stateManager = stateManager;
 
-        this.manaGetFromTiles = 0;
-        this.updateManaFromTiles();
-        this.manaLoseFromCreatures = 0;
-        this.updateManaFromCreatures();
-        this.manaMax = 200000;
+        //this.updateManaFromTiles();
+        //this.updateManaFromCreatures();
     }
 
-    public final void updateManaFromTiles() {
+    @Override
+    protected void controlUpdate(float tpf) {
+        tick += tpf;
+        if (tick >= 1) {
+            updateManaFromTiles();
+            updateManaFromCreatures();
+            update();
+            tick -= 1;
+        }
+    }
+
+    @Override
+    protected void controlRender(RenderManager rm, ViewPort vp) {
+        /*
+         if (listeners.containsKey(Type.CURRENT)) {
+         listeners.get(Type.CURRENT).setText(String.format("%s", manaCurrent));
+         }
+         if (listeners.containsKey(Type.GET)) {
+         listeners.get(Type.GET).setText(String.format("+ %s", manaGet));
+         }
+         if (listeners.containsKey(Type.LOSE)) {
+         listeners.get(Type.LOSE).setText(String.format("- %s", manaLose));
+
+         }
+         */
+    }
+
+    private void updateManaFromTiles() {
         int result = 0;
 
-        for (int x = 0; x < worldHandler.getLevelData().getMap().getWidth(); x++) {
-            for (int y = 0; y < worldHandler.getLevelData().getMap().getHeight(); y++) {
-                TileData tile = worldHandler.getMapLoader().getTile(x, y);
+        MapData mapData = stateManager.getState(WorldState.class).getMapData();
+        KwdFile kwdFile = stateManager.getState(GameState.class).getLevelData();
+
+        for (int x = 0; x < mapData.getWidth(); x++) {
+            for (int y = 0; y < mapData.getHeight(); y++) {
+                TileData tile = mapData.getTile(x, y);
                 if (tile.getPlayerId() == this.playerId) {
-                    result += worldHandler.getLevelData().getTerrain(tile.getTerrainId()).getManaGain();
+                    result += kwdFile.getTerrain(tile.getTerrainId()).getManaGain();
                 }
             }
         }
@@ -74,10 +108,10 @@ public class PlayerManaControl {
         this.manaGetFromTiles = result;
     }
 
-    public final void updateManaFromCreatures() {
+    private void updateManaFromCreatures() {
         int result = 0;
 
-        for (Thing thing : worldHandler.getLevelData().getThings()) {
+        for (Thing thing : stateManager.getState(GameState.class).getLevelData().getThings()) {
             if (!(thing instanceof Thing.KeeperCreature)) {
                 continue;
             }
@@ -91,21 +125,21 @@ public class PlayerManaControl {
         this.manaLoseFromCreatures = result * this.manaLosePerImp;
     }
 
-    public void updateManaGet() {
+    private void updateManaGet() {
         manaGet = manaGetBase + manaGetFromTiles;
         if (listeners.containsKey(Type.GET)) {
             listeners.get(Type.GET).setText(String.format("+ %s", manaGet));
         }
     }
 
-    public void updateManaLose() {
+    private void updateManaLose() {
         manaLose = manaLoseFromCreatures;
         if (listeners.containsKey(Type.LOSE)) {
             listeners.get(Type.LOSE).setText(String.format("- %s", manaLose));
         }
     }
 
-    public void update() {
+    private void update() {
         this.updateManaGet();
         this.updateManaLose();
 

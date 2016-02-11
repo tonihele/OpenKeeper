@@ -19,7 +19,6 @@ package toniarts.openkeeper.world;
 import com.jme3.asset.AssetManager;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.scene.Node;
-import com.jme3.scene.Spatial;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Object;
@@ -32,16 +31,16 @@ import toniarts.openkeeper.world.creature.CreatureLoader;
  */
 public class ThingLoader {
 
-    private final WorldHandler worldHandler;
+    private final WorldState worldState;
 
-    public ThingLoader(WorldHandler worldHandler) {
-        this.worldHandler = worldHandler;
+    public ThingLoader(WorldState worldState) {
+        this.worldState = worldState;
     }
 
     public Spatial load(BulletAppState bulletAppState, AssetManager assetManager, KwdFile kwdFile) {
 
         // Create a creature loader
-        CreatureLoader creatureLoader = new CreatureLoader(kwdFile, worldHandler);
+        CreatureLoader creatureLoader = new CreatureLoader(kwdFile, worldState);
 
         //Create a root
         Node root = new Node("Things");

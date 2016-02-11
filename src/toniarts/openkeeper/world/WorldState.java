@@ -16,6 +16,9 @@
  */
 package toniarts.openkeeper.world;
 
+import com.jme3.app.Application;
+import com.jme3.app.state.AbstractAppState;
+import com.jme3.app.state.AppStateManager;
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
@@ -38,6 +41,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
+import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -59,29 +65,45 @@ import toniarts.openkeeper.world.room.RoomInstance;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class WorldHandler {
+public abstract class WorldState extends AbstractAppState {
 
-    private final MapLoader mapLoader;
-    private final KwdFile kwdFile;
-    private final AssetManager assetManager;
-    private final Node worldNode;
+    private Main app;
+    private AppStateManager stateManager;
+    private MapLoader mapLoader;
+    private KwdFile kwdFile;
+    private AssetManager assetManager;
+    private Node worldNode;
+    private static final Logger logger = Logger.getLogger(WorldState.class.getName());
     private final MapIndexedGraph pathFindingMap;
     private final MapPathFinder pathFinder;
     private final MapDistance heuristic;
     private final Node thingsNode;
 
-    public WorldHandler(final AssetManager assetManager, final KwdFile kwdFile, final BulletAppState bulletAppState) {
-        this.kwdFile = kwdFile;
-        this.assetManager = assetManager;
+    public WorldState() {
+        //this.kwdFile = kwdFile;
+        //this.assetManager = assetManager;
 
         // World node
         worldNode = new Node("World");
+    }
+
+    @Override
+    public void initialize(final AppStateManager stateManager, final Application app) {
+        this.app = (Main) app;
+        this.stateManager = stateManager;
+        this.assetManager = app.getAssetManager();
+
+        // Create physics state
+        BulletAppState bulletAppState = new BulletAppState();
+        this.stateManager.attach(bulletAppState);
+
+        kwdFile = this.stateManager.getState(GameState.class).getLevelData();
 
         // Create the actual map
         this.mapLoader = new MapLoader(assetManager, kwdFile) {
             @Override
             protected void updateProgress(int progress, int max) {
-                WorldHandler.this.updateProgress(progress, max);
+                WorldState.this.updateProgress(progress, max);
             }
         };
         worldNode.attachChild(mapLoader.load(assetManager, kwdFile));
@@ -94,6 +116,25 @@ public abstract class WorldHandler {
         // Things
         thingsNode = (Node) new ThingLoader(this).load(bulletAppState, assetManager, kwdFile);
         worldNode.attachChild(thingsNode);
+        // Attach the world
+        this.app.getRootNode().attachChild(worldNode);
+
+        super.initialize(stateManager, app);
+    }
+
+    @Override
+    public void cleanup() {
+
+        // Detach our map
+        if (worldNode != null) {
+            app.getRootNode().detachChild(worldNode);
+            worldNode = null;
+        }
+
+        // Physics away
+        stateManager.detach(stateManager.getState(BulletAppState.class));
+
+        super.cleanup();
     }
 
     public AssetManager getAssetManager() {
@@ -108,21 +149,8 @@ public abstract class WorldHandler {
      */
     protected abstract void updateProgress(int progress, int max);
 
-    /**
-     * Get the world node
-     *
-     * @return world node
-     */
-    public Node getWorld() {
-        return worldNode;
-    }
-
-    public KwdFile getLevelData() {
-        return this.kwdFile;
-    }
-
-    public MapLoader getMapLoader() {
-        return this.mapLoader;
+    public MapData getMapData() {
+        return mapLoader.getMapData();
     }
 
     /**
@@ -135,7 +163,10 @@ public abstract class WorldHandler {
         List<Point> updatableTiles = new ArrayList<>();
         for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getMap().getWidth(), selectionArea.getEnd().x + 1); x++) {
             for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getMap().getHeight(), selectionArea.getEnd().y + 1); y++) {
-                TileData tile = mapLoader.getTile(x, y);
+                TileData tile = getMapData().getTile(x, y);
+                if (tile == null) {
+                    continue;
+                }
                 Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
                 if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
                     continue;
@@ -155,7 +186,7 @@ public abstract class WorldHandler {
      * @return is the tile selected
      */
     public boolean isSelected(int x, int y) {
-        TileData tile = mapLoader.getTile(x, y);
+        TileData tile = getMapData().getTile(x, y);
         if (tile == null) {
             return false;
         }
@@ -170,7 +201,7 @@ public abstract class WorldHandler {
      * @return is the tile selectable
      */
     public boolean isTaggable(int x, int y) {
-        TileData tile = mapLoader.getTile(x, y);
+        TileData tile = getMapData().getTile(x, y);
         if (tile == null) {
             return false;
         }
@@ -188,7 +219,7 @@ public abstract class WorldHandler {
      * @return is the tile buildable
      */
     public boolean isBuildable(int x, int y, Player player, Room room) {
-        TileData tile = mapLoader.getTile(x, y);
+        TileData tile = getMapData().getTile(x, y);
         if (tile == null) {
             return false;
         }
@@ -225,7 +256,7 @@ public abstract class WorldHandler {
      * @return is the tile claimable by you
      */
     public boolean isClaimable(int x, int y, Player player) {
-        TileData tile = mapLoader.getTile(x, y);
+        TileData tile = getMapData().getTile(x, y);
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
 
         // Claimed & not owned by us
@@ -248,7 +279,7 @@ public abstract class WorldHandler {
      */
     public void digTile(int x, int y) {
         if (isTaggable(x, y)) {
-            TileData tile = mapLoader.getTile(x, y);
+            TileData tile = getMapData().getTile(x, y);
             Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
             tile.setSelected(false);
@@ -270,6 +301,10 @@ public abstract class WorldHandler {
         }
     }
 
+    public void flashTile(int x, int y, int time, boolean enabled) {
+        mapLoader.flashTile(x, y, time, enabled);
+    }
+
     /**
      * Claim a tile at x & y to the player's name
      *
@@ -279,7 +314,7 @@ public abstract class WorldHandler {
      */
     public void claimTile(int x, int y, Player player) {
         if (isClaimable(x, y, player)) {
-            TileData tile = mapLoader.getTile(x, y);
+            TileData tile = getMapData().getTile(x, y);
             Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
 
             // TODO: Claim a room
@@ -320,7 +355,7 @@ public abstract class WorldHandler {
                 }
 
                 // Build
-                TileData tile = mapLoader.getTile(x, y);
+                TileData tile = getMapData().getTile(x, y);
                 tile.setPlayerId(player.getPlayerId());
                 tile.setTerrainId(room.getTerrainId());
 
@@ -336,7 +371,7 @@ public abstract class WorldHandler {
             if (mapLoader.getRoomCoordinates().containsKey(p) && mapLoader.getRoomCoordinates().get(p).getRoom().equals(room)) {
 
                 // Same room, see that we own it
-                TileData tile = mapLoader.getTile(p.x, p.y);
+                TileData tile = getMapData().getTile(p.x, p.y);
                 if (tile.getPlayerId() == player.getPlayerId()) {
 
                     // Bingo!
@@ -370,7 +405,7 @@ public abstract class WorldHandler {
      * @param player the player, the seller
      */
     public boolean isSellable(int x, int y, Player player) {
-        TileData tile = mapLoader.getTile(x, y);
+        TileData tile = getMapData().getTile(x, y);
         Point p = new Point(x, y);
         if (tile.getPlayerId() == player.getPlayerId() && mapLoader.getRoomCoordinates().containsKey(p)) {
 
@@ -399,7 +434,7 @@ public abstract class WorldHandler {
                 }
 
                 // Sell
-                TileData tile = mapLoader.getTile(x, y);
+                TileData tile = getMapData().getTile(x, y);
                 Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
                 if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                     tile.setTerrainId(kwdFile.getMap().getClaimedPath().getTerrainId());

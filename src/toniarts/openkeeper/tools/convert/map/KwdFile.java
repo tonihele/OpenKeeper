@@ -1894,7 +1894,8 @@ public final class KwdFile {
                     ((ActionPoint) thing).setEndX(ConversionUtils.readInteger(file));
                     ((ActionPoint) thing).setEndY(ConversionUtils.readInteger(file));
                     ((ActionPoint) thing).setWaitDelay(ConversionUtils.readUnsignedShort(file));
-                    ((ActionPoint) thing).setFlags(ConversionUtils.parseFlagValue(ConversionUtils.readInteger(file), ActionPointFlag.class));
+                    ((ActionPoint) thing).setFlags(ConversionUtils.parseFlagValue(ConversionUtils.readUnsignedShort(file), ActionPointFlag.class));
+                    ((ActionPoint) thing).setTriggerId(ConversionUtils.readUnsignedShort(file));
                     ((ActionPoint) thing).setId((short) file.readUnsignedByte());
                     ((ActionPoint) thing).setNextWaypointId((short) file.readUnsignedByte());
 

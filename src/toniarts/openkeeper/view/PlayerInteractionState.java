@@ -52,8 +52,8 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
+import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.TileData;
-import toniarts.openkeeper.world.WorldHandler;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
@@ -73,12 +73,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         NONE, ROOM, SELL, SPELL, TRAP, DOOR, CREATURE
     }
     private Main app;
-    private final GameState gameState;
-    private Node rootNode;
+    private GameState gameState;
+
     private AssetManager assetManager;
     private AppStateManager stateManager;
     private InputManager inputManager;
-    private ViewPort viewPort;
+
     private final Player player;
     private SelectionHandler handler;
     private boolean startSet = false;
@@ -97,7 +97,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     public PlayerInteractionState(Player player, GameState gameState, Rectangle guiConstraint, Label tooltip) {
         this.player = player;
-        this.gameState = gameState;
         this.guiConstraint = guiConstraint;
         this.tooltip = tooltip;
     }
@@ -106,12 +105,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
         this.app = (Main) app;
-        rootNode = this.app.getRootNode();
         assetManager = this.app.getAssetManager();
         this.stateManager = this.app.getStateManager();
         inputManager = this.app.getInputManager();
-        viewPort = this.app.getViewPort();
-
+        gameState = this.stateManager.getState(GameState.class);
         // Init handler
         handler = new SelectionHandler(this.app, this) {
             @Override
@@ -329,8 +326,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public void onTouchEvent(TouchEvent evt) {
     }
 
-    public WorldHandler getWorldHandler() {
-        return gameState.getWorldHandler();
+    private WorldState getWorldHandler() {
+        return stateManager.getState(WorldState.class);
     }
 
     /**

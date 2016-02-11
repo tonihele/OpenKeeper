@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.Cinematic;
+import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
@@ -46,6 +47,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  * The player camera state. Listens for camera movement inputs.
@@ -141,13 +143,17 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         }
     }
 
+    public PlayerCamera getCamera() {
+        return camera;
+    }
+
     public void addRotation(float angle, int time) {
         timer = time;
         rotate = angle;
     }
 
     private Vector2f getCameraMapLimit() {
-        MapData md = this.stateManager.getState(GameState.class).getWorldHandler().getMapLoader().getMapData();
+        MapData md = this.stateManager.getState(WorldState.class).getMapData();
         return new Vector2f(md.getWidth(), md.getHeight());
     }
 
@@ -187,15 +193,18 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         //cam.setLocation(storedCamera.getLocation());
     }
 
-    public void setCameraLookAt(Thing.ActionPoint point) {
-        Vector3f location = MapLoader.getCameraPositionOnMapPoint(point.getStartX(), point.getStartY());
+    public void setCameraLookAt(ActionPoint point) {
+        Vector3f location = MapLoader.getCameraPositionOnMapPoint((int) ((point.getStart().x + point.getEnd().x) / 2),
+                (int) ((point.getStart().y + point.getEnd().y) / 2));
         camera.setLookAt(location);
     }
 
-    public void doTransition(int sweepFileId, final Thing.ActionPoint point) {
+    public void doTransition(int sweepFileId, final ActionPoint point) {
         String sweepFile = "EnginePath" + sweepFileId;
         // Do cinematic transition
-        Cinematic c = new Cinematic(app, sweepFile, point.getStartX(), point.getStartY());
+        Cinematic c = new Cinematic(app, sweepFile,
+                (int) ((point.getStart().x + point.getEnd().x) / 2),
+                (int) ((point.getStart().y + point.getEnd().y) / 2));
         c.addListener(new CinematicEventListener() {
             @Override
             public void onPlay(CinematicEvent cinematic) {

@@ -14,41 +14,26 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game;
+package toniarts.openkeeper.game.control;
+
+import com.jme3.export.Savable;
 
 /**
  *
  * @author ArchDemon
  */
 
-// TODO create timer or use existed
-public final class GameTimer {
+public interface IControl extends Savable {
 
-    private float time = 0;
-    private boolean active = false;
+    /**
+     * @param spatial the spatial to be controlled. This should not be called from user code.
+     */
+    public void setParent(IContainer parent);
 
-    public GameTimer() {
-    }
-
-    public GameTimer(boolean active) {
-        this.active = active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public boolean getActive() {
-        return active;
-    }
-
-    public void update(float tpf) {
-        if (active) {
-            time += tpf;
-        }
-    }
-
-    public float getTime() {
-        return time;
-    }
+    /**
+     * Updates the control. This should not be called from user code.
+     *
+     * @param tpf Time per frame.
+     */
+    public void update(float tpf);
 }
