@@ -141,7 +141,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @return the tile data
      */
     public TileData getTile(int x, int y) {
-        return mapData.getTile(x, y);
+        if ((x >= 0 && x < kwdFile.getMap().getWidth() && y >= 0 && y < kwdFile.getMap().getHeight())) {
+            return mapData.getTile(x, y);
+        }
+        return null;
     }
 
     /**
