@@ -34,6 +34,9 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
+import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
+import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
 import toniarts.openkeeper.world.room.RoomInstance;
 
 /**
@@ -47,6 +50,9 @@ public abstract class WorldHandler {
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
     private final Node worldNode;
+    private final MapIndexedGraph pathFindingMap;
+    private final MapPathFinder pathFinder;
+    private final MapDistance heuristic;
 
     public WorldHandler(final AssetManager assetManager, final KwdFile kwdFile, final BulletAppState bulletAppState) {
         this.kwdFile = kwdFile;
@@ -64,8 +70,17 @@ public abstract class WorldHandler {
         };
         worldNode.attachChild(mapLoader.load(assetManager, kwdFile));
 
+        // For path finding
+        pathFindingMap = new MapIndexedGraph(mapLoader, kwdFile);
+        pathFinder = new MapPathFinder(pathFindingMap, false);
+        heuristic = new MapDistance();
+
         // Things
         worldNode.attachChild(new ThingLoader(this).load(bulletAppState, assetManager, kwdFile));
+    }
+
+    public AssetManager getAssetManager() {
+        return assetManager;
     }
 
     /**
