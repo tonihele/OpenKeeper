@@ -47,40 +47,40 @@ public class TriggerLoader {
 
     private void parse(TriggerGenericData parent, int id) {
         while (true) {
-            Trigger trigger = triggers.get(id);
-            TriggerData t;
+            Trigger temp = triggers.get(id);
+            TriggerData trigger;
 
-            if (trigger instanceof TriggerGeneric) {
-                t = new TriggerGenericData(id, trigger.getRepeatTimes());
-                ((TriggerGenericData) t).setType(((TriggerGeneric) trigger).getType());
-                ((TriggerGenericData) t).setComparison(((TriggerGeneric) trigger).getTargetValueComparison());
+            if (temp instanceof TriggerGeneric) {
+                trigger = new TriggerGenericData(id, temp.getRepeatTimes());
+                ((TriggerGenericData) trigger).setType(((TriggerGeneric) temp).getType());
+                ((TriggerGenericData) trigger).setComparison(((TriggerGeneric) temp).getTargetValueComparison());
 
-                for (String key : trigger.getUserDataKeys()) {
-                    t.setUserData(key, trigger.getUserData(key));
-                }
-                
-                parent.attachChild(id, t);
-
-                if (trigger.hasChildren()) {
-                    parse(((TriggerGenericData) t), trigger.getIdChild());
+                for (String key : temp.getUserDataKeys()) {
+                    trigger.setUserData(key, temp.getUserData(key));
                 }
 
-            } else if (trigger instanceof TriggerAction) {
-                t = new TriggerActionData(id);
-                ((TriggerActionData) t).setType(((TriggerAction) trigger).getType());
+                parent.attachChild(trigger);
 
-                for (String key : trigger.getUserDataKeys()) {
-                    t.setUserData(key, trigger.getUserData(key));
+                if (temp.hasChildren()) {
+                    parse(((TriggerGenericData) trigger), temp.getIdChild());
                 }
 
-                parent.attachChild(id, t);
+            } else if (temp instanceof TriggerAction) {
+                trigger = new TriggerActionData(id);
+                ((TriggerActionData) trigger).setType(((TriggerAction) temp).getType());
+
+                for (String key : temp.getUserDataKeys()) {
+                    trigger.setUserData(key, temp.getUserData(key));
+                }
+
+                parent.attachChild(trigger);
 
             } else {
                 throw new RuntimeException("Unexpected class");
             }
 
-            if (trigger.hasNext()) {
-                id = trigger.getIdNext();
+            if (temp.hasNext()) {
+                id = temp.getIdNext();
             } else {
                 break;
             }

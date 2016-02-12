@@ -605,10 +605,6 @@ public final class KwdFile {
             if (map.getLava() == null && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
                 map.setLava(terrain);
             }
-            if (map.getClaimedPath() == null && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
-                    && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                map.setClaimedPath(terrain);
-            }
 
             // Check file offset
             checkOffset(header, file, offset);
@@ -2213,7 +2209,7 @@ public final class KwdFile {
                             trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
                             break;
 
-                        case AP_SLAP_TYPES:
+                        case AP_SLAB_TYPES:
                             ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
                             trigger.setUserData("playerId", (short) file.readUnsignedByte());
                             trigger.setUserData("terrainId", (short) file.readUnsignedByte());
@@ -2278,7 +2274,7 @@ public final class KwdFile {
                             break;
 
                         case PLAYER_ROOMS:
-                        case PLAYER_ROOM_SLAPS:
+                        case PLAYER_ROOM_SLABS:
                         case PLAYER_ROOM_SIZE:
                         case PLAYER_ROOM_FURNITURE:
                             ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));

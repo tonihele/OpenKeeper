@@ -16,8 +16,7 @@
  */
 package toniarts.openkeeper.game.trigger;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import com.jme3.util.SafeArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
@@ -33,9 +32,9 @@ public class TriggerGenericData extends TriggerData {
     private TriggerGeneric.ComparisonType comparison; // Target comparison type
     private TriggerGeneric.TargetType target;
     private short repeatTimes; // Repeat x times, 255 = always
-    private LinkedHashMap<Integer, TriggerData> children = new LinkedHashMap<>();
+    private TriggerGenericData lastTrigger = null;
+    private SafeArrayList<TriggerData> children = new SafeArrayList<>(TriggerData.class);
     private static final Logger logger = Logger.getLogger(TriggerGenericData.class.getName());
-    private Integer cycle = null;
 
     public TriggerGenericData() {
         super();
@@ -66,11 +65,26 @@ public class TriggerGenericData extends TriggerData {
         this.target = target;
     }
 
-    public boolean subRepeatTimes() {
+    protected void setRepeatTimes(short repeatTimes) {
+        this.repeatTimes = repeatTimes;
+    }
+
+    public void subRepeatTimes() {
         if (repeatTimes != 255 && repeatTimes > 0) {
             repeatTimes--;
         }
+    }
+
+    public boolean isRepeateable() {
         return (repeatTimes > 0);
+    }
+
+    public int getLastTriggerIndex() {
+        return children.indexOf(lastTrigger);
+    }
+
+    public void setLastTrigger(TriggerGenericData lastTrigger) {
+        this.lastTrigger = lastTrigger;
     }
 
     public int getQuantity() {
@@ -78,29 +92,14 @@ public class TriggerGenericData extends TriggerData {
     }
 
     /**
-     * <code>getChild</code> returns the first child found with exactly the given id (case sensitive.) This method does
-     * a depth first recursive search of all descendants of this node, it will return the first spatial found with a
-     * matching name.
+     * <code>getChild</code> returns the first child found with exactly the given id (case sensitive.) This method does a depth first
+     * recursive search of all descendants of this node, it will return the first spatial found with a matching name.
      *
-     * @param id the id of the child to retrieve. If null, we'll return null.
+     * @param i the id of the child to retrieve. If null, we'll return null.
      * @return the child if found, or null.
      */
-    public <T> T getChild(int id) {
-
-        if (children.containsKey(id)) {
-            return (T) children.get(id);
-        }
-
-        for (TriggerData child : children.values()) {
-            if (child instanceof TriggerGenericData) {
-                TriggerData out = ((TriggerGenericData) child).getChild(id);
-                if (out != null) {
-                    return (T) out;
-                }
-            }
-        }
-
-        return null;
+    public TriggerData getChild(int i) {
+        return children.get(i);
     }
 
     /**
@@ -110,22 +109,12 @@ public class TriggerGenericData extends TriggerData {
      * @return true if the object is contained, false otherwise.
      */
     public boolean hasChild(TriggerData trigger) {
-        return hasChildId(trigger.getId());
-    }
-
-    /**
-     * determines if the provided ID is contained in the children map of this TriggerGenericData.
-     *
-     * @param id the child ID to look for.
-     * @return true if the object is contained, false otherwise.
-     */
-    public boolean hasChildId(int id) {
-        if (children.containsKey(id)) {
+        if (children.contains(trigger)) {
             return true;
         }
 
-        for (TriggerData child : children.values()) {
-            if (child instanceof TriggerGenericData && ((TriggerGenericData) child).hasChildId(id)) {
+        for (TriggerData child : children.getArray()) {
+            if (child instanceof TriggerGenericData && ((TriggerGenericData) child).hasChild(trigger)) {
                 return true;
             }
         }
@@ -133,33 +122,27 @@ public class TriggerGenericData extends TriggerData {
         return false;
     }
 
-    public boolean isCycleEnd() {
-        boolean result = (Integer.valueOf(0).equals(cycle));
-
-        if (cycle == null || cycle == 0) {
-            cycle = 0;
-            for (Map.Entry<Integer, TriggerData> entry : children.entrySet()) {
-                TriggerData t = entry.getValue();
-
-                if (t instanceof TriggerGenericData) {
-                    cycle++;
-                }
-            }
-        }
-
-        return result;
-    }
-
     /**
      * Returns all children to this TriggerGenericData. Note that modifying that given list is not allowed.
      *
      * @return a list containing all children to this node
      */
-    public LinkedHashMap<Integer, TriggerData> getChildren() {
+    public SafeArrayList<TriggerData> getChildren() {
         return children;
     }
 
-    public int attachChild(int id, TriggerData child) {
+    /**
+     *
+     * <code>attachChildAt</code> attaches a child to this node at an index. This node becomes the child's parent. The current number of
+     * children maintained is returned.
+     * <br>
+     * If the child already had a parent it is detached from that former parent.
+     *
+     * @param child the child to attach to this node.
+     * @return the number of children maintained by this node.
+     * @throws NullPointerException if child is null.
+     */
+    public int attachChildAt(TriggerData child, int index) {
         if (child == null) {
             throw new IllegalArgumentException("child cannot be null");
         }
@@ -169,7 +152,7 @@ public class TriggerGenericData extends TriggerData {
                 child.getParent().detachChild(child);
             }
             child.setParent(this);
-            children.put(id, child);
+            children.add(index, child);
 
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "Child ({0}) attached to this trigger ({1})",
@@ -182,8 +165,8 @@ public class TriggerGenericData extends TriggerData {
 
     /**
      *
-     * <code>attachChildId</code> attaches a child to this TriggerGenericData at an index. This node becomes the child's
-     * parent. The current number of children maintained is returned.
+     * <code>attachChild</code> attaches a child to this TriggerGenericData at an index. This node becomes the child's parent. The current
+     * number of children maintained is returned.
      * <br>
      * If the child already had a parent it is detached from that former parent.
      *
@@ -191,7 +174,7 @@ public class TriggerGenericData extends TriggerData {
      * @return the number of children maintained by this TriggerGenericData.
      * @throws NullPointerException if child is null.
      */
-    public int attachChildId(int id, TriggerData child) {
+    public int attachChild(TriggerData child) {
         if (child == null) {
             throw new NullPointerException();
         }
@@ -201,7 +184,7 @@ public class TriggerGenericData extends TriggerData {
                 child.getParent().detachChild(child);
             }
             child.setParent(this);
-            children.put(id, child);
+            children.add(child);
 
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "Child ({0}) attached to this TriggerData ({1})",
@@ -217,8 +200,8 @@ public class TriggerGenericData extends TriggerData {
      * <code>detachAllChildren</code> removes all children attached to this TriggerGenericData.
      */
     public void detachAllChildren() {
-        for (int i : children.keySet()) {
-            detachChildId(i);
+        for (int i = children.size() - 1; i >= 0; i--) {
+            detachChildAt(i);
         }
         logger.log(Level.FINE, "{0}: All children removed.", this.toString());
     }
@@ -229,10 +212,11 @@ public class TriggerGenericData extends TriggerData {
         }
 
         if (child.getParent() == this) {
-            if (children.containsValue(child)) {
-                detachChildId(child.getId());
+            int index = children.indexOf(child);
+            if (index != -1) {
+                detachChildAt(index);
             }
-            return child.getId();
+            return index;
         }
 
         return -1;
@@ -245,7 +229,7 @@ public class TriggerGenericData extends TriggerData {
      * @param id the child to remove.
      * @return the index the child was at. -1 if the child was not in the list.
      */
-    public TriggerData detachChildId(int index) {
+    public TriggerData detachChildAt(int index) {
         TriggerData child = children.remove(index);
         if (child != null) {
             child.setParent(null);
@@ -253,6 +237,23 @@ public class TriggerGenericData extends TriggerData {
         }
 
         return child;
+    }
+
+    public int detachFromParent() {
+        if (parent != null) {
+            return parent.detachChild(this);
+        }
+        return -1;
+    }
+
+    /**
+     * <code>getChildIndex</code> returns the index of the given TriggerData in this TriggerGenericData's list of children.
+     *
+     * @param child The TriggerData to look up
+     * @return The index of the TriggerData in the TriggerGenericData's children, or -1 if the TriggerData is not attached to this node
+     */
+    public int getChildIndex(TriggerData child) {
+        return children.indexOf(child);
     }
 
     @Override
@@ -275,5 +276,10 @@ public class TriggerGenericData extends TriggerData {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return "TriggerGenericData { id=" + id + ", target=" + target + " }";
     }
 }

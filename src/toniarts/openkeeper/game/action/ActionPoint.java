@@ -74,4 +74,14 @@ public class ActionPoint extends Container {
     public int getNextWaypointId() {
         return nextWaypointId;
     }
+
+    public Vector2f getCenter() {
+        return new Vector2f((start.x + end.x) / 2, (start.y + end.y) / 2);
+    }
+
+    @Override
+    public String toString() {
+        return "ActionPoint { id=" + id + ", triggerId=" + triggerId + ", start=" + start + ", end="
+                + end + ", flags=" + flags + ", waitDelay=" + waitDelay + ", nextWaypointId=" + nextWaypointId + " }";
+    }
 }

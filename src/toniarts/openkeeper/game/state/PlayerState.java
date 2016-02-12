@@ -59,6 +59,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.game.player.PlayerTriggerControl;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
@@ -73,6 +74,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerInteractionState;
@@ -92,11 +94,11 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         MAIN, QUIT, CONFIRMATION;
     }
     private Main app;
-    private Node rootNode;
+
     private AssetManager assetManager;
     private AppStateManager stateManager;
 
-    private GameState gameState;
+    private short playerId;
     private Nifty nifty;
 
     private boolean paused = false;
@@ -108,22 +110,36 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private List<AbstractPauseAwareState> storedAppStates;
     private PlayerInteractionState interactionState;
     private PossessionInteractionState possessionState;
-
+    private PlayerCameraState cameraState;
+    private PossessionCameraState possessionCameraState;
     private Label goldCurrent;
     private Label tooltip;
     private PlayerManaControl manaControl = null;
     private PlayerTriggerControl triggerControl = null;
+    private PlayerGoldControl goldControl = null;
+    private int score = 0;
+    private boolean transitionEnd = true;
     private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
+
+    public PlayerState(int playerId) {
+        this.playerId = (short) playerId;
+    }
+
+    public PlayerState(int playerId, boolean enabled) {
+        this(playerId);
+        super.setEnabled(enabled);
+    }
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
-        this.app = (Main) app;
-        rootNode = this.app.getRootNode();
-        assetManager = this.app.getAssetManager();
-        this.stateManager = this.app.getStateManager();
 
-        manaControl = new PlayerManaControl((short) 3, stateManager);
+        this.app = (Main) app;
+        assetManager = this.app.getAssetManager();
+        this.stateManager = stateManager;
+
+        manaControl = new PlayerManaControl(playerId, stateManager);
+        goldControl = new PlayerGoldControl(playerId, stateManager);
     }
 
     @Override
@@ -143,11 +159,12 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         if (enabled) {
 
             // Get the game state
-            gameState = stateManager.getState(GameState.class);
+            final GameState gameState = stateManager.getState(GameState.class);
 
-            int triggerId = gameState.getLevelData().getPlayer((short) 3).getTriggerId();
+            int triggerId = gameState.getLevelData().getPlayer(playerId).getTriggerId();
             if (triggerId != 0) {
                 triggerControl = new PlayerTriggerControl(app, triggerId);
+                triggerControl.setPlayerState(this);
             }
 
             // Load the HUD
@@ -171,8 +188,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             }
 
             // Create app states
-            Player player = gameState.getLevelData().getPlayer((short) 3); // Keeper 1
-            appStates.add(new PlayerCameraState(player));
+            Player player = gameState.getLevelData().getPlayer(playerId); // Keeper 1
 
             possessionState = new PossessionInteractionState(false) {
 
@@ -198,6 +214,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 }
             };
 
+            cameraState = new PlayerCameraState(player);
             interactionState = new PlayerInteractionState(player, gameState, guiConstraint, tooltip) {
                 @Override
                 protected void onInteractionStateChange(InteractionState interactionState, int id) {
@@ -214,7 +231,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                     storedAppStates.add(possessionState);
                     // TODO not Thing.KeeperCreature need wrapper around KeeperCreature
                     possessionState.setTarget(creature);
-                    storedAppStates.add(new PossessionCameraState(creature, PlayerState.this.gameState.getLevelData()));
+                    possessionCameraState = new PossessionCameraState(creature, gameState.getLevelData());
+                    storedAppStates.add(possessionCameraState);
                     // Load the state
                     for (AbstractAppState state : storedAppStates) {
                         stateManager.attach(state);
@@ -223,6 +241,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 }
             };
             appStates.add(interactionState);
+            appStates.add(cameraState);
 
             // Load the state
             for (AbstractAppState state : appStates) {
@@ -236,12 +255,44 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             for (AbstractAppState state : appStates) {
                 stateManager.detach(state);
             }
-            gameState = null;
+
             appStates.clear();
             if (nifty != null) {
                 nifty.gotoScreen("empty");
             }
         }
+    }
+
+    public PlayerGoldControl getGoldControl() {
+        return goldControl;
+    }
+
+    public PlayerManaControl getManaControl() {
+        return manaControl;
+    }
+
+    public void setTransitionEnd(boolean value) {
+        transitionEnd = value;
+    }
+
+    public boolean isTransitionEnd() {
+        return transitionEnd;
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
+    }
+
+    public void subScore(int score) {
+        this.score -= score;
+    }
+
+    public void addScore(int score) {
+        this.score += score;
     }
 
     /**
@@ -257,6 +308,10 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             manaControl.addListener(hud.findNiftyControl("mana", Label.class), PlayerManaControl.Type.CURRENT);
             manaControl.addListener(hud.findNiftyControl("manaGet", Label.class), PlayerManaControl.Type.GET);
             manaControl.addListener(hud.findNiftyControl("manaLose", Label.class), PlayerManaControl.Type.LOSE);
+        }
+
+        if (goldControl != null) {
+            goldControl.addListener(hud.findNiftyControl("gold", Label.class));
         }
 
         Element contentPanel = hud.findElementByName("tab-room-content");
@@ -283,13 +338,13 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             createTrapIcon(trap).build(nifty, hud, contentPanel);
         }
 
-        if (goldCurrent == null) {
-            goldCurrent = hud.findNiftyControl("gold", Label.class);
-        }
-
         if (tooltip == null) {
             tooltip = hud.findNiftyControl("tooltip", Label.class);
         }
+    }
+
+    public void flashButton(int id, TriggerAction.MakeType type, boolean enabled, int time) {
+        // TODO make flash button
     }
 
     /**
@@ -426,7 +481,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         if (s.getCreatureSpellId() == 0) {
                             continue;
                         }
-                        CreatureSpell cs = gameState.getLevelData().getCreatureSpellById(s.getCreatureSpellId());
+                        CreatureSpell cs = stateManager.getState(GameState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
                         createCreatureSpellIcon(cs, index++).build(nifty, nifty.getCurrentScreen(), contentPanel);
                     }
                 }
@@ -700,6 +755,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     private List<Room> getAvailableRoomsToBuild() {
+        GameState gameState = stateManager.getState(GameState.class);
         List<Room> rooms = gameState.getLevelData().getRooms();
         for (Iterator<Room> iter = rooms.iterator(); iter.hasNext();) {
             Room room = iter.next();
@@ -711,16 +767,19 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     private List<KeeperSpell> getAvailableKeeperSpells() {
+        GameState gameState = stateManager.getState(GameState.class);
         List<KeeperSpell> spells = gameState.getLevelData().getKeeperSpells();
         return spells;
     }
 
     private List<Door> getAvailableDoors() {
+        GameState gameState = stateManager.getState(GameState.class);
         List<Door> doors = gameState.getLevelData().getDoors();
         return doors;
     }
 
     private List<Trap> getAvailableTraps() {
+        GameState gameState = stateManager.getState(GameState.class);
         List<Trap> traps = new ArrayList<>();
         for (Trap trap : gameState.getLevelData().getTraps()) {
             if (trap.getGuiIcon() == null) {
@@ -737,7 +796,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         paused = !paused;
 
         // Pause / unpause
-        gameState.setEnabled(!paused);
+        stateManager.getState(GameState.class).setEnabled(!paused);
+
         for (AbstractPauseAwareState state : appStates) {
             if (state.isPauseable()) {
                 state.setEnabled(!paused);
@@ -842,7 +902,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     public void quitToMainMenu() {
 
         // Disable us, detach game and enable start
-        stateManager.detach(gameState);
+        stateManager.detach(stateManager.getState(GameState.class));
         setEnabled(false);
         stateManager.getState(MainMenuState.class).setEnabled(true);
     }

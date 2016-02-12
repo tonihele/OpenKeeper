@@ -79,7 +79,7 @@ public class TriggerGeneric extends Trigger {
         PLAYER_ANGRY_CREATURES(21), // Player
         PLAYER_CREATURES_KILLED(22), // Player
         PLAYER_KILLS_CREATURES(23), // Player
-        PLAYER_ROOM_SLAPS(24), // Player
+        PLAYER_ROOM_SLABS(24), // Player
         PLAYER_ROOMS(25), // Player
         PLAYER_ROOM_SIZE(26), // Player
         PLAYER_DOORS(27), // Player
@@ -96,7 +96,7 @@ public class TriggerGeneric extends Trigger {
         AP_CONGREGATE_IN(39), // Action point
         AP_CLAIM_PART_OF(40), // Action point
         AP_CLAIM_ALL_OF(41), // Action point
-        AP_SLAP_TYPES(42), // Action point
+        AP_SLAB_TYPES(42), // Action point
         PARTY_CREATED(43), // Party
         PARTY_MEMBERS_KILLED(44), // Party
         PARTY_MEMBERS_CAPTURED(45), // Party

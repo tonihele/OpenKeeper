@@ -16,9 +16,9 @@
  */
 package toniarts.openkeeper.game.party;
 
-import java.util.EnumSet;
 import java.util.List;
 import toniarts.openkeeper.game.control.Container;
+import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
@@ -29,16 +29,32 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 
 public class Party extends Container {
 
+    public enum Type implements IValueEnum {
+
+        NONE(0x0),
+        INVANSION_PARTY(0x1),
+        RANDOM_CREATYRE_TYPES(0x2);
+
+        private Type(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private final int id;
+    };
     private int id;
     private int triggerId;
     private String name;
-    List<Thing.GoodCreature> members;
+    private List<Thing.GoodCreature> members;
+    private Type type;
     private boolean created = false;
 
     public Party(Thing.HeroParty heroParty) {
         id = heroParty.getId();
         name = heroParty.getName();
-        //objective = heroParty.get();
         triggerId = heroParty.getTriggerId();
         members = heroParty.getHeroPartyMembers();
     }
@@ -55,7 +71,19 @@ public class Party extends Container {
         return created;
     }
 
-    protected void setCreated(boolean created) {
+    public void setCreated(boolean created) {
         this.created = created;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public void setType(Type type) {
+        this.type = type;
+    }
+
+    public List<Thing.GoodCreature> getMembers() {
+        return members;
     }
 }

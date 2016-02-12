@@ -372,6 +372,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                         // Play some tunes!!
                         levelBriefing = new AudioNode(assetManager, "Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2", false);
                         levelBriefing.setLooping(false);
+                        levelBriefing.setDirectional(false);
+                        levelBriefing.setPositional(false);
                         levelBriefing.play();
                     }
                 }
@@ -1100,8 +1102,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             if (kwd.equals(selectedMap)) {
                 selected = i;
             }
-            listBox.addItem(new TableRow(i, kwd.getGameLevel().getName(), 
-                    String.valueOf(kwd.getGameLevel().getPlayerCount()), 
+            listBox.addItem(new TableRow(i, kwd.getGameLevel().getName(),
+                    String.valueOf(kwd.getGameLevel().getPlayerCount()),
                     kwd.getMap().getWidth() + " x " + kwd.getMap().getHeight()));
             i++;
         }

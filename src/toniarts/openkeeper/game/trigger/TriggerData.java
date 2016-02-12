@@ -81,8 +81,7 @@ public abstract class TriggerData {
     }
 
     /**
-     * Called by {@link TriggerGenericData#attachChild(TriggerActionData)} and
-     * {@link TriggerGenericData#detachChild(TriggerActionData)} - don't call directly.
+     * Called by {@link TriggerGenericData#attachChildAt(TriggerActionData)} and     * {@link TriggerGenericData#detachChild(TriggerActionData)} - don't call directly.
      * <code>setParent</code> sets the parent of this TriggerActionData.
      *
      * @param parent the parent of this TriggerActionData.
@@ -129,6 +128,10 @@ public abstract class TriggerData {
 
         Number s = userData.get(key);
         return (T) s;
+    }
+
+    public <T extends Number> T getUserData(String key, Class<T> dataClass) {
+        return (T) getUserData(key);
     }
 
     public Collection<String> getUserDataKeys() {

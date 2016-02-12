@@ -43,7 +43,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -232,7 +234,10 @@ public abstract class WorldState extends AbstractAppState {
         }
 
         // Ownable tile is needed for land building (and needs to be owned by us)
-        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getPlayerId() == player.getPlayerId()) {
+        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)
+                && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                && tile.getPlayerId() == player.getPlayerId()) {
             return true;
         }
 
@@ -257,19 +262,42 @@ public abstract class WorldState extends AbstractAppState {
      */
     public boolean isClaimable(int x, int y, Player player) {
         TileData tile = getMapData().getTile(x, y);
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-
-        // Claimed & not owned by us
-        if (tile.getPlayerId() != player.getPlayerId() && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-            return true;
+        if (tile == null) {
+            return false;
         }
-        // i.e. Dirt path, not water nor lava, not taggable
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            return true;
+
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            if (tile.getPlayerId() != player.getPlayerId()) {
+                return true;
+            }
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+            if (tile.getPlayerId() != player.getPlayerId()) {
+                return true;
+            }
+        } else {
+            return (terrain.getMaxHealthTypeTerrainId() != terrain.getTerrainId());
         }
 
         return false;
     }
+
+    private void addPlayerGold(int value) {
+        // FIXME this is not correct to get gold
+        if (value == 0) {
+            return;
+        }
+        PlayerState ps = stateManager.getState(PlayerState.class);
+        if (ps == null) {
+            return;
+        }
+        PlayerGoldControl pgc = ps.getGoldControl();
+        if (pgc == null) {
+            return;
+        }
+        pgc.addGold(value);
+    }
+
 
     /**
      * Dig a tile at x & y
@@ -278,27 +306,37 @@ public abstract class WorldState extends AbstractAppState {
      * @param y y coordinate
      */
     public void digTile(int x, int y) {
-        if (isTaggable(x, y)) {
-            TileData tile = getMapData().getTile(x, y);
-            Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-            tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-            tile.setSelected(false);
-            mapLoader.updateTiles(mapLoader.getSurroundingTiles(new Point(x, y), true));
+            
+        TileData tile = getMapData().getTile(x, y);
+        if (tile == null) {
+            return;
+        }
+            
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
+            return;
+        }
 
-            // See if room walls are allowed and does this touch any rooms
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
-                List<RoomInstance> wallUpdatesNeeded = new ArrayList<>();
-                for (Point p : mapLoader.getSurroundingTiles(new Point(x, y), false)) {
-                    RoomInstance room = mapLoader.getRoomCoordinates().get(p);
-                    if (room != null && room.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
-                        wallUpdatesNeeded.add(room);
-                    }
-                }
-                if (!wallUpdatesNeeded.isEmpty()) {
-                    mapLoader.updateRoomWalls(wallUpdatesNeeded);
+        addPlayerGold(terrain.getGoldValue());
+
+        tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
+        tile.setSelected(false);
+        mapLoader.updateTiles(mapLoader.getSurroundingTiles(new Point(x, y), true));
+
+        // See if room walls are allowed and does this touch any rooms
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
+            List<RoomInstance> wallUpdatesNeeded = new ArrayList<>();
+            for (Point p : mapLoader.getSurroundingTiles(new Point(x, y), false)) {
+                RoomInstance room = mapLoader.getRoomCoordinates().get(p);
+                if (room != null && room.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
+                    wallUpdatesNeeded.add(room);
                 }
             }
+            if (!wallUpdatesNeeded.isEmpty()) {
+                mapLoader.updateRoomWalls(wallUpdatesNeeded);
+            }
         }
+        
     }
 
     public void flashTile(int x, int y, int time, boolean enabled) {
@@ -313,27 +351,29 @@ public abstract class WorldState extends AbstractAppState {
      * @param player the player, the new owner
      */
     public void claimTile(int x, int y, Player player) {
-        if (isClaimable(x, y, player)) {
-            TileData tile = getMapData().getTile(x, y);
-            Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        if (!isClaimable(x, y, player)) {
+            return;
+        }
 
-            // TODO: Claim a room
-            // Claim
-            if (!terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-                tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());
-            }
+        TileData tile = getMapData().getTile(x, y);
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
 
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            // TODO: Claim all current room
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
             // tile is claimed by another player and needs to be destroyed
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getPlayerId() != player.getPlayerId()) {
+            if (tile.getPlayerId() != player.getPlayerId()) {
                 tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
             }
-
-            terrain = kwdFile.getTerrain(tile.getTerrainId());
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-                tile.setPlayerId(player.getPlayerId());
-            }
-            mapLoader.updateTiles(mapLoader.getSurroundingTiles(new Point(x, y), true));
+        } else {
+            tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());
         }
+
+        terrain = kwdFile.getTerrain(tile.getTerrainId());
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+            tile.setPlayerId(player.getPlayerId());
+        }
+        mapLoader.updateTiles(mapLoader.getSurroundingTiles(new Point(x, y), true));        
     }
 
     /**
@@ -435,16 +475,22 @@ public abstract class WorldState extends AbstractAppState {
 
                 // Sell
                 TileData tile = getMapData().getTile(x, y);
-                Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
-                if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
-                    tile.setTerrainId(kwdFile.getMap().getClaimedPath().getTerrainId());
-                } else {
-
-                    // Water or lava
-                    if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
-                        tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
+                if (tile == null) {
+                    continue;
+                }
+                Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+                if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                    Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+                    if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
+                        tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else {
-                        tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
+
+                        // Water or lava
+                        if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
+                            tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
+                        } else {
+                            tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
+                        }
                     }
                 }
 

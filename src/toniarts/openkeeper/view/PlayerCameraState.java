@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapData;
@@ -208,7 +209,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         c.addListener(new CinematicEventListener() {
             @Override
             public void onPlay(CinematicEvent cinematic) {
-                GameState.setTransition(true);
+                stateManager.getState(PlayerState.class).setTransitionEnd(false);
                 inputManager.setCursorVisible(false);
                 PlayerCameraState.this.cameraStore();
             }
@@ -219,7 +220,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
 
             @Override
             public void onStop(CinematicEvent cinematic) {
-                GameState.setTransition(false);
+                stateManager.getState(PlayerState.class).setTransitionEnd(true);
                 inputManager.setCursorVisible(true);
                 PlayerCameraState.this.cameraRestore();
             }

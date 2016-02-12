@@ -167,7 +167,7 @@ public class PlayerManaControl extends AbstractControl {
     }
 
     public void addListener(Label label, Type type) {
-        if (!listeners.containsKey(type)) {
+        if (!listeners.containsKey(type) && label != null) {
             listeners.put(type, label);
         }
     }

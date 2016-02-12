@@ -53,10 +53,10 @@ public class FlashTileControl extends AbstractControl {
 
     @Override
     public void setSpatial(Spatial spatial) {
+        if (spatial == null) {
+            enabled = false;
+        }
         super.setSpatial(spatial);
-
-        flashed = true;
-        setColorToGeometries((Node) spatial, flashed);
     }
 
     @Override

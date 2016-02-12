@@ -38,7 +38,7 @@ public class PlayerCameraControl extends Control {
     private PlayerCamera camera;
     private Vector3f from, to;
     private float tick = 0;
-    public final int SPEED = 1;
+    public static final float SPEED = 1.5f;
 
     /**
      * Constructor used for Serialization.
@@ -84,7 +84,7 @@ public class PlayerCameraControl extends Control {
         Vector3f look = FastMath.interpolateLinear(tick, from, to);
         camera.setLookAt(look);
 
-        tick += tpf / SPEED;
+        tick += tpf * SPEED;
     }
 
     @Override

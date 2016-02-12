@@ -52,7 +52,7 @@ public class ActionPointState extends AbstractAppState {
 
         actionPoints = new HashMap<>();
 
-        for (Thing thing : stateManager.getState(GameState.class).getLevelData().getThings()) {
+        for (Thing thing : this.stateManager.getState(GameState.class).getLevelData().getThings()) {
             if (thing instanceof Thing.ActionPoint) {
                 Thing.ActionPoint temp = (Thing.ActionPoint) thing;
                 ActionPoint ap = new ActionPoint(temp);

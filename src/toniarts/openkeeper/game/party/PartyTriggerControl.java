@@ -43,7 +43,7 @@ public class PartyTriggerControl extends TriggerControl {
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
         boolean result = super.isActive(trigger);
-        if (result) {
+        if (checked) {
             return result;
         }
 
@@ -70,6 +70,10 @@ public class PartyTriggerControl extends TriggerControl {
                 unknown = (short) trigger.getUserData("unknown");
                 value = (int) trigger.getUserData("value");
                 break;
+
+            default:
+                logger.warning("Target Type not supported");
+                return false;
         }
 
         TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();

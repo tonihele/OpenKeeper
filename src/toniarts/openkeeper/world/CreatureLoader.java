@@ -17,44 +17,33 @@
 package toniarts.openkeeper.world;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.bullet.BulletAppState;
 import com.jme3.scene.Node;
 import java.util.ArrayList;
 import java.util.List;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.creature.CreatureLoader;
 
 /**
  *
  * @author ArchDemon
  */
-public class ThingLoader {
 
-    private final WorldState worldState;
 
-    public ThingLoader(WorldState worldState) {
-        this.worldState = worldState;
-    }
+public class CreatureLoader {
 
-    public Spatial load(BulletAppState bulletAppState, AssetManager assetManager, KwdFile kwdFile) {
+    public static List<Node> load(BulletAppState bulletAppState, AssetManager assetManager, KwdFile kwdFile) {
 
-        // Create a creature loader
-        CreatureLoader creatureLoader = new CreatureLoader(kwdFile, worldState);
+        ArrayList<Node> result = new ArrayList<>();
 
-        //Create a root
-        List<Node> result = new ArrayList<>();
-
-        for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
+        for (Thing obj : kwdFile.getThings()) {
             try {
-               if (obj instanceof Thing.Object) {
+                if (obj instanceof Thing.Creature) {
 
                     Thing.Creature cr = (Thing.Creature) obj;
-//                    GameCreature creature = new GameCreature(bulletAppState, assetManager, cr, kwdFile);
+                    GameCreature creature = new GameCreature(bulletAppState, assetManager, cr, kwdFile);
 
-                    nodeCreatures.attachChild(creatureLoader.load(assetManager, cr));
-
+                    result.add(creature);
                 }
             } catch (Exception ex) {
                 System.err.println(ex);
@@ -63,4 +52,11 @@ public class ThingLoader {
 
         return result;
     }
+
+    public static GameCreature load(Thing.GoodCreature object, BulletAppState bulletAppState,
+            AssetManager assetManager, KwdFile kwdFile) {
+
+        return new GameCreature(bulletAppState, assetManager, object, null);
+    }
+
 }

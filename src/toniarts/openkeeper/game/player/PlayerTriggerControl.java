@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.player;
 
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
@@ -30,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 public class PlayerTriggerControl extends TriggerControl {
 
+    private PlayerState playerState = null;
     private static final Logger logger = Logger.getLogger(PlayerTriggerControl.class.getName());
 
     public PlayerTriggerControl() { // empty serialization constructor
@@ -40,15 +42,20 @@ public class PlayerTriggerControl extends TriggerControl {
         super(app, triggerId);
     }
 
+    public void setPlayerState(PlayerState playerState) {
+        this.playerState = playerState;
+    }
+
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
         boolean result = super.isActive(trigger);
-        if (result) {
+        if (checked) {
             return result;
         }
 
         result = false;
-        float target = 0;
+        int target = 0;
+        int value = 0;
 
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
@@ -62,7 +69,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
             case PLAYER_KILLS_CREATURES:
                 return false;
-            case PLAYER_ROOM_SLAPS:
+            case PLAYER_ROOM_SLABS:
                 return false;
             case PLAYER_ROOMS:
                 return false;
@@ -75,11 +82,36 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_KEEPER_SPELL:
                 return false;
             case PLAYER_GOLD:
-                return false;
+                PlayerGoldControl pgc = playerState.getGoldControl();
+                target = pgc.getGold();
+                boolean isValue = trigger.getUserData("flag", short.class) == 1;
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                } else {
+                    // TODO get value from other player
+                    short playerId = trigger.getUserData("targetId", short.class);
+                    return false;
+                }
+                break;
+
             case PLAYER_GOLD_MINED:
-                return false;
+                pgc = playerState.getGoldControl();
+                target = pgc.getGoldMined();
+                isValue = trigger.getUserData("flag", short.class) == 1;
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                } else {
+                    // TODO get value from other player
+                    short playerId = trigger.getUserData("targetId", short.class);
+                    return false;
+                }
+                break;
+
             case PLAYER_MANA:
-                return false;
+                PlayerManaControl pmc = playerState.getManaControl();
+                target = pmc.getMana();
+                break;
+
             case PLAYER_DESTROYS:
                 return false;
             case PLAYER_CREATURES_AT_LEVEL:
@@ -106,11 +138,19 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
             case PLAYER_CREATURES_DYING:
                 return false;
+            case GUI_TRANSITION_ENDS:
+                return playerState.isTransitionEnd();
+
+            case GUI_BUTTON_PRESSED:
+                return false;
+            default:
+                logger.warning("Target Type not supported");
+                return false;
         }
 
         TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
-        if (comparisonType != null) {
-            result = compare(target, comparisonType, (int) trigger.getUserData("value"));
+        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
+            result = compare(target, comparisonType, value);
         }
 
         return result;

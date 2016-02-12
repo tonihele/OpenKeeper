@@ -43,7 +43,7 @@ public class CreatureTriggerControl extends TriggerControl {
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
         boolean result = super.isActive(trigger);
-        if (result) {
+        if (checked) {
             return result;
         }
 
@@ -94,13 +94,17 @@ public class CreatureTriggerControl extends TriggerControl {
                 return false;
             case CREATURE_PICKED_UP:
                 return false;
+            default:
+                logger.warning("Target Type not supported");
+                return false;
         }
+        /*
+         TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
+         if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
+         result = compare(target, comparisonType, (int) trigger.getUserData("value"));
+         }
 
-        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
-        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
-            result = compare(target, comparisonType, (int) trigger.getUserData("value"));
-        }
-
-        return result;
+         return result;
+         */
     }
 }

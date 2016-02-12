@@ -19,7 +19,6 @@ package toniarts.openkeeper.game.state;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.app.Application;
-import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import java.io.File;
 import java.util.HashMap;
@@ -29,6 +28,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
+import toniarts.openkeeper.game.party.PartytState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -39,7 +39,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameState extends AbstractAppState {
+public class GameState extends AbstractPauseAwareState {
 
     private Main app;
 
@@ -47,15 +47,14 @@ public class GameState extends AbstractAppState {
 
     private String level;
     private KwdFile kwdFile;
-    
+
     private TriggerControl triggerControl = null;
     private Map<Short, Integer> flags = new HashMap<>(127);
     // TODO What timer class we should take ?
     private Map<Byte, GameTimer> timers = new HashMap<>(15);
-    private static int gameScore = 0;
-    private static boolean isTransition = false;
-    private static float gameTime = 0;
-    private static Float timeLimit = null;
+
+    private float gameTime = 0;
+    private Float timeLimit = null;
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
     /**
      * Single use game states
@@ -101,13 +100,16 @@ public class GameState extends AbstractAppState {
                     WorldState worldState = new WorldState() {
                         @Override
                         protected void updateProgress(int progress, int max) {
-                            setProgress(0.1f + ((float) progress / max * 0.7f));
+                            setProgress(0.1f + ((float) progress / max * 0.6f));
                         }
                     };
 
-                    stateManager.attach(worldState);
-                    // attach ActionPointState
-                    stateManager.attach(new ActionPointState(false));
+                    GameState.this.stateManager.attach(worldState);
+
+                    GameState.this.stateManager.attach(new ActionPointState(false));
+                    setProgress(0.70f);
+
+                    GameState.this.stateManager.attach(new PartytState(false));
                     setProgress(0.80f);
 
                     int triggerId = kwdFile.getGameLevel().getTriggerId();
@@ -131,8 +133,9 @@ public class GameState extends AbstractAppState {
                 GameState.this.app.setViewProcessors();
 
                 // Enable player state
-                stateManager.getState(PlayerState.class).setEnabled(true);
-                stateManager.getState(ActionPointState.class).setEnabled(true);
+                GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);
+                GameState.this.stateManager.getState(ActionPointState.class).setEnabled(true);
+                GameState.this.stateManager.getState(PartytState.class).setEnabled(true);
 
                 for (short i = 0; i < 128; i++) {
                     flags.put(i, 0);
@@ -209,23 +212,7 @@ public class GameState extends AbstractAppState {
         return timers.get((byte) id);
     }
 
-    public static void setTransition(boolean value) {
-        isTransition = value;
-    }
-
-    public static boolean getTransition() {
-        return isTransition;
-    }
-
-    public static int getGameScore() {
-        return gameScore;
-    }
-
-    public static void setGameScore(int gameScore) {
-        GameState.gameScore = gameScore;
-    }
-
-    public static float getGameTime() {
+    public float getGameTime() {
         return gameTime;
     }
 
@@ -233,11 +220,21 @@ public class GameState extends AbstractAppState {
         return level;
     }
 
-    public static Float getTimeLimit() {
+    public Float getTimeLimit() {
         return timeLimit;
     }
 
-    public static void setTimeLimit(float timeLimit) {
-        GameState.timeLimit = timeLimit;
+    public void setTimeLimit(float timeLimit) {
+        this.timeLimit = timeLimit;
+    }
+
+    public void setEnd(boolean win) {
+        // TODO make lose and win the game
+        stateManager.getState(MainMenuState.class).setEnabled(true);
+    }
+
+    @Override
+    public boolean isPauseable() {
+        return true;
     }
 }
