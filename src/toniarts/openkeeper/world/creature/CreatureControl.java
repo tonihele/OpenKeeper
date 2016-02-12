@@ -27,9 +27,14 @@ import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.FastMath;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.WorldHandler;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
@@ -41,23 +46,53 @@ import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetec
  */
 public class CreatureControl extends AbstractCreatureSteeringControl {
 
+    // Attributes
+    private final String name;
+    private final String bloodType;
+    private int gold;
+    private int level;
+    private int health;
+    private int experience;
+    //
+
     protected final StateMachine<CreatureControl, CreatureState> stateMachine;
     private final WorldHandler worldHandler;
+    private float timeInState;
+    private CreatureState state;
+    private boolean animationPlaying = false;
 
     public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldHandler worldHandler) {
         super(creature);
         stateMachine = new DefaultStateMachine<>(this);
         this.worldHandler = worldHandler;
+
+        // Attributes
+        name = Utils.generateCreatureName();
+        bloodType = Utils.generateBloodType();
+        gold = creatureInstance.getGoldHeld();
     }
 
     @Override
     protected void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
         if (stateMachine.getCurrentState() == null) {
-            stateMachine.changeState(CreatureState.WANDER);
+            stateMachine.changeState(CreatureState.IDLE);
+        }
+
+        // Set the time in state
+        if (stateMachine.getCurrentState() != null) {
+            if (stateMachine.getCurrentState().equals(state)) {
+                timeInState += tpf;
+            } else {
+                state = stateMachine.getCurrentState();
+                timeInState = 0f;
+            }
         }
 
         stateMachine.update();
+
+        // Set the appropriate animation
+        playStateAnimation();
     }
 
     @Override
@@ -66,14 +101,13 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     }
 
     public void wander() {
-        PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this);
+
+        // Set wandering
+        PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
         RaycastCollisionDetector<Vector2> raycastCollisionDetector = new CreatureRayCastCollisionDetector(worldHandler);
-        RaycastObstacleAvoidance<Vector2> raycastObstacleAvoidanceSB = new RaycastObstacleAvoidance<>(this, new SingleRayConfiguration<Vector2>(this, 0.05f),
-                raycastCollisionDetector, 0.01f);
-//        prioritySteering.add(raycastObstacleAvoidanceSB);
-//        prioritySteering.add(new LookWhereYouAreGoing<>(this).setTimeToTarget(0.1f) //
-//                .setAlignTolerance(0.001f) //
-//                .setDecelerationRadius(FastMath.PI));
+        RaycastObstacleAvoidance<Vector2> raycastObstacleAvoidanceSB = new RaycastObstacleAvoidance<>(this, new SingleRayConfiguration<Vector2>(this, 1.5f),
+                raycastCollisionDetector, 0.5f);
+        prioritySteering.add(raycastObstacleAvoidanceSB);
         prioritySteering.add(new Wander<>(this).setFaceEnabled(false) // We want to use Face internally (independent facing is on)
                 .setAlignTolerance(0.001f) // Used by Face
                 .setDecelerationRadius(5) // Used by Face
@@ -83,6 +117,76 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
                 .setWanderRadius(10) //
                 .setWanderRate(FastMath.TWO_PI * 4));
         setSteeringBehavior(prioritySteering);
+    }
+
+    public void idle() {
+
+        // Stop
+        setSteeringBehavior(null);
+    }
+
+    public boolean idleTimeExceeded() {
+        return ((creature.getIdleDuration() < 0.1f ? 1f : creature.getIdleDuration()) < timeInState);
+    }
+
+    public StateMachine<CreatureControl, CreatureState> getStateMachine() {
+        return stateMachine;
+    }
+
+    private void playAnimation(ArtResource anim) {
+        animationPlaying = true;
+        CreatureLoader.playAnimation(getSpatial(), anim);
+    }
+
+    /**
+     * Should the current animation stop?
+     *
+     * @return stop or not
+     */
+    boolean isStopAnimation() {
+        return true;
+    }
+
+    /**
+     * Current animation has stopped
+     */
+    void onAnimationStop() {
+        animationPlaying = false;
+        playStateAnimation();
+    }
+
+    /**
+     * An animation cycle is finished
+     */
+    void onAnimationCycleDone() {
+
+    }
+
+    private void playStateAnimation() {
+        if (!animationPlaying) {
+            switch (stateMachine.getCurrentState()) {
+                case IDLE: {
+                    List<ArtResource> idleAnimations = new ArrayList<>(3);
+                    if (creature.getAnimIdle1Resource() != null) {
+                        idleAnimations.add(creature.getAnimIdle1Resource());
+                    }
+                    if (creature.getAnimIdle2Resource() != null) {
+                        idleAnimations.add(creature.getAnimIdle2Resource());
+                    }
+                    ArtResource idleAnim = idleAnimations.get(0);
+                    if (idleAnimations.size() > 1) {
+                        Random random = new Random();
+                        idleAnim = idleAnimations.get(random.nextInt(idleAnimations.size()));
+                    }
+                    playAnimation(idleAnim);
+                    break;
+                }
+                case WANDER: {
+                    playAnimation(creature.getAnimWalkResource());
+                    break;
+                }
+            }
+        }
     }
 
 }
