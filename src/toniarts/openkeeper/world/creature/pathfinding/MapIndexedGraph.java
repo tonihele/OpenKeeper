@@ -23,8 +23,8 @@ import com.badlogic.gdx.utils.Array;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
+import toniarts.openkeeper.world.WorldHandler;
 
 /**
  * Map representation for the path finding
@@ -33,13 +33,13 @@ import toniarts.openkeeper.world.TileData;
  */
 public class MapIndexedGraph extends DefaultIndexedGraph<TileData> {
 
-    private final MapLoader mapLoader;
+    private final WorldHandler worldHandler;
     private final KwdFile kwdFile;
     private final int nodeCount;
     private Creature creature;
 
-    public MapIndexedGraph(MapLoader mapLoader, KwdFile kwdFile) {
-        this.mapLoader = mapLoader;
+    public MapIndexedGraph(WorldHandler worldHandler, KwdFile kwdFile) {
+        this.worldHandler = worldHandler;
         this.kwdFile = kwdFile;
         nodeCount = kwdFile.getMap().getHeight() * kwdFile.getMap().getWidth();
     }
@@ -74,22 +74,22 @@ public class MapIndexedGraph extends DefaultIndexedGraph<TileData> {
     }
 
     private void addIfValidCoordinate(final TileData startTile, final int x, final int y, final Array<Connection<TileData>> connections) {
-        if ((x >= 0 && x < kwdFile.getMap().getWidth() && y >= 0 && y < kwdFile.getMap().getHeight())) {
 
-            // Valid coordinate
-            TileData tile = mapLoader.getTile(x, y);
+        // Valid coordinate
+        TileData tile = worldHandler.getMapLoader().getTile(x, y);
+        if (tile != null) {
             Terrain terrain = tile.getTerrain();
             if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
 
                 // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
                 if (creature != null) {
 
+                    if (!worldHandler.isAccessible(tile, creature)) {
+                        return;
+                    }
+
                     if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
                         connections.add(new DefaultConnection<>(startTile, tile)); // No cost
-                        return;
-                    } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
-                        return;
-                    } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
                         return;
                     }
                 }

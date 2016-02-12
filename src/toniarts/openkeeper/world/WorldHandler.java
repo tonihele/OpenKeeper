@@ -19,15 +19,18 @@ package toniarts.openkeeper.world;
 import com.jme3.asset.AssetManager;
 import com.jme3.audio.AudioNode;
 import com.jme3.bullet.BulletAppState;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -71,7 +74,7 @@ public abstract class WorldHandler {
         worldNode.attachChild(mapLoader.load(assetManager, kwdFile));
 
         // For path finding
-        pathFindingMap = new MapIndexedGraph(mapLoader, kwdFile);
+        pathFindingMap = new MapIndexedGraph(this, kwdFile);
         pathFinder = new MapPathFinder(pathFindingMap, false);
         heuristic = new MapDistance();
 
@@ -420,5 +423,71 @@ public abstract class WorldHandler {
         audio.setLocalTranslation(x, 0, y);
         worldNode.attachChild(audio);
         audio.play();
+    }
+
+    /**
+     * Get a random tile, that is not a starting tile
+     *
+     * @param start starting coordinates
+     * @param radius radius, in tiles
+     * @param creature
+     * @return a random tile if one is found
+     */
+    public Point findRandomAccessibleTile(Point start, int radius, Creature creature) {
+        List<Point> tiles = new ArrayList<>(radius * radius - 1);
+        for (int y = start.y - radius / 2; y < start.y + radius / 2; y++) {
+            for (int x = start.x - radius / 2; x < start.x + radius / 2; x++) {
+
+                // Skip start tile
+                if (x == start.x && y == start.y) {
+                    continue;
+                }
+
+                TileData tile = getMapLoader().getTile(x, y);
+                if (tile != null && isAccessible(tile, creature)) {
+                    tiles.add(new Point(x, y));
+                }
+            }
+        }
+
+        // Take a random point
+        if (!tiles.isEmpty()) {
+            Random random = new Random();
+            return tiles.get(random.nextInt(tiles.size()));
+        }
+        return null;
+    }
+
+    /**
+     * Get tile coordinates from 3D coordinates
+     *
+     * @param translation position
+     * @return tile coordinates
+     */
+    public Point getTileCoordinates(Vector3f translation) {
+        return new Point((int) Math.floor(translation.x), (int) Math.floor(translation.z));
+    }
+
+    /**
+     * Check if given tile is accessible by the given creature
+     *
+     * @param tile the tile
+     * @param creature creature
+     * @return is accessible
+     */
+    public boolean isAccessible(TileData tile, Creature creature) {
+        Terrain terrain = tile.getTerrain();
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+
+            // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
+            if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
+                return true;
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
+                return true;
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
