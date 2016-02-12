@@ -32,12 +32,14 @@ public enum CreatureState implements State<CreatureControl> {
 
                 @Override
                 public void enter(CreatureControl entity) {
-
+                    entity.idle();
                 }
 
                 @Override
                 public void update(CreatureControl entity) {
-
+//                    if (entity.idleTimeExceeded()) {
+//                        entity.getStateMachine().changeState(WANDER);
+//                    }
                 }
 
                 @Override
@@ -59,7 +61,9 @@ public enum CreatureState implements State<CreatureControl> {
 
                 @Override
                 public void update(CreatureControl entity) {
-
+//                    if (entity.idleTimeExceeded()) {
+//                        entity.getStateMachine().changeState(IDLE);
+//                    }
                 }
 
                 @Override
