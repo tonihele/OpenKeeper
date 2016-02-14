@@ -20,9 +20,7 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.audio.AudioNode;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
-import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.action.ActionPoint;
@@ -33,6 +31,7 @@ import toniarts.openkeeper.game.party.PartytState;
 import toniarts.openkeeper.game.player.PlayerCameraControl;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
@@ -50,7 +49,7 @@ public class TriggerControl extends Control {
 
     protected TriggerGenericData trigger;
     protected TriggerGenericData root;
-    protected Main app;
+
     protected AppStateManager stateManager;
     protected boolean checked = true;
     private static final Logger logger = Logger.getLogger(TriggerControl.class.getName());
@@ -58,9 +57,9 @@ public class TriggerControl extends Control {
     public TriggerControl() {
     }
 
-    public TriggerControl(final Main app, int triggerId) {
-        this.app = app;
-        stateManager = app.getStateManager();
+    public TriggerControl(final AppStateManager stateManager, int triggerId) {
+
+        this.stateManager = stateManager;
         root = new TriggerLoader(this.stateManager.getState(GameState.class).getLevelData()).load(triggerId);
         if (root == null) {
             throw new IllegalArgumentException("trigger can not be null");
@@ -284,14 +283,7 @@ public class TriggerControl extends Control {
             case PLAY_SPEECH:
                 // TODO Sound State
                 int speechId = trigger.getUserData("speechId", int.class);
-                String file = String.format("Sounds/speech_%s/lvlspe%02d.mp2",
-                        stateManager.getState(GameState.class).getLevel().toLowerCase(), speechId);
-                AudioNode speech = new AudioNode(app.getAssetManager(), file, false);
-                speech.setName("speech");
-                speech.setLooping(false);
-                speech.setPositional(false);
-                speech.play();
-                app.getRootNode().attachChild(speech);
+                stateManager.getState(SoundState.class).attachSpeech(speechId);
                 break;
 
             case DISPLAY_TEXT_MESSAGE:
@@ -333,12 +325,9 @@ public class TriggerControl extends Control {
             case SET_PORTAL_STATUS:
                 break;
             case SET_WIDESCREEN_MODE:
+                ps = stateManager.getState(PlayerState.class);
                 enable = trigger.getUserData("available", short.class) != 0;
-                if (enable) {
-                    app.getNifty().getNifty().gotoScreen(PlayerState.CINEMATIC_SCREEN_ID);
-                } else {
-                    app.getNifty().getNifty().gotoScreen(PlayerState.HUD_SCREEN_ID);
-                }
+                ps.setWideScreen(enable);
                 break;
 
             case MAKE_OBJECTIVE:

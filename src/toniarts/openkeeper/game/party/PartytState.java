@@ -57,7 +57,7 @@ public class PartytState extends AbstractAppState {
                 Thing.HeroParty temp = (Thing.HeroParty) thing;
                 Party party = new Party(temp);
                 if (temp.getTriggerId() != 0) {
-                    party.addControl(new PartyTriggerControl(this.app, temp.getTriggerId()));
+                    party.addControl(new PartyTriggerControl(this.stateManager, temp.getTriggerId()));
                 }
                 parties.put(party.getId(), party);
             }

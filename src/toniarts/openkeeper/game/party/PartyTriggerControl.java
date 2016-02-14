@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.game.party;
 
+import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
@@ -36,8 +36,8 @@ public class PartyTriggerControl extends TriggerControl {
         super();
     }
 
-    public PartyTriggerControl(final Main app, int triggerId) {
-        super(app, triggerId);
+    public PartyTriggerControl(final AppStateManager stateManager, int triggerId) {
+        super(stateManager, triggerId);
     }
 
     @Override

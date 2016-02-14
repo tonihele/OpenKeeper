@@ -114,7 +114,7 @@ public class GameState extends AbstractPauseAwareState {
 
                     int triggerId = kwdFile.getGameLevel().getTriggerId();
                     if (triggerId != 0) {
-                        triggerControl = new TriggerControl(app, triggerId);
+                        triggerControl = new TriggerControl(stateManager, triggerId);
                         setProgress(0.90f);
                     }
 

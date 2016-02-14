@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.audio.AudioNode;
 import toniarts.openkeeper.Main;
 
 /**
@@ -41,5 +42,16 @@ public class SoundState extends AbstractPauseAwareState {
     @Override
     public boolean isPauseable() {
         return false;
+    }
+
+    public void attachSpeech(int speechId) {
+        String file = String.format("Sounds/speech_%s/lvlspe%02d.mp2",
+                stateManager.getState(GameState.class).getLevel().toLowerCase(), speechId);
+        AudioNode speech = new AudioNode(app.getAssetManager(), file, false);
+        speech.setName("speech");
+        speech.setLooping(false);
+        speech.setPositional(false);
+        speech.play();
+        app.getRootNode().attachChild(speech);
     }
 }

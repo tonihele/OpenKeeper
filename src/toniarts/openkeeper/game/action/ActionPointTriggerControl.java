@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.action;
 
+import com.jme3.app.state.AppStateManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -41,8 +42,8 @@ public class ActionPointTriggerControl extends TriggerControl {
         super();
     }
 
-    public ActionPointTriggerControl(final Main app, int triggerId) {
-        super(app, triggerId);
+    public ActionPointTriggerControl(final AppStateManager stateManager, int triggerId) {
+        super(stateManager, triggerId);
     }
 
     @Override

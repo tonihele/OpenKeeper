@@ -57,7 +57,7 @@ public class ActionPointState extends AbstractAppState {
                 Thing.ActionPoint temp = (Thing.ActionPoint) thing;
                 ActionPoint ap = new ActionPoint(temp);
                 if (temp.getTriggerId() != 0) {
-                    ap.addControl(new ActionPointTriggerControl(this.app, temp.getTriggerId()));
+                    ap.addControl(new ActionPointTriggerControl(this.stateManager, temp.getTriggerId()));
                 }
                 actionPoints.put(ap.getId(), ap);
             }

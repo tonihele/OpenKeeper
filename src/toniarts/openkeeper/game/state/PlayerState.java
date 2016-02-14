@@ -24,7 +24,6 @@ import com.jme3.asset.AssetManager;
 import com.jme3.asset.DesktopAssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.font.Rectangle;
-import com.jme3.scene.Node;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
@@ -163,7 +162,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
             int triggerId = gameState.getLevelData().getPlayer(playerId).getTriggerId();
             if (triggerId != 0) {
-                triggerControl = new PlayerTriggerControl(app, triggerId);
+                triggerControl = new PlayerTriggerControl(stateManager, triggerId);
                 triggerControl.setPlayerState(this);
             }
 
@@ -293,6 +292,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
     public void addScore(int score) {
         this.score += score;
+    }
+
+    public void setWideScreen(boolean enable) {
+        if (enable) {
+            app.getNifty().getNifty().gotoScreen(PlayerState.CINEMATIC_SCREEN_ID);
+        } else {
+            app.getNifty().getNifty().gotoScreen(PlayerState.HUD_SCREEN_ID);
+        }
     }
 
     /**
