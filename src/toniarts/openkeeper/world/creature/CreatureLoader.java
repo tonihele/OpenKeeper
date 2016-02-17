@@ -242,20 +242,24 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
 
         Node root = (Node) spatial;
 
-        // Hide all
-        hideAllNodes(root);
-
         // Get the anim node
         String animNodeName = anim.getName();
         if (anim.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
             animNodeName = anim.getName() + "Start";
         }
         Spatial spat = root.getChild(animNodeName);
-        AnimControl animControl = (AnimControl) spat.getControl(0);
-        spat.setCullHint(Spatial.CullHint.Inherit);
-        AnimChannel channel = animControl.getChannel(0);
-        channel.setAnim("anim", 0);
-        animControl.setEnabled(true);
+        if (spat != null) {
+
+            // Hide all
+            hideAllNodes(root);
+
+            // Show the anim
+            AnimControl animControl = (AnimControl) spat.getControl(0);
+            spat.setCullHint(Spatial.CullHint.Inherit);
+            AnimChannel channel = animControl.getChannel(0);
+            channel.setAnim("anim", 0);
+            animControl.setEnabled(true);
+        }
     }
 
     private static void hideAllNodes(Node root) {
