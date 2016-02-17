@@ -67,6 +67,7 @@ public abstract class WorldHandler {
     private final MapIndexedGraph pathFindingMap;
     private final MapPathFinder pathFinder;
     private final MapDistance heuristic;
+    private final Node thingsNode;
 
     public WorldHandler(final AssetManager assetManager, final KwdFile kwdFile, final BulletAppState bulletAppState) {
         this.kwdFile = kwdFile;
@@ -90,7 +91,8 @@ public abstract class WorldHandler {
         heuristic = new MapDistance();
 
         // Things
-        worldNode.attachChild(new ThingLoader(this).load(bulletAppState, assetManager, kwdFile));
+        thingsNode = (Node) new ThingLoader(this).load(bulletAppState, assetManager, kwdFile);
+        worldNode.attachChild(thingsNode);
     }
 
     public AssetManager getAssetManager() {
@@ -536,6 +538,10 @@ public abstract class WorldHandler {
             geometry.setMaterial(orange);
             getWorld().attachChild(geometry);
         }
+    }
+
+    public Node getThingsNode() {
+        return thingsNode;
     }
 
 }
