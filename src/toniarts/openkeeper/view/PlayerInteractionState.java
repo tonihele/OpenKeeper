@@ -19,6 +19,7 @@ package toniarts.openkeeper.view;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.collision.CollisionResults;
 import com.jme3.font.Rectangle;
 import com.jme3.input.InputManager;
 import com.jme3.input.MouseInput;
@@ -29,9 +30,12 @@ import com.jme3.input.event.KeyInputEvent;
 import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
+import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
+import de.lessvoid.nifty.controls.Label;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
@@ -43,6 +47,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.world.WorldHandler;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * State for managing player interactions in the world. Heavily drawn from
@@ -76,12 +81,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private boolean isTaggable = false;
     private boolean isTagging = false;
     private boolean isOnView = false;
+    private boolean isInteractable = false;
+    private final Label tooltip;
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
-    public PlayerInteractionState(Player player, GameState gameState, Rectangle guiConstraint) {
+    public PlayerInteractionState(Player player, GameState gameState, Rectangle guiConstraint, Label tooltip) {
         this.player = player;
         this.gameState = gameState;
         this.guiConstraint = guiConstraint;
+        this.tooltip = tooltip;
     }
 
     @Override
@@ -283,6 +291,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     getWorldHandler().claimTile((int) pos.x, (int) pos.y, player);
                 }
                 //
+            } else if (interactionState == InteractionState.NONE) {
+                CreatureControl creatureControl = getInteractiveObjectOnCursor();
+                if (creatureControl != null && creatureControl.isSlappable()) {
+                    creatureControl.slap();
+                }
             }
 
             // Reset the state
@@ -376,7 +389,57 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         }
         isTaggable = value;
 
+        value = isInteractable();
+        if (!changed && isInteractable != value) {
+            changed = true;
+        }
+        isInteractable = value;
+
         return changed;
+    }
+
+    private boolean isInteractable() {
+
+        // TODO: Now just creature control, but all interaction objects
+        CreatureControl controller = getInteractiveObjectOnCursor();
+        if (controller != null) {
+
+            // Maybe a kinda hack, but set the tooltip here
+            tooltip.setText(controller.getTooltip());
+            return true;
+        }
+
+        tooltip.setText("");
+        return false;
+    }
+
+    private CreatureControl getInteractiveObjectOnCursor() {
+
+        // See if we hit a creature/object
+        CollisionResults results = new CollisionResults();
+
+        // Convert screen click to 3D position
+        Vector3f click3d = app.getCamera().getWorldCoordinates(
+                new Vector2f(mousePosition.x, mousePosition.y), 0f);
+        Vector3f dir = app.getCamera().getWorldCoordinates(
+                new Vector2f(mousePosition.x, mousePosition.y), 1f).subtractLocal(click3d);
+
+        // Aim the ray from the mouse spot forwards
+        Ray ray = new Ray(click3d, dir);
+
+        // Collect intersections between ray and all nodes in results list
+        getWorldHandler().getThingsNode().collideWith(ray, results);
+
+        // See the results so we see what is going on
+        for (int i = 0; i < results.size(); i++) {
+
+            // TODO: Now just creature control, but all interaction objects
+            CreatureControl controller = results.getCollision(i).getGeometry().getParent().getParent().getControl(CreatureControl.class);
+            if (controller != null) {
+                return controller;
+            }
+        }
+        return null;
     }
 
     private boolean isTaggable() {
@@ -394,7 +457,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     protected void setCursor() {
         if (app.getUserSettings().getSettingBoolean(Settings.Setting.USE_CURSORS)) {
-            if (isOnGui) {
+            if (isOnGui || isInteractable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
             } else if (isTagging) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE_TAGGING, assetManager));

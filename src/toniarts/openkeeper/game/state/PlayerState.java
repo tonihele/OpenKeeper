@@ -192,7 +192,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 }
             };
 
-            interactionState = new PlayerInteractionState(player, gameState, guiConstraint) {
+            interactionState = new PlayerInteractionState(player, gameState, guiConstraint, tooltip) {
                 @Override
                 protected void onInteractionStateChange(InteractionState interactionState, int id) {
                     PlayerState.this.updateSelectedItem(interactionState, id);
@@ -353,17 +353,21 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 contentPanel = nifty.getCurrentScreen().findElementByName("creature-filter");
                 if (contentPanel != null) {
                     if (creature.getFirstPersonFilterResource() != null) {
-                        new ImageBuilder() {{
-                            filename(creature.getFirstPersonFilterResource().getName());
-                        }}.build(nifty, nifty.getCurrentScreen(), contentPanel);
+                        new ImageBuilder() {
+                            {
+                                filename(creature.getFirstPersonFilterResource().getName());
+                            }
+                        }.build(nifty, nifty.getCurrentScreen(), contentPanel);
                     } else if (getFilterResourceName(creature.getCreatureId()) != null) {
-                        new ImageBuilder() {{
-                            filename(getFilterResourceName(creature.getCreatureId()));
-                        }}.build(nifty, nifty.getCurrentScreen(), contentPanel);
+                        new ImageBuilder() {
+                            {
+                                filename(getFilterResourceName(creature.getCreatureId()));
+                            }
+                        }.build(nifty, nifty.getCurrentScreen(), contentPanel);
                     }
 
                     if (creature.getFirstPersonGammaEffect() != null) {
-                         contentPanel.getRenderer(PanelRenderer.class).setBackgroundColor(getGammaEffectColor(creature.getFirstPersonGammaEffect()));
+                        contentPanel.getRenderer(PanelRenderer.class).setBackgroundColor(getGammaEffectColor(creature.getFirstPersonGammaEffect()));
                     }
                 }
 
@@ -438,7 +442,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 break;
 
             case DARK_ELF_PURPLE:
-                 c = new Color(0.9f, 0, 0.9f, 0.2f);
+                c = new Color(0.9f, 0, 0.9f, 0.2f);
                 break;
 
             case SKELETON_BLACK_N_WHITE:
@@ -494,7 +498,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
     private ImageBuilder createCreatureAbilityIcon(final String name, final int index) {
 
-         return new ImageBuilder() {
+        return new ImageBuilder() {
             {
                 valignCenter();
                 marginRight("6px");
@@ -504,8 +508,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 valignCenter();
                 onFocusEffect(new EffectBuilder("imageOverlay") {
                     {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER +
-                                File.separator + "GUI/Icons/selected-creature.png"));
+                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                                + File.separator + "GUI/Icons/selected-creature.png"));
                         post(true);
                     }
                 });
@@ -514,7 +518,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     private ImageBuilder createCreatureIcon(final String name) {
-         return new ImageBuilder() {
+        return new ImageBuilder() {
             {
                 filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + name + ".png"));
                 valignCenter();
@@ -523,7 +527,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     private ImageBuilder createCreatureMeleeIcon(final String name) {
-         return new ImageBuilder() {
+        return new ImageBuilder() {
             {
                 filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + name + ".png"));
                 valignCenter();
@@ -532,8 +536,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 id("creature-melee");
                 onFocusEffect(new EffectBuilder("imageOverlay") {
                     {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER +
-                                File.separator + "GUI/Icons/selected-creature.png"));
+                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                                + File.separator + "GUI/Icons/selected-creature.png"));
                         post(true);
                     }
                 });
@@ -542,7 +546,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     private ImageBuilder createCreatureSpellIcon(final CreatureSpell cs, final int index) {
-         return new ImageBuilder() {
+        return new ImageBuilder() {
             {
                 filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + cs.getGuiIcon().getName() + ".png"));
                 valignCenter();
@@ -551,8 +555,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 id("creature-spell_" + index);
                 onFocusEffect(new EffectBuilder("imageOverlay") {
                     {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER +
-                                File.separator + "GUI/Icons/selected-spell.png"));
+                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                                + File.separator + "GUI/Icons/selected-spell.png"));
                         post(true);
                     }
                 });
@@ -771,7 +775,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), optionsColumnOne));
                 items.add(new GameMenu(Utils.isWindows() ? "i-exit_to_windows" : "i-quit", Utils.isWindows() ? "${menu.13}" : "${menu.14}",
                         String.format("pauseMenuNavigate(%s,%s,%s,quitToOS())", PauseMenuState.CONFIRMATION.name(),
-                        PauseMenuState.QUIT.name(), (Utils.isWindows() ? "${menu.13}" : "${menu.14}")), optionsColumnOne));
+                                PauseMenuState.QUIT.name(), (Utils.isWindows() ? "${menu.13}" : "${menu.14}")), optionsColumnOne));
                 items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
                 items.add(new GameMenu("i-back", "${menu.20}", String.format("pauseMenuNavigate(%s,null,null,null)", PauseMenuState.MAIN),
                         optionsNavigationColumnTwo));
@@ -863,13 +867,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     private void updatePossessionSelectedItem(PossessionInteractionState.Action action) {
-         Element element = nifty.getCurrentScreen().findElementByName("creature-" + action.toString().toLowerCase());
-         if (element != null) {
+        Element element = nifty.getCurrentScreen().findElementByName("creature-" + action.toString().toLowerCase());
+        if (element != null) {
             element.setFocus();
-         }
+        }
     }
 
     private class GameMenu {
+
         protected String title;
         protected String action;
         protected String id;
