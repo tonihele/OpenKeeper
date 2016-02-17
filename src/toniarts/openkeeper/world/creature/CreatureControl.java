@@ -18,15 +18,21 @@ package toniarts.openkeeper.world.creature;
 
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
+import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.ai.steer.behaviors.FollowPath;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance;
 import com.badlogic.gdx.ai.steer.behaviors.Wander;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath.LinePathParam;
 import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
 import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import com.jme3.math.FastMath;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -35,6 +41,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldHandler;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
@@ -60,6 +67,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     private float timeInState;
     private CreatureState state;
     private boolean animationPlaying = false;
+    private int idleAnimationPlayCount = 0;
 
     public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldHandler worldHandler) {
         super(creature);
@@ -121,8 +129,28 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
 
     public void idle() {
 
-        // Stop
-        setSteeringBehavior(null);
+        // Find a random accessible tile nearby and do some idling there
+        navigateToRandomPoint();
+    }
+
+    private void navigateToRandomPoint() {
+        Point p = worldHandler.findRandomAccessibleTile(worldHandler.getTileCoordinates(getSpatial().getLocalTranslation()), 10, creature);
+        if (p != null) {
+            GraphPath<TileData> outPath = worldHandler.findPath(worldHandler.getTileCoordinates(getSpatial().getWorldTranslation()), p, creature);
+
+            if (outPath.getCount() > 1) {
+
+                // Debug
+//                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
+                PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+                FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(pathToArray(outPath), true), 2);
+                followPath.setDecelerationRadius(1f);
+                followPath.setArrivalTolerance(0.2f);
+                prioritySteering.add(followPath);
+
+                setSteeringBehavior(prioritySteering);
+            }
+        }
     }
 
     public boolean idleTimeExceeded() {
@@ -144,7 +172,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
      * @return stop or not
      */
     boolean isStopAnimation() {
-        return true;
+        return (steeringBehavior == null);
     }
 
     /**
@@ -152,7 +180,14 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
      */
     void onAnimationStop() {
         animationPlaying = false;
-        playStateAnimation();
+        if (stateMachine.getCurrentState() == CreatureState.IDLE && idleAnimationPlayCount > 0) {
+
+            // Find a new target
+            idleAnimationPlayCount = 0;
+            idle();
+        } else {
+            playStateAnimation();
+        }
     }
 
     /**
@@ -164,29 +199,33 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
 
     private void playStateAnimation() {
         if (!animationPlaying) {
-            switch (stateMachine.getCurrentState()) {
-                case IDLE: {
-                    List<ArtResource> idleAnimations = new ArrayList<>(3);
-                    if (creature.getAnimIdle1Resource() != null) {
-                        idleAnimations.add(creature.getAnimIdle1Resource());
-                    }
-                    if (creature.getAnimIdle2Resource() != null) {
-                        idleAnimations.add(creature.getAnimIdle2Resource());
-                    }
-                    ArtResource idleAnim = idleAnimations.get(0);
-                    if (idleAnimations.size() > 1) {
-                        Random random = new Random();
-                        idleAnim = idleAnimations.get(random.nextInt(idleAnimations.size()));
-                    }
-                    playAnimation(idleAnim);
-                    break;
+            if (steeringBehavior != null) {
+                playAnimation(creature.getAnimWalkResource());
+            } else {
+                List<ArtResource> idleAnimations = new ArrayList<>(3);
+                if (creature.getAnimIdle1Resource() != null) {
+                    idleAnimations.add(creature.getAnimIdle1Resource());
                 }
-                case WANDER: {
-                    playAnimation(creature.getAnimWalkResource());
-                    break;
+                if (creature.getAnimIdle2Resource() != null) {
+                    idleAnimations.add(creature.getAnimIdle2Resource());
                 }
+                ArtResource idleAnim = idleAnimations.get(0);
+                if (idleAnimations.size() > 1) {
+                    Random random = new Random();
+                    idleAnim = idleAnimations.get(random.nextInt(idleAnimations.size()));
+                }
+                idleAnimationPlayCount++;
+                playAnimation(idleAnim);
             }
         }
+    }
+
+    private Array<Vector2> pathToArray(GraphPath<TileData> outPath) {
+        Array<Vector2> path = new Array<>(outPath.getCount());
+        for (TileData tile : outPath) {
+            path.add(new Vector2(tile.getX() - 0.5f, tile.getY() - 0.5f));
+        }
+        return path;
     }
 
 }
