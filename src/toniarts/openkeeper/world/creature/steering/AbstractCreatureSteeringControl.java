@@ -21,7 +21,7 @@ import com.badlogic.gdx.ai.steer.SteeringAcceleration;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.Vector2;
-import com.jme3.math.Quaternion;
+import com.jme3.bounding.BoundingBox;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.control.AbstractControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -78,6 +78,12 @@ public abstract class AbstractCreatureSteeringControl extends AbstractControl im
         getSpatial().setLocalTranslation(getSpatial().getLocalTranslation().addLocal(linearVelocity.x * tpf, 0, linearVelocity.y * tpf));
         linearVelocity.mulAdd(steering.linear, tpf).limit(getMaxLinearSpeed());
 
+        // We are done
+        // TODO: Call function?
+        if (steering.isZero()) {
+            steeringBehavior = null;
+        }
+
         // Update orientation and angular velocity
         if (independentFacing) {
             setOrientation(getOrientation() + (angularVelocity * tpf));
@@ -103,14 +109,11 @@ public abstract class AbstractCreatureSteeringControl extends AbstractControl im
     @Override
     public float getOrientation() {
         return getSpatial().getLocalRotation().getY();
-//        return 1f;
     }
 
     @Override
     public void setOrientation(float orientation) {
-        Quaternion q = new Quaternion();
-        q.fromAngles(0, -orientation, 0);
-        getSpatial().setLocalRotation(q);
+        getSpatial().setLocalRotation(getSpatial().getLocalRotation().fromAngles(0, -orientation, 0));
     }
 
     @Override
@@ -129,7 +132,8 @@ public abstract class AbstractCreatureSteeringControl extends AbstractControl im
 
     @Override
     public float getBoundingRadius() {
-        return boundingRadius;
+        BoundingBox worldBound = (BoundingBox) getSpatial().getWorldBound();
+        return Math.max(worldBound.getXExtent(), worldBound.getZExtent());
     }
 
     @Override
