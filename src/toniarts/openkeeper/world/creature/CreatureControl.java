@@ -36,6 +36,8 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.ResourceBundle;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -68,11 +70,16 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     private CreatureState state;
     private boolean animationPlaying = false;
     private int idleAnimationPlayCount = 0;
+    private final String tooltip;
 
     public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldHandler worldHandler) {
         super(creature);
         stateMachine = new DefaultStateMachine<>(this);
         this.worldHandler = worldHandler;
+
+        // Strings
+        ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
+        tooltip = bundle.getString(Integer.toString(creature.getTooltipStringId()));
 
         // Attributes
         name = Utils.generateCreatureName();
@@ -226,6 +233,27 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
             path.add(new Vector2(tile.getX() - 0.5f, tile.getY() - 0.5f));
         }
         return path;
+    }
+
+    public String getTooltip() {
+        return formatString(tooltip);
+    }
+
+    private String formatString(String string) {
+        return string.replaceAll("%29", creature.getName()).replaceAll("%30", name);
+    }
+
+    public boolean isSlappable() {
+        // TODO: Player id
+        return creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED);
+    }
+
+    public void slap() {
+        // TODO: Direction & sound
+        if (isSlappable()) {
+            steeringBehavior = null;
+            playAnimation(creature.getAnimFallbackResource());
+        }
     }
 
 }
