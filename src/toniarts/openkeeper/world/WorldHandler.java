@@ -491,7 +491,7 @@ public abstract class WorldHandler {
      * @return tile coordinates
      */
     public Point getTileCoordinates(Vector3f location) {
-        return new Point((int) Math.floor(location.x), (int) Math.floor(location.z));
+        return new Point((int) Math.floor(location.x + 0.5f), (int) Math.floor(location.z + 0.5f));
     }
 
     /**
