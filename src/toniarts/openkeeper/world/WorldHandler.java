@@ -16,11 +16,22 @@
  */
 package toniarts.openkeeper.world;
 
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath.Segment;
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.asset.AssetManager;
 import com.jme3.audio.AudioNode;
 import com.jme3.bullet.BulletAppState;
+import com.jme3.material.Material;
+import com.jme3.material.RenderState;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
+import com.jme3.scene.shape.Line;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -459,13 +470,28 @@ public abstract class WorldHandler {
     }
 
     /**
+     * FIXME: This can NOT be. Just for quick easy testing.
+     *
+     * @param start start point
+     * @param end end point
+     * @param creature the creature to find path for
+     * @return output path
+     */
+    public GraphPath<TileData> findPath(Point start, Point end, Creature creature) {
+        pathFindingMap.setCreature(creature);
+        GraphPath<TileData> outPath = new DefaultGraphPath<>();
+        pathFinder.searchNodePath(getMapLoader().getTile(start.x, start.y), getMapLoader().getTile(end.x, end.y), heuristic, outPath);
+        return outPath;
+    }
+
+    /**
      * Get tile coordinates from 3D coordinates
      *
-     * @param translation position
+     * @param location position
      * @return tile coordinates
      */
-    public Point getTileCoordinates(Vector3f translation) {
-        return new Point((int) Math.floor(translation.x), (int) Math.floor(translation.z));
+    public Point getTileCoordinates(Vector3f location) {
+        return new Point((int) Math.floor(location.x), (int) Math.floor(location.z));
     }
 
     /**
@@ -482,12 +508,34 @@ public abstract class WorldHandler {
             // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
             if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
                 return true;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
-                return true;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
-                return true;
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
+                return false;
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
+                return false;
             }
+            return true;
         }
         return false;
     }
+
+    /**
+     * Debug drawing of path
+     *
+     * @param linePath
+     */
+    public void drawPath(LinePath<Vector2> linePath) {
+        for (Segment<Vector2> segment : linePath.getSegments()) {
+
+            Line line = new Line(new Vector3f(segment.getBegin().x, 0.25f, segment.getBegin().y), new Vector3f(segment.getEnd().x, 0.25f, segment.getEnd().y));
+            line.setLineWidth(2);
+            Geometry geometry = new Geometry("Bullet", line);
+            Material orange = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+            orange.setColor("Color", ColorRGBA.Red);
+            orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+            geometry.setCullHint(Spatial.CullHint.Never);
+            geometry.setMaterial(orange);
+            getWorld().attachChild(geometry);
+        }
+    }
+
 }
