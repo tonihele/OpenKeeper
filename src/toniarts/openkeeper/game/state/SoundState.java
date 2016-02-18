@@ -22,6 +22,7 @@ import com.jme3.audio.AudioNode;
 import toniarts.openkeeper.Main;
 
 /**
+ * This state play different sounds
  *
  * @author ArchDemon
  */
@@ -30,6 +31,13 @@ import toniarts.openkeeper.Main;
 public class SoundState extends AbstractPauseAwareState {
     private Main app;
     private AppStateManager stateManager;
+
+    public SoundState() {
+    }
+
+    public SoundState(boolean enabled) {
+        this.setEnabled(enabled);
+    }
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {

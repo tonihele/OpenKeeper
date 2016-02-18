@@ -20,6 +20,7 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.audio.AudioNode;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
+import java.awt.Point;
 import java.util.EnumSet;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -87,7 +88,7 @@ public class TriggerControl extends Control {
 
             } else if (value instanceof TriggerActionData) {
 
-                System.out.println(String.format("%s: %d %s", this.getClass().getSimpleName(), trigger.getId(), trigger.getType()));
+                //System.out.println(String.format("%s: %d %s", this.getClass().getSimpleName(), trigger.getId(), trigger.getType()));
                 doAction((TriggerActionData) value);
                 if (!trigger.isRepeateable()) {
                     trigger.detachChild(value);
@@ -162,7 +163,7 @@ public class TriggerControl extends Control {
     }
 
     protected void doAction(TriggerActionData trigger) {
-        System.out.println(String.format("\t Action: %d %s", trigger.getId(), trigger.getType())); // TODO remove this line
+        //System.out.println(String.format("\t Action: %d %s", trigger.getId(), trigger.getType())); // TODO remove this line
 
         TriggerAction.ActionType type = trigger.getType();
         switch (type) {
@@ -192,19 +193,19 @@ public class TriggerControl extends Control {
 
             case FLAG:
                 short flagId = trigger.getUserData("flagId", short.class);
-                PlayerState ps = stateManager.getState(PlayerState.class);
+                EnumSet<FlagTargetValueActionType> flagType = ConversionUtils.parseFlagValue(trigger.getUserData("flag", short.class),
+                        FlagTargetValueActionType.class);
+                int value = trigger.getUserData("value", int.class);
+                if (flagType.contains(FlagTargetValueActionType.TARGET)) {
+                    value = stateManager.getState(GameState.class).getFlag(value);
+                }
+
                 if (flagId == 128) {
-                    EnumSet<FlagTargetValueActionType> flagType = ConversionUtils.parseFlagValue((Short) trigger.getUserData("flag"),
-                            FlagTargetValueActionType.class);
-                    if (flagType.contains(FlagTargetValueActionType.EQUAL)) {
-                        ps.setScore(trigger.getUserData("value", int.class));
-                    } else if (flagType.contains(FlagTargetValueActionType.PLUS)) {
-                        ps.addScore(trigger.getUserData("value", int.class));
-                    } else if (flagType.contains(FlagTargetValueActionType.MINUS)) {
-                        ps.subScore(trigger.getUserData("value", int.class));
-                    }
+                    PlayerState ps = stateManager.getState(PlayerState.class);
+                    ps.setScore(getTargetValue(ps.getScore(), value, flagType));
                 } else {
-                    stateManager.getState(GameState.class).setFlag(flagId, trigger.getUserData("value", int.class));
+                    int base = stateManager.getState(GameState.class).getFlag(flagId);
+                    stateManager.getState(GameState.class).setFlag(flagId, getTargetValue(base, value, flagType));
                 }
                 break;
 
@@ -274,16 +275,22 @@ public class TriggerControl extends Control {
             case ATTACH_PORTAL_GEM:
                 break;
             case ALTER_TERRAIN_TYPE:
-                Vector2f pos = new Vector2f(trigger.getUserData("posX", int.class), trigger.getUserData("posY", int.class));
+                Point pos = new Point(trigger.getUserData("posX", int.class), trigger.getUserData("posY", int.class));
                 short terrainId = trigger.getUserData("terrainId", short.class);
                 playerId = trigger.getUserData("playerId", short.class);
-                // TODO alter terrain type
+                stateManager.getState(WorldState.class).alterTerrain(pos, terrainId, playerId);
                 break;
 
             case PLAY_SPEECH:
-                // TODO Sound State
                 int speechId = trigger.getUserData("speechId", int.class);
                 stateManager.getState(SoundState.class).attachSpeech(speechId);
+
+                int pathId = trigger.getUserData("pathId", int.class);
+                // text show when Cinematic camera by pathId
+                boolean introduction = trigger.getUserData("introduction", short.class) != 0;
+                if (trigger.getUserData("text", short.class) == 0) {
+                    stateManager.getState(PlayerState.class).setText(speechId, introduction, pathId);
+                }
                 break;
 
             case DISPLAY_TEXT_MESSAGE:
@@ -298,6 +305,7 @@ public class TriggerControl extends Control {
                 break;
 
             case ROTATE_AROUND_ACTION_POINT:
+                // TODO Not tested
                 ap = getActionPoint(trigger.getUserData("targetId", short.class));
                 boolean relative = trigger.getUserData("available", short.class) == 0;
                 int angle = trigger.getUserData("angle", int.class);
@@ -325,7 +333,7 @@ public class TriggerControl extends Control {
             case SET_PORTAL_STATUS:
                 break;
             case SET_WIDESCREEN_MODE:
-                ps = stateManager.getState(PlayerState.class);
+                PlayerState ps = stateManager.getState(PlayerState.class);
                 enable = trigger.getUserData("available", short.class) != 0;
                 ps.setWideScreen(enable);
                 break;
@@ -388,5 +396,19 @@ public class TriggerControl extends Control {
 
     protected Party getParty(int id) {
         return stateManager.getState(PartytState.class).getParty(id);
+    }
+
+    private int getTargetValue(int base, int value, EnumSet<FlagTargetValueActionType> flagType) {
+
+        if (flagType.contains(FlagTargetValueActionType.EQUAL)) {
+            return value;
+        } else if (flagType.contains(FlagTargetValueActionType.PLUS)) {
+            return base + value;
+        } else if (flagType.contains(FlagTargetValueActionType.MINUS)) {
+            return base - value;
+        }
+
+        logger.warning("Unsupported target flag type");
+        return 0;
     }
 }

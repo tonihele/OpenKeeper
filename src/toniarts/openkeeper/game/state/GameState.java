@@ -100,11 +100,14 @@ public class GameState extends AbstractPauseAwareState {
                     WorldState worldState = new WorldState() {
                         @Override
                         protected void updateProgress(int progress, int max) {
-                            setProgress(0.1f + ((float) progress / max * 0.6f));
+                            setProgress(0.1f + ((float) progress / max * 0.5f));
                         }
                     };
 
                     GameState.this.stateManager.attach(worldState);
+
+                    GameState.this.stateManager.attach(new SoundState(false));
+                    setProgress(0.60f);
 
                     GameState.this.stateManager.attach(new ActionPointState(false));
                     setProgress(0.70f);
@@ -136,6 +139,7 @@ public class GameState extends AbstractPauseAwareState {
                 GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);
                 GameState.this.stateManager.getState(ActionPointState.class).setEnabled(true);
                 GameState.this.stateManager.getState(PartytState.class).setEnabled(true);
+                GameState.this.stateManager.getState(SoundState.class).setEnabled(true);
 
                 for (short i = 0; i < 128; i++) {
                     flags.put(i, 0);
@@ -148,23 +152,20 @@ public class GameState extends AbstractPauseAwareState {
         };
         stateManager.attach(loader);
     }
-    /*
+    
      @Override
     public void cleanup() {
 
-        // Detach our map
-        if (worldNode != null) {
-            rootNode.detachChild(worldNode);
-            worldNode = null;
-        }
-
-        // Physics away
-        stateManager.detach(bulletAppState);
+         // Detach 
+         stateManager.detach(stateManager.getState(ActionPointState.class));
+         stateManager.detach(stateManager.getState(PartytState.class));
+         stateManager.detach(stateManager.getState(WorldState.class));
+         stateManager.detach(stateManager.getState(SoundState.class));
 
         super.cleanup();
     }
 
-     */
+    
     @Override
     public void update(float tpf) {
         if (!isEnabled() || !isInitialized()) {

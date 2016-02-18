@@ -160,6 +160,9 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Get the game state
             final GameState gameState = stateManager.getState(GameState.class);
 
+            String levelResource = "Interface/Texts/" + gameState.getLevel().toUpperCase();
+            this.app.getNifty().getNifty().getResourceBundles().put("level", Main.getResourceBundle(levelResource));
+
             int triggerId = gameState.getLevelData().getPlayer(playerId).getTriggerId();
             if (triggerId != 0) {
                 triggerControl = new PlayerTriggerControl(stateManager, triggerId);
@@ -286,19 +289,23 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         this.score = score;
     }
 
-    public void subScore(int score) {
-        this.score -= score;
-    }
-
-    public void addScore(int score) {
-        this.score += score;
-    }
-
     public void setWideScreen(boolean enable) {
         if (enable) {
             app.getNifty().getNifty().gotoScreen(PlayerState.CINEMATIC_SCREEN_ID);
         } else {
             app.getNifty().getNifty().gotoScreen(PlayerState.HUD_SCREEN_ID);
+        }
+    }
+
+    public void setText(int textId, boolean introduction, int pathId) {
+        Label text = app.getNifty().getNifty().getScreen(CINEMATIC_SCREEN_ID).findNiftyControl("speechText", Label.class);
+        if (text != null && text.getElement() != null) {
+            try {
+                // FIXME why exeption ???
+                text.setText(String.format("${level.%d}", textId));
+            } catch (Exception ex) {
+                logger.warning(ex.getStackTrace().toString());
+            }
         }
     }
 

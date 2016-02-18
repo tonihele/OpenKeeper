@@ -271,7 +271,9 @@
             <!--Empty center-->
             <panel height="*" width="100%" childLayout="horizontal" />
             <!--The bottom panel-->
-            <panel height="12%" width="100%" valign="bottom" backgroundColor="#000" />
+            <panel height="12%" width="100%" valign="bottom" backgroundColor="#000" childLayout="center">
+                <control name="label" id="speechText" text="" style="text" />
+            </panel>
         </layer>
 
     </screen>

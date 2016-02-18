@@ -298,6 +298,21 @@ public abstract class WorldState extends AbstractAppState {
         pgc.addGold(value);
     }
 
+    public void alterTerrain(Point pos, short terrainId, short playerId) {
+        TileData tile = getMapData().getTile(pos.x, pos.y);
+        if (tile == null) {
+            return;
+        }
+        // set type
+        tile.setTerrainId(terrainId);
+        // set owner
+        if (playerId != 0) {
+            tile.setPlayerId(playerId);
+        }
+        // update one
+        mapLoader.updateTiles(pos);
+    }
+
 
     /**
      * Dig a tile at x & y
