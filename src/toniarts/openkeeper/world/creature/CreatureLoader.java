@@ -265,6 +265,12 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
     private static void hideAllNodes(Node root) {
         for (Spatial child : root.getChildren()) {
             child.setCullHint(Spatial.CullHint.Always);
+
+            // Also stop any animations
+            AnimControl animControl = (AnimControl) child.getControl(AnimControl.class);
+            if (animControl != null) {
+                animControl.setEnabled(false);
+            }
         }
     }
 
