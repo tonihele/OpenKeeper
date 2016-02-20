@@ -37,6 +37,8 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import de.lessvoid.nifty.controls.Label;
 import java.awt.Point;
+import java.util.Arrays;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -47,6 +49,7 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.world.TileData;
@@ -89,6 +92,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private boolean isOnView = false;
     private boolean isInteractable = false;
     private final Label tooltip;
+    private static final List<String> SLAP_SOUNDS = Arrays.asList(new String[]{"/Global/Slap_1.mp2", "/Global/slap_2.mp2", "/Global/Slap_3.mp2", "/Global/Slap_4.mp2"});
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
     public PlayerInteractionState(Player player, GameState gameState, Rectangle guiConstraint, Label tooltip) {
@@ -300,6 +304,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             } else if (interactionState == InteractionState.NONE) {
                 CreatureControl creatureControl = getInteractiveObjectOnCursor();
                 if (creatureControl != null && creatureControl.isSlappable()) {
+                    getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, Utils.getRandomItem(SLAP_SOUNDS));
                     creatureControl.slap();
                 }
             }
