@@ -52,14 +52,14 @@ public class EngineTextureDecoder extends Dk2TextureDecoder {
         0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x55, 0x55,
         0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x66, 0x66, 0x66, 0x66, 0x77,
         0x77, 0x88, 0x0};
-    private float float_7af000 = 1.048576e6f;
-    private float float_7af004 = 8.388608e6f;
-    private float float_7af008 = 1.169f;
-    private float float_7af00c = -8.1300002e-1f;
-    private float float_7af010 = -3.91e-1f;
-    private float float_7af014 = 1.602f;
-    private float float_7af018 = 2.0250001f;
-    private double double_7af048 = 6.75539944108852e15;
+    private static final float float_7af000 = 1.048576e6f;
+    private static final float float_7af004 = 8.388608e6f;
+    private static final float float_7af008 = 1.169f;
+    private static final float float_7af00c = -8.1300002e-1f;
+    private static final float float_7af010 = -3.91e-1f;
+    private static final float float_7af014 = 1.602f;
+    private static final float float_7af018 = 2.0250001f;
+    private static final double double_7af048 = 6.75539944108852e15;
 
     @Override
     protected void decompress_block(ByteBuffer out, int stride, boolean alphaFlag) {
