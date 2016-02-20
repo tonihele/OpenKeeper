@@ -741,7 +741,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      *
      * @return mapping
      */
-    protected HashMap<Point, RoomInstance> getRoomCoordinates() {
+    public HashMap<Point, RoomInstance> getRoomCoordinates() {
         return roomCoordinates;
     }
 

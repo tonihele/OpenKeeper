@@ -25,6 +25,8 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import java.util.ResourceBundle;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
@@ -42,11 +44,16 @@ public abstract class GenericRoom {
     private int wallPointer = -1;
     private final static int[] wallIndexes = new int[]{8, 7};
     private Node root;
+    private final String tooltip;
 
     public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         this.assetManager = assetManager;
         this.roomInstance = roomInstance;
         this.direction = direction;
+
+        // Strings
+        ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
+        tooltip = bundle.getString(Integer.toString(roomInstance.getRoom().getTooltipStringId()));
     }
 
     public Spatial construct() {
@@ -275,6 +282,15 @@ public abstract class GenericRoom {
      */
     public boolean isTileAccessible(int x, int y) {
         return true;
+    }
+
+    /**
+     * Get room tooltip
+     *
+     * @return room tooltip
+     */
+    public String getTooltip() {
+        return tooltip;
     }
 
 }

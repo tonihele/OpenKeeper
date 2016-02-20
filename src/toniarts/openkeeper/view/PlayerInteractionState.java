@@ -45,12 +45,15 @@ import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldHandler;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.world.room.RoomInstance;
 
 /**
  * State for managing player interactions in the world. Heavily drawn from
@@ -416,8 +419,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             v = handler.getRoundedMousePos();
             TileData tile = getWorldHandler().getMapLoader().getTile((int) v.x, (int) v.y);
             if (tile != null) {
-                ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
-                tooltip.setText(bundle.getString(Integer.toString(tile.getTerrain().getTooltipStringId())));
+                if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                    RoomInstance roomInstance = getWorldHandler().getMapLoader().getRoomCoordinates().get(new Point((int) v.x, (int) v.y));
+                    GenericRoom room = getWorldHandler().getMapLoader().getRoomActuals().get(roomInstance);
+                    tooltip.setText(room.getTooltip());
+                } else {
+                    ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
+                    tooltip.setText(bundle.getString(Integer.toString(tile.getTerrain().getTooltipStringId())));
+                }
             } else {
                 tooltip.setText("");
             }
