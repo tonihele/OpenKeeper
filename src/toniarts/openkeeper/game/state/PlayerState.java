@@ -118,6 +118,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private PlayerGoldControl goldControl = null;
     private int score = 0;
     private boolean transitionEnd = true;
+    private Integer textId = null;
     private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
 
     public PlayerState(int playerId) {
@@ -298,15 +299,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     public void setText(int textId, boolean introduction, int pathId) {
-        Label text = app.getNifty().getNifty().getScreen(CINEMATIC_SCREEN_ID).findNiftyControl("speechText", Label.class);
-        if (text != null && text.getElement() != null) {
-            try {
-                // FIXME why exeption ???
-                text.setText(String.format("${level.%d}", textId));
-            } catch (Exception ex) {
-                logger.warning(ex.getStackTrace().toString());
-            }
-        }
+        this.textId = textId;
     }
 
     /**
@@ -500,6 +493,16 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                     }
                 }
 
+                break;
+
+            case CINEMATIC_SCREEN_ID:
+                if (textId != null) {
+                    Label text = nifty.getCurrentScreen().findNiftyControl("speechText", Label.class);
+                    if (text != null) {
+                        // FIXME why text.getElement() is null ?
+                        text.setText(String.format("${level.%d}", textId - 1));
+                    }
+                }
                 break;
         }
     }

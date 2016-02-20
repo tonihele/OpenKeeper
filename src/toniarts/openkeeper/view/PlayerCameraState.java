@@ -16,12 +16,15 @@
  */
 package toniarts.openkeeper.view;
 
+import com.jme3.animation.LoopMode;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.audio.AudioNode;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
+import com.jme3.cinematic.events.GuiEvent;
+import com.jme3.cinematic.events.SoundEvent;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
@@ -225,6 +228,10 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
                 PlayerCameraState.this.cameraRestore();
             }
         });
+        // GuiEvent ce = new GuiEvent(app.getNifty().getNifty(), PlayerState.CINEMATIC_SCREEN_ID);
+        // c.addCinematicEvent(0, ce);
+        // SoundEvent se = new SoundEvent(sweepFile);
+        // c.addCinematicEvent(0, se);
         stateManager.attach(c);
         c.play();
     }

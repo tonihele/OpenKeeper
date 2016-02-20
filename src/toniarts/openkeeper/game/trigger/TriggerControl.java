@@ -17,13 +17,10 @@
 package toniarts.openkeeper.game.trigger;
 
 import com.jme3.app.state.AppStateManager;
-import com.jme3.audio.AudioNode;
 import com.jme3.math.FastMath;
-import com.jme3.math.Vector2f;
 import java.awt.Point;
 import java.util.EnumSet;
 import java.util.logging.Logger;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.control.Control;

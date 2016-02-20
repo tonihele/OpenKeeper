@@ -19,6 +19,12 @@ package toniarts.openkeeper.game.state;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.audio.AudioNode;
+import com.jme3.audio.AudioSource;
+import java.util.PriorityQueue;
+import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import toniarts.openkeeper.Main;
 
 /**
@@ -31,6 +37,10 @@ import toniarts.openkeeper.Main;
 public class SoundState extends AbstractPauseAwareState {
     private Main app;
     private AppStateManager stateManager;
+    private AudioNode speech = null;
+    private AudioNode background = null;
+    private PriorityQueue<Integer> speechQueue = new PriorityQueue<>();
+    private static final Logger logger = Logger.getLogger(SoundState.class.getName());
 
     public SoundState() {
     }
@@ -53,13 +63,98 @@ public class SoundState extends AbstractPauseAwareState {
     }
 
     public void attachSpeech(int speechId) {
+        speechQueue.add(speechId);
+    }
+
+    private void playSpeech(int speechId) {
         String file = String.format("Sounds/speech_%s/lvlspe%02d.mp2",
                 stateManager.getState(GameState.class).getLevel().toLowerCase(), speechId);
-        AudioNode speech = new AudioNode(app.getAssetManager(), file, false);
-        speech.setName("speech");
+        speech = new AudioNode(app.getAssetManager(), file, false);
+        if (background == null) {
+            logger.log(Level.WARNING, "Audio file {0} not found", file);
+            return;
+        }
         speech.setLooping(false);
         speech.setPositional(false);
         speech.play();
-        app.getRootNode().attachChild(speech);
+    }
+
+    private void playBackground() {
+        String file = this.getRandomSoundFile();
+        background = new AudioNode(app.getAssetManager(), file, false);
+        if (background == null) {
+            logger.log(Level.WARNING, "Audio file {0} not found", file);
+            return;
+        }
+        background.setLooping(false);
+        background.setPositional(false);
+        background.setVolume(0.2f);
+        background.play();
+    }
+
+    private String getRandomSoundFile() {
+        /*
+         * TODO need algorithm
+         * 1pt1-001 - 1pt1-046
+         * 1pt2-001 - 1pt2-035
+         * 1pt3-001 - 1pt3-022
+         * 1pt4-001 - 1pt4-013
+         * 1seg-001 - 1seg-010
+         * 3pt1-001 - 3pt1-079
+         * 3pt2-001 - 3pt2-020
+         * 3pt3-001 - 3pt3-018
+         * 3pt4-001 - 3pt4-024
+         */
+        int first, second, third;
+        Random random = new Random();
+        while (true) {
+            first = random.nextInt(3);
+            switch (first) {
+                case 1:
+                    break;
+                case 3:
+                    break;
+                default:
+                    continue;
+            }
+
+            second = random.nextInt(4);
+            if (first == 1 && second == 1) {
+                third = random.nextInt(46);
+            } else if (first == 1 && second == 2) {
+                third = random.nextInt(35);
+            } else if (first == 1 && second == 3) {
+                third = random.nextInt(22);
+            } else if (first == 1 && second == 4) {
+                third = random.nextInt(13);
+            } else if (first == 3 && second == 1) {
+                third = random.nextInt(79);
+            } else if (first == 3 && second == 2) {
+                third = random.nextInt(20);
+            } else if (first == 3 && second == 3) {
+                third = random.nextInt(18);
+            } else {
+                third = random.nextInt(24);
+            }
+
+            return String.format("Sounds/Global/%dpt%d-%03d.mp2", first, second, third);
+        }
+    }
+
+    @Override
+    public void update(float tpf) {
+        super.update(tpf);
+
+
+        if (!speechQueue.isEmpty()) {
+            if (speech == null || speech.getStatus() == AudioSource.Status.Stopped) {
+                Integer speechId = speechQueue.poll();
+                playSpeech(speechId);
+            }
+        }
+
+        if (background == null || background.getStatus() == AudioSource.Status.Stopped) {
+            playBackground();
+        }
     }
 }
