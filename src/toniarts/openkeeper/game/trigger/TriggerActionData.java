@@ -45,7 +45,7 @@ public class TriggerActionData extends TriggerData {
     public TriggerActionData(int id, TriggerGenericData parent, TriggerAction.ActionType actionType) {
         super(id, parent);
         this.actionType = actionType;
-    }    
+    }
 
     public TriggerAction.ActionType getType() {
         return actionType;
@@ -88,5 +88,10 @@ public class TriggerActionData extends TriggerData {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return "TriggerActionData { id=" + id + ", action=" + actionType + " }";
     }
 }

@@ -433,8 +433,8 @@ public class Main extends SimpleApplication {
                     // Initialize persistent app states
                     MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager);
                     mainMenuState.setEnabled(false);
-                    PlayerState playerState = new PlayerState();
-                    playerState.setEnabled(false);
+                    PlayerState playerState = new PlayerState(3, false);
+
                     stateManager.attach(mainMenuState);
                     stateManager.attach(playerState);
 

@@ -45,6 +45,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.world.control.FlashTileControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomConstructor;
 import toniarts.openkeeper.world.room.RoomInstance;
@@ -97,10 +98,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         terrain.attachChild(roomsNode);
 
         // Go through the map
-        int tilesCount = object.getMap().getWidth() * object.getMap().getHeight();
+        int tilesCount = mapData.getWidth() * object.getMap().getHeight();
         TileData[][] tiles = mapData.getTiles();
-        for (int y = 0; y < object.getMap().getHeight(); y++) {
-            for (int x = 0; x < object.getMap().getWidth(); x++) {
+        for (int y = 0; y < mapData.getHeight(); y++) {
+            for (int x = 0; x < mapData.getWidth(); x++) {
 
                 try {
                     handleTile(tiles, x, y, assetManager, terrain);
@@ -136,20 +137,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
     public MapData getMapData() {
         return mapData;
-    }
-
-    /**
-     * Get the tile data at x & y
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @return the tile data or null if uncorrect x or|and y
-     */
-    public TileData getTile(int x, int y) {
-        if (x < 0 || y < 0 || x >= mapData.getWidth() || y >= mapData.getHeight()) {
-            return null;
-        }
-        return mapData.getTile(x, y);
     }
 
     /**
@@ -206,16 +193,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             public void visit(Spatial spatial) {
                 if (spatial instanceof Geometry) {
 
-                    Geometry g = (Geometry) spatial;
-
-                    // Load new material
-                    // TODO: pre-create these etc. the original materials have only
-                    // few the tagged versions, so just take the texture and apply a
-                    // semitransparent layer to it
-                    Material newMaterial = g.getMaterial().clone();
-                    newMaterial.setColor("Ambient", new ColorRGBA(0, 0, 0.8f, 1));
-                    newMaterial.setBoolean("UseMaterialColors", true);
-                    g.setMaterial(newMaterial);
+                    Material material = ((Geometry) spatial).getMaterial();
+                    material.setColor("Ambient", new ColorRGBA(0, 0, 0.8f, 1));
+                    material.setBoolean("UseMaterialColors", true);
                 }
             }
         });
@@ -227,10 +207,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param root where to generate pages on
      */
     private void generatePages(Node root) {
-        pages = new ArrayList<>(((int) Math.ceil(kwdFile.getMap().getHeight() / (float) PAGE_SQUARE_SIZE))
-                * ((int) Math.ceil(kwdFile.getMap().getWidth() / (float) PAGE_SQUARE_SIZE)));
-        for (int y = 0; y < (int) Math.ceil(kwdFile.getMap().getHeight() / (float) PAGE_SQUARE_SIZE); y++) {
-            for (int x = 0; x < (int) Math.ceil(kwdFile.getMap().getWidth() / (float) PAGE_SQUARE_SIZE); x++) {
+        pages = new ArrayList<>(((int) Math.ceil(mapData.getHeight() / (float) PAGE_SQUARE_SIZE))
+                * ((int) Math.ceil(mapData.getWidth() / (float) PAGE_SQUARE_SIZE)));
+        for (int y = 0; y < (int) Math.ceil(mapData.getHeight() / (float) PAGE_SQUARE_SIZE); y++) {
+            for (int x = 0; x < (int) Math.ceil(mapData.getWidth() / (float) PAGE_SQUARE_SIZE); x++) {
                 Node page = new Node(x + "_" + y);
 
                 // Create batch nodes for ceiling, floor and walls
@@ -523,6 +503,39 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
     }
 
+    public void flashTile(int x, int y, int time, boolean enabled) {
+
+        Node terrainNode = (Node) map.getChild(0);
+        Node pageNode = getPageNode(x, y, terrainNode);
+
+        Node tileNode = getTileNode(x, y, (Node) pageNode.getChild(0));
+        if (tileNode != null) {
+            if (enabled) {
+                tileNode.addControl(new FlashTileControl(time));
+            } else {
+                tileNode.removeControl(FlashTileControl.class);
+            }
+        }
+
+        tileNode = getTileNode(x, y, (Node) pageNode.getChild(1));
+        if (tileNode != null) {
+            if (enabled) {
+                tileNode.addControl(new FlashTileControl(time));
+            } else {
+                tileNode.removeControl(FlashTileControl.class);
+            }
+        }
+
+        tileNode = getTileNode(x, y, (Node) pageNode.getChild(2));
+        if (tileNode != null) {
+            if (enabled) {
+                tileNode.addControl(new FlashTileControl(time));
+            } else {
+                tileNode.removeControl(FlashTileControl.class);
+            }
+        }
+    }
+
     /**
      * Get the terrain tile node
      *
@@ -563,7 +576,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         // Get the page index
         int index = pageX;
         if (pageY > 0) {
-            int pagesPerRow = (int) Math.ceil(kwdFile.getMap().getWidth() / (float) PAGE_SQUARE_SIZE);
+            int pagesPerRow = (int) Math.ceil(mapData.getWidth() / (float) PAGE_SQUARE_SIZE);
             index += pagesPerRow * pageY;
         }
         return (Node) root.getChild(index);
@@ -912,7 +925,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     }
 
     private void addIfValidCoordinate(final int x, final int y, List<Point> tileCoords) {
-        if ((x >= 0 && x < kwdFile.getMap().getWidth() && y >= 0 && y < kwdFile.getMap().getHeight())) {
+        if ((x >= 0 && x < mapData.getWidth() && y >= 0 && y < mapData.getHeight())) {
             tileCoords.add(new Point(x, y));
         }
     }

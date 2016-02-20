@@ -34,7 +34,7 @@ import com.jme3.util.TangentBinormalGenerator;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.TileData;
-import toniarts.openkeeper.world.WorldHandler;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  * Collision detector for movement<br>
@@ -45,10 +45,10 @@ import toniarts.openkeeper.world.WorldHandler;
  */
 public class CreatureRayCastCollisionDetector implements RaycastCollisionDetector<Vector2> {
 
-    private final WorldHandler world;
+    private final WorldState worldState;
 
-    public CreatureRayCastCollisionDetector(WorldHandler world) {
-        this.world = world;
+    public CreatureRayCastCollisionDetector(WorldState worldState) {
+        this.worldState = worldState;
     }
 
     @Override
@@ -69,12 +69,12 @@ public class CreatureRayCastCollisionDetector implements RaycastCollisionDetecto
                 Line line = new Line(new Vector3f(inputRay.start.x, 0.25f, inputRay.start.y), new Vector3f(inputRay.end.x, 0.25f, inputRay.end.y));
                 line.setLineWidth(2);
                 Geometry geometry = new Geometry("Bullet", line);
-                Material orange = new Material(world.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+                Material orange = new Material(worldState.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
                 orange.setColor("Color", ColorRGBA.Red);
                 orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
                 geometry.setCullHint(Spatial.CullHint.Never);
                 geometry.setMaterial(orange);
-                world.getWorld().attachChild(geometry);
+                worldState.getWorld().attachChild(geometry);
 
                 if (outputCollision != null) {
 
@@ -103,12 +103,12 @@ public class CreatureRayCastCollisionDetector implements RaycastCollisionDetecto
                         b = new Box(new Vector3f(result.getClosestCollision().getContactPoint().x, 1.5f, result.getClosestCollision().getContactPoint().z), 0.1f, 0.1f, 0.1f);
                         geometry = new Geometry("Bullet", b);
 
-                        orange = new Material(world.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+                        orange = new Material(worldState.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
                         orange.setColor("Color", ColorRGBA.Red);
                         orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
                         geometry.setCullHint(Spatial.CullHint.Never);
                         geometry.setMaterial(orange);
-                        world.getWorld().attachChild(geometry);
+                        worldState.getWorld().attachChild(geometry);
                     }
                 }
 
@@ -117,7 +117,7 @@ public class CreatureRayCastCollisionDetector implements RaycastCollisionDetecto
                 Line line = new Line(new Vector3f(inputRay.start.x, 0.25f, inputRay.start.y), new Vector3f(inputRay.end.x, 0.25f, inputRay.end.y));
                 line.setLineWidth(2);
                 Geometry geometry = new Geometry("Bullet", line);
-                Material orange = new Material(world.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+                Material orange = new Material(worldState.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
                 orange.setColor("Color", ColorRGBA.Green);
                 orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
                 geometry.setCullHint(Spatial.CullHint.Never);
@@ -182,9 +182,9 @@ public class CreatureRayCastCollisionDetector implements RaycastCollisionDetecto
     }
 
     private boolean isPointAccessible(int x, int y) {
-        if (x > -1 && y > -1 && world.getLevelData().getMap().getWidth() > x && world.getLevelData().getMap().getHeight() > y) {
-            TileData tile = world.getMapLoader().getTile(x, y);
-            if (world.getLevelData().getTerrain(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+        if (x > -1 && y > -1 && worldState.getMapData().getWidth() > x && worldState.getMapData().getHeight() > y) {
+            TileData tile = worldState.getMapData().getTile(x, y);
+            if (worldState.getLevelData().getTerrain(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
                 return false;
             }
         }

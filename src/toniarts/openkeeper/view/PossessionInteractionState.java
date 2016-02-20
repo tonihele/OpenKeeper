@@ -57,12 +57,12 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
     }
 
     private Main app;
-    private final GameState gameState;
-    private Node rootNode;
+    private GameState gameState;
+
     private AssetManager assetManager;
     private AppStateManager stateManager;
     private InputManager inputManager;
-    private ViewPort viewPort;
+
     private final Player player = null;
     private SelectionHandler handler;
     private boolean actionIsPressed = false;
@@ -74,20 +74,19 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
     
     private Thing.KeeperCreature target;
 
-    public PossessionInteractionState(GameState gameState) {
-        this.gameState = gameState;
+    public PossessionInteractionState(boolean enabled) {
+        super.setEnabled(enabled);
     }
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
         this.app = (Main) app;
-        rootNode = this.app.getRootNode();
+
         assetManager = this.app.getAssetManager();
         this.stateManager = this.app.getStateManager();
         inputManager = this.app.getInputManager();
-        viewPort = this.app.getViewPort();
-        
+        gameState = this.stateManager.getState(GameState.class);
         inputManager.setCursorVisible(false);
         
         changeAction(Action.MELEE);

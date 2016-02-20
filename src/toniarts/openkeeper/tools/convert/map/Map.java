@@ -33,7 +33,6 @@ public class Map {
     
     private Terrain water;
     private Terrain lava;
-    private Terrain claimedPath;
 
     public Map(int width, int height) {
         this.width = width;
@@ -97,18 +96,5 @@ public class Map {
      */
     public Terrain getWater() {
         return water;
-    }
-    
-    protected void setClaimedPath(Terrain path) {
-        this.claimedPath = path;
-    }
-
-    /**
-     * Get the claimed path terrain tile
-     *
-     * @return claimed path
-     */
-    public Terrain getClaimedPath() {
-        return claimedPath;
     }
 }

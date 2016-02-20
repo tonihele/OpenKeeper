@@ -21,10 +21,9 @@ import com.badlogic.gdx.ai.pfa.DefaultConnection;
 import com.badlogic.gdx.ai.pfa.indexed.DefaultIndexedGraph;
 import com.badlogic.gdx.utils.Array;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.TileData;
-import toniarts.openkeeper.world.WorldHandler;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  * Map representation for the path finding
@@ -33,15 +32,13 @@ import toniarts.openkeeper.world.WorldHandler;
  */
 public class MapIndexedGraph extends DefaultIndexedGraph<TileData> {
 
-    private final WorldHandler worldHandler;
-    private final KwdFile kwdFile;
+    private final WorldState worldState;
     private final int nodeCount;
     private Creature creature;
 
-    public MapIndexedGraph(WorldHandler worldHandler, KwdFile kwdFile) {
-        this.worldHandler = worldHandler;
-        this.kwdFile = kwdFile;
-        nodeCount = kwdFile.getMap().getHeight() * kwdFile.getMap().getWidth();
+    public MapIndexedGraph(WorldState worldState) {
+        this.worldState = worldState;
+        nodeCount = worldState.getMapData().getHeight() * worldState.getMapData().getWidth();
     }
 
     @Override
@@ -76,7 +73,7 @@ public class MapIndexedGraph extends DefaultIndexedGraph<TileData> {
     private void addIfValidCoordinate(final TileData startTile, final int x, final int y, final Array<Connection<TileData>> connections) {
 
         // Valid coordinate
-        TileData tile = worldHandler.getMapLoader().getTile(x, y);
+        TileData tile = worldState.getMapData().getTile(x, y);
         if (tile != null) {
             Terrain terrain = tile.getTerrain();
             if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
@@ -84,7 +81,7 @@ public class MapIndexedGraph extends DefaultIndexedGraph<TileData> {
                 // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
                 if (creature != null) {
 
-                    if (!worldHandler.isAccessible(tile, creature)) {
+                    if (!worldState.isAccessible(tile, creature)) {
                         return;
                     }
 

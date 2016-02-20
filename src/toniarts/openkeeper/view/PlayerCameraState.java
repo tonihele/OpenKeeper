@@ -19,7 +19,6 @@ package toniarts.openkeeper.view;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
-import com.jme3.audio.AudioNode;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.input.InputManager;
@@ -38,14 +37,18 @@ import java.util.ArrayList;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.Cinematic;
+import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  * The player camera state. Listens for camera movement inputs.
@@ -141,13 +144,17 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         }
     }
 
+    public PlayerCamera getCamera() {
+        return camera;
+    }
+
     public void addRotation(float angle, int time) {
         timer = time;
         rotate = angle;
     }
 
     private Vector2f getCameraMapLimit() {
-        MapData md = this.stateManager.getState(GameState.class).getWorldHandler().getMapLoader().getMapData();
+        MapData md = this.stateManager.getState(WorldState.class).getMapData();
         return new Vector2f(md.getWidth(), md.getHeight());
     }
 
@@ -187,19 +194,22 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         //cam.setLocation(storedCamera.getLocation());
     }
 
-    public void setCameraLookAt(Thing.ActionPoint point) {
-        Vector3f location = MapLoader.getCameraPositionOnMapPoint(point.getStartX(), point.getStartY());
+    public void setCameraLookAt(ActionPoint point) {
+        Vector3f location = MapLoader.getCameraPositionOnMapPoint((int) ((point.getStart().x + point.getEnd().x) / 2),
+                (int) ((point.getStart().y + point.getEnd().y) / 2));
         camera.setLookAt(location);
     }
 
-    public void doTransition(int sweepFileId, final Thing.ActionPoint point) {
+    public void doTransition(int sweepFileId, final ActionPoint point) {
         String sweepFile = "EnginePath" + sweepFileId;
         // Do cinematic transition
-        Cinematic c = new Cinematic(app, sweepFile, point.getStartX(), point.getStartY());
+        Cinematic c = new Cinematic(app, sweepFile,
+                (int) ((point.getStart().x + point.getEnd().x) / 2),
+                (int) ((point.getStart().y + point.getEnd().y) / 2));
         c.addListener(new CinematicEventListener() {
             @Override
             public void onPlay(CinematicEvent cinematic) {
-                GameState.setTransition(true);
+                stateManager.getState(PlayerState.class).setTransitionEnd(false);
                 inputManager.setCursorVisible(false);
                 PlayerCameraState.this.cameraStore();
             }
@@ -210,11 +220,15 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
 
             @Override
             public void onStop(CinematicEvent cinematic) {
-                GameState.setTransition(false);
+                stateManager.getState(PlayerState.class).setTransitionEnd(true);
                 inputManager.setCursorVisible(true);
                 PlayerCameraState.this.cameraRestore();
             }
         });
+        // GuiEvent ce = new GuiEvent(app.getNifty().getNifty(), PlayerState.CINEMATIC_SCREEN_ID);
+        // c.addCinematicEvent(0, ce);
+        // SoundEvent se = new SoundEvent(sweepFile);
+        // c.addCinematicEvent(0, se);
         stateManager.attach(c);
         c.play();
     }
@@ -297,13 +311,9 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         if (name.equals(Setting.USE_ATTACK.name())) {
             if (isPressed) {
                 Cinematic transition = stateManager.getState(Cinematic.class);
-                AudioNode speech = (AudioNode) ((Main) stateManager.getApplication()).getRootNode().getChild("speech");
                 if (transition != null) {
+                    stateManager.getState(SoundState.class).stopSpeech();
                     transition.stop();
-                    if (speech != null) {
-                        speech.stop();
-                        speech.removeFromParent();
-                    }
                 }
             }
             return;

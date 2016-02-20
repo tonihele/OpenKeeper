@@ -17,6 +17,7 @@
 package toniarts.openkeeper.world;
 
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Tile;
 
 /**
  * This is just a wrapper for the MAP file really. I really wish they are clean
@@ -27,39 +28,48 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public final class MapData {
 
+    private final int width, height;
     private final KwdFile kwdFile;
     private final TileData[][] tiles;
 
     public MapData(KwdFile kwdFile) {
         this.kwdFile = kwdFile;
-
+        width = this.kwdFile.getMap().getWidth();
+        height = this.kwdFile.getMap().getHeight();
         // Duplicate the map
         this.tiles = new TileData[getWidth()][getHeight()];
         for (int y = 0; y < getHeight(); y++) {
             for (int x = 0; x < getWidth(); x++) {
-                tiles[x][y] = new TileData(kwdFile, kwdFile.getMap().getTile(x, y), kwdFile.getTerrain(kwdFile.getMap().getTile(x, y).getTerrainId()), x, y, y * kwdFile.getMap().getWidth() + x);
+                Tile tile = this.kwdFile.getMap().getTile(x, y);
+                tiles[x][y] = new TileData(kwdFile, tile, kwdFile.getTerrain(tile.getTerrainId()), x, y, y * getWidth() + x);
             }
         }
     }
 
     public int getWidth() {
-        return kwdFile.getMap().getWidth();
+        return width;
     }
 
     public int getHeight() {
-        return kwdFile.getMap().getHeight();
+        return height;
     }
 
     protected void setTile(int x, int y, TileData tile) {
         this.tiles[x][y] = tile;
     }
 
+    /**
+     * Get the tile data at x & y
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @return the tile data
+     */
     public TileData getTile(int x, int y) {
+        if (x < 0 || y < 0 || x >= width || y >= height) {
+            return null;
+        }
         return this.tiles[x][y];
-    }
-
-    public KwdFile getKwdFile() {
-        return kwdFile;
     }
 
     public TileData[][] getTiles() {

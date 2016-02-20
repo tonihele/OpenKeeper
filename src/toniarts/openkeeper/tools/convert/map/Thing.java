@@ -48,20 +48,12 @@ public abstract class Thing {
          */
         public enum ActionPointFlag implements IFlagEnum {
 
-            HERO_LAIR(0x001),
-            UNKNOWN(0x004),
-            UNKNOWN_10(0x008),
-            REVEAL_THROUGH_FOG_OF_WAR(0x010),
-            TOOL_BOX(0x020),
-            IGNORE_SOLID(0x040),
-            UNKNOWN_2(0x10000), // FIXME Unknown flag
-            UNKNOWN_3(0x20000), // FIXME Unknown flag
-            UNKNOWN_4(0x40000), // FIXME Unknown flag
-            UNKNOWN_5(0x80000), // FIXME Unknown flag
-            UNKNOWN_6(0x100000), // FIXME Unknown flag
-            UNKNOWN_7(0x200000), // FIXME Unknown flag
-            UNKNOWN_8(0x400000), // FIXME Unknown flag
-            UNKNOWN_9(0x800000); // FIXME Unknown flag
+            HERO_LAIR(0x01),
+            UNKNOWN_4(0x04),
+            UNKNOWN_8(0x08),
+            REVEAL_THROUGH_FOG_OF_WAR(0x10),
+            TOOL_BOX(0x20),
+            IGNORE_SOLID(0x40);
 
             private final long flagValue;
 
@@ -80,6 +72,7 @@ public abstract class Thing {
         private int endY; // 0-based coordinate
         private int waitDelay;
         private EnumSet<ActionPointFlag> flags;
+        private int triggerId;
         private short id; // 16
         private short nextWaypointId; // Is always another ActionPoint?
         private String name; // 18 <- Always just shit
@@ -130,6 +123,14 @@ public abstract class Thing {
 
         protected void setFlags(EnumSet<ActionPointFlag> flags) {
             this.flags = flags;
+        }
+
+        public int getTriggerId() {
+            return triggerId;
+        }
+
+        public void setTriggerId(int triggerId) {
+            this.triggerId = triggerId;
         }
 
         public short getId() {
