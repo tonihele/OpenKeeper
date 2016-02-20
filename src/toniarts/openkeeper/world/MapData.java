@@ -41,7 +41,7 @@ public final class MapData {
         for (int y = 0; y < getHeight(); y++) {
             for (int x = 0; x < getWidth(); x++) {
                 Tile tile = this.kwdFile.getMap().getTile(x, y);
-                tiles[x][y] = new TileData(tile, kwdFile.getTerrain(tile.getTerrainId()));
+                tiles[x][y] = new TileData(kwdFile, tile, kwdFile.getTerrain(tile.getTerrainId()), x, y, y * getWidth() + x);
             }
         }
     }

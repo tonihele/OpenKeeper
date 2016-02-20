@@ -79,6 +79,12 @@ public class SoundState extends AbstractPauseAwareState {
         speech.play();
     }
 
+    public void stopSpeech() {
+        if (speech != null) {
+            speech.stop();
+        }
+    }
+
     private void playBackground() {
         String file = this.getRandomSoundFile();
         background = new AudioNode(app.getAssetManager(), file, false);
@@ -108,7 +114,7 @@ public class SoundState extends AbstractPauseAwareState {
         int first, second, third;
         Random random = new Random();
         while (true) {
-            first = random.nextInt(3);
+            first = random.nextInt(2) + 1;
             switch (first) {
                 case 1:
                     break;
@@ -118,23 +124,23 @@ public class SoundState extends AbstractPauseAwareState {
                     continue;
             }
 
-            second = random.nextInt(4);
+            second = random.nextInt(3) + 1;
             if (first == 1 && second == 1) {
-                third = random.nextInt(46);
+                third = random.nextInt(45) + 1;
             } else if (first == 1 && second == 2) {
-                third = random.nextInt(35);
+                third = random.nextInt(34) + 1;
             } else if (first == 1 && second == 3) {
-                third = random.nextInt(22);
+                third = random.nextInt(21) + 1;
             } else if (first == 1 && second == 4) {
-                third = random.nextInt(13);
+                third = random.nextInt(12) + 1;
             } else if (first == 3 && second == 1) {
-                third = random.nextInt(79);
+                third = random.nextInt(78) + 1;
             } else if (first == 3 && second == 2) {
-                third = random.nextInt(20);
+                third = random.nextInt(19) + 1;
             } else if (first == 3 && second == 3) {
-                third = random.nextInt(18);
+                third = random.nextInt(17) + 1;
             } else {
-                third = random.nextInt(24);
+                third = random.nextInt(23) + 1;
             }
 
             return String.format("Sounds/Global/%dpt%d-%03d.mp2", first, second, third);

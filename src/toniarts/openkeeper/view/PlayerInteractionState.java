@@ -294,7 +294,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 if (getWorldHandler().isTaggable((int) pos.x, (int) pos.y)) {
                     getWorldHandler().digTile((int) pos.x, (int) pos.y);
                 } // ownable -> "claim"
-                
+
             } else if (interactionState == InteractionState.NONE) {
                 CreatureControl creatureControl = getInteractiveObjectOnCursor();
                 if (creatureControl != null && creatureControl.isSlappable()) {
@@ -315,8 +315,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
         } else if (evt.getButtonIndex() == MouseInput.BUTTON_MIDDLE && evt.isReleased()) {
             Vector2f pos = handler.getRoundedMousePos();
-            if (app.isDebug()) {                
-                getWorldHandler().claimTile((int) pos.x, (int) pos.y, player);                
+            if (app.isDebug()) {
+                getWorldHandler().claimTile((int) pos.x, (int) pos.y, player);
             }
         }
     }
@@ -422,7 +422,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
             // Tile tooltip then
             v = handler.getRoundedMousePos();
-            TileData tile = getWorldHandler().getMapLoader().getTile((int) v.x, (int) v.y);
+            TileData tile = getWorldHandler().getMapData().getTile((int) v.x, (int) v.y);
             if (tile != null) {
                 if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
                     RoomInstance roomInstance = getWorldHandler().getMapLoader().getRoomCoordinates().get(new Point((int) v.x, (int) v.y));

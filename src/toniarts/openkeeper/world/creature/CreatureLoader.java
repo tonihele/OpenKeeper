@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.WorldHandler;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  * Loads up creatures. TODO: Should perhaps keep a cache of loaded/constructed
@@ -41,18 +41,18 @@ import toniarts.openkeeper.world.WorldHandler;
 public class CreatureLoader implements ILoader<Thing.Creature> {
 
     private final KwdFile kwdFile;
-    private final WorldHandler worldHandler;
+    private final WorldState worldState;
 
-    public CreatureLoader(KwdFile kwdFile, WorldHandler worldHandler) {
+    public CreatureLoader(KwdFile kwdFile, WorldState worldState) {
         this.kwdFile = kwdFile;
-        this.worldHandler = worldHandler;
+        this.worldState = worldState;
     }
 
     @Override
     public Spatial load(AssetManager assetManager, Thing.Creature object) {
         Creature creature = kwdFile.getCreature(object.getCreatureId());
         Node creatureRoot = new Node(creature.getName());
-        CreatureControl creatureControl = new CreatureControl(object, creature, worldHandler);
+        CreatureControl creatureControl = new CreatureControl(object, creature, worldState);
 
         // Load all the resources
         attachResource(creatureRoot, creatureControl, creature.getAnimAngryResource(), assetManager);
@@ -102,7 +102,7 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
         return creatureRoot;
     }
 
-    private void attachResource(Node creatureRoot, CreatureControl creatureControl, ArtResource resource, AssetManager assetManager) {
+    private void attachResource(final Node creatureRoot, final CreatureControl creatureControl, final ArtResource resource, AssetManager assetManager) {
         if (resource != null && (resource.getSettings().getType() == ArtResource.Type.ANIMATING_MESH || resource.getSettings().getType() == ArtResource.Type.MESH || resource.getSettings().getType() == ArtResource.Type.PROCEDURAL_MESH)) {
             try {
 

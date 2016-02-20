@@ -76,10 +76,10 @@ public abstract class WorldState extends AbstractAppState {
     private AssetManager assetManager;
     private Node worldNode;
     private static final Logger logger = Logger.getLogger(WorldState.class.getName());
-    private final MapIndexedGraph pathFindingMap;
-    private final MapPathFinder pathFinder;
-    private final MapDistance heuristic;
-    private final Node thingsNode;
+    private MapIndexedGraph pathFindingMap;
+    private MapPathFinder pathFinder;
+    private MapDistance heuristic;
+    private Node thingsNode;
 
     public WorldState() {
         //this.kwdFile = kwdFile;
@@ -111,7 +111,7 @@ public abstract class WorldState extends AbstractAppState {
         worldNode.attachChild(mapLoader.load(assetManager, kwdFile));
 
         // For path finding
-        pathFindingMap = new MapIndexedGraph(this, kwdFile);
+        pathFindingMap = new MapIndexedGraph(this);
         pathFinder = new MapPathFinder(pathFindingMap, false);
         heuristic = new MapDistance();
 
@@ -153,6 +153,28 @@ public abstract class WorldState extends AbstractAppState {
 
     public MapData getMapData() {
         return mapLoader.getMapData();
+    }
+
+    /**
+     * @deprecated
+     *
+     * @return MapLoader
+     */
+    public MapLoader getMapLoader() {
+        return mapLoader;
+    }
+
+    public Node getWorld() {
+        return worldNode;
+    }
+
+    /**
+     * @deprecated
+     *
+     * @return KwdFile
+     */
+    public KwdFile getLevelData() {
+        return kwdFile;
     }
 
     /**
@@ -321,12 +343,12 @@ public abstract class WorldState extends AbstractAppState {
      * @param y y coordinate
      */
     public void digTile(int x, int y) {
-            
+
         TileData tile = getMapData().getTile(x, y);
         if (tile == null) {
             return;
         }
-            
+
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
             return;
@@ -351,7 +373,7 @@ public abstract class WorldState extends AbstractAppState {
                 mapLoader.updateRoomWalls(wallUpdatesNeeded);
             }
         }
-        
+
     }
 
     public void flashTile(int x, int y, int time, boolean enabled) {
@@ -388,7 +410,7 @@ public abstract class WorldState extends AbstractAppState {
         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
             tile.setPlayerId(player.getPlayerId());
         }
-        mapLoader.updateTiles(mapLoader.getSurroundingTiles(new Point(x, y), true));        
+        mapLoader.updateTiles(mapLoader.getSurroundingTiles(new Point(x, y), true));
     }
 
     /**
@@ -564,7 +586,7 @@ public abstract class WorldState extends AbstractAppState {
                     continue;
                 }
 
-                TileData tile = getMapLoader().getTile(x, y);
+                TileData tile = getMapData().getTile(x, y);
                 if (tile != null && isAccessible(tile, creature)) {
                     tiles.add(new Point(x, y));
                 }
@@ -589,7 +611,7 @@ public abstract class WorldState extends AbstractAppState {
     public GraphPath<TileData> findPath(Point start, Point end, Creature creature) {
         pathFindingMap.setCreature(creature);
         GraphPath<TileData> outPath = new DefaultGraphPath<>();
-        pathFinder.searchNodePath(getMapLoader().getTile(start.x, start.y), getMapLoader().getTile(end.x, end.y), heuristic, outPath);
+        pathFinder.searchNodePath(getMapData().getTile(start.x, start.y), getMapData().getTile(end.x, end.y), heuristic, outPath);
         return outPath;
     }
 

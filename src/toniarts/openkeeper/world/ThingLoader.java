@@ -17,7 +17,9 @@
 package toniarts.openkeeper.world;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.bullet.BulletAppState;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -34,8 +36,8 @@ public class ThingLoader {
 
     private final WorldState worldState;
 
-    public ThingLoader(WorldState worldState) {
-        this.worldState = worldState;
+    public ThingLoader(WorldState worldHandler) {
+        this.worldState = worldHandler;
     }
 
     public Spatial load(BulletAppState bulletAppState, AssetManager assetManager, KwdFile kwdFile) {
@@ -44,16 +46,29 @@ public class ThingLoader {
         CreatureLoader creatureLoader = new CreatureLoader(kwdFile, worldState);
 
         //Create a root
-        List<Node> result = new ArrayList<>();
-
+        Node root = new Node("Things");
+        Node nodeCreatures = new Node("Creatures");
+        Node nodeObjects = new Node("Objects");
         for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
             try {
-               if (obj instanceof Thing.Object) {
+                if (obj instanceof Thing.Creature) {
 
                     Thing.Creature cr = (Thing.Creature) obj;
 //                    GameCreature creature = new GameCreature(bulletAppState, assetManager, cr, kwdFile);
 
                     nodeCreatures.attachChild(creatureLoader.load(assetManager, cr));
+
+                } else if (obj instanceof Thing.Object) {
+
+                    Thing.Object objectThing = (Thing.Object) obj;
+                    Object object = kwdFile.getObject(objectThing.getObjectId());
+
+                    Node nodeObject = (Node) assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + object.getMeshResource().getName() + ".j3o");
+                    nodeObject.setLocalTranslation(
+                            objectThing.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
+                            0 * MapLoader.TILE_HEIGHT,
+                            objectThing.getPosY() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
+                    nodeObjects.attachChild(nodeObject);
 
                 }
             } catch (Exception ex) {
@@ -61,6 +76,9 @@ public class ThingLoader {
             }
         }
 
-        return result;
+        root.attachChild(nodeCreatures);
+        root.attachChild(nodeObjects);
+        return root;
+
     }
 }

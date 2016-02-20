@@ -499,7 +499,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 if (textId != null) {
                     Label text = nifty.getCurrentScreen().findNiftyControl("speechText", Label.class);
                     if (text != null) {
-                        // FIXME why text.getElement() is null ?
                         text.setText(String.format("${level.%d}", textId - 1));
                     }
                 }

@@ -16,15 +16,11 @@
  */
 package toniarts.openkeeper.view;
 
-import com.jme3.animation.LoopMode;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
-import com.jme3.audio.AudioNode;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
-import com.jme3.cinematic.events.GuiEvent;
-import com.jme3.cinematic.events.SoundEvent;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
@@ -47,6 +43,7 @@ import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapData;
@@ -314,13 +311,9 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         if (name.equals(Setting.USE_ATTACK.name())) {
             if (isPressed) {
                 Cinematic transition = stateManager.getState(Cinematic.class);
-                AudioNode speech = (AudioNode) ((Main) stateManager.getApplication()).getRootNode().getChild("speech");
                 if (transition != null) {
+                    stateManager.getState(SoundState.class).stopSpeech();
                     transition.stop();
-                    if (speech != null) {
-                        speech.stop();
-                        speech.removeFromParent();
-                    }
                 }
             }
             return;

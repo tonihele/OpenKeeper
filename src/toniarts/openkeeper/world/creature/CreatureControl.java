@@ -49,7 +49,7 @@ import toniarts.openkeeper.tools.convert.map.Thing.KeeperCreature;
 import toniarts.openkeeper.tools.convert.map.Thing.NeutralCreature;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.TileData;
-import toniarts.openkeeper.world.WorldHandler;
+import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
 
@@ -71,7 +71,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     //
 
     protected final StateMachine<CreatureControl, CreatureState> stateMachine;
-    private final WorldHandler worldHandler;
+    private final WorldState worldState;
     private float timeInState;
     private CreatureState state;
     private boolean animationPlaying = false;
@@ -79,10 +79,10 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     private final String tooltip;
     private float lastAttributeUpdateTime = 0;
 
-    public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldHandler worldHandler) {
+    public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldState worldState) {
         super(creature);
         stateMachine = new DefaultStateMachine<>(this);
-        this.worldHandler = worldHandler;
+        this.worldState = worldState;
 
         // Strings
         ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
@@ -145,8 +145,8 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
 
         // Set wandering
         PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
-        RaycastCollisionDetector<Vector2> raycastCollisionDetector = new CreatureRayCastCollisionDetector(worldHandler);
-        RaycastObstacleAvoidance<Vector2> raycastObstacleAvoidanceSB = new RaycastObstacleAvoidance<>(this, new SingleRayConfiguration<Vector2>(this, 1.5f),
+        RaycastCollisionDetector<Vector2> raycastCollisionDetector = new CreatureRayCastCollisionDetector(worldState);
+        RaycastObstacleAvoidance<Vector2> raycastObstacleAvoidanceSB = new RaycastObstacleAvoidance<>(this, new SingleRayConfiguration<>(this, 1.5f),
                 raycastCollisionDetector, 0.5f);
         prioritySteering.add(raycastObstacleAvoidanceSB);
         prioritySteering.add(new Wander<>(this).setFaceEnabled(false) // We want to use Face internally (independent facing is on)
@@ -170,9 +170,9 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     }
 
     private void navigateToRandomPoint() {
-        Point p = worldHandler.findRandomAccessibleTile(worldHandler.getTileCoordinates(getSpatial().getLocalTranslation()), 10, creature);
+        Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getLocalTranslation()), 10, creature);
         if (p != null) {
-            GraphPath<TileData> outPath = worldHandler.findPath(worldHandler.getTileCoordinates(getSpatial().getWorldTranslation()), p, creature);
+            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, creature);
 
             if (outPath.getCount() > 1) {
 
