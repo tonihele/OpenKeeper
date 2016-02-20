@@ -74,6 +74,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private final HashMap<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final HashMap<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
+    private final HashMap<RoomInstance, GenericRoom> roomActuals = new HashMap<>(); // Rooms by room instance
     private final HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
@@ -673,6 +674,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      */
     private Spatial handleRoom(AssetManager assetManager, RoomInstance roomInstance) {
         GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, kwdFile);
+        roomActuals.put(roomInstance, room);
         return room.construct();
     }
 
@@ -763,6 +765,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             roomsNode.detachChild(roomNodes.get(instance));
             roomNodes.remove(instance);
             rooms.remove(instance);
+            roomActuals.remove(instance);
             for (Point p : instance.getCoordinates()) {
                 roomCoordinates.remove(p);
             }
@@ -920,6 +923,15 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             findRoomWallSections(mapData.getTiles(), room);
             RoomConstructor.constructRoom(room, assetManager, kwdFile).updateWalls(roomNodes.get(room));
         }
+    }
+
+    /**
+     * Get a rooms by knowing its instance
+     *
+     * @return room
+     */
+    public HashMap<RoomInstance, GenericRoom> getRoomActuals() {
+        return roomActuals;
     }
 
     /**

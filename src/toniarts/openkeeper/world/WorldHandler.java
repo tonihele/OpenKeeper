@@ -51,6 +51,7 @@ import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
 import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
 import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
+import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
 /**
@@ -508,7 +509,13 @@ public abstract class WorldHandler {
         if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
 
             // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
-            if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+
+                // Get room obstacles
+                RoomInstance roomInstance = getMapLoader().getRoomCoordinates().get(new Point(tile.getX(), tile.getY()));
+                GenericRoom room = getMapLoader().getRoomActuals().get(roomInstance);
+                return room.isTileAccessible(tile.getX(), tile.getY());
+            } else if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
                 return true;
             } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
                 return false;

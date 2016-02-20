@@ -199,4 +199,13 @@ public class FiveByFiveRotated extends GenericRoom {
         n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
         n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
     }
+
+    @Override
+    public boolean isTileAccessible(int x, int y) {
+
+        // The center 3x3 is not accessible
+        Point roomPoint = roomInstance.worldCoordinateToLocalCoordinate(x, y);
+        return ((roomPoint.x == 0 || roomPoint.x == 4) || (roomPoint.y == 0 || roomPoint.y == 4));
+    }
+
 }

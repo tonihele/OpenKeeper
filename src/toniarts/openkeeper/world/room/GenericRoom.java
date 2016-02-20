@@ -26,7 +26,6 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 
@@ -41,7 +40,7 @@ public abstract class GenericRoom {
     protected final RoomInstance roomInstance;
     protected final Thing.Room.Direction direction;
     private int wallPointer = -1;
-    private static int[] wallIndexes = new int[]{8, 7};
+    private final static int[] wallIndexes = new int[]{8, 7};
     private Node root;
 
     public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
@@ -266,4 +265,16 @@ public abstract class GenericRoom {
     public void resetWallIndex() {
         wallPointer = -1;
     }
+
+    /**
+     * Override this to report any room obtacles
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @return true if accessible
+     */
+    public boolean isTileAccessible(int x, int y) {
+        return true;
+    }
+
 }
