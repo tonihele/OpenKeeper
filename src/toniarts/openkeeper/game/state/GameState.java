@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.state;
 
-import toniarts.openkeeper.game.trigger.TriggerControl;
 import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
@@ -30,6 +29,7 @@ import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.party.PartytState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
+import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.world.WorldState;
@@ -49,13 +49,14 @@ public class GameState extends AbstractPauseAwareState {
     private KwdFile kwdFile;
 
     private TriggerControl triggerControl = null;
-    private Map<Short, Integer> flags = new HashMap<>(127);
+    private final Map<Short, Integer> flags = new HashMap<>(127);
     // TODO What timer class we should take ?
-    private Map<Byte, GameTimer> timers = new HashMap<>(15);
+    private final Map<Byte, GameTimer> timers = new HashMap<>(15);
 
     private float gameTime = 0;
     private Float timeLimit = null;
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
+
     /**
      * Single use game states
      *
@@ -76,7 +77,7 @@ public class GameState extends AbstractPauseAwareState {
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
-
+        super.initialize(stateManager, app);
         this.app = (Main) app;
         this.stateManager = stateManager;
 
@@ -97,7 +98,7 @@ public class GameState extends AbstractPauseAwareState {
                     setProgress(0.1f);
 
                     // Create the actual level
-                    WorldState worldState = new WorldState() {
+                    WorldState worldState = new WorldState(kwdFile, assetManager) {
                         @Override
                         protected void updateProgress(int progress, int max) {
                             setProgress(0.1f + ((float) progress / max * 0.5f));
@@ -131,7 +132,7 @@ public class GameState extends AbstractPauseAwareState {
 
             @Override
             public void onLoadComplete() {
-                GameState.super.initialize(stateManager, app);
+
                 // Set the processors
                 GameState.this.app.setViewProcessors();
 
@@ -152,20 +153,19 @@ public class GameState extends AbstractPauseAwareState {
         };
         stateManager.attach(loader);
     }
-    
-     @Override
+
+    @Override
     public void cleanup() {
 
-         // Detach 
-         stateManager.detach(stateManager.getState(ActionPointState.class));
-         stateManager.detach(stateManager.getState(PartytState.class));
-         stateManager.detach(stateManager.getState(WorldState.class));
-         stateManager.detach(stateManager.getState(SoundState.class));
+        // Detach
+        stateManager.detach(stateManager.getState(ActionPointState.class));
+        stateManager.detach(stateManager.getState(PartytState.class));
+        stateManager.detach(stateManager.getState(WorldState.class));
+        stateManager.detach(stateManager.getState(SoundState.class));
 
         super.cleanup();
     }
 
-    
     @Override
     public void update(float tpf) {
         if (!isEnabled() || !isInitialized()) {
@@ -187,7 +187,6 @@ public class GameState extends AbstractPauseAwareState {
         if (triggerControl != null) {
             triggerControl.update(tpf);
         }
-
 
         super.update(tpf);
     }

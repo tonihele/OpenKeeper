@@ -16,14 +16,14 @@
  */
 package toniarts.openkeeper.world;
 
-import com.jme3.app.Application;
-import com.jme3.app.state.AbstractAppState;
-import com.jme3.app.state.AppStateManager;
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
 import com.badlogic.gdx.ai.steer.utils.paths.LinePath.Segment;
 import com.badlogic.gdx.math.Vector2;
+import com.jme3.app.Application;
+import com.jme3.app.state.AbstractAppState;
+import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.audio.AudioNode;
 import com.jme3.bullet.BulletAppState;
@@ -44,7 +44,6 @@ import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
-import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -71,35 +70,25 @@ public abstract class WorldState extends AbstractAppState {
 
     private Main app;
     private AppStateManager stateManager;
-    private MapLoader mapLoader;
-    private KwdFile kwdFile;
+    private final MapLoader mapLoader;
+    private final KwdFile kwdFile;
     private AssetManager assetManager;
     private Node worldNode;
     private static final Logger logger = Logger.getLogger(WorldState.class.getName());
-    private MapIndexedGraph pathFindingMap;
-    private MapPathFinder pathFinder;
-    private MapDistance heuristic;
-    private Node thingsNode;
+    private final MapIndexedGraph pathFindingMap;
+    private final MapPathFinder pathFinder;
+    private final MapDistance heuristic;
+    private final Node thingsNode;
+    private final BulletAppState bulletAppState;
 
-    public WorldState() {
-        //this.kwdFile = kwdFile;
-        //this.assetManager = assetManager;
+    public WorldState(final KwdFile kwdFile, final AssetManager assetManager) {
+        this.kwdFile = kwdFile;
 
         // World node
         worldNode = new Node("World");
-    }
-
-    @Override
-    public void initialize(final AppStateManager stateManager, final Application app) {
-        this.app = (Main) app;
-        this.stateManager = stateManager;
-        this.assetManager = app.getAssetManager();
 
         // Create physics state
-        BulletAppState bulletAppState = new BulletAppState();
-        this.stateManager.attach(bulletAppState);
-
-        kwdFile = this.stateManager.getState(GameState.class).getLevelData();
+        bulletAppState = new BulletAppState();
 
         // Create the actual map
         this.mapLoader = new MapLoader(assetManager, kwdFile) {
@@ -118,10 +107,20 @@ public abstract class WorldState extends AbstractAppState {
         // Things
         thingsNode = (Node) new ThingLoader(this).load(bulletAppState, assetManager, kwdFile);
         worldNode.attachChild(thingsNode);
+    }
+
+    @Override
+    public void initialize(final AppStateManager stateManager, final Application app) {
+        super.initialize(stateManager, app);
+        this.app = (Main) app;
+        this.stateManager = stateManager;
+        this.assetManager = app.getAssetManager();
+
+        // Attach physics
+        this.stateManager.attach(bulletAppState);
+
         // Attach the world
         this.app.getRootNode().attachChild(worldNode);
-
-        super.initialize(stateManager, app);
     }
 
     @Override
@@ -334,7 +333,6 @@ public abstract class WorldState extends AbstractAppState {
         // update one
         mapLoader.updateTiles(pos);
     }
-
 
     /**
      * Dig a tile at x & y
