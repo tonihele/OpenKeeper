@@ -311,10 +311,11 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
 
             experience += creature.getExpPerSecond();
             health += creature.getOwnLandHealthIncrease(); // FIXME, need to detect prev & current pos
+            health = Math.min(health, creature.getHp());
             if (experience >= creature.getExpForNextLevel()) { // Probably multiply the value per level?
                 experience -= creature.getExpForNextLevel();
                 level++;
-                //TODO: other leveling stuff
+                //TODO: other leveling stuff, max levels etc.
             }
         }
     }
