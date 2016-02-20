@@ -25,6 +25,10 @@ package toniarts.openkeeper.tools.convert.map;
  * Thank you https://github.com/werkt
  */
 public class Player implements Comparable<Player> {
+
+    public static final short GOOD_PLAYER_ID = 1;
+    public static final short NEUTRAL_PLAYER_ID = 2;
+
     //
     // struct Player
     // int x00;
@@ -38,14 +42,14 @@ public class Player implements Comparable<Player> {
     private boolean ai; // x04, I suspect that this is AI = 1, Human player = 0
 
     private AI aiAttributes;
-    //    
+    //
     private int startingGold; // x00
     private int triggerId; // xa6, associated trigger
     private short playerId; // 0xa8
     private int startingCameraX; // xa9, 0 based coordinate
     private int startingCameraY; // xab, 0 based coordinate
     private String name; // ad
-    
+
     public int getStartingGold() {
         return startingGold;
     }
@@ -53,7 +57,7 @@ public class Player implements Comparable<Player> {
     protected void setStartingGold(int startingGold) {
         this.startingGold = startingGold;
     }
-    
+
     public boolean isAi() {
         return ai;
     }
@@ -93,11 +97,11 @@ public class Player implements Comparable<Player> {
     protected void setStartingCameraY(int startingCameraY) {
         this.startingCameraY = startingCameraY;
     }
-    
+
     protected void setAiAttributes(AI attributes) {
         this.aiAttributes = attributes;
     }
-    
+
     public AI getAiAttributes() {
         return aiAttributes;
     }

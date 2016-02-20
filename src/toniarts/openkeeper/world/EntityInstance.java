@@ -31,8 +31,9 @@ import java.util.List;
 public class EntityInstance<T> {
 
     private final T entity;
-    private List<Point> coordinates = new ArrayList<>();
+    private final List<Point> coordinates = new ArrayList<>();
     private Point matrixStartPoint;
+    private boolean[][] matrix;
     private int minX = Integer.MAX_VALUE;
     private int maxX = Integer.MIN_VALUE;
     private int minY = Integer.MAX_VALUE;
@@ -55,6 +56,8 @@ public class EntityInstance<T> {
         maxX = Math.max(p.x, maxX);
         minY = Math.min(p.y, minY);
         maxY = Math.max(p.y, maxY);
+        matrixStartPoint = null;
+        matrix = null;
     }
 
     public boolean hasCoordinate(Point p) {
@@ -87,13 +90,14 @@ public class EntityInstance<T> {
      * @see #getMatrixStartPoint()
      */
     public boolean[][] getCoordinatesAsMatrix() {
-        int width = maxX - minX + 1;
-        matrixStartPoint = new Point(minX, coordinates.get(0).y);
-        int height = coordinates.get(coordinates.size() - 1).y - matrixStartPoint.y + 1;
-        boolean[][] matrix = new boolean[width][height];
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                matrix[x][y] = (Collections.binarySearch(coordinates, new Point(matrixStartPoint.x + x, matrixStartPoint.y + y), new PointComparator()) > -1);
+        if (matrix == null) {
+            int width = maxX - minX + 1;
+            int height = coordinates.get(coordinates.size() - 1).y - getMatrixStartPoint().y + 1;
+            matrix = new boolean[width][height];
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    matrix[x][y] = (Collections.binarySearch(coordinates, new Point(getMatrixStartPoint().x + x, getMatrixStartPoint().y + y), new PointComparator()) > -1);
+                }
             }
         }
         return matrix;
@@ -108,6 +112,9 @@ public class EntityInstance<T> {
      * @see #getCoordinatesAsMatrix()
      */
     public Point getMatrixStartPoint() {
+        if (matrixStartPoint == null) {
+            matrixStartPoint = new Point(minX, coordinates.get(0).y);
+        }
         return matrixStartPoint;
     }
 
@@ -131,5 +138,17 @@ public class EntityInstance<T> {
             }
             return result;
         }
+    }
+
+    /**
+     * Translates a world tile coordinate to local room coordinate, stating at
+     * the top left corner
+     *
+     * @param x the x coordinate
+     * @param y the y coordinate
+     * @return the local coordinate
+     */
+    public Point worldCoordinateToLocalCoordinate(int x, int y) {
+        return new Point(x - getMatrixStartPoint().x, y - getMatrixStartPoint().y);
     }
 }

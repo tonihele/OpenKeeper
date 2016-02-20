@@ -16,10 +16,22 @@
  */
 package toniarts.openkeeper.world;
 
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath.Segment;
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.asset.AssetManager;
 import com.jme3.audio.AudioNode;
 import com.jme3.bullet.BulletAppState;
+import com.jme3.material.Material;
+import com.jme3.material.RenderState;
+import com.jme3.math.ColorRGBA;
+import com.jme3.math.Vector3f;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
+import com.jme3.scene.shape.Line;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,12 +40,18 @@ import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
+import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
+import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
+import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
 /**
@@ -47,6 +65,10 @@ public abstract class WorldHandler {
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
     private final Node worldNode;
+    private final MapIndexedGraph pathFindingMap;
+    private final MapPathFinder pathFinder;
+    private final MapDistance heuristic;
+    private final Node thingsNode;
 
     public WorldHandler(final AssetManager assetManager, final KwdFile kwdFile, final BulletAppState bulletAppState) {
         this.kwdFile = kwdFile;
@@ -64,8 +86,18 @@ public abstract class WorldHandler {
         };
         worldNode.attachChild(mapLoader.load(assetManager, kwdFile));
 
+        // For path finding
+        pathFindingMap = new MapIndexedGraph(this, kwdFile);
+        pathFinder = new MapPathFinder(pathFindingMap, false);
+        heuristic = new MapDistance();
+
         // Things
-        worldNode.attachChild(new ThingLoader().load(bulletAppState, assetManager, kwdFile));
+        thingsNode = (Node) new ThingLoader(this).load(bulletAppState, assetManager, kwdFile);
+        worldNode.attachChild(thingsNode);
+    }
+
+    public AssetManager getAssetManager() {
+        return assetManager;
     }
 
     /**
@@ -417,4 +449,116 @@ public abstract class WorldHandler {
         worldNode.attachChild(audio);
         audio.play();
     }
+
+    /**
+     * Get a random tile, that is not a starting tile
+     *
+     * @param start starting coordinates
+     * @param radius radius, in tiles
+     * @param creature
+     * @return a random tile if one is found
+     */
+    public Point findRandomAccessibleTile(Point start, int radius, Creature creature) {
+        List<Point> tiles = new ArrayList<>(radius * radius - 1);
+        for (int y = start.y - radius / 2; y < start.y + radius / 2; y++) {
+            for (int x = start.x - radius / 2; x < start.x + radius / 2; x++) {
+
+                // Skip start tile
+                if (x == start.x && y == start.y) {
+                    continue;
+                }
+
+                TileData tile = getMapLoader().getTile(x, y);
+                if (tile != null && isAccessible(tile, creature)) {
+                    tiles.add(new Point(x, y));
+                }
+            }
+        }
+
+        // Take a random point
+        if (!tiles.isEmpty()) {
+            return Utils.getRandomItem(tiles);
+        }
+        return null;
+    }
+
+    /**
+     * FIXME: This can NOT be. Just for quick easy testing.
+     *
+     * @param start start point
+     * @param end end point
+     * @param creature the creature to find path for
+     * @return output path
+     */
+    public GraphPath<TileData> findPath(Point start, Point end, Creature creature) {
+        pathFindingMap.setCreature(creature);
+        GraphPath<TileData> outPath = new DefaultGraphPath<>();
+        pathFinder.searchNodePath(getMapLoader().getTile(start.x, start.y), getMapLoader().getTile(end.x, end.y), heuristic, outPath);
+        return outPath;
+    }
+
+    /**
+     * Get tile coordinates from 3D coordinates
+     *
+     * @param location position
+     * @return tile coordinates
+     */
+    public Point getTileCoordinates(Vector3f location) {
+        return new Point((int) Math.floor(location.x + 0.5f), (int) Math.floor(location.z + 0.5f));
+    }
+
+    /**
+     * Check if given tile is accessible by the given creature
+     *
+     * @param tile the tile
+     * @param creature creature
+     * @return is accessible
+     */
+    public boolean isAccessible(TileData tile, Creature creature) {
+        Terrain terrain = tile.getTerrain();
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+
+            // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+
+                // Get room obstacles
+                RoomInstance roomInstance = getMapLoader().getRoomCoordinates().get(new Point(tile.getX(), tile.getY()));
+                GenericRoom room = getMapLoader().getRoomActuals().get(roomInstance);
+                return room.isTileAccessible(tile.getX(), tile.getY());
+            } else if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
+                return true;
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
+                return false;
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Debug drawing of path
+     *
+     * @param linePath
+     */
+    public void drawPath(LinePath<Vector2> linePath) {
+        for (Segment<Vector2> segment : linePath.getSegments()) {
+
+            Line line = new Line(new Vector3f(segment.getBegin().x, 0.25f, segment.getBegin().y), new Vector3f(segment.getEnd().x, 0.25f, segment.getEnd().y));
+            line.setLineWidth(2);
+            Geometry geometry = new Geometry("Bullet", line);
+            Material orange = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+            orange.setColor("Color", ColorRGBA.Red);
+            orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+            geometry.setCullHint(Spatial.CullHint.Never);
+            geometry.setMaterial(orange);
+            getWorld().attachChild(geometry);
+        }
+    }
+
+    public Node getThingsNode() {
+        return thingsNode;
+    }
+
 }

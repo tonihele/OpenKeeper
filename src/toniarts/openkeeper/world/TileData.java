@@ -16,6 +16,10 @@
  */
 package toniarts.openkeeper.world;
 
+import com.badlogic.gdx.ai.pfa.Connection;
+import com.badlogic.gdx.ai.pfa.indexed.IndexedNode;
+import com.badlogic.gdx.utils.Array;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
@@ -24,16 +28,24 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class TileData extends Tile {
+public final class TileData extends Tile implements IndexedNode<TileData> {
 
     private boolean selected = false;
     private Integer randomTextureIndex;
+    private final int x;
+    private final int y;
+    private final int index;
+    private final KwdFile kwdFile;
 
-    protected TileData(Tile tile, Terrain terrain) {
+    protected TileData(KwdFile kwdFile, Tile tile, Terrain terrain, int x, int y, int index) {
         this.setFlag(tile.getFlag());
         this.setPlayerId(tile.getPlayerId());
         this.setTerrainId(tile.getTerrainId());
         this.setUnknown(tile.getUnknown());
+        this.x = x;
+        this.y = y;
+        this.index = index;
+        this.kwdFile = kwdFile;
 
         // The water/lava under the bridge is set only when there is an actual bridge, but we might as well set it here, it doesn't change
         if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
@@ -68,4 +80,32 @@ public final class TileData extends Tile {
     protected void setRandomTextureIndex(Integer randomTextureIndex) {
         this.randomTextureIndex = randomTextureIndex;
     }
+
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    @Override
+    public int getIndex() {
+        return index;
+    }
+
+    /**
+     * Get the terrain type of this terrain
+     *
+     * @return the terrain
+     */
+    public Terrain getTerrain() {
+        return kwdFile.getTerrain(getTerrainId());
+    }
+
+    @Override
+    public Array<Connection<TileData>> getConnections() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
 }

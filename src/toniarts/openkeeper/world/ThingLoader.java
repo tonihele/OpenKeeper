@@ -24,6 +24,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.creature.CreatureLoader;
 
 /**
  *
@@ -31,7 +32,16 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public class ThingLoader {
 
+    private final WorldHandler worldHandler;
+
+    public ThingLoader(WorldHandler worldHandler) {
+        this.worldHandler = worldHandler;
+    }
+
     public Spatial load(BulletAppState bulletAppState, AssetManager assetManager, KwdFile kwdFile) {
+
+        // Create a creature loader
+        CreatureLoader creatureLoader = new CreatureLoader(kwdFile, worldHandler);
 
         //Create a root
         Node root = new Node("Things");
@@ -42,9 +52,9 @@ public class ThingLoader {
                 if (obj instanceof Thing.Creature) {
 
                     Thing.Creature cr = (Thing.Creature) obj;
-                    GameCreature creature = new GameCreature(bulletAppState, assetManager, cr, kwdFile);
+//                    GameCreature creature = new GameCreature(bulletAppState, assetManager, cr, kwdFile);
 
-                    nodeCreatures.attachChild(creature);
+                    nodeCreatures.attachChild(creatureLoader.load(assetManager, cr));
 
                 } else if (obj instanceof Thing.Object) {
 

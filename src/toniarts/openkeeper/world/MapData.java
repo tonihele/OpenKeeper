@@ -28,7 +28,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 public final class MapData {
 
     private final KwdFile kwdFile;
-    private TileData[][] tiles;
+    private final TileData[][] tiles;
 
     public MapData(KwdFile kwdFile) {
         this.kwdFile = kwdFile;
@@ -37,7 +37,7 @@ public final class MapData {
         this.tiles = new TileData[getWidth()][getHeight()];
         for (int y = 0; y < getHeight(); y++) {
             for (int x = 0; x < getWidth(); x++) {
-                tiles[x][y] = new TileData(kwdFile.getMap().getTile(x, y), kwdFile.getTerrain(kwdFile.getMap().getTile(x, y).getTerrainId()));
+                tiles[x][y] = new TileData(kwdFile, kwdFile.getMap().getTile(x, y), kwdFile.getTerrain(kwdFile.getMap().getTile(x, y).getTerrainId()), x, y, y * kwdFile.getMap().getWidth() + x);
             }
         }
     }

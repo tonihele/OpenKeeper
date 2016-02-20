@@ -69,12 +69,13 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final MapData mapData;
     private final AssetManager assetManager;
     private Node roomsNode;
-    private List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
-    private List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
-    private List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
-    private HashMap<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
-    private HashMap<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
-    private HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
+    private final List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
+    private final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
+    private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
+    private final HashMap<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
+    private final HashMap<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
+    private final HashMap<RoomInstance, GenericRoom> roomActuals = new HashMap<>(); // Rooms by room instance
+    private final HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
     public MapLoader(AssetManager assetManager, KwdFile kwdFile) {
@@ -300,8 +301,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
     }
 
-
-
     /**
      * Sets random material (from the list) to all the geometries that have been
      * tagged for this in this spatial
@@ -375,8 +374,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         });
         return spatial;
     }
-
-
 
     /**
      * Handle single tile from the map, represented by the X & Y coordinates
@@ -593,6 +590,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_FRONT_END
                 || room.getTileConstruction() == Room.TileConstruction.HERO_GATE_3_BY_1;
     }
+
     /**
      * Find the room starting from a certain point, rooms are never diagonally
      * attached
@@ -680,6 +678,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      */
     private Spatial handleRoom(AssetManager assetManager, RoomInstance roomInstance) {
         GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, kwdFile);
+        roomActuals.put(roomInstance, room);
         return room.construct();
     }
 
@@ -746,7 +745,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      *
      * @return mapping
      */
-    protected HashMap<Point, RoomInstance> getRoomCoordinates() {
+    public HashMap<Point, RoomInstance> getRoomCoordinates() {
         return roomCoordinates;
     }
 
@@ -770,6 +769,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             roomsNode.detachChild(roomNodes.get(instance));
             roomNodes.remove(instance);
             rooms.remove(instance);
+            roomActuals.remove(instance);
             for (Point p : instance.getCoordinates()) {
                 roomCoordinates.remove(p);
             }
@@ -894,7 +894,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     protected Point[] getSurroundingTiles(Point point, boolean diagonal) {
 
         // Get all surrounding tiles
-        List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
+        List<Point> tileCoords = new ArrayList<>(diagonal ? 8 : 4);
         tileCoords.add(point);
 
         addIfValidCoordinate(point.x, point.y - 1, tileCoords); // North
@@ -927,6 +927,15 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             findRoomWallSections(mapData.getTiles(), room);
             RoomConstructor.constructRoom(room, assetManager, kwdFile).updateWalls(roomNodes.get(room));
         }
+    }
+
+    /**
+     * Get a rooms by knowing its instance
+     *
+     * @return room
+     */
+    public HashMap<RoomInstance, GenericRoom> getRoomActuals() {
+        return roomActuals;
     }
 
     /**

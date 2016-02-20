@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.state;
 
+import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
@@ -34,8 +35,6 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.PlayerManaControl;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
-import toniarts.openkeeper.game.trigger.TriggerControl;
-import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.world.WorldHandler;
@@ -69,6 +68,7 @@ public class GameState extends AbstractAppState {
     private static boolean isTransition = false;
     private static float gameTime = 0;
     private static Float timeLimit = null;
+
     /**
      * Single use game states
      *
@@ -189,6 +189,8 @@ public class GameState extends AbstractAppState {
             manaControl.updateManaLose();
         }
 
+        // Update time for AI
+        GdxAI.getTimepiece().update(tpf);
         gameTime += tpf;
 
         if (timeLimit != null && timeLimit > 0) {
