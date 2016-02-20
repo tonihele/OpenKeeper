@@ -99,6 +99,27 @@ public enum CreatureState implements State<CreatureControl> {
                 public boolean onMessage(CreatureControl entity, Telegram telegram) {
                     return true;
                 }
+            }, SLAPPED {
+
+                @Override
+                public void enter(CreatureControl entity) {
+
+                }
+
+                @Override
+                public void update(CreatureControl entity) {
+
+                }
+
+                @Override
+                public void exit(CreatureControl entity) {
+
+                }
+
+                @Override
+                public boolean onMessage(CreatureControl entity, Telegram telegram) {
+                    return true;
+                }
             }
 
 }

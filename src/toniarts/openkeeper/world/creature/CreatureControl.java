@@ -75,7 +75,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     private float timeInState;
     private CreatureState state;
     private boolean animationPlaying = false;
-    private int idleAnimationPlayCount = 0;
+    private int idleAnimationPlayCount = 1;
     private final String tooltip;
     private float lastAttributeUpdateTime = 0;
 
@@ -163,7 +163,10 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     public void idle() {
 
         // Find a random accessible tile nearby and do some idling there
-        navigateToRandomPoint();
+        if (idleAnimationPlayCount > 0) {
+            navigateToRandomPoint();
+            idleAnimationPlayCount = 0;
+        }
     }
 
     private void navigateToRandomPoint() {
@@ -216,8 +219,11 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
         if (stateMachine.getCurrentState() == CreatureState.IDLE && idleAnimationPlayCount > 0) {
 
             // Find a new target
-            idleAnimationPlayCount = 0;
             idle();
+        } else if (stateMachine.getCurrentState() == CreatureState.SLAPPED) {
+
+            // Return to previous state
+            stateMachine.revertToPreviousState();
         } else if (stateMachine.getCurrentState() == CreatureState.DEAD) {
 
             // TODO: should show the pose for awhile I guess
@@ -280,6 +286,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     public void slap() {
         // TODO: Direction & sound
         if (isSlappable()) {
+            stateMachine.changeState(CreatureState.SLAPPED);
             steeringBehavior = null;
             idleAnimationPlayCount = 0;
             health -= creature.getSlapDamage();
