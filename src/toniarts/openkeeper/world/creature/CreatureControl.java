@@ -32,6 +32,7 @@ import com.badlogic.gdx.utils.Array;
 import com.jme3.math.FastMath;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
+import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +42,12 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Thing.DeadBody;
+import toniarts.openkeeper.tools.convert.map.Thing.GoodCreature;
+import toniarts.openkeeper.tools.convert.map.Thing.KeeperCreature;
+import toniarts.openkeeper.tools.convert.map.Thing.NeutralCreature;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldHandler;
@@ -61,7 +67,8 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     private int gold;
     private int level;
     private int health;
-    private int experience;
+    private float experience;
+    private short ownerId;
     //
 
     protected final StateMachine<CreatureControl, CreatureState> stateMachine;
@@ -71,6 +78,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     private boolean animationPlaying = false;
     private int idleAnimationPlayCount = 0;
     private final String tooltip;
+    private float lastAttributeUpdateTime = 0;
 
     public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldHandler worldHandler) {
         super(creature);
@@ -85,6 +93,22 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
         name = Utils.generateCreatureName();
         bloodType = Utils.generateBloodType();
         gold = creatureInstance.getGoldHeld();
+        health = creature.getHp();
+        if (creatureInstance instanceof KeeperCreature) {
+            health = ((KeeperCreature) creatureInstance).getInitialHealth();
+            level = ((KeeperCreature) creatureInstance).getLevel();
+            ownerId = ((KeeperCreature) creatureInstance).getPlayerId();
+        } else if (creatureInstance instanceof GoodCreature) {
+            health = ((GoodCreature) creatureInstance).getInitialHealth();
+            level = ((GoodCreature) creatureInstance).getLevel();
+            ownerId = Player.GOOD_PLAYER_ID;
+        } else if (creatureInstance instanceof NeutralCreature) {
+            health = ((NeutralCreature) creatureInstance).getInitialHealth();
+            level = ((NeutralCreature) creatureInstance).getLevel();
+            ownerId = Player.NEUTRAL_PLAYER_ID;
+        } else if (creatureInstance instanceof DeadBody) {
+            ownerId = ((DeadBody) creatureInstance).getPlayerId();
+        }
     }
 
     @Override
@@ -105,6 +129,9 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
         }
 
         stateMachine.update();
+
+        // Update attributes
+        updateAttributes(tpf);
 
         // Set the appropriate animation
         playStateAnimation();
@@ -192,6 +219,10 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
             // Find a new target
             idleAnimationPlayCount = 0;
             idle();
+        } else if (stateMachine.getCurrentState() == CreatureState.DEAD) {
+
+            // TODO: should show the pose for awhile I guess
+            removeCreature();
         } else {
             playStateAnimation();
         }
@@ -252,7 +283,39 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
         // TODO: Direction & sound
         if (isSlappable()) {
             steeringBehavior = null;
-            playAnimation(creature.getAnimFallbackResource());
+            idleAnimationPlayCount = 0;
+            health -= creature.getSlapDamage();
+            if (health < 1) {
+
+                // Die :(
+                stateMachine.changeState(CreatureState.DEAD);
+            } else {
+                playAnimation(creature.getAnimFallbackResource());
+            }
+        }
+    }
+
+    public void die() {
+        playAnimation(creature.getAnimDieResource());
+    }
+
+    private void removeCreature() {
+        Spatial us = getSpatial();
+        us.removeFromParent();
+    }
+
+    private void updateAttributes(float tpf) {
+        lastAttributeUpdateTime += tpf;
+        if (lastAttributeUpdateTime >= 1) {
+            lastAttributeUpdateTime -= 1;
+
+            experience += creature.getExpPerSecond();
+            health += creature.getOwnLandHealthIncrease(); // FIXME, need to detect prev & current pos
+            if (experience >= creature.getExpForNextLevel()) { // Probably multiply the value per level?
+                experience -= creature.getExpForNextLevel();
+                level++;
+                //TODO: other leveling stuff
+            }
         }
     }
 
