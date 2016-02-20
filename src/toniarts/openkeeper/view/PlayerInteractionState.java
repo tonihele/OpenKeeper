@@ -33,8 +33,6 @@ import com.jme3.input.event.TouchEvent;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
-import com.jme3.renderer.ViewPort;
-import com.jme3.scene.Node;
 import de.lessvoid.nifty.controls.Label;
 import java.awt.Point;
 import java.util.Arrays;
@@ -52,8 +50,8 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
-import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.TileData;
+import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
@@ -294,7 +292,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 if (getWorldHandler().isTaggable((int) pos.x, (int) pos.y)) {
                     getWorldHandler().digTile((int) pos.x, (int) pos.y);
                 } // ownable -> "claim"
-
+                else if (getWorldHandler().isClaimable((int) pos.x, (int) pos.y, player)) {
+                    getWorldHandler().claimTile((int) pos.x, (int) pos.y, player);
+                }
+                //
             } else if (interactionState == InteractionState.NONE) {
                 CreatureControl creatureControl = getInteractiveObjectOnCursor();
                 if (creatureControl != null && creatureControl.isSlappable()) {
