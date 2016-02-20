@@ -36,6 +36,8 @@ import com.jme3.math.Vector3f;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import de.lessvoid.nifty.controls.Label;
+import java.awt.Point;
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
@@ -46,6 +48,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldHandler;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
@@ -402,15 +405,43 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
         // TODO: Now just creature control, but all interaction objects
         CreatureControl controller = getInteractiveObjectOnCursor();
+        Vector2f v = null;
         if (controller != null) {
 
             // Maybe a kinda hack, but set the tooltip here
             tooltip.setText(controller.getTooltip());
-            return true;
+        } else {
+
+            // Tile tooltip then
+            v = handler.getRoundedMousePos();
+            TileData tile = getWorldHandler().getMapLoader().getTile((int) v.x, (int) v.y);
+            if (tile != null) {
+                ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
+                tooltip.setText(bundle.getString(Integer.toString(tile.getTerrain().getTooltipStringId())));
+            } else {
+                tooltip.setText("");
+            }
         }
 
-        tooltip.setText("");
-        return false;
+        // If debug, show tile coordinate
+        if (PlayerInteractionState.this.app.isDebug()) {
+            StringBuilder sb = new StringBuilder();
+            Point p;
+            if (controller != null) {
+                p = getWorldHandler().getTileCoordinates(controller.getSpatial().getWorldTranslation());
+            } else {
+                p = new Point((int) v.x, (int) v.y);
+            }
+            sb.append("(");
+            sb.append(p.x);
+            sb.append(", ");
+            sb.append(p.y);
+            sb.append("): ");
+            sb.append(tooltip.getText());
+            tooltip.setText(sb.toString());
+        }
+
+        return (controller != null);
     }
 
     private CreatureControl getInteractiveObjectOnCursor() {
