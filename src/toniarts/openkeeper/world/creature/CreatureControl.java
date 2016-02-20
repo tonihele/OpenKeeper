@@ -296,6 +296,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     }
 
     public void die() {
+        //TODO: Dying direction
         playAnimation(creature.getAnimDieResource());
     }
 
