@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.utils;
 
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -25,6 +26,7 @@ import java.util.Random;
  */
 public class Utils {
 
+    private static final Random random = new Random();
     private static Boolean windows;
     private static final String[] BLOOD_TYPES = {"IkI", "BO", "PoE", "BA", "MoO", "O", "ARh"};
     private static final String[] CREATURE_NAMES = {
@@ -107,7 +109,6 @@ public class Utils {
      * @return name for your creature
      */
     public static String generateCreatureName() {
-        Random random = new Random();
         return CREATURE_NAMES[random.nextInt(CREATURE_NAMES.length)];
     }
 
@@ -117,7 +118,17 @@ public class Utils {
      * @return blood type for your creature
      */
     public static String generateBloodType() {
-        Random random = new Random();
         return BLOOD_TYPES[random.nextInt(BLOOD_TYPES.length)];
+    }
+
+    /**
+     * Get a random item from a list
+     *
+     * @param <T> item type
+     * @param list list
+     * @return random item from the list
+     */
+    public static <T> T getRandomItem(List<T> list) {
+        return list.get(random.nextInt(list.size()));
     }
 }

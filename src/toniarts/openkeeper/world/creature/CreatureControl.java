@@ -36,7 +36,6 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
@@ -249,8 +248,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
                 }
                 ArtResource idleAnim = idleAnimations.get(0);
                 if (idleAnimations.size() > 1) {
-                    Random random = new Random();
-                    idleAnim = idleAnimations.get(random.nextInt(idleAnimations.size()));
+                    idleAnim = Utils.getRandomItem(idleAnimations);
                 }
                 idleAnimationPlayCount++;
                 playAnimation(idleAnim);
