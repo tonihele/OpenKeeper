@@ -269,12 +269,12 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     }
 
     private String formatString(String string) {
-        return string.replaceAll("%29", creature.getName()).replaceAll("%30", name);
+        return string.replaceAll("%29", name).replaceAll("%30", creature.getName());
     }
 
     public boolean isSlappable() {
         // TODO: Player id
-        return creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED);
+        return creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) && !stateMachine.isInState(CreatureState.DEAD);
     }
 
     public void slap() {
