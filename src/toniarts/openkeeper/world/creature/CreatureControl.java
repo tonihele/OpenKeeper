@@ -64,10 +64,10 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     // Attributes
     private final String name;
     private final String bloodType;
-    private int gold;
-    private int level;
-    private int health;
-    private float experience;
+    private int gold = 0;
+    private int level = 1;
+    private int health = 1;
+    private int experience = 0;
     private short ownerId;
     //
 
