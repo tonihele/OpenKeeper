@@ -23,8 +23,10 @@ import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.DesktopAssetManager;
 import com.jme3.asset.TextureKey;
+import com.jme3.audio.AudioNode;
 import com.jme3.font.Rectangle;
 import com.jme3.input.InputManager;
+import com.jme3.math.FastMath;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.texture.Texture;
@@ -105,6 +107,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private boolean backgroundSet = false;
     private static final String HUD_SCREEN_ID = "hud";
     private static final String POSSESSION_SCREEN_ID = "possession";
+    private static final String CINEMATIC_SCREEN_ID = "cinematic";
     private List<AbstractPauseAwareState> appStates = new ArrayList<>();
     private List<AbstractPauseAwareState> storedAppStates;
     private PlayerInteractionState interactionState;
@@ -218,6 +221,61 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             };
             appStates.add(interactionState);
 
+            if (app.isDebug()) {
+                TriggerState ts = new TriggerState(gameState.getLevelData()) {
+                    @Override
+                    public void onWideScreenMode(boolean state) {
+                        // TODO restore camera position
+                        if (state) {
+                            nifty.gotoScreen(CINEMATIC_SCREEN_ID);
+                        } else {
+                            nifty.gotoScreen(HUD_SCREEN_ID);
+                        }
+                    }
+
+                    @Override
+                    public void onCameraFollow(int path, Thing.ActionPoint point) {
+                        // TODO disable control
+                        //this.setEnabled(false);
+                        PlayerCameraState ps = stateManager.getState(PlayerCameraState.class);
+                        ps.doTransition(path, point);
+                    }
+
+                    @Override
+                    public void onFlashActionPoint(Thing.ActionPoint point, boolean state) {
+                        // TODO pulsate red color on tiles in AP
+                    }
+
+                    @Override
+                    public void onZoomToActionPoint(Thing.ActionPoint point) {
+                        // TODO make cinematic move
+                        PlayerCameraState ps = stateManager.getState(PlayerCameraState.class);
+                        ps.setCameraLookAt(point);
+                    }
+
+                    @Override
+                    public void onPlaySpeech(int id) {
+                        String file = String.format("Sounds/speech_%s/lvlspe%02d.mp2", gameState.getLevel().toLowerCase(), id);
+                        AudioNode speech = new AudioNode(assetManager, file, false);
+                        speech.setName("speech");
+                        speech.setLooping(false);
+                        speech.setDirectional(false);
+                        speech.setPositional(false);
+                        speech.play();
+                        rootNode.attachChild(speech);
+                    }
+
+                    @Override
+                    public void onRotateAroundActionPoint(Thing.ActionPoint point, boolean relative, int angle, int time) {
+                        PlayerCameraState ps = stateManager.getState(PlayerCameraState.class);
+                        ps.setCameraLookAt(point);
+                        ps.addRotation(angle * FastMath.DEG_TO_RAD, time);
+                    }
+                };
+                stateManager.attach(ts);
+            }
+
+
             // Load the state
             for (AbstractAppState state : appStates) {
                 stateManager.attach(state);
@@ -243,6 +301,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
      * initials
      */
     private void initHudItems() {
+        nifty = app.getNifty().getNifty();
+
         Screen hud = nifty.getScreen(HUD_SCREEN_ID);
 
         gameState.getPlayerManaControl().addListener(hud.findNiftyControl("mana", Label.class), PlayerManaControl.Type.CURRENT);

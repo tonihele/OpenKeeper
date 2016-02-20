@@ -86,6 +86,7 @@ public class Variable { //    struct VariableBlock {
     public final static int UNKNOWN_0 = 0;
     public final static int UNKNOWN_17 = 17;
     public final static int UNKNOWN_66 = 66;  
+    public final static int UNKNOWN_77 = 77;
 
     public static class CreaturePool extends Variable {
 

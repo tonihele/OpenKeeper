@@ -39,9 +39,13 @@ public class Creature implements Comparable<Creature> {
         ALWAYS_FLEE(8),
         CAN_WALK_ON_WATER(16),
         CAN_WALK_ON_LAVA(32),
+        UNKNOWN_1(0x40), // FIXME unknown flag. In Troll
         IS_EVIL(128), // Obviously otherwise it is good
+        UNKNOWN_2(256), // FIXME unknown flag
         IS_IMMUNE_TO_TURNCOAT(512),
         AVAILABLE_VIA_PORTAL(1024),
+        UNKNOWN_3(0x800), // FIXME unknown flag. In Imp
+        UNKNOWN_4(0x1000), // FIXME unknown flag
         CAN_FLY(8192),
         IS_HORNY(16384),
         GENERATE_DEAD_BODY(32768),
@@ -58,6 +62,7 @@ public class Creature implements Comparable<Creature> {
         REVEALS_ADJACENT_TRAPS(67108864),
         IS_UNIQUE(134217728),
         CAMERA_ROLLS_WHEN_TURNING(268435456), // 1st person movement flag
+        UNKNOWN_5(0x20000000),  // FIXME unknown flag. In Imp
         MPD_RANDOM_INVADER(1073741824), // My Pet Dungeon?
         IS_MALE(2147483648l);  // Obviously otherwise it is female
         private final long flagValue;
@@ -99,18 +104,48 @@ public class Creature implements Comparable<Creature> {
         MELEE_BLADE(1),
         MELEE_BLUNT(2),
         MELEE_BODY(3),
-        FIRE(4),
-        MOVEMENT(5),
-        LIGHTNING(6),
-        GAS(7),
-        PROJECTILE(8),
-        ENHANCE_OTHER(9),
-        ENHANCE_SELF(10),
-        CLOSE_COMBAT(11),
-        GENERATION(12),
-        PHYSICAL_TRAP(13),
-        NON_LETHAL_TRAP(14),
-        MELEE_SCYTHE(15);
+        MISTRESS_LIGHTNING(4),
+        GAS_CLOUD(5),
+        GAS_MISSILE(6),
+        DARK_ELF_GUIDED_BOLT(7),
+        SLOW(8),
+        GRENADE(9),
+        DRAIN(10),
+        MISTRESS_HAIL_STORM(11),
+        DARK_ELF_ARROW(12),
+        HASTE_CREATURE(13),
+        WARLOCK_HEAL_CREATURE(14),
+        MELEE_SCYTHE(15),
+        INVULNERABLE(16),
+        THIEF_INVISIBLE(17),
+        KNIVES(18),
+        DISRUPTION(19),
+        RAISE_DEAD(20),
+        WIND(21),
+        SKELETON_ARMY(22),
+        CHICKEN_ARROW(23),
+        ELF_ARCHER_ARROW(24),
+        WIZARD_FIREBALL(25),
+        SALAMANDER_FIREBALL(26),
+        WIZARD_FIREBOMB_1(27),
+        WIZARD_FIREBOMB_2(28),
+        FAIRY_FREEZE(29),
+        ELVEN_ARCHER_GUIDED_BOLT(30),
+        DARK_ANGLE_HAIL_STORM(31),
+        MONK_HEAL_CREATURE(32),
+        ROGUE_INVISIBLE(33),
+        FAIRY_LIGHTNING(34),
+        DARK_ANGLE_FIREBOMB(35),
+        IMP_TELEPORT(36),
+        IMP_HASTE(37),
+        REAPER_FIREBALL(38),
+        SALAMANDER_SPIT(39),
+        MAIDEN_WEB(40),
+        MAIDEN_POISON_SPIT(41);
+        // WARLOCK_FIREBALL(), // FIXME bug in editor? because it is a spell
+        // WARLOCK_FIREBOMB(),
+        // MISTRESS_FREEZE(),
+        // CAST_ARMOUR(),
 
         private AttackType(int id) {
             this.id = id;
@@ -138,10 +173,20 @@ public class Creature implements Comparable<Creature> {
         LEAVE(10),
         DESTROY_ENEMY_ROOMS(11),
         DESTROY_WALLS(12),
+        STEAL_GOLD(13),
+        STEAL_SPELLS(14),
         SULK(15),
         REBEL(16),
+        STEAL_MANUFACTURE_CRATES(17),
+        KILL_CREATURES(18),
+        KILL_PLAYER(19),
+        TUNNELLING(20), // FIXME or 21 or both
+        WAIT(22),
+        SEND_TO_ACTION_POINT(23),
         EXPLORE(24),
         STEAL_ENEMY_GOLD(25),
+        COMBAT_PIT_SPECTATE(26),
+        JAIL_BREAK(27),
         TOLLING(28);
 
         private JobType(int id) {
@@ -151,6 +196,30 @@ public class Creature implements Comparable<Creature> {
         @Override
         public int getValue() {
             return id;
+        }
+
+        public static JobType fromValue(int value) throws IllegalArgumentException {
+            try {
+                return JobType.values()[value];
+            } catch (ArrayIndexOutOfBoundsException e) {
+                throw new IllegalArgumentException("Unknown enum value: " + value);
+            }
+            /*
+             for(JobType e : JobType.values()){
+             if(code == e.value) return e;
+             }
+             return null;
+             */
+        }
+
+        @Override
+        public String toString() {
+            String[] splitted = name().split("_");
+            String result = "";
+            for (String s : splitted) {
+                result = result.concat(" ").concat(s.substring(0, 1).toUpperCase()).concat(s.substring(1).toLowerCase());
+            }
+            return result.trim();
         }
         private int id;
     }
@@ -463,7 +532,7 @@ public class Creature implements Comparable<Creature> {
 //        uint32_t unk1545;
 //        };
     private String name; // 0
-    private ArtResource unknown1Resource;
+    private byte[] unknown1Resource;
     private ArtResource animWalkResource;
     private ArtResource animRunResource;
     private ArtResource animDraggedPoseResource;
@@ -621,7 +690,7 @@ public class Creature implements Comparable<Creature> {
     private ArtResource firstPersonFilterResource; // f77
     private int unkfcb; // fcb
     private int unk4; // fcd
-    private ArtResource ref3; // fd1
+    private ArtResource drunkIdle; // fd1
     private Swipe special1Swipe; // 1025
     private Swipe special2Swipe;
     private ArtResource firstPersonMeleeResource; // 1027
@@ -659,11 +728,11 @@ public class Creature implements Comparable<Creature> {
         this.name = name;
     }
 
-    public ArtResource getUnknown1Resource() {
+    public byte[] getUnknown1Resource() {
         return unknown1Resource;
     }
 
-    protected void setUnknown1Resource(ArtResource unknown1Resource) {
+    protected void setUnknown1Resource(byte[] unknown1Resource) {
         this.unknown1Resource = unknown1Resource;
     }
 
@@ -1923,12 +1992,12 @@ public class Creature implements Comparable<Creature> {
         this.unk4 = unk4;
     }
 
-    public ArtResource getRef3() {
-        return ref3;
+    public ArtResource getDrunkIdle() {
+        return drunkIdle;
     }
 
-    protected void setRef3(ArtResource ref3) {
-        this.ref3 = ref3;
+    protected void setDrunkIdle(ArtResource drunkIdle) {
+        this.drunkIdle = drunkIdle;
     }
 
     public Swipe getSpecial1Swipe() {

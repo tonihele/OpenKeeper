@@ -50,9 +50,19 @@ public abstract class Thing {
 
             HERO_LAIR(0x001),
             UNKNOWN(0x004),
+            UNKNOWN_10(0x008),
             REVEAL_THROUGH_FOG_OF_WAR(0x010),
             TOOL_BOX(0x020),
-            IGNORE_SOLID(0x040);
+            IGNORE_SOLID(0x040),
+            UNKNOWN_2(0x10000), // FIXME Unknown flag
+            UNKNOWN_3(0x20000), // FIXME Unknown flag
+            UNKNOWN_4(0x40000), // FIXME Unknown flag
+            UNKNOWN_5(0x80000), // FIXME Unknown flag
+            UNKNOWN_6(0x100000), // FIXME Unknown flag
+            UNKNOWN_7(0x200000), // FIXME Unknown flag
+            UNKNOWN_8(0x400000), // FIXME Unknown flag
+            UNKNOWN_9(0x800000); // FIXME Unknown flag
+
             private final long flagValue;
 
             private ActionPointFlag(long flagValue) {
@@ -514,7 +524,9 @@ public abstract class Thing {
     // FIXME: these were camera positions, but found in variables???
     // Contains in GlobalVariables.kwd only
     public static class Camera extends Thing {
-        
+        public static int ID_POSSESION = 2;
+        public static int ID_GAME = 3;
+
         public enum CameraFlag implements IFlagEnum {
             DISABLE_CHANGE(0x80), // Never used. camera not enter and leave possession.
             DISABLE_MOVE(0x40),
@@ -524,7 +536,7 @@ public abstract class Thing {
             DISABLE_PITCH(0x04),
             DISABLE_ROLL(0x02),
             DISABLE_YAW(0x01);
-            
+
             private CameraFlag(long flagValue) {
                 this.flagValue = flagValue;
             }
@@ -533,27 +545,27 @@ public abstract class Thing {
             public long getFlagValue() {
                 return flagValue;
             }
-            
+
             private final long flagValue;
         };
-        
+
         private Vector3f x00;
         private Vector3f x0c;
         private Vector3f x18;
-        private float x24; // fog from
-        private float x28; // fog or distance of view
-        private float x2c; // fog to
-        private float heightDefault; // in game default zoom
-        private float heightMin; // in game min zoom
-        private float heightMax; // in game max zoom
-        private float x3c; // frustumRightTop maybe
-        private float x40; // frustumLeftBottom maybe
-        private float near; // change field of view
-        private EnumSet<CameraFlag> flags; // 
-        private int x4c; // maybe angle yaw. always 0
+        private float fogDefault; // Volume fog. Used in Possession.
+        private float fogMin;
+        private float fogMax;
+        private float heightDefault; // in game zoom height
+        private float heightMin;
+        private float heightMax;
+        private float fovDefault; // field of view
+        private float fovMin;
+        private float fovMax;
+        private EnumSet<CameraFlag> flags;
+        private int angleYaw; // always 0
         private int angleRoll; // rotate camera around direction vector.
         private int anglePitch; // rotate camera around Left vector. 512 = front.
-        
+
         /* 2 - possession camera
          * 3 - game camera
          * other never used ?
@@ -584,35 +596,35 @@ public abstract class Thing {
             this.x18 = x18;
         }
 
-        public float getX24() {
-            return x24;
+        public float getFog() {
+            return fogDefault;
         }
 
-        protected void setX24(float x24) {
-            this.x24 = x24;
+        protected void setFog(float fog) {
+            this.fogDefault = fog;
         }
 
-        public float getX28() {
-            return x28;
+        public float getFogMin() {
+            return fogMin;
         }
 
-        protected void setX28(float x28) {
-            this.x28 = x28;
+        protected void setFogMin(float fog) {
+            this.fogMin = fog;
         }
 
-        public float getX2c() {
-            return x2c;
+        public float getFogMax() {
+            return fogMax;
         }
 
-        protected void setX2c(float x2c) {
-            this.x2c = x2c;
+        protected void setFogMax(float fog) {
+            this.fogMax = fog;
         }
 
-        public float getHeightDefault() {
+        public float getHeight() {
             return heightDefault;
         }
 
-        protected void setHeightDefault(float height) {
+        protected void setHeight(float height) {
             this.heightDefault = height;
         }
 
@@ -632,28 +644,28 @@ public abstract class Thing {
             this.heightMax = height;
         }
 
-        public float getX3c() {
-            return x3c;
+        public float getFov() {
+            return fovDefault;
         }
 
-        protected void setX3c(float x3c) {
-            this.x3c = x3c;
+        protected void setFov(float fov) {
+            this.fovDefault = fov;
         }
 
-        public float getX40() {
-            return x40;
+        public float getFovMin() {
+            return fovMin;
         }
 
-        protected void setX40(float x40) {
-            this.x40 = x40;
+        protected void setFovMin(float fov) {
+            this.fovMin = fov;
         }
 
-        public float getNear() {
-            return near;
+        public float getFovMax() {
+            return fovMax;
         }
 
-        protected void setNear(float near) {
-            this.near = near;
+        protected void setFovMax(float fov) {
+            this.fovMax = fov;
         }
 
         public EnumSet<CameraFlag> getFlags() {
@@ -664,12 +676,12 @@ public abstract class Thing {
             this.flags = flags;
         }
 
-        public int getX4c() {
-            return x4c;
+        public int getAngleYaw() {
+            return angleYaw;
         }
 
-        protected void setX4c(int x4c) {
-            this.x4c = x4c;
+        protected void setAngleYaw(int angle) {
+            this.angleYaw = angle;
         }
 
         public int getAngleRoll() {
@@ -698,11 +710,13 @@ public abstract class Thing {
 
         @Override
         public String toString() {
-            return "Camera{" + "x00=" + x00 + ", x0c=" + x0c + ", x18=" + x18 + ", x24=" + x24 + ", x28=" + x28 
-                    + ", x2c=" + x2c + ", heightNormal=" + heightDefault + ", heightMin=" + heightMin + 
-                    ", heightMax=" + heightMax + ", x3c=" + x3c + ", x40=" 
-                    + x40 + ", near=" + near + ", flags=" + flags + ", x4c=" + x4c + 
-                    ", angleRoll=" + angleRoll + ", anglePitch=" + anglePitch + ", id=" + id + '}';
+            return "Camera { " + "x00=" + x00 + ", x0c=" + x0c + ", x18=" + x18
+                    + ", x24=" + fogDefault + ", x28=" + fogMin + ", x2c=" + fogMax
+                    + ", height=" + heightDefault + ", heightMin=" + heightMin + ", heightMax=" + heightMax
+                    + ", fov=" + fovDefault + ", fovMin=" + fovMin + ", fovMax=" + fovMax
+                    + ", flags=" + flags
+                    + ", angleYaw=" + angleYaw + ", angleRoll=" + angleRoll + ", anglePitch=" + anglePitch
+                    + ", id=" + id + " }";
         }
     }
 

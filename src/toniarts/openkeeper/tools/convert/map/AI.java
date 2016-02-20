@@ -154,7 +154,8 @@ public class AI {
         FURTHEST_FROM_HEART(0),
         RANDOM(1),
         HEART(2),
-        CLOSEST_TO_ENEMY_HEART(3);
+        CLOSEST_TO_ENEMY_HEART(3),
+        UNKNOWN_255(255); // FIXME Unknown value
 
         private DigToPolicy(int id) {
             this.id = id;

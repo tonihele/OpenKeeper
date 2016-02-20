@@ -32,7 +32,7 @@ public class ArtResource {
 
     public enum ArtResourceFlag implements IFlagEnum {
 
-        UNKNOWN(0x0001),
+        UNKNOWN(0x0001), // FIXME unknown flag. Maybe CAN_USE_ALTERNATIVE_ANIMATION
         PLAYER_COLOURED(0x0002),
         ANIMATING_TEXTURE(0x0004),
         HAS_START_ANIMATION(0x0008),
@@ -42,6 +42,8 @@ public class ArtResource {
         DOESNT_LOOP(0x0080),
         FLAT(0x0100),
         DOESNT_USE_PROGRESSIVE_MESH(0x0200),
+        UNKNOWN_1(0x0400),  // FIXME unknown flag. In creature Imp (animIdle1)
+        UNKNOWN_2(0x8000),  // FIXME unknown flag. In creature Imp (animMelee1)
         USE_ANIMATING_TEXTURE_FOR_SELECTION(0x10000),
         PRELOAD(0x20000),
         BLOOD(0x40000);
@@ -67,7 +69,8 @@ public class ArtResource {
         MESH(5),
         ANIMATING_MESH(6),
         PROCEDURAL_MESH(7),
-        MESH_COLLECTION(8);
+        MESH_COLLECTION(8),
+        UNKNOWN(12); // FIXME unknown flag
 
         private Type(int id) {
             this.id = id;

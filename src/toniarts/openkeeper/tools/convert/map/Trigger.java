@@ -16,6 +16,10 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+
 /**
  * Container class for *Triggers.kld
  *
@@ -26,9 +30,43 @@ public abstract class Trigger {
     protected KwdFile kwdFile; // For toStrings()
     private int id;
     private int idNext; // SiblingID
+    private int idChild; // ChildID
+    private short repeatTimes; // Repeat x times, 255 = always
+    protected HashMap<String, Number> userData = null;
 
     public Trigger(KwdFile kwdFile) {
         this.kwdFile = kwdFile;
+    }
+
+    public void setUserData(String key, Number data) {
+        if (userData == null) {
+            userData = new HashMap<>();
+        }
+
+        if (data == null) {
+            userData.remove(key);
+        } else if (data instanceof Number) {
+            userData.put(key, data);
+        } else {
+            throw new RuntimeException("unexpected value");
+        }
+    }
+
+    public <T extends Number> T getUserData(String key) {
+        if (userData == null) {
+            return null;
+        }
+
+        Number s = userData.get(key);
+        return (T) s;
+    }
+
+    public Collection<String> getUserDataKeys() {
+        if (userData != null) {
+            return userData.keySet();
+        }
+
+        return Collections.EMPTY_SET;
     }
 
     public int getId() {
@@ -48,20 +86,46 @@ public abstract class Trigger {
     }
 
     /**
-     * Does this trigger have children
-     *
-     * @see #getIdChild()
-     * @return true if we have for sure
-     */
-    public abstract boolean hasChildren();
-
-    /**
      * Get the child trigger id
      *
      * @see #hasChildren()
      * @return the child ID, or 0 if no children
      */
-    public abstract int getIdChild();
+    public int getIdChild() {
+        return idChild;
+    }
+
+    protected void setIdChild(int id) {
+        this.idChild = id;
+    }
+
+    public short getRepeatTimes() {
+        return repeatTimes;
+    }
+
+    protected void setRepeatTimes(short repeatTimes) {
+        this.repeatTimes = repeatTimes;
+    }
+
+    /**
+     * Does this trigger have next trigger
+     *
+     * @see #getIdNext()
+     * @return true if we have for sure
+     */
+    public boolean hasNext() {
+        return (getIdNext() != 0);
+    }
+
+    /**
+     * Does this trigger have children
+     *
+     * @see #getIdChild()
+     * @return true if we have for sure
+     */
+    public boolean hasChildren() {
+        return (getIdChild() != 0);
+    }
 
     @Override
     public int hashCode() {

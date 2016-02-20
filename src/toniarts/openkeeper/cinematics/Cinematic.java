@@ -35,6 +35,7 @@ import java.awt.Point;
 import java.io.File;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.world.MapLoader;
 
@@ -67,6 +68,10 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      */
     public Cinematic(AssetManager assetManager, Camera cam, Point start, String cameraSweepFile, Node scene, AppStateManager stateManager) {
         this(assetManager, cam, MapLoader.getCameraPositionOnMapPoint(start.x, start.y), cameraSweepFile, scene, stateManager);
+    }
+
+    public Cinematic(final Main app, String cameraSweepFile, int x, int y) {
+        this(app.getAssetManager(), app.getCamera(), MapLoader.getCameraPositionOnMapPoint(x, y), cameraSweepFile, app.getRootNode(), app.getStateManager());
     }
 
     /**
@@ -116,7 +121,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         for (CameraSweepDataEntry entry : cameraSweepData.getEntries()) {
             path.addWayPoint(entry.getPosition().mult(MapLoader.TILE_WIDTH).addLocal(startLocation));
         }
-        path.setCurveTension(0);
+        //path.setCurveTension(0.5f);
         if (IS_DEBUG) {
             path.enableDebugShape(assetManager, scene);
         }
@@ -138,7 +143,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
                     // If we are not on the last waypoint, interpolate the rotation between waypoints
                     CameraSweepDataEntry entryNext = cameraSweepData.getEntries().get(startIndex + 1);
-                    Quaternion q2 = new Quaternion(entryNext.getRotation());
+                    Quaternion q2 = entryNext.getRotation();
 
                     q1.slerp(q2, progress);
 
@@ -146,8 +151,9 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
                     setRotation(q1);
 
                     // Set the near & FOV
-                    cam.setFrustumNear(FastMath.interpolateLinear(progress, entry.getNear(), entryNext.getNear()) / 4096f);
-                    cam.setFrustumPerspective(FastMath.interpolateLinear(progress, entry.getFov(), entryNext.getFov()) - 10, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
+                    //float near = FastMath.interpolateLinear(progress, entry.getNear(), entryNext.getNear()) / 4096;
+                    float fov = FastMath.interpolateLinear(progress, entry.getFov(), entryNext.getFov());
+                    cam.setFrustumPerspective(fov, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
                 }
             }
 
@@ -217,8 +223,8 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
         // FIXME: Near should be the very minimun needed, how to use the original near info
         // Set the near & FOV
-        cam.setFrustumNear(entry.getNear() / 4096f);
-        cam.setFrustumPerspective(entry.getFov() - 10, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
+        //cam.setFrustumNear(entry.getNear() / 4096f);
+        cam.setFrustumPerspective(entry.getFov(), (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
     }
 
     /**
