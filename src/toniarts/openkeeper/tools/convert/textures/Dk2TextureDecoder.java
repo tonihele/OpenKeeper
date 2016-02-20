@@ -130,10 +130,10 @@ public abstract class Dk2TextureDecoder {
 
     protected int[] decompress3_chunk = new int[288];
     protected int[] decompress4_chunk = new int[512];
-    private int norm_7af038 = 0x5A82799A;
-    private float float_7af03c = 5.4119611e-1f;
-    private float float_7af040 = 1.306563f;
-    private float float_7af044 = 3.8268343e-1f;
+    private static final int norm_7af038 = 0x5A82799A;
+    private static final float float_7af03c = 5.4119611e-1f;
+    private static final float float_7af040 = 1.306563f;
+    private static final float float_7af044 = 3.8268343e-1f;
 
     protected void initialize_dd(long[] buf) {
         bs = buf;
