@@ -94,15 +94,15 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
         gold = creatureInstance.getGoldHeld();
         health = creature.getHp();
         if (creatureInstance instanceof KeeperCreature) {
-            health = ((KeeperCreature) creatureInstance).getInitialHealth();
+            health = (int) (((KeeperCreature) creatureInstance).getInitialHealth() / 100f * health);
             level = ((KeeperCreature) creatureInstance).getLevel();
             ownerId = ((KeeperCreature) creatureInstance).getPlayerId();
         } else if (creatureInstance instanceof GoodCreature) {
-            health = ((GoodCreature) creatureInstance).getInitialHealth();
+            health = (int) (((GoodCreature) creatureInstance).getInitialHealth() / 100f * health);
             level = ((GoodCreature) creatureInstance).getLevel();
             ownerId = Player.GOOD_PLAYER_ID;
         } else if (creatureInstance instanceof NeutralCreature) {
-            health = ((NeutralCreature) creatureInstance).getInitialHealth();
+            health = (int) (((NeutralCreature) creatureInstance).getInitialHealth() / 100f * health);
             level = ((NeutralCreature) creatureInstance).getLevel();
             ownerId = Player.NEUTRAL_PLAYER_ID;
         } else if (creatureInstance instanceof DeadBody) {
