@@ -20,8 +20,8 @@ import com.jme3.asset.AssetManager;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Object;
@@ -35,6 +35,7 @@ import toniarts.openkeeper.world.creature.CreatureLoader;
 public class ThingLoader {
 
     private final WorldState worldState;
+    private static final Logger logger = Logger.getLogger(ThingLoader.class.getName());
 
     public ThingLoader(WorldState worldHandler) {
         this.worldState = worldHandler;
@@ -72,7 +73,7 @@ public class ThingLoader {
 
                 }
             } catch (Exception ex) {
-                System.err.println(ex);
+                logger.log(Level.WARNING, "Could not load Thing.", ex.fillInStackTrace());
             }
         }
 
