@@ -331,7 +331,7 @@ public abstract class WorldState extends AbstractAppState {
             tile.setPlayerId(playerId);
         }
         // update one
-        mapLoader.updateTiles(pos);
+        mapLoader.updateTiles(mapLoader.getSurroundingTiles(pos, true));
     }
 
     /**

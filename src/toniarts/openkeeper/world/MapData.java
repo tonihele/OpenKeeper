@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.world;
 
+import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
@@ -70,6 +71,10 @@ public final class MapData {
             return null;
         }
         return this.tiles[x][y];
+    }
+
+    public TileData getTile(Point p) {
+        return getTile(p.x, p.y);
     }
 
     public TileData[][] getTiles() {
