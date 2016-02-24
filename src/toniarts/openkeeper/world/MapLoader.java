@@ -77,7 +77,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final HashMap<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final HashMap<RoomInstance, GenericRoom> roomActuals = new HashMap<>(); // Rooms by room instance
     private final HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
-    private final HashMap<String, Spatial> cachedModels = new HashMap<>();
+    private static final HashMap<String, Spatial> cachedModels = new HashMap<>();
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
     public MapLoader(AssetManager assetManager, KwdFile kwdFile) {
@@ -854,7 +854,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 traverseRoomWalls(p, roomInstance, WallDirection.SOUTH, sections, alreadyWalledPoints);
                 traverseRoomWalls(p, roomInstance, WallDirection.WEST, sections, alreadyWalledPoints);
             }
-            roomInstance.setWallPoints(sections);
+            roomInstance.setWallSections(sections);
         }
     }
 

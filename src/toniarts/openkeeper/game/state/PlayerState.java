@@ -165,7 +165,12 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Load the level dictionary on campaign maps
             if (!gameState.getLevelData().getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)) {
                 String levelResource = "Interface/Texts/" + gameState.getLevel().toUpperCase();
-                this.app.getNifty().getNifty().getResourceBundles().put("level", Main.getResourceBundle(levelResource));
+                // for custom levels
+                try {
+                    this.app.getNifty().getNifty().getResourceBundles().put("level", Main.getResourceBundle(levelResource));
+                } catch (Exception ex) {
+                    logger.warning(ex.toString());
+                }
             }
 
             int triggerId = gameState.getLevelData().getPlayer(playerId).getTriggerId();

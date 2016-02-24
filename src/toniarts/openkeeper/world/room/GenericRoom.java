@@ -24,8 +24,6 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -42,8 +40,7 @@ public abstract class GenericRoom {
     protected final AssetManager assetManager;
     protected final RoomInstance roomInstance;
     protected final Thing.Room.Direction direction;
-    private int wallPointer = -1;
-    private final static int[] wallIndexes = new int[]{8, 7};
+    private final static int[] wallIndexes = new int[]{7, 8};
     private Node root;
     private final String tooltip;
 
@@ -60,12 +57,21 @@ public abstract class GenericRoom {
     public Spatial construct() {
 
         // Add the floor
-        BatchNode floorNode = new BatchNode("Floor");
-        contructFloor(floorNode);
-        floorNode.setShadowMode(getFloorShadowMode());
-        floorNode.batch();
-        getRootNode().attachChild(floorNode);
+        BatchNode floorNode = constructFloor();
+        if (floorNode != null) {
+            floorNode.setName("Floor");
+            floorNode.setShadowMode(getFloorShadowMode());
+            floorNode.batch();
+            getRootNode().attachChild(floorNode);
+        }
 
+        BatchNode wallNode = constructWall();
+        if (wallNode != null) {
+            wallNode.setName("Wall");
+            wallNode.setShadowMode(getWallShadowMode());
+            wallNode.batch();
+            getRootNode().attachChild(wallNode);
+        }
         return getRootNode();
     }
 
@@ -81,110 +87,96 @@ public abstract class GenericRoom {
         return root;
     }
 
-    protected abstract void contructFloor(Node root);
+    protected abstract BatchNode constructFloor();
+
+    protected abstract BatchNode constructWall();
 
     protected RenderQueue.ShadowMode getFloorShadowMode() {
         return RenderQueue.ShadowMode.Receive;
     }
 
-    protected void contructWall(Node root) {
-        
+    protected RenderQueue.ShadowMode getWallShadowMode() {
+        return RenderQueue.ShadowMode.CastAndReceive;
     }
 
-    public Spatial getWallSpatial(Point start, WallSection.WallDirection direction) {
-       
+    public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
+        // TODO make models cache ???
+        float yAngle = FastMath.PI;
         String resource = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
 
-        for (WallSection section : roomInstance.getWallPoints()) {
+        for (WallSection section : roomInstance.getWallSections()) {
 
             if (section.getDirection() != direction) {
                 continue;
             }
-            
-            float yAngle = FastMath.PI;
-            Vector3f moveFirst = new Vector3f(-0.75f, 0, -0.25f);
-            Vector3f moveSecond = new Vector3f(-0.25f, 0, -0.25f);
-            if (section.getDirection() == WallSection.WallDirection.WEST) {
-                //yAngle = FastMath.PI / 2;
-                moveFirst = new Vector3f(-0.25f, 0, -0.25f);
-                moveSecond = new Vector3f(-0.75f, 0, -0.25f);
-            } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
-                //yAngle = FastMath.PI;
-                moveFirst = new Vector3f(-0.25f, 0, -0.25f);
-                moveSecond = new Vector3f(-0.75f, 0, -0.25f);
-            } else if (section.getDirection() == WallSection.WallDirection.EAST) {
-                //yAngle = -FastMath.PI / 2;
-                moveFirst = new Vector3f(-0.75f, 0, -0.25f);
-                moveSecond = new Vector3f(-0.25f, 0, -0.25f);
-            }
 
-            // Reset wall index for each wall section
-            resetWallIndex();
-            
-            int i = 0;
-            for (Point p : section.getCoordinates()) {
-                if (start.equals(p)) {
-                    Spatial spatial;
-                    if (i == 0 || i == (section.getCoordinates().size() - 1)) {
-                        spatial = new BatchNode();
-                        int firstPiece = (i == 0 ? 4 : 6);
-                        if (firstPiece == 4 && (section.getDirection() == WallSection.WallDirection.EAST
-                                || section.getDirection() == WallSection.WallDirection.NORTH)) {
-                            firstPiece = 5; // The sorting direction forces us to do this
-                        }
-
-                        // Load the piece
-                        Spatial part = assetManager.loadModel(resource + firstPiece + ".j3o");
-                        resetSpatial(part);
-                        part.move(moveFirst);
-                        if (yAngle != 0) {
-                            part.rotate(0, yAngle, 0);
-                        }
-                        ((BatchNode) spatial).attachChild(part);
-
-                        // Second
-                        int secondPiece = (i == (section.getCoordinates().size() - 1) ? 5 : 6);
-                        if (secondPiece == 5 && (section.getDirection() == WallSection.WallDirection.EAST
-                                || section.getDirection() == WallSection.WallDirection.NORTH)) {
-                            secondPiece = 4; // The sorting direction forces us to do this
-                        }
-
-                        part = assetManager.loadModel(resource + secondPiece + ".j3o");
-                        resetSpatial(part);
-                        part.move(moveSecond);
-                        if (yAngle != 0) {
-                            part.rotate(0, yAngle, 0);
-                        }
-                        ((BatchNode) spatial).attachChild(part);
-
-                        ((BatchNode) spatial).batch();
-
-                        //spatial.move(-0.5f, 0, -0.5f);
-                    } else {
-
-                        // Complete walls, 8, 7, 8, 7 and so forth
-                        spatial = assetManager.loadModel(resource + getWallIndexNext() + ".j3o");
-                        resetSpatial(spatial);
-                        if (yAngle != 0) {
-                            spatial.rotate(0, yAngle, 0);
-                        }
-                        if (section.getDirection() == WallSection.WallDirection.WEST) {
-                            spatial.move(-0.5f, 0, 0.5f);
-                        } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
-                            spatial.move(0.5f, 0, 0.5f);
-                        } else if (section.getDirection() == WallSection.WallDirection.EAST) {
-                            spatial.move(0.5f, 0, -0.5f);
-                        } else {
-                            spatial.move(-0.5f, 0, -0.5f);
-                        }
-                    }
-
-                    return spatial;
-                } else if (i != 0 && i != (section.getCoordinates().size() - 1)) {
-                    getWallIndexNext();                    
+            int sectionSize = section.getCoordinates().size();
+            for (int i = 0; i < sectionSize; i++) {
+                // skip others
+                if (!p.equals(section.getCoordinates().get(i))) {
+                    continue;
                 }
 
-                i++;
+                Spatial spatial;
+                if (i == 0 || i == (sectionSize - 1)) {
+                    Vector3f moveFirst;
+                    Vector3f moveSecond;
+                    if (section.getDirection() == WallSection.WallDirection.WEST
+                            || section.getDirection() == WallSection.WallDirection.SOUTH) {
+                        moveFirst = new Vector3f(-0.25f, 0, -0.25f);
+                        moveSecond = new Vector3f(-0.75f, 0, -0.25f);
+                    } else { // NORTH, EAST
+                        moveFirst = new Vector3f(-0.75f, 0, -0.25f);
+                        moveSecond = new Vector3f(-0.25f, 0, -0.25f);
+                    }
+
+                    spatial = new BatchNode();
+                    int firstPiece = (i == 0 ? 4 : 6);
+                    if (firstPiece == 4 && (section.getDirection() == WallSection.WallDirection.EAST
+                            || section.getDirection() == WallSection.WallDirection.NORTH)) {
+                        firstPiece = 5; // The sorting direction forces us to do this
+                    }
+
+                    // Load the piece
+                    Spatial part = assetManager.loadModel(resource + firstPiece + ".j3o");
+                    resetSpatial(part);
+                    part.move(moveFirst);                    
+                    part.rotate(0, yAngle, 0);                    
+                    ((BatchNode) spatial).attachChild(part);
+
+                    // Second
+                    int secondPiece = (i == (sectionSize - 1) ? 5 : 6);
+                    if (secondPiece == 5 && (section.getDirection() == WallSection.WallDirection.EAST
+                            || section.getDirection() == WallSection.WallDirection.NORTH)) {
+                        secondPiece = 4; // The sorting direction forces us to do this
+                    }
+
+                    part = assetManager.loadModel(resource + secondPiece + ".j3o");
+                    resetSpatial(part);
+                    part.move(moveSecond);                    
+                    part.rotate(0, yAngle, 0);                    
+                    ((BatchNode) spatial).attachChild(part);
+
+                    ((BatchNode) spatial).batch();
+                } else {
+                    // Complete walls, 8, 7, 8, 7 and so forth
+                    spatial = assetManager.loadModel(resource + getWallIndex(i) + ".j3o");
+                    resetSpatial(spatial);
+                    spatial.rotate(0, yAngle, 0);
+                    
+                    if (section.getDirection() == WallSection.WallDirection.WEST) {
+                        spatial.move(-MapLoader.TILE_WIDTH / 2, 0, MapLoader.TILE_WIDTH / 2);
+                    } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
+                        spatial.move(MapLoader.TILE_WIDTH / 2, 0, MapLoader.TILE_WIDTH / 2);
+                    } else if (section.getDirection() == WallSection.WallDirection.EAST) {
+                        spatial.move(MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                    } else { // NORTH
+                        spatial.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                    }
+                }
+
+                return spatial;
+
             }
         }
         return null;
@@ -244,33 +236,14 @@ public abstract class GenericRoom {
     }
 
     /**
-     * Get the wall indexes, whole wall sections. The index means the index
-     * suffix on a wall model
-     *
-     * @return list of wall indexes
-     */
-    protected int[] getWallIndexes() {
-        return wallIndexes;
-    }
-
-    /**
      * Get next wall index
      *
+     * @param index position from the first in section
      * @return the next wall index
      */
-    public int getWallIndexNext() {
-        wallPointer++;
-        if (wallPointer >= getWallIndexes().length) {
-            wallPointer = 0;
-        }
-        return getWallIndexes()[wallPointer];
-    }
-
-    /**
-     * Restart the wall counter
-     */
-    public void resetWallIndex() {
-        wallPointer = -1;
+    public int getWallIndex(int index) {
+        int pointer = index % wallIndexes.length;
+        return wallIndexes[pointer];
     }
 
     /**

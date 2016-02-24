@@ -17,7 +17,7 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
-import com.jme3.scene.Node;
+import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -36,7 +36,8 @@ public class HeroGateTwoByTwo extends GenericRoom {
     }
 
     @Override
-    protected void contructFloor(Node n) {
+    protected BatchNode constructFloor() {
+        BatchNode root = new BatchNode();
         String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
 
         // Contruct the tiles
@@ -48,11 +49,18 @@ public class HeroGateTwoByTwo extends GenericRoom {
             // Reset
             resetAndMoveSpatial(tile, start, p);
 
-            n.attachChild(tile);
+            root.attachChild(tile);
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
+        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+
+        return root;
+    }
+
+    @Override
+    protected BatchNode constructWall() {
+        return null;
     }
 }

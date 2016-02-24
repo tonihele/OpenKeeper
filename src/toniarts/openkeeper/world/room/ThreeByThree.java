@@ -17,7 +17,7 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
-import com.jme3.scene.Node;
+import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -37,8 +37,8 @@ public class ThreeByThree extends GenericRoom {
     }
 
     @Override
-    protected void contructFloor(Node n) {
-
+    protected BatchNode constructFloor() {
+        BatchNode root = new BatchNode();
         // 3 by 3, a simple case
         int i = 0;
         Point start = roomInstance.getCoordinates().get(0);
@@ -47,13 +47,15 @@ public class ThreeByThree extends GenericRoom {
 
             resetAndMoveSpatial(tile, start, p);
 
-            n.attachChild(tile);
+            root.attachChild(tile);
             i++;
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
+        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+
+        return root;
     }
 
     @Override
@@ -64,4 +66,8 @@ public class ThreeByThree extends GenericRoom {
         return !(roomPoint.x == 1 && roomPoint.y == 1);
     }
 
+    @Override
+    protected BatchNode constructWall() {
+        return null;
+    }
 }
