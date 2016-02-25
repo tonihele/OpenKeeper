@@ -148,12 +148,13 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param updatableTiles list of tiles to update
      */
     protected void updateTiles(Point... points) {
-        
+
         // Reconstruct all tiles in the area
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
+        ArrayList<RoomInstance> updateRooms = new ArrayList<>();
         Node terrainNode = (Node) map.getChild(0);
         for (Point point : points) {
-
+            TileData tile = mapData.getTile(point);
             // Reconstruct and mark for patching
             // The tile node needs to created anew, somehow the BatchNode just doesn't get it if I remove children from subnode
             Node pageNode = getPageNode(point, terrainNode);
@@ -176,8 +177,17 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 nodesNeedBatching.add((BatchNode) pageNode.getChild(2));
             }
 
+            if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                RoomInstance ri = roomCoordinates.get(point);
+                if (updateRooms.indexOf(ri) == -1) {
+                    updateRooms.add(ri);
+                } else {
+                    // skip room
+                    continue;
+                }
+            }
             // Reconstruct
-            handleTile(mapData.getTile(point), (Node) map.getChild(0));
+            handleTile(tile, (Node) map.getChild(0));
         }
 
         // Batch
@@ -300,7 +310,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             if (yAngle != 0) {
                 wall.rotate(0, yAngle, 0);
             }
-            wall.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);           
+            wall.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
         }
         return wall;
     }
@@ -426,7 +436,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private RoomInstance handleRoom(Point p, Room room) {
         if (roomCoordinates.containsKey(p)) {
             RoomInstance roomInstance = roomCoordinates.get(p);
-            updateRoomWalls(roomInstance);
             return roomInstance;
         }
 
@@ -513,7 +522,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private void handleSide(TileData tile, Node pageNode) {
         Point p = tile.getLocation();
         Node sideTileNode = getTileNode(p, (Node) pageNode.getChild(1));
-        
+
 
         // North
         Spatial wall = getWallSpatial(tile, WallDirection.NORTH);
@@ -956,7 +965,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     protected Point[] getSurroundingTiles(Point point, boolean diagonal) {
 
         // Get all surrounding tiles
-        List<Point> tileCoords = new ArrayList<>(diagonal ? 8 : 4);
+        List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
         tileCoords.add(point);
 
         addIfValidCoordinate(point.x, point.y - 1, tileCoords); // North
@@ -987,7 +996,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     protected void updateRoomWalls(RoomInstance... rooms) {
         for (RoomInstance room : rooms) {
             findRoomWallSections(room);
-            RoomConstructor.constructRoom(room, assetManager, kwdFile);            
         }
     }
 

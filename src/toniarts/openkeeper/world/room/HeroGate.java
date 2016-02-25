@@ -87,7 +87,7 @@ public class HeroGate extends GenericRoom {
     @Override
     protected BatchNode constructWall() {
         BatchNode root = new BatchNode();
-        // Get the wall points        
+        // Get the wall points
         Point start = roomInstance.getCoordinates().get(0);
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
         int south = 0;

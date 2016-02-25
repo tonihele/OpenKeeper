@@ -140,8 +140,8 @@ public abstract class GenericRoom {
                     // Load the piece
                     Spatial part = assetManager.loadModel(resource + firstPiece + ".j3o");
                     resetSpatial(part);
-                    part.move(moveFirst);                    
-                    part.rotate(0, yAngle, 0);                    
+                    part.move(moveFirst);
+                    part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
 
                     // Second
@@ -153,8 +153,8 @@ public abstract class GenericRoom {
 
                     part = assetManager.loadModel(resource + secondPiece + ".j3o");
                     resetSpatial(part);
-                    part.move(moveSecond);                    
-                    part.rotate(0, yAngle, 0);                    
+                    part.move(moveSecond);
+                    part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
 
                     ((BatchNode) spatial).batch();
@@ -163,7 +163,7 @@ public abstract class GenericRoom {
                     spatial = assetManager.loadModel(resource + getWallIndex(i) + ".j3o");
                     resetSpatial(spatial);
                     spatial.rotate(0, yAngle, 0);
-                    
+
                     if (section.getDirection() == WallSection.WallDirection.WEST) {
                         spatial.move(-MapLoader.TILE_WIDTH / 2, 0, MapLoader.TILE_WIDTH / 2);
                     } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
