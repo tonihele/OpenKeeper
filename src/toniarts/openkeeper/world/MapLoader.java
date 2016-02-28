@@ -46,6 +46,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.control.FlashTileControl;
+import toniarts.openkeeper.world.effect.EffectManager;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomConstructor;
 import toniarts.openkeeper.world.room.RoomInstance;
@@ -69,6 +70,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private Node map;
     private final MapData mapData;
     private final AssetManager assetManager;
+    private final EffectManager effectManager;
     private Node roomsNode;
     private final List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
     private final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
@@ -83,7 +85,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     public MapLoader(AssetManager assetManager, KwdFile kwdFile) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
-
+        this.effectManager = new EffectManager(assetManager, kwdFile);
         // Create modifiable tiles
         mapData = new MapData(kwdFile);
     }
@@ -729,7 +731,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param roomInstance the room instance
      */
     private Spatial handleRoom(RoomInstance roomInstance) {
-        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, kwdFile);
+        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, effectManager, kwdFile);
         roomActuals.put(roomInstance, room);
         updateRoomWalls(roomInstance);
         return room.construct();

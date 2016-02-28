@@ -30,6 +30,7 @@ import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.QUAD;
 import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction._3_BY_3;
 import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction._5_BY_5_ROTATED;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.effect.EffectManager;
 
 /**
  * A factory class you can use to build buildings
@@ -44,75 +45,77 @@ public final class RoomConstructor {
         // Nope
     }
 
-    public static GenericRoom constructRoom(RoomInstance roomInstance, AssetManager assetManager, KwdFile kwdFile) {
+    public static GenericRoom constructRoom(RoomInstance roomInstance, AssetManager assetManager,
+            EffectManager effectManager, KwdFile kwdFile) {
         String roomName = roomInstance.getRoom().getName();
+
+        Thing.Room.Direction direction = null;
+        for (Thing thing : kwdFile.getThings()) {
+            if (thing instanceof Thing.Room) {
+                Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
+                if (roomInstance.hasCoordinate(p)) {
+                    direction = ((Thing.Room) thing).getDirection();
+                }
+            }
+        }
+
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3:
-                return new ThreeByThree(assetManager, roomInstance, null);
+                return new ThreeByThree(assetManager, roomInstance, direction);
 
             case HERO_GATE:
-                return new HeroGate(assetManager, roomInstance, null);
+                return new HeroGate(assetManager, roomInstance, direction);
 
             case HERO_GATE_FRONT_END:
-                return new HeroGateFrontEnd(assetManager, roomInstance, null);
+                return new HeroGateFrontEnd(assetManager, roomInstance, direction);
 
             case HERO_GATE_2_BY_2:
-                return new HeroGateTwoByTwo(assetManager, roomInstance, null);
+                return new HeroGateTwoByTwo(assetManager, roomInstance, direction);
 
-            case HERO_GATE_3_BY_1:
-                Thing.Room.Direction direction = Thing.Room.Direction.NORTH;
-                for (Thing thing : kwdFile.getThings()) {
-                    if (thing instanceof Thing.Room) {
-                        Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
-                        if (roomInstance.hasCoordinate(p)) {
-                            direction = ((Thing.Room) thing).getDirection();
-                        }
-                    }
-                }
-
+            case HERO_GATE_3_BY_1:                
                 return new HeroGateThreeByOne(assetManager, roomInstance, direction);
 
             case _5_BY_5_ROTATED:
-                return new FiveByFiveRotated(assetManager, roomInstance, null);
+                return new FiveByFiveRotated(assetManager, effectManager, roomInstance, direction);
 
             case NORMAL:
                 if (roomName.equalsIgnoreCase("Lair")) {
-                    return new Lair(assetManager, roomInstance, null);
+                    return new Lair(assetManager, roomInstance, direction);
                 }
                 if (roomName.equalsIgnoreCase("Library")) {
-                    return new Library(assetManager, roomInstance, null);
+                    return new Library(assetManager, roomInstance, direction);
                 }
                 if (roomName.equalsIgnoreCase("Training Room")) {
-                    return new TrainingRoom(assetManager, roomInstance, null);
+                    return new TrainingRoom(assetManager, roomInstance, direction);
                 }
                 if (roomName.equalsIgnoreCase("Work Shop")) {
-                    return new Workshop(assetManager, roomInstance, null);
+                    return new Workshop(assetManager, roomInstance, direction);
                 }
                 if (roomName.equalsIgnoreCase("Guard Room")) {
-                    return new GuardRoom(assetManager, roomInstance, null);
+                    return new GuardRoom(assetManager, roomInstance, direction);
                 }
                 if (roomName.equalsIgnoreCase("Casino")) {
-                    return new Casino(assetManager, roomInstance, null);
+                    return new Casino(assetManager, roomInstance, direction);
                 }
                 if (roomName.equalsIgnoreCase("Graveyard")) {
-                    return new Graveyard(assetManager, roomInstance, null);
+                    return new Graveyard(assetManager, roomInstance, direction);
                 }
-                return new Normal(assetManager, roomInstance, null);
+                return new Normal(assetManager, roomInstance, direction);
 
             case QUAD:
                 if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
-                    return new StoneBridge(assetManager, roomInstance, null);
+                    return new StoneBridge(assetManager, roomInstance, direction);
                 } else {
-                    return new WoodenBridge(assetManager, roomInstance, null);
+                    return new WoodenBridge(assetManager, roomInstance, direction);
                 }
 
             case DOUBLE_QUAD:
                 if (roomName.equalsIgnoreCase("Prison")) {
-                    return new Prison(assetManager, roomInstance, null);
+                    return new Prison(assetManager, roomInstance, direction);
                 } else if (roomName.equalsIgnoreCase("Combat Pit")) {
-                    return new CombatPit(assetManager, roomInstance, null);
+                    return new CombatPit(assetManager, roomInstance, direction);
                 } else if (roomName.equalsIgnoreCase("Temple")) {
-                    return new Temple(assetManager, roomInstance, null);
+                    return new Temple(assetManager, roomInstance, direction);
                 }
                 // TODO use quad construction for different rooms
                 // root.attachChild(DoubleQuad.construct(assetManager, roomInstance));
