@@ -66,6 +66,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     public final static float TILE_HEIGHT = 1;
 
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
+    private final static int FLOOR_INDEX = 0;
+    private final static int WALL_INDEX = 1;
+    private final static int TOP_INDEX = 2;
     private List<Node> pages;
     private final KwdFile kwdFile;
     private Node map;
@@ -119,9 +122,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         // Batch the terrain pages
         for (Node page : pages) {
-            ((BatchNode) page.getChild(0)).batch();
-            ((BatchNode) page.getChild(1)).batch();
-            ((BatchNode) page.getChild(2)).batch();
+            ((BatchNode) page.getChild(FLOOR_INDEX)).batch();
+            ((BatchNode) page.getChild(WALL_INDEX)).batch();
+            ((BatchNode) page.getChild(TOP_INDEX)).batch();
         }
         map.attachChild(terrain);
 
@@ -157,23 +160,23 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             // Reconstruct and mark for patching
             // The tile node needs to created anew, somehow the BatchNode just doesn't get it if I remove children from subnode
             Node pageNode = getPageNode(point, terrainNode);
-            Node tileNode = getTileNode(point, (Node) pageNode.getChild(0));
+            Node tileNode = getTileNode(point, (Node) pageNode.getChild(FLOOR_INDEX));
             if (!tileNode.getChildren().isEmpty()) {
                 tileNode.removeFromParent();
-                ((BatchNode) pageNode.getChild(0)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
-                nodesNeedBatching.add((BatchNode) pageNode.getChild(0));
+                ((BatchNode) pageNode.getChild(FLOOR_INDEX)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
+                nodesNeedBatching.add((BatchNode) pageNode.getChild(FLOOR_INDEX));
             }
-            tileNode = getTileNode(point, (Node) pageNode.getChild(1));
+            tileNode = getTileNode(point, (Node) pageNode.getChild(WALL_INDEX));
             if (!tileNode.getChildren().isEmpty()) {
                 tileNode.removeFromParent();
-                ((BatchNode) pageNode.getChild(1)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
-                nodesNeedBatching.add((BatchNode) pageNode.getChild(1));
+                ((BatchNode) pageNode.getChild(WALL_INDEX)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
+                nodesNeedBatching.add((BatchNode) pageNode.getChild(WALL_INDEX));
             }
-            tileNode = getTileNode(point, (Node) pageNode.getChild(2));
+            tileNode = getTileNode(point, (Node) pageNode.getChild(TOP_INDEX));
             if (!tileNode.getChildren().isEmpty()) {
                 tileNode.removeFromParent();
-                ((BatchNode) pageNode.getChild(2)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
-                nodesNeedBatching.add((BatchNode) pageNode.getChild(2));
+                ((BatchNode) pageNode.getChild(TOP_INDEX)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
+                nodesNeedBatching.add((BatchNode) pageNode.getChild(TOP_INDEX));
             }
 
             // Reconstruct
@@ -495,11 +498,11 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         Node topTileNode;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            topTileNode = getTileNode(p, (Node) pageNode.getChild(2));
+            topTileNode = getTileNode(p, (Node) pageNode.getChild(TOP_INDEX));
             spatial.move(0, TILE_HEIGHT, 0);
 
         } else {
-            topTileNode = getTileNode(p, (Node) pageNode.getChild(0));
+            topTileNode = getTileNode(p, (Node) pageNode.getChild(FLOOR_INDEX));
             spatial.move(0, 0, 0);
         }
         topTileNode.attachChild(spatial);
@@ -511,7 +514,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
     private void handleSide(TileData tile, Node pageNode) {
         Point p = tile.getLocation();
-        Node sideTileNode = getTileNode(p, (Node) pageNode.getChild(1));
+        Node sideTileNode = getTileNode(p, (Node) pageNode.getChild(WALL_INDEX));
 
         // North
         Spatial wall = getWallSpatial(tile, WallDirection.NORTH);
@@ -550,7 +553,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         Node terrainNode = (Node) map.getChild(0);
         Node pageNode = getPageNode(p, terrainNode);
 
-        Node tileNode = getTileNode(p, (Node) pageNode.getChild(0));
+        Node tileNode = getTileNode(p, (Node) pageNode.getChild(FLOOR_INDEX));
         if (tileNode != null) {
             if (enabled) {
                 tileNode.addControl(new FlashTileControl(time));
@@ -559,7 +562,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             }
         }
 
-        tileNode = getTileNode(p, (Node) pageNode.getChild(1));
+        tileNode = getTileNode(p, (Node) pageNode.getChild(WALL_INDEX));
         if (tileNode != null) {
             if (enabled) {
                 tileNode.addControl(new FlashTileControl(time));
@@ -568,7 +571,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             }
         }
 
-        tileNode = getTileNode(p, (Node) pageNode.getChild(2));
+        tileNode = getTileNode(p, (Node) pageNode.getChild(TOP_INDEX));
         if (tileNode != null) {
             if (enabled) {
                 tileNode.addControl(new FlashTileControl(time));
