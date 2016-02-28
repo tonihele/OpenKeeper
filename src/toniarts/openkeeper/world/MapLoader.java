@@ -151,7 +151,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         // Reconstruct all tiles in the area
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
-        Set<RoomInstance> updateRooms = new HashSet<>();
         Node terrainNode = (Node) map.getChild(0);
         for (Point point : points) {
             TileData tile = mapData.getTile(point);
@@ -175,16 +174,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 tileNode.removeFromParent();
                 ((BatchNode) pageNode.getChild(2)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
                 nodesNeedBatching.add((BatchNode) pageNode.getChild(2));
-            }
-
-            if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                RoomInstance ri = roomCoordinates.get(point);
-                if (!updateRooms.contains(ri)) {
-                    updateRooms.add(ri);
-                } else {
-                    // skip room
-                    continue;
-                }
             }
 
             // Reconstruct
