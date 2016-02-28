@@ -27,8 +27,10 @@ import java.awt.Point;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.effect.EffectManager;
 
 /**
  * Base class for all rooms
@@ -43,15 +45,21 @@ public abstract class GenericRoom {
     private final static int[] wallIndexes = new int[]{7, 8};
     private Node root;
     private final String tooltip;
+    protected final EffectManager effectManager;
 
-    public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
+    public GenericRoom(AssetManager assetManager, EffectManager effectManager,
+            RoomInstance roomInstance, Thing.Room.Direction direction) {
         this.assetManager = assetManager;
         this.roomInstance = roomInstance;
         this.direction = direction;
-
+        this.effectManager = effectManager;
         // Strings
         ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
         tooltip = bundle.getString(Integer.toString(roomInstance.getRoom().getTooltipStringId()));
+    }
+
+    public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
+        this(assetManager, null, roomInstance, direction);        
     }
 
     public Spatial construct() {
@@ -283,4 +291,8 @@ public abstract class GenericRoom {
         return tooltip;
     }
 
+    protected final Spatial loadModel(String model) {
+        return assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER
+                + "/" + model + ".j3o"));
+    }
 }

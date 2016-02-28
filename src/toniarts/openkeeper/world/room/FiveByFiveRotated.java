@@ -21,16 +21,14 @@ import com.jme3.animation.AnimControl;
 import com.jme3.animation.LoopMode;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
-import com.jme3.math.Vector3f;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.effect.EffectManager;
+import toniarts.openkeeper.world.room.control.PlugControl;
 
 /**
  * Constructs 5 by 5 "rotated" buildings. As far as I know, only Dungeon Heart
@@ -39,114 +37,86 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class FiveByFiveRotated extends GenericRoom {
 
-    public FiveByFiveRotated(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    private int centreDecay = -1;
+    private boolean destroyed = false;
+    private boolean created = false;
+
+    public FiveByFiveRotated(AssetManager assetManager, EffectManager effectManager,
+            RoomInstance roomInstance, Thing.Room.Direction direction) {
+        super(assetManager, effectManager, roomInstance, direction);
     }
 
     @Override
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
         // 5 by 5
+        // DHeart Piece[1-20]Exp.j3o
         Point start = roomInstance.getCoordinates().get(0);
+        String resource = (destroyed) ? "Dungeon_Destroyed" : roomInstance.getRoom().getCompleteResource().getName();
         for (Point p : roomInstance.getCoordinates()) {
 
             // There are just 4 different pieces
             int x = p.x - start.x;
             int y = p.y - start.y;
-            Spatial tile = null;
-
+            Spatial tile;
+            float yAngle = 0;
+            int piece = -1;
             // Corners
             if (x == 0 && y == 0) { // Top left corner
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                tile.rotate(quat);
+                piece = 3;
+                yAngle = FastMath.HALF_PI;
             } else if (x == 4 && y == 0) { // Top right corner
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
-                resetAndMoveSpatial(tile, start, p);
+                piece = 3;
             } else if (x == 0 && y == 4) { // Lower left corner
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
-                tile.rotate(quat);
+                piece = 3;
+                yAngle = -FastMath.PI;
             } else if (x == 4 && y == 4) { // Lower right corner
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "3.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                tile.rotate(quat);
+                piece = 3;
+                yAngle = -FastMath.HALF_PI;
             } // Outer layer sides
             else if (x == 0) { // Left side
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
-                tile.rotate(quat);
+                piece = 2;
+                yAngle = -FastMath.PI;
             } else if (x == 4) { // Right side
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
-                resetAndMoveSpatial(tile, start, p);
+                piece = 2;
             } else if (y == 0) { // Top side
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                tile.rotate(quat);
+                piece = 2;
+                yAngle = FastMath.HALF_PI;
             } else if (y == 4) { // Bottom side
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "2.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                tile.rotate(quat);
+                piece = 2;
+                yAngle = -FastMath.HALF_PI;
             } // The inner ring, corners
             else if (x == 1 && y == 1) { // Top left
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
-                resetAndMoveSpatial(tile, start, p);
+                piece = 0;
             } else if (x == 3 && y == 1) { // Top right
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                tile.rotate(quat);
+                piece = 0;
+                yAngle = -FastMath.HALF_PI;
             } else if (x == 1 && y == 3) { // Bottom left
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                tile.rotate(quat);
+                piece = 0;
+                yAngle = FastMath.HALF_PI;
             } else if (x == 3 && y == 3) { // Bottom right
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "0.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
-                tile.rotate(quat);
+                piece = 0;
+                yAngle = -FastMath.PI;
             } // The inner ring, sides
             else if (x == 1) { // Left
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                tile.rotate(quat);
+                piece = 1;
+                yAngle = FastMath.HALF_PI;
             } else if (x == 3) { // Right
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                tile.rotate(quat);
+                piece = 1;
+                yAngle = -FastMath.HALF_PI;
             } else if (y == 1) { // Top
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
-                resetAndMoveSpatial(tile, start, p);
+                piece = 1;
             } else if (y == 3) { // Bottom
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "1.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
-                tile.rotate(quat);
+                piece = 1;
+                yAngle = -FastMath.PI;
             }
 
-            if (tile != null) // Debug
-            {
+            if (piece != -1) {
+                tile = loadModel(resource + piece);
+                resetAndMoveSpatial(tile, start, p);
+                if (yAngle != 0) {
+                    tile.rotate(0, yAngle, 0);
+                }
                 root.attachChild(tile);
             }
 
@@ -154,53 +124,179 @@ public class FiveByFiveRotated extends GenericRoom {
             // The center pieces
             if (x == 2 && y == 2) {
 
-                // The arches
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart Arches.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                root.attachChild(tile);
+                if (destroyed) {
+                    tile = loadModel(resource + 4);
+                    resetAndMoveSpatial(tile, start, p);
+                    root.attachChild(tile);
 
-                // The steps between the arches
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                root.attachChild(tile);
+                    // The steps between the arches
+                    tile = loadModel(resource + 5);
+                    resetAndMoveSpatial(tile, start, p);
+                    root.attachChild(tile.move(0, -MapLoader.TILE_HEIGHT * 0.42f, 0));
 
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 1.5f, new Vector3f(0, -1, 0));
-                tile.rotate(quat);
-                root.attachChild(tile);
+                } else {
+                    // The arches
+                    tile = loadModel("DHeart Arches");
+                    resetAndMoveSpatial(tile, start, p);
+                    root.attachChild(tile);
 
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
-                resetAndMoveSpatial(tile, start, p);
-                quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 1.5f, new Vector3f(0, 1, 0));
-                tile.rotate(quat);
-                root.attachChild(tile);
+                    // The steps between the arches
+                    tile = loadModel("DHeart BigSteps");
+                    resetAndMoveSpatial(tile, start, p);
+                    root.attachChild(tile);
 
-                // The alfa & omega! The heart, TODO: use object loader once it is in decent condition, this after all is a real object
-                tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/Dungeon centre.j3o"));
-                resetAndMoveSpatial(tile, start, p);
+                    tile = loadModel("DHeart BigSteps");
+                    resetAndMoveSpatial(tile, start, p);
+                    tile.rotate(0, -FastMath.TWO_PI / 3, 0);
+                    root.attachChild(tile);
 
-                // Animate
-                AnimControl animControl = (AnimControl) ((Node) tile).getChild(0).getControl(AnimControl.class);
-                if (animControl != null) {
-                    AnimChannel channel = animControl.createChannel();
-                    channel.setAnim("anim");
-                    channel.setLoopMode(LoopMode.Loop);
+                    tile = loadModel("DHeart BigSteps");
+                    resetAndMoveSpatial(tile, start, p);
+                    tile.rotate(0, FastMath.TWO_PI / 3, 0);
+                    root.attachChild(tile);
 
-                    // Don't batch animated objects, seems not to work
-                    tile.setBatchHint(Spatial.BatchHint.Never);
+                    // The alfa & omega! The heart, TODO: use object loader once it is in decent condition, this after all is a real object
+                    if (centreDecay == -1) {
+                        tile = loadModel("Dungeon centre");
+                    } else {
+                        tile = loadModel("DungeonCentre_DECAY" + centreDecay);
+                    }
+                    resetAndMoveSpatial(tile, start, p);
+
+                    // Animate
+                    AnimControl animControl = (AnimControl) ((Node) tile).getChild(0).getControl(AnimControl.class);
+                    if (animControl != null) {
+                        AnimChannel channel = animControl.createChannel();
+                        channel.setAnim("anim");
+                        channel.setLoopMode(LoopMode.Loop);
+
+                        // Don't batch animated objects, seems not to work
+                        tile.setBatchHint(Spatial.BatchHint.Never);
+                    }
+
+                    for (Integer id : roomInstance.getRoom().getEffects()) {
+                        Node effect = effectManager.load(id);
+                        resetAndMoveSpatial(effect, start, p);
+                        root.attachChild(effect);
+                    }
+
+
+                    root.attachChild(tile.move(0, MapLoader.TILE_HEIGHT / 4, 0));
+
+                    if (!created) {
+                        created = true;
+
+                        tile = loadModel("DHeartPlug");
+                        tile.setName("plug");
+                        tile.setBatchHint(Spatial.BatchHint.Never);
+                        tile.rotate(0, FastMath.QUARTER_PI, 0);
+                        resetAndMoveSpatial(tile, start, p);
+                        root.attachChild(tile.move(0, MapLoader.TILE_HEIGHT, 0));
+
+                        Node plug = getPlug();
+                        plug.setName("plug_decay");
+                        plug.setCullHint(Spatial.CullHint.Always);
+                        plug.setBatchHint(Spatial.BatchHint.Never);
+                        root.attachChild(plug.move(x, MapLoader.TILE_HEIGHT, y));
+
+                        root.addControl(new PlugControl());
+                    }
                 }
-                root.attachChild(tile.move(0, 0.25f, 0));
             }
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2);
+        root.scale(MapLoader.TILE_WIDTH, MapLoader.TILE_HEIGHT, MapLoader.TILE_WIDTH);
 
         return root;
+    }
+
+    private Node getPlug() {
+        Node plug = new Node();
+        float step, rp, r = 0.69f;
+
+        for (int i = 1; i < 10; i++) {
+
+            Spatial piece = loadModel("DHeartPlug" + i);
+            /*
+             * with no reset spatial
+             if (i == 1) {
+             rp = 0.04f;
+             step = 0.40f;
+             //piece.move(0.65f, 0, 0.32f);
+             } else if (i == 2) {
+             step = 0.73f;
+             //piece.move(0.5f, 0, 0.5f);
+             } else if (i == 3) {
+             rp = 0.17f;
+             step = 2.05f;
+             //piece.move(-0.38f, 0, 0.78f);
+             } else if (i == 4) {
+             rp = -0.017f;
+             step = 2.525f;
+             //piece.move(-0.52f, 0, 0.44f);
+             } else if (i == 5) {
+             rp = 0.082f;
+             step = 3.465f;
+             //piece.move(-0.7f, 0, -0.2f);
+             } else if (i == 6) {
+             rp = 0.15f;
+             step = 3.81f;
+             //piece.move(-0.65f, 0, -0.48f);
+             } else if (i == 7) {
+             rp = 0.19f;
+             step = 5.08f;
+             //piece.move(0.34f, 0, -0.76f);
+             } else if (i == 8) {
+             rp = 0.1f;
+             step = 5.54f;
+             //piece.move(0.63f, 0, -0.48f);
+             } else if (i == 9) {
+             rp = 0.065f;
+             step = 6.44f;
+             //piece.move(0.7f, 0, 0.2f);
+             } else {
+             step = 0;
+             }
+             */
+
+            resetAndMoveSpatial(piece, new Point(), new Point());
+
+            if (i == 1) {
+                rp = 0.031f;
+                step = 0.40f;
+            } else if (i == 2) {
+                rp = 0.054f;
+                step = 0.81f;
+            } else if (i == 3) {
+                rp = 0.08f;
+                step = 2.00f;
+            } else if (i == 4) {
+                rp = 0.06f;
+                step = 2.512f;
+            } else if (i == 5) {
+                rp = 0.036f;
+                step = 3.47f;
+            } else if (i == 6) {
+                rp = 0.17f;
+                step = 3.92f;
+            } else if (i == 7) {
+                rp = 0.117f;
+                step = 5.07f;
+            } else if (i == 8) {
+                rp = 0.126f;
+                step = 5.59f;
+            } else {
+                rp = 0.026f;
+                step = 6.345f;
+            }
+
+            piece.move((r + rp) * FastMath.cos(step), -0.1f, (r + rp) * FastMath.sin(step));
+            piece.setUserData("yAngle", step);
+            plug.attachChild(piece);
+        }
+        return plug;
     }
 
     @Override

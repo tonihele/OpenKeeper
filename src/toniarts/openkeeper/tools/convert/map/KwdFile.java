@@ -2991,6 +2991,23 @@ public final class KwdFile {
         return creatureSpells.get(spellId);
     }
 
+    public Effect getEffect(int effectId) {
+        return effects.get(effectId);
+    }
+
+    public java.util.Map<Integer, Effect> getEffects() {
+        return effects;
+    }
+
+    public EffectElement getEffectElement(int effectElementId) {
+        return effectElements.get(effectElementId);
+    }
+
+    public java.util.Map<Integer, EffectElement> getEffectElements() {
+        return effectElements;
+    }
+
+
     /**
      * Not all the data types are of the length that suits us, do our best to
      * ignore it<br>
