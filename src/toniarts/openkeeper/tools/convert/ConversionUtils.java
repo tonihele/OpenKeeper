@@ -283,7 +283,8 @@ public class ConversionUtils {
     }
 
     /**
-     * Converts JAVAX 3f vector to JME vector (also converts the coordinate system)
+     * Converts JAVAX 3f vector to JME vector (also converts the coordinate
+     * system)
      *
      * @param v vector
      * @return JME vector
@@ -293,26 +294,26 @@ public class ConversionUtils {
     }
 
     /**
-        * Reads a DK2 style timestamp
-        *
-        * @param file the file to read from
-        * @return the date in current locale
-        * @throws IOException may fail
-        */
-       public static Date readTimestamp(RandomAccessFile file) throws IOException {
+     * Reads a DK2 style timestamp
+     *
+     * @param file the file to read from
+     * @return the date in current locale
+     * @throws IOException may fail
+     */
+    public static Date readTimestamp(RandomAccessFile file) throws IOException {
 
-           // Dates are in UTC
-           Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-           cal.set(Calendar.YEAR, ConversionUtils.readUnsignedShort(file));
-           cal.set(Calendar.DAY_OF_MONTH, file.readUnsignedByte());
-           cal.set(Calendar.MONTH, file.readUnsignedByte());
-           file.skipBytes(2);
-           cal.set(Calendar.HOUR_OF_DAY, file.readUnsignedByte());
-           cal.set(Calendar.MINUTE, file.readUnsignedByte());
-           cal.set(Calendar.SECOND, file.readUnsignedByte());
-           file.skipBytes(1);
-           return cal.getTime();
-       }
+        // Dates are in UTC
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.set(Calendar.YEAR, ConversionUtils.readUnsignedShort(file));
+        cal.set(Calendar.DAY_OF_MONTH, file.readUnsignedByte());
+        cal.set(Calendar.MONTH, file.readUnsignedByte());
+        file.skipBytes(2);
+        cal.set(Calendar.HOUR_OF_DAY, file.readUnsignedByte());
+        cal.set(Calendar.MINUTE, file.readUnsignedByte());
+        cal.set(Calendar.SECOND, file.readUnsignedByte());
+        file.skipBytes(1);
+        return cal.getTime();
+    }
 
     /**
      * Convert a byte to unsigned byte
@@ -457,31 +458,34 @@ public class ConversionUtils {
         uncertainPath = convertFileSeparators(uncertainPath);
 
         String fileName = realPath.concat(uncertainPath);
+        String fileKey = fileName.toLowerCase();
 
-        // If it exists as such, that is super!
-        File testFile = new File(fileName);
-        if (testFile.exists()) {
-            return testFile.getCanonicalPath();
-        } else {
+        // See cache
+        String cachedName = fileNameCache.get(fileKey);
+        if (cachedName == null) {
+            synchronized (fileNameLock) {
 
-            // See cache
-            if (fileNameCache.containsKey(fileName)) {
-                return fileNameCache.get(fileName);
+                // If it exists as such, that is super!
+                File testFile = new File(fileName);
+                if (testFile.exists()) {
+                    fileNameCache.put(fileKey, testFile.getCanonicalPath());
+                    cachedName = testFile.getCanonicalPath();
+                } else {
+
+                    // Otherwise we need to do a recursive search
+                    final String[] path = uncertainPath.split(Matcher.quoteReplacement(File.separator));
+                    final Path realPathAsPath = new File(realPath).toPath();
+                    FileFinder fileFinder = new FileFinder(realPathAsPath, path);
+                    Files.walkFileTree(realPathAsPath, fileFinder);
+                    fileNameCache.put(fileKey, fileFinder.file);
+                    cachedName = fileFinder.file;
+                    if (fileFinder.file == null) {
+                        throw new IOException("File not found " + testFile + "!");
+                    }
+                }
             }
         }
-
-        // Otherwise we need to do a recursive search
-        synchronized (fileNameLock) {
-            final String[] path = uncertainPath.split(Matcher.quoteReplacement(File.separator));
-            final Path realPathAsPath = new File(realPath).toPath();
-            FileFinder fileFinder = new FileFinder(realPathAsPath, path);
-            Files.walkFileTree(realPathAsPath, fileFinder);
-            fileNameCache.put(fileName, fileFinder.file);
-            if (fileFinder.file == null) {
-                throw new IOException("File not found " + testFile + "!");
-            }
-            return fileFinder.file;
-        }
+        return cachedName;
     }
 
     /**
@@ -537,7 +541,6 @@ public class ConversionUtils {
         }
         logger.log(Level.WARNING, "Value {0} not specified for enum class {1}!", new java.lang.Object[]{value, enumeration.getName()});
         return null;
-
 
     }
 
