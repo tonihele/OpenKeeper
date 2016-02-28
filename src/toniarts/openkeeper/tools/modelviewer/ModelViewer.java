@@ -133,7 +133,11 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         super();
 
         this.kmfModel = kmfModel;
-        this.dkIIFolder = dkIIFolder;
+        if (!dkIIFolder.endsWith(File.separator)) {
+            this.dkIIFolder = dkIIFolder.concat(File.separator);
+        } else {
+            this.dkIIFolder = dkIIFolder;
+        }
     }
 
     private void setupLighting() {
