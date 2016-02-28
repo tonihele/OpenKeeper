@@ -48,7 +48,7 @@ public class WaterConstructor extends TileConstructor {
      * @param y tile Y coordinate
      * @param terrain the terrain tile
      * @param assetManager the asset manager instance
-     * @param floorResource the floor resource
+     * @param model the floor resource
      * @return a water / lava tile
      */
     @Override

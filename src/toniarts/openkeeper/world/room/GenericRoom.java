@@ -89,7 +89,17 @@ public abstract class GenericRoom {
 
     protected abstract BatchNode constructFloor();
 
-    protected abstract BatchNode constructWall();
+    /**
+     * Rooms typically don't contruct walls themselves, instead they are asked
+     * for the wall spatials by the map loader in normal map drawing situation
+     *
+     * @see #getWallSpatial(java.awt.Point,
+     * toniarts.openkeeper.world.room.WallSection.WallDirection)
+     * @return contructed wall
+     */
+    protected BatchNode constructWall() {
+        return null;
+    }
 
     protected RenderQueue.ShadowMode getFloorShadowMode() {
         return RenderQueue.ShadowMode.Receive;
@@ -99,6 +109,13 @@ public abstract class GenericRoom {
         return RenderQueue.ShadowMode.CastAndReceive;
     }
 
+    /**
+     * Get the room's wall spatial at the given point
+     *
+     * @param p the coordinate
+     * @param direction wall direction
+     * @return the wall spatial
+     */
     public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
         // TODO make models cache ???
         float yAngle = FastMath.PI;
@@ -218,7 +235,7 @@ public abstract class GenericRoom {
         for (Spatial subSpat : tile.getChildren()) {
             subSpat.setLocalScale(MapLoader.TILE_WIDTH);
             subSpat.setLocalTranslation(0, 0, 0);
-            }
+        }
         tile.move(start.x, -MapLoader.TILE_HEIGHT, start.y);
     }
 

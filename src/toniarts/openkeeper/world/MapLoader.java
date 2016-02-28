@@ -51,7 +51,6 @@ import toniarts.openkeeper.world.room.RoomConstructor;
 import toniarts.openkeeper.world.room.RoomInstance;
 import toniarts.openkeeper.world.room.WallSection;
 import toniarts.openkeeper.world.room.WallSection.WallDirection;
-import toniarts.openkeeper.world.terrain.Water;
 
 /**
  * Loads whole maps, and handles the maps
@@ -125,12 +124,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         // Create the water
         if (!waterBatches.isEmpty()) {
-            map.attachChild(Water.construct(assetManager, waterBatches));
+//            map.attachChild(Water.construct(assetManager, waterBatches));
         }
 
         // And the lava
         if (!lavaBatches.isEmpty()) {
-            map.attachChild(Water.construct(assetManager, lavaBatches));
+//            map.attachChild(Water.construct(assetManager, lavaBatches));
         }
 
         return map;
@@ -143,15 +142,13 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     /**
      * Update the selected tiles (and neighbouring tiles if needed)
      *
-     * @param mapNode the map node
-     * @param mapData the actual map data
-     * @param updatableTiles list of tiles to update
+     * @param points tile coordinates to update
      */
     protected void updateTiles(Point... points) {
 
         // Reconstruct all tiles in the area
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
-        ArrayList<RoomInstance> updateRooms = new ArrayList<>();
+        Set<RoomInstance> updateRooms = new HashSet<>();
         Node terrainNode = (Node) map.getChild(0);
         for (Point point : points) {
             TileData tile = mapData.getTile(point);
@@ -179,13 +176,14 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
             if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
                 RoomInstance ri = roomCoordinates.get(point);
-                if (updateRooms.indexOf(ri) == -1) {
+                if (!updateRooms.contains(ri)) {
                     updateRooms.add(ri);
                 } else {
                     // skip room
                     continue;
                 }
             }
+
             // Reconstruct
             handleTile(tile, (Node) map.getChild(0));
         }
@@ -319,10 +317,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * Sets random material (from the list) to all the geometries that have been
      * tagged for this in this spatial
      *
-     * @param assetManager the asset manager
      * @param spatial the spatial
+     * @param tile the tile
      */
-    private void setRandomTexture(final AssetManager assetManager, final Spatial spatial, final TileData tile) {
+    private void setRandomTexture(final Spatial spatial, final TileData tile) {
 
         // Check the data on geometry
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
@@ -397,24 +395,23 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             Spatial spatial = loadAsset(assetManager, asset, wall);
             cachedModels.put(model, spatial);
         }
-        //return spatial;
-        return cachedModels.get(model).deepClone();
+
+        return cachedModels.get(model).clone();
     }
 
     /**
      * Handle single tile from the map, represented by the X & Y coordinates
      *
-     * @param tiles the whole set of tile (for neighbours etc.)
-     * @param x the tile X coordinate
-     * @param y the tile Y coordinate
-     * @param assetManager the asset manager instance
+     * @param tile tile to handle
      * @param root the root node
      */
     private void handleTile(TileData tile, Node root) {
+
         // Get the terrain
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         Point p = tile.getLocation();
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+
             // Construct the actual room
             Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
             handleRoom(p, room);
@@ -455,12 +452,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     /**
      * Handle top construction on the tile
      *
-     * @param terrain the terrain tile
-     * @param tiles all the tiles
      * @param tile this tile
-     * @param x tile X coordinate
-     * @param y tile Y coordinate
-     * @param assetManager the asset manager instance
      * @param pageNode page node
      */
     private void handleTop(TileData tile, Node pageNode) {
@@ -500,7 +492,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
 
         if (terrain.getFlags().contains(Terrain.TerrainFlag.RANDOM_TEXTURE)) {
-            setRandomTexture(assetManager, spatial, tile);
+            setRandomTexture(spatial, tile);
         }
 
         Node topTileNode;
@@ -522,7 +514,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private void handleSide(TileData tile, Node pageNode) {
         Point p = tile.getLocation();
         Node sideTileNode = getTileNode(p, (Node) pageNode.getChild(1));
-
 
         // North
         Spatial wall = getWallSpatial(tile, WallDirection.NORTH);
@@ -592,9 +583,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     /**
      * Get the terrain tile node
      *
-     * @param x the tile x
-     * @param y the tile y
-     * @param root the page node
+     * @param p the tile coordinates
+     * @param page the page node
      * @return tile node
      */
     private Node getTileNode(Point p, Node page) {
@@ -604,8 +594,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     /**
      * Get index for the tile node, where it should be
      *
-     * @param x the tile x
-     * @param y the tile y
+     * @param p the tile coordinates
      * @return the index inside the page
      */
     private int getTileNodeIndex(Point p) {
@@ -617,8 +606,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     /**
      * Get the terrain "page" we are on
      *
-     * @param x the tile x
-     * @param y the tile y
+     * @param p the tile coordinates
      * @param root the root node
      * @return page node
      */
@@ -639,7 +627,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * Checks if this terrain piece is actually a room and the room type has
      * walls
      *
-     * @param terrain the terrain piece
+     * @param tile the terrain tile
      * @return true if this is a room and it has its own walls
      */
     private boolean hasRoomWalls(TileData tile) {
@@ -662,7 +650,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * Find the room starting from a certain point, rooms are never diagonally
      * attached
      *
-     * @param tiles the tiles
      * @param p starting point
      * @param roomInstance the room instance
      */
@@ -699,7 +686,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * Find a terrain batch starting from a certain point, they are never
      * diagonally attached
      *
-     * @param tiles the tiles
      * @param p starting point
      * @param entityInstance the batch instance
      */
@@ -739,7 +725,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     /**
      * Constructs the given room
      *
-     * @param assetManager the asset manager instance
      * @param roomInstance the room instance
      */
     private Spatial handleRoom(RoomInstance roomInstance) {
@@ -848,7 +833,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     /**
      * Find room wall sections, continuous sections facing the same way
      *
-     * @param tiles tiles
      * @param roomInstance room instance
      */
     private void findRoomWallSections(RoomInstance roomInstance) {
@@ -872,7 +856,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * a section.
      *
      * @param p starting room point
-     * @param tiles tiles
      * @param roomInstance the room instance of which walls we need to find
      * @param direction the direction of which the want the walls to face
      * @param sections list of already find sections

@@ -33,8 +33,7 @@ public final class TileData extends Tile implements IndexedNode<TileData> {
 
     private boolean selected = false;
     private Integer randomTextureIndex;
-    private final int x;
-    private final int y;
+    private final Point p;
     private final int index;
     private final KwdFile kwdFile;
 
@@ -43,8 +42,7 @@ public final class TileData extends Tile implements IndexedNode<TileData> {
         this.setPlayerId(tile.getPlayerId());
         this.setTerrainId(tile.getTerrainId());
         this.setUnknown(tile.getUnknown());
-        this.x = x;
-        this.y = y;
+        this.p = new Point(x, y);
         this.index = index;
         this.kwdFile = kwdFile;
 
@@ -83,15 +81,15 @@ public final class TileData extends Tile implements IndexedNode<TileData> {
     }
 
     public int getX() {
-        return x;
+        return p.x;
     }
 
     public int getY() {
-        return y;
+        return p.y;
     }
 
     public Point getLocation() {
-        return new Point(x, y);
+        return p;
     }
 
     @Override
