@@ -33,8 +33,13 @@ package toniarts.openkeeper.animation;
 
 import com.jme3.animation.AnimChannel;
 import com.jme3.animation.AnimControl;
+import com.jme3.animation.ClonableTrack;
 import com.jme3.animation.Track;
-import com.jme3.export.*;
+import com.jme3.export.InputCapsule;
+import com.jme3.export.JmeExporter;
+import com.jme3.export.JmeImporter;
+import com.jme3.export.OutputCapsule;
+import com.jme3.export.Savable;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
@@ -50,7 +55,7 @@ import java.nio.FloatBuffer;
 /**
  * A single track of pose animation associated with a certain mesh.
  */
-public final class PoseTrack implements Track {
+public final class PoseTrack implements Track, ClonableTrack {
 
     private int targetMeshIndex;
     private PoseTrack.PoseFrame[] frames;
@@ -124,6 +129,17 @@ public final class PoseTrack implements Track {
      * Serialization-only. Do not use.
      */
     public PoseTrack() {
+    }
+
+    @Override
+    public Track cloneForSpatial(Spatial spatial) {
+        PoseTrack track = new PoseTrack(targetMeshIndex, times, frames);
+        return track;
+    }
+
+    @Override
+    public void cleanUp() {
+
     }
 
     private void applyFrame(Mesh target, int frameIndex) {

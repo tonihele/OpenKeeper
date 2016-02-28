@@ -199,7 +199,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
 
     private void playAnimation(ArtResource anim) {
         animationPlaying = true;
-        CreatureLoader.playAnimation(getSpatial(), anim);
+        CreatureLoader.playAnimation(getSpatial(), anim, worldState.getAssetManager());
     }
 
     /**

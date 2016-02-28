@@ -21,11 +21,14 @@ import com.jme3.animation.AnimControl;
 import com.jme3.animation.AnimEventListener;
 import com.jme3.animation.LoopMode;
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.ModelKey;
+import com.jme3.asset.cache.SimpleAssetCache;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -44,6 +47,7 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
 
     private final KwdFile kwdFile;
     private final WorldState worldState;
+    private final static SimpleAssetCache assetCache = new SimpleAssetCache();
     private static final Logger logger = Logger.getLogger(CreatureLoader.class.getName());
 
     public CreatureLoader(KwdFile kwdFile, WorldState worldState) {
@@ -57,42 +61,6 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
         Node creatureRoot = new Node(creature.getName());
         CreatureControl creatureControl = new CreatureControl(object, creature, worldState);
 
-        // Load all the resources
-        attachResource(creatureRoot, creatureControl, creature.getAnimAngryResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimDanceResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimDejectedPoseResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimDiePoseResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimDieResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimDraggedPoseResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimDrinkResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimDrunk2Resource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimDrunkResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimEatResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimElecResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimElectrocuteResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimEntranceResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimFallbackResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimGetUpResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimHappyResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimIdle1Resource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimIdle2Resource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimMagicResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimMelee1Resource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimMelee2Resource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimPoseFrameResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimPrayResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimRecoilHfbResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimRecoilHffResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimResearchResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimRunResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimSleepResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimStunnedPoseResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimSwingResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimTortureResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimWalk2Resource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimWalkResource(), assetManager);
-        attachResource(creatureRoot, creatureControl, creature.getAnimWalkbackResource(), assetManager);
-
         // Set map position
         creatureRoot.setLocalTranslation(
                 object.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
@@ -105,7 +73,7 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
         return creatureRoot;
     }
 
-    private void attachResource(final Node creatureRoot, final CreatureControl creatureControl, final ArtResource resource, AssetManager assetManager) {
+    private static void attachResource(final Node creatureRoot, final CreatureControl creatureControl, final ArtResource resource, AssetManager assetManager) {
         if (resource != null && (resource.getSettings().getType() == ArtResource.Type.ANIMATING_MESH || resource.getSettings().getType() == ArtResource.Type.MESH || resource.getSettings().getType() == ArtResource.Type.PROCEDURAL_MESH)) {
             try {
 
@@ -225,11 +193,16 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
         }
     }
 
-    private Spatial loadModel(AssetManager assetManager, String resourceName, Node creatureRoot) {
+    private static Spatial loadModel(AssetManager assetManager, String resourceName, Node creatureRoot) {
 
         // Load the model and attach it without the root
-        Node modelRoot = (Node) assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + resourceName + ".j3o");
-        Spatial model = modelRoot.getChild(0);
+        ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + resourceName + ".j3o"));
+        Node modelRoot = (Node) assetCache.getFromCache(assetKey);
+        if (modelRoot == null) {
+            modelRoot = (Node) assetManager.loadModel(assetKey);
+            assetCache.addToCache(assetKey, modelRoot);
+        }
+        Spatial model = modelRoot.getChild(0).clone();
         model.setCullHint(Spatial.CullHint.Always);
         creatureRoot.attachChild(model);
         return model;
@@ -241,9 +214,13 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
      * @param spatial the creature root
      * @param anim wanted animation
      */
-    static void playAnimation(Spatial spatial, ArtResource anim) {
+    static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager) {
 
         Node root = (Node) spatial;
+
+        // Attach the anim node and get rid of the rest
+        root.detachAllChildren();
+        attachResource(root, root.getControl(CreatureControl.class), anim, assetManager);
 
         // Get the anim node
         String animNodeName = anim.getName();
