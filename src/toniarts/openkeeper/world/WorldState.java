@@ -503,7 +503,12 @@ public abstract class WorldState extends AbstractAppState {
         addPlayerGold(Keeper.KEEPER1_ID, terrain.getGoldValue());
 
         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
+<<<<<<< HEAD
 
+=======
+        tile.setSelected(false);
+        tile.setFlashed(false);
+>>>>>>> 3c53b4a... FlashTileControl moved from Tile to ActionPoint
         // See if room walls are allowed and does this touch any rooms
         updateRoomWalls(tile);
         mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));

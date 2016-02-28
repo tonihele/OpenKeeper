@@ -16,15 +16,11 @@
  */
 package toniarts.openkeeper.world.control;
 
-import com.jme3.material.Material;
-import com.jme3.math.ColorRGBA;
-import com.jme3.renderer.RenderManager;
-import com.jme3.renderer.ViewPort;
-import com.jme3.scene.Geometry;
-import com.jme3.scene.Node;
-import com.jme3.scene.SceneGraphVisitor;
-import com.jme3.scene.Spatial;
-import com.jme3.scene.control.AbstractControl;
+import java.awt.Point;
+import toniarts.openkeeper.game.action.ActionPoint;
+import toniarts.openkeeper.game.control.Control;
+import toniarts.openkeeper.game.control.IContainer;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  *
@@ -32,31 +28,45 @@ import com.jme3.scene.control.AbstractControl;
  */
 
 
-public class FlashTileControl extends AbstractControl {
+public class FlashTileControl extends Control {
 
     private float time;
     private float tick = 0;
     private boolean flashed = false;
     private boolean unlimited = false;
-    private final ColorRGBA color = new ColorRGBA(0.3f, 0, 0, 1);
-    public final float PERIOD = 0.5f;
+    public final float PERIOD = 0.3f;
+
+    private WorldState worldState;
+    private Point[] points;
 
     public FlashTileControl() {
     }
 
-    public FlashTileControl(int time) {
+    public FlashTileControl(int time, WorldState worldState) {
         this.time = time;
+        this.worldState = worldState;
         if (this.time == 0) {
             unlimited = true;
         }
     }
 
     @Override
-    public void setSpatial(Spatial spatial) {
-        if (spatial == null) {
-            enabled = false;
+    public void setParent(IContainer parent) {
+        if (parent == null) {
+            time = -1;
+            worldState.flashTile(false, points);
+        } else {
+            Point start = ((ActionPoint) parent).getStart();
+            Point end = ((ActionPoint) parent).getEnd();
+            points = new Point[(end.x - start.x + 1) * (end.y - start.y + 1)];
+            int index = 0;
+            for (int x = start.x; x <= end.x; x++) {
+                for (int y = start.y; y <= end.y; y++) {
+                    points[index++] = new Point(x, y);
+                }
+            }
         }
-        super.setSpatial(spatial);
+        super.setParent(parent);
     }
 
     @Override
@@ -65,45 +75,21 @@ public class FlashTileControl extends AbstractControl {
             return;
         }
 
-        if (tick >= PERIOD) {
-            tick -= PERIOD;
-            flashed = !flashed;
-            setColorToGeometries((Node) spatial, flashed);
-        }
-
-        if (time < 0) {
-            if (flashed) {
-                setColorToGeometries((Node) spatial, false);
+        if (tick >= PERIOD || time < 0) {
+            if (time < 0) {
+                parent.removeControl(this);
+                flashed = false;
+                enabled = false;
+            } else {
+                tick -= PERIOD;
+                flashed = !flashed;
             }
-            spatial.removeControl(this);
-            return;
+            worldState.flashTile(flashed, points);
         }
 
         tick += tpf;
         if (!unlimited) {
             time -= tpf;
         }
-    }
-
-    @Override
-    protected void controlRender(RenderManager rm, ViewPort vp) {
-    }
-
-    private void setColorToGeometries(final Node node, final boolean flashed) {
-        if (node == null) {
-            return;
-        }
-
-        node.depthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spatial) {
-                if (spatial instanceof Geometry) {
-
-                    Material material = ((Geometry) spatial).getMaterial();
-                    material.setColor("Ambient", color);
-                    material.setBoolean("UseMaterialColors", flashed);
-                }
-            }
-        });
     }
 }

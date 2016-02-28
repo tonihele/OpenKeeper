@@ -71,7 +71,7 @@ public class PlayerCameraControl extends Control {
     }
 
     @Override
-    public void updateControl(float tpf) {
+    public void controlUpdate(float tpf) {
         if (parent == null || camera == null || !enabled) {
             return;
         }

@@ -62,12 +62,12 @@ public abstract class Control implements IControl {
      * To be implemented in subclass.
      * @param tpf time per frame
      */
-    protected abstract void updateControl(float tpf);
+    protected abstract void controlUpdate(float tpf);
 
     @Override
     public void update(float tpf) {
         if (enabled) {
-            updateControl(tpf);
+            controlUpdate(tpf);
         }
     }
 

@@ -43,6 +43,8 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.control.FlashTileControl;
+
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.ICreatureEntrance;
@@ -81,7 +83,7 @@ public class TriggerControl extends Control {
     }
 
     @Override
-    protected void updateControl(float tpf) {
+    protected void controlUpdate(float tpf) {
         TriggerGenericData next = null;
         trigger.subRepeatTimes();
 
@@ -286,10 +288,10 @@ public class TriggerControl extends Control {
                 ap = getActionPoint((Short) trigger.getUserData("actionPointId"));
                 time = trigger.getUserData("value", int.class);
                 enable = trigger.getUserData("available", short.class) != 0;
-                for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                    for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                        world.flashTile(x, y, time, enable);
-                    }
+                if (enable) {
+                    ap.addControl(new FlashTileControl(time, world));
+                } else {
+                    ap.removeControl(FlashTileControl.class);
                 }
                 break;
 

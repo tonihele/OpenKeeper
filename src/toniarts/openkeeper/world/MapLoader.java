@@ -68,7 +68,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
-
+    public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.3f, 0, 0, 1);
+    public final static ColorRGBA COLOR_TAG = new ColorRGBA(0, 0, 0.8f, 1);
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
     private final static int FLOOR_INDEX = 0;
     private final static int WALL_INDEX = 1;
@@ -241,12 +242,13 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                             }
                         }
 
-                        // Selection
-                        if (tile.isSelected()) {
-                            material.setColor("Ambient", new ColorRGBA(0, 0, 0.8f, 1));
+                        if (tile.isFlashed()) {
+                            smaterial.setColor("Ambient", COLOR_FLASH);
+                            material.setBoolean("UseMaterialColors", true);
+                        } if (tile.isSelected()) {
+                            material.setColor("Ambient", COLOR_TAG);
                             material.setBoolean("UseMaterialColors", true);
                         }
-                    }
                 }
             }
             );
@@ -638,38 +640,13 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         sideTileNode.setLocalTranslation(p.x * TILE_WIDTH, 0, p.y * TILE_WIDTH);
     }
 
-    public void flashTile(int x, int y, int time, boolean enabled) {
+    public void flashTile(boolean enabled, Point... points) {
 
-        Point p = new Point(x, y);
-        Node terrainNode = (Node) map.getChild(0);
-        Node pageNode = getPageNode(p, terrainNode);
-
-        Node tileNode = getTileNode(p, (Node) pageNode.getChild(FLOOR_INDEX));
-        if (tileNode != null) {
-            if (enabled) {
-                tileNode.addControl(new FlashTileControl(time));
-            } else {
-                tileNode.removeControl(FlashTileControl.class);
-            }
+        for (Point p : points) {
+            mapData.getTile(p.x, p.y).setFlashed(enabled);
         }
 
-        tileNode = getTileNode(p, (Node) pageNode.getChild(WALL_INDEX));
-        if (tileNode != null) {
-            if (enabled) {
-                tileNode.addControl(new FlashTileControl(time));
-            } else {
-                tileNode.removeControl(FlashTileControl.class);
-            }
-        }
-
-        tileNode = getTileNode(p, (Node) pageNode.getChild(TOP_INDEX));
-        if (tileNode != null) {
-            if (enabled) {
-                tileNode.addControl(new FlashTileControl(time));
-            } else {
-                tileNode.removeControl(FlashTileControl.class);
-            }
-        }
+        updateTiles(points);
     }
 
     /**
