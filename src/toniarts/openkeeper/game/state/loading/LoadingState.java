@@ -28,8 +28,9 @@ import com.jme3.scene.Node;
 import com.jme3.scene.shape.Quad;
 import com.jme3.texture.Texture;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import org.lwjgl.opengl.Display;
 import toniarts.openkeeper.Main;
 
@@ -49,7 +50,7 @@ public abstract class LoadingState extends AbstractAppState {
     private Geometry titleScreen;
     private boolean load = true;
     private Future loadFuture = null;
-    private ScheduledThreadPoolExecutor exec = new ScheduledThreadPoolExecutor(2);
+    private ExecutorService exec = Executors.newSingleThreadExecutor();
     protected int imageWidth;
     protected int imageHeight;
 
@@ -135,7 +136,7 @@ public abstract class LoadingState extends AbstractAppState {
 
         super.cleanup();
     }
-    private Callable<Void> loadingCallable = new Callable<Void>() {
+    private final Callable<Void> loadingCallable = new Callable<Void>() {
         @Override
         public Void call() {
             return onLoad();
