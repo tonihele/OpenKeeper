@@ -427,7 +427,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
 
         Node pageNode = getPageNode(p, root);
-        handleTop(tile, pageNode);
+        handleTop(tile, terrain, pageNode);
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             handleSide(tile, pageNode);
         }
@@ -456,11 +456,11 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * Handle top construction on the tile
      *
      * @param tile this tile
+     * @param terrain DO NOT REMOVE. Need for construct water bed
      * @param pageNode page node
      */
-    private void handleTop(TileData tile, Node pageNode) {
+    private void handleTop(TileData tile, Terrain terrain, Node pageNode) {
 
-        Terrain terrain = tile.getTerrain();
         ArtResource model = terrain.getCompleteResource();
         Point p = tile.getLocation();
         Spatial spatial;
@@ -479,12 +479,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 }
             }
 
-            spatial = new WaterConstructor(kwdFile).construct(mapData.getTiles(), p.x, p.y, terrain, assetManager, model.getName());
+            spatial = new WaterConstructor(kwdFile).construct(mapData, p.x, p.y, terrain, assetManager, model.getName());
 
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
             // If this resource is type quad, parse it together. With fixed Hero Lair
             String modelName = (model == null && terrain.getTerrainId() == 35) ? "hero_outpost_floor" : model.getName();
-            spatial = new QuadConstructor(kwdFile).construct(mapData.getTiles(), p.x, p.y, terrain, assetManager, modelName);
+            spatial = new QuadConstructor(kwdFile).construct(mapData, p.x, p.y, terrain, assetManager, modelName);
 
         } else {
 
@@ -501,11 +501,11 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         Node topTileNode;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             topTileNode = getTileNode(p, (Node) pageNode.getChild(2));
-            spatial.setLocalTranslation(0, TILE_HEIGHT, 0);
+            spatial.move(0, TILE_HEIGHT, 0);
 
         } else {
             topTileNode = getTileNode(p, (Node) pageNode.getChild(0));
-            spatial.setLocalTranslation(0, 0, 0);
+            spatial.move(0, 0, 0);
         }
         topTileNode.attachChild(spatial);
         if (tile.isSelected()) { // Just set the selected material here if needed

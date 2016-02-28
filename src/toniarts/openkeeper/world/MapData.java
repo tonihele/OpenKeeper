@@ -76,8 +76,4 @@ public final class MapData {
     public TileData getTile(Point p) {
         return getTile(p.x, p.y);
     }
-
-    public TileData[][] getTiles() {
-        return tiles;
-    }
 }

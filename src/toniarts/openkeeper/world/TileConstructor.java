@@ -42,23 +42,24 @@ abstract class TileConstructor {
      * @param terrain terrain tile to compare with
      * @return are the tiles same
      */
-    protected boolean hasSameTile(TileData[][] tiles, int x, int y, Terrain terrain) {
+    protected boolean hasSameTile(MapData mapData, int x, int y, Terrain terrain) {
 
         // Check for out of bounds
-        if (x < 0 || x >= tiles.length || y < 0 || y >= tiles[x].length) {
+        TileData tile = mapData.getTile(x, y);
+        if (tile == null) {
             return false;
         }
-        Terrain bridgeTerrain = kwdFile.getTerrainBridge(tiles[x][y].getFlag(), kwdFile.getTerrain(tiles[x][y].getTerrainId()));
-        return (tiles[x][y].getTerrainId() == terrain.getTerrainId() || (bridgeTerrain != null && bridgeTerrain.getTerrainId() == terrain.getTerrainId()));
+        Terrain bridgeTerrain = kwdFile.getTerrainBridge(tile.getFlag(), tile.getTerrain());
+        return (tile.getTerrainId() == terrain.getTerrainId() || (bridgeTerrain != null && bridgeTerrain.getTerrainId() == terrain.getTerrainId()));
     }
 
-    protected boolean isSolidTile(TileData[][] tiles, int x, int y) {
-        // Check for out of bounds
-        if (x < 0 || x >= tiles.length || y < 0 || y >= tiles[x].length) {
+    protected boolean isSolidTile(MapData mapData, int x, int y) {
+        TileData tile = mapData.getTile(x, y);
+        if (tile == null) {
             return false;
         }
-        return kwdFile.getTerrain(tiles[x][y].getTerrainId()).getFlags().contains(Terrain.TerrainFlag.SOLID);
+        return tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID);
     }
 
-    abstract public Spatial construct(TileData[][] tiles, int x, int y, final Terrain terrain, final AssetManager assetManager, String model);
+    abstract public Spatial construct(MapData mapData, int x, int y, final Terrain terrain, final AssetManager assetManager, String model);
 }

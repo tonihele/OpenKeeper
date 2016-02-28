@@ -41,7 +41,7 @@ public class QuadConstructor extends TileConstructor {
      * Constructs a quad tile type (2x2 pieces forms one tile), i.e. claimed top
      * and floor
      *
-     * @param tiles the tiles
+     * @param mapData the tiles
      * @param terrain the terrain
      * @param tile the tile
      * @param x x
@@ -51,7 +51,7 @@ public class QuadConstructor extends TileConstructor {
      * @return the loaded model
      */
     @Override
-    public Spatial construct(TileData[][] tiles, int x, int y, final Terrain terrain, final AssetManager assetManager, String modelName) {
+    public Spatial construct(MapData mapData, int x, int y, final Terrain terrain, final AssetManager assetManager, String modelName) {
 
         switch (modelName) {
             case "CLAIMED TOP":
@@ -64,22 +64,22 @@ public class QuadConstructor extends TileConstructor {
 
         // If ownable, playerId is first. With fixed Hero Lair
         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && terrain.getTerrainId() != 35) {
-            TileData tile = tiles[x][y];
+            TileData tile = mapData.getTile(x, y);
             modelName += tile.getPlayerId() - 1 + "_";
         }
 
         // It needs to be parsed together from tiles
-        boolean solid = isSolidTile(tiles, x, y);
+        boolean solid = isSolidTile(mapData, x, y);
         // Figure out which peace by seeing the neighbours
         // This is slightly different with the top
-        boolean N = hasSameTile(tiles, x, y - 1, terrain)      || (solid && isSolidTile(tiles, x, y - 1));
-        boolean NE = hasSameTile(tiles, x + 1, y - 1, terrain) || (solid && isSolidTile(tiles, x + 1, y - 1));
-        boolean E = hasSameTile(tiles, x + 1, y, terrain)      || (solid && isSolidTile(tiles, x + 1, y));
-        boolean SE = hasSameTile(tiles, x + 1, y + 1, terrain) || (solid && isSolidTile(tiles, x + 1, y + 1));
-        boolean S = hasSameTile(tiles, x, y + 1, terrain)      || (solid && isSolidTile(tiles, x, y + 1));
-        boolean SW = hasSameTile(tiles, x - 1, y + 1, terrain) || (solid && isSolidTile(tiles, x - 1, y + 1));
-        boolean W = hasSameTile(tiles, x - 1, y, terrain)      || (solid && isSolidTile(tiles, x - 1, y));
-        boolean NW = hasSameTile(tiles, x - 1, y - 1, terrain) || (solid && isSolidTile(tiles, x - 1, y - 1));
+        boolean N = hasSameTile(mapData, x, y - 1, terrain) || (solid && isSolidTile(mapData, x, y - 1));
+        boolean NE = hasSameTile(mapData, x + 1, y - 1, terrain) || (solid && isSolidTile(mapData, x + 1, y - 1));
+        boolean E = hasSameTile(mapData, x + 1, y, terrain) || (solid && isSolidTile(mapData, x + 1, y));
+        boolean SE = hasSameTile(mapData, x + 1, y + 1, terrain) || (solid && isSolidTile(mapData, x + 1, y + 1));
+        boolean S = hasSameTile(mapData, x, y + 1, terrain) || (solid && isSolidTile(mapData, x, y + 1));
+        boolean SW = hasSameTile(mapData, x - 1, y + 1, terrain) || (solid && isSolidTile(mapData, x - 1, y + 1));
+        boolean W = hasSameTile(mapData, x - 1, y, terrain) || (solid && isSolidTile(mapData, x - 1, y));
+        boolean NW = hasSameTile(mapData, x - 1, y - 1, terrain) || (solid && isSolidTile(mapData, x - 1, y - 1));
 
         // 2x2
         Spatial model = new Node();
