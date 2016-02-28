@@ -141,7 +141,7 @@ public class HiScores implements Savable {
     }
 
     private static File getFile() {
-        return new File(AssetsConverter.getAssetsFolder() + HISCORES_FILENAME);
+        return new File(AssetsConverter.getCurrentFolder().concat(HISCORES_FILENAME));
     }
 
     /**
