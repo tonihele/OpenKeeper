@@ -51,6 +51,7 @@ import toniarts.openkeeper.world.room.RoomConstructor;
 import toniarts.openkeeper.world.room.RoomInstance;
 import toniarts.openkeeper.world.room.WallSection;
 import toniarts.openkeeper.world.room.WallSection.WallDirection;
+import toniarts.openkeeper.world.terrain.Water;
 
 /**
  * Loads whole maps, and handles the maps
@@ -124,12 +125,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         // Create the water
         if (!waterBatches.isEmpty()) {
-//            map.attachChild(Water.construct(assetManager, waterBatches));
+            map.attachChild(Water.construct(assetManager, waterBatches));
         }
 
         // And the lava
         if (!lavaBatches.isEmpty()) {
-//            map.attachChild(Water.construct(assetManager, lavaBatches));
+            map.attachChild(Water.construct(assetManager, lavaBatches));
         }
 
         return map;
