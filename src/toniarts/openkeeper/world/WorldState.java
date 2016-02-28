@@ -65,6 +65,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.world.control.FlashTileControl;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.CreatureLoader;
 import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
@@ -135,6 +136,8 @@ public abstract class WorldState extends AbstractAppState {
         thingLoader = new ThingLoader(this, kwdFile, assetManager);
         thingsNode = thingLoader.loadAll(creatureTriggerState);
         worldNode.attachChild(thingsNode);
+
+        flashTileControl = new FlashTileControl(this);
 
         // Player money
         initPlayerMoney();
@@ -256,6 +259,15 @@ public abstract class WorldState extends AbstractAppState {
                 CreatureLoader.pauseAnimations(creature.getSpatial());
             }
         }
+    }
+
+    @Override
+    public void update(float tpf) {
+        if (!isInitialized() || !isEnabled()) {
+            return;
+        }
+
+        flashTileControl.update(tpf);
     }
 
     public AssetManager getAssetManager() {
@@ -532,8 +544,8 @@ public abstract class WorldState extends AbstractAppState {
         }
     }
 
-    public void flashTile(int x, int y, int time, boolean enabled) {
-        mapLoader.flashTile(x, y, time, enabled);
+    public void flashTile(boolean enabled, List<Point> points) {
+        flashTileControl.attach(points, enabled);
     }
 
     /**

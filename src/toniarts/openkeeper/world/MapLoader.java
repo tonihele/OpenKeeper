@@ -640,13 +640,13 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         sideTileNode.setLocalTranslation(p.x * TILE_WIDTH, 0, p.y * TILE_WIDTH);
     }
 
-    public void flashTile(boolean enabled, Point... points) {
+    public void flashTile(boolean enabled, List<Point> points) {
 
         for (Point p : points) {
             mapData.getTile(p.x, p.y).setFlashed(enabled);
         }
 
-        updateTiles(points);
+        updateTiles(points.toArray(new Point[points.size()]));
     }
 
     /**

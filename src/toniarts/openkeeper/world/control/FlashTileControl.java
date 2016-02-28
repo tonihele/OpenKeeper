@@ -16,10 +16,12 @@
  */
 package toniarts.openkeeper.world.control;
 
+import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.ViewPort;
+import com.jme3.scene.control.AbstractControl;
 import java.awt.Point;
-import toniarts.openkeeper.game.action.ActionPoint;
-import toniarts.openkeeper.game.control.Control;
-import toniarts.openkeeper.game.control.IContainer;
+import java.util.ArrayList;
+import java.util.List;
 import toniarts.openkeeper.world.WorldState;
 
 /**
@@ -28,68 +30,45 @@ import toniarts.openkeeper.world.WorldState;
  */
 
 
-public class FlashTileControl extends Control {
-
-    private float time;
+public class FlashTileControl extends AbstractControl {
     private float tick = 0;
+    public final float FLASH_PERIOD = 0.3f;
     private boolean flashed = false;
-    private boolean unlimited = false;
-    public final float PERIOD = 0.3f;
-
     private WorldState worldState;
-    private Point[] points;
+    private final List<Point> points = new ArrayList<>();
 
     public FlashTileControl() {
     }
 
-    public FlashTileControl(int time, WorldState worldState) {
-        this.time = time;
+    public FlashTileControl(final WorldState worldState) {
         this.worldState = worldState;
-        if (this.time == 0) {
-            unlimited = true;
-        }
     }
 
-    @Override
-    public void setParent(IContainer parent) {
-        if (parent == null) {
-            time = -1;
-            worldState.flashTile(false, points);
+    public boolean attach(List<Point> points, boolean  enabled) {
+        if (enabled) {
+            return this.points.addAll(points);
         } else {
-            Point start = ((ActionPoint) parent).getStart();
-            Point end = ((ActionPoint) parent).getEnd();
-            points = new Point[(end.x - start.x + 1) * (end.y - start.y + 1)];
-            int index = 0;
-            for (int x = start.x; x <= end.x; x++) {
-                for (int y = start.y; y <= end.y; y++) {
-                    points[index++] = new Point(x, y);
-                }
-            }
+            worldState.getMapLoader().flashTile(false, points);
+            return this.points.removeAll(points);
         }
-        super.setParent(parent);
     }
 
     @Override
     protected void controlUpdate(float tpf) {
-        if (!enabled) {
+        if (!enabled || points.isEmpty()) {
             return;
         }
 
-        if (tick >= PERIOD || time < 0) {
-            if (time < 0) {
-                parent.removeControl(this);
-                flashed = false;
-                enabled = false;
-            } else {
-                tick -= PERIOD;
-                flashed = !flashed;
-            }
-            worldState.flashTile(flashed, points);
+        if (tick > FLASH_PERIOD) {
+            tick -= FLASH_PERIOD;
+            flashed = !flashed;
+            worldState.getMapLoader().flashTile(flashed, points);
         }
 
         tick += tpf;
-        if (!unlimited) {
-            time -= tpf;
-        }
+    }
+
+    @Override
+    protected void controlRender(RenderManager rm, ViewPort vp) {
     }
 }

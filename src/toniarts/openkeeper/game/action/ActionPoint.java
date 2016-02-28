@@ -18,7 +18,9 @@ package toniarts.openkeeper.game.action;
 
 import com.jme3.math.Vector2f;
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import toniarts.openkeeper.game.control.Container;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
@@ -29,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 public class ActionPoint extends Container {
 
     private final int id;
+    private final ActionPointState parent;
     private final int triggerId;
     private final Point start;
     private final Point end;
@@ -48,6 +51,14 @@ public class ActionPoint extends Container {
 
     public int getId() {
         return id;
+    }
+
+    public ActionPointState getParent() {
+        return parent;
+    }
+
+    protected void setParent(ActionPointState parent) {
+        this.parent = parent;
     }
 
     public int getTriggerId() {
@@ -76,6 +87,16 @@ public class ActionPoint extends Container {
 
     public Vector2f getCenter() {
         return new Vector2f((start.x + end.x) / 2, (start.y + end.y) / 2);
+    }
+
+    public List<Point> getPoints() {
+        List<Point> points = new ArrayList<>();
+        for (int x = start.x; x <= end.x; x++) {
+            for (int y = start.y; y <= end.y; y++) {
+                points.add(new Point(x, y));
+            }
+        }
+        return points;
     }
 
     @Override
