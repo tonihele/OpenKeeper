@@ -123,7 +123,7 @@ public class WaterConstructor extends TileConstructor {
         }
         //
         if (piece != -1) {
-            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + piece + ".j3o", false);
+            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + piece + ".j3o", false, true);
             if (yAngle != 0) {
                 floor.rotate(0, yAngle, 0);
             }
@@ -217,7 +217,7 @@ public class WaterConstructor extends TileConstructor {
                 }
 
                 // Load the piece
-                Spatial part = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + piece + ".j3o", false);
+                Spatial part = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + piece + ".j3o", false, true);
                 if (yAngle != 0) {
                     part.rotate(0, yAngle, 0);
                 }

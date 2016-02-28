@@ -21,14 +21,12 @@ import com.jme3.animation.AnimControl;
 import com.jme3.animation.AnimEventListener;
 import com.jme3.animation.LoopMode;
 import com.jme3.asset.AssetManager;
-import com.jme3.asset.ModelKey;
-import com.jme3.asset.cache.SimpleAssetCache;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -47,7 +45,6 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
 
     private final KwdFile kwdFile;
     private final WorldState worldState;
-    private final static SimpleAssetCache assetCache = new SimpleAssetCache();
     private static final Logger logger = Logger.getLogger(CreatureLoader.class.getName());
 
     public CreatureLoader(KwdFile kwdFile, WorldState worldState) {
@@ -196,13 +193,7 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
     private static Spatial loadModel(AssetManager assetManager, String resourceName, Node creatureRoot) {
 
         // Load the model and attach it without the root
-        ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + resourceName + ".j3o"));
-        Node modelRoot = (Node) assetCache.getFromCache(assetKey);
-        if (modelRoot == null) {
-            modelRoot = (Node) assetManager.loadModel(assetKey);
-            assetCache.addToCache(assetKey, modelRoot);
-        }
-        Spatial model = modelRoot.getChild(0).clone();
+        Spatial model = ((Node) Main.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + resourceName + ".j3o", false)).getChild(0);
         model.setCullHint(Spatial.CullHint.Always);
         creatureRoot.attachChild(model);
         return model;

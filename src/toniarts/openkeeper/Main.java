@@ -24,7 +24,11 @@ import com.jme3.app.state.VideoRecorderAppState;
 import com.jme3.asset.AssetEventListener;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
+import com.jme3.asset.cache.AssetCache;
+import com.jme3.asset.cache.SimpleAssetCache;
+import com.jme3.asset.cache.WeakRefAssetCache;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.light.AmbientLight;
 import com.jme3.math.ColorRGBA;
@@ -32,6 +36,7 @@ import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.renderer.RenderManager;
+import com.jme3.scene.Spatial;
 import com.jme3.system.AppSettings;
 import com.jme3.system.JmeSystem;
 import java.awt.event.WindowAdapter;
@@ -66,6 +71,7 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.utils.UTF8Control;
 import toniarts.openkeeper.video.MovieState;
 
@@ -88,15 +94,19 @@ public class Main extends SimpleApplication {
     private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
-    private final HashMap<String, String> params;
-    private final boolean debug;
+    private static HashMap<String, String> params;
+    private static boolean debug;
     private NiftyJmeDisplay nifty;
     private Settings userSettings;
+    private final static AssetCache assetCache = new SimpleAssetCache();
+    private final static AssetCache weakAssetCache = new WeakRefAssetCache();
 
     public static void main(String[] args) throws InvocationTargetException, InterruptedException {
 
         // Create main application instance
-        final Main app = new Main(parseArguments(args));
+        parseArguments(args);
+        debug = params.containsKey("debug");
+        final Main app = new Main();
         app.setPauseOnLostFocus(false);
 
         // Read settings and convert resources if needed
@@ -115,10 +125,9 @@ public class Main extends SimpleApplication {
      * Parse application parameters
      *
      * @param args the arguments list
-     * @return parameters as parameter / value -map
      */
-    public static HashMap<String, String> parseArguments(String[] args) {
-        HashMap<String, String> params = new HashMap<>(args.length);
+    private static void parseArguments(String[] args) {
+        params = new HashMap<>(args.length);
 
         // Go through the params
         int i = 0;
@@ -141,8 +150,6 @@ public class Main extends SimpleApplication {
 
             i++;
         }
-
-        return params;
     }
 
     /**
@@ -214,11 +221,8 @@ public class Main extends SimpleApplication {
         return result;
     }
 
-    public Main(HashMap<String, String> params) {
+    private Main() {
         super(new StatsAppState(), new DebugKeysAppState());
-
-        this.params = params;
-        this.debug = params.containsKey("debug");
     }
 
     private static void initSettings(Main app) {
@@ -683,7 +687,38 @@ public class Main extends SimpleApplication {
      *
      * @return debug
      */
-    public boolean isDebug() {
+    public static boolean isDebug() {
         return debug;
+    }
+
+    /**
+     * Loads a model. The model is cached on the first call and loaded from
+     * cache.
+     *
+     * @param assetManager the asset manager to use
+     * @param resourceName the model name, the model name is checked and fixed
+     * @param useWeakCache use weak cache, if not then permanently cache the
+     * models. Use weak cache to load some models that are not often needed
+     * (water bed etc.)
+     * @return a cloned instance from the cache
+     */
+    public static Spatial loadModel(AssetManager assetManager, String resourceName, boolean useWeakCache) {
+        ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(resourceName));
+
+        // Set the correct asset cache
+        final AssetCache cache;
+        if (useWeakCache) {
+            cache = weakAssetCache;
+        } else {
+            cache = assetCache;
+        }
+
+        // Get the model from cache
+        Spatial model = cache.getFromCache(assetKey);
+        if (model == null) {
+            model = assetManager.loadModel(assetKey);
+            cache.addToCache(assetKey, model);
+        }
+        return model.clone();
     }
 }

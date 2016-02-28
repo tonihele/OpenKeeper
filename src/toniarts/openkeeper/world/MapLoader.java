@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -79,7 +80,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final HashMap<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final HashMap<RoomInstance, GenericRoom> roomActuals = new HashMap<>(); // Rooms by room instance
     private final HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
-    private static final HashMap<String, Spatial> cachedModels = new HashMap<>();
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
     public MapLoader(AssetManager assetManager, KwdFile kwdFile) {
@@ -364,11 +364,24 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param assetManager the asset manager
      * @param asset the name and location of the asset (asset key)
      * @param wall is this wall? Used to distinquish between sea levels and
-     * walls
      * @return the asset loaded & ready to rock
      */
     public static Spatial loadAsset(final AssetManager assetManager, final String asset, final boolean wall) {
-        Spatial spatial = assetManager.loadModel(asset);
+        return loadAsset(assetManager, asset, wall, false);
+    }
+
+    /**
+     * Loads the given asset and resets its scale and translation to match our
+     * give grid
+     *
+     * @param assetManager the asset manager
+     * @param asset the name and location of the asset (asset key)
+     * @param wall is this wall? Used to distinquish between sea levels and
+     * @param useWeakCache use weak cache walls
+     * @return the asset loaded & ready to rock
+     */
+    public static Spatial loadAsset(final AssetManager assetManager, final String asset, final boolean wall, final boolean useWeakCache) {
+        Spatial spatial = Main.loadModel(assetManager, asset, useWeakCache);
 
         // Set the transform and scale to our scale and 0 the transform
         spatial.breadthFirstTraversal(new SceneGraphVisitor() {
@@ -392,14 +405,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     }
 
     private Spatial loadModel(final String model, final boolean wall) {
-
-        if (!cachedModels.containsKey(model)) {
-            String asset = AssetsConverter.MODELS_FOLDER + "/" + model + ".j3o";
-            Spatial spatial = loadAsset(assetManager, asset, wall);
-            cachedModels.put(model, spatial);
-        }
-
-        return cachedModels.get(model).clone();
+        return loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + ".j3o", wall, false);
     }
 
     /**
