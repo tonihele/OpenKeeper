@@ -77,6 +77,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final HashMap<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final HashMap<RoomInstance, GenericRoom> roomActuals = new HashMap<>(); // Rooms by room instance
     private final HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
+    private static final HashMap<String, Spatial> cachedModels = new HashMap<>();
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
     public MapLoader(AssetManager assetManager, KwdFile kwdFile) {
@@ -99,12 +100,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         // Go through the map
         int tilesCount = mapData.getWidth() * object.getMap().getHeight();
-        TileData[][] tiles = mapData.getTiles();
+
         for (int y = 0; y < mapData.getHeight(); y++) {
             for (int x = 0; x < mapData.getWidth(); x++) {
 
                 try {
-                    handleTile(tiles, x, y, assetManager, terrain);
+                    handleTile(mapData.getTile(x, y), terrain);
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Failed to handle tile at " + x + ", " + y + "!", e);
                 }
@@ -150,33 +151,43 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         // Reconstruct all tiles in the area
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
+        ArrayList<RoomInstance> updateRooms = new ArrayList<>();
         Node terrainNode = (Node) map.getChild(0);
         for (Point point : points) {
-
+            TileData tile = mapData.getTile(point);
             // Reconstruct and mark for patching
             // The tile node needs to created anew, somehow the BatchNode just doesn't get it if I remove children from subnode
-            Node pageNode = getPageNode(point.x, point.y, terrainNode);
-            Node tileNode = getTileNode(point.x, point.y, (Node) pageNode.getChild(0));
+            Node pageNode = getPageNode(point, terrainNode);
+            Node tileNode = getTileNode(point, (Node) pageNode.getChild(0));
             if (!tileNode.getChildren().isEmpty()) {
                 tileNode.removeFromParent();
-                ((BatchNode) pageNode.getChild(0)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point.x, point.y));
+                ((BatchNode) pageNode.getChild(0)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
                 nodesNeedBatching.add((BatchNode) pageNode.getChild(0));
             }
-            tileNode = getTileNode(point.x, point.y, (Node) pageNode.getChild(1));
+            tileNode = getTileNode(point, (Node) pageNode.getChild(1));
             if (!tileNode.getChildren().isEmpty()) {
                 tileNode.removeFromParent();
-                ((BatchNode) pageNode.getChild(1)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point.x, point.y));
+                ((BatchNode) pageNode.getChild(1)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
                 nodesNeedBatching.add((BatchNode) pageNode.getChild(1));
             }
-            tileNode = getTileNode(point.x, point.y, (Node) pageNode.getChild(2));
+            tileNode = getTileNode(point, (Node) pageNode.getChild(2));
             if (!tileNode.getChildren().isEmpty()) {
                 tileNode.removeFromParent();
-                ((BatchNode) pageNode.getChild(2)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point.x, point.y));
+                ((BatchNode) pageNode.getChild(2)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
                 nodesNeedBatching.add((BatchNode) pageNode.getChild(2));
             }
 
+            if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                RoomInstance ri = roomCoordinates.get(point);
+                if (updateRooms.indexOf(ri) == -1) {
+                    updateRooms.add(ri);
+                } else {
+                    // skip room
+                    continue;
+                }
+            }
             // Reconstruct
-            handleTile(mapData.getTiles(), point.x, point.y, assetManager, (Node) map.getChild(0));
+            handleTile(tile, (Node) map.getChild(0));
         }
 
         // Batch
@@ -248,28 +259,51 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
     }
 
-    private boolean hasWall(int x, int y, TileData[][] tiles, Terrain terrain) {
-
+    private Spatial getWallSpatial(TileData tile, WallDirection direction) {
+        String modelName = tile.getTerrain().getSideResource().getName();
+        Point p = tile.getLocation();
+        TileData neigbourTile;
+        switch (direction) {
+            case NORTH:
+                neigbourTile = mapData.getTile(p.x, p.y - 1);
+                break;
+            case SOUTH:
+                neigbourTile = mapData.getTile(p.x, p.y + 1);
+                break;
+            case EAST:
+                neigbourTile = mapData.getTile(p.x + 1, p.y);
+                break;
+            default: // WEST
+                neigbourTile = mapData.getTile(p.x - 1, p.y);
+                break;
+        }
         // Check for out of bounds
-        if (x < 0 || x >= tiles.length || y < 0 || y >= tiles[x].length) {
-            return true;
+        if (neigbourTile == null) {
+            return loadModel(modelName, true);
         }
 
-        Terrain neigbourTerrain = kwdFile.getTerrain(tiles[x][y].getTerrainId());
-        if (neigbourTerrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            return false;
+        if (neigbourTile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            return null;
         }
 
-        // Rooms are built separately, so just ignore any room walls
-        if (!(terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS) && hasRoomWalls(neigbourTerrain))) {
-            // Use our terrain wall
-            return true;
+        if (!(tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS))) {
+            return loadModel(modelName, true);
+        } else if (hasRoomWalls(neigbourTile)) {
+            return getRoomWall(neigbourTile, direction);
         }
 
-        return false;
+        return loadModel(modelName, true);
     }
 
-    private void addWall(Spatial wall, Node root, int x, int y, float yAngle) {
+    private Spatial getRoomWall(TileData tile, WallDirection direction) {
+        Point p = tile.getLocation();
+        Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+        RoomInstance roomInstance = handleRoom(p, room);
+        GenericRoom gr = roomActuals.get(roomInstance);
+        return gr.getWallSpatial(p, direction);
+    }
+
+    private Spatial transformWall(Spatial wall, int x, int y, float yAngle) {
 
         // Move the ceiling to a correct tile
         if (wall != null) {
@@ -277,8 +311,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 wall.rotate(0, yAngle, 0);
             }
             wall.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
-            root.attachChild(wall);
         }
+        return wall;
     }
 
     /**
@@ -313,7 +347,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                         String asset = m.getAssetName();
 
                         // Load new material
-                        Material newMaterial = assetManager.loadMaterial(asset.substring(0, asset.lastIndexOf(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR) + 1).concat(tex + ".j3m"));
+                        Material newMaterial = assetManager.loadMaterial(asset.substring(0,
+                                asset.lastIndexOf(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR) + 1).concat(tex + ".j3m"));
                         g.setMaterial(newMaterial);
                     }
                 }
@@ -355,6 +390,17 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         return spatial;
     }
 
+    private Spatial loadModel(final String model, final boolean wall) {
+
+        if (!cachedModels.containsKey(model)) {
+            String asset = AssetsConverter.MODELS_FOLDER + "/" + model + ".j3o";
+            Spatial spatial = loadAsset(assetManager, asset, wall);
+            cachedModels.put(model, spatial);
+        }
+        //return spatial;
+        return cachedModels.get(model).deepClone();
+    }
+
     /**
      * Handle single tile from the map, represented by the X & Y coordinates
      *
@@ -364,28 +410,14 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param assetManager the asset manager instance
      * @param root the root node
      */
-    private void handleTile(TileData[][] tiles, int x, int y, AssetManager assetManager, Node root) {
-        TileData tile = tiles[x][y];
+    private void handleTile(TileData tile, Node root) {
         // Get the terrain
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-
+        Point p = tile.getLocation();
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             // Construct the actual room
-            Point p = new Point(x, y);
             Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-            if (!roomCoordinates.containsKey(p)) {
-
-                RoomInstance roomInstance = new RoomInstance(room);
-                findRoom(tiles, p, roomInstance);
-                findRoomWallSections(tiles, roomInstance);
-                rooms.add(roomInstance);
-
-                Spatial roomNode = handleRoom(assetManager, roomInstance);
-                roomsNode.attachChild(roomNode);
-
-                // Add to registry
-                roomNodes.put(roomInstance, roomNode);
-            }
+            handleRoom(p, room);
 
             // Swap the terrain if this is a bridge
             terrain = kwdFile.getTerrainBridge(tile.getFlag(), room);
@@ -394,11 +426,30 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             }
         }
 
-        Node pageNode = getPageNode(x, y, root);
-        handleTop(terrain, tiles, tile, x, y, assetManager, pageNode);
+        Node pageNode = getPageNode(p, root);
+        handleTop(tile, pageNode);
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            handleSide(terrain, tiles, tile, x, y, assetManager, pageNode);
+            handleSide(tile, pageNode);
         }
+    }
+
+    private RoomInstance handleRoom(Point p, Room room) {
+        if (roomCoordinates.containsKey(p)) {
+            RoomInstance roomInstance = roomCoordinates.get(p);
+            return roomInstance;
+        }
+
+        RoomInstance roomInstance = new RoomInstance(room);
+        findRoom(p, roomInstance);
+        findRoomWallSections(roomInstance);
+        rooms.add(roomInstance);
+
+        Spatial roomNode = handleRoom(roomInstance);
+        roomsNode.attachChild(roomNode);
+
+        // Add to registry
+        roomNodes.put(roomInstance, roomNode);
+        return roomInstance;
     }
 
     /**
@@ -412,20 +463,20 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param assetManager the asset manager instance
      * @param pageNode page node
      */
-    private void handleTop(Terrain terrain, TileData[][] tiles, TileData tile, int x, int y, AssetManager assetManager, Node pageNode) {
+    private void handleTop(TileData tile, Node pageNode) {
 
+        Terrain terrain = tile.getTerrain();
         ArtResource model = terrain.getCompleteResource();
-
+        Point p = tile.getLocation();
         Spatial spatial;
         // For water construction type (lava & water), there are 8 pieces (0-7 suffix) in complete resource
         // And in the top resource there is the actual lava/water
         if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)) {
 
             // Store the batch instance
-            Point p = new Point(x, y);
             if (!terrainBatchCoordinates.containsKey(p)) {
                 EntityInstance<Terrain> entityInstance = new EntityInstance<>(terrain);
-                findTerrainBatch(tiles, p, entityInstance);
+                findTerrainBatch(p, entityInstance);
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
                     lavaBatches.add(entityInstance);
                 } else {
@@ -433,19 +484,19 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 }
             }
 
-            spatial = new WaterConstructor(kwdFile).construct(tiles, x, y, terrain, assetManager, model.getName());
+            spatial = new WaterConstructor(kwdFile).construct(mapData.getTiles(), p.x, p.y, terrain, assetManager, model.getName());
 
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
             // If this resource is type quad, parse it together. With fixed Hero Lair
             String modelName = (model == null && terrain.getTerrainId() == 35) ? "hero_outpost_floor" : model.getName();
-            spatial = new QuadConstructor(kwdFile).construct(tiles, x, y, terrain, assetManager, modelName);
+            spatial = new QuadConstructor(kwdFile).construct(mapData.getTiles(), p.x, p.y, terrain, assetManager, modelName);
 
         } else {
 
             if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
                 model = terrain.getTopResource();
             }
-            spatial = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model.getName() + ".j3o", false);
+            spatial = loadModel(model.getName(), false);
         }
 
         if (terrain.getFlags().contains(Terrain.TerrainFlag.RANDOM_TEXTURE)) {
@@ -454,61 +505,63 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         Node topTileNode;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            topTileNode = getTileNode(x, y, (Node) pageNode.getChild(2));
-            spatial.move(x * TILE_WIDTH, TILE_HEIGHT, y * TILE_WIDTH);
+            topTileNode = getTileNode(p, (Node) pageNode.getChild(2));
+            spatial.setLocalTranslation(0, TILE_HEIGHT, 0);
 
         } else {
-            topTileNode = getTileNode(x, y, (Node) pageNode.getChild(0));
-            spatial.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
+            topTileNode = getTileNode(p, (Node) pageNode.getChild(0));
+            spatial.setLocalTranslation(0, 0, 0);
         }
         topTileNode.attachChild(spatial);
         if (tile.isSelected()) { // Just set the selected material here if needed
             setTaggedMaterialToGeometries(topTileNode);
         }
+        topTileNode.move(p.x * TILE_WIDTH, 0, p.y * TILE_WIDTH);
     }
 
-    private void handleSide(Terrain terrain, TileData[][] tiles, TileData tile, int x, int y, AssetManager assetManager, Node pageNode) {
-        Node sideTileNode = getTileNode(x, y, (Node) pageNode.getChild(1));
-        String modelName = terrain.getSideResource().getName();
+    private void handleSide(TileData tile, Node pageNode) {
+        Point p = tile.getLocation();
+        Node sideTileNode = getTileNode(p, (Node) pageNode.getChild(1));
+
 
         // North
-        if (hasWall(x, y - 1, tiles, terrain)) {
-            Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o", true);
-            wall.move(0, 0, -TILE_WIDTH);
-            addWall(wall, sideTileNode, x, y, 0);
+        Spatial wall = getWallSpatial(tile, WallDirection.NORTH);
+        if (wall != null) {
+            sideTileNode.attachChild(transformWall(wall, 0, -1, 0));
         }
 
         // South
-        if (hasWall(x, y + 1, tiles, terrain)) {
-            Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o", true);
-            wall.move(-TILE_WIDTH, 0, 0);
-            addWall(wall, sideTileNode, x, y, -FastMath.PI);
+        wall = getWallSpatial(tile, WallDirection.SOUTH);
+        if (wall != null) {
+            sideTileNode.attachChild(transformWall(wall, -1, 0, FastMath.PI));
         }
 
         // East
-        if (hasWall(x + 1, y, tiles, terrain)) {
-            Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o", true);
-            addWall(wall, sideTileNode, x, y, -FastMath.HALF_PI);
+        wall = getWallSpatial(tile, WallDirection.EAST);
+        if (wall != null) {
+            sideTileNode.attachChild(transformWall(wall, 0, 0, -FastMath.HALF_PI));
         }
 
         // West
-        if (hasWall(x - 1, y, tiles, terrain)) {
-            Spatial wall = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + ".j3o", true);
-            wall.move(-TILE_WIDTH, 0, -TILE_WIDTH);
-            addWall(wall, sideTileNode, x, y, FastMath.HALF_PI);
+        wall = getWallSpatial(tile, WallDirection.WEST);
+        if (wall != null) {
+            sideTileNode.attachChild(transformWall(wall, -1, -1, FastMath.HALF_PI));
         }
 
         if (tile.isSelected()) {
             setTaggedMaterialToGeometries(sideTileNode);
         }
+
+        sideTileNode.setLocalTranslation(p.x * TILE_WIDTH, 0, p.y * TILE_WIDTH);
     }
 
     public void flashTile(int x, int y, int time, boolean enabled) {
 
+        Point p = new Point(x, y);
         Node terrainNode = (Node) map.getChild(0);
-        Node pageNode = getPageNode(x, y, terrainNode);
+        Node pageNode = getPageNode(p, terrainNode);
 
-        Node tileNode = getTileNode(x, y, (Node) pageNode.getChild(0));
+        Node tileNode = getTileNode(p, (Node) pageNode.getChild(0));
         if (tileNode != null) {
             if (enabled) {
                 tileNode.addControl(new FlashTileControl(time));
@@ -517,7 +570,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             }
         }
 
-        tileNode = getTileNode(x, y, (Node) pageNode.getChild(1));
+        tileNode = getTileNode(p, (Node) pageNode.getChild(1));
         if (tileNode != null) {
             if (enabled) {
                 tileNode.addControl(new FlashTileControl(time));
@@ -526,7 +579,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             }
         }
 
-        tileNode = getTileNode(x, y, (Node) pageNode.getChild(2));
+        tileNode = getTileNode(p, (Node) pageNode.getChild(2));
         if (tileNode != null) {
             if (enabled) {
                 tileNode.addControl(new FlashTileControl(time));
@@ -544,8 +597,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param root the page node
      * @return tile node
      */
-    private Node getTileNode(int x, int y, Node page) {
-        return (Node) page.getChild(getTileNodeIndex(x, y));
+    private Node getTileNode(Point p, Node page) {
+        return (Node) page.getChild(getTileNodeIndex(p));
     }
 
     /**
@@ -555,9 +608,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param y the tile y
      * @return the index inside the page
      */
-    private int getTileNodeIndex(int x, int y) {
-        int tileX = x - ((int) Math.floor(x / (float) PAGE_SQUARE_SIZE)) * PAGE_SQUARE_SIZE;
-        int tileY = y - ((int) Math.floor(y / (float) PAGE_SQUARE_SIZE)) * PAGE_SQUARE_SIZE;
+    private int getTileNodeIndex(Point p) {
+        int tileX = p.x - ((int) Math.floor(p.x / (float) PAGE_SQUARE_SIZE)) * PAGE_SQUARE_SIZE;
+        int tileY = p.y - ((int) Math.floor(p.y / (float) PAGE_SQUARE_SIZE)) * PAGE_SQUARE_SIZE;
         return tileY * PAGE_SQUARE_SIZE + tileX;
     }
 
@@ -569,9 +622,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param root the root node
      * @return page node
      */
-    protected Node getPageNode(int x, int y, Node root) {
-        int pageX = (int) Math.floor(x / (float) PAGE_SQUARE_SIZE);
-        int pageY = (int) Math.floor(y / (float) PAGE_SQUARE_SIZE);
+    protected Node getPageNode(Point p, Node root) {
+        int pageX = (int) Math.floor(p.x / (float) PAGE_SQUARE_SIZE);
+        int pageY = (int) Math.floor(p.y / (float) PAGE_SQUARE_SIZE);
 
         // Get the page index
         int index = pageX;
@@ -589,7 +642,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param terrain the terrain piece
      * @return true if this is a room and it has its own walls
      */
-    private boolean hasRoomWalls(Terrain terrain) {
+    private boolean hasRoomWalls(TileData tile) {
+        Terrain terrain = tile.getTerrain();
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
 
             Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
@@ -612,9 +666,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param p starting point
      * @param roomInstance the room instance
      */
-    private void findRoom(TileData[][] tiles, Point p, RoomInstance roomInstance) {
-        TileData tile = tiles[p.x][p.y];
-
+    private void findRoom(Point p, RoomInstance roomInstance) {
+        TileData tile = mapData.getTile(p);
         // Get the terrain
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
@@ -627,16 +680,16 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                     roomInstance.addCoordinate(p);
 
                     // Find north
-                    findRoom(tiles, new Point(p.x, p.y - 1), roomInstance);
+                    findRoom(new Point(p.x, p.y - 1), roomInstance);
 
                     // Find east
-                    findRoom(tiles, new Point(p.x + 1, p.y), roomInstance);
+                    findRoom(new Point(p.x + 1, p.y), roomInstance);
 
                     // Find south
-                    findRoom(tiles, new Point(p.x, p.y + 1), roomInstance);
+                    findRoom(new Point(p.x, p.y + 1), roomInstance);
 
                     // Find west
-                    findRoom(tiles, new Point(p.x - 1, p.y), roomInstance);
+                    findRoom(new Point(p.x - 1, p.y), roomInstance);
                 }
             }
         }
@@ -650,13 +703,13 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param p starting point
      * @param entityInstance the batch instance
      */
-    private void findTerrainBatch(TileData[][] tiles, Point p, EntityInstance<Terrain> entityInstance) {
-        TileData tile = tiles[p.x][p.y];
+    private void findTerrainBatch(Point p, EntityInstance<Terrain> entityInstance) {
+        TileData tile = mapData.getTile(p);
 
         if (!terrainBatchCoordinates.containsKey(p)) {
 
             // Get the terrain
-            Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+            Terrain terrain = tile.getTerrain();
             Terrain bridgeTerrain = kwdFile.getTerrainBridge(tile.getFlag(), terrain);
             if (bridgeTerrain != null) {
                 terrain = bridgeTerrain;
@@ -669,16 +722,16 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 entityInstance.addCoordinate(p);
 
                 // Find north
-                findTerrainBatch(tiles, new Point(p.x, p.y - 1), entityInstance);
+                findTerrainBatch(new Point(p.x, p.y - 1), entityInstance);
 
                 // Find east
-                findTerrainBatch(tiles, new Point(p.x + 1, p.y), entityInstance);
+                findTerrainBatch(new Point(p.x + 1, p.y), entityInstance);
 
                 // Find south
-                findTerrainBatch(tiles, new Point(p.x, p.y + 1), entityInstance);
+                findTerrainBatch(new Point(p.x, p.y + 1), entityInstance);
 
                 // Find west
-                findTerrainBatch(tiles, new Point(p.x - 1, p.y), entityInstance);
+                findTerrainBatch(new Point(p.x - 1, p.y), entityInstance);
             }
         }
     }
@@ -689,9 +742,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param assetManager the asset manager instance
      * @param roomInstance the room instance
      */
-    private Spatial handleRoom(AssetManager assetManager, RoomInstance roomInstance) {
+    private Spatial handleRoom(RoomInstance roomInstance) {
         GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, kwdFile);
         roomActuals.put(roomInstance, room);
+        updateRoomWalls(roomInstance);
         return room.construct();
     }
 
@@ -703,7 +757,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @return camera location
      */
     public static Vector3f getCameraPositionOnMapPoint(final int x, final int y) {
-        return new Vector3f((x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2), 0f, (y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2));
+        return new Vector3f((x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2),
+                0f,
+                (y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2));
     }
 
     /**
@@ -795,19 +851,19 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param tiles tiles
      * @param roomInstance room instance
      */
-    private void findRoomWallSections(TileData[][] tiles, RoomInstance roomInstance) {
+    private void findRoomWallSections(RoomInstance roomInstance) {
         if (hasRoomWalls(roomInstance.getRoom())) {
             List<WallSection> sections = new ArrayList<>();
             Map<Point, Set<WallDirection>> alreadyWalledPoints = new HashMap<>();
             for (Point p : roomInstance.getCoordinates()) {
 
                 // Traverse in all four directions to find wallable sections facing the same direction
-                traverseRoomWalls(p, tiles, roomInstance, WallDirection.NORTH, sections, alreadyWalledPoints);
-                traverseRoomWalls(p, tiles, roomInstance, WallDirection.EAST, sections, alreadyWalledPoints);
-                traverseRoomWalls(p, tiles, roomInstance, WallDirection.SOUTH, sections, alreadyWalledPoints);
-                traverseRoomWalls(p, tiles, roomInstance, WallDirection.WEST, sections, alreadyWalledPoints);
+                traverseRoomWalls(p, roomInstance, WallDirection.NORTH, sections, alreadyWalledPoints);
+                traverseRoomWalls(p, roomInstance, WallDirection.EAST, sections, alreadyWalledPoints);
+                traverseRoomWalls(p, roomInstance, WallDirection.SOUTH, sections, alreadyWalledPoints);
+                traverseRoomWalls(p, roomInstance, WallDirection.WEST, sections, alreadyWalledPoints);
             }
-            roomInstance.setWallPoints(sections);
+            roomInstance.setWallSections(sections);
         }
     }
 
@@ -822,12 +878,13 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param sections list of already find sections
      * @param alreadyWalledPoints already found wall points
      */
-    private void traverseRoomWalls(Point p, TileData[][] tiles, RoomInstance roomInstance, WallDirection direction,
+    private void traverseRoomWalls(Point p, RoomInstance roomInstance, WallDirection direction,
             List<WallSection> sections, Map<Point, Set<WallDirection>> alreadyWalledPoints) {
+
         Set<WallDirection> alreadyTraversedDirections = alreadyWalledPoints.get(p);
         if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(direction)) {
 
-            List<Point> section = getRoomWalls(p, tiles, roomInstance, direction);
+            List<Point> section = getRoomWalls(p, roomInstance, direction);
             if (section != null) {
 
                 // Add section
@@ -846,21 +903,22 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
     }
 
-    private List<Point> getRoomWalls(Point p, TileData[][] tiles, RoomInstance roomInstance, WallDirection wallDirection) {
+    private List<Point> getRoomWalls(Point p, RoomInstance roomInstance, WallDirection wallDirection) {
 
         // See if the starting point has a wall to the given direction
         TileData tile;
         if (wallDirection == WallDirection.NORTH) {
-            tile = tiles[p.x][p.y - 1];
+            tile = mapData.getTile(p.x, p.y + 1);
         } else if (wallDirection == WallDirection.EAST) {
-            tile = tiles[p.x + 1][p.y];
+            tile = mapData.getTile(p.x - 1, p.y);
         } else if (wallDirection == WallDirection.SOUTH) {
-            tile = tiles[p.x][p.y + 1];
+            tile = mapData.getTile(p.x, p.y - 1);
         } else {
-            tile = tiles[p.x - 1][p.y]; // West
+            tile = mapData.getTile(p.x + 1, p.y); // West
         }
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
 
             // Found wallable
             List<Point> wallPoints = new ArrayList<>();
@@ -872,25 +930,25 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 Point nextPoint = new Point(p.x + 1, p.y); // East
                 RoomInstance instance = roomCoordinates.get(nextPoint);
                 if (instance != null && instance.equals(roomInstance)) {
-                    adjacentWallPoints = getRoomWalls(nextPoint, tiles, roomInstance, wallDirection);
+                    adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
                 }
             } else if (wallDirection == WallDirection.EAST) {
                 Point nextPoint = new Point(p.x, p.y + 1); // South
                 RoomInstance instance = roomCoordinates.get(nextPoint);
                 if (instance != null && instance.equals(roomInstance)) {
-                    adjacentWallPoints = getRoomWalls(nextPoint, tiles, roomInstance, wallDirection);
+                    adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
                 }
             } else if (wallDirection == WallDirection.SOUTH) {
                 Point nextPoint = new Point(p.x + 1, p.y); // East, sorting, so right is left now
                 RoomInstance instance = roomCoordinates.get(nextPoint);
                 if (instance != null && instance.equals(roomInstance)) {
-                    adjacentWallPoints = getRoomWalls(nextPoint, tiles, roomInstance, wallDirection);
+                    adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
                 }
             } else {
                 Point nextPoint = new Point(p.x, p.y + 1); // South, sorting, so right is left now
                 RoomInstance instance = roomCoordinates.get(nextPoint);
                 if (instance != null && instance.equals(roomInstance)) {
-                    adjacentWallPoints = getRoomWalls(nextPoint, tiles, roomInstance, wallDirection);
+                    adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
                 }
             }
 
@@ -907,7 +965,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     protected Point[] getSurroundingTiles(Point point, boolean diagonal) {
 
         // Get all surrounding tiles
-        List<Point> tileCoords = new ArrayList<>(diagonal ? 8 : 4);
+        List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
         tileCoords.add(point);
 
         addIfValidCoordinate(point.x, point.y - 1, tileCoords); // North
@@ -935,11 +993,14 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      *
      * @param rooms the rooms to update
      */
-    protected void updateRoomWalls(List<RoomInstance> rooms) {
+    protected void updateRoomWalls(RoomInstance... rooms) {
         for (RoomInstance room : rooms) {
-            findRoomWallSections(mapData.getTiles(), room);
-            RoomConstructor.constructRoom(room, assetManager, kwdFile).updateWalls(roomNodes.get(room));
+            findRoomWallSections(room);
         }
+    }
+
+    protected void updateRoomWalls(List<RoomInstance> rooms) {
+        updateRoomWalls(rooms.toArray(new RoomInstance[rooms.size()]));
     }
 
     /**

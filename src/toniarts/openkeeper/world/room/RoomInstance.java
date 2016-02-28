@@ -27,7 +27,7 @@ import toniarts.openkeeper.world.EntityInstance;
  */
 public class RoomInstance extends EntityInstance<Room> {
 
-    private List<WallSection> wallPoints;
+    private List<WallSection> wallSections;
 
     public RoomInstance(Room room) {
         super(room);
@@ -37,11 +37,11 @@ public class RoomInstance extends EntityInstance<Room> {
         return super.getEntity();
     }
 
-    public void setWallPoints(List<WallSection> wallPoints) {
-        this.wallPoints = wallPoints;
+    public void setWallSections(List<WallSection> wallSections) {
+        this.wallSections = wallSections;
     }
 
-    public List<WallSection> getWallPoints() {
-        return wallPoints;
+    public List<WallSection> getWallSections() {
+        return wallSections;
     }
 }

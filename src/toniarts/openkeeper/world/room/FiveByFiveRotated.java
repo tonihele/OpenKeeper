@@ -23,6 +23,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -43,8 +44,8 @@ public class FiveByFiveRotated extends GenericRoom {
     }
 
     @Override
-    protected void contructFloor(Node n) {
-
+    protected BatchNode constructFloor() {
+        BatchNode root = new BatchNode();
         // 5 by 5
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
@@ -146,7 +147,7 @@ public class FiveByFiveRotated extends GenericRoom {
 
             if (tile != null) // Debug
             {
-                n.attachChild(tile);
+                root.attachChild(tile);
             }
 
             // Only observed 5 by 5 is the Dungeon Heart, its object list is empty, so I just hard code these here
@@ -156,26 +157,26 @@ public class FiveByFiveRotated extends GenericRoom {
                 // The arches
                 tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart Arches.j3o"));
                 resetAndMoveSpatial(tile, start, p);
-                n.attachChild(tile);
+                root.attachChild(tile);
 
                 // The steps between the arches
                 tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
                 resetAndMoveSpatial(tile, start, p);
-                n.attachChild(tile);
+                root.attachChild(tile);
 
                 tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI / 1.5f, new Vector3f(0, -1, 0));
                 tile.rotate(quat);
-                n.attachChild(tile);
+                root.attachChild(tile);
 
                 tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/DHeart BigSteps.j3o"));
                 resetAndMoveSpatial(tile, start, p);
                 quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI / 1.5f, new Vector3f(0, 1, 0));
                 tile.rotate(quat);
-                n.attachChild(tile);
+                root.attachChild(tile);
 
                 // The alfa & omega! The heart, TODO: use object loader once it is in decent condition, this after all is a real object
                 tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/Dungeon centre.j3o"));
@@ -191,13 +192,15 @@ public class FiveByFiveRotated extends GenericRoom {
                     // Don't batch animated objects, seems not to work
                     tile.setBatchHint(Spatial.BatchHint.Never);
                 }
-                n.attachChild(tile.move(0, 0.25f, 0));
+                root.attachChild(tile.move(0, 0.25f, 0));
             }
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
+        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+
+        return root;
     }
 
     @Override
@@ -208,4 +211,8 @@ public class FiveByFiveRotated extends GenericRoom {
         return ((roomPoint.x == 0 || roomPoint.x == 4) || (roomPoint.y == 0 || roomPoint.y == 4));
     }
 
+    @Override
+    protected BatchNode constructWall() {
+        return null;
+    }
 }

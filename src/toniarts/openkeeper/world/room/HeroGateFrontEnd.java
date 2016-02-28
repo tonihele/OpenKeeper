@@ -23,6 +23,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -127,8 +128,8 @@ public class HeroGateFrontEnd extends GenericRoom {
     }
 
     @Override
-    protected void contructFloor(Node n) {
-
+    protected BatchNode constructFloor() {
+        BatchNode root = new BatchNode();
         // The front end hero gate
 
         // Contruct the tiles
@@ -140,49 +141,49 @@ public class HeroGateFrontEnd extends GenericRoom {
             // Reset
             resetAndMoveSpatial(tile, start, p);
 
-            n.attachChild(tile);
+            root.attachChild(tile);
 
             // Add some objects according to the tile number
             if (i == 2) {
-                n.attachChild(loadObject("3DFE_GemHolder", assetManager, start, p, false));
+                root.attachChild(loadObject("3DFE_GemHolder", assetManager, start, p, false));
 
                 // The light beams, I dunno, there are maybe several of these here
                 Quaternion quat = new Quaternion();
                 quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
-                n.attachChild(loadObject("3dfe_beams", assetManager, start, p, true).rotate(quat).move(0, 0.4f, 0.1f));
+                root.attachChild(loadObject("3dfe_beams", assetManager, start, p, true).rotate(quat).move(0, 0.4f, 0.1f));
 
                 // TODO: Add a point/spot light here
 
                 // Banners
-                n.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
-                n.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
+                root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
+                root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
 
                 // The "candles"
-                addCandles(n, assetManager, start, p);
+                addCandles(root, assetManager, start, p);
             } else if (i == 5) {
 
                 // Banners
-                n.attachChild(loadObject("banner3_swing", assetManager, start, p, true));
-                n.attachChild(loadObject("banner4_swing", assetManager, start, p, true));
+                root.attachChild(loadObject("banner3_swing", assetManager, start, p, true));
+                root.attachChild(loadObject("banner4_swing", assetManager, start, p, true));
 
                 // The "candles"
-                addCandles(n, assetManager, start, p);
+                addCandles(root, assetManager, start, p);
             } else if (i == 8) {
 
                 // Banners
-                n.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
-                n.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
+                root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
+                root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
 
                 // The "candles"
-                addCandles(n, assetManager, start, p);
+                addCandles(root, assetManager, start, p);
             } else if (i == 11) {
 
                 // Banners
-                n.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
-                n.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
+                root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
+                root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
 
                 // The "candles"
-                addCandles(n, assetManager, start, p);
+                addCandles(root, assetManager, start, p);
 
                 // Map
                 Node map = new Node("Map");
@@ -223,19 +224,26 @@ public class HeroGateFrontEnd extends GenericRoom {
                 map.attachChild(loadObject("3dmap_level21", assetManager, start, p, false));
 
                 // Add the map node
-                n.attachChild(map);
+                root.attachChild(map);
             }
 
             i++;
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
+        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+
+        return root;
     }
 
     @Override
-    protected void contructWall(Node root) {
-        // skip
+    public Spatial getWallSpatial(Point start, WallSection.WallDirection direction) {
+        return null;
+    }
+
+    @Override
+    protected BatchNode constructWall() {
+        return null;
     }
 }

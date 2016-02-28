@@ -18,7 +18,7 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.scene.Node;
+import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -36,7 +36,8 @@ public class HeroGate extends GenericRoom {
     }
 
     @Override
-    protected void contructFloor(Node n) {
+    protected BatchNode constructFloor() {
+        BatchNode root = new BatchNode();
         // Contruct the tiles
         Point start = roomInstance.getCoordinates().get(0);
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
@@ -55,7 +56,7 @@ public class HeroGate extends GenericRoom {
             } else if (!S && !E && !W) {
                 tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCapResource().getName() + ".j3o");
                 resetAndMoveSpatial(tile, start, p);
-                n.attachChild(tile);
+                root.attachChild(tile);
                 piece = 9;
             } else if (!W) {
                 piece = 3;
@@ -74,41 +75,35 @@ public class HeroGate extends GenericRoom {
             // Set the shadows
             //tile.setShadowMode(RenderQueue.ShadowMode.Receive);
 
-            n.attachChild(tile);
+            root.attachChild(tile);
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2);
-        n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2);
+        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        return root;
     }
 
     @Override
-    protected void contructWall(Node root) {
+    protected BatchNode constructWall() {
+        BatchNode root = new BatchNode();
         // Get the wall points
         Point start = roomInstance.getCoordinates().get(0);
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
         int south = 0;
-        for (WallSection section : roomInstance.getWallPoints()) {
+        for (WallSection section : roomInstance.getWallSections()) {
             int i = 0;
             for (Point p : section.getCoordinates()) {
                 int piece;
 
                 Spatial part;
                 float yAngle = 0;
-                if (section.getDirection() == WallSection.WallDirection.NORTH) {
+                if (section.getDirection() == WallSection.WallDirection.SOUTH) {
                     if (section.getCoordinates().size() == 1) {
                         piece = 6; // gate
                     } else {
                         piece = (i == 1) ? 5 : 7;
                     }
-
-                } else if (section.getDirection() == WallSection.WallDirection.WEST) {
-                    // FIXME if gate skip walls ???
-                    if (section.getCoordinates().size() == 1) {
-                        continue;
-                    }
-                    piece = 7;
-                    yAngle = FastMath.HALF_PI;
 
                 } else if (section.getDirection() == WallSection.WallDirection.EAST) {
                     // FIXME if gate skip walls ???
@@ -116,9 +111,17 @@ public class HeroGate extends GenericRoom {
                         continue;
                     }
                     piece = 7;
+                    yAngle = FastMath.HALF_PI;
+
+                } else if (section.getDirection() == WallSection.WallDirection.WEST) {
+                    // FIXME if gate skip walls ???
+                    if (section.getCoordinates().size() == 1) {
+                        continue;
+                    }
+                    piece = 7;
                     yAngle = -FastMath.HALF_PI;
 
-                } else { // WallSection.WallDirection.SOUTH
+                } else { // WallSection.WallDirection.NORTH
                     // FIXME looks good, but ... ugly code
                     if (south == 0) {
                         piece = 4;
@@ -141,5 +144,11 @@ public class HeroGate extends GenericRoom {
                 root.attachChild(part);
             }
         }
+        return root;
+    }
+
+    @Override
+    public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
+        return null;
     }
 }

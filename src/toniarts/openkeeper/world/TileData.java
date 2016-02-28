@@ -19,6 +19,7 @@ package toniarts.openkeeper.world;
 import com.badlogic.gdx.ai.pfa.Connection;
 import com.badlogic.gdx.ai.pfa.indexed.IndexedNode;
 import com.badlogic.gdx.utils.Array;
+import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
@@ -87,6 +88,10 @@ public final class TileData extends Tile implements IndexedNode<TileData> {
 
     public int getY() {
         return y;
+    }
+
+    public Point getLocation() {
+        return new Point(x, y);
     }
 
     @Override

@@ -18,7 +18,7 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.scene.Node;
+import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -39,7 +39,8 @@ public class HeroGateThreeByOne extends GenericRoom {
     }
 
     @Override
-    protected void contructFloor(Node n) {
+    protected BatchNode constructFloor() {
+        BatchNode root = new BatchNode();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
         Point center = roomInstance.getCenter();
         // Contruct the tiles
@@ -49,7 +50,7 @@ public class HeroGateThreeByOne extends GenericRoom {
             Spatial tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
             j++;
             resetAndMoveSpatial(tile, center, new Point(center.x + p.x, center.y + p.y));
-            n.attachChild(tile);
+            root.attachChild(tile);
 
             // Set the transform and scale to our scale and 0 the transform
             switch (direction) {
@@ -64,16 +65,18 @@ public class HeroGateThreeByOne extends GenericRoom {
                     break;
             }
         }
-        n.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+        root.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
         // n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        return root;
     }
 
     @Override
-    protected void contructWall(Node root) {
+    protected BatchNode constructWall() {
+        BatchNode root = new BatchNode();
         // Get the wall points
         Point center = roomInstance.getCenter();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
-        for (WallSection section : roomInstance.getWallPoints()) {
+        for (WallSection section : roomInstance.getWallSections()) {
 
             int i = 0;
             int sectionSize = section.getCoordinates().size();
@@ -82,13 +85,21 @@ public class HeroGateThreeByOne extends GenericRoom {
 
                 int piece;
                 if (sectionSize == 3) {
-                    piece = (section.getDirection() == WallDirection.WEST || section.getDirection() == WallDirection.SOUTH) ? 2 - i : i;
+                    piece = (section.getDirection() == WallDirection.EAST
+                            || section.getDirection() == WallDirection.NORTH) ? 2 - i : i;
                 } else {
                     piece = 6;
                 }
                 i++;
-
-                float yAngle = section.getDirection().ordinal() * FastMath.HALF_PI;
+                float yAngle = 0;
+                if (section.getDirection() == WallDirection.NORTH) {
+                    yAngle = -FastMath.HALF_PI;
+                } else if (section.getDirection() == WallDirection.SOUTH) {
+                    yAngle = FastMath.HALF_PI;
+                } else if (section.getDirection() == WallDirection.EAST) {
+                    yAngle = FastMath.PI;
+                }
+                //yAngle = -section.getDirection().ordinal() * FastMath.HALF_PI;
 
                 Spatial tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
                 if (yAngle != 0) {
@@ -99,5 +110,11 @@ public class HeroGateThreeByOne extends GenericRoom {
                 root.attachChild(tile);
             }
         }
+        return root;
+    }
+
+    @Override
+    public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
+        return null;
     }
 }

@@ -49,9 +49,9 @@ public final class RoomConstructor {
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3:
                 return new ThreeByThree(assetManager, roomInstance, null);
-                
+
             case HERO_GATE:
-                return new HeroGate(assetManager, roomInstance, null);                
+                return new HeroGate(assetManager, roomInstance, null);
 
             case HERO_GATE_FRONT_END:
                 return new HeroGateFrontEnd(assetManager, roomInstance, null);

@@ -69,8 +69,8 @@ public class Normal extends GenericRoom {
     }
 
     @Override
-    protected void contructFloor(Node n) {
-
+    protected BatchNode constructFloor() {
+        BatchNode root = new BatchNode();
         // Normal rooms
         for (int x = 0; x < map.length; x++) {
             for (int y = 0; y < map[x].length; y++) {
@@ -227,13 +227,15 @@ public class Normal extends GenericRoom {
                     }
                 }
 
-                n.attachChild(tile);
+                root.attachChild(tile);
             }
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
+        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+
+        return root;
     }
 
     protected boolean hasSameTile(boolean[][] map, int x, int y) {
@@ -354,5 +356,10 @@ public class Normal extends GenericRoom {
      */
     protected boolean useBigFloorTile(int x, int y) {
         return true;
+    }
+
+    @Override
+    protected BatchNode constructWall() {
+        return null;
     }
 }

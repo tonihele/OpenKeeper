@@ -18,6 +18,7 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
+import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -31,14 +32,15 @@ import static toniarts.openkeeper.world.MapLoader.loadAsset;
  *
  * @author ArchDemon
  */
-public class WoodenBridge extends GenericRoom {
+public class WoodenBridge extends Quad {
 
     public WoodenBridge(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, roomInstance, direction);
     }
 
     @Override
-    protected void contructFloor(Node n) {
+    protected BatchNode constructFloor() {
+        BatchNode root = new BatchNode();
         String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
         Point start = roomInstance.getCoordinates().get(0);
 
@@ -112,11 +114,13 @@ public class WoodenBridge extends GenericRoom {
                     model.attachChild(part);
                 }
             }
-            n.attachChild(model);
+            root.attachChild(model);
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        n.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, -0.1f, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, -0.1f, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
+        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+
+        return root;
     }
 }

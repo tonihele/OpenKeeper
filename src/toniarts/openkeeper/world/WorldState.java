@@ -330,8 +330,10 @@ public abstract class WorldState extends AbstractAppState {
         if (playerId != 0) {
             tile.setPlayerId(playerId);
         }
+        // See if room walls are allowed and does this touch any rooms
+        updateRoomWalls(tile);
         // update one
-        mapLoader.updateTiles(pos);
+        mapLoader.updateTiles(mapLoader.getSurroundingTiles(pos, true));
     }
 
     /**
@@ -347,7 +349,7 @@ public abstract class WorldState extends AbstractAppState {
             return;
         }
 
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        Terrain terrain = tile.getTerrain();
         if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
             return;
         }
@@ -356,22 +358,27 @@ public abstract class WorldState extends AbstractAppState {
 
         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
         tile.setSelected(false);
-        mapLoader.updateTiles(mapLoader.getSurroundingTiles(new Point(x, y), true));
-
         // See if room walls are allowed and does this touch any rooms
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
-            List<RoomInstance> wallUpdatesNeeded = new ArrayList<>();
-            for (Point p : mapLoader.getSurroundingTiles(new Point(x, y), false)) {
-                RoomInstance room = mapLoader.getRoomCoordinates().get(p);
-                if (room != null && room.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
-                    wallUpdatesNeeded.add(room);
-                }
-            }
-            if (!wallUpdatesNeeded.isEmpty()) {
-                mapLoader.updateRoomWalls(wallUpdatesNeeded);
+        updateRoomWalls(tile);
+        mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
+    }
+
+    private void updateRoomWalls(TileData tile) {
+        Terrain terrain = tile.getTerrain();
+        // See if room walls are allowed and does this touch any rooms
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
+            return;
+        }
+        List<RoomInstance> wallUpdatesNeeded = new ArrayList<>();
+        for (Point p : mapLoader.getSurroundingTiles(tile.getLocation(), false)) {
+            RoomInstance room = mapLoader.getRoomCoordinates().get(p);
+            if (room != null && room.getRoom().getFlags().contains(Room.RoomFlag.HAS_WALLS)) {
+                wallUpdatesNeeded.add(room);
             }
         }
-
+        if (!wallUpdatesNeeded.isEmpty()) {
+            mapLoader.updateRoomWalls(wallUpdatesNeeded);
+        }
     }
 
     public void flashTile(int x, int y, int time, boolean enabled) {
@@ -404,11 +411,14 @@ public abstract class WorldState extends AbstractAppState {
             tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());
         }
 
-        terrain = kwdFile.getTerrain(tile.getTerrainId());
+        terrain = tile.getTerrain();
         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
             tile.setPlayerId(player.getPlayerId());
         }
-        mapLoader.updateTiles(mapLoader.getSurroundingTiles(new Point(x, y), true));
+        // See if room walls are allowed and does this touch any rooms
+        updateRoomWalls(tile);
+
+        mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
     }
 
     /**
