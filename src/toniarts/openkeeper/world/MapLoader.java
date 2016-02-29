@@ -28,6 +28,7 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
+import com.jme3.texture.Texture;
 import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -41,6 +42,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -189,20 +191,55 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
     }
 
-    private void setTaggedMaterialToGeometries(final Node node) {
+    /**
+     * Sets the right material to tile (selected / decayed...)
+     *
+     * @param node
+     */
+    private void setTileMaterialToGeometries(final TileData tile, final Node node) {
 
         // Change the material on geometries
-        node.depthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spatial) {
-                if (spatial instanceof Geometry) {
+        if (tile.isSelected() || tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.DECAY)) {
+            node.depthFirstTraversal(new SceneGraphVisitor() {
+                @Override
+                public void visit(Spatial spatial) {
+                    if (spatial instanceof Geometry) {
+                        Material material = ((Geometry) spatial).getMaterial();
 
-                    Material material = ((Geometry) spatial).getMaterial();
-                    material.setColor("Ambient", new ColorRGBA(0, 0, 0.8f, 1));
-                    material.setBoolean("UseMaterialColors", true);
+                        // Decay
+                        if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.DECAY) && tile.getTerrain().getTextureFrames() > 1) {
+
+                            Integer texCount = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
+                            if (texCount != null) {
+
+                                // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
+                                // Now we have a random starting texture...
+                                int textureIndex = tile.getTerrain().getTextureFrames() - (int) Math.ceil(tile.getHealthPercent() / (100f / tile.getTerrain().getTextureFrames()));
+                                String diffuseTexture = material.getParam("DiffuseMap").getValueAsString().replaceFirst("_DECAY\\d", ""); // Unharmed texture
+                                if (textureIndex > 0) {
+
+                                    // The first one doesn't have a number
+                                    if (textureIndex == 1) {
+                                        diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY.png");
+                                    } else {
+                                        diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY" + textureIndex + ".png");
+                                    }
+                                }
+                                Texture texture = assetManager.loadTexture(ConversionUtils.getCanonicalAssetKey(diffuseTexture));
+                                material.setTexture("DiffuseMap", texture);
+                            }
+                        }
+
+                        // Selection
+                        if (tile.isSelected()) {
+                            material.setColor("Ambient", new ColorRGBA(0, 0, 0.8f, 1));
+                            material.setBoolean("UseMaterialColors", true);
+                        }
+                    }
                 }
             }
-        });
+            );
+        }
     }
 
     /**
@@ -552,9 +589,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             spatial.move(0, 0, 0);
         }
         topTileNode.attachChild(spatial);
-        if (tile.isSelected()) { // Just set the selected material here if needed
-            setTaggedMaterialToGeometries(topTileNode);
-        }
+        setTileMaterialToGeometries(tile, topTileNode);
         topTileNode.move(p.x * TILE_WIDTH, 0, p.y * TILE_WIDTH);
     }
 
@@ -586,9 +621,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             sideTileNode.attachChild(transformWall(wall, -1, -1, FastMath.HALF_PI));
         }
 
-        if (tile.isSelected()) {
-            setTaggedMaterialToGeometries(sideTileNode);
-        }
+        setTileMaterialToGeometries(tile, sideTileNode);
 
         sideTileNode.setLocalTranslation(p.x * TILE_WIDTH, 0, p.y * TILE_WIDTH);
     }

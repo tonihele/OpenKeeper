@@ -37,7 +37,6 @@ import de.lessvoid.nifty.controls.Label;
 import java.awt.Point;
 import java.util.Arrays;
 import java.util.List;
-import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
@@ -430,8 +429,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     GenericRoom room = getWorldHandler().getMapLoader().getRoomActuals().get(roomInstance);
                     tooltip.setText(room.getTooltip());
                 } else {
-                    ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
-                    tooltip.setText(bundle.getString(Integer.toString(tile.getTerrain().getTooltipStringId())));
+                    tooltip.setText(tile.getTooltip());
                 }
             } else {
                 tooltip.setText("");
