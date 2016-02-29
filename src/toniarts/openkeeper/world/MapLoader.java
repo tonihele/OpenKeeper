@@ -409,8 +409,16 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private void handleTile(TileData tile, Node root) {
 
         // Get the terrain
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        Terrain terrain = tile.getTerrain();
         Point p = tile.getLocation();
+        Node pageNode = getPageNode(p, root);
+
+        // Torch (see https://github.com/tonihele/OpenKeeper/issues/128)
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && tile.getX() % 2 != 0 && tile.getY() % 2 != 0) {
+            handleTorch(tile, pageNode);
+        }
+
+        // Room
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
 
             // Construct the actual room
@@ -424,11 +432,49 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             }
         }
 
-        Node pageNode = getPageNode(p, root);
         handleTop(tile, terrain, pageNode);
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             handleSide(tile, pageNode);
         }
+    }
+
+    private void handleTorch(TileData tile, Node pageNode) {
+
+        // The rooms actually contain the torch model resource, but it is always the same,
+        // and sometimes even null and there is still a torch. So I don't think they are used
+        // Take the first direction where we can put a torch
+        Spatial spatial = null;
+        if (canPlaceTorch(tile.getX(), tile.getY() + 1)) { // North
+            spatial = loadModel("Torch1", false);
+            spatial = transformWall(spatial, 0, 0, FastMath.HALF_PI);
+            spatial.move(-TILE_WIDTH / 2 + 0.05f, 0, -0.175f);
+            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
+        } else if (canPlaceTorch(tile.getX() - 1, tile.getY())) { // East
+            spatial = loadModel("Torch1", false);
+            spatial.move(-TILE_WIDTH / 1.5f - 0.175f, 0, -TILE_WIDTH / 2 + 0.05f);
+            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
+        } else if (canPlaceTorch(tile.getX(), tile.getY() - 1)) { // South
+            spatial = loadModel("Torch1", false);
+            spatial = transformWall(spatial, 0, 0, -FastMath.HALF_PI);
+            spatial.move(-TILE_WIDTH / 2 - 0.05f, 0, -TILE_WIDTH / 1.5f - 0.175f);
+            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
+        } else if (canPlaceTorch(tile.getX() + 1, tile.getY())) { // West
+            spatial = loadModel("Torch1", false);
+            spatial = transformWall(spatial, 0, 0, FastMath.PI);
+            spatial.move(-0.175f, 0, -TILE_WIDTH / 2 - 0.05f);
+            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
+        }
+
+        // Move to tile and right height
+        if (spatial != null) {
+            spatial.move(tile.getX(), 0.75f, tile.getY());
+        }
+    }
+
+    private boolean canPlaceTorch(int x, int y) {
+        TileData tile = mapData.getTile(x, y);
+        return (tile != null && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.TORCH));
+
     }
 
     private RoomInstance handleRoom(Point p, Room room) {
