@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.party.PartytState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.world.WorldState;
 
@@ -91,7 +92,7 @@ public class GameState extends AbstractPauseAwareState {
                     // Load the level data
                     if (level != null) {
                         kwdFile = new KwdFile(Main.getDkIIFolder(),
-                                new File(Main.getDkIIFolder() + AssetsConverter.MAPS_FOLDER + level + ".kwd"));
+                                new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), AssetsConverter.MAPS_FOLDER + level + ".kwd")));
                     } else {
                         kwdFile.load();
                     }
