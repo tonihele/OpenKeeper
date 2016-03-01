@@ -48,7 +48,7 @@ public class MapIndexedGraph implements IndexedGraph<TileData> {
 
     @Override
     public int getIndex(TileData n) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return n.getIndex();
     }
 
     /**
