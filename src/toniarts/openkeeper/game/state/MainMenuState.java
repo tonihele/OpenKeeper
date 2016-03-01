@@ -121,7 +121,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private Node menuNode;
     private Level selectedLevel;
     private AudioNode levelBriefing;
-    public final static List<String> opengl = new ArrayList<>(Arrays.asList(new String[]{AppSettings.LWJGL_OPENGL1, AppSettings.LWJGL_OPENGL2, AppSettings.LWJGL_OPENGL3}));
+    public final static List<String> opengl = new ArrayList<>(Arrays.asList(new String[]{AppSettings.LWJGL_OPENGL2, AppSettings.LWJGL_OPENGL3}));
     public final static List<Integer> samples = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
     public final static List<Integer> anisotrophies = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
     private KwdFile kwdFile;
@@ -202,15 +202,15 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         // Set some Nifty stuff
         NiftyJmeDisplay niftyDisplay = MainMenuState.this.app.getNifty();
-        niftyDisplay.getNifty().getResourceBundles().put("menu", Main.getResourceBundle("Interface/Texts/Text"));
-        niftyDisplay.getNifty().getResourceBundles().put("speech", Main.getResourceBundle("Interface/Texts/Speech"));
-        niftyDisplay.getNifty().getResourceBundles().put("mpd1", Main.getResourceBundle("Interface/Texts/LEVELMPD1_BRIEFING"));
-        niftyDisplay.getNifty().getResourceBundles().put("mpd2", Main.getResourceBundle("Interface/Texts/LEVELMPD2_BRIEFING"));
-        niftyDisplay.getNifty().getResourceBundles().put("mpd3", Main.getResourceBundle("Interface/Texts/LEVELMPD3_BRIEFING"));
-        niftyDisplay.getNifty().getResourceBundles().put("mpd4", Main.getResourceBundle("Interface/Texts/LEVELMPD4_BRIEFING"));
-        niftyDisplay.getNifty().getResourceBundles().put("mpd5", Main.getResourceBundle("Interface/Texts/LEVELMPD5_BRIEFING"));
-        niftyDisplay.getNifty().getResourceBundles().put("mpd6", Main.getResourceBundle("Interface/Texts/LEVELMPD6_BRIEFING"));
-        niftyDisplay.getNifty().getResourceBundles().put("mpd7", Main.getResourceBundle("Interface/Texts/LEVELMPD7_BRIEFING"));
+        niftyDisplay.getNifty().addResourceBundle("menu", Main.getResourceBundle("Interface/Texts/Text"));
+        niftyDisplay.getNifty().addResourceBundle("speech", Main.getResourceBundle("Interface/Texts/Speech"));
+        niftyDisplay.getNifty().addResourceBundle("mpd1", Main.getResourceBundle("Interface/Texts/LEVELMPD1_BRIEFING"));
+        niftyDisplay.getNifty().addResourceBundle("mpd2", Main.getResourceBundle("Interface/Texts/LEVELMPD2_BRIEFING"));
+        niftyDisplay.getNifty().addResourceBundle("mpd3", Main.getResourceBundle("Interface/Texts/LEVELMPD3_BRIEFING"));
+        niftyDisplay.getNifty().addResourceBundle("mpd4", Main.getResourceBundle("Interface/Texts/LEVELMPD4_BRIEFING"));
+        niftyDisplay.getNifty().addResourceBundle("mpd5", Main.getResourceBundle("Interface/Texts/LEVELMPD5_BRIEFING"));
+        niftyDisplay.getNifty().addResourceBundle("mpd6", Main.getResourceBundle("Interface/Texts/LEVELMPD6_BRIEFING"));
+        niftyDisplay.getNifty().addResourceBundle("mpd7", Main.getResourceBundle("Interface/Texts/LEVELMPD7_BRIEFING"));
     }
 
     /**
@@ -368,7 +368,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                         subObjectiveImage.setWidth(img.getWidth());
                         subObjectiveImage.setHeight(img.getHeight());
 
-
                         // Play some tunes!!
                         levelBriefing = new AudioNode(assetManager, "Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2", false);
                         levelBriefing.setLooping(false);
@@ -423,10 +422,10 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     }
 
     private void generateHiscoreList() {
-        Element hiscoreList = screen.findElementByName("hiscoreList");
+        Element hiscoreList = screen.findElementById("hiscoreList");
 
         if (hiscoreList != null) {
-            for (Element oldElement : hiscoreList.getElements()) {
+            for (Element oldElement : hiscoreList.getChildren()) {
                 nifty.removeElement(screen, oldElement);
             }
 
@@ -520,7 +519,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         // TODO: We should only do that if the progress has changed and at the start of the game
         Element movies = screen.findElementByName("movieList");
         if (movies != null) {
-            for (Element oldElement : movies.getElements()) {
+            for (Element oldElement : movies.getChildren()) {
                 nifty.removeElement(screen, oldElement);
             }
 
@@ -723,7 +722,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         MyDisplayMode mdm = (MyDisplayMode) res.getSelection();
 
         // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
-
         // Set the settings
         settings.getAppSettings().setResolution(mdm.width, mdm.height);
         settings.getAppSettings().setBitsPerPixel(mdm.bitDepth);
@@ -780,7 +778,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         Collections.sort(resolutions);
 
         // Get values to the settings screen
-
         // Resolutions
         DropDown res = screen.findNiftyControl("resolution", DropDown.class);
         res.addAllItems(resolutions);

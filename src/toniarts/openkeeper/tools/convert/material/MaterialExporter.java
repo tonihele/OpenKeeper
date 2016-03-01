@@ -58,34 +58,31 @@ public class MaterialExporter implements JmeExporter {
     private List<String> matDefEntries = new ArrayList<>();
 
     @Override
-    public boolean save(Savable object, OutputStream f) throws IOException {
+    public void save(Savable svbl, OutputStream out) throws IOException {
 
         // We only save Materials
-        if (!(object instanceof Material)) {
+        if (!(svbl instanceof Material)) {
             throw new UnsupportedOperationException("We only can save JME Material files!");
         }
-        Material mat = (Material) object;
+        Material mat = (Material) svbl;
 
         // Set the file
-        outputStream = f;
+        outputStream = out;
         setAsMaterial(mat);
-
-        return true;
     }
 
     @Override
-    public boolean save(Savable object, File f) throws IOException {
+    public void save(Savable svbl, File file) throws IOException {
 
         // Copied from BinaryExporter JME 3
-        File parentDirectory = f.getParentFile();
+        File parentDirectory = file.getParentFile();
         if (parentDirectory != null && !parentDirectory.exists()) {
             parentDirectory.mkdirs();
         }
         boolean rVal;
-        try (FileOutputStream fos = new FileOutputStream(f)) {
-            rVal = save(object, fos);
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            save(svbl, fos);
         }
-        return rVal;
     }
 
     @Override
@@ -181,8 +178,6 @@ public class MaterialExporter implements JmeExporter {
             }
             prop.setType(matParam.getVarType().toString());
         }
-
-
 
         for (Iterator<Map.Entry<String, MaterialProperty>> it = materialParameters.entrySet().iterator(); it.hasNext();) {
             Map.Entry<String, MaterialProperty> entry = it.next();

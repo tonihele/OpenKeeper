@@ -18,7 +18,7 @@ package toniarts.openkeeper.world.creature.pathfinding;
 
 import com.badlogic.gdx.ai.pfa.Connection;
 import com.badlogic.gdx.ai.pfa.DefaultConnection;
-import com.badlogic.gdx.ai.pfa.indexed.DefaultIndexedGraph;
+import com.badlogic.gdx.ai.pfa.indexed.IndexedGraph;
 import com.badlogic.gdx.utils.Array;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -30,7 +30,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapIndexedGraph extends DefaultIndexedGraph<TileData> {
+public class MapIndexedGraph implements IndexedGraph<TileData> {
 
     private final WorldState worldState;
     private final int nodeCount;
@@ -44,6 +44,11 @@ public class MapIndexedGraph extends DefaultIndexedGraph<TileData> {
     @Override
     public int getNodeCount() {
         return nodeCount;
+    }
+
+    @Override
+    public int getIndex(TileData n) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     /**

@@ -19,12 +19,11 @@ package toniarts.openkeeper.gui.nifty.icontext;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.controls.Controller;
+import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
-import de.lessvoid.xml.xpp3.Attributes;
-import java.util.Properties;
 import java.util.logging.Logger;
 
 /**
@@ -36,38 +35,32 @@ public class IconTextControl implements Controller {
 
     private Nifty nifty;
     private Screen screen;
-    private Properties properties;
+    private Parameters parameters;
     private Element element;
-    private Attributes controlDefinitionAttributes;
     private Element image;
     private Element text;
-    
+
     /**
      * The logger that takes care for the output of log messages in this class.
      */
     private static final Logger log = Logger.getLogger(IconTextControl.class.getName());
 
     @Override
-    public void bind(Nifty nifty, Screen screen, Element element, Properties parameter, Attributes controlDefinitionAttributes) {
+    public void bind(Nifty nifty, Screen screen, Element elmnt, Parameters prmtrs) {
         this.nifty = nifty;
         this.screen = screen;
-        this.properties = parameter;
-        this.element = element;
-        this.controlDefinitionAttributes = controlDefinitionAttributes;
-        
+        this.parameters = prmtrs;
+        this.element = elmnt;
+
         if (this.element.getId() == null) {
             this.element.setId("IconText-" + NiftyIdCreator.generate());
             //log.log(Level.INFO, "element {0} have no id", element.toString());
         }
         // Get the elements
-        image = this.element.findElementByName("#image");
+        image = this.element.findElementById("#image");
         //image.setId(this.element.getId() + "#image");
-        text = this.element.findElementByName("#text");
+        text = this.element.findElementById("#text");
         //text.setId(this.element.getId() + "#image");
-    }
-
-    @Override
-    public void init(Properties parameter, Attributes controlDefinitionAttributes) {        
     }
 
     @Override
@@ -91,5 +84,10 @@ public class IconTextControl implements Controller {
     public void endHover() {
         image.stopEffect(EffectEventId.onCustom);
         text.stopEffect(EffectEventId.onCustom);
+    }
+
+    @Override
+    public void init(Parameters prmtrs) {
+
     }
 }

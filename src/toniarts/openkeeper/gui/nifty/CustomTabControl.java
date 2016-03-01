@@ -18,28 +18,25 @@ package toniarts.openkeeper.gui.nifty;
 
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.AbstractController;
+import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.controls.Tab;
 import de.lessvoid.nifty.controls.TabGroup;
 import de.lessvoid.nifty.controls.tabs.TabGroupMember;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
-import de.lessvoid.xml.xpp3.Attributes;
-import java.util.Properties;
 import java.util.logging.Logger;
 
 /**
  *
  * @author ArchDemon
  */
-
-
 public class CustomTabControl extends AbstractController implements Tab, TabGroupMember {
 
     private static final Logger log = Logger.getLogger(CustomTabControl.class.getName());
     /**
-     * The tab group that is the parent of this tab. This might be {@code null} for the time this tab is not a part of tab
-     * group.
+     * The tab group that is the parent of this tab. This might be {@code null}
+     * for the time this tab is not a part of tab group.
      */
 
     private CustomTabGroupControl parentGroup;
@@ -51,35 +48,31 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
     private String tabImageActive;
 
     @Override
-    public void bind(
-            final Nifty nifty,
-            final Screen screen,
-            final Element element,
-            final Properties parameter,
-            final Attributes controlDefinitionAttributes) {
-        bind(element);
+    public void bind(Nifty nifty, Screen screen, Element elmnt, Parameters prmtrs) {
+        bind(elmnt);
 
-        if (element.getId() == null) {
+        if (elmnt.getId() == null) {
             log.warning("Button element has no ID and can't publish any events properly.");
         }
 
-        String image = parameter.get("image").toString();
+        String image = prmtrs.get("image");
         if (image != null) {
             setImage(image);
         }
 
-        String imageActiver = parameter.get("active").toString();
+        String imageActiver = prmtrs.get("active");
         if (imageActiver != null) {
             setImageActive(imageActiver);
         }
     }
 
     @Override
-    public void setCaption( final String caption) { }
+    public void setCaption(final String caption) {
+    }
 
     public void setImage(final String imageUrl) {
         if (!imageUrl.equals(tabImage)) {
-          tabImage = imageUrl;
+            tabImage = imageUrl;
         }
     }
 
@@ -115,14 +108,13 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
         return tabImageActive;
     }
 
-
     @Override
     public TabGroup getParentGroup() {
         return parentGroup;
     }
 
     @Override
-    public boolean inputEvent( final NiftyInputEvent inputEvent) {
+    public boolean inputEvent(final NiftyInputEvent inputEvent) {
         return true;
     }
 
@@ -136,10 +128,12 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
     }
 
     @Override
-    public void onStartScreen() { }
+    public void onStartScreen() {
+    }
 
     @Override
-    public void setParentTabGroup( final TabGroup tabGroup) {
+    public void setParentTabGroup(final TabGroup tabGroup) {
         parentGroup = (CustomTabGroupControl) tabGroup;
     }
+
 }

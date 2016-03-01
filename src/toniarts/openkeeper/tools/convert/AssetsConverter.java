@@ -90,8 +90,8 @@ public abstract class AssetsConverter {
      */
     public enum ConvertProcess {
 
-        TEXTURES(3),
-        MODELS(2),
+        TEXTURES(4),
+        MODELS(3),
         MOUSE_CURSORS(3),
         MUSIC_AND_SOUNDS(2),
         INTERFACE_TEXTS(2),

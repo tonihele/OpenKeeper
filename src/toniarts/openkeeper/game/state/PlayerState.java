@@ -167,7 +167,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 String levelResource = "Interface/Texts/" + gameState.getLevel().toUpperCase();
                 // for custom levels
                 try {
-                    this.app.getNifty().getNifty().getResourceBundles().put("level", Main.getResourceBundle(levelResource));
+                    this.app.getNifty().getNifty().addResourceBundle("level", Main.getResourceBundle(levelResource));
                 } catch (Exception ex) {
                     logger.warning(ex.toString());
                 }
@@ -373,7 +373,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
      * @param element parent
      */
     private void removeAllChildElements(Element element) {
-        for (Element e : element.getElements()) {
+        for (Element e : element.getChildren()) {
             e.markForRemoval();
         }
     }
@@ -489,7 +489,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
                 contentPanel = nifty.getCurrentScreen().findElementByName("creature-attacks");
                 if (contentPanel != null) {
-                    for (Element element : contentPanel.getElements()) {
+                    for (Element element : contentPanel.getChildren()) {
                         element.markForRemoval();
                     }
 
@@ -850,20 +850,20 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     public void pauseMenuNavigate(String menu, String backMenu, String confirmationTitle, String confirmMethod) {
         Element optionsMenu = nifty.getCurrentScreen().findElementByName("optionsMenu");
         Label optionsMenuTitle = optionsMenu.findNiftyControl("optionsMenuTitle", Label.class);
-        Element optionsColumnOne = optionsMenu.findElementByName("optionsColumnOne");
-        for (Element element : optionsColumnOne.getElements()) {
+        Element optionsColumnOne = optionsMenu.findElementById("optionsColumnOne");
+        for (Element element : optionsColumnOne.getChildren()) {
             element.markForRemoval();
         }
-        Element optionsColumnTwo = optionsMenu.findElementByName("optionsColumnTwo");
-        for (Element element : optionsColumnTwo.getElements()) {
+        Element optionsColumnTwo = optionsMenu.findElementById("optionsColumnTwo");
+        for (Element element : optionsColumnTwo.getChildren()) {
             element.markForRemoval();
         }
-        Element optionsNavigationColumnOne = optionsMenu.findElementByName("optionsNavigationColumnOne");
-        for (Element element : optionsNavigationColumnOne.getElements()) {
+        Element optionsNavigationColumnOne = optionsMenu.findElementById("optionsNavigationColumnOne");
+        for (Element element : optionsNavigationColumnOne.getChildren()) {
             element.markForRemoval();
         }
-        Element optionsNavigationColumnTwo = optionsMenu.findElementByName("optionsNavigationColumnTwo");
-        for (Element element : optionsNavigationColumnTwo.getElements()) {
+        Element optionsNavigationColumnTwo = optionsMenu.findElementById("optionsNavigationColumnTwo");
+        for (Element element : optionsNavigationColumnTwo.getChildren()) {
             element.markForRemoval();
         }
 
@@ -957,7 +957,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 continue;
             }
 
-            for (Element e : content.getElements()) {
+            for (Element e : content.getChildren()) {
                 boolean visible = e.isVisible();
                 if (!visible) { // FIXME: do not remove this. Nifty hack
                     e.show();

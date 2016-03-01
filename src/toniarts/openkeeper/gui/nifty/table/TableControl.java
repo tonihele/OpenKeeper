@@ -21,6 +21,7 @@ import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.HoverEffectBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
 import de.lessvoid.nifty.builder.TextBuilder;
+import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
 import de.lessvoid.nifty.controls.listbox.ListBoxControl;
 import de.lessvoid.nifty.controls.listbox.ListBoxItemController;
@@ -28,10 +29,8 @@ import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.mapping.MenuInputMapping;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.tools.Color;
-import de.lessvoid.xml.xpp3.Attributes;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,25 +48,21 @@ public class TableControl<T> extends ListBoxControl<T> {
     private Element childRootElement;
 
     @Override
-    public void bind(Nifty niftyParam, Screen screenParam, Element elementParam, Properties parameterParam, Attributes controlDefinitionAttributes) {
-
-        // Set some things
-        parameterParam.setProperty("horizontal", "off");
-        parameterParam.setProperty("viewConverterClass", TableRowViewConverter.class.getName());
+    public void bind(Nifty nifty, Screen screen, Element elmnt, Parameters prmtrs) {
 
         // The cols/rows
-        int cols = Integer.valueOf(parameterParam.getProperty("colCount"));
+        int cols = prmtrs.getAsInteger("colCount");
         tableColumns = new ArrayList<>(cols);
         for (int i = 0; i < cols; i++) {
             try {
-                tableColumns.add(TableColumn.parse(parameterParam.getProperty("col" + i)));
+                tableColumns.add(TableColumn.parse(prmtrs.get("col" + i)));
             } catch (ClassNotFoundException ex) {
                 Logger.getLogger(TableControl.class.getName()).log(Level.SEVERE, "Failed to init a column!", ex);
             }
         }
 
         // Create the headers
-        headers = elementParam.findElementByName("#headers");
+        headers = elmnt.findElementById("#headers");
         new PanelBuilder() {
             {
                 height("30px"); // TODO: We should calculate by the font
@@ -105,10 +100,10 @@ public class TableControl<T> extends ListBoxControl<T> {
                     }
                 });
             }
-        }.build(niftyParam, screenParam, headers);
+        }.build(nifty, screen, headers);
 
         // Create the row control
-        childRootElement = elementParam.findElementByName("#child-root");
+        childRootElement = elmnt.findElementById("#child-root");
         new PanelBuilder("#row") {
             {
                 height("32px"); // TODO: We should calculate by the font, +2 from the padding
@@ -182,10 +177,10 @@ public class TableControl<T> extends ListBoxControl<T> {
                     }
                 });
             }
-        }.build(niftyParam, screenParam, childRootElement);
+        }.build(nifty, screen, childRootElement);
 
         // Call the super
-        super.bind(niftyParam, screenParam, elementParam, parameterParam, controlDefinitionAttributes);
+        super.bind(nifty, screen, elmnt, prmtrs);
     }
 
     @Override

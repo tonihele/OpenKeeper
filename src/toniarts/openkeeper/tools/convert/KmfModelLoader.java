@@ -57,8 +57,6 @@ import toniarts.openkeeper.animation.Pose;
 import toniarts.openkeeper.animation.PoseTrack;
 import toniarts.openkeeper.animation.PoseTrack.PoseFrame;
 import static toniarts.openkeeper.tools.convert.KmfModelLoader.inputStreamToFile;
-import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEntry;
-import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.kmf.AnimSprite;
 import toniarts.openkeeper.tools.convert.kmf.AnimVertex;
@@ -69,6 +67,8 @@ import toniarts.openkeeper.tools.convert.kmf.MeshVertex;
 import toniarts.openkeeper.tools.convert.kmf.Triangle;
 import toniarts.openkeeper.tools.convert.kmf.Uv;
 import toniarts.openkeeper.tools.convert.material.MaterialExporter;
+import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEntry;
+import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.modelviewer.ModelViewer;
 
 /**
@@ -111,23 +111,23 @@ public class KmfModelLoader implements AssetLoader {
         }
 
         AssetInfo ai = new AssetInfo(/*main.getAssetManager()*/null, null) {
-            @Override
-            public InputStream openStream() {
-                try {
-                    final File file = new File(args[0]);
-                    key = new AssetKey() {
-                        @Override
-                        public String getName() {
-                            return file.toPath().getFileName().toString();
+                    @Override
+                    public InputStream openStream() {
+                        try {
+                            final File file = new File(args[0]);
+                            key = new AssetKey() {
+                                @Override
+                                public String getName() {
+                                    return file.toPath().getFileName().toString();
+                                }
+                            };
+                            return new FileInputStream(file);
+                        } catch (FileNotFoundException ex) {
+                            logger.log(Level.SEVERE, null, ex);
                         }
-                    };
-                    return new FileInputStream(file);
-                } catch (FileNotFoundException ex) {
-                    logger.log(Level.SEVERE, null, ex);
-                }
-                return null;
-            }
-        };
+                        return null;
+                    }
+                };
 
         ModelViewer app = new ModelViewer(new File(args[1]), args[0]);
         app.start();
@@ -211,7 +211,6 @@ public class KmfModelLoader implements AssetLoader {
                 output.write(buffer, 0, tmp);
             }
         }
-
 
         return tempFile;
     }
@@ -333,7 +332,6 @@ public class KmfModelLoader implements AssetLoader {
         for (AnimSprite animSprite : anim.getSprites()) {
 
             // Animation
-
             // Poses for each key frame (aproximate that every 1/3 is a key frame, pessimistic)
             // Note that a key frame may not have all the vertices
             HashMap<Integer, HashMap<KmfModelLoader.FrameInfo, Pose>> poses = new HashMap<>(anim.getFrames() / 3);
@@ -346,7 +344,6 @@ public class KmfModelLoader implements AssetLoader {
             HashMap<Integer, List<KmfModelLoader.FrameInfo>> frameInfos = new HashMap<>(anim.getFrames());
 
             //
-
             //Each sprite represents a geometry (+ mesh) since they each have their own material
             Mesh mesh = new Mesh();
 
@@ -741,7 +738,7 @@ public class KmfModelLoader implements AssetLoader {
                 String textureEntry = texture.concat("MM0");
                 EngineTextureEntry engineTextureEntry = engineTextureFile.getEntry(textureEntry);
                 if (engineTextureEntry != null && engineTextureEntry.isAlphaFlag()) {
-                    material.setBoolean("UseAlpha", true);
+//                    material.setBoolean("UseAlpha", true); Not anymore in JME 3.1
                     material.setFloat("AlphaDiscardThreshold", 0.1f);
                     material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
 

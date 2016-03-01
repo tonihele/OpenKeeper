@@ -170,7 +170,9 @@
     </controlDefinition>
 
     <!--Table, copied from Nifty Listbox, doesn't really support horizontal scrollbars-->
-    <controlDefinition name="table" style="nifty-listbox" childRootId="#child-root" controller="toniarts.openkeeper.gui.nifty.table.TableControl">
+    <controlDefinition name="table" style="nifty-listbox" childRootId="#child-root"
+                       controller="toniarts.openkeeper.gui.nifty.table.TableControl"
+                       horizontal="off" viewConverterClass="toniarts.openkeeper.gui.nifty.table.TableRowViewConverter">
         <panel childLayout="vertical">
 
             <!--Our custom headers-->
