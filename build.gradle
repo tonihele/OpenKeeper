@@ -4,7 +4,7 @@ apply plugin: 'eclipse'
 apply plugin: 'maven'
 
 ext {
-    jmonkeyengine_version = '3.1.0-SNAPSHOT'
+    jmonkeyengine_version = '[3.1,)'
 }
 
 repositories {
@@ -53,16 +53,16 @@ artifacts {
 
 dependencies {
     compile fileTree(dir: 'lib', include: ['*.jar'])
-    compile "com.jme3:jme3-core:$jmonkeyengine_version"
-    compile "com.jme3:jme3-effects:$jmonkeyengine_version"
-    compile "com.jme3:jme3-networking:$jmonkeyengine_version"
-    compile "com.jme3:jme3-blender:$jmonkeyengine_version"
-    compile "com.jme3:jme3-jbullet:$jmonkeyengine_version"
-    //	compile "com.jme3:jme3-desktop:$jmonkeyengine_version"
-    compile "com.jme3:jme3-lwjgl:$jmonkeyengine_version"
-    compile "com.jme3:jme3-niftygui:$jmonkeyengine_version"
-    compile 'org.bushe:eventbus:1.4'
+    compile "org.jmonkeyengine:jme3-core:$jmonkeyengine_version"
+    compile "org.jmonkeyengine:jme3-effects:$jmonkeyengine_version"
+    compile "org.jmonkeyengine:jme3-networking:$jmonkeyengine_version"
+    compile "org.jmonkeyengine:jme3-blender:$jmonkeyengine_version"
+    compile "org.jmonkeyengine:jme3-bullet:$jmonkeyengine_version"
+    compile "org.jmonkeyengine:jme3-bullet-native:$jmonkeyengine_version"
+    compile "org.jmonkeyengine:jme3-lwjgl:$jmonkeyengine_version"
+    compile "org.jmonkeyengine:jme3-niftygui:$jmonkeyengine_version"
     compile "com.badlogicgames.gdx:gdx-ai:1.8.0"
+    compile "javax.vecmath:vecmath:1.5.2"
 }
 
 sourceSets {
