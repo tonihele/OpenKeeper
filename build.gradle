@@ -4,7 +4,7 @@ apply plugin: 'eclipse'
 apply plugin: 'maven'
 
 ext {
-    jmonkeyengine_version = '3.0.10'
+    jmonkeyengine_version = '3.1.0-SNAPSHOT'
 }
 
 repositories {
@@ -15,6 +15,7 @@ repositories {
     maven { url 'http://updates.jmonkeyengine.org/maven' }
     maven { url 'http://jcenter.bintray.com' }
     maven { url "https://jitpack.io" }
+    maven { url "http://nifty-gui.sourceforge.net/nifty-maven-repo" }
 }
 
 // NetBeans will automatically add "run" and "debug" tasks relying on the
@@ -61,7 +62,7 @@ dependencies {
     compile "com.jme3:jme3-lwjgl:$jmonkeyengine_version"
     compile "com.jme3:jme3-niftygui:$jmonkeyengine_version"
     compile 'org.bushe:eventbus:1.4'
-    compile "com.badlogicgames.gdx:gdx-ai:1.7.0"
+    compile "com.badlogicgames.gdx:gdx-ai:1.8.0"
 }
 
 sourceSets {
