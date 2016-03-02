@@ -257,38 +257,11 @@ public class KmfModelLoader implements AssetLoader {
             }
 
             // Triangles, we have LODs here
-            VertexBuffer[] lodLevels = new VertexBuffer[meshSprite.getTriangles().size()];
-            for (Entry<Integer, List<Triangle>> triangles : meshSprite.getTriangles().entrySet()) {
-                int[] indexes = new int[triangles.getValue().size() * 3];
-                int x = 0;
-                for (Triangle triangle : triangles.getValue()) {
-                    indexes[x * 3] = triangle.getTriangle()[2];
-                    indexes[x * 3 + 1] = triangle.getTriangle()[1];
-                    indexes[x * 3 + 2] = triangle.getTriangle()[0];
-                    x++;
-                }
-                VertexBuffer buf = new VertexBuffer(Type.Index);
-                buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(indexes));
-                lodLevels[triangles.getKey()] = buf;
-            }
-
-            //Max LOD level triangles
-            List<Integer> faces = new ArrayList<>(meshSprite.getTriangles().get(0).size() * 3);
-            for (Triangle tri : meshSprite.getTriangles().get(0)) {
-                faces.add(Short.valueOf(tri.getTriangle()[2]).intValue());
-                faces.add(Short.valueOf(tri.getTriangle()[1]).intValue());
-                faces.add(Short.valueOf(tri.getTriangle()[0]).intValue());
-            }
-            int[] indexes = new int[faces.size()];
-            int x = 0;
-            for (Integer inte : faces) {
-                indexes[x] = inte;
-                x++;
-            }
+            VertexBuffer[] lodLevels = createIndices(meshSprite.getTriangles());
 
             //Set the buffers
             mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
-            mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indexes));
+            mesh.setBuffer(lodLevels[0]);
             mesh.setLodLevels(lodLevels);
             mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
@@ -512,40 +485,13 @@ public class KmfModelLoader implements AssetLoader {
             PoseTrack poseTrack = new PoseTrack(index, times, frameList.toArray(new PoseFrame[frameList.size()]));
             poseTracks.add(poseTrack);
 
-            // Triangles, we have LODs here
-            VertexBuffer[] lodLevels = new VertexBuffer[animSprite.getTriangles().size()];
-            for (Entry<Integer, List<Triangle>> triangles : animSprite.getTriangles().entrySet()) {
-                int[] indexes = new int[triangles.getValue().size() * 3];
-                int x = 0;
-                for (Triangle triangle : triangles.getValue()) {
-                    indexes[x * 3] = triangle.getTriangle()[2];
-                    indexes[x * 3 + 1] = triangle.getTriangle()[1];
-                    indexes[x * 3 + 2] = triangle.getTriangle()[0];
-                    x++;
-                }
-                VertexBuffer buf = new VertexBuffer(Type.Index);
-                buf.setupData(VertexBuffer.Usage.Dynamic, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(indexes));
-                lodLevels[triangles.getKey()] = buf;
-            }
-
-            //Max LOD level triangles
-            List<Integer> faces = new ArrayList<>(animSprite.getTriangles().get(0).size() * 3);
-            for (Triangle tri : animSprite.getTriangles().get(0)) {
-                faces.add(Short.valueOf(tri.getTriangle()[2]).intValue());
-                faces.add(Short.valueOf(tri.getTriangle()[1]).intValue());
-                faces.add(Short.valueOf(tri.getTriangle()[0]).intValue());
-            }
-            int[] indexes = new int[faces.size()];
-            int x = 0;
-            for (Integer inte : faces) {
-                indexes[x] = inte;
-                x++;
-            }
+            // Create lod levels
+            VertexBuffer[] lodLevels = createIndices(animSprite.getTriangles());
 
             //Set the buffers
             mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
             mesh.setBuffer(Type.BindPosePosition, 3, BufferUtils.createFloatBuffer(vertices));
-            mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indexes));
+            mesh.setBuffer(lodLevels[0]);
             mesh.setLodLevels(lodLevels);
             mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
@@ -569,6 +515,42 @@ public class KmfModelLoader implements AssetLoader {
 
         //Attach the node to the root
         root.attachChild(node);
+    }
+
+    private VertexBuffer[] createIndices(final HashMap<Integer, List<Triangle>> trianglesMap) {
+
+        // Triangles are not in order, sometimes they are very random, many missing etc.
+        // For JME 3.0 this was somehow ok, but JME 3.1 doesn't do some automatic organizing etc.
+        // Assume that if first LOD level is null, there are no LOD levels, instead the mesh should be just point mesh
+        // I tried ordering them etc. but it went worse (3DFE_GemHolder.kmf is a good example)
+        //
+        // Ultimately all failed, now just instead off completely empty buffers, put one 0 there, seems to have done the trick
+        //
+        // Triangles, we have LODs here
+        VertexBuffer[] lodLevels = new VertexBuffer[trianglesMap.size()];
+        for (Entry<Integer, List<Triangle>> triangles : trianglesMap.entrySet()) {
+            if (!triangles.getValue().isEmpty()) {
+                int[] indexes = new int[triangles.getValue().size() * 3];
+                int x = 0;
+                for (Triangle triangle : triangles.getValue()) {
+                    indexes[x * 3] = triangle.getTriangle()[2];
+                    indexes[x * 3 + 1] = triangle.getTriangle()[1];
+                    indexes[x * 3 + 2] = triangle.getTriangle()[0];
+                    x++;
+                }
+                VertexBuffer buf = new VertexBuffer(Type.Index);
+                buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(indexes));
+                lodLevels[triangles.getKey()] = buf;
+            } else {
+
+                // Need to create this seemingly empty buffer
+                VertexBuffer buf = new VertexBuffer(Type.Index);
+                buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(new int[]{0}));
+                lodLevels[triangles.getKey()] = buf;
+
+            }
+        }
+        return lodLevels;
     }
 
     /**
