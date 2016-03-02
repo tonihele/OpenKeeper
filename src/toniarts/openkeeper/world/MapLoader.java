@@ -17,6 +17,7 @@
 package toniarts.openkeeper.world;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.TextureKey;
 import com.jme3.bounding.BoundingBox;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
@@ -225,7 +226,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                                         diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY" + textureIndex + ".png");
                                     }
                                 }
-                                Texture texture = assetManager.loadTexture(ConversionUtils.getCanonicalAssetKey(diffuseTexture));
+                                Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
                                 material.setTexture("DiffuseMap", texture);
                             }
                         }
