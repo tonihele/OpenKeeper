@@ -101,6 +101,10 @@ public class Main extends SimpleApplication {
     private final static AssetCache assetCache = new SimpleAssetCache();
     private final static AssetCache weakAssetCache = new WeakRefAssetCache();
 
+    private Main() {
+        super(new StatsAppState(), new DebugKeysAppState());
+    }
+
     public static void main(String[] args) throws InvocationTargetException, InterruptedException {
 
         // Create main application instance
@@ -209,7 +213,7 @@ public class Main extends SimpleApplication {
         }
 
         // If everything is ok, we might need to save the setup
-        boolean result = (folderOk && conversionOk);
+        boolean result = folderOk && conversionOk;
         if (result && saveSetup) {
             try {
                 app.getSettings().save(new FileOutputStream(new File(SETTINGS_FILE)));
@@ -219,10 +223,6 @@ public class Main extends SimpleApplication {
         }
 
         return result;
-    }
-
-    private Main() {
-        super(new StatsAppState(), new DebugKeysAppState());
     }
 
     private static void initSettings(Main app) {
@@ -354,10 +354,8 @@ public class Main extends SimpleApplication {
             public void windowClosing(WindowEvent arg0) {
 
                 // See if it is allowed
-                if (frame instanceof IFrameClosingBehavior) {
-                    if (!((IFrameClosingBehavior) frame).canCloseWindow()) {
-                        return; // You shall not pass!
-                    }
+                if (frame instanceof IFrameClosingBehavior && !((IFrameClosingBehavior) frame).canCloseWindow()) {
+                    return; // You shall not pass!
                 }
 
                 synchronized (lock) {
@@ -404,8 +402,8 @@ public class Main extends SimpleApplication {
 
                     // Recording video
                     if (params.containsKey("record")) {
-                        float quality = (getUserSettings().getSettingFloat(Settings.Setting.RECORDER_QUALITY));
-                        int frameRate = (getUserSettings().getSettingInteger(Settings.Setting.RECORDER_FPS));
+                        float quality = getUserSettings().getSettingFloat(Settings.Setting.RECORDER_QUALITY);
+                        int frameRate = getUserSettings().getSettingInteger(Settings.Setting.RECORDER_FPS);
                         getSettings().setFrameRate(frameRate);
                         VideoRecorderAppState recorder = new VideoRecorderAppState(quality, frameRate);
                         String folder = params.get("record");
