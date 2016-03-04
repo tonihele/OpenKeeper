@@ -260,7 +260,7 @@ abstract class Output extends Initializer {
      */
     @Override
     public final int read(byte b[], int i, int j) throws IOException {
-        int diff = 0;
+        int diff;
         int paddingEnd = 0;
         int length = j;
         int writePos = i;
@@ -414,7 +414,7 @@ abstract class Output extends Initializer {
             }
         }
 
-        float[] result = null;
+        float[] result;
 
         int i, j, k = 0;
 

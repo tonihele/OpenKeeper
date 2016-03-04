@@ -575,7 +575,7 @@ public class MpxReader extends Frame {
     }
 
     private AudioInformation handleXing(InputStream stream) throws IOException {
-        int bitRate = 0;
+        int bitRate;
         long grossByteLength = ((Long) get(AudioInformation.L_GROSS_BYTE_LENGTH)).longValue();
 
         stream.read(b, 0, 4);
@@ -623,7 +623,7 @@ public class MpxReader extends Frame {
             stream.skip(17);
             stream.read(b, 0, 3);
             i = getShortInt(b);
-            int samplesPerFrame = 0;
+            int samplesPerFrame;
 
             if (layer == 1) {
                 samplesPerFrame = 384 / 2;
@@ -798,7 +798,6 @@ public class MpxReader extends Frame {
                 return false;
             }
         }
-        count++;
         i = i << 8 | stream.read() & 0xFF;
 
         if (i == SEQUENCE_HEADER_CODE || i == PACK_START_CODE) {

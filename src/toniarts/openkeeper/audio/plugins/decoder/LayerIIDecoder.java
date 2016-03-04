@@ -216,7 +216,7 @@ class LayerIIDecoder extends LayerIDecoder {
 
     @Override
     final void decodeSampleData() {
-        double f = 0;
+        double f;
         int allc;
         int allc1;
 

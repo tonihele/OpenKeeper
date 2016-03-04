@@ -219,7 +219,7 @@ abstract class BitStream extends BitrateVariation {
     }
 
     private boolean load(int j) throws IOException {
-        int l = 0;
+        int l;
         int i = 0;
 
         l = source.read(buf, i, j);
