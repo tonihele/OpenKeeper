@@ -139,7 +139,7 @@ public abstract class TriggerData {
             return userData.keySet();
         }
 
-        return Collections.EMPTY_SET;
+        return Collections.emptySet();
     }
 
     public boolean hasUserDataKey(String key) {
