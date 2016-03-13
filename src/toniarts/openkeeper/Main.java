@@ -685,6 +685,14 @@ public class Main extends SimpleApplication {
         return nifty;
     }
 
+    @Override
+    public void stop() {
+        super.stop();
+
+        // https://github.com/jMonkeyEngine/jmonkeyengine/issues/330 :(
+        System.exit(0);
+    }
+
     /**
      * Whether the debug flag is on
      *
