@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.trigger;
 
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 
 /**
@@ -28,7 +27,6 @@ import toniarts.openkeeper.tools.convert.map.TriggerAction;
 public class TriggerActionData extends TriggerData {
 
     private TriggerAction.ActionType actionType;
-    private static final Logger logger = Logger.getLogger(TriggerActionData.class.getName());
 
     public TriggerActionData() {
         super();

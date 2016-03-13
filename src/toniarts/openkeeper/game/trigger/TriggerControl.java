@@ -94,11 +94,9 @@ public class TriggerControl extends Control {
             }
         }
 
-        if (trigger.getQuantity() == 0) {
-            if (trigger.getParent() != null) {
-                next = trigger.getParent();
-                trigger.detachFromParent();
-            }
+        if (trigger.getQuantity() == 0 && trigger.getParent() != null) {
+            next = trigger.getParent();
+            trigger.detachFromParent();
         }
 
         if (next == null) {
