@@ -183,7 +183,7 @@ public abstract class Frame extends AudioInformation /*extends FormatReader*/ {
     }
 
     final void determineBitrate() {
-        int headerlessFrameSizeCurrent = 0;
+        int headerlessFrameSizeCurrent;
 
         for (bitRate = 0; bitRate < MAX_BITRATE; bitRate += 1000) {
             if (layer == 1) {

@@ -144,7 +144,7 @@ class LayerIDecoder extends BitStream {
     }
 
     void decodeSampleData() {
-        double f = 0;
+        double f;
         int allc;
 
         for (gr = 0; gr < GRLIMIT; gr++) {

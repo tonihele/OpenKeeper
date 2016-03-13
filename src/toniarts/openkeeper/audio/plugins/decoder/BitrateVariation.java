@@ -127,7 +127,7 @@ abstract class BitrateVariation extends Output {
      * caused by malformed media data
      */
     public final int decodeFrame(int eventId) throws IOException {
-        int l = 0;
+        int l;
 
         l = readFrame();
         if (l == Events.EOM_EVENT) {
