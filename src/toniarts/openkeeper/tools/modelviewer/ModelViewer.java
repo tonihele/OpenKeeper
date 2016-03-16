@@ -84,7 +84,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     public enum Types {
 
         MODELS("Models"), TERRAIN("Terrain"), OBJECTS("Objects"), MAPS("Maps");
-        private String name;
+        private final String name;
 
         private Types(String name) {
             this.name = name;
@@ -96,7 +96,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         }
     }
     private final String dkIIFolder;
-    private Vector3f lightDir = new Vector3f(-1, -1, .5f).normalizeLocal();
+    private final Vector3f lightDir = new Vector3f(-1, -1, .5f).normalizeLocal();
     private DirectionalLight dl;
     private Nifty nifty;
     private Screen screen;
