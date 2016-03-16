@@ -198,7 +198,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Set the pause state
             if (nifty != null) {
                 paused = false;
-                nifty.getScreen(HUD_SCREEN_ID).findElementByName("optionsMenu").setVisible(paused);
+                nifty.getScreen(HUD_SCREEN_ID).findElementById("optionsMenu").setVisible(paused);
             }
 
             // Create app states
@@ -336,25 +336,25 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             goldControl.addListener(hud.findNiftyControl("gold", Label.class));
         }
 
-        Element contentPanel = hud.findElementByName("tab-room-content");
+        Element contentPanel = hud.findElementById("tab-room-content");
         removeAllChildElements(contentPanel);
         for (final Room room : getAvailableRoomsToBuild()) {
             createRoomIcon(room).build(nifty, hud, contentPanel);
         }
 
-        contentPanel = hud.findElementByName("tab-spell-content");
+        contentPanel = hud.findElementById("tab-spell-content");
         removeAllChildElements(contentPanel);
         for (final KeeperSpell spell : getAvailableKeeperSpells()) {
             createSpellIcon(spell).build(nifty, hud, contentPanel);
         }
 
-        contentPanel = hud.findElementByName("tab-door-content");
+        contentPanel = hud.findElementById("tab-door-content");
         removeAllChildElements(contentPanel);
         for (final Door door : getAvailableDoors()) {
             createDoorIcon(door).build(nifty, hud, contentPanel);
         }
 
-        contentPanel = hud.findElementByName("tab-trap-content");
+        contentPanel = hud.findElementById("tab-trap-content");
         removeAllChildElements(contentPanel);
         for (final Trap trap : getAvailableTraps()) {
             createTrapIcon(trap).build(nifty, hud, contentPanel);
@@ -415,7 +415,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey("Textures/GUI/Windows/Panel-BG.png")).openStream());
 
                         // Scale the backgroung image to the panel height, keeping the aspect ratio
-                        Element panel = nifty.getCurrentScreen().findElementByName("bottomBackgroundPanel");
+                        Element panel = nifty.getCurrentScreen().findElementById("bottomBackgroundPanel");
                         BufferedImage newImage = new BufferedImage(panel.getHeight() * img.getWidth() / img.getHeight(), panel.getHeight(), img.getType());
                         Graphics2D g = newImage.createGraphics();
                         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
@@ -449,12 +449,12 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 //final Creature creature = gameState.getLevelData().getCreature((short)13);
                 final Creature creature = possessionState.getTargetCreature();
 
-                Element contentPanel = nifty.getCurrentScreen().findElementByName("creature-icon");
+                Element contentPanel = nifty.getCurrentScreen().findElementById("creature-icon");
                 if (contentPanel != null) {
                     createCreatureIcon(creature.getIcon1Resource().getName()).build(nifty, nifty.getCurrentScreen(), contentPanel);
                 }
 
-                contentPanel = nifty.getCurrentScreen().findElementByName("creature-filter");
+                contentPanel = nifty.getCurrentScreen().findElementById("creature-filter");
                 if (contentPanel != null) {
                     if (creature.getFirstPersonFilterResource() != null) {
                         new ImageBuilder() {
@@ -475,7 +475,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                     }
                 }
 
-                contentPanel = nifty.getCurrentScreen().findElementByName("creature-abilities");
+                contentPanel = nifty.getCurrentScreen().findElementById("creature-abilities");
                 if (contentPanel != null) {
 
                     String ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility1());
@@ -489,7 +489,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                     }
                 }
 
-                contentPanel = nifty.getCurrentScreen().findElementByName("creature-attacks");
+                contentPanel = nifty.getCurrentScreen().findElementById("creature-attacks");
                 if (contentPanel != null) {
                     for (Element element : contentPanel.getChildren()) {
                         element.markForRemoval();
@@ -836,21 +836,21 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         }
 
         // Set the menuButton
-        Element menuButton = nifty.getCurrentScreen().findElementByName("menuButton");
+        Element menuButton = nifty.getCurrentScreen().findElementById("menuButton");
         if (paused) {
             menuButton.startEffect(EffectEventId.onCustom, null, "select");
         } else {
             menuButton.stopEffect(EffectEventId.onCustom);
         }
 
-        nifty.getCurrentScreen().findElementByName("optionsMenu").setVisible(paused);
+        nifty.getCurrentScreen().findElementById("optionsMenu").setVisible(paused);
         if (paused) {
             pauseMenuNavigate(PauseMenuState.MAIN.name(), null, null, null);
         }
     }
 
     public void pauseMenuNavigate(String menu, String backMenu, String confirmationTitle, String confirmMethod) {
-        Element optionsMenu = nifty.getCurrentScreen().findElementByName("optionsMenu");
+        Element optionsMenu = nifty.getCurrentScreen().findElementById("optionsMenu");
         Label optionsMenuTitle = optionsMenu.findNiftyControl("optionsMenuTitle", Label.class);
         Element optionsColumnOne = optionsMenu.findElementById("optionsColumnOne");
         for (Element element : optionsColumnOne.getChildren()) {
@@ -954,7 +954,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private void updateSelectedItem(InteractionState state, int id) {
 
         for (InteractionState interaction : InteractionState.values()) {
-            Element content = nifty.getCurrentScreen().findElementByName("tab-" + interaction.toString().toLowerCase() + "-content");
+            Element content = nifty.getCurrentScreen().findElementById("tab-" + interaction.toString().toLowerCase() + "-content");
             if (content == null) {
                 continue;
             }
@@ -972,7 +972,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         }
 
         String itemId = state.toString().toLowerCase() + "_" + id;
-        Element item = nifty.getCurrentScreen().findElementByName(itemId);
+        Element item = nifty.getCurrentScreen().findElementById(itemId);
         if (item == null) {
             System.err.println(itemId + " not found"); // FIXME remove this line after debug
             return;
@@ -985,7 +985,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     private void updatePossessionSelectedItem(PossessionInteractionState.Action action) {
-        Element element = nifty.getCurrentScreen().findElementByName("creature-" + action.toString().toLowerCase());
+        Element element = nifty.getCurrentScreen().findElementById("creature-" + action.toString().toLowerCase());
         if (element != null) {
             element.setFocus();
         }
