@@ -190,7 +190,9 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             app.getInputManager().setCursorVisible(true);
 
             // Get GUI area constraints
-            Element middle = app.getNifty().getNifty().getScreen(HUD_SCREEN_ID).findElementByName("middle");
+            Screen hud = app.getNifty().getNifty().getScreen(HUD_SCREEN_ID);
+            Element middle = hud.findElementById("middle");
+            hud.layoutLayers();
             Rectangle guiConstraint = new Rectangle(middle.getX(), middle.getY(), middle.getWidth(), middle.getHeight());
 
             // Set the pause state
