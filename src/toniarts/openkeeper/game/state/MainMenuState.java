@@ -339,7 +339,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 levelTitle.setText(getLevelTitle());
                 Label mainObjective = screen.findNiftyControl("mainObjective", Label.class);
                 mainObjective.setText(getLevelResourceBundle().getString("2"));
-                Element mainObjectiveImage = screen.findElementByName("mainObjectiveImage");
+                Element mainObjectiveImage = screen.findElementById("mainObjectiveImage");
                 NiftyImage img = nifty.createImage("Textures/Obj_Shots/" + selectedLevel.getFullName() + "-0.png", false);
                 mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
                 mainObjectiveImage.setWidth(img.getWidth());
@@ -347,7 +347,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 String subText1 = getLevelResourceBundle().getString("3");
                 String subText2 = getLevelResourceBundle().getString("4");
                 String subText3 = getLevelResourceBundle().getString("5");
-                Element subObjectivePanel = screen.findElementByName("subObjectivePanel");
+                Element subObjectivePanel = screen.findElementById("subObjectivePanel");
 
                 subObjectivePanel.hide();
                 if (!(subText1.isEmpty() && subText2.isEmpty() && subText3.isEmpty())) {
@@ -358,7 +358,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                     Label subObjective = setupSubObjectiveLabel("subObjective3", subText3);
                     // Fix the layout
                     subObjective.getElement().getParent().layoutElements();
-                    Element subObjectiveImage = screen.findElementByName("subObjectiveImage");
+                    Element subObjectiveImage = screen.findElementById("subObjectiveImage");
                     subObjectiveImage.hide();
 
                     if (selectedLevel.getType().equals(Level.LevelType.Level)) {
@@ -482,7 +482,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * Called by the gui to restart the autoscroll effect
      */
     public void restartCredits() {
-        Element credits = screen.findElementByName("creditList");
+        Element credits = screen.findElementById("creditList");
         if (credits != null) {
             credits.resetEffects();
             if (!credits.isEffectActive(EffectEventId.onActive)) {
@@ -517,7 +517,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      */
     private void generateMovieList() {
         // TODO: We should only do that if the progress has changed and at the start of the game
-        Element movies = screen.findElementByName("movieList");
+        Element movies = screen.findElementById("movieList");
         if (movies != null) {
             for (Element oldElement : movies.getChildren()) {
                 nifty.removeElement(screen, oldElement);
@@ -951,7 +951,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             NiftyUtils.resetContraints(label);
 
             // Map image
-            Element mapImage = screen.findElementByName("mapImage");
+            Element mapImage = screen.findElementById("mapImage");
             NiftyImage img = getMapThumbnail(selectedSkirmishMap);
             mapImage.getRenderer(ImageRenderer.class).setImage(img);
             mapImage.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
@@ -1068,7 +1068,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
             // Map image
             // TODO: static generator to MapLoader etc. place, I don't really want to use the BMPs
-            Element mapImage = screen.findElementByName("mapImage");
+            Element mapImage = screen.findElementById("mapImage");
             NiftyImage img = getMapThumbnail(selectedMap);
             mapImage.getRenderer(ImageRenderer.class).setImage(img);
             mapImage.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
