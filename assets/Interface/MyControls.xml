@@ -36,14 +36,14 @@
         <panel marginLeft="3px" valign="center" childLayout="horizontal" id="tab-workers" visible="true">
             <image filename="Textures/GUI/Tabs/t-cp-imp.png" valign="center" />
             <image filename="Textures/GUI/Creatures/Evil/imp-bg.png" valign="center" childLayout="vertical"
-                   padding="6px,6px,6px,0px">
+                   padding="6px,6px,6px,0px" width="64px" height="128px">
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#amount" height="25%" width="100%" />
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#idle" height="25%" width="100%" />
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#busy" height="25%" width="100%" />
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#fighting" height="25%" width="100%" />
             </image>
             <image id="attributes" filename="Textures/GUI/Tabs/t-creature_panel-0.png" valign="center" marginLeft="3px"
-                   childLayout="vertical" padding="6px">
+                   childLayout="vertical" padding="6px" width="32px" height="128px">
                 <panel id="#total" height="25%" width="100%" backgroundImage="Textures/GUI/Tabs/t-cp-hilight.png"><!-- need button with custom style -->
                     <interact onClick="workersAmount(total)" />
                 </panel>
