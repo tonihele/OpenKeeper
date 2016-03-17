@@ -134,7 +134,7 @@ public abstract class AssetsConverter {
     }
     private final String dungeonKeeperFolder;
     private final AssetManager assetManager;
-    private static final String ASSETS_FOLDER = "assets/Converted";
+    private static final String ASSETS_FOLDER = "assets".concat(File.separator).concat("Converted");
     public static final String TEXTURES_FOLDER = "Textures";
     public static final String MODELS_FOLDER = "Models";
     public static final String MOUSE_CURSORS_FOLDER = "Interface".concat(File.separator).concat("Cursors");
@@ -389,7 +389,7 @@ public abstract class AssetsConverter {
         try {
             Node n = (Node) kmfModelLoader.load(ai);
 
-            //Export
+            // Export
             BinaryExporter exporter = BinaryExporter.getInstance();
             File file = new File(destination.concat(entry.getKey().substring(0, entry.getKey().length() - 4)).concat(".j3o"));
             exporter.save(n, file);
