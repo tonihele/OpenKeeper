@@ -10,7 +10,7 @@
         <layer id="layer" childLayout="horizontal">
             <panel id="panel" height="95%" width="25%" align="left" valign="center" childLayout="vertical" visibleToMouse="true">
                 <control id="typeCombo" name="dropDown" displayItems="5" />
-                <control id="modelListBox" name="listBox" forceSelection="true" vertical="optional" horizontal="optional" displayItems="20" selection="Single" />
+                <control id="modelListBox" name="listBox" forceSelection="true" vertical="on" horizontal="optional" displayItems="20" selection="Single" />
             </panel>
         </layer>
     </screen>

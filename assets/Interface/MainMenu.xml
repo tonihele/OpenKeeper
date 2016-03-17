@@ -332,7 +332,7 @@
             <panel width="90%" childLayout="vertical" align="center">
             
                 <panel width="100%" height="100%" childLayout="vertical" align="center" valign="center">
-                    <control id="keyboardSetup" name="table" vertical="optional" displayItems="5" selection="Single" 
+                    <control id="keyboardSetup" name="table" vertical="on" displayItems="5" selection="Single" 
                              colCount="2"
                              col0="${menu.2845};55;java.lang.String;#32050c30"
                              col1="${menu.2846};45;java.lang.String;#32050c30"
@@ -627,7 +627,7 @@
             <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center">
 
                 <panel id="mapsPanel" width="66%" childLayout="vertical" align="center" valign="top" paddingRight="5%">
-                    <control id="mapsTable" name="table" vertical="optional" displayItems="8" 
+                    <control id="mapsTable" name="table" vertical="on" displayItems="8" 
                              selection="Single" forceSelection="true" colCount="3"
                              col0="${menu.1544};50;java.lang.String;#32050c30"
                              col1="${menu.2960};25;java.lang.String;#32050c30"
