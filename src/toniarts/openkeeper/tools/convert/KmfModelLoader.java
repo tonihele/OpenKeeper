@@ -25,6 +25,7 @@ import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
+import com.jme3.material.plugin.export.material.J3MExporter;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
@@ -66,7 +67,6 @@ import toniarts.openkeeper.tools.convert.kmf.MeshSprite;
 import toniarts.openkeeper.tools.convert.kmf.MeshVertex;
 import toniarts.openkeeper.tools.convert.kmf.Triangle;
 import toniarts.openkeeper.tools.convert.kmf.Uv;
-import toniarts.openkeeper.tools.convert.material.MaterialExporter;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEntry;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.modelviewer.ModelViewer;
@@ -720,7 +720,6 @@ public class KmfModelLoader implements AssetLoader {
                 String textureEntry = texture.concat("MM0");
                 EngineTextureEntry engineTextureEntry = engineTextureFile.getEntry(textureEntry);
                 if (engineTextureEntry != null && engineTextureEntry.isAlphaFlag()) {
-//                    material.setBoolean("UseAlpha", true); Not anymore in JME 3.1
                     material.setFloat("AlphaDiscardThreshold", 0.1f);
                     material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
 
@@ -773,9 +772,13 @@ public class KmfModelLoader implements AssetLoader {
                     m.setName(mat.getName());
                     m.setKey(new MaterialKey(materialKey));
 
+                    // Workaround to: https://github.com/jMonkeyEngine/jmonkeyengine/issues/453
+                    m.getAdditionalRenderState();
+
                     // Save
-                    MaterialExporter exporter = new MaterialExporter();
-                    exporter.save(m, new File(materialLocation));
+                    File materialFile = new File(materialLocation);
+                    J3MExporter exporter = new J3MExporter();
+                    exporter.save(m, materialFile);
 
                     // Put the first one to the cache
                     if (k == 0) {
