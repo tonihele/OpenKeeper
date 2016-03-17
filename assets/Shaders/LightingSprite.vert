@@ -1,12 +1,9 @@
-#define ATTENUATION
-//#define HQ_ATTENUATION
-
+#import "Common/ShaderLib/Instancing.glsllib"
 #import "Common/ShaderLib/Skinning.glsllib"
-
-uniform mat4 g_WorldViewProjectionMatrix;
-uniform mat4 g_WorldViewMatrix;
-uniform mat3 g_NormalMatrix;
-uniform mat4 g_ViewMatrix;
+#import "Common/ShaderLib/Lighting.glsllib"
+#ifdef VERTEX_LIGHTING
+    #import "Common/ShaderLib/BlinnPhongLighting.glsllib"    
+#endif
 
 // Animation
 uniform float g_Time;
@@ -37,7 +34,6 @@ attribute vec2 inTexCoord;
 attribute vec3 inNormal;
 
 varying vec3 lightVec;
-//varying vec4 spotVec;
 
 #ifdef VERTEX_COLOR
   attribute vec4 inColor;
@@ -48,8 +44,7 @@ varying vec3 lightVec;
 
   #ifndef NORMALMAP
     varying vec3 vNormal;
-  #endif
-  //varying vec3 vPosition;
+  #endif  
   varying vec3 vViewDir;
   varying vec4 vLightDir;
 #else
@@ -57,13 +52,15 @@ varying vec3 lightVec;
   uniform vec4 g_LightDirection;
 #endif
 
+#if (defined(PARALLAXMAP) || (defined(NORMALMAP_PARALLAX) && defined(NORMALMAP))) && !defined(VERTEX_LIGHTING) 
+    varying vec3 vViewDirPrlx;
+#endif
+
 #ifdef USE_REFLECTION
     uniform vec3 g_CameraPosition;
-    uniform mat4 g_WorldMatrix;
 
     uniform vec3 m_FresnelParams;
     varying vec4 refVec;
-
 
     /**
      * Input:
@@ -76,71 +73,22 @@ varying vec3 lightVec;
      * varying refVec
      */
     void computeRef(in vec4 modelSpacePos){
-        vec3 worldPos = (g_WorldMatrix * modelSpacePos).xyz;
+        // vec3 worldPos = (g_WorldMatrix * modelSpacePos).xyz;
+        vec3 worldPos = TransformWorld(modelSpacePos).xyz;
 
         vec3 I = normalize( g_CameraPosition - worldPos  ).xyz;
-        vec3 N = normalize( (g_WorldMatrix * vec4(inNormal, 0.0)).xyz );
+        // vec3 N = normalize( (g_WorldMatrix * vec4(inNormal, 0.0)).xyz );
+        vec3 N = normalize( TransformWorld(vec4(inNormal, 0.0)).xyz );
 
         refVec.xyz = reflect(I, N);
         refVec.w   = m_FresnelParams.x + m_FresnelParams.y * pow(1.0 + dot(I, N), m_FresnelParams.z);
     }
 #endif
 
-// JME3 lights in world space
-void lightComputeDir(in vec3 worldPos, in vec4 color, in vec4 position, out vec4 lightDir){
-    float posLight = step(0.5, color.w);
-    vec3 tempVec = position.xyz * sign(posLight - 0.5) - (worldPos * posLight);
-    lightVec = tempVec;
-    #ifdef ATTENUATION
-     float dist = length(tempVec);
-     lightDir.w = clamp(1.0 - position.w * dist * posLight, 0.0, 1.0);
-     lightDir.xyz = tempVec / vec3(dist);
-    #else
-     lightDir = vec4(normalize(tempVec), 1.0);
-    #endif
-}
-
-#ifdef VERTEX_LIGHTING
-  float lightComputeDiffuse(in vec3 norm, in vec3 lightdir){
-      return max(0.0, dot(norm, lightdir));
-  }
-
-  float lightComputeSpecular(in vec3 norm, in vec3 viewdir, in vec3 lightdir, in float shiny){
-      if (shiny <= 1.0){
-          return 0.0;
-      }
-      #ifndef LOW_QUALITY
-        vec3 H = (viewdir + lightdir) * vec3(0.5);
-        return pow(max(dot(H, norm), 0.0), shiny);
-      #else
-        return 0.0;
-      #endif
-  }
-
-vec2 computeLighting(in vec3 wvPos, in vec3 wvNorm, in vec3 wvViewDir, in vec4 wvLightPos){
-     vec4 lightDir;
-     lightComputeDir(wvPos, g_LightColor, wvLightPos, lightDir);
-     float spotFallOff = 1.0;
-     if(g_LightDirection.w != 0.0){
-          vec3 L=normalize(lightVec.xyz);
-          vec3 spotdir = normalize(g_LightDirection.xyz);
-          float curAngleCos = dot(-L, spotdir);
-          float innerAngleCos = floor(g_LightDirection.w) * 0.001;
-          float outerAngleCos = fract(g_LightDirection.w);
-          float innerMinusOuter = innerAngleCos - outerAngleCos;
-          spotFallOff = clamp((curAngleCos - outerAngleCos) / innerMinusOuter, 0.0, 1.0);
-     }
-     float diffuseFactor = lightComputeDiffuse(wvNorm, lightDir.xyz);
-     float specularFactor = lightComputeSpecular(wvNorm, wvViewDir, lightDir.xyz, m_Shininess);
-     //specularFactor *= step(0.01, diffuseFactor);
-     return vec2(diffuseFactor, specularFactor) * vec2(lightDir.w)*spotFallOff;
-  }
-#endif
-
 void main(){
    vec4 modelSpacePos = vec4(inPosition, 1.0);
    vec3 modelSpaceNorm = inNormal;
-
+   
    #ifndef VERTEX_LIGHTING
         vec3 modelSpaceTan  = inTangent.xyz;
    #endif
@@ -153,7 +101,7 @@ void main(){
         #endif
    #endif
 
-   gl_Position = g_WorldViewProjectionMatrix * modelSpacePos;
+   gl_Position = TransformWorldViewProjection(modelSpacePos);// g_WorldViewProjectionMatrix * modelSpacePos;
    texCoord = inTexCoord;
 
    // Animation
@@ -170,57 +118,44 @@ void main(){
       texCoord2 = inTexCoord2;
    #endif
 
-   vec3 wvPosition = (g_WorldViewMatrix * modelSpacePos).xyz;
-   vec3 wvNormal  = normalize(g_NormalMatrix * modelSpaceNorm);
+   vec3 wvPosition = TransformWorldView(modelSpacePos).xyz;// (g_WorldViewMatrix * modelSpacePos).xyz;
+   vec3 wvNormal  = normalize(TransformNormal(modelSpaceNorm));//normalize(g_NormalMatrix * modelSpaceNorm);
    vec3 viewDir = normalize(-wvPosition);
-
-       //vec4 lightColor = g_LightColor[gl_InstanceID];
-       //vec4 lightPos   = g_LightPosition[gl_InstanceID];
-       //vec4 wvLightPos = (g_ViewMatrix * vec4(lightPos.xyz, lightColor.w));
-       //wvLightPos.w = lightPos.w;
-
+  
    vec4 wvLightPos = (g_ViewMatrix * vec4(g_LightPosition.xyz,clamp(g_LightColor.w,0.0,1.0)));
    wvLightPos.w = g_LightPosition.w;
    vec4 lightColor = g_LightColor;
 
-   #if defined(NORMALMAP) && !defined(VERTEX_LIGHTING)
-     vec3 wvTangent = normalize(g_NormalMatrix * modelSpaceTan);
+   #if (defined(NORMALMAP) || defined(PARALLAXMAP)) && !defined(VERTEX_LIGHTING)
+     vec3 wvTangent = normalize(TransformNormal(modelSpaceTan));
      vec3 wvBinormal = cross(wvNormal, wvTangent);
-
      mat3 tbnMat = mat3(wvTangent, wvBinormal * inTangent.w,wvNormal);
-
-     //vPosition = wvPosition * tbnMat;
-     //vViewDir  = viewDir * tbnMat;
-     vViewDir  = -wvPosition * tbnMat;
-     lightComputeDir(wvPosition, lightColor, wvLightPos, vLightDir);
+   #endif
+ 
+   #if defined(NORMALMAP) && !defined(VERTEX_LIGHTING)
+     vViewDir  = -wvPosition * tbnMat;    
+     #if (defined(PARALLAXMAP) || (defined(NORMALMAP_PARALLAX) && defined(NORMALMAP))) 
+         vViewDirPrlx = vViewDir;
+     #endif
+     lightComputeDir(wvPosition, lightColor.w, wvLightPos, vLightDir, lightVec);
      vLightDir.xyz = (vLightDir.xyz * tbnMat).xyz;
    #elif !defined(VERTEX_LIGHTING)
      vNormal = wvNormal;
-
-     //vPosition = wvPosition;
      vViewDir = viewDir;
-
-     lightComputeDir(wvPosition, lightColor, wvLightPos, vLightDir);
-
-     #ifdef V_TANGENT
-        vNormal = normalize(g_NormalMatrix * inTangent.xyz);
-        vNormal = -cross(cross(vLightDir.xyz, vNormal), vNormal);
+     #if defined(PARALLAXMAP)
+        vViewDirPrlx  =  -wvPosition * tbnMat;
      #endif
+     lightComputeDir(wvPosition, lightColor.w, wvLightPos, vLightDir, lightVec);
    #endif
 
-   //computing spot direction in view space and unpacking spotlight cos
-//   spotVec = (g_ViewMatrix * vec4(g_LightDirection.xyz, 0.0) );
-//   spotVec.w  = floor(g_LightDirection.w) * 0.001;
-//   lightVec.w = fract(g_LightDirection.w);
-
-   lightColor.w = 1.0;
    #ifdef MATERIAL_COLORS
       AmbientSum  = (m_Ambient  * g_AmbientLightColor).rgb;
-      DiffuseSum  =  m_Diffuse  * lightColor;
+      DiffuseSum  =  m_Diffuse  * vec4(lightColor.rgb, 1.0);
       SpecularSum = (m_Specular * lightColor).rgb;
     #else
-      AmbientSum  = vec3(0.2, 0.2, 0.2) * g_AmbientLightColor.rgb; // Default: ambient color is dark gray
-      DiffuseSum  = lightColor;
+      // Defaults: Ambient and diffuse are white, specular is black.
+      AmbientSum  = g_AmbientLightColor.rgb;
+      DiffuseSum  =  vec4(lightColor.rgb, 1.0);
       SpecularSum = vec3(0.0);
     #endif
 
@@ -230,10 +165,22 @@ void main(){
     #endif
 
     #ifdef VERTEX_LIGHTING
-       vertexLightValues = computeLighting(wvPosition, wvNormal, viewDir, wvLightPos);
+        float spotFallOff = 1.0;
+        vec4 vLightDir;
+        lightComputeDir(wvPosition, lightColor.w, wvLightPos, vLightDir, lightVec);
+        #if __VERSION__ >= 110
+            // allow use of control flow
+        if(lightColor.w > 1.0){
+        #endif           
+           spotFallOff = computeSpotFalloff(g_LightDirection, lightVec);
+        #if __VERSION__ >= 110           
+        }
+        #endif
+        
+        vertexLightValues = computeLighting(wvNormal, viewDir, vLightDir.xyz, vLightDir.w * spotFallOff, m_Shininess);
     #endif
 
-    #ifdef USE_REFLECTION
+    #ifdef USE_REFLECTION 
         computeRef(modelSpacePos);
-    #endif
+    #endif 
 }
