@@ -304,6 +304,9 @@ public abstract class AssetsConverter {
         logger.log(Level.INFO, "Extracting models to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MODELS);
 
+        // Create the materials folder or else the material file saving fails
+        new File(getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER)).mkdirs();
+
         // Get the engine textures catalog
         EngineTexturesFile engineTexturesFile = getEngineTexturesFile(dungeonKeeperFolder);
 
