@@ -188,7 +188,7 @@
                                     <control name="tabScroll" />
                                     <!--The =, shown for creatures-->
                                     <control name="workerEqual" />
-                                    <panel childLayout="horizontal" id="tab-creature-content">
+                                    <panel width="*" childLayout="horizontal" id="tab-creature-content">
                                         <control name="creature" filename="Textures/GUI/Creatures/Evil/firefly-bg.png" total="0"/>
                                         <control name="creature" filename="Textures/GUI/Creatures/Good/dwarf-bg.png" total="0"/>
                                     </panel>

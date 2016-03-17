@@ -216,7 +216,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                                 // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
                                 // Now we have a random starting texture...
                                 int textureIndex = tile.getTerrain().getTextureFrames() - (int) Math.ceil(tile.getHealthPercent() / (100f / tile.getTerrain().getTextureFrames()));
-                                String diffuseTexture = material.getParam("DiffuseMap").getValueAsString().replaceFirst("_DECAY\\d", ""); // Unharmed texture
+                                String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName().replaceFirst("_DECAY\\d", ""); // Unharmed texture
                                 if (textureIndex > 0) {
 
                                     // The first one doesn't have a number

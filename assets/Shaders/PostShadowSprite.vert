@@ -1,13 +1,11 @@
+#import "Common/ShaderLib/Instancing.glsllib"
 #import "Common/ShaderLib/Skinning.glsllib"
 uniform mat4 m_LightViewProjectionMatrix0;
 uniform mat4 m_LightViewProjectionMatrix1;
 uniform mat4 m_LightViewProjectionMatrix2;
 uniform mat4 m_LightViewProjectionMatrix3;
 
-uniform mat4 g_WorldViewProjectionMatrix;
-uniform mat4 g_WorldMatrix;
-uniform mat4 g_ViewMatrix;
-uniform vec3 m_LightPos;
+uniform vec3 m_LightPos; 
 
 // Animation
 uniform float g_Time;
@@ -20,14 +18,19 @@ varying vec4 projCoord2;
 varying vec4 projCoord3;
 
 #ifdef POINTLIGHT
-uniform mat4 m_LightViewProjectionMatrix4;
-uniform mat4 m_LightViewProjectionMatrix5;
-varying vec4 projCoord4;
-varying vec4 projCoord5;
-varying vec4 worldPos;
+    uniform mat4 m_LightViewProjectionMatrix4;
+    uniform mat4 m_LightViewProjectionMatrix5;
+    varying vec4 projCoord4;
+    varying vec4 projCoord5;
+    varying vec4 worldPos;
+#else
+    #ifndef PSSM
+        uniform vec3 m_LightDir; 
+        varying float lightDot;
+    #endif
 #endif
 
-#ifdef PSSM
+#if defined(PSSM) || defined(FADE)
 varying float shadowPosition;
 #endif
 varying vec3 lightVec;
@@ -48,16 +51,17 @@ const mat4 biasMat = mat4(0.5, 0.0, 0.0, 0.0,
 
 void main(){
    vec4 modelSpacePos = vec4(inPosition, 1.0);
-
+  
    #ifdef NUM_BONES
        Skinning_Compute(modelSpacePos);
    #endif
-    gl_Position = g_WorldViewProjectionMatrix * modelSpacePos;
+    gl_Position = TransformWorldViewProjection(modelSpacePos);
+
+    #if defined(PSSM) || defined(FADE)
+         shadowPosition = gl_Position.z;
+    #endif  
 
     #ifndef POINTLIGHT
-        #ifdef PSSM
-             shadowPosition = gl_Position.z;
-        #endif
         vec4 worldPos=vec4(0.0);
     #endif
     // get the vertex in world space
@@ -85,9 +89,9 @@ void main(){
         projCoord4 = biasMat * m_LightViewProjectionMatrix4 * worldPos;
         projCoord5 = biasMat * m_LightViewProjectionMatrix5 * worldPos;
     #else
-
-        vec4 vLightPos = g_ViewMatrix * vec4(m_LightPos,1.0);
-        vec4 vPos = g_ViewMatrix * worldPos;
-        lightVec = vLightPos.xyz - vPos.xyz;
+        #ifndef PSSM
+            vec3 lightDir = worldPos.xyz - m_LightPos;
+            lightDot = dot(m_LightDir,lightDir);
+        #endif
     #endif
 }

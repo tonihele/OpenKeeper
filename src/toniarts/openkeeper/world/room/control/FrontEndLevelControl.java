@@ -128,7 +128,7 @@ public class FrontEndLevelControl extends AbstractControl {
         } else {
 
             // Interpolate the position
-            getSpatial().setLocalTranslation(new Vector3f().interpolate(base, target, progess));
+            getSpatial().setLocalTranslation(new Vector3f().interpolateLocal(base, target, progess));
         }
     }
 }

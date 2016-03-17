@@ -16,9 +16,6 @@
  */
 package toniarts.openkeeper.world;
 
-import com.badlogic.gdx.ai.pfa.Connection;
-import com.badlogic.gdx.ai.pfa.indexed.IndexedNode;
-import com.badlogic.gdx.utils.Array;
 import java.awt.Point;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
@@ -31,7 +28,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class TileData extends Tile implements IndexedNode<TileData> {
+public final class TileData extends Tile {
 
     private boolean selected = false;
     private Integer randomTextureIndex;
@@ -106,7 +103,6 @@ public final class TileData extends Tile implements IndexedNode<TileData> {
         return p;
     }
 
-    @Override
     public int getIndex() {
         return index;
     }
@@ -118,11 +114,6 @@ public final class TileData extends Tile implements IndexedNode<TileData> {
      */
     public Terrain getTerrain() {
         return terrain;
-    }
-
-    @Override
-    public Array<Connection<TileData>> getConnections() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     private void setAttributesFromTerrain() {

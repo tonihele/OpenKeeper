@@ -10,10 +10,10 @@
     </style>
 
     <style id="nifty-checkbox-style#select">
-        <attributes align="center" valign="center" width="32px" height="32px" />
+        <attributes align="center" valign="center" width="32px" height="32px" backgroundImage="Textures/Tick_Toggle-1.png" />
         <effect overlay="true">
-            <onCustom customKey="show" name="imageOverlay" filename="Textures/Tick_Toggle-1.png" width="32px" height="32px" post="true" neverStopRendering="true" />
-            <onCustom customKey="hide" name="imageOverlay" filename="Textures/Tick_Toggle-1.png" width="32px" height="32px" post="true" length="50" />
+            <onEnabled name="fade" start="#4" end="#f" length="150" />
+            <onDisabled name="fade" start="#f" end="#4" length="150" />
         </effect>
     </style>
 </nifty-styles>

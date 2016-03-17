@@ -159,7 +159,6 @@ public class Water {
             for (Point tile : entityInstance.getCoordinates()) {
 
                 // For each tile, create a quad, in a way
-
                 // Texture coordinates
                 Vector2f textureCoord1 = new Vector2f(0, 0);
                 Vector2f textureCoord2 = new Vector2f(1, 0);
@@ -243,7 +242,6 @@ public class Water {
                     float[] scales = {1f, 1f, 1f, 0.75f};
                     float[] offsets = new float[4];
                     rop = new RescaleOp(scales, offsets, null);
-                    mat.setBoolean("UseAlpha", true);
                     mat.setTransparent(true);
                     mat.setFloat("AlphaDiscardThreshold", 0.1f);
                     mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
@@ -253,9 +251,9 @@ public class Water {
                 BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey("Textures/" + resource.getName() + "0.png")).openStream());
 
                 // Create image big enough to fit all the frames
-                BufferedImage text =
-                        new BufferedImage(img.getWidth() * frames, img.getHeight(),
-                        BufferedImage.TYPE_INT_ARGB);
+                BufferedImage text
+                        = new BufferedImage(img.getWidth() * frames, img.getHeight(),
+                                BufferedImage.TYPE_INT_ARGB);
                 Graphics2D g = text.createGraphics();
                 g.drawImage(img, rop, 0, 0);
                 for (int x = 1; x < frames; x++) {

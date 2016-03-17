@@ -25,6 +25,7 @@ import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
+import com.jme3.material.plugin.export.material.J3MExporter;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
@@ -57,8 +58,6 @@ import toniarts.openkeeper.animation.Pose;
 import toniarts.openkeeper.animation.PoseTrack;
 import toniarts.openkeeper.animation.PoseTrack.PoseFrame;
 import static toniarts.openkeeper.tools.convert.KmfModelLoader.inputStreamToFile;
-import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEntry;
-import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.kmf.AnimSprite;
 import toniarts.openkeeper.tools.convert.kmf.AnimVertex;
@@ -68,7 +67,8 @@ import toniarts.openkeeper.tools.convert.kmf.MeshSprite;
 import toniarts.openkeeper.tools.convert.kmf.MeshVertex;
 import toniarts.openkeeper.tools.convert.kmf.Triangle;
 import toniarts.openkeeper.tools.convert.kmf.Uv;
-import toniarts.openkeeper.tools.convert.material.MaterialExporter;
+import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEntry;
+import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.modelviewer.ModelViewer;
 
 /**
@@ -101,7 +101,7 @@ public class KmfModelLoader implements AssetLoader {
     public static final String MATERIAL_ALTERNATIVE_TEXTURES_COUNT = "AlternativeTextureCount";
     private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
     /* Already saved materials are stored here */
-    private static HashMap<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
+    private static final HashMap<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
 
     public static void main(final String[] args) throws IOException {
 
@@ -111,23 +111,23 @@ public class KmfModelLoader implements AssetLoader {
         }
 
         AssetInfo ai = new AssetInfo(/*main.getAssetManager()*/null, null) {
-            @Override
-            public InputStream openStream() {
-                try {
-                    final File file = new File(args[0]);
-                    key = new AssetKey() {
-                        @Override
-                        public String getName() {
-                            return file.toPath().getFileName().toString();
+                    @Override
+                    public InputStream openStream() {
+                        try {
+                            final File file = new File(args[0]);
+                            key = new AssetKey() {
+                                @Override
+                                public String getName() {
+                                    return file.toPath().getFileName().toString();
+                                }
+                            };
+                            return new FileInputStream(file);
+                        } catch (FileNotFoundException ex) {
+                            logger.log(Level.SEVERE, null, ex);
                         }
-                    };
-                    return new FileInputStream(file);
-                } catch (FileNotFoundException ex) {
-                    logger.log(Level.SEVERE, null, ex);
-                }
-                return null;
-            }
-        };
+                        return null;
+                    }
+                };
 
         ModelViewer app = new ModelViewer(new File(args[1]), args[0]);
         app.start();
@@ -212,7 +212,6 @@ public class KmfModelLoader implements AssetLoader {
             }
         }
 
-
         return tempFile;
     }
 
@@ -258,38 +257,11 @@ public class KmfModelLoader implements AssetLoader {
             }
 
             // Triangles, we have LODs here
-            VertexBuffer[] lodLevels = new VertexBuffer[meshSprite.getTriangles().size()];
-            for (Entry<Integer, List<Triangle>> triangles : meshSprite.getTriangles().entrySet()) {
-                int[] indexes = new int[triangles.getValue().size() * 3];
-                int x = 0;
-                for (Triangle triangle : triangles.getValue()) {
-                    indexes[x * 3] = triangle.getTriangle()[2];
-                    indexes[x * 3 + 1] = triangle.getTriangle()[1];
-                    indexes[x * 3 + 2] = triangle.getTriangle()[0];
-                    x++;
-                }
-                VertexBuffer buf = new VertexBuffer(Type.Index);
-                buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(indexes));
-                lodLevels[triangles.getKey()] = buf;
-            }
-
-            //Max LOD level triangles
-            List<Integer> faces = new ArrayList<>(meshSprite.getTriangles().get(0).size() * 3);
-            for (Triangle tri : meshSprite.getTriangles().get(0)) {
-                faces.add(Short.valueOf(tri.getTriangle()[2]).intValue());
-                faces.add(Short.valueOf(tri.getTriangle()[1]).intValue());
-                faces.add(Short.valueOf(tri.getTriangle()[0]).intValue());
-            }
-            int[] indexes = new int[faces.size()];
-            int x = 0;
-            for (Integer inte : faces) {
-                indexes[x] = inte;
-                x++;
-            }
+            VertexBuffer[] lodLevels = createIndices(meshSprite.getTriangles());
 
             //Set the buffers
             mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
-            mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indexes));
+            mesh.setBuffer(lodLevels[0]);
             mesh.setLodLevels(lodLevels);
             mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
@@ -333,7 +305,6 @@ public class KmfModelLoader implements AssetLoader {
         for (AnimSprite animSprite : anim.getSprites()) {
 
             // Animation
-
             // Poses for each key frame (aproximate that every 1/3 is a key frame, pessimistic)
             // Note that a key frame may not have all the vertices
             HashMap<Integer, HashMap<KmfModelLoader.FrameInfo, Pose>> poses = new HashMap<>(anim.getFrames() / 3);
@@ -346,7 +317,6 @@ public class KmfModelLoader implements AssetLoader {
             HashMap<Integer, List<KmfModelLoader.FrameInfo>> frameInfos = new HashMap<>(anim.getFrames());
 
             //
-
             //Each sprite represents a geometry (+ mesh) since they each have their own material
             Mesh mesh = new Mesh();
 
@@ -385,7 +355,7 @@ public class KmfModelLoader implements AssetLoader {
                     int lastPose = ((frame >> 7) * 128 + frameBase);
                     int nextPose = ((frame >> 7) * 128 + nextFrameBase);
                     if (!frameInfos.containsKey(frame)) {
-                        frameInfos.put(frame, new ArrayList<KmfModelLoader.FrameInfo>());
+                        frameInfos.put(frame, new ArrayList<>());
                     }
                     KmfModelLoader.FrameInfo frameInfo = new KmfModelLoader.FrameInfo(lastPose, nextPose, geomFactor);
                     int x = Collections.binarySearch(frameInfos.get(frame), frameInfo);
@@ -396,10 +366,10 @@ public class KmfModelLoader implements AssetLoader {
                     // Only make poses from key frames
                     if (frame == lastPose || frame == nextPose) {
                         if (!frameIndices.containsKey(frame)) {
-                            frameIndices.put(frame, new HashMap<KmfModelLoader.FrameInfo, List<Integer>>());
+                            frameIndices.put(frame, new HashMap<>());
                         }
                         if (!frameOffsets.containsKey(frame)) {
-                            frameOffsets.put(frame, new HashMap<KmfModelLoader.FrameInfo, List<Vector3f>>());
+                            frameOffsets.put(frame, new HashMap<>());
                         }
 
                         if (frame == nextPose) { // Last frame
@@ -409,10 +379,10 @@ public class KmfModelLoader implements AssetLoader {
                         }
 
                         if (frameIndices.get(frame).get(frameInfo) == null) {
-                            frameIndices.get(frame).put(frameInfo, new ArrayList<Integer>());
+                            frameIndices.get(frame).put(frameInfo, new ArrayList<>());
                         }
                         if (frameOffsets.get(frame).get(frameInfo) == null) {
-                            frameOffsets.get(frame).put(frameInfo, new ArrayList<Vector3f>());
+                            frameOffsets.get(frame).put(frameInfo, new ArrayList<>());
                         }
                         frameIndices.get(frame).get(frameInfo).add(i);
                         frameOffsets.get(frame).get(frameInfo).add(new Vector3f(coord.x, -coord.z, coord.y));
@@ -421,20 +391,20 @@ public class KmfModelLoader implements AssetLoader {
                     // Add the pose target, we are in the last frame of the frame target
                     if (previousFrame != null && !frameInfo.equals(previousFrame)) {
                         if (!frameIndices.containsKey(frame)) {
-                            frameIndices.put(frame, new HashMap<KmfModelLoader.FrameInfo, List<Integer>>());
+                            frameIndices.put(frame, new HashMap<>());
                         }
                         if (!frameOffsets.containsKey(frame)) {
-                            frameOffsets.put(frame, new HashMap<KmfModelLoader.FrameInfo, List<Vector3f>>());
+                            frameOffsets.put(frame, new HashMap<>());
                         }
 
                         // Create a new frameInfo with weight as 1
                         KmfModelLoader.FrameInfo fi = new KmfModelLoader.FrameInfo(previousFrame.previousPoseFrame, previousFrame.nextPoseFrame, 1f);
 
                         if (frameIndices.get(frame).get(fi) == null) {
-                            frameIndices.get(frame).put(fi, new ArrayList<Integer>());
+                            frameIndices.get(frame).put(fi, new ArrayList<>());
                         }
                         if (frameOffsets.get(frame).get(fi) == null) {
-                            frameOffsets.get(frame).put(fi, new ArrayList<Vector3f>());
+                            frameOffsets.get(frame).put(fi, new ArrayList<>());
                         }
                         frameIndices.get(frame).get(fi).add(i);
                         frameOffsets.get(frame).get(fi).add(new Vector3f(coord.x, -coord.z, coord.y));
@@ -465,7 +435,7 @@ public class KmfModelLoader implements AssetLoader {
             // We have all the animation vertices from a single pose
             for (int frame = 0; frame < anim.getFrames(); frame++) {
                 if (frameIndices.containsKey(frame) && !poses.containsKey(frame)) {
-                    poses.put(frame, new HashMap<KmfModelLoader.FrameInfo, Pose>());
+                    poses.put(frame, new HashMap<>());
                 }
                 if (frameIndices.containsKey(frame)) {
                     for (Entry<KmfModelLoader.FrameInfo, List<Integer>> entry : frameIndices.get(frame).entrySet()) {
@@ -515,40 +485,13 @@ public class KmfModelLoader implements AssetLoader {
             PoseTrack poseTrack = new PoseTrack(index, times, frameList.toArray(new PoseFrame[frameList.size()]));
             poseTracks.add(poseTrack);
 
-            // Triangles, we have LODs here
-            VertexBuffer[] lodLevels = new VertexBuffer[animSprite.getTriangles().size()];
-            for (Entry<Integer, List<Triangle>> triangles : animSprite.getTriangles().entrySet()) {
-                int[] indexes = new int[triangles.getValue().size() * 3];
-                int x = 0;
-                for (Triangle triangle : triangles.getValue()) {
-                    indexes[x * 3] = triangle.getTriangle()[2];
-                    indexes[x * 3 + 1] = triangle.getTriangle()[1];
-                    indexes[x * 3 + 2] = triangle.getTriangle()[0];
-                    x++;
-                }
-                VertexBuffer buf = new VertexBuffer(Type.Index);
-                buf.setupData(VertexBuffer.Usage.Dynamic, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(indexes));
-                lodLevels[triangles.getKey()] = buf;
-            }
-
-            //Max LOD level triangles
-            List<Integer> faces = new ArrayList<>(animSprite.getTriangles().get(0).size() * 3);
-            for (Triangle tri : animSprite.getTriangles().get(0)) {
-                faces.add(Short.valueOf(tri.getTriangle()[2]).intValue());
-                faces.add(Short.valueOf(tri.getTriangle()[1]).intValue());
-                faces.add(Short.valueOf(tri.getTriangle()[0]).intValue());
-            }
-            int[] indexes = new int[faces.size()];
-            int x = 0;
-            for (Integer inte : faces) {
-                indexes[x] = inte;
-                x++;
-            }
+            // Create lod levels
+            VertexBuffer[] lodLevels = createIndices(animSprite.getTriangles());
 
             //Set the buffers
             mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
             mesh.setBuffer(Type.BindPosePosition, 3, BufferUtils.createFloatBuffer(vertices));
-            mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indexes));
+            mesh.setBuffer(lodLevels[0]);
             mesh.setLodLevels(lodLevels);
             mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
@@ -572,6 +515,42 @@ public class KmfModelLoader implements AssetLoader {
 
         //Attach the node to the root
         root.attachChild(node);
+    }
+
+    private VertexBuffer[] createIndices(final HashMap<Integer, List<Triangle>> trianglesMap) {
+
+        // Triangles are not in order, sometimes they are very random, many missing etc.
+        // For JME 3.0 this was somehow ok, but JME 3.1 doesn't do some automatic organizing etc.
+        // Assume that if first LOD level is null, there are no LOD levels, instead the mesh should be just point mesh
+        // I tried ordering them etc. but it went worse (3DFE_GemHolder.kmf is a good example)
+        //
+        // Ultimately all failed, now just instead off completely empty buffers, put one 0 there, seems to have done the trick
+        //
+        // Triangles, we have LODs here
+        VertexBuffer[] lodLevels = new VertexBuffer[trianglesMap.size()];
+        for (Entry<Integer, List<Triangle>> triangles : trianglesMap.entrySet()) {
+            if (!triangles.getValue().isEmpty()) {
+                int[] indexes = new int[triangles.getValue().size() * 3];
+                int x = 0;
+                for (Triangle triangle : triangles.getValue()) {
+                    indexes[x * 3] = triangle.getTriangle()[2];
+                    indexes[x * 3 + 1] = triangle.getTriangle()[1];
+                    indexes[x * 3 + 2] = triangle.getTriangle()[0];
+                    x++;
+                }
+                VertexBuffer buf = new VertexBuffer(Type.Index);
+                buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(indexes));
+                lodLevels[triangles.getKey()] = buf;
+            } else {
+
+                // Need to create this seemingly empty buffer
+                VertexBuffer buf = new VertexBuffer(Type.Index);
+                buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(new int[]{0}));
+                lodLevels[triangles.getKey()] = buf;
+
+            }
+        }
+        return lodLevels;
     }
 
     /**
@@ -741,7 +720,6 @@ public class KmfModelLoader implements AssetLoader {
                 String textureEntry = texture.concat("MM0");
                 EngineTextureEntry engineTextureEntry = engineTextureFile.getEntry(textureEntry);
                 if (engineTextureEntry != null && engineTextureEntry.isAlphaFlag()) {
-                    material.setBoolean("UseAlpha", true);
                     material.setFloat("AlphaDiscardThreshold", 0.1f);
                     material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
 
@@ -794,9 +772,13 @@ public class KmfModelLoader implements AssetLoader {
                     m.setName(mat.getName());
                     m.setKey(new MaterialKey(materialKey));
 
+                    // Workaround to: https://github.com/jMonkeyEngine/jmonkeyengine/issues/453
+                    m.getAdditionalRenderState();
+
                     // Save
-                    MaterialExporter exporter = new MaterialExporter();
-                    exporter.save(m, new File(materialLocation));
+                    File materialFile = new File(materialLocation);
+                    J3MExporter exporter = new J3MExporter();
+                    exporter.save(m, materialFile);
 
                     // Put the first one to the cache
                     if (k == 0) {

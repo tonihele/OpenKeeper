@@ -116,7 +116,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             @Override
             protected boolean isVisible() {
 
-                if (!startSet && !PlayerInteractionState.this.app.isDebug()) {
+                if (!startSet && !Main.isDebug()) {
 
                     // Selling is always visible, and the only thing you can do
                     // When building, you can even tag taggables
@@ -284,7 +284,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
 
             Vector2f pos = handler.getRoundedMousePos();
-            if (interactionState == InteractionState.NONE && app.isDebug()) {
+            if (interactionState == InteractionState.NONE && Main.isDebug()) {
 
                 // Debug
                 // taggable -> "dig"
@@ -315,7 +315,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
         } else if (evt.getButtonIndex() == MouseInput.BUTTON_MIDDLE && evt.isReleased()) {
             Vector2f pos = handler.getRoundedMousePos();
-            if (app.isDebug()) {
+            if (Main.isDebug()) {
                 getWorldHandler().claimTile((int) pos.x, (int) pos.y, player);
             }
         }
@@ -437,7 +437,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         }
 
         // If debug, show tile coordinate
-        if (PlayerInteractionState.this.app.isDebug()) {
+        if (Main.isDebug()) {
             StringBuilder sb = new StringBuilder();
             Point p;
             if (controller != null) {

@@ -19,7 +19,7 @@ package toniarts.openkeeper.gui.nifty.table;
 import de.lessvoid.nifty.builder.ControlBuilder;
 
 /**
- * Builder fo table
+ * Builder for table
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -35,6 +35,10 @@ public class TableBuilder extends ControlBuilder {
             set("col" + i, col.toString());
             i++;
         }
+
+        // Some default settings
+        set("horizontal", "off");
+        set("viewConverterClass", TableRowViewConverter.class.getName());
     }
 
     public void displayItems(final int displayItems) {

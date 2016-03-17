@@ -132,6 +132,11 @@ public final class PoseTrack implements Track, ClonableTrack {
     }
 
     @Override
+    public float[] getKeyFrameTimes() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
     public Track cloneForSpatial(Spatial spatial) {
         PoseTrack track = new PoseTrack(targetMeshIndex, times, frames);
         return track;

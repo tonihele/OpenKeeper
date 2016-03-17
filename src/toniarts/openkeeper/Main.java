@@ -467,7 +467,7 @@ public class Main extends SimpleApplication {
 
                 // FIXME: We need ambient light, but it may be different for different states. There just seems to be a bug in BatchNodes concerning the removal of the light. So this is temporary perhaps
                 AmbientLight al = new AmbientLight();
-                al.setColor(ColorRGBA.White.multLocal(5f));
+                al.setColor(ColorRGBA.White);
                 rootNode.addLight(al);
 
                 if (params.containsKey("nomovies") || params.containsKey("level")) {
@@ -674,10 +674,21 @@ public class Main extends SimpleApplication {
                     getAudioRenderer(),
                     getGuiViewPort());
 
+            // Unfortunate Nifty hack, see https://github.com/nifty-gui/nifty-gui/issues/414
+            nifty.getNifty().setLocale(Locale.ROOT);
+
             // Attach the nifty display to the gui view port as a processor
             getGuiViewPort().addProcessor(nifty);
         }
         return nifty;
+    }
+
+    @Override
+    public void stop() {
+        super.stop();
+
+        // https://github.com/jMonkeyEngine/jmonkeyengine/issues/330 :(
+        System.exit(0);
     }
 
     /**
