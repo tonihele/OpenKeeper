@@ -39,6 +39,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Spatial;
 import com.jme3.system.AppSettings;
 import com.jme3.system.JmeSystem;
+import de.lessvoid.nifty.render.batch.BatchRenderConfiguration;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
@@ -668,11 +669,19 @@ public class Main extends SimpleApplication {
     public NiftyJmeDisplay getNifty() {
         if (nifty == null) {
 
+            // Batching
+            BatchRenderConfiguration config = new BatchRenderConfiguration();
+            config.atlasHeight = 2048;
+            config.atlasWidth = 2048;
+            config.fillRemovedImagesInAtlas = false;
+            config.disposeImagesBetweenScreens = false;
+            config.useHighQualityTextures = true;
+
             // Init Nifty
-            nifty = new NiftyJmeDisplay(assetManager,
+            nifty = NiftyJmeDisplay.newNiftyJmeDisplay(assetManager,
                     inputManager,
                     getAudioRenderer(),
-                    getGuiViewPort());
+                    getGuiViewPort(), config);
 
             // Unfortunate Nifty hack, see https://github.com/nifty-gui/nifty-gui/issues/414
             nifty.getNifty().setLocale(Locale.ROOT);

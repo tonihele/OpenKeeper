@@ -425,7 +425,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                         // Convert the new image to a texture, and add a dummy cached entry to the asset manager
                         AWTLoader loader = new AWTLoader();
                         Texture tex = new Texture2D(loader.load(newImage, false));
-                        ((DesktopAssetManager) assetManager).addToCache(new TextureKey("HUDBackground"), tex);
+                        ((DesktopAssetManager) assetManager).addToCache(new TextureKey("HUDBackground", false), tex);
 
                         // Add the scaled one
                         NiftyImage niftyImage = nifty.createImage("HUDBackground", true);

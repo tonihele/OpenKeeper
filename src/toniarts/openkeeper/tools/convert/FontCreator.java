@@ -46,7 +46,9 @@ public abstract class FontCreator {
 
         // Write the header description
         StringBuilder sb = new StringBuilder(1000);
-        sb.append("info face=\"DungeonKeeperII\" ");
+        sb.append("info face=\"");
+        sb.append(getFileName().substring(0, getFileName().length() - 4)); // For current Nifty batching the face needs to be unique
+        sb.append("\" ");
         sb.append("size=");
         sb.append(getFontSize());
         sb.append(" ");
