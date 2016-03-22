@@ -30,7 +30,7 @@
     <style id="menuTitleText">
         <attributes font="Interface/Fonts/Frontend36.fnt" color="#ff5f00" />
     </style>
-    
+
      <style id="menuSubTitleText">
         <attributes font="Interface/Fonts/Frontend20.fnt" color="#ffdd33" />
     </style>
@@ -57,38 +57,38 @@
             <panel height="20%" childLayout="center" valign="center" align="center">
                 <image filename="Textures/Logo.png" align="center" />
             </panel>
-            
+
             <panel childLayout="center" height="*" align="center" valign="center">
-                <panel childLayout="vertical" align="center" valign="center" visibleToMouse="true">            
+                <panel childLayout="vertical" align="center" valign="center" visibleToMouse="true">
                     <text style="menuText" text="${menu.71}" align="center">
                         <interact onClick="goToScreen(singlePlayer)" />
-                    </text>              
+                    </text>
                     <text style="menuText" text="${menu.72}" align="center">
                         <interact onClick="doTransition(271,multiplayer,273)" />
-                    </text>              
+                    </text>
                     <text style="menuText" text="${menu.1675}" align="center">
                         <interact onClick="doTransition(262,myPetDungeon,264)" />
                     </text>
-                    
+
                     <text style="text" text="" align="center" /><!-- empty string -->
-                               
+
                     <text style="menuText" text="${menu.94}" align="center">
                         <interact onClick="doTransition(256,optionsMain,258)" />
                     </text>
                     <text style="menuText" text="${menu.73}" align="center">
                         <interact onClick="doTransition(259,extras,261)" />
                     </text>
-                    
+
                     <text style="text" text="" align="center" /><!-- empty string -->
-                    
+
                     <text style="menuText" text="${menu.28}" align="center">
                         <interact onClick="goToScreen(quitGame)" />
                     </text>
-                </panel>  
-            </panel>          
-            
+                </panel>
+            </panel>
+
             <panel align="right" valign="bottom" childLayout="vertical" paddingRight="10px">
-                <text style="text" text="*PRE-ALPHA*" align="center"/>    
+                <text style="text" text="*PRE-ALPHA*" align="center"/>
                 <text style="text" text="Open Source Edition" align="center"/>
             </panel>
         </layer>
@@ -102,19 +102,19 @@
             <panel height="14%" childLayout="center" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.71}" align="center" />
             </panel>
-            
+
             <panel childLayout="center" height="*" align="center" valign="center">
                 <panel childLayout="vertical" align="center" valign="center" visibleToMouse="true">
                     <text id="newCampaign" style="menuText" text="${menu.140}" align="center" />
                     <text style="menuText" text="${menu.2059}" align="center">
                         <interact onClick="doTransition(251,selectCampaignLevel,null)" />
                     </text>
-                    
+
                     <text style="text" text="" align="center" /><!-- empty string -->
-                           
+
                     <text style="menuText" text="${menu.141}" align="center">
                         <interact onClick="doTransition(271,skirmish,273)" />
-                    </text>              
+                    </text>
                     <text id="loadGame" style="menuText" text="${menu.145}" align="center" />
                 </panel>
             </panel>
@@ -158,7 +158,7 @@
     <!-- Campaign level briefing -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="campaign" controller="toniarts.openkeeper.game.state.MainMenuState">
-        <layer childLayout="vertical"> 
+        <layer childLayout="vertical">
             <panel childLayout="center" align="center" valign="center" height="14%">
                 <text style="menuTitleText" text="${menu.1476}" align="center" />
             </panel>
@@ -166,7 +166,7 @@
             <panel childLayout="center" align="center" valign="center">
                 <control name="label" id="levelTitle" style="menuSubTitleText" align="center" />
             </panel>
-            
+
             <panel height="26px" />
             <!--Main objectives-->
             <panel childLayout="horizontal" width="100%" align="center" valign="center">
@@ -178,12 +178,12 @@
                         <text align="left" margin="0,8px" id="mainObjectivesTitle" style="menuSubTitleText" text="${menu.1408}" />
                     </panel>
                     <panel childLayout="vertical" backgroundColor="#0008" marginTop="4px">
-                        <control name="label" style="menuTextSmall" margin="0,8px" id="mainObjective" 
+                        <control name="label" style="menuTextSmall" margin="0,8px" id="mainObjective"
                                  textHAlign="left" textVAlign="top" wrap="true" />
                     </panel>
                 </panel>
             </panel>
-            
+
             <panel height="10px" />
             <!--Subobjectives-->
             <panel childLayout="horizontal" id="subObjectivePanel" width="100%" align="center" valign="center">
@@ -195,7 +195,7 @@
                         <text align="left" margin="0,8px" id="subObjectivesTitle" style="menuSubTitleText" text="${menu.1409}" />
                     </panel>
                     <panel childLayout="vertical" backgroundColor="#0008" marginTop="8px">
-                        <control name="label" style="menuTextSmall" id="subObjective1"  margin="0,8px" 
+                        <control name="label" style="menuTextSmall" id="subObjective1"  margin="0,8px"
                                  textHAlign="left" wrap="true" />
                         <control name="label" style="menuTextSmall" id="subObjective2"  margin="0,8px"
                                  textHAlign="left" wrap="true" />
@@ -204,12 +204,12 @@
                     </panel>
                 </panel>
             </panel>
-            
-            <panel height="*" /> 
-            
+
+            <panel height="*" />
+
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control name="cancelButton" click="cancelLevelSelect()" />
-                <control name="okButton" click="startCampaignLevel()" />
+                <control name="okButton" click="startLevel(campaign)" />
             </panel>
         </layer>
     </screen>
@@ -222,7 +222,7 @@
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.94}" align="center" />
             </panel>
-  
+
             <panel childLayout="center" height="*" align="center" valign="center">
                 <panel childLayout="vertical" align="center" valign="center">
                     <text style="menuText" text="${menu.96}" align="center">
@@ -234,7 +234,7 @@
                     <text style="menuText" text="${menu.98}" align="center" >
                         <interact onClick="goToScreen(optionsControl)" />
                     </text>
-                </panel>     
+                </panel>
             </panel>
 
             <panel childLayout="horizontal" align="right" valign="bottom">
@@ -250,8 +250,8 @@
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.96}" align="center" />
-            </panel>            
-            
+            </panel>
+
             <panel childLayout="horizontal" height="*" valign="center" align="center">
                 <!--Left side options panel-->
                 <panel childLayout="vertical" align="left" valign="top" padding="10px">
@@ -291,8 +291,8 @@
                         <control width="100px" name="dropDown" id="anisotropicFiltering" />
                     </panel>
                 </panel>
-            </panel>            
-            
+            </panel>
+
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control name="cancelButton" click="goToScreen(optionsMain)" />
                 <control name="okButton" click="applyGraphicsSettings()" />
@@ -308,11 +308,11 @@
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.95}" align="center" />
             </panel>
-            
+
             <panel width="100%" height="*" childLayout="center" align="center" valign="center">
                 <text style="menuTextSmall" text="Not ready yet" />
             </panel>
-            
+
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control name="cancelButton" click="goToScreen(optionsMain)" />
                 <control name="okButton" click="goToScreen(optionsMain)" />
@@ -328,45 +328,45 @@
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.98}" align="center" />
             </panel>
-            
+
             <panel width="90%" childLayout="vertical" align="center">
-            
+
                 <panel width="100%" height="100%" childLayout="vertical" align="center" valign="center">
-                    <control id="keyboardSetup" name="table" vertical="on" displayItems="5" selection="Single" 
+                    <control id="keyboardSetup" name="table" vertical="on" displayItems="5" selection="Single"
                              colCount="2"
                              col0="${menu.2845};55;java.lang.String;#32050c30"
                              col1="${menu.2846};45;java.lang.String;#32050c30"
                     />
                 </panel>
-                
+
                 <panel align="center" valign="center" childLayout="horizontal" padding="10px,10px">
-                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px">                        
-                        <text style="menuTextSmall" text="${menu.1466}" width="100%" />     
-                        <control id="mouseSensitivity" name="horizontalSlider" min="0.5" max="2" 
-                                 initial="0.7" stepSize="0.1" buttonStepSize="0.1"/>                        
+                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px">
+                        <text style="menuTextSmall" text="${menu.1466}" width="100%" />
+                        <control id="mouseSensitivity" name="horizontalSlider" min="0.5" max="2"
+                                 initial="0.7" stepSize="0.1" buttonStepSize="0.1"/>
                     </panel>
-                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px">                        
+                    <panel childLayout="vertical" align="center" width="50%" padding="0px,20px">
                         <text style="menuTextSmall" text="${menu.1469}" width="100%" />
-                        <control id="gameSpeed" name="horizontalSlider" min="0.25" max="4" 
+                        <control id="gameSpeed" name="horizontalSlider" min="0.25" max="4"
                                  initial="1.0" stepSize="0.25" buttonStepSize="0.25"/>
                     </panel>
-                </panel>    
-                
+                </panel>
+
                 <panel align="center" valign="center" childLayout="horizontal" padding="10px,10px">
-                    <panel childLayout="horizontal" align="center" valign="bottom" width="50%" padding="0px,20px">                        
+                    <panel childLayout="horizontal" align="center" valign="bottom" width="50%" padding="0px,20px">
                         <control name="checkbox" id="invertMouse" />
-                        <text style="menuTextSmall" text=" ${menu.2840}" />                                               
+                        <text style="menuTextSmall" text=" ${menu.2840}" />
                     </panel>
                     <panel childLayout="vertical" align="center" width="50%" padding="0px,20px">
                         <text style="menuTextSmall" text="${menu.1468}" width="100%" />
-                        <control id="scrollSpeed" name="horizontalSlider" min="0.25" max="4" 
+                        <control id="scrollSpeed" name="horizontalSlider" min="0.25" max="4"
                                  initial="1.0" stepSize="0.25" buttonStepSize="0.25"/>
                     </panel>
-                </panel>   
+                </panel>
             </panel>
-            
-            <panel height="*" /> 
-            
+
+            <panel height="*" />
+
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control name="cancelButton" click="goToScreen(optionsMain)" />
                 <control name="okButton" click="goToScreen(optionsMain)" />
@@ -382,8 +382,8 @@
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.73}" align="center" />
             </panel>
-            
-            <panel childLayout="vertical" height="25%" align="center" visibleToMouse="true">                
+
+            <panel childLayout="vertical" height="25%" align="center" visibleToMouse="true">
                 <text style="menuText" text="${menu.2802}" align="center">
                     <interact onClick="goToScreen(hiscores)" />
                 </text>
@@ -391,10 +391,10 @@
                     <interact onClick="goToScreen(movies)" />
                 </text>
             </panel>
-            
+
             <panel height="5%" />
-            
-            <panel childLayout="vertical" height="*" align="center" visibleToMouse="true">                
+
+            <panel childLayout="vertical" height="*" align="center" visibleToMouse="true">
                 <text style="menuText" text="${menu.86}" align="center">
                     <interact onClick="playMovie(trailer)" />
                 </text>
@@ -403,7 +403,7 @@
                     <interact onClick="doTransition(265,credits,null)" />
                 </text>
             </panel>
-            
+
             <panel childLayout="vertical" align="right" valign="bottom">
                 <control click="doTransition(260,start,274)" name="okButton" />
             </panel>
@@ -436,7 +436,7 @@
                 <text style="menuTitleText" text="${menu.93}" />
             </panel>
 
-            <control id="moviePanel" name="scrollPanel" align="center" valign="center" 
+            <control id="moviePanel" name="scrollPanel" align="center" valign="center"
                      horizontal="false" height="*" width="80%">
                 <panel id="movieList" childLayout="vertical">
                     <!-- placeholder for movies -->
@@ -458,7 +458,7 @@
             <panel width="100%" height="*" childLayout="center" align="center" valign="center">
                 <text width="80%" style="menuText" align="center" text="${menu.2805}" wrap="true" />
             </panel>
-            
+
             <panel childLayout="center" align="right" valign="bottom">
                 <control name="okButton" click="goToScreen(movies)" />
             </panel>
@@ -492,12 +492,165 @@
             </panel>
 
             <panel height="*" align="center" valign="center" childLayout="center" visibleToMouse="true">
-                <text style="menuTextSmall" text="Not ready yet" align="center"/>
+                <panel childLayout="vertical" align="center" valign="center">
+                    <text style="menuText" text="${menu.168}" align="center">
+                        <interact onClick="goToScreen(multiplayerLocal)" />
+                    </text>
+
+                    <text style="menuText" text="${menu.2729}" align="center">
+                        <interact onClick="goToScreen(multiplayerWatch)" />
+                    </text>
+                </panel>
             </panel>
 
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control name="cancelButton" click="doTransition(272,start,274)" />
-                <control name="okButton" />
+            </panel>
+        </layer>
+    </screen>
+
+    <screen id="multiplayerLocal" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer childLayout="vertical">
+           <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.168}" />
+            </panel>
+
+            <panel height="*" align="center" valign="center" childLayout="vertical" visibleToMouse="true">
+                <panel align="center" valign="center" childLayout="horizontal" width="100%">
+                    <panel align="center" valign="center" childLayout="vertical" width="70%">
+                        <text style="menuTitleText" text="${menu.157}" align="center" />
+                        <control id="multiplayerPlayersTable" name="table" vertical="optional" displayItems="8" selection="Single"
+                                 colCount="4"
+                                 col0="${menu.1393};34;java.lang.String;#32050c30"
+                                 col1="${menu.194};33;java.lang.String;#32050c30"
+                                 col2="${menu.533};11;java.lang.String;#00752430"
+                                 col3=";11;java.lang.String;#00779e30"
+                        />
+                        <text style="menuTitleText" text="${menu.1557}" align="center" />
+                    </panel>
+                    <panel align="center" valign="top" childLayout="vertical">
+                        <text style="menuTitleText" text="${menu.1688}" align="center" />
+                        <control name="textfield" id="playerName" text="Player" maxLength="20" align="center" />
+                        <text style="menuTitleText" text="${menu.1393}" align="center" />
+                        <control name="textfield" id="gameName" text="OpenKeeper" maxLength="20" align="center" />
+                        <text style="menuTitleText" text="${menu.236}" align="center" />
+                        <control name="textfield" id="gamePort" text="7575" maxLength="20" align="center" />
+                    </panel>
+                </panel>
+                <panel align="center" valign="center" childLayout="horizontal" width="100%" height="*">
+                    <panel height="*" align="center" valign="bottom" childLayout="horizontal" width="70%">
+                        <panel height="*" align="center" childLayout="center" width="50%">
+                            <text style="menuText" text="${menu.216}">
+                                <interact onClick="multiplayerRefresh" />
+                            </text>
+                        </panel>
+                        <panel height="*" align="center" childLayout="center" width="*">
+                            <text style="menuText" text="${menu.1403}">
+                                <!--<interact onClick="goToScreen(multiplayerFavorites)" />-->
+                            </text>
+                        </panel>
+                    </panel>
+                    <panel height="*" align="center" valign="bottom" childLayout="center" width="*">
+                        <text style="menuText" text="${menu.158}">
+                            <interact onClick="goToScreen(multiplayerCreate)" />
+                        </text>
+                    </panel>
+                </panel>
+            </panel>
+
+            <panel childLayout="horizontal" align="right" valign="bottom">
+                <control name="cancelButton" click="goToScreen(multiplayer)" />
+            </panel>
+        </layer>
+    </screen>
+
+    <screen id="multiplayerWatch" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer childLayout="vertical">
+           <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.2729}" />
+            </panel>
+
+            <panel height="*" align="center" valign="center" childLayout="center" visibleToMouse="true">
+
+            </panel>
+
+            <panel childLayout="horizontal" align="right" valign="bottom">
+                <control name="cancelButton" click="goToScreen(multiplayer)" />
+            </panel>
+        </layer>
+    </screen>
+
+    <screen id="multiplayerCreate" controller="toniarts.openkeeper.game.state.MainMenuState">
+        <layer childLayout="vertical">
+           <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.2729}" />
+            </panel>
+            
+            <!--Two panels, left the game stuff, right the map selection stuff-->
+            <panel width="95%" childLayout="horizontal" align="center" valign="center">
+                <panel width="66%" childLayout="vertical" align="center" valign="top" paddingRight="5%">
+                    <control id="playersTable" name="table" vertical="optional" displayItems="4" selection="Single"
+                             colCount="5"
+                             col0="${menu.1688};34;java.lang.String;#32050c30"
+                             col1=";33;java.lang.String;#32050c30"
+                             col2=";11;java.lang.String;#00752430"
+                             col3=";11;java.lang.String;#00779e30"
+                             col4=";11;java.lang.String;#00752430"
+                    />
+                </panel>
+                <panel width="*" childLayout="vertical" align="center" valign="top">
+                    <panel backgroundColor="#f508" width="100%" childLayout="center" marginBottom="8px">
+                        <control name="label" align="center" id="mapNameTitle" style="menuTextSmall" />
+                    </panel>
+                    <panel childLayout="horizontal" valign="center" align="center">
+                        <text style="menuTextSmall" text="${menu.1492}" />
+                        <control name="label" id="playerCount" style="menuTextSmall" />
+                    </panel>
+                    <image align="center" id="mapImage" />
+                </panel>
+            </panel>
+            <!--Two panels, left the game stuff, right the map selection stuff-->
+            <panel width="95%" childLayout="horizontal" align="center" valign="center" paddingTop="10px">
+
+                <panel width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
+                    <panel width="100%" childLayout="horizontal">
+                        <panel width="50%" childLayout="vertical">
+                            <text style="menuText" text="${menu.270}" align="left">
+                                <!--<interact onClick="kickPlayer()" />-->
+                            </text>
+                        </panel>
+                        <panel width="50%" childLayout="vertical">
+                            <text style="menuText" text="${menu.2121}" align="center">
+                                <!--<interact onClick="changeAI()" />-->
+                            </text>
+                            <text style="menuText" text="${menu.1547}" align="center">
+                                <!--<interact onClick="addComputerPlayer()" />-->
+                            </text>
+                        </panel>
+                    </panel>
+                    <panel height="*" align="center" valign="bottom" childLayout="center" visibleToMouse="true">
+                        <control id="multiplayerChat" name="nifty-chat" width="100%" height="100%" lines="5" sendLabel="Send Message" />
+                    </panel>
+                </panel>
+                <panel width="*" childLayout="vertical" align="center" valign="top">
+                    <text style="menuText" text="${menu.1495}" align="center">
+                        <interact onClick="selectMap(multiplayerCreate)" />
+                    </text>
+                    <text style="menuText" text="${menu.1496}" align="center">
+                        <interact onClick="selectRandomMap(multiplayer)" />
+                    </text>
+                    <text style="menuText" text="${menu.2803}" align="center">
+                        <!--<interact onClick="gameSettings()" />-->
+                    </text>
+                </panel>
+
+            </panel>
+
+            <panel height="*" />
+
+            <panel childLayout="horizontal" align="right" valign="bottom">
+                <control name="okButton" click="startLevel(multiplayer)" />
+                <control name="cancelButton" click="goToScreen(multiplayerLocal)" />
             </panel>
         </layer>
     </screen>
@@ -550,8 +703,8 @@
                 <text style="menuTitleText" text="${menu.141}" />
             </panel>
             <!--Two panels, left the game stuff, right the map selection stuff-->
-            <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center">
-                <panel id="playersPanel" width="66%" childLayout="vertical" align="center" valign="top" paddingRight="5%">
+            <panel width="95%" childLayout="horizontal" align="center" valign="center">
+                <panel width="66%" childLayout="vertical" align="center" valign="top" paddingRight="5%">
                     <control id="playersTable" name="table" vertical="optional" displayItems="4" selection="Single"
                              colCount="5"
                              col0="${menu.1688};34;java.lang.String;#32050c30"
@@ -568,14 +721,14 @@
                     <panel childLayout="horizontal" valign="center" align="center">
                         <text style="menuTextSmall" text="${menu.1492}" />
                         <control name="label" id="playerCount" style="menuTextSmall" />
-                    </panel>                    
-                    <image align="center" id="mapImage" />                    
+                    </panel>
+                    <image align="center" id="mapImage" />
                 </panel>
             </panel>
             <!--Two panels, left the game stuff, right the map selection stuff-->
-            <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center" paddingTop="10px">
+            <panel width="95%" childLayout="horizontal" align="center" valign="center" paddingTop="10px">
 
-                <panel id="playersPanel" width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
+                <panel width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
                     <panel width="100%" childLayout="horizontal">
                         <panel width="50%" childLayout="vertical">
                             <text style="menuText" text="${menu.270}" align="left">
@@ -592,12 +745,12 @@
                         </panel>
                     </panel>
                 </panel>
-                <panel width="*" childLayout="vertical" align="center" valign="top">                    
+                <panel width="*" childLayout="vertical" align="center" valign="top">
                     <text style="menuText" text="${menu.1495}" align="center">
                         <interact onClick="selectMap(skirmish)" />
                     </text>
                     <text style="menuText" text="${menu.1496}" align="center">
-                        <interact onClick="selectRandomSkirmishMap()" />
+                        <interact onClick="selectRandomMap(skirmish)" />
                     </text>
                     <text style="menuText" text="${menu.2803}" align="center">
                         <!--<interact onClick="gameSettings()" />-->
@@ -610,7 +763,7 @@
 
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control name="cancelButton" click="doTransition(272,singlePlayer,274)" />
-                <control name="okButton" click="startSkirmishLevel()" />
+                <control name="okButton" click="startLevel(skirmish)" />
             </panel>
         </layer>
     </screen>
@@ -627,7 +780,7 @@
             <panel id="skirmishPanel" width="95%" childLayout="horizontal" align="center" valign="center">
 
                 <panel id="mapsPanel" width="66%" childLayout="vertical" align="center" valign="top" paddingRight="5%">
-                    <control id="mapsTable" name="table" vertical="on" displayItems="8" 
+                    <control id="mapsTable" name="table" vertical="on" displayItems="8"
                              selection="Single" forceSelection="true" colCount="3"
                              col0="${menu.1544};50;java.lang.String;#32050c30"
                              col1="${menu.2960};25;java.lang.String;#32050c30"
@@ -641,9 +794,9 @@
                     <panel childLayout="horizontal" valign="center" align="center">
                         <text style="menuTextSmall" text="${menu.1492}" />
                         <control name="label" id="playerCount" style="menuTextSmall" />
-                    </panel>                    
+                    </panel>
                     <image id="mapImage" align="center" />
-                    <control name="label" id="mapSize" style="menuTextSmall" align="center"/>                    
+                    <control name="label" id="mapSize" style="menuTextSmall" align="center"/>
                 </panel>
             </panel>
 
