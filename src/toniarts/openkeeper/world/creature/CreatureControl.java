@@ -30,6 +30,7 @@ import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.task.type.AbstractTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -78,6 +80,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     private int idleAnimationPlayCount = 1;
     private final String tooltip;
     private float lastAttributeUpdateTime = 0;
+    private AbstractTask assignedTask;
 
     public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldState worldState) {
         super(creature);
@@ -162,6 +165,12 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
 
     public void idle() {
 
+        // See if we have some available work
+        if (worldState.getTaskManager().assignTask(this, false)) {
+            stateMachine.changeState(CreatureState.WORK);
+            return; // Found work
+        }
+
         // Find a random accessible tile nearby and do some idling there
         if (idleAnimationPlayCount > 0) {
             navigateToRandomPoint();
@@ -208,7 +217,8 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
      * @return stop or not
      */
     boolean isStopAnimation() {
-        return (steeringBehavior == null);
+        // FIXME: not very elegant to check this way
+        return (steeringBehavior == null || (stateMachine.getCurrentState() == CreatureState.WORK && isAssignedTaskValid()));
     }
 
     /**
@@ -238,12 +248,22 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
      */
     void onAnimationCycleDone() {
 
+        if (stateMachine.getCurrentState() == CreatureState.WORK) {
+
+            // FIXME: now fixed
+            // Apply damage
+            worldState.damageTile(assignedTask.getTaskLocation(), creature.getMeleeDamage());
+        }
     }
 
     private void playStateAnimation() {
         if (!animationPlaying) {
             if (steeringBehavior != null) {
                 playAnimation(creature.getAnimWalkResource());
+            } else if (stateMachine.getCurrentState() == CreatureState.WORK) {
+
+                // FIXME: yep
+                playAnimation(creature.getAnimMelee1Resource());
             } else {
                 List<ArtResource> idleAnimations = new ArrayList<>(3);
                 if (creature.getAnimIdle1Resource() != null) {
@@ -324,6 +344,47 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
                 //TODO: other leveling stuff, max levels etc.
             }
         }
+    }
+
+    public short getOwnerId() {
+        return ownerId;
+    }
+
+    public void navigateToAssignedTask() {
+
+        Vector2f loc = assignedTask.getTarget(this);
+        GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), creature);
+
+        if (outPath.getCount() > 1) {
+
+            // Debug
+//                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
+            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+            FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(pathToArray(outPath), true), 2);
+            followPath.setDecelerationRadius(1f);
+            followPath.setArrivalTolerance(0.2f);
+            prioritySteering.add(followPath);
+
+            setSteeringBehavior(prioritySteering);
+        }
+    }
+
+    public void setAssignedTask(AbstractTask task) {
+        assignedTask = task;
+    }
+
+    public Creature getCreature() {
+        return creature;
+    }
+
+    public boolean isAtAssignedTaskTarget() {
+        // FIXME: not like this, universal solution
+        return (steeringBehavior == null);
+    }
+
+    public boolean isAssignedTaskValid() {
+        // FIXME: yep
+        return true;
     }
 
 }

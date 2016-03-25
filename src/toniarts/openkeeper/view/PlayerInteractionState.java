@@ -163,7 +163,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
                     // Determine if this is a select/deselect by the starting tile's status
                     boolean select = !getWorldHandler().isSelected((int) Math.max(0, selectionArea.getActualStartingCoordinates().x), (int) Math.max(0, selectionArea.getActualStartingCoordinates().y));
-                    getWorldHandler().selectTiles(selectionArea, select);
+                    getWorldHandler().selectTiles(selectionArea, select, player.getPlayerId());
                 } else if (PlayerInteractionState.this.interactionState == InteractionState.ROOM && getWorldHandler().isBuildable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player, gameState.getLevelData().getRoomById(itemId))) {
                     getWorldHandler().build(selectionArea, player, gameState.getLevelData().getRoomById(itemId));
                 } else if (PlayerInteractionState.this.interactionState == InteractionState.SELL) {

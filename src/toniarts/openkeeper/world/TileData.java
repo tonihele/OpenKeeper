@@ -31,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
 public final class TileData extends Tile {
 
     private boolean selected = false;
+    private short selectedByPlayerId = 0;
     private Integer randomTextureIndex;
     private Terrain terrain;
     private int health;
@@ -65,8 +66,17 @@ public final class TileData extends Tile {
         return selected;
     }
 
-    protected void setSelected(boolean selected) {
+    protected void setSelected(boolean selected, short playerId) {
         this.selected = selected;
+        selectedByPlayerId = playerId;
+    }
+
+    public short getSelectedByPlayerId() {
+        return selectedByPlayerId;
+    }
+
+    public boolean isSelectedByPlayerId(short playerId) {
+        return (selected && selectedByPlayerId == playerId);
     }
 
     @Override
@@ -78,8 +88,11 @@ public final class TileData extends Tile {
     protected void setTerrainId(short terrainId) {
         super.setTerrainId(terrainId);
         if (terrain.getTerrainId() != terrainId) {
+
+            // A change
             terrain = kwdFile.getTerrain(getTerrainId());
             setAttributesFromTerrain();
+            setSelected(false, (short) 0);
         }
     }
 
@@ -138,6 +151,17 @@ public final class TileData extends Tile {
 
     protected Integer getHealthPercent() {
         return Math.round((float) health / terrain.getMaxHealth() * 100);
+    }
+
+    /**
+     * Apply damage to the tile
+     *
+     * @param damage amount of damage
+     * @return true if the tile is "dead"
+     */
+    public boolean applyDamage(int damage) {
+        health -= damage;
+        return (health <= 0);
     }
 
 }

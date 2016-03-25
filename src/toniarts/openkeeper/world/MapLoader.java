@@ -1026,7 +1026,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         return null;
     }
 
-    protected Point[] getSurroundingTiles(Point point, boolean diagonal) {
+    public Point[] getSurroundingTiles(Point point, boolean diagonal) {
 
         // Get all surrounding tiles
         List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);

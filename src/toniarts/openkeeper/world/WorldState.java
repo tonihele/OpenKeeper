@@ -44,7 +44,9 @@ import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
+import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -58,6 +60,7 @@ import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
 import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
 import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
+import toniarts.openkeeper.world.listener.TileChangeListener;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
@@ -80,6 +83,7 @@ public abstract class WorldState extends AbstractAppState {
     private final MapDistance heuristic;
     private final Node thingsNode;
     private final BulletAppState bulletAppState;
+    private List<TileChangeListener> tileChangeListener;
 
     public WorldState(final KwdFile kwdFile, final AssetManager assetManager) {
         this.kwdFile = kwdFile;
@@ -150,12 +154,24 @@ public abstract class WorldState extends AbstractAppState {
      */
     protected abstract void updateProgress(int progress, int max);
 
+    /**
+     * If you want to get notified about tile changes
+     *
+     * @param listener the listener
+     */
+    public void addListener(TileChangeListener listener) {
+        if (tileChangeListener == null) {
+            tileChangeListener = new ArrayList<>();
+        }
+        tileChangeListener.add(listener);
+    }
+
     public MapData getMapData() {
         return mapLoader.getMapData();
     }
 
     /**
-     * @deprecated
+     * Get the map loader
      *
      * @return MapLoader
      */
@@ -181,8 +197,9 @@ public abstract class WorldState extends AbstractAppState {
      *
      * @param selectionArea the selection area
      * @param select select or unselect
+     * @param playerId the player who selected the tile
      */
-    public void selectTiles(SelectionArea selectionArea, boolean select) {
+    public void selectTiles(SelectionArea selectionArea, boolean select, short playerId) {
         List<Point> updatableTiles = new ArrayList<>();
         for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getMap().getWidth(), selectionArea.getEnd().x + 1); x++) {
             for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getMap().getHeight(), selectionArea.getEnd().y + 1); y++) {
@@ -194,11 +211,15 @@ public abstract class WorldState extends AbstractAppState {
                 if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
                     continue;
                 }
-                tile.setSelected(select);
+                tile.setSelected(select, playerId);
                 updatableTiles.add(new Point(x, y));
             }
         }
-        mapLoader.updateTiles(updatableTiles.toArray(new Point[updatableTiles.size()]));
+        Point[] tiles = updatableTiles.toArray(new Point[updatableTiles.size()]);
+        mapLoader.updateTiles(tiles);
+
+        // Notify
+        notifyTileChange(tiles);
     }
 
     /**
@@ -354,10 +375,11 @@ public abstract class WorldState extends AbstractAppState {
             return;
         }
 
+        // FIXME: this is just a debug stuff, remove when the imps can carry the gold
         addPlayerGold(terrain.getGoldValue());
 
         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-        tile.setSelected(false);
+
         // See if room walls are allowed and does this touch any rooms
         updateRoomWalls(tile);
         mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
@@ -685,6 +707,56 @@ public abstract class WorldState extends AbstractAppState {
 
     public Node getThingsNode() {
         return thingsNode;
+    }
+
+    /**
+     * Notify the tile change listeners
+     *
+     * @param tiles changed tiles
+     */
+    private void notifyTileChange(Point... tiles) {
+        if (tileChangeListener != null) {
+            for (Point p : tiles) {
+                for (TileChangeListener listener : tileChangeListener) {
+                    listener.onTileChange(p.x, p.y);
+                }
+            }
+        }
+    }
+
+    /**
+     * Get the task manager
+     *
+     * @return task manager
+     */
+    public TaskManager getTaskManager() {
+        return stateManager.getState(GameState.class).getTaskManager();
+    }
+
+    /**
+     * Damage a tile
+     *
+     * @param point the point
+     * @param damage the amount of damage inflicted
+     */
+    public void damageTile(Point point, int damage) {
+        TileData tile = getMapData().getTile(point);
+        Terrain terrain = tile.getTerrain();
+        if (tile.applyDamage(damage)) {
+
+            // TODO: drop loot & checks
+            // The tile is dead
+            tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
+
+            updateRoomWalls(tile);
+            mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
+
+            // Notify
+            notifyTileChange(point);
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
+            mapLoader.updateTiles(point);
+        }
+
     }
 
 }

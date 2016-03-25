@@ -120,6 +120,37 @@ public enum CreatureState implements State<CreatureControl> {
                 public boolean onMessage(CreatureControl entity, Telegram telegram) {
                     return true;
                 }
+            }, WORK {
+
+                @Override
+                public void enter(CreatureControl entity) {
+                    entity.navigateToAssignedTask();
+                }
+
+                @Override
+                public void update(CreatureControl entity) {
+
+                    // Check validity
+                    if (!entity.isAssignedTaskValid()) {
+                        entity.getStateMachine().changeState(IDLE);
+                    }
+
+                    // Check arrival
+                    if (entity.isAtAssignedTaskTarget()) {
+
+                    }
+                }
+
+                @Override
+                public void exit(CreatureControl entity) {
+
+                }
+
+                @Override
+                public boolean onMessage(CreatureControl entity, Telegram telegram) {
+                    return true;
+                }
+
             }
 
 }

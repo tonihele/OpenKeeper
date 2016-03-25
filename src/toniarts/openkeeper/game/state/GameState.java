@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.party.PartytState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
+import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -56,6 +57,7 @@ public class GameState extends AbstractPauseAwareState {
 
     private float gameTime = 0;
     private Float timeLimit = null;
+    private TaskManager taskManager;
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
 
     /**
@@ -107,6 +109,10 @@ public class GameState extends AbstractPauseAwareState {
                     };
 
                     GameState.this.stateManager.attach(worldState);
+
+                    // Initialize tasks
+                    // FIXME: for all players managed by this computer
+                    taskManager = new TaskManager(worldState, (short) 3);
 
                     GameState.this.stateManager.attach(new SoundState(false));
                     setProgress(0.60f);
@@ -232,6 +238,10 @@ public class GameState extends AbstractPauseAwareState {
     public void setEnd(boolean win) {
         // TODO make lose and win the game
         stateManager.getState(MainMenuState.class).setEnabled(true);
+    }
+
+    public TaskManager getTaskManager() {
+        return taskManager;
     }
 
     @Override
