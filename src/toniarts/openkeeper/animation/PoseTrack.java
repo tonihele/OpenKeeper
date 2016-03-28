@@ -49,6 +49,7 @@ import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.util.BufferUtils;
 import com.jme3.util.TempVars;
+import com.jme3.util.clone.Cloner;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 
@@ -262,6 +263,22 @@ public final class PoseTrack implements Track, ClonableTrack {
         } catch (CloneNotSupportedException e) {
             throw new AssertionError();
         }
+    }
+
+    @Override
+    public Object jmeClone() {
+        try {
+            return super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException("Error cloning", e);
+        }
+    }
+
+    @Override
+    public void cloneFields(Cloner cloner, Object o) {
+        PoseTrack poseTrack = (PoseTrack) o;
+        this.times = poseTrack.times;
+        this.frames = poseTrack.frames;
     }
 
     @Override

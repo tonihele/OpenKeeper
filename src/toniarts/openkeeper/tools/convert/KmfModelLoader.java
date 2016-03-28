@@ -772,9 +772,6 @@ public class KmfModelLoader implements AssetLoader {
                     m.setName(mat.getName());
                     m.setKey(new MaterialKey(materialKey));
 
-                    // Workaround to: https://github.com/jMonkeyEngine/jmonkeyengine/issues/453
-                    m.getAdditionalRenderState();
-
                     // Save
                     File materialFile = new File(materialLocation);
                     J3MExporter exporter = new J3MExporter();
