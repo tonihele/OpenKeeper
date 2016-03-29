@@ -123,7 +123,7 @@ public class TaskManager {
                 // If we can assign, that is fine, but prioritize on non-assigned tasks
                 if ((crowdedTask == null && task.getAssigneeCount() > 0) || (crowdedTask != null && task.getAssigneeCount() < crowdedTask.getAssigneeCount())) {
                     crowdedTask = task;
-                } else {
+                } else if (task.getAssigneeCount() == 0) {
 
                     // Assign to first non-empty task
                     task.assign(creature);
