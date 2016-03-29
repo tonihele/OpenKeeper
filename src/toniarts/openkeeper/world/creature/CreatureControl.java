@@ -41,6 +41,8 @@ import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.task.type.AbstractTask;
+import toniarts.openkeeper.game.task.type.ClaimTileTask;
+import toniarts.openkeeper.game.task.type.DigTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -250,9 +252,14 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
 
         if (stateMachine.getCurrentState() == CreatureState.WORK) {
 
-            // FIXME: now fixed
-            // Apply damage
-            worldState.damageTile(assignedTask.getTaskLocation(), creature.getMeleeDamage());
+            // Different work based reactions
+            if (assignedTask instanceof DigTileTask) {
+
+                // Apply damage
+                worldState.damageTile(assignedTask.getTaskLocation(), creature.getMeleeDamage());
+            } else if (assignedTask instanceof ClaimTileTask) {
+                worldState.healTile(assignedTask.getTaskLocation(), creature.getMeleeDamage(), ownerId);
+            }
         }
     }
 
@@ -262,8 +269,14 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
                 playAnimation(creature.getAnimWalkResource());
             } else if (stateMachine.getCurrentState() == CreatureState.WORK) {
 
-                // FIXME: yep
-                playAnimation(creature.getAnimMelee1Resource());
+                // Different work animations
+                if (assignedTask instanceof DigTileTask) {
+                    playAnimation(creature.getAnimMelee1Resource());
+                } else if (assignedTask instanceof ClaimTileTask) {
+                    playAnimation(creature.getAnimEatResource());
+                } else {
+                    throw new IllegalArgumentException("Assigned task is unknown!");
+                }
             } else {
                 List<ArtResource> idleAnimations = new ArrayList<>(3);
                 if (creature.getAnimIdle1Resource() != null) {

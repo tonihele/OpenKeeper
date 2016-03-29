@@ -169,4 +169,15 @@ public final class TileData extends Tile {
         return (health <= 0);
     }
 
+    /**
+     * Apply healing to the tile
+     *
+     * @param healing amount of healing
+     * @return true if the tile is at max
+     */
+    public boolean applyHealing(int healing) {
+        health = Math.min(getTerrain().getMaxHealth(), health + healing);
+        return (health == getTerrain().getMaxHealth());
+    }
+
 }

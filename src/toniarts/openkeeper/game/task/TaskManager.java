@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task;
 
+import java.awt.Point;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -24,6 +25,7 @@ import java.util.PriorityQueue;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.task.type.AbstractTask;
 import toniarts.openkeeper.game.task.type.AbstractTileTask;
+import toniarts.openkeeper.game.task.type.ClaimTileTask;
 import toniarts.openkeeper.game.task.type.DigTileTask;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
@@ -85,17 +87,35 @@ public class TaskManager {
                     AbstractTileTask tileTask = (AbstractTileTask) task;
                     if (tileTask.getTaskLocation().x == x && tileTask.getTaskLocation().y == y && !tileTask.isValid()) {
                         iter.remove();
-                        return; // Only one one tile task?
+                        break; // Only one one tile task?
                     }
                 }
             }
 
             // Add a task
             TileData tile = mapData.getTile(x, y);
+            // Dig
             if (tile.isSelectedByPlayerId(entry.getKey())) {
                 entry.getValue().add(new DigTileTask(worldState, x, y, entry.getKey()));
+            } // Claim
+            else if (ClaimTileTask.isValid(worldState, entry.getKey(), x, y)) {
+                entry.getValue().add(new ClaimTileTask(worldState, x, y, entry.getKey()));
+            } // Claim neughbouring tiles
+            else if (canClaimNeighbouringTiles(entry.getKey(), x, y)) {
+
             }
         }
+    }
+
+    private boolean canClaimNeighbouringTiles(short playerId, int x, int y) {
+        boolean added = false;
+        for (Point p : worldState.getMapLoader().getSurroundingTiles(new Point(x, y), false)) {
+            if (ClaimTileTask.isValid(worldState, playerId, p.x, p.y)) {
+                taskQueues.get(playerId).add(new ClaimTileTask(worldState, p.x, p.y, playerId));
+                added = true;
+            }
+        }
+        return added;
     }
 
     /**

@@ -101,7 +101,7 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
      * @return returns tru if the entity can be assigned to the task
      */
     public boolean canAssign(CreatureControl creature) {
-        return assignees.size() < getMaxAllowedNumberOfAsignees();
+        return (assignees.size() < getMaxAllowedNumberOfAsignees() && isValid());
     }
 
     @Override

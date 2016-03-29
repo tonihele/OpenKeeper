@@ -744,7 +744,7 @@ public abstract class WorldState extends AbstractAppState {
         Terrain terrain = tile.getTerrain();
         if (tile.applyDamage(damage)) {
 
-            // TODO: drop loot & checks
+            // TODO: effect, drop loot & checks
             // The tile is dead
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
 
@@ -756,7 +756,35 @@ public abstract class WorldState extends AbstractAppState {
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
             mapLoader.updateTiles(point);
         }
+    }
 
+    /**
+     * Heal a tile
+     *
+     * @param point the point
+     * @param healing the amount of healing inflicted
+     * @param playerId the player applying the healing
+     */
+    public void healTile(Point point, int healing, short playerId) {
+        TileData tile = getMapData().getTile(point);
+        Terrain terrain = tile.getTerrain();
+        if (tile.applyHealing(healing)) {
+
+            // TODO: effect & checks
+            // The tile is upgraded
+            if (terrain.getMaxHealthTypeTerrainId() > 0) {
+                tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());
+                tile.setPlayerId(playerId);
+            }
+
+            updateRoomWalls(tile);
+            mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
+
+            // Notify
+            notifyTileChange(point);
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
+            mapLoader.updateTiles(point);
+        }
     }
 
 }
