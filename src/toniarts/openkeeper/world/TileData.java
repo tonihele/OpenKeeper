@@ -92,7 +92,11 @@ public final class TileData extends Tile {
             // A change
             terrain = kwdFile.getTerrain(getTerrainId());
             setAttributesFromTerrain();
-            setSelected(false, (short) 0);
+
+            // If the terrain is not taggable anymore, reset the tagging data
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                setSelected(false, (short) 0);
+            }
         }
     }
 
