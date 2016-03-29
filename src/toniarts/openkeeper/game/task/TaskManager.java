@@ -17,11 +17,13 @@
 package toniarts.openkeeper.game.task;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.task.type.AbstractTask;
+import toniarts.openkeeper.game.task.type.AbstractTileTask;
 import toniarts.openkeeper.game.task.type.DigTileTask;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
@@ -75,11 +77,23 @@ public class TaskManager {
     private void scanTerrainTasks(final MapData mapData, final int x, final int y) {
         for (Entry<Short, PriorityQueue<AbstractTask>> entry : taskQueues.entrySet()) {
 
-            // TODO: need to scan existing tasks that are they valid?
-            // TODO: a task should know whether it is needed?
+            // Scan existing tasks that are they valid, should be only one tile task per tile?
+            Iterator<AbstractTask> iter = entry.getValue().iterator();
+            while (iter.hasNext()) {
+                AbstractTask task = iter.next();
+                if (task instanceof AbstractTileTask) {
+                    AbstractTileTask tileTask = (AbstractTileTask) task;
+                    if (tileTask.getTaskLocation().x == x && tileTask.getTaskLocation().y == y && !tileTask.isValid()) {
+                        iter.remove();
+                        return; // Only one one tile task?
+                    }
+                }
+            }
+
+            // Add a task
             TileData tile = mapData.getTile(x, y);
             if (tile.isSelectedByPlayerId(entry.getKey())) {
-                entry.getValue().add(new DigTileTask(worldState, x, y));
+                entry.getValue().add(new DigTileTask(worldState, x, y, entry.getKey()));
             }
         }
     }
@@ -100,10 +114,27 @@ public class TaskManager {
         }
 
         // TODO: distance
-        // TODO: this is not really correct (number of assignees, ordering, just one active task at a time now etc.)
-        AbstractTask task = taskQueue.peek();
-        if (task != null && task.canAssign(creature)) {
-            task.assign(creature);
+        Iterator<AbstractTask> iter = taskQueue.iterator();
+        AbstractTask crowdedTask = null;
+        while (iter.hasNext()) {
+            AbstractTask task = iter.next();
+            if (task.canAssign(creature)) {
+
+                // If we can assign, that is fine, but prioritize on non-assigned tasks
+                if ((crowdedTask == null && task.getAssigneeCount() > 0) || (crowdedTask != null && task.getAssigneeCount() < crowdedTask.getAssigneeCount())) {
+                    crowdedTask = task;
+                } else {
+
+                    // Assign to first non-empty task
+                    task.assign(creature);
+                    return true;
+                }
+            }
+        }
+
+        // See if we have a crowded task for this
+        if (crowdedTask != null) {
+            crowdedTask.assign(creature);
             return true;
         }
 

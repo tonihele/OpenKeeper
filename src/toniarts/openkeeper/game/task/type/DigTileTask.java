@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.task.type;
 
 import com.jme3.math.Vector2f;
 import java.awt.Point;
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
@@ -28,8 +29,8 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  */
 public class DigTileTask extends AbstractTileTask {
 
-    public DigTileTask(WorldState worldState, int x, int y) {
-        super(worldState, x, y);
+    public DigTileTask(WorldState worldState, int x, int y, short playerId) {
+        super(worldState, x, y, playerId);
     }
 
     @Override
@@ -43,8 +44,8 @@ public class DigTileTask extends AbstractTileTask {
 
         // Find an accessible target
         // TODO: entity's location?
-        for (Point p : getWorldState().getMapLoader().getSurroundingTiles(getTaskLocation(), false)) {
-            if (getWorldState().isAccessible(getWorldState().getMapData().getTile(p), creature.getCreature())) {
+        for (Point p : worldState.getMapLoader().getSurroundingTiles(getTaskLocation(), false)) {
+            if (worldState.isAccessible(worldState.getMapData().getTile(p), creature.getCreature())) {
 
                 // TODO: intelligent coordinates?
                 return new Vector2f(p.x, p.y);
@@ -52,6 +53,12 @@ public class DigTileTask extends AbstractTileTask {
         }
 
         return null;
+    }
+
+    @Override
+    public boolean isValid() {
+        TileData tile = worldState.getMapData().getTile(getTaskLocation());
+        return tile.isSelectedByPlayerId(playerId);
     }
 
 }

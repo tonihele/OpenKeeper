@@ -353,19 +353,21 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     public void navigateToAssignedTask() {
 
         Vector2f loc = assignedTask.getTarget(this);
-        GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), creature);
+        if (loc != null) {
+            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), creature);
 
-        if (outPath.getCount() > 1) {
+            if (outPath.getCount() > 1) {
 
-            // Debug
+                // Debug
 //                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
-            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
-            FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(pathToArray(outPath), true), 2);
-            followPath.setDecelerationRadius(1f);
-            followPath.setArrivalTolerance(0.2f);
-            prioritySteering.add(followPath);
+                PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+                FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(pathToArray(outPath), true), 2);
+                followPath.setDecelerationRadius(1f);
+                followPath.setArrivalTolerance(0.2f);
+                prioritySteering.add(followPath);
 
-            setSteeringBehavior(prioritySteering);
+                setSteeringBehavior(prioritySteering);
+            }
         }
     }
 
@@ -384,7 +386,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
 
     public boolean isAssignedTaskValid() {
         // FIXME: yep
-        return true;
+        return (assignedTask != null && assignedTask.isValid());
     }
 
 }

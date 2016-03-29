@@ -64,11 +64,27 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
     }
 
     /**
+     * How many workers have already been assigned to this task
+     *
+     * @return number of assignees on duty
+     */
+    public int getAssigneeCount() {
+        return assignees.size();
+    }
+
+    /**
      * Task location, the task it self not necessarily the target for navigating
      *
      * @return the task location
      */
     public abstract Point getTaskLocation();
+
+    /**
+     * Evaluates the task validity
+     *
+     * @return the task validity
+     */
+    public abstract boolean isValid();
 
     /**
      * Get the target coordinates to navigate to for accomplishing the task
