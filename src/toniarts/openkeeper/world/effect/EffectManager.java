@@ -19,8 +19,6 @@ package toniarts.openkeeper.world.effect;
 import com.jme3.asset.AssetManager;
 import com.jme3.effect.ParticleEmitter;
 import com.jme3.effect.ParticleMesh;
-import com.jme3.effect.shapes.EmitterBoxShape;
-import com.jme3.effect.shapes.EmitterSphereShape;
 import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
@@ -41,9 +39,8 @@ import toniarts.openkeeper.tools.convert.map.Light;
  *
  * @author ArchDemon
  */
-
-
 public class EffectManager {
+
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
 
@@ -72,10 +69,10 @@ public class EffectManager {
         }
         return root;
     }
-    
+
     protected ParticleEmitter getEmitter(Effect effect, EffectElement element) {
 
-        ArtResource recource = element.getArtResource();
+        ArtResource resource = element.getArtResource();
 
         ParticleEmitter emitter = new ParticleEmitter(element.getName(), ParticleMesh.Type.Triangle, effect.getElementsPerTurn());
         if (effect.getGenerationType() == Effect.GenerationType.CUBE_GEN) {
@@ -83,10 +80,10 @@ public class EffectManager {
         }
         emitter.setParticlesPerSec(effect.getElementsPerTurn());
         Material material = new Material(assetManager, "Common/MatDefs/Misc/Particle.j3md");
-        material.setTexture("Texture", loadTexture(recource.getName()));
+        material.setTexture("Texture", loadTexture(resource.getName()));
         emitter.setMaterial(material);
-        emitter.setImagesX((int) ((ArtResource.Image) recource.getSettings()).getWidth());
-        emitter.setImagesY((int) ((ArtResource.Image) recource.getSettings()).getHeight());
+        emitter.setImagesX((int) ((ArtResource.Image) resource.getSettings()).getWidth());
+        emitter.setImagesY((int) ((ArtResource.Image) resource.getSettings()).getHeight());
 
         Color color = element.getColor();
         float alpha = 1f;
@@ -109,15 +106,14 @@ public class EffectManager {
         emitter.setLowLife((effect.getMinHp() + element.getMinHp()) * 0.1f);
         emitter.setHighLife((effect.getMaxHp() + element.getMaxHp()) * 0.1f);
         //
-        float delta = Math.max((effect.getMaxSpeedXy() + element.getMaxSpeedXy() - effect.getMinSpeedXy() - element.getMinSpeedXy()) 
-                / (effect.getMaxSpeedXy() + element.getMaxSpeedXy() + 1), 
+        float delta = Math.max((effect.getMaxSpeedXy() + element.getMaxSpeedXy() - effect.getMinSpeedXy() - element.getMinSpeedXy())
+                / (effect.getMaxSpeedXy() + element.getMaxSpeedXy() + 1),
                 (effect.getMaxSpeedYz() + element.getMaxSpeedYz() - effect.getMinSpeedYz() - element.getMinSpeedYz())
                 / (effect.getMaxSpeedYz() + element.getMaxSpeedYz() + 1));
         emitter.getParticleInfluencer().setVelocityVariation(delta);
 
         return emitter;
     }
-
 
     protected PointLight getLight(Light effectLight) {
         if (effectLight == null) {
@@ -133,7 +129,6 @@ public class EffectManager {
         light.setPosition(new Vector3f(effectLight.getmKPos().x, effectLight.getmKPos().y, effectLight.getmKPos().z));
         return light;
     }
-
 
     protected Texture loadTexture(String texture) {
 
