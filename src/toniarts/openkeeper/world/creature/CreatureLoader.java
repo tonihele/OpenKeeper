@@ -25,12 +25,12 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
@@ -193,7 +193,7 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
     private static Spatial loadModel(AssetManager assetManager, String resourceName, Node creatureRoot) {
 
         // Load the model and attach it without the root
-        Spatial model = ((Node) Main.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + resourceName + ".j3o", false)).getChild(0);
+        Spatial model = ((Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + resourceName + ".j3o", false)).getChild(0);
         model.setCullHint(Spatial.CullHint.Always);
         creatureRoot.attachChild(model);
         return model;

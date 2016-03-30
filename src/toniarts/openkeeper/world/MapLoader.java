@@ -41,7 +41,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
@@ -49,6 +48,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.control.FlashTileControl;
 import toniarts.openkeeper.world.effect.EffectManager;
 import toniarts.openkeeper.world.room.GenericRoom;
@@ -412,7 +412,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @return the asset loaded & ready to rock
      */
     public static Spatial loadAsset(final AssetManager assetManager, final String asset, final boolean wall, final boolean useWeakCache) {
-        Spatial spatial = Main.loadModel(assetManager, asset, useWeakCache);
+        Spatial spatial = AssetUtils.loadModel(assetManager, asset, useWeakCache);
 
         // Set the transform and scale to our scale and 0 the transform
         spatial.breadthFirstTraversal(new SceneGraphVisitor() {
