@@ -751,7 +751,11 @@ public abstract class WorldState extends AbstractAppState {
 
             // TODO: effect, drop loot & checks
             // The tile is dead
-            worldNode.attachChild(effectManager.load(terrain.getDestroyedEffectId()));
+            if (terrain.getDestroyedEffectId() != 0) {
+                Node effect = effectManager.load(terrain.getDestroyedEffectId());
+                effect.setLocalTranslation(point.x + 0.5f, 0, point.y + 0.5f);
+                worldNode.attachChild(effect);
+            }
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
 
             updateRoomWalls(tile);
@@ -778,6 +782,11 @@ public abstract class WorldState extends AbstractAppState {
 
             // TODO: effect & checks
             // The tile is upgraded
+            if (terrain.getMaxHealthEffectId() != 0) {
+                Node effect = effectManager.load(terrain.getMaxHealthEffectId());
+                effect.setLocalTranslation(point.x + 0.5f, 0, point.y + 0.5f);
+                worldNode.attachChild(effect);
+            }
             if (terrain.getMaxHealthTypeTerrainId() > 0) {
                 tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());
                 tile.setPlayerId(playerId);
