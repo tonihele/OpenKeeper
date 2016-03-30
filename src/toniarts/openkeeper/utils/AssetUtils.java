@@ -16,13 +16,29 @@
  */
 package toniarts.openkeeper.utils;
 
+import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.MaterialKey;
 import com.jme3.asset.ModelKey;
+import com.jme3.asset.TextureKey;
 import com.jme3.asset.cache.AssetCache;
 import com.jme3.asset.cache.SimpleAssetCache;
 import com.jme3.asset.cache.WeakRefAssetCache;
+import com.jme3.material.Material;
+import com.jme3.material.RenderState;
 import com.jme3.scene.Spatial;
+import com.jme3.texture.Texture;
+import com.jme3.texture.Texture2D;
+import com.jme3.texture.plugins.AWTLoader;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.RescaleOp;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 
 /**
  * Collection of asset related common functions
@@ -33,6 +49,7 @@ public class AssetUtils {
 
     private final static AssetCache assetCache = new SimpleAssetCache();
     private final static AssetCache weakAssetCache = new WeakRefAssetCache();
+    private static final Logger logger = Logger.getLogger(AssetUtils.class.getName());
 
     private AssetUtils() {
         // Nope
@@ -67,6 +84,118 @@ public class AssetUtils {
             cache.addToCache(assetKey, model);
         }
         return model.clone();
+    }
+
+    /**
+     * Creates a material from an ArtResource
+     *
+     * @param resource the ArtResource
+     * @param assetManager the asset manager
+     * @return JME material
+     */
+    public static Material createLightningSpriteMaterial(ArtResource resource, AssetManager assetManager) {
+        if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+
+            // Cache
+            MaterialKey assetKey = new MaterialKey(resource.getName());
+            Material mat = assetCache.getFromCache(assetKey);
+
+            if (mat == null) {
+                mat = new Material(assetManager,
+                        "MatDefs/LightingSprite.j3md");
+                int frames = ((ArtResource.Image) resource.getSettings()).getFrames();
+                mat.setInt("NumberOfTiles", frames);
+                mat.setInt("Speed", 8); // Just a guess work
+
+                // Create the texture
+                try {
+
+                    if (resource.getSettings().getType() == ArtResource.Type.ALPHA) {
+                        mat.setTransparent(true);
+                        mat.setFloat("AlphaDiscardThreshold", 0.1f);
+                        mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+                    }
+
+                    Texture tex = createArtResourceTexture(resource, assetManager);
+
+                    // Load the texture up
+                    mat.setTexture("DiffuseMap", tex);
+                } catch (Exception e) {
+                    logger.log(Level.SEVERE, "Can't create a texture out of " + resource + "!", e);
+                }
+
+                // Add to cache
+                assetCache.addToCache(assetKey, mat);
+
+                return mat.clone();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Create particle type material from ArtResource
+     *
+     * @param resource the ArtResource
+     * @param assetManager the asset manager
+     * @return JME material
+     */
+    public static Material createParticleMaterial(AssetManager assetManager, ArtResource resource) {
+
+        // Cache
+        MaterialKey assetKey = new MaterialKey(resource.getName());
+        Material mat = assetCache.getFromCache(assetKey);
+
+        if (mat == null) {
+            mat = new Material(assetManager, "Common/MatDefs/Misc/Particle.j3md");
+            try {
+                mat.setTexture("Texture", createArtResourceTexture(resource, assetManager));
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Can't create a texture out of " + resource + "!", e);
+            }
+
+            // Add to cache
+            assetCache.addToCache(assetKey, mat);
+        }
+        return mat.clone();
+    }
+
+    private static Texture createArtResourceTexture(ArtResource resource, AssetManager assetManager) throws IOException {
+
+        if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+            int frames = ((ArtResource.Image) resource.getSettings()).getFrames();
+            RescaleOp rop = null;
+            if (resource.getSettings().getType() == ArtResource.Type.ALPHA) {
+                float[] scales = {1f, 1f, 1f, 0.75f};
+                float[] offsets = new float[4];
+                rop = new RescaleOp(scales, offsets, null);
+            }
+
+            // Get the first frame, the frames need to be same size
+            BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + resource.getName() + "0.png"))).openStream());
+
+            // Create image big enough to fit all the frames
+            BufferedImage text
+                    = new BufferedImage(img.getWidth() * frames, img.getHeight(),
+                            BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = text.createGraphics();
+            g.drawImage(img, rop, 0, 0);
+            for (int x = 1; x < frames; x++) {
+                img = ImageIO.read(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + resource.getName() + x + ".png"))).openStream());
+                g.drawImage(img, rop, img.getWidth() * x, 0);
+            }
+            g.dispose();
+
+            // Convert the new image to a texture
+            AWTLoader loader = new AWTLoader();
+            Texture tex = new Texture2D(loader.load(text, false));
+            return tex;
+        } else {
+
+            // A regular texture
+            TextureKey key = new TextureKey(ConversionUtils.getCanonicalAssetKey("Textures/" + resource.getName() + ".png"), false);
+            return assetManager.loadTexture(key);
+        }
     }
 
 }
