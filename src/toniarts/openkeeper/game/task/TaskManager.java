@@ -130,7 +130,8 @@ public class TaskManager {
 
         PriorityQueue<AbstractTask> taskQueue = taskQueues.get(creature.getOwnerId());
         if (taskQueue == null) {
-            throw new IllegalArgumentException("This task manager instance is not for the given player!");
+            return false;
+//            throw new IllegalArgumentException("This task manager instance is not for the given player!");
         }
 
         // TODO: distance
