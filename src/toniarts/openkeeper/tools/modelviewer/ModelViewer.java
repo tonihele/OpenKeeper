@@ -73,6 +73,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.ObjectLoader;
 import toniarts.openkeeper.world.TerrainLoader;
+import toniarts.openkeeper.world.effect.EffectManager;
 
 /**
  * Simple model viewer
@@ -390,7 +391,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     // Load the selected map
                     String file = ((String) selection.get(0)).concat(".kwd").replaceAll(Matcher.quoteReplacement(File.separator), "/");
                     KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(file)));
-                    Node spat = (Node) new MapLoader(this.getAssetManager(), kwd) {
+                    Node spat = (Node) new MapLoader(this.getAssetManager(), kwd, new EffectManager(assetManager, kwdFile)) {
                         @Override
                         protected void updateProgress(int progress, int max) {
                             // Do nothing

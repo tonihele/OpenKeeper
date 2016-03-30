@@ -60,6 +60,7 @@ import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
 import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
 import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
+import toniarts.openkeeper.world.effect.EffectManager;
 import toniarts.openkeeper.world.listener.TileChangeListener;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
@@ -83,10 +84,14 @@ public abstract class WorldState extends AbstractAppState {
     private final MapDistance heuristic;
     private final Node thingsNode;
     private final BulletAppState bulletAppState;
+    private final EffectManager effectManager;
     private List<TileChangeListener> tileChangeListener;
 
     public WorldState(final KwdFile kwdFile, final AssetManager assetManager) {
         this.kwdFile = kwdFile;
+
+        // Effect manager
+        effectManager = new EffectManager(assetManager, kwdFile);
 
         // World node
         worldNode = new Node("World");
@@ -95,7 +100,7 @@ public abstract class WorldState extends AbstractAppState {
         bulletAppState = new BulletAppState();
 
         // Create the actual map
-        this.mapLoader = new MapLoader(assetManager, kwdFile) {
+        this.mapLoader = new MapLoader(assetManager, kwdFile, effectManager) {
             @Override
             protected void updateProgress(int progress, int max) {
                 WorldState.this.updateProgress(progress, max);
@@ -746,6 +751,7 @@ public abstract class WorldState extends AbstractAppState {
 
             // TODO: effect, drop loot & checks
             // The tile is dead
+            worldNode.attachChild(effectManager.load(terrain.getDestroyedEffectId()));
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
 
             updateRoomWalls(tile);

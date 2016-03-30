@@ -88,10 +88,11 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
-    public MapLoader(AssetManager assetManager, KwdFile kwdFile) {
+    public MapLoader(AssetManager assetManager, KwdFile kwdFile, EffectManager effectManager) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
-        this.effectManager = new EffectManager(assetManager, kwdFile);
+        this.effectManager = effectManager;
+
         // Create modifiable tiles
         mapData = new MapData(kwdFile);
     }
