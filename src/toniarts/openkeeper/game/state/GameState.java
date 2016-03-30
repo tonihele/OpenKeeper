@@ -108,11 +108,11 @@ public class GameState extends AbstractPauseAwareState {
                         }
                     };
 
-                    GameState.this.stateManager.attach(worldState);
-
                     // Initialize tasks
                     // FIXME: for all players managed by this computer
                     taskManager = new TaskManager(worldState, (short) 3);
+
+                    GameState.this.stateManager.attach(worldState);
 
                     GameState.this.stateManager.attach(new SoundState(false));
                     setProgress(0.60f);
