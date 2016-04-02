@@ -27,12 +27,11 @@ import toniarts.openkeeper.world.WorldState;
 public abstract class AbstractTileTask extends AbstractTask {
 
     private final Point location;
-    protected final WorldState worldState;
     protected final short playerId;
 
     public AbstractTileTask(final WorldState worldState, final int x, final int y, final short playerId) {
+        super(worldState);
         location = new Point(x, y);
-        this.worldState = worldState;
         this.playerId = playerId;
     }
 

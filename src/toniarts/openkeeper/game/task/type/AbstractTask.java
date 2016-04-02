@@ -17,10 +17,12 @@
 package toniarts.openkeeper.game.task.type;
 
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import java.awt.Point;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
@@ -31,10 +33,12 @@ import toniarts.openkeeper.world.creature.CreatureControl;
 public abstract class AbstractTask implements Comparable<AbstractTask> {
 
     private final Date taskCreated;
+    protected final WorldState worldState;
     private final Set<CreatureControl> assignees = new HashSet<>();
 
-    public AbstractTask() {
+    public AbstractTask(final WorldState worldState) {
         this.taskCreated = new Date();
+        this.worldState = worldState;
     }
 
     public Date getTaskCreated() {
@@ -101,12 +105,52 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
      * @return returns tru if the entity can be assigned to the task
      */
     public boolean canAssign(CreatureControl creature) {
-        return (assignees.size() < getMaxAllowedNumberOfAsignees() && isValid());
+        return (assignees.size() < getMaxAllowedNumberOfAsignees() && isValid() && isReachable(creature));
     }
 
     @Override
     public int compareTo(AbstractTask t) {
         return getTaskCreated().compareTo(t.getTaskCreated());
+    }
+
+    /**
+     * Is the task reachable by the given creature. Ask this last if determining
+     * validity etc. As the method might be heavy
+     *
+     * @param creature the creature trying to reach this
+     * @return is the task reachable
+     */
+    public boolean isReachable(CreatureControl creature) {
+        Vector2f target = getTarget(creature);
+        if (target != null) {
+            return isReachable(creature, target);
+        }
+        return false;
+    }
+
+    /**
+     * Is the task reachable by the given creature. Ask this last if determining
+     * validity etc. As the method might be heavy
+     *
+     * @param creature the creature trying to reach this
+     * @param target the target location
+     * @return is the task reachable
+     */
+    protected boolean isReachable(CreatureControl creature, Vector2f target) {
+        Point targetTile = new Point((int) Math.floor(target.x), (int) Math.floor(target.y));
+        boolean hasAccessibleNeighbour = false;
+        for (Point p : worldState.getMapLoader().getSurroundingTiles(targetTile, false)) {
+            if (worldState.isAccessible(worldState.getMapData().getTile(p), creature.getCreature())) {
+                hasAccessibleNeighbour = true;
+                break; // At least one accessible point
+            }
+        }
+        if (!hasAccessibleNeighbour) {
+            return false;
+        }
+
+        // Path find
+        return (worldState.findPath(worldState.getTileCoordinates(new Vector3f(creature.getPosition().x, 0, creature.getPosition().y)), targetTile, creature.getCreature()) != null);
     }
 
 }

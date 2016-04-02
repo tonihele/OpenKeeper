@@ -59,4 +59,9 @@ public class ClaimTileTask extends AbstractTileTask {
         return (tile.getPlayerId() != playerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.FILL_INABLE) && isConnectedToOwnedTiles(worldState, playerId, new Point(x, y)));
     }
 
+    @Override
+    public String toString() {
+        return "Claim tile at " + getTaskLocation();
+    }
+
 }

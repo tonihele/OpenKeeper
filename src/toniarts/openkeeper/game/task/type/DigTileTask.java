@@ -48,7 +48,10 @@ public class DigTileTask extends AbstractTileTask {
             if (worldState.isAccessible(worldState.getMapData().getTile(p), creature.getCreature())) {
 
                 // TODO: intelligent coordinates?
-                return new Vector2f(p.x, p.y);
+                Vector2f target = new Vector2f(p.x, p.y);
+                if (isReachable(creature, target)) {
+                    return target;
+                }
             }
         }
 
@@ -56,9 +59,19 @@ public class DigTileTask extends AbstractTileTask {
     }
 
     @Override
+    public boolean isReachable(CreatureControl creature) {
+        return (getTarget(creature) != null); // To avoid multiple path finds
+    }
+
+    @Override
     public boolean isValid() {
         TileData tile = worldState.getMapData().getTile(getTaskLocation());
         return tile.isSelectedByPlayerId(playerId);
+    }
+
+    @Override
+    public String toString() {
+        return "Dig tile at " + getTaskLocation();
     }
 
 }
