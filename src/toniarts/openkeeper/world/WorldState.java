@@ -55,6 +55,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
@@ -744,12 +745,50 @@ public abstract class WorldState extends AbstractAppState {
      * Damage a tile
      *
      * @param point the point
-     * @param damage the amount of damage inflicted
+     * @param playerId the player applying the damage
+     * @return you might get gold out of this
      */
-    public void damageTile(Point point, int damage) {
+    public int damageTile(Point point, short playerId) {
         TileData tile = getMapData().getTile(point);
         Terrain terrain = tile.getTerrain();
-        if (tile.applyDamage(damage)) {
+
+        // Calculate the damage
+        int damage = 0;
+        int returnedGold = 0;
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                if (tile.getPlayerId() == playerId) {
+                    damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.DIG_OWN_WALL_HEALTH);
+                } else {
+                    damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.DIG_ENEMY_WALL_HEALTH);
+                }
+            } else if (tile.getGold() > 0) {
+                // This is how I believe the gold mining works, it is not health damage we do, it is substracting gold
+                // The mined tiles leave no loot, the loot is left by the imps if there is no place to store the gold
+                if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
+                    damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS);
+                } else {
+                    damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.MINE_GOLD_HEALTH);
+                }
+            } else {
+                damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH);
+            }
+        } else {
+            throw new UnsupportedOperationException("No support for damaging other than solid tiles!");
+        }
+
+        // Do the damage
+        boolean tileDestroyed;
+        damage = Math.abs(damage);
+        if (tile.getGold() > 0) { // Mine
+            returnedGold = tile.mineGold(damage);
+            tileDestroyed = (tile.getGold() < 1);
+        } else { // Apply damage
+            tileDestroyed = tile.applyDamage(damage);
+        }
+
+        // See the results
+        if (tileDestroyed) {
 
             // TODO: effect, drop loot & checks
             // The tile is dead
@@ -768,18 +807,25 @@ public abstract class WorldState extends AbstractAppState {
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
             mapLoader.updateTiles(point);
         }
+
+        return returnedGold;
     }
 
     /**
      * Heal a tile
      *
      * @param point the point
-     * @param healing the amount of healing inflicted
      * @param playerId the player applying the healing
      */
-    public void healTile(Point point, int healing, short playerId) {
+    public void healTile(Point point, short playerId) {
         TileData tile = getMapData().getTile(point);
         Terrain terrain = tile.getTerrain();
+
+        // See the amount of healing
+        // TODO: now just claiming of a tile (claim health variable is too big it seems)
+        int healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_TILE_HEALTH);
+
+        // Apply
         if (tile.applyHealing(healing)) {
 
             // TODO: effect & checks
@@ -802,6 +848,17 @@ public abstract class WorldState extends AbstractAppState {
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
             mapLoader.updateTiles(point);
         }
+    }
+
+    /**
+     * Get level variable value
+     *
+     * @param variable the variable type
+     * @return variable value
+     */
+    public float getLevelVariable(Variable.MiscVariable.MiscType variable) {
+        // TODO: player is able to change these, so need a wrapper and store these to GameState
+        return kwdFile.getVariables().get(variable).getValue();
     }
 
 }

@@ -133,6 +133,7 @@ public enum CreatureState implements State<CreatureControl> {
                     // Check validity
                     if (!entity.isAssignedTaskValid()) {
                         entity.getStateMachine().changeState(IDLE);
+                        return;
                     }
 
                     // Check arrival

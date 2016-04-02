@@ -64,6 +64,11 @@ import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetec
  */
 public class CreatureControl extends AbstractCreatureSteeringControl {
 
+    public enum AnimationType {
+
+        MOVE, WORK, IDLE;
+    }
+
     // Attributes
     private final String name;
     private final String bloodType;
@@ -83,6 +88,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     private final String tooltip;
     private float lastAttributeUpdateTime = 0;
     private AbstractTask assignedTask;
+    private AnimationType playingAnimationType = AnimationType.IDLE;
 
     public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldState worldState) {
         super(creature);
@@ -250,15 +256,15 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
      */
     void onAnimationCycleDone() {
 
-        if (stateMachine.getCurrentState() == CreatureState.WORK) {
+        if (stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK) {
 
             // Different work based reactions
             if (assignedTask instanceof DigTileTask) {
 
                 // Apply damage
-                worldState.damageTile(assignedTask.getTaskLocation(), creature.getMeleeDamage());
+                gold += worldState.damageTile(assignedTask.getTaskLocation(), ownerId);
             } else if (assignedTask instanceof ClaimTileTask) {
-                worldState.healTile(assignedTask.getTaskLocation(), creature.getMeleeDamage(), ownerId);
+                worldState.healTile(assignedTask.getTaskLocation(), ownerId);
             }
         }
     }
@@ -267,6 +273,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
         if (!animationPlaying) {
             if (steeringBehavior != null) {
                 playAnimation(creature.getAnimWalkResource());
+                playingAnimationType = AnimationType.MOVE;
             } else if (stateMachine.getCurrentState() == CreatureState.WORK) {
 
                 // Different work animations
@@ -277,6 +284,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
                 } else {
                     throw new IllegalArgumentException("Assigned task is unknown!");
                 }
+                playingAnimationType = AnimationType.WORK;
             } else {
                 List<ArtResource> idleAnimations = new ArrayList<>(3);
                 if (creature.getAnimIdle1Resource() != null) {
@@ -291,6 +299,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
                 }
                 idleAnimationPlayCount++;
                 playAnimation(idleAnim);
+                playingAnimationType = AnimationType.IDLE;
             }
         }
     }

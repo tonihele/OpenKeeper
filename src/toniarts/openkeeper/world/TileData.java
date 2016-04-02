@@ -180,4 +180,16 @@ public final class TileData extends Tile {
         return (health == getTerrain().getMaxHealth());
     }
 
+    /**
+     * Mine for gold
+     *
+     * @param damage the amount of gold requested
+     * @return the amount of gold got
+     */
+    public int mineGold(int damage) {
+        int minedAmount = Math.min(damage, gold);
+        gold -= minedAmount;
+        return minedAmount;
+    }
+
 }
