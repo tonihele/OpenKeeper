@@ -641,13 +641,15 @@ public abstract class WorldState extends AbstractAppState {
      * @param start start point
      * @param end end point
      * @param creature the creature to find path for
-     * @return output path
+     * @return output path, null if path not found
      */
     public GraphPath<TileData> findPath(Point start, Point end, Creature creature) {
         pathFindingMap.setCreature(creature);
         GraphPath<TileData> outPath = new DefaultGraphPath<>();
-        pathFinder.searchNodePath(getMapData().getTile(start.x, start.y), getMapData().getTile(end.x, end.y), heuristic, outPath);
-        return outPath;
+        if (pathFinder.searchNodePath(getMapData().getTile(start.x, start.y), getMapData().getTile(end.x, end.y), heuristic, outPath)) {
+            return outPath;
+        }
+        return null;
     }
 
     /**
@@ -752,9 +754,9 @@ public abstract class WorldState extends AbstractAppState {
             // TODO: effect, drop loot & checks
             // The tile is dead
             if (terrain.getDestroyedEffectId() != 0) {
-                Node effect = effectManager.load(terrain.getDestroyedEffectId());
-                effect.setLocalTranslation(point.x + 0.5f, 0, point.y + 0.5f);
-                worldNode.attachChild(effect);
+//                Node effect = effectManager.load(terrain.getDestroyedEffectId());
+//                effect.setLocalTranslation(point.x + 0.5f, 0, point.y + 0.5f);
+//                worldNode.attachChild(effect);
             }
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
 
@@ -783,9 +785,9 @@ public abstract class WorldState extends AbstractAppState {
             // TODO: effect & checks
             // The tile is upgraded
             if (terrain.getMaxHealthEffectId() != 0) {
-                Node effect = effectManager.load(terrain.getMaxHealthEffectId());
-                effect.setLocalTranslation(point.x + 0.5f, 0, point.y + 0.5f);
-                worldNode.attachChild(effect);
+//                Node effect = effectManager.load(terrain.getMaxHealthEffectId());
+//                effect.setLocalTranslation(point.x + 0.5f, 0, point.y + 0.5f);
+//                worldNode.attachChild(effect);
             }
             if (terrain.getMaxHealthTypeTerrainId() > 0) {
                 tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());

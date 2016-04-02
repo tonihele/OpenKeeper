@@ -185,7 +185,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
         if (p != null) {
             GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, creature);
 
-            if (outPath.getCount() > 1) {
+            if (outPath != null && outPath.getCount() > 1) {
 
                 // Debug
 //                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
@@ -369,7 +369,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
         if (loc != null) {
             GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), creature);
 
-            if (outPath.getCount() > 1) {
+            if (outPath != null && outPath.getCount() > 1) {
 
                 // Debug
 //                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
@@ -394,12 +394,16 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
 
     public boolean isAtAssignedTaskTarget() {
         // FIXME: not like this, universal solution
-        return (steeringBehavior == null);
+        return (assignedTask != null && assignedTask.getTarget(this) != null && steeringBehavior == null && isNear(assignedTask.getTarget(this)));
     }
 
     public boolean isAssignedTaskValid() {
         // FIXME: yep
         return (assignedTask != null && assignedTask.isValid());
+    }
+
+    private boolean isNear(Vector2f target) {
+        return (target.distanceSquared(getSpatial().getWorldTranslation().x, getSpatial().getWorldTranslation().z) < 0.5f);
     }
 
 }
