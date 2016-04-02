@@ -18,10 +18,12 @@ package toniarts.openkeeper.game.task;
 
 import java.awt.Point;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.task.type.AbstractTask;
 import toniarts.openkeeper.game.task.type.AbstractTileTask;
@@ -41,7 +43,7 @@ import toniarts.openkeeper.world.listener.TileChangeListener;
 public class TaskManager {
 
     private final WorldState worldState;
-    private final Map<Short, PriorityQueue<AbstractTask>> taskQueues;
+    private final Map<Short, Set<AbstractTask>> taskQueues;
     private static final Logger logger = Logger.getLogger(TaskManager.class.getName());
 
     public TaskManager(WorldState worldState, short... playerIds) {
@@ -50,7 +52,7 @@ public class TaskManager {
         // Create a queue for each managed player
         taskQueues = new HashMap<>(playerIds.length);
         for (short playerId : playerIds) {
-            taskQueues.put(playerId, new PriorityQueue<>());
+            taskQueues.put(playerId, new HashSet<>());
         }
 
         // Scan the initial tasks
@@ -62,7 +64,7 @@ public class TaskManager {
             @Override
             public void onTileChange(final int x, final int y) {
                 MapData mapData = worldState.getMapData();
-                scanTerrainTasks(mapData, x, y);
+                scanTerrainTasks(mapData, x, y, true);
             }
         });
     }
@@ -71,13 +73,13 @@ public class TaskManager {
         MapData mapData = worldState.getMapData();
         for (int y = 0; y < mapData.getHeight(); y++) {
             for (int x = 0; x < mapData.getWidth(); x++) {
-                scanTerrainTasks(mapData, x, y);
+                scanTerrainTasks(mapData, x, y, false);
             }
         }
     }
 
-    private void scanTerrainTasks(final MapData mapData, final int x, final int y) {
-        for (Entry<Short, PriorityQueue<AbstractTask>> entry : taskQueues.entrySet()) {
+    private void scanTerrainTasks(final MapData mapData, final int x, final int y, final boolean checkNeighbours) {
+        for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
 
             // Scan existing tasks that are they valid, should be only one tile task per tile?
             Iterator<AbstractTask> iter = entry.getValue().iterator();
@@ -85,9 +87,8 @@ public class TaskManager {
                 AbstractTask task = iter.next();
                 if (task instanceof AbstractTileTask) {
                     AbstractTileTask tileTask = (AbstractTileTask) task;
-                    if (tileTask.getTaskLocation().x == x && tileTask.getTaskLocation().y == y && !tileTask.isValid()) {
+                    if (!tileTask.isValid()) {
                         iter.remove();
-                        break; // Only one one tile task?
                     }
                 }
             }
@@ -96,13 +97,15 @@ public class TaskManager {
             TileData tile = mapData.getTile(x, y);
             // Dig
             if (tile.isSelectedByPlayerId(entry.getKey())) {
-                entry.getValue().add(new DigTileTask(worldState, x, y, entry.getKey()));
+                AbstractTask task = new DigTileTask(worldState, x, y, entry.getKey());
+                addTask(entry.getKey(), task);
             } // Claim
             else if (ClaimTileTask.isValid(worldState, entry.getKey(), x, y)) {
-                entry.getValue().add(new ClaimTileTask(worldState, x, y, entry.getKey()));
+                AbstractTask task = new ClaimTileTask(worldState, x, y, entry.getKey());
+                addTask(entry.getKey(), task);
             } // Claim neughbouring tiles
-            else if (canClaimNeighbouringTiles(entry.getKey(), x, y)) {
-
+            else if (checkNeighbours) {
+                canClaimNeighbouringTiles(entry.getKey(), x, y);
             }
         }
     }
@@ -111,7 +114,8 @@ public class TaskManager {
         boolean added = false;
         for (Point p : worldState.getMapLoader().getSurroundingTiles(new Point(x, y), false)) {
             if (ClaimTileTask.isValid(worldState, playerId, p.x, p.y)) {
-                taskQueues.get(playerId).add(new ClaimTileTask(worldState, p.x, p.y, playerId));
+                AbstractTask task = new ClaimTileTask(worldState, p.x, p.y, playerId);
+                addTask(playerId, task);
                 added = true;
             }
         }
@@ -128,7 +132,7 @@ public class TaskManager {
      */
     public boolean assignTask(CreatureControl creature, boolean byDistance) {
 
-        PriorityQueue<AbstractTask> taskQueue = taskQueues.get(creature.getOwnerId());
+        Set<AbstractTask> taskQueue = taskQueues.get(creature.getOwnerId());
         if (taskQueue == null) {
             return false;
 //            throw new IllegalArgumentException("This task manager instance is not for the given player!");
@@ -160,6 +164,16 @@ public class TaskManager {
         }
 
         return false;
+    }
+
+    private void addTask(short playerId, AbstractTask task) {
+        Set<AbstractTask> tasks = taskQueues.get(playerId);
+        if (!tasks.contains(task)) {
+            tasks.add(task);
+            logger.log(Level.INFO, "Added task {0} for player {1}!", new Object[]{task, playerId});
+        } else {
+            logger.log(Level.WARNING, "Already a task {0} for player {1}!", new Object[]{task, playerId});
+        }
     }
 
 }

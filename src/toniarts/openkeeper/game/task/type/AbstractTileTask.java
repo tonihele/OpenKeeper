@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task.type;
 
 import java.awt.Point;
+import java.util.Objects;
 import toniarts.openkeeper.world.WorldState;
 
 /**
@@ -38,6 +39,32 @@ public abstract class AbstractTileTask extends AbstractTask {
     @Override
     public Point getTaskLocation() {
         return location;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 71 * hash + Objects.hashCode(this.location);
+        hash = 71 * hash + this.playerId;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final AbstractTileTask other = (AbstractTileTask) obj;
+        if (!Objects.equals(this.location, other.location)) {
+            return false;
+        }
+        if (this.playerId != other.playerId) {
+            return false;
+        }
+        return true;
     }
 
 }
