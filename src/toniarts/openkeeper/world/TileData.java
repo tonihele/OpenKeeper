@@ -192,4 +192,13 @@ public final class TileData extends Tile {
         return minedAmount;
     }
 
+    /**
+     * Is tile at full health
+     *
+     * @return true if full health
+     */
+    public boolean isAtFullHealth() {
+        return (health == getTerrain().getMaxHealth());
+    }
+
 }

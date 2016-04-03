@@ -305,26 +305,38 @@ public abstract class WorldState extends AbstractAppState {
      *
      * @param x x coordinate
      * @param y y coordinate
-     * @param player the player
+     * @param playerId the player
      * @return is the tile claimable by you
      */
-    public boolean isClaimable(int x, int y, Player player) {
+    public boolean isClaimable(int x, int y, short playerId) {
         TileData tile = getMapData().getTile(x, y);
         if (tile == null) {
             return false;
         }
 
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        // See if the terrain is claimable at all
+        Terrain terrain = tile.getTerrain();
+        boolean claimable = false;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-            if (tile.getPlayerId() != player.getPlayerId()) {
-                return true;
+            if (tile.getPlayerId() != playerId) {
+                claimable = true;
             }
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-            if (tile.getPlayerId() != player.getPlayerId()) {
-                return true;
+            if (tile.getPlayerId() != playerId) {
+                claimable = true;
             }
         } else {
-            return (terrain.getMaxHealthTypeTerrainId() != terrain.getTerrainId());
+            claimable = (terrain.getMaxHealthTypeTerrainId() != terrain.getTerrainId());
+        }
+
+        // In order to claim, it needs to be adjacent to your own tiles
+        if (claimable) {
+            for (Point p : getMapLoader().getSurroundingTiles(new Point(x, y), false)) {
+                TileData neighbourTile = getMapData().getTile(p);
+                if (neighbourTile != null && neighbourTile.getPlayerId() == playerId && neighbourTile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !neighbourTile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                    return true;
+                }
+            }
         }
 
         return false;
@@ -418,10 +430,10 @@ public abstract class WorldState extends AbstractAppState {
      *
      * @param x x coordinate
      * @param y y coordinate
-     * @param player the player, the new owner
+     * @param playerId the player, the new owner
      */
-    public void claimTile(int x, int y, Player player) {
-        if (!isClaimable(x, y, player)) {
+    public void claimTile(int x, int y, short playerId) {
+        if (!isClaimable(x, y, playerId)) {
             return;
         }
 
@@ -432,7 +444,7 @@ public abstract class WorldState extends AbstractAppState {
             // TODO: Claim all current room
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
             // tile is claimed by another player and needs to be destroyed
-            if (tile.getPlayerId() != player.getPlayerId()) {
+            if (tile.getPlayerId() != playerId) {
                 tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
             }
         } else {
@@ -441,7 +453,7 @@ public abstract class WorldState extends AbstractAppState {
 
         terrain = tile.getTerrain();
         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-            tile.setPlayerId(player.getPlayerId());
+            tile.setPlayerId(playerId);
         }
         // See if room walls are allowed and does this touch any rooms
         updateRoomWalls(tile);
@@ -823,7 +835,21 @@ public abstract class WorldState extends AbstractAppState {
 
         // See the amount of healing
         // TODO: now just claiming of a tile (claim health variable is too big it seems)
-        int healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_TILE_HEALTH);
+        int healing;
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                if (tile.getPlayerId() == playerId) {
+                    healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_WALL_HEALTH);
+                } else {
+                    healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.CLAIM_TILE_HEALTH);
+                }
+            } else {
+                healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.REINFORCE_WALL_HEALTH);
+            }
+        } else {
+            healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_TILE_HEALTH);
+        }
 
         // Apply
         if (tile.applyHealing(healing)) {
@@ -859,6 +885,34 @@ public abstract class WorldState extends AbstractAppState {
     public float getLevelVariable(Variable.MiscVariable.MiscType variable) {
         // TODO: player is able to change these, so need a wrapper and store these to GameState
         return kwdFile.getVariables().get(variable).getValue();
+    }
+
+    /**
+     * Is repairable wall at tile point
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param playerId for the player
+     * @return is the wall repairable
+     */
+    public boolean isRepairableWall(int x, int y, short playerId) {
+        TileData tile = getMapData().getTile(x, y);
+        Terrain terrain = tile.getTerrain();
+        return (!tile.isSelectedByPlayerId(playerId) && tile.getPlayerId() == playerId && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !tile.isAtFullHealth());
+    }
+
+    /**
+     * Is claimable wall at tile point
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param playerId for the player
+     * @return is the wall repairable
+     */
+    public boolean isClaimableWall(int x, int y, short playerId) {
+        TileData tile = getMapData().getTile(x, y);
+        Terrain terrain = tile.getTerrain();
+        return (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isClaimable(x, y, playerId));
     }
 
 }

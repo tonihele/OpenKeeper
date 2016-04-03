@@ -28,7 +28,9 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.game.task.type.AbstractTask;
 import toniarts.openkeeper.game.task.type.AbstractTileTask;
 import toniarts.openkeeper.game.task.type.ClaimTileTask;
+import toniarts.openkeeper.game.task.type.ClaimWallTileTask;
 import toniarts.openkeeper.game.task.type.DigTileTask;
+import toniarts.openkeeper.game.task.type.RepairWallTileTask;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
@@ -64,7 +66,7 @@ public class TaskManager {
             @Override
             public void onTileChange(final int x, final int y) {
                 MapData mapData = worldState.getMapData();
-                scanTerrainTasks(mapData, x, y, true);
+                scanTerrainTasks(mapData, x, y, true, true);
             }
         });
     }
@@ -73,22 +75,24 @@ public class TaskManager {
         MapData mapData = worldState.getMapData();
         for (int y = 0; y < mapData.getHeight(); y++) {
             for (int x = 0; x < mapData.getWidth(); x++) {
-                scanTerrainTasks(mapData, x, y, false);
+                scanTerrainTasks(mapData, x, y, false, false);
             }
         }
     }
 
-    private void scanTerrainTasks(final MapData mapData, final int x, final int y, final boolean checkNeighbours) {
+    private void scanTerrainTasks(final MapData mapData, final int x, final int y, final boolean checkNeighbours, final boolean deleteObsolete) {
         for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
 
             // Scan existing tasks that are they valid, should be only one tile task per tile?
-            Iterator<AbstractTask> iter = entry.getValue().iterator();
-            while (iter.hasNext()) {
-                AbstractTask task = iter.next();
-                if (task instanceof AbstractTileTask) {
-                    AbstractTileTask tileTask = (AbstractTileTask) task;
-                    if (!tileTask.isValid()) {
-                        iter.remove();
+            if (deleteObsolete) {
+                Iterator<AbstractTask> iter = entry.getValue().iterator();
+                while (iter.hasNext()) {
+                    AbstractTask task = iter.next();
+                    if (task instanceof AbstractTileTask) {
+                        AbstractTileTask tileTask = (AbstractTileTask) task;
+                        if (!tileTask.isValid()) {
+                            iter.remove();
+                        }
                     }
                 }
             }
@@ -99,27 +103,27 @@ public class TaskManager {
             if (tile.isSelectedByPlayerId(entry.getKey())) {
                 AbstractTask task = new DigTileTask(worldState, x, y, entry.getKey());
                 addTask(entry.getKey(), task);
+            } // Claim wall
+            else if (worldState.isClaimableWall(x, y, entry.getKey())) {
+                AbstractTask task = new ClaimWallTileTask(worldState, x, y, entry.getKey());
+                addTask(entry.getKey(), task);
             } // Claim
-            else if (ClaimTileTask.isValid(worldState, entry.getKey(), x, y)) {
+            else if (worldState.isClaimable(x, y, entry.getKey())) {
                 AbstractTask task = new ClaimTileTask(worldState, x, y, entry.getKey());
                 addTask(entry.getKey(), task);
-            } // Claim neughbouring tiles
-            else if (checkNeighbours) {
-                canClaimNeighbouringTiles(entry.getKey(), x, y);
+            } // Repair wall
+            else if (worldState.isRepairableWall(x, y, entry.getKey())) {
+                AbstractTask task = new RepairWallTileTask(worldState, x, y, entry.getKey());
+                addTask(entry.getKey(), task);
             }
         }
-    }
 
-    private boolean canClaimNeighbouringTiles(short playerId, int x, int y) {
-        boolean added = false;
-        for (Point p : worldState.getMapLoader().getSurroundingTiles(new Point(x, y), false)) {
-            if (ClaimTileTask.isValid(worldState, playerId, p.x, p.y)) {
-                AbstractTask task = new ClaimTileTask(worldState, p.x, p.y, playerId);
-                addTask(playerId, task);
-                added = true;
+        // See the neighbours
+        if (checkNeighbours) {
+            for (Point p : worldState.getMapLoader().getSurroundingTiles(new Point(x, y), false)) {
+                scanTerrainTasks(mapData, p.x, p.y, false, false);
             }
         }
-        return added;
     }
 
     /**

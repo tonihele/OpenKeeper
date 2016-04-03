@@ -16,34 +16,33 @@
  */
 package toniarts.openkeeper.game.task.type;
 
-import com.jme3.math.Vector2f;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
- * Claim a tile task, for workers
+ * Claim a wall task
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ClaimTileTask extends AbstractTileTask {
+public class ClaimWallTileTask extends DigTileTask {
 
-    public ClaimTileTask(WorldState worldState, int x, int y, short playerId) {
+    public ClaimWallTileTask(WorldState worldState, int x, int y, short playerId) {
         super(worldState, x, y, playerId);
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
-        return new Vector2f(getTaskLocation().x + 0.5f, getTaskLocation().y + 0.5f);
+    public boolean isValid() {
+        return worldState.isClaimableWall(getTaskLocation().x, getTaskLocation().y, playerId);
     }
 
     @Override
-    public boolean isValid() {
-        return worldState.isClaimable(getTaskLocation().x, getTaskLocation().y, playerId);
+    public int getMaxAllowedNumberOfAsignees() {
+        // TODO: I think it is 1 per accessible side
+        return 1;
     }
 
     @Override
     public String toString() {
-        return "Claim tile at " + getTaskLocation();
+        return "Claim wall at " + getTaskLocation();
     }
 
 }

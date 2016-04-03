@@ -42,7 +42,9 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.task.type.AbstractTask;
 import toniarts.openkeeper.game.task.type.ClaimTileTask;
+import toniarts.openkeeper.game.task.type.ClaimWallTileTask;
 import toniarts.openkeeper.game.task.type.DigTileTask;
+import toniarts.openkeeper.game.task.type.RepairWallTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -256,15 +258,15 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
      */
     void onAnimationCycleDone() {
 
-        if (stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK) {
+        if (stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid()) {
 
             // Different work based reactions
-            if (assignedTask instanceof DigTileTask) {
+            if (assignedTask instanceof RepairWallTileTask || assignedTask instanceof ClaimTileTask || assignedTask instanceof ClaimWallTileTask) {
+                worldState.healTile(assignedTask.getTaskLocation(), ownerId);
+            } else if (assignedTask instanceof DigTileTask) {
 
                 // Apply damage
                 gold += worldState.damageTile(assignedTask.getTaskLocation(), ownerId);
-            } else if (assignedTask instanceof ClaimTileTask) {
-                worldState.healTile(assignedTask.getTaskLocation(), ownerId);
             }
         }
     }
@@ -277,7 +279,9 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
             } else if (stateMachine.getCurrentState() == CreatureState.WORK) {
 
                 // Different work animations
-                if (assignedTask instanceof DigTileTask) {
+                if (assignedTask instanceof RepairWallTileTask || assignedTask instanceof ClaimWallTileTask) {
+                    playAnimation(creature.getAnimSleepResource());
+                } else if (assignedTask instanceof DigTileTask) {
                     playAnimation(creature.getAnimMelee1Resource());
                 } else if (assignedTask instanceof ClaimTileTask) {
                     playAnimation(creature.getAnimEatResource());

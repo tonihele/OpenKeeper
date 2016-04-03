@@ -291,8 +291,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 if (getWorldHandler().isTaggable((int) pos.x, (int) pos.y)) {
                     getWorldHandler().digTile((int) pos.x, (int) pos.y);
                 } // ownable -> "claim"
-                else if (getWorldHandler().isClaimable((int) pos.x, (int) pos.y, player)) {
-                    getWorldHandler().claimTile((int) pos.x, (int) pos.y, player);
+                else if (getWorldHandler().isClaimable((int) pos.x, (int) pos.y, player.getPlayerId())) {
+                    getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
                 }
                 //
             } else if (interactionState == InteractionState.NONE) {
@@ -316,7 +316,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         } else if (evt.getButtonIndex() == MouseInput.BUTTON_MIDDLE && evt.isReleased()) {
             Vector2f pos = handler.getRoundedMousePos();
             if (Main.isDebug()) {
-                getWorldHandler().claimTile((int) pos.x, (int) pos.y, player);
+                getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
             }
         }
     }
