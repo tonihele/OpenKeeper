@@ -45,6 +45,7 @@ public abstract class GenericRoom {
     private final static int[] wallIndexes = new int[]{7, 8};
     private Node root;
     private final String tooltip;
+    private static String notOwnedTooltip = null;
     protected final EffectManager effectManager;
 
     public GenericRoom(AssetManager assetManager, EffectManager effectManager,
@@ -53,13 +54,17 @@ public abstract class GenericRoom {
         this.roomInstance = roomInstance;
         this.direction = direction;
         this.effectManager = effectManager;
+
         // Strings
         ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
         tooltip = bundle.getString(Integer.toString(roomInstance.getRoom().getTooltipStringId()));
+        if (notOwnedTooltip == null) {
+            notOwnedTooltip = bundle.getString(Integer.toString(2471));
+        }
     }
 
     public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        this(assetManager, null, roomInstance, direction);        
+        this(assetManager, null, roomInstance, direction);
     }
 
     public Spatial construct() {
@@ -285,9 +290,13 @@ public abstract class GenericRoom {
     /**
      * Get room tooltip
      *
+     * @param playerId the player who is asking
      * @return room tooltip
      */
-    public String getTooltip() {
+    public String getTooltip(short playerId) {
+        if (roomInstance.getOwnerId() != playerId) {
+            return notOwnedTooltip;
+        }
         return tooltip;
     }
 

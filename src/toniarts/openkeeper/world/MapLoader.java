@@ -522,7 +522,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             return roomInstance;
         }
 
-        RoomInstance roomInstance = new RoomInstance(room);
+        RoomInstance roomInstance = new RoomInstance(room, mapData);
         findRoom(p, roomInstance);
         findRoomWallSections(roomInstance);
         rooms.add(roomInstance);

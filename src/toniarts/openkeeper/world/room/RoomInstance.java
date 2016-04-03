@@ -19,6 +19,7 @@ package toniarts.openkeeper.world.room;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.world.EntityInstance;
+import toniarts.openkeeper.world.MapData;
 
 /**
  * Holds a room instance, series of coordinates that together form a room
@@ -28,9 +29,11 @@ import toniarts.openkeeper.world.EntityInstance;
 public class RoomInstance extends EntityInstance<Room> {
 
     private List<WallSection> wallSections;
+    private final MapData mapData;
 
-    public RoomInstance(Room room) {
+    public RoomInstance(Room room, MapData mapData) {
         super(room);
+        this.mapData = mapData;
     }
 
     public Room getRoom() {
@@ -43,5 +46,14 @@ public class RoomInstance extends EntityInstance<Room> {
 
     public List<WallSection> getWallSections() {
         return wallSections;
+    }
+
+    /**
+     * Get the room owner id
+     *
+     * @return
+     */
+    public short getOwnerId() {
+        return mapData.getTile(getCoordinates().get(0)).getPlayerId();
     }
 }
