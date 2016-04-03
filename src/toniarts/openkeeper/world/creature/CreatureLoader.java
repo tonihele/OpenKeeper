@@ -79,6 +79,7 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
                 // If the animations has end and/or start, it is located in a different file
                 if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
                     Spatial spatStart = loadModel(assetManager, resource.getName() + "Start", creatureRoot);
+                    spatStart.setName(resource.getName() + "Start");
 
                     // Create kinda a custom animation control
                     AnimControl animControl = spatStart.getControl(AnimControl.class);
@@ -107,11 +108,12 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
 
                             }
                         });
-                        AnimChannel channel = animControl.createChannel();
+                        animControl.createChannel();
                     }
                 }
                 if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
                     Spatial spatEnd = loadModel(assetManager, resource.getName() + "End", creatureRoot);
+                    spatEnd.setName(resource.getName() + "End");
 
                     // Create kinda a custom animation control
                     AnimControl animControl = spatEnd.getControl(AnimControl.class);
@@ -135,7 +137,7 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
 
                             }
                         });
-                        AnimChannel channel = animControl.createChannel();
+                        animControl.createChannel();
                     }
                 }
 
