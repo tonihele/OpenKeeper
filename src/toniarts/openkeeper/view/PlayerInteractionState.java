@@ -427,7 +427,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
                     RoomInstance roomInstance = getWorldHandler().getMapLoader().getRoomCoordinates().get(new Point((int) v.x, (int) v.y));
                     GenericRoom room = getWorldHandler().getMapLoader().getRoomActuals().get(roomInstance);
-                    tooltip.setText(room.getTooltip());
+                    tooltip.setText(room.getTooltip(player.getPlayerId()));
                 } else {
                     tooltip.setText(tile.getTooltip());
                 }
