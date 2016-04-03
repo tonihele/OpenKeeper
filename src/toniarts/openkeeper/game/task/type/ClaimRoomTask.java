@@ -16,34 +16,27 @@
  */
 package toniarts.openkeeper.game.task.type;
 
-import com.jme3.math.Vector2f;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
- * Claim a tile task, for workers
+ * Claim a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ClaimTileTask extends AbstractTileTask {
+public class ClaimRoomTask extends ClaimTileTask {
 
-    public ClaimTileTask(WorldState worldState, int x, int y, short playerId) {
+    public ClaimRoomTask(WorldState worldState, int x, int y, short playerId) {
         super(worldState, x, y, playerId);
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
-        return new Vector2f(getTaskLocation().x + 0.5f, getTaskLocation().y + 0.5f);
-    }
-
-    @Override
     public boolean isValid() {
-        return worldState.isClaimableTile(getTaskLocation().x, getTaskLocation().y, playerId);
+        return worldState.isClaimableRoom(getTaskLocation().x, getTaskLocation().y, playerId);
     }
 
     @Override
     public String toString() {
-        return "Claim tile at " + getTaskLocation();
+        return "Claim room at " + getTaskLocation();
     }
 
 }

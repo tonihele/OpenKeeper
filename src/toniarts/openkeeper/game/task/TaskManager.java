@@ -27,6 +27,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.task.type.AbstractTask;
 import toniarts.openkeeper.game.task.type.AbstractTileTask;
+import toniarts.openkeeper.game.task.type.ClaimRoomTask;
 import toniarts.openkeeper.game.task.type.ClaimTileTask;
 import toniarts.openkeeper.game.task.type.ClaimWallTileTask;
 import toniarts.openkeeper.game.task.type.DigTileTask;
@@ -108,12 +109,16 @@ public class TaskManager {
                 AbstractTask task = new ClaimWallTileTask(worldState, x, y, entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim
-            else if (worldState.isClaimable(x, y, entry.getKey())) {
+            else if (worldState.isClaimableTile(x, y, entry.getKey())) {
                 AbstractTask task = new ClaimTileTask(worldState, x, y, entry.getKey());
                 addTask(entry.getKey(), task);
             } // Repair wall
             else if (worldState.isRepairableWall(x, y, entry.getKey())) {
                 AbstractTask task = new RepairWallTileTask(worldState, x, y, entry.getKey());
+                addTask(entry.getKey(), task);
+            } // Claim room
+            else if (worldState.isClaimableRoom(x, y, entry.getKey())) {
+                AbstractTask task = new ClaimRoomTask(worldState, x, y, entry.getKey());
                 addTask(entry.getKey(), task);
             }
         }
@@ -143,6 +148,7 @@ public class TaskManager {
         }
 
         // TODO: distance
+        // It seems that tasks like claiming walls are on very low priority, so there really is a priority queue
         Iterator<AbstractTask> iter = taskQueue.iterator();
         AbstractTask crowdedTask = null;
         while (iter.hasNext()) {

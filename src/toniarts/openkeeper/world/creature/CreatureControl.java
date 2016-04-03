@@ -262,7 +262,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
 
             // Different work based reactions
             if (assignedTask instanceof RepairWallTileTask || assignedTask instanceof ClaimTileTask || assignedTask instanceof ClaimWallTileTask) {
-                worldState.healTile(assignedTask.getTaskLocation(), ownerId);
+                worldState.applyClaimTile(assignedTask.getTaskLocation(), ownerId);
             } else if (assignedTask instanceof DigTileTask) {
 
                 // Apply damage

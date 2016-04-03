@@ -898,7 +898,7 @@ public abstract class WorldState extends AbstractAppState {
     public boolean isRepairableWall(int x, int y, short playerId) {
         TileData tile = getMapData().getTile(x, y);
         Terrain terrain = tile.getTerrain();
-        return (!tile.isSelectedByPlayerId(playerId) && tile.getPlayerId() == playerId && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !tile.isAtFullHealth());
+        return (!tile.isSelectedByPlayerId(playerId) && tile.getPlayerId() == playerId && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !tile.isAtFullHealth());
     }
 
     /**
@@ -907,12 +907,104 @@ public abstract class WorldState extends AbstractAppState {
      * @param x x coordinate
      * @param y y coordinate
      * @param playerId for the player
-     * @return is the wall repairable
+     * @return is the wall claimable
      */
     public boolean isClaimableWall(int x, int y, short playerId) {
         TileData tile = getMapData().getTile(x, y);
         Terrain terrain = tile.getTerrain();
         return (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isClaimable(x, y, playerId));
+    }
+
+    /**
+     * Is claimable floor at tile point (not a room)
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param playerId for the player
+     * @return is the floor claimable
+     */
+    public boolean isClaimableTile(int x, int y, short playerId) {
+        TileData tile = getMapData().getTile(x, y);
+        Terrain terrain = tile.getTerrain();
+        return (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(x, y, playerId));
+    }
+
+    /**
+     * Is claimable room tile at tile point
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param playerId for the player
+     * @return is the room claimable
+     */
+    public boolean isClaimableRoom(int x, int y, short playerId) {
+        TileData tile = getMapData().getTile(x, y);
+        Terrain terrain = tile.getTerrain();
+        return (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(x, y, playerId));
+    }
+
+    /**
+     * Attempt to claim the tile or room, applies either damage of heal,
+     * depending whose tile is it
+     *
+     * @param point tile coordinate
+     * @param playerId for the player
+     */
+    public void applyClaimTile(Point point, short playerId) {
+        TileData tile = getMapData().getTile(point);
+        Terrain terrain = tile.getTerrain();
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getPlayerId() != playerId) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                damageRoom(point, playerId);
+            } else {
+                damageTile(point, playerId);
+            }
+        } else {
+            // TODO: Room healing
+            healTile(point, playerId);
+        }
+    }
+
+    /**
+     * Damage a room
+     *
+     * @param point tile coordinate
+     * @param playerId for the player
+     */
+    private void damageRoom(Point point, short playerId) {
+        TileData tile = getMapData().getTile(point);
+
+        // Calculate the damage
+        int damage;
+        if (tile.getPlayerId() == 0) {
+            damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.CONVERT_ROOM_HEALTH);
+        } else {
+            damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_ROOM_HEALTH);
+        }
+
+        // Get the room
+        RoomInstance room = getMapLoader().getRoomCoordinates().get(point);
+        List<Point> roomTiles = room.getCoordinates();
+
+        // Apply the damage equally to all tiles so that the overall condition can be checked easily
+        // I don't know if this model is correct or not, but like this the bigger the room the more effort it requires to claim
+        int damagePerTile = Math.abs(damage / roomTiles.size());
+        for (Point p : roomTiles) {
+            TileData roomTile = getMapData().getTile(p);
+            if (roomTile.applyDamage(damagePerTile)) {
+
+                // If one of the tiles runs out (everyone should run out of the same time, unless a new tile has recently being added..)
+                for (Point p2 : roomTiles) {
+                    roomTile = getMapData().getTile(p2);
+                    roomTile.setPlayerId(playerId); // Claimed!
+                    roomTile.applyHealing(Integer.MAX_VALUE);
+
+                    // TODO: Claimed room wall tiles lose the claiming I think?
+                    notifyTileChange(p2);
+                }
+                break;
+            }
+        }
     }
 
 }

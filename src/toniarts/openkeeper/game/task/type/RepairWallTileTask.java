@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task.type;
 
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
 /**
@@ -31,7 +32,8 @@ public class RepairWallTileTask extends DigTileTask {
 
     @Override
     public boolean isValid() {
-        return worldState.isRepairableWall(getTaskLocation().x, getTaskLocation().y, playerId);
+        TileData tile = worldState.getMapData().getTile(getTaskLocation());
+        return worldState.isRepairableWall(getTaskLocation().x, getTaskLocation().y, playerId) && !tile.isSelectedByPlayerId(playerId);
     }
 
     @Override
