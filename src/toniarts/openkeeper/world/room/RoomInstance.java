@@ -18,6 +18,7 @@ package toniarts.openkeeper.world.room;
 
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.EntityInstance;
 import toniarts.openkeeper.world.MapData;
 
@@ -55,5 +56,14 @@ public class RoomInstance extends EntityInstance<Room> {
      */
     public short getOwnerId() {
         return mapData.getTile(getCoordinates().get(0)).getPlayerId();
+    }
+
+    /**
+     * Is the room attackable
+     *
+     * @return is attackable
+     */
+    boolean isAttackable() {
+        return mapData.getTile(getCoordinates().get(0)).getTerrain().getFlags().contains(Terrain.TerrainFlag.ATTACKABLE);
     }
 }

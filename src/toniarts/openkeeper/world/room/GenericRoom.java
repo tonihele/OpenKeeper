@@ -294,7 +294,7 @@ public abstract class GenericRoom {
      * @return room tooltip
      */
     public String getTooltip(short playerId) {
-        if (roomInstance.getOwnerId() != playerId) {
+        if (roomInstance.getOwnerId() != playerId && roomInstance.isAttackable()) {
             return notOwnedTooltip;
         }
         return tooltip;
