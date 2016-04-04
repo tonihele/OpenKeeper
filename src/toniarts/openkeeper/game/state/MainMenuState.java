@@ -29,6 +29,9 @@ import com.jme3.input.InputManager;
 import com.jme3.input.KeyNames;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
+import com.jme3.network.Client;
+import com.jme3.network.Network;
+import com.jme3.network.Server;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
@@ -44,6 +47,8 @@ import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.controls.ListBox;
 import de.lessvoid.nifty.controls.ListBoxSelectionChangedEvent;
 import de.lessvoid.nifty.controls.Slider;
+import de.lessvoid.nifty.controls.TextField;
+import de.lessvoid.nifty.controls.textfield.TextFieldControl;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
@@ -57,6 +62,9 @@ import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -78,6 +86,8 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
+import toniarts.openkeeper.game.network.LocalServerSearch;
+import toniarts.openkeeper.game.network.ServerInfo;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
@@ -105,7 +115,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private AssetManager assetManager;
     private AppStateManager stateManager;
     private InputManager inputManager;
-    private ViewPort viewPort;
+    //private ViewPort viewPort;
     private Nifty nifty;
     private Screen screen;
     protected Node menuNode;
@@ -123,8 +133,11 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private List<KwdFile> skirmishMaps;
     private List<KwdFile> multiplayerMaps;
     private KwdFile selectedMap;
-    private List<Keeper> skirmishPlayers = new ArrayList<>(4);
+    private final List<Keeper> skirmishPlayers = new ArrayList<>(4);
     private boolean skirmishMapSelect = false;
+    private Server server = null;
+    private ServerInfo serverInfo = null;
+    private Client client = null;
 
     static {
         cutscenes.put("image", "Intro,000,001,002,003,004,005,006,007,008,009,010,011,012,013,014,015,016,017,018,Outro".split(","));
@@ -187,7 +200,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         assetManager = this.app.getAssetManager();
         this.stateManager = this.app.getStateManager();
         inputManager = this.app.getInputManager();
-        viewPort = this.app.getViewPort();
+        //viewPort = this.app.getViewPort();
 
         // Set some Nifty stuff
         NiftyJmeDisplay niftyDisplay = MainMenuState.this.app.getNifty();
@@ -234,6 +247,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         if (menuNode != null) {
             rootNode.detachChild(menuNode);
             menuNode = null;
+        }
+
+        if (server != null) {
+            server.close();
+        }
+
+        if (client != null) {
+            client.close();
         }
 
         super.cleanup();
@@ -382,10 +403,21 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 generateMovieList();
                 break;
             case "skirmish":
-            case "multiplayerCreate":
                 // Init the screen
                 setSkirmishMapDataToGUI();
                 break;
+
+            case "multiplayerCreate":
+                Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
+                title.setText(serverInfo.getName());
+                createServer();
+                setSkirmishMapDataToGUI();
+                break;
+
+            case "multiplayerLocal":
+                multiplayerRefresh();
+                break;
+
             case "skirmishMapSelect": {
 
                 // Populate the maps
@@ -398,6 +430,45 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
     }
 
+    private void createServer() {        
+        try {
+            if (server == null) {
+                server = Network.createServer(serverInfo.getName(), 1, serverInfo.getPort(), serverInfo.getPort());
+            }
+            server.start();
+        } catch (IOException ex) {
+            logger.log(java.util.logging.Level.SEVERE, null, ex);
+            goToScreen("multiplayerLocal");
+        }
+    }
+    
+    public void multiplayerRefresh() {
+        TextField port = screen.findNiftyControl("gamePort", TextField.class);
+        int serverPort = Integer.valueOf(port.getRealText());
+        LocalServerSearch searcher = new LocalServerSearch(serverPort) {
+
+            @Override
+            public void onFound(ServerInfo server) {
+                System.out.println("good host: " + server.getHost());
+                ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
+
+                if (games == null) {
+                    logger.warning("Element multiplayerGamesTable not found");
+                    return;
+                }
+
+                TableRow row = new TableRow(0, server.getHost(), server.getName(), server.getPort() + "");
+                games.addItem(row);
+            }
+        };
+        searcher.start();
+    }
+    
+    private void connectToLocalServer() {    
+        TextField port = screen.findNiftyControl("gamePort", TextField.class);
+        int serverPort = Integer.valueOf(port.getRealText());        
+    }
+
     @Override
     public void onEndScreen() {
         switch (nifty.getCurrentScreen().getScreenId()) {
@@ -406,6 +477,17 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 break;
             case "campaign":
                 clearLevelBriefingNarration();
+                break;
+            case "multiplayerLocal":
+                TextField player = screen.findNiftyControl("playerName", TextField.class);
+                TextField game = screen.findNiftyControl("gameName", TextField.class);
+                TextField port = screen.findNiftyControl("gamePort", TextField.class);
+                serverInfo = new ServerInfo(game.getRealText(), player.getRealText(), Integer.valueOf(port.getRealText()));
+                break;
+            case "multiplayerCreate":
+                if (server != null && server.isRunning()) {
+                    server.close();
+                }
                 break;
         }
     }
@@ -1126,80 +1208,5 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             }
         }
         return nifty.createImage(asset, true);
-    }
-
-    private class MyDisplayMode implements Comparable<MyDisplayMode> {
-
-        private int height;
-        private int width;
-        private int bitDepth;
-        private List<Integer> refreshRate = new ArrayList<>(10);
-
-        public MyDisplayMode(DisplayMode dm) {
-            height = dm.getHeight();
-            width = dm.getWidth();
-            bitDepth = dm.getBitDepth();
-            refreshRate.add(dm.getRefreshRate());
-        }
-
-        private MyDisplayMode(AppSettings settings) {
-            height = settings.getHeight();
-            width = settings.getWidth();
-            bitDepth = settings.getBitsPerPixel();
-            refreshRate.add(settings.getFrequency());
-        }
-
-        public void addRefreshRate(DisplayMode dm) {
-            if (dm.getRefreshRate() != DisplayMode.REFRESH_RATE_UNKNOWN && !refreshRate.contains(dm.getRefreshRate())) {
-                refreshRate.add(dm.getRefreshRate());
-            }
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final MyDisplayMode other = (MyDisplayMode) obj;
-            if (this.height != other.height) {
-                return false;
-            }
-            if (this.width != other.width) {
-                return false;
-            }
-            if (this.bitDepth != other.bitDepth) {
-                return false;
-            }
-            return true;
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = 7;
-            hash = 37 * hash + this.height;
-            hash = 37 * hash + this.width;
-            hash = 37 * hash + this.bitDepth;
-            return hash;
-        }
-
-        @Override
-        public String toString() {
-            return width + " x " + height + (bitDepth != DisplayMode.BIT_DEPTH_MULTI ? " @" + bitDepth : "");
-        }
-
-        @Override
-        public int compareTo(MyDisplayMode o) {
-            int result = Integer.compare(bitDepth, o.bitDepth);
-            if (result == 0) {
-                result = Integer.compare(width, o.width);
-            }
-            if (result == 0) {
-                result = Integer.compare(height, o.height);
-            }
-            return result;
-        }
     }
 }

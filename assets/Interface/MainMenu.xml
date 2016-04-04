@@ -519,7 +519,7 @@
                 <panel align="center" valign="center" childLayout="horizontal" width="100%">
                     <panel align="center" valign="center" childLayout="vertical" width="70%">
                         <text style="menuTitleText" text="${menu.157}" align="center" />
-                        <control id="multiplayerPlayersTable" name="table" vertical="optional" displayItems="8" selection="Single"
+                        <control id="multiplayerGamesTable" name="table" vertical="optional" displayItems="8" selection="Single"
                                  colCount="4"
                                  col0="${menu.1393};34;java.lang.String;#32050c30"
                                  col1="${menu.194};33;java.lang.String;#32050c30"
@@ -537,11 +537,11 @@
                         <control name="textfield" id="gamePort" text="7575" maxLength="20" align="center" />
                     </panel>
                 </panel>
-                <panel align="center" valign="center" childLayout="horizontal" width="100%" height="*">
+                <panel align="center" valign="bottom" childLayout="horizontal" width="100%" height="*">
                     <panel height="*" align="center" valign="bottom" childLayout="horizontal" width="70%">
                         <panel height="*" align="center" childLayout="center" width="50%">
                             <text style="menuText" text="${menu.216}">
-                                <interact onClick="multiplayerRefresh" />
+                                <interact onClick="multiplayerRefresh()" />
                             </text>
                         </panel>
                         <panel height="*" align="center" childLayout="center" width="*">
@@ -583,7 +583,7 @@
     <screen id="multiplayerCreate" controller="toniarts.openkeeper.game.state.MainMenuState">
         <layer childLayout="vertical">
            <panel childLayout="center" height="14%" align="center" valign="center">
-                <text style="menuTitleText" text="${menu.2729}" />
+                <control name="label" style="menuTitleText" id="multiplayerTitle" text="" />
             </panel>
             
             <!--Two panels, left the game stuff, right the map selection stuff-->
