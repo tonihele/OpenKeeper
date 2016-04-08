@@ -16,44 +16,23 @@
  */
 package toniarts.openkeeper.game.network;
 
+import com.jme3.network.HostedConnection;
+import com.jme3.network.Message;
+import com.jme3.network.MessageListener;
+
 /**
  *
  * @author ArchDemon
  */
-public class ServerInfo {
-    private String name;
-    private String player;
-    private int port;
-    private String host;
 
-    public ServerInfo(String name, String player, int port) {
-        this.name = name;
-        this.player = player;
-        this.port = port;
-    }
 
-    public ServerInfo(String host, int port) {
-        this.host = host;
-        this.port = port;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getPlayer() {
-        return player;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public String getHost() {
-        return host;
-    }
+public class ServerListener implements MessageListener<HostedConnection> {
+    @Override
+    public void messageReceived(HostedConnection source, Message message) {
+        if (message instanceof MessageChat) {
+            // do something with the message
+            MessageChat msg = (MessageChat) message;
+            System.out.println("Server received '" + msg.getData() + "' from client #" + source.getId());
+        }
+    } 
 }

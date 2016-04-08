@@ -1,7 +1,18 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2014-2015 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
 package toniarts.openkeeper.game.network;
 
@@ -20,7 +31,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 
 public abstract class LocalServerSearch {
-    
+
     private final static int nThreads = 10;
     private int port = 7575;
     private final ServerQuery[] threads;
@@ -31,16 +42,16 @@ public abstract class LocalServerSearch {
     public LocalServerSearch(int port) {
         this.port = port;
         queue = new LinkedList();
-        threads = new ServerQuery[nThreads];        
+        threads = new ServerQuery[nThreads];
         addLocalHosts();
     }
-    
+
     public void start() {
         for (int i = 0; i < nThreads; i++) {
             threads[i] = new ServerQuery(queue) {
 
                 @Override
-                public void onFound(ServerInfo server) {                    
+                public void onFound(ServerInfo server) {
                     servers.add(server);
                     LocalServerSearch.this.onFound(server);
                 }
@@ -48,22 +59,22 @@ public abstract class LocalServerSearch {
             threads[i].start();
         }
     }
-    
+
     private void addLocalHosts() {
         try {
             InetAddress address = InetAddress.getLocalHost();
             byte[] ipLan = address.getAddress();
 
-            for (short i = 1; i < 255; i++) {                
-                String host = String.format("%s.%s.%s.%s", 
-                        ConversionUtils.toUnsignedByte(ipLan[0]), 
-                        ConversionUtils.toUnsignedByte(ipLan[1]), 
-                        ConversionUtils.toUnsignedByte(ipLan[2]), 
+            for (short i = 39; i < 42; i++) {
+                String host = String.format("%s.%s.%s.%s",
+                        ConversionUtils.toUnsignedByte(ipLan[0]),
+                        ConversionUtils.toUnsignedByte(ipLan[1]),
+                        ConversionUtils.toUnsignedByte(ipLan[2]),
                         i);
                 add(new ServerInfo(host, port));
-            }                
+            }
         } catch (UnknownHostException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);            
+            logger.log(java.util.logging.Level.SEVERE, null, ex);
         }
     }
 
@@ -73,15 +84,10 @@ public abstract class LocalServerSearch {
             queue.notify();
         }
     }
-    
+
     public List<ServerInfo> getServers() {
         return servers;
     }
-    
-    
-    
+
     public abstract void onFound(ServerInfo server);
 }
-    
-    
-    

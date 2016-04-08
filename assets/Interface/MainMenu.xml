@@ -524,8 +524,9 @@
                                  col0="${menu.1393};34;java.lang.String;#32050c30"
                                  col1="${menu.194};33;java.lang.String;#32050c30"
                                  col2="${menu.533};11;java.lang.String;#00752430"
-                                 col3=";11;java.lang.String;#00779e30"
-                        />
+                                 col3=";11;java.lang.String;#00779e30">
+                            <interact onClick="connectToServer()" />
+                        </control>
                         <text style="menuTitleText" text="${menu.1557}" align="center" />
                     </panel>
                     <panel align="center" valign="top" childLayout="vertical">
@@ -546,13 +547,14 @@
                         </panel>
                         <panel height="*" align="center" childLayout="center" width="*">
                             <text style="menuText" text="${menu.1403}">
+                                <interact onClick="multiplayerConnect()" />
                                 <!--<interact onClick="goToScreen(multiplayerFavorites)" />-->
                             </text>
                         </panel>
                     </panel>
                     <panel height="*" align="center" valign="bottom" childLayout="center" width="*">
                         <text style="menuText" text="${menu.158}">
-                            <interact onClick="goToScreen(multiplayerCreate)" />
+                            <interact onClick="multiplayerCreate()" />
                         </text>
                     </panel>
                 </panel>
@@ -629,7 +631,9 @@
                         </panel>
                     </panel>
                     <panel height="*" align="center" valign="bottom" childLayout="center" visibleToMouse="true">
-                        <control id="multiplayerChat" name="nifty-chat" width="100%" height="100%" lines="5" sendLabel="Send Message" />
+                        <control id="multiplayerChat" name="nifty-chat" width="100%" height="100%" lines="5" sendLabel="Send Message" >
+                            <interact onClick="multiplayerSend()" />
+                        </control>
                     </panel>
                 </panel>
                 <panel width="*" childLayout="vertical" align="center" valign="top">
@@ -729,7 +733,7 @@
             <panel width="95%" childLayout="horizontal" align="center" valign="center" paddingTop="10px">
 
                 <panel width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
-                    <panel width="100%" childLayout="horizontal">
+                    <panel id="skirmishPlayerControl" width="100%" childLayout="horizontal">
                         <panel width="50%" childLayout="vertical">
                             <text style="menuText" text="${menu.270}" align="left">
                                 <!--<interact onClick="kickPlayer()" />-->
@@ -745,7 +749,7 @@
                         </panel>
                     </panel>
                 </panel>
-                <panel width="*" childLayout="vertical" align="center" valign="top">
+                <panel id="skirmishGameControl" width="*" childLayout="vertical" align="center" valign="top">
                     <text style="menuText" text="${menu.1495}" align="center">
                         <interact onClick="selectMap(skirmish)" />
                     </text>

@@ -16,44 +16,21 @@
  */
 package toniarts.openkeeper.game.network;
 
+import com.jme3.network.AbstractMessage;
+import com.jme3.network.serializing.Serializable;
+
 /**
  *
  * @author ArchDemon
  */
-public class ServerInfo {
-    private String name;
-    private String player;
-    private int port;
-    private String host;
 
-    public ServerInfo(String name, String player, int port) {
-        this.name = name;
-        this.player = player;
-        this.port = port;
-    }
+@Serializable
+public class MessageChat extends AbstractMessage {
+    private String data;       // custom message data
+    public MessageChat() {}    // empty constructor
+    public MessageChat(String s) { data = s; } // custom constructor
 
-    public ServerInfo(String host, int port) {
-        this.host = host;
-        this.port = port;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getPlayer() {
-        return player;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public String getHost() {
-        return host;
+    public String getData() {
+        return data;
     }
 }

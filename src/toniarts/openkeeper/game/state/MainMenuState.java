@@ -48,7 +48,6 @@ import de.lessvoid.nifty.controls.ListBox;
 import de.lessvoid.nifty.controls.ListBoxSelectionChangedEvent;
 import de.lessvoid.nifty.controls.Slider;
 import de.lessvoid.nifty.controls.TextField;
-import de.lessvoid.nifty.controls.textfield.TextFieldControl;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
@@ -86,8 +85,13 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
+import toniarts.openkeeper.game.network.ClientListener;
+import toniarts.openkeeper.game.network.ClientStateChangeListener;
 import toniarts.openkeeper.game.network.LocalServerSearch;
+import toniarts.openkeeper.game.network.MessageChat;
+import toniarts.openkeeper.game.network.ServerConnectionListener;
 import toniarts.openkeeper.game.network.ServerInfo;
+import toniarts.openkeeper.game.network.ServerListener;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
@@ -138,6 +142,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private Server server = null;
     private ServerInfo serverInfo = null;
     private Client client = null;
+    private boolean isServer = true;
 
     static {
         cutscenes.put("image", "Intro,000,001,002,003,004,005,006,007,008,009,010,011,012,013,014,015,016,017,018,Outro".split(","));
@@ -249,11 +254,11 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             menuNode = null;
         }
 
-        if (server != null) {
+        if (server != null && server.isRunning()) {
             server.close();
         }
 
-        if (client != null) {
+        if (client != null && client.isStarted()) {
             client.close();
         }
 
@@ -339,6 +344,10 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     public void onStartScreen() {
         bind(nifty, nifty.getCurrentScreen());
         switch (nifty.getCurrentScreen().getScreenId()) {
+            case "singlePlayer":
+                selectedMap = null;
+                break;
+
             case "selectCampaignLevel":
                 inputManager.addRawInputListener(listener);
                 break;
@@ -404,18 +413,32 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 break;
             case "skirmish":
                 // Init the screen
-                setSkirmishMapDataToGUI();
+                skirmishMapSelect = true;
+                if (selectedMap == null) {
+                    selectRandomMap();
+                }
+                populateSkirmishPlayerTable();
                 break;
 
             case "multiplayerCreate":
+                skirmishMapSelect = false;
+                if (selectedMap == null) {
+                    selectRandomMap();
+                }
                 Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
-                title.setText(serverInfo.getName());
-                createServer();
-                setSkirmishMapDataToGUI();
+                title.setText(client.getGameName());
+
+                if (!isServer) {
+                    Element element = screen.findElementById("skirmishGameControl");
+                    element.hide();
+                    element = screen.findElementById("skirmishPlayerControl");
+                    element.hide();
+                }
                 break;
 
             case "multiplayerLocal":
-                multiplayerRefresh();
+                selectedMap = null;
+                // multiplayerRefresh();
                 break;
 
             case "skirmishMapSelect": {
@@ -430,43 +453,99 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
     }
 
-    private void createServer() {        
+    public void multiplayerCreate() throws UnknownHostException {
+        isServer = true;
+
+        TextField player = screen.findNiftyControl("playerName", TextField.class);
+        TextField game = screen.findNiftyControl("gameName", TextField.class);
+        TextField port = screen.findNiftyControl("gamePort", TextField.class);
+        serverInfo = new ServerInfo(game.getRealText(), player.getRealText(), Integer.valueOf(port.getRealText()));
+
+        multiplayerCreateServer();
+
+        InetAddress address = InetAddress.getLocalHost();
+        multiplayerConnectServer(address.getHostName(), serverInfo.getPort());
+    }
+
+    private boolean multiplayerCreateServer() {
         try {
             if (server == null) {
                 server = Network.createServer(serverInfo.getName(), 1, serverInfo.getPort(), serverInfo.getPort());
             }
+            server.addMessageListener(new ServerListener(), MessageChat.class);
+            server.addConnectionListener(new ServerConnectionListener());
             server.start();
+            logger.info("Server created");
+            return true;
         } catch (IOException ex) {
             logger.log(java.util.logging.Level.SEVERE, null, ex);
             goToScreen("multiplayerLocal");
         }
+        return false;
     }
-    
+
+    private boolean multiplayerConnectServer(String host, int port) {
+        try {
+            if (client == null) {
+                client = Network.connectToServer(host, port);
+            }
+
+            client.addMessageListener(new ClientListener(), MessageChat.class);
+            client.addClientStateListener(new ClientStateChangeListener());
+            client.start();
+            goToScreen("multiplayerCreate");
+            return true;
+        } catch (IOException ex) {
+            logger.log(java.util.logging.Level.SEVERE, null, ex);
+            //goToScreen("multiplayerLocal");
+        }
+        return false;
+    }
+
     public void multiplayerRefresh() {
         TextField port = screen.findNiftyControl("gamePort", TextField.class);
         int serverPort = Integer.valueOf(port.getRealText());
+
+        ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
+        if (games == null) {
+            logger.warning("Element multiplayerGamesTable not found");
+            return;
+        }
+        games.clear();
+
         LocalServerSearch searcher = new LocalServerSearch(serverPort) {
+            int i = 0;
 
             @Override
             public void onFound(ServerInfo server) {
-                System.out.println("good host: " + server.getHost());
-                ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
-
-                if (games == null) {
-                    logger.warning("Element multiplayerGamesTable not found");
-                    return;
-                }
-
-                TableRow row = new TableRow(0, server.getHost(), server.getName(), server.getPort() + "");
+                TableRow row = new TableRow(i++, server.getName(), server.getHost(), server.getPort() + "");
                 games.addItem(row);
             }
         };
         searcher.start();
     }
-    
-    private void connectToLocalServer() {    
-        TextField port = screen.findNiftyControl("gamePort", TextField.class);
-        int serverPort = Integer.valueOf(port.getRealText());        
+
+    public void multiplayerConnect() {
+        isServer = false;
+        ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
+        if (games == null) {
+            logger.warning("Element multiplayerGamesTable not found");
+            return;
+        }
+        TableRow row = games.getFocusItem();
+        String host = row.getData().get(1);
+        String port = row.getData().get(2);
+
+        multiplayerConnectServer(host, Integer.valueOf(port));
+    }
+
+    public void multiplayerSend() {
+        if (client == null) {
+            logger.warning("Bad");
+            return;
+        }
+
+        client.send(new MessageChat("ololo"));
     }
 
     @Override
@@ -478,15 +557,19 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             case "campaign":
                 clearLevelBriefingNarration();
                 break;
-            case "multiplayerLocal":
-                TextField player = screen.findNiftyControl("playerName", TextField.class);
-                TextField game = screen.findNiftyControl("gameName", TextField.class);
-                TextField port = screen.findNiftyControl("gamePort", TextField.class);
-                serverInfo = new ServerInfo(game.getRealText(), player.getRealText(), Integer.valueOf(port.getRealText()));
-                break;
             case "multiplayerCreate":
-                if (server != null && server.isRunning()) {
-                    server.close();
+                if (client != null) {
+                    if (client.isConnected() || client.isStarted()) {
+                        client.close();
+                    }
+                    client = null;
+                }
+
+                if (server != null) {
+                    if (server.isRunning()) {
+                        server.close();
+                    }
+                    server = null;
                 }
                 break;
         }
@@ -1003,14 +1086,6 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         Collections.sort(skirmishMaps, c);
         Collections.sort(multiplayerMaps, c);
 
-        // Select the first one as selected
-        if (!skirmishMaps.isEmpty()) {
-            selectedMap = skirmishMaps.get(0);
-        }
-        if (!multiplayerMaps.isEmpty()) {
-            selectedMap = multiplayerMaps.get(0);
-        }
-
         // Init skirmish players
         Keeper keeper = new Keeper(false, "Player", Keeper.KEEPER1_ID);
         skirmishPlayers.add(keeper);
@@ -1043,31 +1118,25 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             if (skirmishPlayers.size() > selectedMap.getGameLevel().getPlayerCount()) {
                 skirmishPlayers.subList(selectedMap.getGameLevel().getPlayerCount(), skirmishPlayers.size()).clear();
             }
-            populateSkirmishPlayerTable();
         }
 
         // Re-populate
         screen.layoutLayers();
     }
 
-    public void selectRandomMap(String type) {
+    public void selectRandomMap() {
         KwdFile map;
+        List<KwdFile> maps;
 
-        if ("skirmish".equals(type.toLowerCase())) {
-            if (skirmishMaps.size() < 2) {
-                return;
-            }
-            do {
-                map = skirmishMaps.get(FastMath.nextRandomInt(0, skirmishMaps.size() - 1));
-            } while (map.equals(selectedMap));
+        maps = skirmishMapSelect ?  skirmishMaps : multiplayerMaps;
 
+        if (maps.isEmpty()) {
+            return;
+        } else if (maps.size() == 1) {
+            map = maps.get(0);
         } else {
-            if (multiplayerMaps.size() < 2) {
-                return;
-            }
-
             do {
-                map = multiplayerMaps.get(FastMath.nextRandomInt(0, multiplayerMaps.size() - 1));
+                map = maps.get(FastMath.nextRandomInt(0, maps.size() - 1));
             } while (map.equals(selectedMap));
         }
 
