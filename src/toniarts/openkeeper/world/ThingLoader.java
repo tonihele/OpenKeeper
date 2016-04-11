@@ -22,11 +22,10 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.creature.CreatureLoader;
+import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  *
@@ -45,6 +44,7 @@ public class ThingLoader {
 
         // Create a creature loader
         CreatureLoader creatureLoader = new CreatureLoader(kwdFile, worldState);
+        ObjectLoader objectLoader = new ObjectLoader(kwdFile, worldState);
 
         //Create a root
         Node root = new Node("Things");
@@ -62,14 +62,8 @@ public class ThingLoader {
                 } else if (obj instanceof Thing.Object) {
 
                     Thing.Object objectThing = (Thing.Object) obj;
-                    Object object = kwdFile.getObject(objectThing.getObjectId());
 
-                    Node nodeObject = (Node) assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + object.getMeshResource().getName() + ".j3o");
-                    nodeObject.setLocalTranslation(
-                            objectThing.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
-                            0 * MapLoader.TILE_HEIGHT,
-                            objectThing.getPosY() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
-                    nodeObjects.attachChild(nodeObject);
+                    nodeObjects.attachChild(objectLoader.load(assetManager, objectThing));
 
                 }
             } catch (Exception ex) {

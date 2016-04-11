@@ -33,6 +33,7 @@ import com.jme3.input.event.TouchEvent;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.control.AbstractControl;
 import de.lessvoid.nifty.controls.Label;
 import java.awt.Point;
 import java.util.Arrays;
@@ -51,7 +52,7 @@ import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
@@ -296,10 +297,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 }
                 //
             } else if (interactionState == InteractionState.NONE) {
-                CreatureControl creatureControl = getInteractiveObjectOnCursor();
-                if (creatureControl != null && creatureControl.isSlappable()) {
+                IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
+                if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
                     getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, Utils.getRandomItem(SLAP_SOUNDS));
-                    creatureControl.slap();
+                    interactiveControl.interact(player.getPlayerId());
                 }
             }
 
@@ -412,7 +413,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private boolean isInteractable() {
 
         // TODO: Now just creature control, but all interaction objects
-        CreatureControl controller = getInteractiveObjectOnCursor();
+        IInteractiveControl controller = getInteractiveObjectOnCursor();
         Vector2f v = null;
         if (controller != null) {
 
@@ -441,7 +442,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             StringBuilder sb = new StringBuilder();
             Point p;
             if (controller != null) {
-                p = getWorldHandler().getTileCoordinates(controller.getSpatial().getWorldTranslation());
+                p = getWorldHandler().getTileCoordinates(((AbstractControl) controller).getSpatial().getWorldTranslation());
             } else {
                 p = new Point((int) v.x, (int) v.y);
             }
@@ -457,7 +458,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         return (controller != null);
     }
 
-    private CreatureControl getInteractiveObjectOnCursor() {
+    private IInteractiveControl getInteractiveObjectOnCursor() {
 
         // See if we hit a creature/object
         CollisionResults results = new CollisionResults();
@@ -478,7 +479,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         for (int i = 0; i < results.size(); i++) {
 
             // TODO: Now just creature control, but all interaction objects
-            CreatureControl controller = results.getCollision(i).getGeometry().getParent().getParent().getControl(CreatureControl.class);
+            IInteractiveControl controller = results.getCollision(i).getGeometry().getParent().getParent().getControl(IInteractiveControl.class);
             if (controller != null) {
                 return controller;
             }

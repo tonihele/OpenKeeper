@@ -56,6 +56,7 @@ import toniarts.openkeeper.tools.convert.map.Thing.NeutralCreature;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
 
@@ -64,7 +65,7 @@ import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetec
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureControl extends AbstractCreatureSteeringControl {
+public class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl {
 
     public enum AnimationType {
 
@@ -316,6 +317,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
         return path;
     }
 
+    @Override
     public String getTooltip() {
         return formatString(tooltip);
     }
@@ -324,14 +326,9 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
         return string.replaceAll("%29", name).replaceAll("%30", creature.getName());
     }
 
-    public boolean isSlappable() {
-        // TODO: Player id
-        return creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) && !stateMachine.isInState(CreatureState.DEAD);
-    }
-
-    public void slap() {
+    private boolean slap(short playerId) {
         // TODO: Direction & sound
-        if (isSlappable()) {
+        if (isSlappable(playerId)) {
             stateMachine.changeState(CreatureState.SLAPPED);
             steeringBehavior = null;
             idleAnimationPlayCount = 0;
@@ -343,7 +340,10 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
             } else {
                 playAnimation(creature.getAnimFallbackResource());
             }
+
+            return true;
         }
+        return false;
     }
 
     public void die() {
@@ -417,6 +417,30 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
 
     private boolean isNear(Vector2f target) {
         return (target.distanceSquared(getSpatial().getWorldTranslation().x, getSpatial().getWorldTranslation().z) < 0.5f);
+    }
+
+    private boolean isSlappable(short playerId) {
+        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) && !stateMachine.isInState(CreatureState.DEAD);
+    }
+
+    @Override
+    public boolean isPickable(short playerId) {
+        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP) && !stateMachine.isInState(CreatureState.DEAD);
+    }
+
+    @Override
+    public boolean isInteractable(short playerId) {
+        return isSlappable(playerId);
+    }
+
+    @Override
+    public boolean pickUp(short playerId) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public boolean interact(short playerId) {
+        return slap(playerId);
     }
 
 }
