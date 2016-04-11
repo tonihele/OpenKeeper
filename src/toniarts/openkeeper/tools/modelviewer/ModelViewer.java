@@ -71,7 +71,6 @@ import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.ObjectLoader;
 import toniarts.openkeeper.world.TerrainLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
 
@@ -84,7 +83,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     public enum Types {
 
-        MODELS("Models"), TERRAIN("Terrain"), OBJECTS("Objects"), MAPS("Maps");
+        MODELS("Models"), TERRAIN("Terrain"), /*OBJECTS("Objects"),*/ MAPS("Maps");
         private final String name;
 
         private Types(String name) {
@@ -400,13 +399,13 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     setupModel(spat, true);
                     break;
                 }
-                case OBJECTS: {
-
-                    // Load the selected object
-                    Node spat = (Node) new ObjectLoader().load(this.getAssetManager(), (toniarts.openkeeper.tools.convert.map.Object) selection.get(0));
-                    setupModel(spat, false);
-                    break;
-                }
+//                case OBJECTS: {
+//
+//                    // Load the selected object
+//                    Node spat = (Node) new ObjectLoader().load(this.getAssetManager(), (toniarts.openkeeper.tools.convert.map.Object) selection.get(0));
+//                    setupModel(spat, false);
+//                    break;
+//                }
             }
         }
     }
@@ -525,10 +524,10 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 fillWithFiles(maps, dkIIFolder, dkIIFolder.concat(AssetsConverter.MAPS_FOLDER), "kwd");
                 break;
             }
-            case OBJECTS: {
-                fillObjects();
-                break;
-            }
+//            case OBJECTS: {
+//                fillObjects();
+//                break;
+//            }
         }
     }
 
