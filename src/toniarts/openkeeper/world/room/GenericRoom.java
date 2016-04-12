@@ -27,8 +27,8 @@ import java.awt.Point;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
 
@@ -130,7 +130,6 @@ public abstract class GenericRoom {
      * @return the wall spatial
      */
     public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
-        // TODO make models cache ???
         float yAngle = FastMath.PI;
         String resource = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
 
@@ -168,7 +167,7 @@ public abstract class GenericRoom {
                     }
 
                     // Load the piece
-                    Spatial part = assetManager.loadModel(resource + firstPiece + ".j3o");
+                    Spatial part = AssetUtils.loadModel(assetManager, resource + firstPiece + ".j3o", false);
                     resetSpatial(part);
                     part.move(moveFirst);
                     part.rotate(0, yAngle, 0);
@@ -181,7 +180,7 @@ public abstract class GenericRoom {
                         secondPiece = 4; // The sorting direction forces us to do this
                     }
 
-                    part = assetManager.loadModel(resource + secondPiece + ".j3o");
+                    part = AssetUtils.loadModel(assetManager, resource + secondPiece + ".j3o", false);
                     resetSpatial(part);
                     part.move(moveSecond);
                     part.rotate(0, yAngle, 0);
@@ -190,7 +189,7 @@ public abstract class GenericRoom {
                     ((BatchNode) spatial).batch();
                 } else {
                     // Complete walls, 8, 7, 8, 7 and so forth
-                    spatial = assetManager.loadModel(resource + getWallIndex(i) + ".j3o");
+                    spatial = AssetUtils.loadModel(assetManager, resource + getWallIndex(i) + ".j3o", false);
                     resetSpatial(spatial);
                     spatial.rotate(0, yAngle, 0);
 
@@ -301,7 +300,7 @@ public abstract class GenericRoom {
     }
 
     protected final Spatial loadModel(String model) {
-        return assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER
-                + "/" + model + ".j3o"));
+        return AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER
+                + "/" + model + ".j3o", false);
     }
 }

@@ -30,6 +30,7 @@ import java.util.EnumSet;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.room.WallSection.WallDirection;
 
@@ -95,7 +96,7 @@ public class Normal extends GenericRoom {
 
                 // If we are completely covered, use a big tile
                 if (N && NE && E && SE && S && SW && W && NW && useBigFloorTile(x, y)) {
-                    Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "9.j3o");
+                    Spatial part = AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "9.j3o", false);
                     resetAndMoveSpatial(part, start, new Point(start.x + x, start.y + y));
                     tile.attachChild(part);
                 } else {
@@ -213,7 +214,7 @@ public class Normal extends GenericRoom {
                             }
 
                             // Load the piece
-                            Spatial part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + pieceNumber + ".j3o");
+                            Spatial part = AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + pieceNumber + ".j3o", false);
                             resetAndMoveSpatial(part, start, new Point(start.x + x, start.y + y));
                             if (quat != null) {
                                 part.rotate(quat);
@@ -266,7 +267,6 @@ public class Normal extends GenericRoom {
 
         // NOTE: I don't understand how the pillars are referenced, they are neither in Terrain nor Room, but they are listed in the Objects. Even Lair has pillars, but I've never seem the in-game
         // Pillars go into all at least 3x3 corners, there can be more than 4 pillars per room
-
         // Go through all the points and see if they are fit for pillar placement
         for (Point p : roomInstance.getCoordinates()) {
 
