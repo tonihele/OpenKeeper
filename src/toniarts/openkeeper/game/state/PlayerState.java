@@ -345,6 +345,10 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     public void setWideScreen(boolean enable) {
+        if (interactionState.isInitialized()) {
+            interactionState.setEnabled(!enable);
+        }
+
         if (enable) {
             app.getNifty().getNifty().gotoScreen(PlayerState.CINEMATIC_SCREEN_ID);
         } else {
