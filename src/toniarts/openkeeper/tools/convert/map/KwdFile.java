@@ -48,7 +48,6 @@ import toniarts.openkeeper.tools.convert.map.GameLevel.LevFlag;
 import toniarts.openkeeper.tools.convert.map.GameLevel.LevelReward;
 import toniarts.openkeeper.tools.convert.map.GameLevel.TextTable;
 import static toniarts.openkeeper.tools.convert.map.MapDataTypeEnum.MAP;
-import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Thing.ActionPoint;
 import toniarts.openkeeper.tools.convert.map.Thing.ActionPoint.ActionPointFlag;
 import toniarts.openkeeper.tools.convert.map.Thing.GoodCreature;
@@ -635,7 +634,6 @@ public final class KwdFile {
         // System.out.println("Name: " + artResource.getName());
         // System.out.println("Type: " + type);
         // System.out.println("Flag: " + flags);
-
         // Mesh collection (type 8) has just the name, reference to GROP meshes probably
         // And alphas and images probably share the same attributes
         ResourceType resourceType = artResource.new ResourceType();
@@ -681,7 +679,6 @@ public final class KwdFile {
                 resourceType = artResource.new Proc();
                 ((Proc) resourceType).setId(ConversionUtils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
                 break;
-
 
             }
             default:
@@ -1090,7 +1087,6 @@ public final class KwdFile {
             String path = ConversionUtils.bytesToString(data, 64).trim();
 
             // Tweak the paths
-
             // Paths are relative to the base path, may or may not have an extension (assume kwd if none found)
             path = ConversionUtils.convertFileSeparators(path);
             if (!".".equals(path.substring(path.length() - 4, path.length() - 3))) {
@@ -1840,11 +1836,13 @@ public final class KwdFile {
                     thing = new Thing.Object();
                     ((Thing.Object) thing).setPosX(ConversionUtils.readInteger(file));
                     ((Thing.Object) thing).setPosY(ConversionUtils.readInteger(file));
-                    short unknown1[] = new short[12];
+                    short unknown1[] = new short[4];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();
                     }
                     ((Thing.Object) thing).setUnknown1(unknown1);
+                    ((Thing.Object) thing).setKeeperSpellId(ConversionUtils.readInteger(file));
+                    ((Thing.Object) thing).setMoneyAmount(ConversionUtils.readInteger(file));
                     ((Thing.Object) thing).setTriggerId(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Object) thing).setObjectId((short) file.readUnsignedByte());
                     ((Thing.Object) thing).setPlayerId((short) file.readUnsignedByte());
@@ -3006,7 +3004,6 @@ public final class KwdFile {
     public java.util.Map<Integer, EffectElement> getEffectElements() {
         return effectElements;
     }
-
 
     /**
      * Not all the data types are of the length that suits us, do our best to
