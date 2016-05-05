@@ -525,10 +525,12 @@ public abstract class Thing {
     // FIXME: these were camera positions, but found in variables???
     // Contains in GlobalVariables.kwd only
     public static class Camera extends Thing {
+
         public static int ID_POSSESION = 2;
         public static int ID_GAME = 3;
 
         public enum CameraFlag implements IFlagEnum {
+
             DISABLE_CHANGE(0x80), // Never used. camera not enter and leave possession.
             DISABLE_MOVE(0x40),
             UNKNOWN_20(0x20),
@@ -1266,7 +1268,9 @@ public abstract class Thing {
 
         private int posX; // 0-based coordinate
         private int posY; // 0-based coordinate
-        private short unknown1[]; // 12
+        private short unknown1[]; // 4
+        private int keeperSpellId; // Data 1
+        private int moneyAmount; // Data 2
         private int triggerId;
         private short objectId;
         private short playerId;
@@ -1293,6 +1297,22 @@ public abstract class Thing {
 
         protected void setUnknown1(short[] unknown1) {
             this.unknown1 = unknown1;
+        }
+
+        public int getKeeperSpellId() {
+            return keeperSpellId;
+        }
+
+        protected void setKeeperSpellId(int keeperSpellId) {
+            this.keeperSpellId = keeperSpellId;
+        }
+
+        public int getMoneyAmount() {
+            return moneyAmount;
+        }
+
+        protected void setMoneyAmount(int moneyAmount) {
+            this.moneyAmount = moneyAmount;
         }
 
         public int getTriggerId() {

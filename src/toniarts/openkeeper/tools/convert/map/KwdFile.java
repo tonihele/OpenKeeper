@@ -1853,11 +1853,13 @@ public final class KwdFile {
                     thing = new Thing.Object();
                     ((Thing.Object) thing).setPosX(ConversionUtils.readInteger(file));
                     ((Thing.Object) thing).setPosY(ConversionUtils.readInteger(file));
-                    short unknown1[] = new short[12];
+                    short unknown1[] = new short[4];
                     for (int x = 0; x < unknown1.length; x++) {
                         unknown1[x] = (short) file.readUnsignedByte();
                     }
                     ((Thing.Object) thing).setUnknown1(unknown1);
+                    ((Thing.Object) thing).setKeeperSpellId(ConversionUtils.readInteger(file));
+                    ((Thing.Object) thing).setMoneyAmount(ConversionUtils.readInteger(file));
                     ((Thing.Object) thing).setTriggerId(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Object) thing).setObjectId((short) file.readUnsignedByte());
                     ((Thing.Object) thing).setPlayerId((short) file.readUnsignedByte());
