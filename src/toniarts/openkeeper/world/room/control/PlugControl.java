@@ -17,7 +17,6 @@
 package toniarts.openkeeper.world.room.control;
 
 import com.jme3.math.FastMath;
-import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
@@ -28,8 +27,6 @@ import com.jme3.scene.control.AbstractControl;
  *
  * @author ArchDemon
  */
-
-
 public class PlugControl extends AbstractControl {
 
     private static final float GRAVITY = 9.81f;
@@ -60,7 +57,7 @@ public class PlugControl extends AbstractControl {
             spatial.removeControl(this);
         } else if (tick > 9) {
             velocity -= GRAVITY * tpf;
-            for (Spatial piece : plugDecay.getChildren()) {                
+            for (Spatial piece : plugDecay.getChildren()) {
                 float rotate = (float) piece.getUserData("rotate") * 10 * tpf;
                 float pv = (float) piece.getUserData("velocity") - GRAVITY * tpf;
                 piece.setUserData("velocity", pv);
