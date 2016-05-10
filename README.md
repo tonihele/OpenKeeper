@@ -1,22 +1,20 @@
 OpenKeeper
 =================
 
-Dungeon Keeper II clone
+An open source clone of the Dungeon Keeper II game and engine.
 
 Goal is to fully implement the game (version 1.7 with 3 bonus packs) as open source cross platform version, with minimal or no changes at all, using the original game assets. So it will require the original game to play / develop. Futher development could have fan made graphics (to at least enable standalone version) and features.
 
-Implementation is done in JAVA using JMonkeyEngine (http://jmonkeyengine.org/). Currently we are using JME 3.1 + JAVA 8.
+OpenKeeper is written in Java using [JMonkeyEngine](http://jmonkeyengine.org/). Currently we are using JME 3.1 + Java 8.
 
 [![Build Status](https://travis-ci.org/tonihele/OpenKeeper.svg)](https://travis-ci.org/tonihele/OpenKeeper)
 
-My YouTube channel where I sometimes publish videos of the progress:
-
-https://www.youtube.com/user/Kaljis83/videos
+[Here is my YouTube channel where I sometimes publish videos of the progress](https://www.youtube.com/user/Kaljis83/videos).
 
 Contact
 ========
 
-We have a super secret lair at [IRC channel #OpenKeeper on Freenode](https://webchat.freenode.net/?channels=OpenKeeper). Feel free to idle there. For more persistent discussion and/or feedback, try [this forum at keeperklan.com] (https://keeperklan.com/forums/101-OpenKeeper).
+We have a super secret lair at [IRC channel #OpenKeeper on Freenode](https://webchat.freenode.net/?channels=OpenKeeper). Feel free to idle there. For more persistent discussion and/or feedback, try [this forum at keeperklan.com](https://keeperklan.com/forums/101-OpenKeeper).
 
 Contributing
 =============
@@ -27,7 +25,7 @@ Please keep in mind:
  - Learn to use GIT (forking, pull requests, etc)
  - Coding style
     - Global variables on top
-    - JAVADOC on at least public & protected methods
+    - Javadoc on at least public & protected methods
     - Organize imports
     - Default Netbeans code formatting
     - Code header (the license)
@@ -49,7 +47,7 @@ TODO
     - [x] Texture compression
     - [x] .444 files
   - [x] Read sounds
-  - [x] Read cutscenes (*
+  - [x] Read cutscenes `(*`
   - [x] Read paths
     - [x] Read paths (paths.wad -> kcs)
     - [x] Understand paths
@@ -62,7 +60,7 @@ TODO
   - [ ] Meshes to JMonkeyEngine j3o
     - [x] Basic mesh conversion
     - [x] LOD
-    - [x] Animations (**
+    - [x] Animations `(**`
       - [ ] Integrate animations to the model itself (maybe, have to see the prefered usage)
       - [x] Vertex animations playing
     - [x] Materials
@@ -74,7 +72,7 @@ TODO
     - [x] Finish up the MP2 asset loader
     - [ ] Merge the sound tracks
     - [ ] Decide what to do with the MAP files (playback events)
-  - [x] Video playes for DK format (*
+  - [x] Video playes for DK format `(*`
   - [x] Paths to JME MotionPaths & Cinematics
   - [x] Cursors
     - [x] Animated cursors
@@ -102,14 +100,10 @@ GNU GPLv3 or later. You should add license.txt to your IDE to appear as automati
 Resources
 =========
 
-http://keeperklan.com/threads/4623-Reversal-of-DKII-Binary-File-Formats
+ * [Reversal of DK2 Binary File Formats](http://keeperklan.com/threads/4623-Reversal-of-DKII-Binary-File-Formats)
+ * [DK2 texture formats](http://keeperklan.com/threads/220-DK2-texture-format)
+ * [Jadex AgentKeeper, a Dungeon Keeper like game](https://code.google.com/p/jadex-agentkeeper/)
+ * [kwd, library for loading kwd/klb files](https://github.com/werkt/kwd)
+ * [Sound & Video formats](http://wiki.multimedia.cx/index.php?title=Electronic_Arts_Formats)
+ * [A write-up about the walls in DK2](http://simonschreibt.de/gat/dungeon-keeper-2-walls/)
 
-http://keeperklan.com/threads/220-DK2-texture-format
-
-https://code.google.com/p/jadex-agentkeeper/
-
-https://github.com/werkt/kwd
-
-[Sound & Video formats](http://wiki.multimedia.cx/index.php?title=Electronic_Arts_Formats)
-
-http://simonschreibt.de/gat/dungeon-keeper-2-walls/
