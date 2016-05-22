@@ -31,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
+import toniarts.openkeeper.world.room.control.GoldControl;
 
 /**
  * Base class for all rooms
@@ -88,11 +89,6 @@ public abstract class GenericRoom {
         return getRootNode();
     }
 
-    /**
-     * Get the room's root node
-     *
-     * @return the root node
-     */
     public Node getRootNode() {
         if (root == null) {
             root = new Node(roomInstance.getRoom().getName());
@@ -122,13 +118,6 @@ public abstract class GenericRoom {
         return RenderQueue.ShadowMode.CastAndReceive;
     }
 
-    /**
-     * Get the room's wall spatial at the given point
-     *
-     * @param p the coordinate
-     * @param direction wall direction
-     * @return the wall spatial
-     */
     public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
         float yAngle = FastMath.PI;
         String resource = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
@@ -264,43 +253,72 @@ public abstract class GenericRoom {
         tile.move(0, -MapLoader.TILE_HEIGHT, 0);
     }
 
-    /**
-     * Get next wall index
-     *
-     * @param index position from the first in section
-     * @return the next wall index
-     */
     public int getWallIndex(int index) {
         int pointer = index % wallIndexes.length;
         return wallIndexes[pointer];
     }
 
-    /**
-     * Override this to report any room obtacles
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @return true if accessible
-     */
     public boolean isTileAccessible(int x, int y) {
         return true;
     }
 
-    /**
-     * Get room tooltip
-     *
-     * @param playerId the player who is asking
-     * @return room tooltip
-     */
     public String getTooltip(short playerId) {
         if (roomInstance.getOwnerId() != playerId && roomInstance.isAttackable()) {
             return notOwnedTooltip;
         }
-        return tooltip;
+        return tooltip.replaceAll("%37", Integer.toString(roomInstance.getHealthPercentage())).replaceAll("%38", Integer.toString(getUsedCapacity())).replaceAll("%39", Integer.toString(getMaxCapacity()));
     }
 
     protected final Spatial loadModel(String model) {
         return AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER
                 + "/" + model + ".j3o", false);
     }
+
+    /**
+     * Can store gold to the room?
+     *
+     * @return can store gold
+     */
+    public boolean canStoreGold() {
+        return getGoldControl() != null;
+    }
+
+    /**
+     * Get the room gold control
+     *
+     * @see #canStoreGold()
+     * @return the gold control
+     */
+    public GoldControl getGoldControl() {
+        return null;
+    }
+
+    /**
+     * Get room max capacity
+     *
+     * @return room max capacity
+     */
+    protected int getMaxCapacity() {
+        if (canStoreGold()) {
+            return getGoldControl().getMaxGoldCapacity();
+        }
+        return 0;
+    }
+
+    /**
+     * Get used capacity
+     *
+     * @return the used capacity of the room
+     */
+    protected int getUsedCapacity() {
+        if (canStoreGold()) {
+            return getGoldControl().getStoredGold();
+        }
+        return 0;
+    }
+
+    public RoomInstance getRoomInstance() {
+        return roomInstance;
+    }
+
 }

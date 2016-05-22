@@ -116,7 +116,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private Label tooltip;
     private PlayerManaControl manaControl = null;
     private PlayerTriggerControl triggerControl = null;
-    private PlayerGoldControl goldControl = null;
     private int score = 0;
     private boolean transitionEnd = true;
     private Integer textId = null;
@@ -140,7 +139,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         this.stateManager = stateManager;
 
         manaControl = new PlayerManaControl(playerId, stateManager);
-        goldControl = new PlayerGoldControl(playerId, stateManager);
     }
 
     @Override
@@ -278,7 +276,11 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     public PlayerGoldControl getGoldControl() {
-        return goldControl;
+        GameState gs = stateManager.getState(GameState.class);
+        if (gs != null) {
+            return gs.getPlayer(playerId).getGoldControl();
+        }
+        return null;
     }
 
     public PlayerManaControl getManaControl() {
@@ -332,8 +334,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             manaControl.addListener(hud.findNiftyControl("manaLose", Label.class), PlayerManaControl.Type.LOSE);
         }
 
-        if (goldControl != null) {
-            goldControl.addListener(hud.findNiftyControl("gold", Label.class));
+        if (getGoldControl() != null) {
+            getGoldControl().addListener(hud.findNiftyControl("gold", Label.class));
         }
 
         Element contentPanel = hud.findElementById("tab-room-content");

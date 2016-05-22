@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.player;
 
-import com.jme3.app.state.AppStateManager;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.control.AbstractControl;
@@ -28,20 +27,15 @@ import java.util.List;
  *
  * @author ArchDemon
  */
-
-
 public class PlayerGoldControl extends AbstractControl {
+
     private float tick = 0;
     private int gold = 0;
     private int goldMax = 16000;
     private int goldMined = 0;
-    private short playerId;
-    private AppStateManager stateManager;
-    private List<Label> listeners = new ArrayList();
+    private final List<Label> listeners = new ArrayList();
 
-    public PlayerGoldControl(short playerId, AppStateManager stateManager) {
-        this.playerId = playerId;
-        this.stateManager = stateManager;
+    public PlayerGoldControl() {
     }
 
     @Override
@@ -88,6 +82,7 @@ public class PlayerGoldControl extends AbstractControl {
 
     public void addListener(Label label) {
         if (label != null) {
+            updateListener(label);
             listeners.add(label);
         }
     }
@@ -98,7 +93,11 @@ public class PlayerGoldControl extends AbstractControl {
 
     private void updateListeners() {
         for (Label label : listeners) {
-            label.setText(String.format("%s", gold));
+            updateListener(label);
         }
+    }
+
+    private void updateListener(Label label) {
+        label.setText(String.format("%s", gold));
     }
 }

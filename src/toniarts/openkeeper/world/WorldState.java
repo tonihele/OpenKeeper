@@ -40,12 +40,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.player.PlayerGoldControl;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.GameState;
-import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -76,10 +76,10 @@ public abstract class WorldState extends AbstractAppState {
     private Main app;
     private AppStateManager stateManager;
     private final MapLoader mapLoader;
+    private final ThingLoader thingLoader;
     private final KwdFile kwdFile;
     private AssetManager assetManager;
     private Node worldNode;
-    private static final Logger logger = Logger.getLogger(WorldState.class.getName());
     private final MapIndexedGraph pathFindingMap;
     private final MapPathFinder pathFinder;
     private final MapDistance heuristic;
@@ -87,9 +87,13 @@ public abstract class WorldState extends AbstractAppState {
     private final BulletAppState bulletAppState;
     private final EffectManager effectManager;
     private List<TileChangeListener> tileChangeListener;
+    private final GameState gameState;
 
-    public WorldState(final KwdFile kwdFile, final AssetManager assetManager) {
+    private static final Logger logger = Logger.getLogger(WorldState.class.getName());
+
+    public WorldState(final KwdFile kwdFile, final AssetManager assetManager, GameState gameState) {
         this.kwdFile = kwdFile;
+        this.gameState = gameState;
 
         // Effect manager
         effectManager = new EffectManager(assetManager, kwdFile);
@@ -101,7 +105,7 @@ public abstract class WorldState extends AbstractAppState {
         bulletAppState = new BulletAppState();
 
         // Create the actual map
-        this.mapLoader = new MapLoader(assetManager, kwdFile, effectManager) {
+        this.mapLoader = new MapLoader(assetManager, kwdFile, effectManager, this) {
             @Override
             protected void updateProgress(int progress, int max) {
                 WorldState.this.updateProgress(progress, max);
@@ -115,8 +119,16 @@ public abstract class WorldState extends AbstractAppState {
         heuristic = new MapDistance();
 
         // Things
-        thingsNode = (Node) new ThingLoader(this).load(bulletAppState, assetManager, kwdFile);
+        thingLoader = new ThingLoader(this, kwdFile, assetManager);
+        thingsNode = thingLoader.loadAll();
         worldNode.attachChild(thingsNode);
+
+        // Set up the money$$$
+        for (Keeper player : gameState.getPlayers()) {
+            if (player.getInitialGold() > 0) {
+                addGold(player.getId(), player.getInitialGold());
+            }
+        }
     }
 
     @Override
@@ -342,20 +354,15 @@ public abstract class WorldState extends AbstractAppState {
         return false;
     }
 
-    private void addPlayerGold(int value) {
-        // FIXME this is not correct to get gold
+    private void addPlayerGold(short playerId, int value) {
         if (value == 0) {
             return;
         }
-        PlayerState ps = stateManager.getState(PlayerState.class);
-        if (ps == null) {
+        Keeper keeper = gameState.getPlayer(playerId);
+        if (keeper == null) {
             return;
         }
-        PlayerGoldControl pgc = ps.getGoldControl();
-        if (pgc == null) {
-            return;
-        }
-        pgc.addGold(value);
+        keeper.getGoldControl().addGold(value);
     }
 
     public void alterTerrain(Point pos, short terrainId, short playerId) {
@@ -394,7 +401,7 @@ public abstract class WorldState extends AbstractAppState {
         }
 
         // FIXME: this is just a debug stuff, remove when the imps can carry the gold
-        addPlayerGold(terrain.getGoldValue());
+        addPlayerGold(Keeper.KEEPER1_ID, terrain.getGoldValue());
 
         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
 
@@ -1005,6 +1012,63 @@ public abstract class WorldState extends AbstractAppState {
                 break;
             }
         }
+    }
+
+    /**
+     * Add a lump sum of gold to a player, distributes the gold to the available
+     * rooms
+     *
+     * @param playerId for the player
+     * @param sum the gold sum
+     * @return returns a sum of gold that could not be added to player's gold
+     */
+    final public int addGold(short playerId, int sum) {
+        return addGold(playerId, null, sum);
+    }
+
+    /**
+     * Add a lump sum of gold to a player, distributes the gold to the available
+     * rooms
+     *
+     * @param playerId for the player
+     * @param p a point where to drop the gold, can be {@code  null}
+     * @param sum the gold sum
+     * @return returns a sum of gold that could not be added to player's gold
+     */
+    public int addGold(short playerId, Point p, int sum) {
+        int originalSum = sum;
+
+        // Gold to specified point/room
+        if (p != null) {
+
+            // Get a room in point
+            RoomInstance roomInstance = getMapLoader().getRoomCoordinates().get(p);
+            if (roomInstance != null) {
+                GenericRoom room = getMapLoader().getRoomActuals().get(roomInstance);
+                if (room.canStoreGold()) {
+                    return room.getGoldControl().addGold(sum, p);
+                } else {
+                    // TODO: generate loose gold
+                }
+            } else {
+                // TODO: generate loose gold
+            }
+        } else {
+
+            // Distribute the gold
+            for (Entry<RoomInstance, GenericRoom> roomEntry : getMapLoader().getRoomActuals().entrySet()) {
+                if (roomEntry.getKey().getOwnerId() == playerId && roomEntry.getValue().canStoreGold()) {
+                    sum = roomEntry.getValue().getGoldControl().addGold(sum, p);
+                    if (sum == 0) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Add to the player
+        addPlayerGold(playerId, originalSum - sum);
+        return sum;
     }
 
 }

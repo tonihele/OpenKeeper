@@ -20,13 +20,17 @@ import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import java.io.File;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.party.PartytState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
@@ -34,6 +38,7 @@ import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.world.WorldState;
 
 /**
@@ -58,6 +63,7 @@ public class GameState extends AbstractPauseAwareState {
     private float gameTime = 0;
     private Float timeLimit = null;
     private TaskManager taskManager;
+    private final Map<Short, Keeper> players = new HashMap<>();
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
 
     /**
@@ -73,9 +79,13 @@ public class GameState extends AbstractPauseAwareState {
      * Single use game states
      *
      * @param level the level to load
+     * @param players player particicipating in this game
      */
-    public GameState(KwdFile level) {
+    public GameState(KwdFile level, List<Keeper> players) {
         this.kwdFile = level;
+        for (Keeper keeper : players) {
+            this.players.put(keeper.getId(), keeper);
+        }
     }
 
     @Override
@@ -100,8 +110,15 @@ public class GameState extends AbstractPauseAwareState {
                     }
                     setProgress(0.1f);
 
+                    // Setup players
+                    if (players.isEmpty()) {
+                        for (Entry<Short, Player> entry : kwdFile.getPlayers().entrySet()) {
+                            players.put(entry.getKey(), new Keeper(entry.getValue()));
+                        }
+                    }
+
                     // Create the actual level
-                    WorldState worldState = new WorldState(kwdFile, assetManager) {
+                    WorldState worldState = new WorldState(kwdFile, assetManager, GameState.this) {
                         @Override
                         protected void updateProgress(int progress, int max) {
                             setProgress(0.1f + ((float) progress / max * 0.5f));
@@ -242,6 +259,14 @@ public class GameState extends AbstractPauseAwareState {
 
     public TaskManager getTaskManager() {
         return taskManager;
+    }
+
+    public Keeper getPlayer(short playerId) {
+        return players.get(playerId);
+    }
+
+    public Collection<Keeper> getPlayers() {
+        return players.values();
     }
 
     @Override

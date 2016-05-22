@@ -16,11 +16,13 @@
  */
 package toniarts.openkeeper.world.room;
 
+import java.awt.Point;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.EntityInstance;
 import toniarts.openkeeper.world.MapData;
+import toniarts.openkeeper.world.TileData;
 
 /**
  * Holds a room instance, series of coordinates that together form a room
@@ -66,4 +68,21 @@ public class RoomInstance extends EntityInstance<Room> {
     boolean isAttackable() {
         return mapData.getTile(getCoordinates().get(0)).getTerrain().getFlags().contains(Terrain.TerrainFlag.ATTACKABLE);
     }
+
+    /**
+     * Get the instance health percentage
+     *
+     * @return health percentage
+     */
+    public int getHealthPercentage() {
+        int health = 0;
+        int maxHealth = 0;
+        for (Point p : getCoordinates()) {
+            TileData tile = mapData.getTile(p);
+            health += tile.getHealth();
+            maxHealth += tile.getTerrain().getMaxHealth();
+        }
+        return (int) (health / (float) maxHealth * 100.0);
+    }
+
 }

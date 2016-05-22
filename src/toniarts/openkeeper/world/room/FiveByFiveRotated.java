@@ -28,6 +28,7 @@ import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
+import toniarts.openkeeper.world.room.control.GoldControl;
 import toniarts.openkeeper.world.room.control.PlugControl;
 
 /**
@@ -35,16 +36,36 @@ import toniarts.openkeeper.world.room.control.PlugControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class FiveByFiveRotated extends GenericRoom {
+public abstract class FiveByFiveRotated extends GenericRoom {
 
     private int centreDecay = -1;
     private boolean destroyed = false;
     private boolean created = false;
+    private final GoldControl goldControl;
 
     public FiveByFiveRotated(AssetManager assetManager, EffectManager effectManager,
             RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, effectManager, roomInstance, direction);
+        this.goldControl = new GoldControl(this) {
+
+            @Override
+            protected int getGoldPerTile() {
+                return FiveByFiveRotated.this.getGoldPerTile();
+            }
+
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                return 8;
+            }
+        };
     }
+
+    @Override
+    public GoldControl getGoldControl() {
+        return goldControl;
+    }
+
+    protected abstract int getGoldPerTile();
 
     @Override
     protected BatchNode constructFloor() {
@@ -179,7 +200,6 @@ public class FiveByFiveRotated extends GenericRoom {
                         resetAndMoveSpatial(effect, start, p);
                         root.attachChild(effect);
                     }
-
 
                     root.attachChild(tile.move(0, MapLoader.TILE_HEIGHT / 4, 0));
 

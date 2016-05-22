@@ -175,7 +175,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         // Attach the 3D Front end
         menuNode = new Node("Main menu");
-        menuNode.attachChild(new MapLoader(assetManager, kwdFile, new EffectManager(assetManager, kwdFile)) {
+        menuNode.attachChild(new MapLoader(assetManager, kwdFile, new EffectManager(assetManager, kwdFile), null) {
             @Override
             protected void updateProgress(int progress, int max) {
                 if (loadingScreen != null) {
@@ -931,9 +931,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
 
         // Init skirmish players
-        Keeper keeper = new Keeper(false, "Player");
+        Keeper keeper = new Keeper(false, "Player", Keeper.KEEPER1_ID);
         skirmishPlayers.add(keeper);
-        keeper = new Keeper(true, null);
+        keeper = new Keeper(true, null, Keeper.KEEPER2_ID);
         skirmishPlayers.add(keeper);
     }
 
@@ -987,7 +987,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             setEnabled(false);
 
             // Create the level state
-            GameState gameState = new GameState(selectedSkirmishMap);
+            GameState gameState = new GameState(selectedSkirmishMap, skirmishPlayers);
             stateManager.attach(gameState);
         }
     }

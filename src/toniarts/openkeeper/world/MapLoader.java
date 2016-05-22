@@ -79,6 +79,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final AssetManager assetManager;
     private final EffectManager effectManager;
     private Node roomsNode;
+    private final WorldState worldState;
     private final List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
     private final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
@@ -88,10 +89,11 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
-    public MapLoader(AssetManager assetManager, KwdFile kwdFile, EffectManager effectManager) {
+    public MapLoader(AssetManager assetManager, KwdFile kwdFile, EffectManager effectManager, WorldState worldState) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.effectManager = effectManager;
+        this.worldState = worldState;
 
         // Create modifiable tiles
         mapData = new MapData(kwdFile);
@@ -810,7 +812,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param roomInstance the room instance
      */
     private Spatial handleRoom(RoomInstance roomInstance) {
-        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, effectManager, kwdFile);
+        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, effectManager, kwdFile, worldState);
         roomActuals.put(roomInstance, room);
         updateRoomWalls(roomInstance);
         return room.construct();

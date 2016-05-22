@@ -16,7 +16,9 @@
  */
 package toniarts.openkeeper.game.data;
 
+import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.tools.convert.map.AI.AIType;
+import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
  * Your friendly neighbourhood Keeper, or not
@@ -25,21 +27,54 @@ import toniarts.openkeeper.tools.convert.map.AI.AIType;
  */
 public class Keeper {
 
+    public final static short KEEPER1_ID = 3;
+    public final static short KEEPER2_ID = 4;
+    public final static short KEEPER3_ID = 5;
+    public final static short KEEPER4_ID = 6;
+
     private boolean ai;
     private AIType aiType = AIType.MASTER_KEEPER;
     private String name;
     private boolean ready = false;
+    private final Player player;
+    private final short id;
+    private int initialGold = 0;
+    private final PlayerGoldControl goldControl = new PlayerGoldControl();
 
-    public Keeper(boolean ai, String name) {
+    public Keeper(boolean ai, String name, short id) {
         this.ai = ai;
         this.name = name;
+        player = null;
+        this.id = id;
 
         // AI is always ready
         ready = ai;
     }
 
+    public Keeper(Player player) {
+        this.player = player;
+        this.id = player.getPlayerId();
+        initialGold = player.getStartingGold();
+    }
+
     public boolean isReady() {
         return ready;
+    }
+
+    public short getId() {
+        return id;
+    }
+
+    public int getInitialGold() {
+        return initialGold;
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public PlayerGoldControl getGoldControl() {
+        return goldControl;
     }
 
     @Override
