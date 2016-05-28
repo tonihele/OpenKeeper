@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.world.ThingLoader;
-import toniarts.openkeeper.world.object.ObjectControl;
+import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
@@ -35,8 +35,7 @@ public abstract class RoomGoldControl {
 
     private final GenericRoom parent;
     private int storedGold = 0;
-    private final Map<Point, Integer> goldTiles = new HashMap<>();
-    private final Map<Point, ObjectControl> goldPiles = new HashMap<>();
+    private final Map<Point, GoldObjectControl> goldPiles = new HashMap<>();
 
     public RoomGoldControl(GenericRoom parent) {
         this.parent = parent;
@@ -77,25 +76,25 @@ public abstract class RoomGoldControl {
     }
 
     private int putGold(int sum, Point p, ThingLoader thingLoader) {
-        Integer pointStoredGold = goldTiles.get(p);
-        if (pointStoredGold == null) {
-            pointStoredGold = 0;
+        int pointStoredGold = 0;
+        GoldObjectControl goldPile = goldPiles.get(p);
+        if (goldPile != null) {
+            pointStoredGold = goldPile.getGold();
         }
         if (pointStoredGold < getGoldPerTile()) {
             int goldToStore = Math.min(sum, getGoldPerTile() - pointStoredGold);
             pointStoredGold += goldToStore;
             sum -= goldToStore;
-            goldTiles.put(p, goldToStore);
             storedGold += goldToStore;
 
             // Add the visuals
-            ObjectControl goldPile = goldPiles.get(p);
             if (goldPile == null) {
                 goldPile = thingLoader.addRoomGold(p, parent.getRoomInstance().getOwnerId(), goldToStore);
                 goldPiles.put(p, goldPile);
             } else {
 
                 // Adjust the gold sum
+                goldPile.setGold(pointStoredGold);
             }
         }
         return sum;
