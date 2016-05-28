@@ -1046,7 +1046,7 @@ public abstract class WorldState extends AbstractAppState {
             if (roomInstance != null) {
                 GenericRoom room = getMapLoader().getRoomActuals().get(roomInstance);
                 if (room.canStoreGold()) {
-                    return room.getGoldControl().addGold(sum, p);
+                    return room.getGoldControl().addGold(sum, p, thingLoader);
                 } else {
                     // TODO: generate loose gold
                 }
@@ -1058,7 +1058,7 @@ public abstract class WorldState extends AbstractAppState {
             // Distribute the gold
             for (Entry<RoomInstance, GenericRoom> roomEntry : getMapLoader().getRoomActuals().entrySet()) {
                 if (roomEntry.getKey().getOwnerId() == playerId && roomEntry.getValue().canStoreGold()) {
-                    sum = roomEntry.getValue().getGoldControl().addGold(sum, p);
+                    sum = roomEntry.getValue().getGoldControl().addGold(sum, p, thingLoader);
                     if (sum == 0) {
                         break;
                     }

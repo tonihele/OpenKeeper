@@ -19,6 +19,7 @@ package toniarts.openkeeper.world;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -27,6 +28,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.CreatureLoader;
+import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
@@ -96,6 +98,14 @@ public class ThingLoader {
         root.attachChild(nodeCreatures);
         root.attachChild(nodeObjects);
         return root;
+    }
+
+    public GoldObjectControl addRoomGold(Point p, short playerId, int initialAmount) {
+        // TODO: the room gold object id..
+        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, initialAmount, 0, (short) 3, playerId);
+        objects.add(object.getControl(ObjectControl.class));
+        nodeObjects.attachChild(object);
+        return null;
     }
 
     public List<CreatureControl> getCreatures() {

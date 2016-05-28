@@ -28,7 +28,7 @@ import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
-import toniarts.openkeeper.world.room.control.GoldControl;
+import toniarts.openkeeper.world.room.control.RoomGoldControl;
 import toniarts.openkeeper.world.room.control.PlugControl;
 
 /**
@@ -41,12 +41,12 @@ public abstract class FiveByFiveRotated extends GenericRoom {
     private int centreDecay = -1;
     private boolean destroyed = false;
     private boolean created = false;
-    private final GoldControl goldControl;
+    private final RoomGoldControl goldControl;
 
     public FiveByFiveRotated(AssetManager assetManager, EffectManager effectManager,
             RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, effectManager, roomInstance, direction);
-        this.goldControl = new GoldControl(this) {
+        this.goldControl = new RoomGoldControl(this) {
 
             @Override
             protected int getGoldPerTile() {
@@ -61,7 +61,7 @@ public abstract class FiveByFiveRotated extends GenericRoom {
     }
 
     @Override
-    public GoldControl getGoldControl() {
+    public RoomGoldControl getGoldControl() {
         return goldControl;
     }
 

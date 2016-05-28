@@ -31,7 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
-import toniarts.openkeeper.world.room.control.GoldControl;
+import toniarts.openkeeper.world.room.control.RoomGoldControl;
 
 /**
  * Base class for all rooms
@@ -289,7 +289,7 @@ public abstract class GenericRoom {
      * @see #canStoreGold()
      * @return the gold control
      */
-    public GoldControl getGoldControl() {
+    public RoomGoldControl getGoldControl() {
         return null;
     }
 

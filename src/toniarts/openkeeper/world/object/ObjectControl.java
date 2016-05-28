@@ -21,7 +21,6 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.control.AbstractControl;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 
@@ -36,7 +35,7 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     private final toniarts.openkeeper.tools.convert.map.Object object;
     private final String tooltip;
 
-    public ObjectControl(Thing.Object objectInstance, toniarts.openkeeper.tools.convert.map.Object object, WorldState worldState) {
+    public ObjectControl(int ownerId, toniarts.openkeeper.tools.convert.map.Object object, WorldState worldState) {
         super();
 
         this.worldState = worldState;

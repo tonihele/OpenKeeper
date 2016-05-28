@@ -20,6 +20,8 @@ import java.awt.Point;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import toniarts.openkeeper.world.ThingLoader;
+import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
@@ -29,13 +31,14 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class GoldControl {
+public abstract class RoomGoldControl {
 
     private final GenericRoom parent;
     private int storedGold = 0;
     private final Map<Point, Integer> goldTiles = new HashMap<>();
+    private final Map<Point, ObjectControl> goldPiles = new HashMap<>();
 
-    public GoldControl(GenericRoom parent) {
+    public RoomGoldControl(GenericRoom parent) {
         this.parent = parent;
     }
 
@@ -52,16 +55,17 @@ public abstract class GoldControl {
      *
      * @param sum the sum to add
      * @param p preferred dropping point for the gold
+     * @param thingLoader thing loader for displaying the actual gold
      * @return the gold that doesn't fit
      */
-    public int addGold(int sum, Point p) {
+    public int addGold(int sum, Point p, ThingLoader thingLoader) {
         if (p != null) {
-            sum = putGold(sum, p);
+            sum = putGold(sum, p, thingLoader);
         }
         if (sum > 0) {
             List<Point> coordinates = parent.getRoomInstance().getCoordinates();
             for (Point coordinate : coordinates) {
-                sum = putGold(sum, coordinate);
+                sum = putGold(sum, coordinate, thingLoader);
                 if (sum == 0) {
                     break;
                 }
@@ -70,7 +74,7 @@ public abstract class GoldControl {
         return sum;
     }
 
-    private int putGold(int sum, Point p) {
+    private int putGold(int sum, Point p, ThingLoader thingLoader) {
         Integer pointStoredGold = goldTiles.get(p);
         if (pointStoredGold == null) {
             pointStoredGold = 0;
@@ -81,6 +85,16 @@ public abstract class GoldControl {
             sum -= goldToStore;
             goldTiles.put(p, goldToStore);
             storedGold += goldToStore;
+
+            // Add the visuals
+            ObjectControl goldPile = goldPiles.get(p);
+            if (goldPile == null) {
+                goldPile = thingLoader.addRoomGold(p, parent.getRoomInstance().getOwnerId(), goldToStore);
+                goldPiles.put(p, goldPile);
+            } else {
+
+                // Adjust the gold sum
+            }
         }
         return sum;
     }

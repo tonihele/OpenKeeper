@@ -18,7 +18,7 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.room.control.GoldControl;
+import toniarts.openkeeper.world.room.control.RoomGoldControl;
 
 /**
  * The Treasury
@@ -27,12 +27,12 @@ import toniarts.openkeeper.world.room.control.GoldControl;
  */
 public abstract class Treasury extends Normal {
 
-    private final GoldControl goldControl;
+    private final RoomGoldControl goldControl;
 
     public Treasury(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, roomInstance, direction);
 
-        this.goldControl = new GoldControl(this) {
+        this.goldControl = new RoomGoldControl(this) {
 
             @Override
             protected int getGoldPerTile() {
@@ -47,7 +47,7 @@ public abstract class Treasury extends Normal {
     }
 
     @Override
-    public GoldControl getGoldControl() {
+    public RoomGoldControl getGoldControl() {
         return goldControl;
     }
 

@@ -21,7 +21,9 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.ILoader;
@@ -46,20 +48,34 @@ public class ObjectLoader implements ILoader<Thing.Object> {
 
     @Override
     public Spatial load(AssetManager assetManager, Thing.Object object) {
+        return load(assetManager, object.getPosX(), object.getPosY(), object.getKeeperSpellId(), object.getMoneyAmount(), object.getTriggerId(), object.getObjectId(), object.getPlayerId());
+    }
 
-        toniarts.openkeeper.tools.convert.map.Object obj = kwdFile.getObject(object.getObjectId());
+    public Spatial load(AssetManager assetManager, int posX, int posY, int keeperSpellId, int moneyAmount, int triggerId, short objectId, short playerId) {
+        toniarts.openkeeper.tools.convert.map.Object obj = kwdFile.getObject(objectId);
+        KeeperSpell keeperSpell = null;
+        if (keeperSpellId > 0) {
+            keeperSpell = kwdFile.getKeeperSpellById(keeperSpellId);
+        }
 
         // Load
         Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + obj.getMeshResource().getName() + ".j3o", false);
-        ObjectControl objectControl = new ObjectControl(object, obj, worldState);
+        ObjectControl objectControl = getControl(playerId, obj, moneyAmount);
         nodeObject.addControl(objectControl);
 
         // Move to the center of the tile
         nodeObject.setLocalTranslation(
-                object.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
+                posX * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
                 0 * MapLoader.TILE_HEIGHT,
-                object.getPosY() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
+                posY * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
 
         return nodeObject;
+    }
+
+    private ObjectControl getControl(short playerId, Object obj, int moneyAmount) {
+        if (obj.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_GOLD)) {
+            return new GoldObjectControl(playerId, obj, worldState, moneyAmount);
+        }
+        return new ObjectControl(playerId, obj, worldState);
     }
 }
