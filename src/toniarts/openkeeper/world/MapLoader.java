@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -85,7 +86,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private final HashMap<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final HashMap<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
-    private final HashMap<RoomInstance, GenericRoom> roomActuals = new HashMap<>(); // Rooms by room instance
+    private final Map<RoomInstance, GenericRoom> roomActuals = new LinkedHashMap<>(); // Rooms by room instance
     private final HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
@@ -1071,11 +1072,24 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     }
 
     /**
+     * Redraws a room instance
+     *
+     * @param roomInstance the instance to redraw
+     */
+    protected void updateRoom(RoomInstance roomInstance) {
+
+        // Redraw
+        updateRoomWalls(roomInstance);
+        roomActuals.get(roomInstance).construct();
+//        roomsNode.attachChild(roomActuals.get(roomInstance).construct());
+    }
+
+    /**
      * Get a rooms by knowing its instance
      *
      * @return room
      */
-    public HashMap<RoomInstance, GenericRoom> getRoomActuals() {
+    public Map<RoomInstance, GenericRoom> getRoomActuals() {
         return roomActuals;
     }
 
@@ -1086,4 +1100,5 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param max max progress
      */
     protected abstract void updateProgress(final int progress, final int max);
+
 }

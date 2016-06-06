@@ -31,9 +31,9 @@ public class PlayerGoldControl extends AbstractControl {
 
     private float tick = 0;
     private int gold = 0;
-    private int goldMax = 16000;
+    private int goldMax = 0;
     private int goldMined = 0;
-    private final List<Label> listeners = new ArrayList();
+    private final List<Label> listeners = new ArrayList<>();
 
     public PlayerGoldControl() {
     }
@@ -65,9 +65,6 @@ public class PlayerGoldControl extends AbstractControl {
         }
         gold += value;
         goldMined += value; // Nope, need to get this some other way
-        if (gold > goldMax) {
-            gold = goldMax;
-        }
         updateListeners();
     }
 

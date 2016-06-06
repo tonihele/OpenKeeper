@@ -71,6 +71,7 @@ public abstract class GenericRoom {
     public Spatial construct() {
 
         // Add the floor
+        getRootNode().detachAllChildren();
         BatchNode floorNode = constructFloor();
         if (floorNode != null) {
             floorNode.setName("Floor");

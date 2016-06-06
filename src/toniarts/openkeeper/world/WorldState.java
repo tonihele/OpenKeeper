@@ -25,6 +25,7 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.audio.AudioData;
 import com.jme3.audio.AudioNode;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.material.Material;
@@ -39,6 +40,7 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -127,6 +129,14 @@ public abstract class WorldState extends AbstractAppState {
         for (Keeper player : gameState.getPlayers()) {
             if (player.getInitialGold() > 0) {
                 addGold(player.getId(), player.getInitialGold());
+            }
+        }
+
+        // The max money$$$
+        for (Entry<RoomInstance, GenericRoom> roomEntry : mapLoader.getRoomActuals().entrySet()) {
+            if (roomEntry.getValue().canStoreGold()) {
+                Keeper keeper = gameState.getPlayer(roomEntry.getKey().getOwnerId());
+                keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + roomEntry.getValue().getGoldControl().getMaxGoldCapacity());
             }
         }
     }
@@ -359,9 +369,6 @@ public abstract class WorldState extends AbstractAppState {
             return;
         }
         Keeper keeper = gameState.getPlayer(playerId);
-        if (keeper == null) {
-            return;
-        }
         keeper.getGoldControl().addGold(value);
     }
 
@@ -478,6 +485,7 @@ public abstract class WorldState extends AbstractAppState {
     public void build(SelectionArea selectionArea, Player player, Room room) {
         Set<Point> updatableTiles = new HashSet<>();
         Set<Point> buildPlots = new HashSet<>();
+        List<Point> instancePlots = new ArrayList<>();
         for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getMap().getWidth(), selectionArea.getEnd().x + 1); x++) {
             for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getMap().getHeight(), selectionArea.getEnd().y + 1); y++) {
 
@@ -492,38 +500,59 @@ public abstract class WorldState extends AbstractAppState {
                 tile.setTerrainId(room.getTerrainId());
 
                 Point p = new Point(x, y);
+                instancePlots.add(p);
                 buildPlots.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, false)));
                 updatableTiles.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, true)));
             }
         }
 
         // See if we hit any of the adjacent rooms
-        Set<RoomInstance> adjacentInstances = new HashSet<>();
+        Set<RoomInstance> adjacentInstances = new LinkedHashSet<>();
         for (Point p : buildPlots) {
-            if (mapLoader.getRoomCoordinates().containsKey(p) && mapLoader.getRoomCoordinates().get(p).getRoom().equals(room)) {
+            if (mapLoader.getRoomCoordinates().containsKey(p)) {
+                RoomInstance adjacentInstance = mapLoader.getRoomCoordinates().get(p);
+                if (adjacentInstance.getRoom().equals(room) && !adjacentInstances.contains(adjacentInstance)) {
 
-                // Same room, see that we own it
-                TileData tile = getMapData().getTile(p.x, p.y);
-                if (tile.getPlayerId() == player.getPlayerId()) {
+                    // Same room, see that we own it
+                    TileData tile = getMapData().getTile(p.x, p.y);
+                    if (tile.getPlayerId() == player.getPlayerId()) {
 
-                    // Bingo!
-                    adjacentInstances.add(mapLoader.getRoomCoordinates().get(p));
+                        // Bingo!
+                        adjacentInstances.add(adjacentInstance);
+                    }
                 }
             }
         }
 
-        // If any hits, merge, and update whole room
+        // If any hits, merge to the first one, and update whole room
         if (!adjacentInstances.isEmpty()) {
 
             // Add the mergeable rooms to updatable tiles as well
+            RoomInstance firstInstance = null;
             for (RoomInstance instance : adjacentInstances) {
+
+                // Merge to the first found room instance
+                if (firstInstance == null) {
+                    firstInstance = instance;
+                    substractGoldCapacityFromPlayer(firstInstance); // Important to update the gold here
+                    firstInstance.addCoordinates(instancePlots);
+                    for (Point p : instancePlots) {
+                        mapLoader.getRoomCoordinates().put(p, firstInstance);
+                    }
+                } else {
+                    removeRoomInstances(instance);
+                }
+
                 for (Point p : instance.getCoordinates()) {
                     updatableTiles.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, true)));
+                    if (!firstInstance.equals(instance)) {
+                        firstInstance.addCoordinate(p);
+                        mapLoader.getRoomCoordinates().put(p, firstInstance);
+                    }
                 }
             }
-
-            // Remove all the room instances (they will be regenerated)
-            mapLoader.removeRoomInstances(adjacentInstances.toArray(new RoomInstance[adjacentInstances.size()]));
+            // TODO: The room health! We need to make sure that the health is distributed evenly
+            updateRoom(firstInstance);
         }
 
         mapLoader.updateTiles(updatableTiles.toArray(new Point[updatableTiles.size()]));
@@ -557,6 +586,7 @@ public abstract class WorldState extends AbstractAppState {
     public void sell(SelectionArea selectionArea, Player player) {
         Set<Point> updatableTiles = new HashSet<>();
         Set<RoomInstance> soldInstances = new HashSet<>();
+        List<Point> roomCoordinates = new ArrayList<>();
         for (int x = (int) Math.max(0, selectionArea.getStart().x); x < Math.min(kwdFile.getMap().getWidth(), selectionArea.getEnd().x + 1); x++) {
             for (int y = (int) Math.max(0, selectionArea.getStart().y); y < Math.min(kwdFile.getMap().getHeight(), selectionArea.getEnd().y + 1); y++) {
 
@@ -598,10 +628,22 @@ public abstract class WorldState extends AbstractAppState {
             for (Point p : roomInstance.getCoordinates()) {
                 updatableTiles.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, true)));
             }
+            roomCoordinates.addAll(roomInstance.getCoordinates());
         }
-        mapLoader.removeRoomInstances(soldInstances.toArray(new RoomInstance[soldInstances.size()]));
+        removeRoomInstances(soldInstances.toArray(new RoomInstance[soldInstances.size()]));
 
         mapLoader.updateTiles(updatableTiles.toArray(new Point[updatableTiles.size()]));
+
+        // See if any of the rooms survived
+        Set<RoomInstance> newInstances = new HashSet<>();
+        for (Point p : roomCoordinates) {
+            RoomInstance instance = mapLoader.getRoomCoordinates().get(p);
+            if (instance != null && !newInstances.contains(instance)) {
+                newInstances.add(instance);
+                // TODO: The loose gold should be added to the room if the room can hold gold
+                addGoldCapacityToPlayer(instance);
+            }
+        }
     }
 
     /**
@@ -615,7 +657,7 @@ public abstract class WorldState extends AbstractAppState {
 
         // We might cache these per file? Then they would be persistent, just move them, does it matter?
         // Since creation of new objects and all, I don't know if they stay in the scene graph..
-        AudioNode audio = new AudioNode(assetManager, ConversionUtils.getCanonicalAssetKey(AssetsConverter.SOUNDS_FOLDER + soundFile));
+        AudioNode audio = new AudioNode(assetManager, ConversionUtils.getCanonicalAssetKey(AssetsConverter.SOUNDS_FOLDER + soundFile), AudioData.DataType.Buffer);
         audio.setPositional(true);
         audio.setReverbEnabled(false);
         audio.setLocalTranslation(x, 0, y);
@@ -721,11 +763,11 @@ public abstract class WorldState extends AbstractAppState {
         for (Segment<Vector2> segment : linePath.getSegments()) {
 
             Line line = new Line(new Vector3f(segment.getBegin().x, 0.25f, segment.getBegin().y), new Vector3f(segment.getEnd().x, 0.25f, segment.getEnd().y));
-            line.setLineWidth(2);
             Geometry geometry = new Geometry("Bullet", line);
             Material orange = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
             orange.setColor("Color", ColorRGBA.Red);
             orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+            orange.getAdditionalRenderState().setLineWidth(2);
             geometry.setCullHint(Spatial.CullHint.Never);
             geometry.setMaterial(orange);
             getWorld().attachChild(geometry);
@@ -1069,6 +1111,36 @@ public abstract class WorldState extends AbstractAppState {
         // Add to the player
         addPlayerGold(playerId, originalSum - sum);
         return sum;
+    }
+
+    private void removeRoomInstances(RoomInstance... instances) {
+        for (RoomInstance instance : instances) {
+            substractGoldCapacityFromPlayer(instance);
+
+            // TODO: The gold stored should turn into a loose gold
+        }
+        mapLoader.removeRoomInstances(instances);
+    }
+
+    private void updateRoom(RoomInstance instance) {
+        addGoldCapacityToPlayer(instance);
+        mapLoader.updateRoom(instance);
+    }
+
+    private void substractGoldCapacityFromPlayer(RoomInstance instance) {
+        GenericRoom room = mapLoader.getRoomActuals().get(instance);
+        if (room.canStoreGold()) {
+            Keeper keeper = gameState.getPlayer(instance.getOwnerId());
+            keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() - room.getGoldControl().getMaxGoldCapacity());
+        }
+    }
+
+    private void addGoldCapacityToPlayer(RoomInstance instance) {
+        GenericRoom room = mapLoader.getRoomActuals().get(instance);
+        if (room.canStoreGold()) {
+            Keeper keeper = gameState.getPlayer(instance.getOwnerId());
+            keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + room.getGoldControl().getMaxGoldCapacity());
+        }
     }
 
 }

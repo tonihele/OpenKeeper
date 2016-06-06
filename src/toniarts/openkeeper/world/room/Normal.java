@@ -41,18 +41,17 @@ import toniarts.openkeeper.world.room.WallSection.WallDirection;
  */
 public class Normal extends GenericRoom {
 
-    protected final boolean[][] map;
-    protected final Point start;
+    protected boolean[][] map;
+    protected Point start;
 
     public Normal(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, roomInstance, direction);
-
-        map = roomInstance.getCoordinatesAsMatrix();
-        start = roomInstance.getMatrixStartPoint();
     }
 
     @Override
     public Spatial construct() {
+        map = roomInstance.getCoordinatesAsMatrix();
+        start = roomInstance.getMatrixStartPoint();
         super.construct();
 
         // Pillars
