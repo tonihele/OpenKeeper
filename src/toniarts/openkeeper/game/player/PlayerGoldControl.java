@@ -64,7 +64,7 @@ public class PlayerGoldControl extends AbstractControl {
             return;
         }
         gold += value;
-        goldMined += value;
+        goldMined += value; // Nope, need to get this some other way
         if (gold > goldMax) {
             gold = goldMax;
         }
@@ -95,6 +95,14 @@ public class PlayerGoldControl extends AbstractControl {
         for (Label label : listeners) {
             updateListener(label);
         }
+    }
+
+    public void setGoldMax(int goldMax) {
+        this.goldMax = goldMax;
+    }
+
+    public int getGoldMax() {
+        return goldMax;
     }
 
     private void updateListener(Label label) {
