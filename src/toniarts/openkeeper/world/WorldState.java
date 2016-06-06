@@ -1124,6 +1124,8 @@ public abstract class WorldState extends AbstractAppState {
 
     private void updateRoom(RoomInstance instance) {
         addGoldCapacityToPlayer(instance);
+
+        // TODO: the loose gold should be stored
         mapLoader.updateRoom(instance);
     }
 
