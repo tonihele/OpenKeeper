@@ -1118,6 +1118,7 @@ public abstract class WorldState extends AbstractAppState {
             substractGoldCapacityFromPlayer(instance);
 
             // TODO: The gold stored should turn into a loose gold
+            // Not only gold but all items that the rooms can hold
         }
         mapLoader.removeRoomInstances(instances);
     }
@@ -1126,6 +1127,7 @@ public abstract class WorldState extends AbstractAppState {
         addGoldCapacityToPlayer(instance);
 
         // TODO: the loose gold should be stored
+        // Not only gold but all items that the rooms can hold
         mapLoader.updateRoom(instance);
     }
 
