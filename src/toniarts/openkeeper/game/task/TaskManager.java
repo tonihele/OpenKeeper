@@ -16,27 +16,35 @@
  */
 package toniarts.openkeeper.game.task;
 
+import com.badlogic.gdx.ai.pfa.GraphPath;
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.task.type.AbstractTask;
 import toniarts.openkeeper.game.task.type.AbstractTileTask;
+import toniarts.openkeeper.game.task.type.CarryGoldToTreasuryTask;
 import toniarts.openkeeper.game.task.type.ClaimRoomTask;
 import toniarts.openkeeper.game.task.type.ClaimTileTask;
 import toniarts.openkeeper.game.task.type.ClaimWallTileTask;
 import toniarts.openkeeper.game.task.type.DigTileTask;
 import toniarts.openkeeper.game.task.type.RepairWallTileTask;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.listener.TileChangeListener;
+import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
  * Task manager for several players. Can assign creatures to different tasks.
@@ -184,6 +192,83 @@ public class TaskManager {
         } else {
             logger.log(Level.WARNING, "Already a task {0} for player {1}!", new Object[]{task, playerId});
         }
+    }
+
+    /**
+     * Assigns gold to treasury task to the given creature
+     *
+     * @param creature the creature to assign to
+     * @return true if the task was assigned
+     */
+    public boolean assignGoldToTreasuryTask(CreatureControl creature) {
+
+        // See if the creature's player lacks of gold
+        Keeper player = worldState.getGameState().getPlayer(creature.getOwnerId());
+        if (!player.getGoldControl().isFullCapacity()) {
+            return assignClosestRoomTask(creature);
+        }
+        return false;
+    }
+
+    /**
+     * Assigns closest room task to a given creature of requested type. TODO:
+     * the type, should be general, enum, etc. Now only gold. And somekind of
+     * factory.
+     *
+     * @param creature the creature to assign to
+     * @return true if the task was assigned
+     */
+    public boolean assignClosestRoomTask(CreatureControl creature) {
+        Point currentPosition = creature.getCreatureCoordinates();
+
+        // Get all the rooms of the given type
+        Map<Integer, GenericRoom> distancesToRooms = new TreeMap<>();
+        for (GenericRoom room : worldState.getMapLoader().getRoomActuals().values()) {
+
+            // TODO: type
+            if (room.getRoomInstance().getOwnerId() == creature.getOwnerId() && room.canStoreGold() && !room.isFullCapacity()) {
+                distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[room.getRoomInstance().getCoordinates().size()])), room
+                );
+            }
+        }
+
+        // See that are they really accessible starting from the least distance one
+        for (GenericRoom room : distancesToRooms.values()) {
+
+            // The whole rooms are always accessible, take a random point from the room like DK II seems to do
+            // TODO: a point where the task can be done
+            // FIXME: now just eliminate the non-accessible ones
+            List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
+            Iterator<Point> iter = coordinates.iterator();
+            while (iter.hasNext()) {
+                if (!room.isTileAccessible(iter.next())) {
+                    iter.remove();
+                }
+            }
+            Point target = Utils.getRandomItem(coordinates);
+            GraphPath<TileData> path = worldState.findPath(creature.getCreatureCoordinates(), target, creature.getCreature());
+            if (path != null || target == creature.getCreatureCoordinates()) {
+
+                // Assign the task
+                AbstractTask task = new CarryGoldToTreasuryTask(worldState, target.x, target.y, creature.getOwnerId());
+                task.assign(creature);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private Integer getShortestDistance(Point currentPosition, Point... coordinates) {
+        int distance = Integer.MAX_VALUE;
+        for (Point p : coordinates) {
+            // TODO: do we need to do this diagonally?
+            distance = Math.min(distance, Math.abs(currentPosition.x - p.x) + Math.abs(currentPosition.y - p.y));
+            if (distance == 0) {
+                break;
+            }
+        }
+        return distance;
     }
 
 }

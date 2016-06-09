@@ -41,6 +41,7 @@ import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.task.type.AbstractTask;
+import toniarts.openkeeper.game.task.type.CarryGoldToTreasuryTask;
 import toniarts.openkeeper.game.task.type.ClaimTileTask;
 import toniarts.openkeeper.game.task.type.ClaimWallTileTask;
 import toniarts.openkeeper.game.task.type.DigTileTask;
@@ -190,7 +191,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
     }
 
     private void navigateToRandomPoint() {
-        Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getLocalTranslation()), 10, creature);
+        Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, creature);
         if (p != null) {
             GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, creature);
 
@@ -262,12 +263,16 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
         if (stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid()) {
 
             // Different work based reactions
+            // TODO: The tasks should have execute and they should know what to do
             if (assignedTask instanceof RepairWallTileTask || assignedTask instanceof ClaimTileTask || assignedTask instanceof ClaimWallTileTask) {
                 worldState.applyClaimTile(assignedTask.getTaskLocation(), ownerId);
             } else if (assignedTask instanceof DigTileTask) {
 
                 // Apply damage
                 gold += worldState.damageTile(assignedTask.getTaskLocation(), ownerId);
+            } else if (assignedTask instanceof CarryGoldToTreasuryTask) {
+                gold -= gold - worldState.addGold(ownerId, getCreatureCoordinates(), gold);
+                idle();
             }
         }
     }
@@ -280,12 +285,15 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
             } else if (stateMachine.getCurrentState() == CreatureState.WORK) {
 
                 // Different work animations
+                // TODO: The tasks should have the animation
                 if (assignedTask instanceof RepairWallTileTask || assignedTask instanceof ClaimWallTileTask) {
                     playAnimation(creature.getAnimSleepResource());
                 } else if (assignedTask instanceof DigTileTask) {
                     playAnimation(creature.getAnimMelee1Resource());
                 } else if (assignedTask instanceof ClaimTileTask) {
                     playAnimation(creature.getAnimEatResource());
+                } else if (assignedTask instanceof CarryGoldToTreasuryTask) {
+                    playAnimation(creature.getAnimHappyResource());
                 } else {
                     throw new IllegalArgumentException("Assigned task is unknown!");
                 }
@@ -421,6 +429,34 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
 
     private boolean isSlappable(short playerId) {
         return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) && !stateMachine.isInState(CreatureState.DEAD);
+    }
+
+    public boolean isTooMuchGold() {
+        return gold >= creature.getMaxGoldHeld();
+    }
+
+    public boolean dropGoldToTreasury() {
+        if (gold > 0) {
+            if (worldState.getTaskManager().assignGoldToTreasuryTask(this)) {
+                navigateToAssignedTask();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void dropGold() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    /**
+     * Get the creature coordinates, in tile coordinates
+     *
+     * @return the tile coordinates
+     */
+    public Point getCreatureCoordinates() {
+        return worldState.getTileCoordinates(getSpatial().getWorldTranslation());
     }
 
     @Override

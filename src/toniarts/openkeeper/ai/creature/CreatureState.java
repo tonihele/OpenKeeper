@@ -130,15 +130,21 @@ public enum CreatureState implements State<CreatureControl> {
                 @Override
                 public void update(CreatureControl entity) {
 
-                    // Check validity
-                    if (!entity.isAssignedTaskValid()) {
-                        entity.getStateMachine().changeState(IDLE);
-                        return;
-                    }
-
                     // Check arrival
                     if (entity.isAtAssignedTaskTarget()) {
 
+                        // If we have too much gold, drop it to the treasury
+                        if (entity.isTooMuchGold()) {
+                            if (!entity.dropGoldToTreasury()) {
+                                entity.dropGold();
+                            }
+                        }
+                    }
+
+                    // Check validity
+                    // If we have some pocket money left, we should return it to treasury
+                    if (!entity.isAssignedTaskValid() && !entity.dropGoldToTreasury()) {
+                        entity.getStateMachine().changeState(IDLE);
                     }
                 }
 
