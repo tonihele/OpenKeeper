@@ -105,4 +105,8 @@ public class PlayerGoldControl extends AbstractControl {
     private void updateListener(Label label) {
         label.setText(String.format("%s", gold));
     }
+
+    public boolean isFullCapacity() {
+        return gold >= goldMax;
+    }
 }

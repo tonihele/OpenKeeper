@@ -263,6 +263,10 @@ public abstract class GenericRoom {
         return true;
     }
 
+    public boolean isTileAccessible(Point p) {
+        return isTileAccessible(p.x, p.y);
+    }
+
     public String getTooltip(short playerId) {
         if (roomInstance.getOwnerId() != playerId && roomInstance.isAttackable()) {
             return notOwnedTooltip;
@@ -320,6 +324,15 @@ public abstract class GenericRoom {
 
     public RoomInstance getRoomInstance() {
         return roomInstance;
+    }
+
+    /**
+     * Is the room at full capacity
+     *
+     * @return max capacity used
+     */
+    public boolean isFullCapacity() {
+        return getUsedCapacity() >= getMaxCapacity();
     }
 
 }
