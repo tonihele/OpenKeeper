@@ -1088,7 +1088,7 @@ public abstract class WorldState extends AbstractAppState {
             if (roomInstance != null) {
                 GenericRoom room = getMapLoader().getRoomActuals().get(roomInstance);
                 if (room.canStoreGold()) {
-                    return room.getGoldControl().addGold(sum, p, thingLoader);
+                    sum = room.getGoldControl().addGold(sum, p, thingLoader);
                 } else {
                     // TODO: generate loose gold
                 }
@@ -1145,6 +1145,10 @@ public abstract class WorldState extends AbstractAppState {
             Keeper keeper = gameState.getPlayer(instance.getOwnerId());
             keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + room.getGoldControl().getMaxGoldCapacity());
         }
+    }
+
+    public GameState getGameState() {
+        return gameState;
     }
 
 }
