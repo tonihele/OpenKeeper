@@ -835,7 +835,7 @@ public abstract class WorldState extends AbstractAppState {
                 damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH);
             }
         } else {
-            throw new UnsupportedOperationException("No support for damaging other than solid tiles!");
+            throw new UnsupportedOperationException("No support for damaging other than solid tiles! Tried to damage tile " + terrain.getName() + " at " + point + "!");
         }
 
         // Do the damage
