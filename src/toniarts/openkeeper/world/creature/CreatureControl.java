@@ -271,7 +271,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
                 // Apply damage
                 gold += worldState.damageTile(assignedTask.getTaskLocation(), ownerId);
             } else if (assignedTask instanceof CarryGoldToTreasuryTask) {
-                gold -= gold - worldState.addGold(ownerId, getCreatureCoordinates(), gold);
+                gold -= gold - worldState.addGold(ownerId, assignedTask.getTaskLocation(), gold);
                 idle();
             }
         }
