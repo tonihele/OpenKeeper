@@ -108,6 +108,16 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
         return (assignees.size() < getMaxAllowedNumberOfAsignees() && isValid() && isReachable(creature));
     }
 
+    /**
+     * Task priority, added to distance when evaluating tasks to give out. The
+     * bigger the number, the less urgent the task is
+     *
+     * @return task priority
+     */
+    public int getPriority() {
+        return 100;
+    }
+
     @Override
     public int compareTo(AbstractTask t) {
         return getTaskCreated().compareTo(t.getTaskCreated());

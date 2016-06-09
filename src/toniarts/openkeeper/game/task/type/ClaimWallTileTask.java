@@ -43,6 +43,11 @@ public class ClaimWallTileTask extends DigTileTask {
     }
 
     @Override
+    public int getPriority() {
+        return 176;
+    }
+
+    @Override
     public String toString() {
         return "Claim wall at " + getTaskLocation();
     }

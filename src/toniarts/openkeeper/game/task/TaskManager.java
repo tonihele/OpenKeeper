@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.task;
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
@@ -155,12 +157,18 @@ public class TaskManager {
 //            throw new IllegalArgumentException("This task manager instance is not for the given player!");
         }
 
-        // TODO: distance
         // It seems that tasks like claiming walls are on very low priority, so there really is a priority queue
-        Iterator<AbstractTask> iter = taskQueue.iterator();
+        final Point currentLocation = creature.getCreatureCoordinates();
+        Set<AbstractTask> prioritisedTaskQueue = new TreeSet<>(new Comparator<AbstractTask>() {
+
+            @Override
+            public int compare(AbstractTask t, AbstractTask t1) {
+                return Integer.compare(calculateDistance(currentLocation, t.getTaskLocation()) + t.getPriority(), calculateDistance(currentLocation, t1.getTaskLocation()) + t1.getPriority());
+            }
+        });
+        prioritisedTaskQueue.addAll(taskQueue);
         AbstractTask crowdedTask = null;
-        while (iter.hasNext()) {
-            AbstractTask task = iter.next();
+        for (AbstractTask task : prioritisedTaskQueue) {
             if (task.canAssign(creature)) {
 
                 // If we can assign, that is fine, but prioritize on non-assigned tasks
@@ -259,16 +267,20 @@ public class TaskManager {
         return false;
     }
 
-    private Integer getShortestDistance(Point currentPosition, Point... coordinates) {
+    private static Integer getShortestDistance(Point currentPosition, Point... coordinates) {
         int distance = Integer.MAX_VALUE;
         for (Point p : coordinates) {
             // TODO: do we need to do this diagonally?
-            distance = Math.min(distance, Math.abs(currentPosition.x - p.x) + Math.abs(currentPosition.y - p.y));
+            distance = Math.min(distance, calculateDistance(currentPosition, p));
             if (distance == 0) {
                 break;
             }
         }
         return distance;
+    }
+
+    private static int calculateDistance(Point currentPosition, Point p) {
+        return Math.abs(currentPosition.x - p.x) + Math.abs(currentPosition.y - p.y);
     }
 
 }
