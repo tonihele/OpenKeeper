@@ -38,6 +38,11 @@ public class Workshop extends Normal {
 
     public Workshop(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, roomInstance, direction);
+    }
+
+    @Override
+    protected void setupCoordinates() {
+        super.setupCoordinates();
 
         // Big tile map
         bigTiles = new boolean[map.length][map[0].length];
@@ -83,9 +88,7 @@ public class Workshop extends Normal {
             }
 
             // We may have up to 4 pillars in the same tile even, every corner gets one, no need to check anything else
-
             // Add a pillar
-
             // Face "in" diagonally
             if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
                 Quaternion quat = new Quaternion();

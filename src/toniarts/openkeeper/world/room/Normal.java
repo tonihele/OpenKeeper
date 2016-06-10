@@ -48,10 +48,14 @@ public class Normal extends GenericRoom {
         super(assetManager, roomInstance, direction);
     }
 
-    @Override
-    public Spatial construct() {
+    protected void setupCoordinates() {
         map = roomInstance.getCoordinatesAsMatrix();
         start = roomInstance.getMatrixStartPoint();
+    }
+
+    @Override
+    public Spatial construct() {
+        setupCoordinates();
         super.construct();
 
         // Pillars
