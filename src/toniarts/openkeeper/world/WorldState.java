@@ -136,7 +136,9 @@ public abstract class WorldState extends AbstractAppState {
         for (Entry<RoomInstance, GenericRoom> roomEntry : mapLoader.getRoomActuals().entrySet()) {
             if (roomEntry.getValue().canStoreGold()) {
                 Keeper keeper = gameState.getPlayer(roomEntry.getKey().getOwnerId());
-                keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + roomEntry.getValue().getGoldControl().getMaxGoldCapacity());
+                if (keeper != null) {
+                    keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + roomEntry.getValue().getGoldControl().getMaxGoldCapacity());
+                }
             }
         }
     }
