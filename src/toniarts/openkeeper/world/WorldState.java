@@ -836,8 +836,12 @@ public abstract class WorldState extends AbstractAppState {
             } else {
                 damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH);
             }
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getPlayerId() != playerId) {
+
+            // Attack enemy tile
+            damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_TILE_HEALTH);
         } else {
-            throw new UnsupportedOperationException("No support for damaging other than solid tiles! Tried to damage tile " + terrain.getName() + " at " + point + "!");
+            throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrain.getName() + " at " + point + "!");
         }
 
         // Do the damage
@@ -853,7 +857,7 @@ public abstract class WorldState extends AbstractAppState {
         // See the results
         if (tileDestroyed) {
 
-            // TODO: effect, drop loot & checks
+            // TODO: effect, drop loot & checks, claimed walls should also get destroyed if all adjacent tiles are not in cotrol anymore
             // The tile is dead
             if (terrain.getDestroyedEffectId() != 0) {
 //                Node effect = effectManager.load(terrain.getDestroyedEffectId());
