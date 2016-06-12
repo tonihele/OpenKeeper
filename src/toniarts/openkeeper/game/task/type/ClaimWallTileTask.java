@@ -52,4 +52,9 @@ public class ClaimWallTileTask extends DigTileTask {
         return "Claim wall at " + getTaskLocation();
     }
 
+    @Override
+    protected String getStringId() {
+        return "2603";
+    }
+
 }

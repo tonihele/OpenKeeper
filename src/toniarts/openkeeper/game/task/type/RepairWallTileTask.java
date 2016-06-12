@@ -47,4 +47,9 @@ public class RepairWallTileTask extends DigTileTask {
         return "Repair wall at " + getTaskLocation();
     }
 
+    @Override
+    protected String getStringId() {
+        return "2604";
+    }
+
 }

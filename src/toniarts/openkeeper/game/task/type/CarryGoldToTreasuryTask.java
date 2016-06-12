@@ -42,4 +42,9 @@ public class CarryGoldToTreasuryTask extends AbstractTileTask {
         return new Vector2f(getTaskLocation().x + 0.5f, getTaskLocation().y + 0.5f);
     }
 
+    @Override
+    protected String getStringId() {
+        return "2786";
+    }
+
 }

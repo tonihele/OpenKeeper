@@ -39,4 +39,9 @@ public class ClaimRoomTask extends ClaimTileTask {
         return "Claim room at " + getTaskLocation();
     }
 
+    @Override
+    protected String getStringId() {
+        return "2602";
+    }
+
 }

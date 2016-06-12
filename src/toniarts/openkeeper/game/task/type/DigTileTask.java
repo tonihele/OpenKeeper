@@ -79,4 +79,10 @@ public class DigTileTask extends AbstractTileTask {
         return "Dig tile at " + getTaskLocation();
     }
 
+    @Override
+    protected String getStringId() {
+        TileData tile = worldState.getMapData().getTile(getTaskLocation());
+        return (tile.getGold() > 0 ? "2605" : "2600");
+    }
+
 }

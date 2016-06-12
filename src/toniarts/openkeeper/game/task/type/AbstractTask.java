@@ -22,6 +22,7 @@ import java.awt.Point;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
@@ -162,5 +163,16 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
         // Path find
         return (worldState.findPath(worldState.getTileCoordinates(new Vector3f(creature.getPosition().x, 0, creature.getPosition().y)), targetTile, creature.getCreature()) != null);
     }
+
+    /**
+     * Get the task tooltip
+     *
+     * @return the task tooltip
+     */
+    public String getTooltip() {
+        return Utils.getMainTextResourceBundle().getString(getStringId());
+    }
+
+    protected abstract String getStringId();
 
 }
