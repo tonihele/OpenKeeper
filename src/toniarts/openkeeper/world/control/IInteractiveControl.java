@@ -25,7 +25,7 @@ import com.jme3.scene.control.Control;
  */
 public interface IInteractiveControl extends Control {
 
-    public String getTooltip();
+    public String getTooltip(short playerId);
 
     public boolean isPickable(short playerId);
 

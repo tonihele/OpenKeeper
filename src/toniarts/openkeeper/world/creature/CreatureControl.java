@@ -87,7 +87,6 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
     private CreatureState state;
     private boolean animationPlaying = false;
     private int idleAnimationPlayCount = 1;
-    private final String tooltip;
     private float lastAttributeUpdateTime = 0;
     private AbstractTask assignedTask;
     private AnimationType playingAnimationType = AnimationType.IDLE;
@@ -96,10 +95,6 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
         super(creature);
         stateMachine = new DefaultStateMachine<>(this);
         this.worldState = worldState;
-
-        // Strings
-        //tooltip = bundle.getString(Integer.toString(creature.getTooltipStringId()));
-        tooltip = Utils.getMainTextResourceBundle().getString("2841");
 
         // Attributes
         name = Utils.generateCreatureName();
@@ -324,7 +319,13 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
     }
 
     @Override
-    public String getTooltip() {
+    public String getTooltip(short playerId) {
+        String tooltip;
+        if (ownerId == playerId) {
+            tooltip = Utils.getMainTextResourceBundle().getString("2841");
+        } else {
+            tooltip = Utils.getMainTextResourceBundle().getString(Integer.toString(creature.getTooltipStringId()));
+        }
         return formatString(tooltip);
     }
 

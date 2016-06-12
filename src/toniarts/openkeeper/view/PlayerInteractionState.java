@@ -418,7 +418,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         if (controller != null) {
 
             // Maybe a kinda hack, but set the tooltip here
-            tooltip.setText(controller.getTooltip());
+            tooltip.setText(controller.getTooltip(player.getPlayerId()));
         } else {
 
             // Tile tooltip then

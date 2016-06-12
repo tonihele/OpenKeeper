@@ -57,7 +57,7 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     }
 
     @Override
-    public String getTooltip() {
+    public String getTooltip(short playerId) {
         return tooltip;
     }
 
