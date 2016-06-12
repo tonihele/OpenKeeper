@@ -157,7 +157,7 @@ public class TaskManager {
 //            throw new IllegalArgumentException("This task manager instance is not for the given player!");
         }
 
-        // It seems that tasks like claiming walls are on very low priority, so there really is a priority queue
+        // Sort by distance & priority
         final Point currentLocation = creature.getCreatureCoordinates();
         List<AbstractTask> prioritisedTaskQueue = new ArrayList<>(taskQueue);
         Collections.sort(prioritisedTaskQueue, new Comparator<AbstractTask>() {
@@ -174,26 +174,15 @@ public class TaskManager {
             }
 
         });
-        AbstractTask crowdedTask = null;
+
+        // Take the first available task from the sorted queue
         for (AbstractTask task : prioritisedTaskQueue) {
             if (task.canAssign(creature)) {
 
-                // If we can assign, that is fine, but prioritize on non-assigned tasks
-                if ((crowdedTask == null && task.getAssigneeCount() > 0) || (crowdedTask != null && task.getAssigneeCount() < crowdedTask.getAssigneeCount())) {
-                    crowdedTask = task;
-                } else if (task.getAssigneeCount() == 0) {
-
-                    // Assign to first non-empty task
-                    task.assign(creature);
-                    return true;
-                }
+                // Assign to first task
+                task.assign(creature);
+                return true;
             }
-        }
-
-        // See if we have a crowded task for this
-        if (crowdedTask != null) {
-            crowdedTask.assign(creature);
-            return true;
         }
 
         return false;
