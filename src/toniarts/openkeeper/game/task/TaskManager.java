@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.task;
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,7 +29,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
@@ -159,14 +159,15 @@ public class TaskManager {
 
         // It seems that tasks like claiming walls are on very low priority, so there really is a priority queue
         final Point currentLocation = creature.getCreatureCoordinates();
-        Set<AbstractTask> prioritisedTaskQueue = new TreeSet<>(new Comparator<AbstractTask>() {
+        List<AbstractTask> prioritisedTaskQueue = new ArrayList<>(taskQueue);
+        Collections.sort(prioritisedTaskQueue, new Comparator<AbstractTask>() {
 
             @Override
             public int compare(AbstractTask t, AbstractTask t1) {
                 return Integer.compare(calculateDistance(currentLocation, t.getTaskLocation()) + t.getPriority(), calculateDistance(currentLocation, t1.getTaskLocation()) + t1.getPriority());
             }
+
         });
-        prioritisedTaskQueue.addAll(taskQueue);
         AbstractTask crowdedTask = null;
         for (AbstractTask task : prioritisedTaskQueue) {
             if (task.canAssign(creature)) {
