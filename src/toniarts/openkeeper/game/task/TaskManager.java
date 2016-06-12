@@ -164,7 +164,13 @@ public class TaskManager {
 
             @Override
             public int compare(AbstractTask t, AbstractTask t1) {
-                return Integer.compare(calculateDistance(currentLocation, t.getTaskLocation()) + t.getPriority(), calculateDistance(currentLocation, t1.getTaskLocation()) + t1.getPriority());
+                int result = Integer.compare(calculateDistance(currentLocation, t.getTaskLocation()) + t.getPriority(), calculateDistance(currentLocation, t1.getTaskLocation()) + t1.getPriority());
+                if (result == 0) {
+
+                    // If the same, compare by date added
+                    return t.getTaskCreated().compareTo(t1.getTaskCreated());
+                }
+                return result;
             }
 
         });
