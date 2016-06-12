@@ -37,8 +37,6 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ResourceBundle;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.task.type.AbstractTask;
 import toniarts.openkeeper.game.task.type.CarryGoldToTreasuryTask;
@@ -100,8 +98,8 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
         this.worldState = worldState;
 
         // Strings
-        ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
-        tooltip = bundle.getString(Integer.toString(creature.getTooltipStringId()));
+        //tooltip = bundle.getString(Integer.toString(creature.getTooltipStringId()));
+        tooltip = Utils.getMainTextResourceBundle().getString("2841");
 
         // Attributes
         name = Utils.generateCreatureName();
@@ -331,7 +329,25 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
     }
 
     private String formatString(String string) {
-        return string.replaceAll("%29", name).replaceAll("%30", creature.getName());
+        return string.replaceAll("%29", name).replaceAll("%30", creature.getName()).replaceAll("%31", getStatusText());
+    }
+
+    private String getStatusText() {
+        switch (state) {
+            case IDLE: {
+                return Utils.getMainTextResourceBundle().getString("2599");
+            }
+            case WORK: {
+                return assignedTask.getTooltip();
+            }
+            case WANDER: {
+                return Utils.getMainTextResourceBundle().getString("2628");
+            }
+            case DEAD: {
+                return Utils.getMainTextResourceBundle().getString("2598");
+            }
+        }
+        return "";
     }
 
     private boolean slap(short playerId) {
