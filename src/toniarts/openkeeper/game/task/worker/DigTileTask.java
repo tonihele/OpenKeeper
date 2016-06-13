@@ -86,4 +86,9 @@ public class DigTileTask extends AbstractTileTask {
         return (tile.getGold() > 0 ? "2605" : "2600");
     }
 
+    @Override
+    public void executeTask(CreatureControl creature) {
+        creature.addGold(worldState.damageTile(getTaskLocation(), playerId));
+    }
+
 }

@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.task.worker;
 
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Repair a claimed wall
@@ -50,6 +51,11 @@ public class RepairWallTileTask extends DigTileTask {
     @Override
     protected String getStringId() {
         return "2604";
+    }
+
+    @Override
+    public void executeTask(CreatureControl creature) {
+        worldState.applyClaimTile(getTaskLocation(), playerId);
     }
 
 }

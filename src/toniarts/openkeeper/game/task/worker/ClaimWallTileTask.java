@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.task.worker;
 
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Claim a wall task
@@ -55,6 +56,11 @@ public class ClaimWallTileTask extends DigTileTask {
     @Override
     protected String getStringId() {
         return "2603";
+    }
+
+    @Override
+    public void executeTask(CreatureControl creature) {
+        worldState.applyClaimTile(getTaskLocation(), playerId);
     }
 
 }

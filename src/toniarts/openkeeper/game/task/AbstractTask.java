@@ -173,6 +173,18 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
         return Utils.getMainTextResourceBundle().getString(getStringId());
     }
 
+    /**
+     * The string ID for the dictionary
+     *
+     * @return string ID
+     */
     protected abstract String getStringId();
+
+    /**
+     * Execute task!
+     *
+     * @param creature creature executing the task
+     */
+    public abstract void executeTask(CreatureControl creature);
 
 }

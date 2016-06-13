@@ -52,4 +52,9 @@ public class ClaimTileTask extends AbstractTileTask {
         return "2601";
     }
 
+    @Override
+    public void executeTask(CreatureControl creature) {
+        worldState.applyClaimTile(getTaskLocation(), playerId);
+    }
+
 }

@@ -256,17 +256,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
         if (stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid()) {
 
             // Different work based reactions
-            // TODO: The tasks should have execute and they should know what to do
-            if (assignedTask instanceof RepairWallTileTask || assignedTask instanceof ClaimTileTask || assignedTask instanceof ClaimWallTileTask) {
-                worldState.applyClaimTile(assignedTask.getTaskLocation(), ownerId);
-            } else if (assignedTask instanceof DigTileTask) {
-
-                // Apply damage
-                gold += worldState.damageTile(assignedTask.getTaskLocation(), ownerId);
-            } else if (assignedTask instanceof CarryGoldToTreasuryTask) {
-                gold -= gold - worldState.addGold(ownerId, assignedTask.getTaskLocation(), gold);
-                idle();
-            }
+            assignedTask.executeTask(this);
         }
     }
 
@@ -474,6 +464,33 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
      */
     public Point getCreatureCoordinates() {
         return worldState.getTileCoordinates(getSpatial().getWorldTranslation());
+    }
+
+    /**
+     * Get current creature gold amount
+     *
+     * @return the posessed gold
+     */
+    public int getGold() {
+        return gold;
+    }
+
+    /**
+     * Add gold to creature
+     *
+     * @param gold the amount of gold to add
+     */
+    public void addGold(int gold) {
+        this.gold += gold;
+    }
+
+    /**
+     * Remove gold from the creature
+     *
+     * @param gold the amount of gold to remove
+     */
+    public void substractGold(int gold) {
+        this.gold -= gold;
     }
 
     @Override

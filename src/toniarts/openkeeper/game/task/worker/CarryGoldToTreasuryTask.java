@@ -29,6 +29,8 @@ import toniarts.openkeeper.world.room.GenericRoom;
  */
 public class CarryGoldToTreasuryTask extends AbstractRoomTask {
 
+    private boolean executed = false;
+
     public CarryGoldToTreasuryTask(WorldState worldState, int x, int y, short playerId, GenericRoom room) {
         super(worldState, x, y, playerId, room);
     }
@@ -36,7 +38,7 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
     @Override
     public boolean isValid() {
         // TODO:
-        return true;
+        return !executed;
     }
 
     @Override
@@ -47,6 +49,15 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
     @Override
     protected String getStringId() {
         return "2786";
+    }
+
+    @Override
+    public void executeTask(CreatureControl creature) {
+        int gold = creature.getGold();
+        creature.substractGold(gold - worldState.addGold(playerId, getTaskLocation(), gold));
+
+        // This is a one timer
+        executed = true;
     }
 
 }
