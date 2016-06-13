@@ -16,36 +16,26 @@
  */
 package toniarts.openkeeper.game.task.type;
 
-import com.jme3.math.Vector2f;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
- * Carry gold to treasury
+ * A base of a task that involves a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CarryGoldToTreasuryTask extends AbstractRoomTask {
+public abstract class AbstractRoomTask extends AbstractTileTask {
 
-    public CarryGoldToTreasuryTask(WorldState worldState, int x, int y, short playerId, GenericRoom room) {
-        super(worldState, x, y, playerId, room);
+    private final GenericRoom room;
+
+    public AbstractRoomTask(WorldState worldState, int x, int y, short playerId, GenericRoom room) {
+        super(worldState, x, y, playerId);
+
+        this.room = room;
     }
 
-    @Override
-    public boolean isValid() {
-        // TODO:
-        return true;
-    }
-
-    @Override
-    public Vector2f getTarget(CreatureControl creature) {
-        return new Vector2f(getTaskLocation().x + 0.5f, getTaskLocation().y + 0.5f);
-    }
-
-    @Override
-    protected String getStringId() {
-        return "2786";
+    protected GenericRoom getRoom() {
+        return room;
     }
 
 }

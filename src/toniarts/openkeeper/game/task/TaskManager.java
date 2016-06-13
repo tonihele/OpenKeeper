@@ -254,7 +254,7 @@ public class TaskManager {
             if (path != null || target == creature.getCreatureCoordinates()) {
 
                 // Assign the task
-                AbstractTask task = new CarryGoldToTreasuryTask(worldState, target.x, target.y, creature.getOwnerId());
+                AbstractTask task = new CarryGoldToTreasuryTask(worldState, target.x, target.y, creature.getOwnerId(), room);
                 task.assign(creature);
                 return true;
             }
