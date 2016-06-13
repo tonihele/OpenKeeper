@@ -230,8 +230,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                                         diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY" + textureIndex + ".png");
                                     }
                                 }
-                                Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
-                                material.setTexture("DiffuseMap", texture);
+                                try {
+                                    Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
+                                    material.setTexture("DiffuseMap", texture);
+                                } catch (Exception e) {
+                                    logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, tile.getTerrain().getName(), e.getMessage()});
+                                }
                             }
                         }
 
