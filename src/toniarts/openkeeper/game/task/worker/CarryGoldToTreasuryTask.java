@@ -14,42 +14,39 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.task.type;
+package toniarts.openkeeper.game.task.worker;
 
-import toniarts.openkeeper.world.TileData;
+import com.jme3.math.Vector2f;
+import toniarts.openkeeper.game.task.AbstractRoomTask;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
- * Repair a claimed wall
+ * Carry gold to treasury
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class RepairWallTileTask extends DigTileTask {
+public class CarryGoldToTreasuryTask extends AbstractRoomTask {
 
-    public RepairWallTileTask(WorldState worldState, int x, int y, short playerId) {
-        super(worldState, x, y, playerId);
+    public CarryGoldToTreasuryTask(WorldState worldState, int x, int y, short playerId, GenericRoom room) {
+        super(worldState, x, y, playerId, room);
     }
 
     @Override
     public boolean isValid() {
-        TileData tile = worldState.getMapData().getTile(getTaskLocation());
-        return worldState.isRepairableWall(getTaskLocation().x, getTaskLocation().y, playerId) && !tile.isSelectedByPlayerId(playerId);
+        // TODO:
+        return true;
     }
 
     @Override
-    public int getMaxAllowedNumberOfAsignees() {
-        // TODO: I think it is 1 per accessible side
-        return 1;
-    }
-
-    @Override
-    public String toString() {
-        return "Repair wall at " + getTaskLocation();
+    public Vector2f getTarget(CreatureControl creature) {
+        return new Vector2f(getTaskLocation().x + 0.5f, getTaskLocation().y + 0.5f);
     }
 
     @Override
     protected String getStringId() {
-        return "2604";
+        return "2786";
     }
 
 }

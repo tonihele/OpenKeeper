@@ -14,28 +14,34 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.task.type;
+package toniarts.openkeeper.game.task.worker;
 
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
- * A base of a task that involves a room
+ * Claim a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractRoomTask extends AbstractTileTask {
+public class ClaimRoomTask extends ClaimTileTask {
 
-    private final GenericRoom room;
-
-    public AbstractRoomTask(WorldState worldState, int x, int y, short playerId, GenericRoom room) {
+    public ClaimRoomTask(WorldState worldState, int x, int y, short playerId) {
         super(worldState, x, y, playerId);
-
-        this.room = room;
     }
 
-    protected GenericRoom getRoom() {
-        return room;
+    @Override
+    public boolean isValid() {
+        return worldState.isClaimableRoom(getTaskLocation().x, getTaskLocation().y, playerId);
+    }
+
+    @Override
+    public String toString() {
+        return "Claim room at " + getTaskLocation();
+    }
+
+    @Override
+    protected String getStringId() {
+        return "2602";
     }
 
 }

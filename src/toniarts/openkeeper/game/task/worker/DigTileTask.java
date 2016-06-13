@@ -14,10 +14,11 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.task.type;
+package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
 import java.awt.Point;
+import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;

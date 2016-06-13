@@ -14,34 +14,47 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.task.type;
+package toniarts.openkeeper.game.task.worker;
 
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
 /**
- * Claim a room
+ * Claim a wall task
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ClaimRoomTask extends ClaimTileTask {
+public class ClaimWallTileTask extends DigTileTask {
 
-    public ClaimRoomTask(WorldState worldState, int x, int y, short playerId) {
+    public ClaimWallTileTask(WorldState worldState, int x, int y, short playerId) {
         super(worldState, x, y, playerId);
     }
 
     @Override
     public boolean isValid() {
-        return worldState.isClaimableRoom(getTaskLocation().x, getTaskLocation().y, playerId);
+        TileData tile = worldState.getMapData().getTile(getTaskLocation());
+        return worldState.isClaimableWall(getTaskLocation().x, getTaskLocation().y, playerId) && !tile.isSelectedByPlayerId(playerId);
+    }
+
+    @Override
+    public int getMaxAllowedNumberOfAsignees() {
+        // TODO: I think it is 1 per accessible side
+        return 1;
+    }
+
+    @Override
+    public int getPriority() {
+        return 176;
     }
 
     @Override
     public String toString() {
-        return "Claim room at " + getTaskLocation();
+        return "Claim wall at " + getTaskLocation();
     }
 
     @Override
     protected String getStringId() {
-        return "2602";
+        return "2603";
     }
 
 }

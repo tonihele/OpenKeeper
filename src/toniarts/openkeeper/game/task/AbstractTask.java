@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.task.type;
+package toniarts.openkeeper.game.task;
 
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
