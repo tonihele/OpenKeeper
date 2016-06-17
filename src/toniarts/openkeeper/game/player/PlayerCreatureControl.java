@@ -37,6 +37,7 @@ import toniarts.openkeeper.world.listener.CreatureListener;
 public class PlayerCreatureControl implements CreatureListener {
 
     private List<WorkerListener> workerListeners;
+    private List<CreatureListener> creatureListeners;
     private final Map<Creature, Set<CreatureControl>> creatures = new LinkedHashMap<>();
     private final Set<CreatureControl> imps = new HashSet<>(); // Only imps are separated, not all workers
 
@@ -51,9 +52,10 @@ public class PlayerCreatureControl implements CreatureListener {
 
         // Add to the list
         Set<CreatureControl> creatureSet;
+        boolean wasImp = false;
         if (isImp(creature)) {
             creatureSet = imps;
-            updateWorkerListeners();
+            wasImp = true;
         } else {
             creatureSet = creatures.get(creature.getCreature());
             if (creatureSet == null) {
@@ -62,12 +64,29 @@ public class PlayerCreatureControl implements CreatureListener {
             }
         }
         creatureSet.add(creature);
+
+        // Listeners
+        if (wasImp) {
+            updateWorkerListeners();
+        } else {
+            if (creatureListeners != null) {
+                for (CreatureListener listener : creatureListeners) {
+                    listener.onSpawn(creature);
+                }
+            }
+        }
     }
 
     @Override
     public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
         if (isImp(creature)) {
             updateWorkerListeners();
+        } else {
+            if (creatureListeners != null) {
+                for (CreatureListener listener : creatureListeners) {
+                    listener.onStateChange(creature, newState, oldState);
+                }
+            }
         }
     }
 
@@ -76,14 +95,26 @@ public class PlayerCreatureControl implements CreatureListener {
 
         // Delete
         Set<CreatureControl> creatureSet;
+        boolean wasImp = false;
         if (isImp(creature)) {
             creatureSet = imps;
-            updateWorkerListeners();
+            wasImp = true;
         } else {
             creatureSet = creatures.get(creature.getCreature());
         }
         if (creatureSet != null) {
             creatureSet.remove(creature);
+        }
+
+        // Listeners
+        if (wasImp) {
+            updateWorkerListeners();
+        } else {
+            if (creatureListeners != null) {
+                for (CreatureListener listener : creatureListeners) {
+                    listener.onDie(creature);
+                }
+            }
         }
     }
 
@@ -99,6 +130,14 @@ public class PlayerCreatureControl implements CreatureListener {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
+    /**
+     * Listen to imp updates
+     *
+     * @param amountLabel the total amount of imps
+     * @param idleLabel the amount of imps idling
+     * @param busyLabel the amount of imps busy
+     * @param fightingLabel the amount of imps fighting
+     */
     public void addWorkerListener(Label amountLabel, Label idleLabel, Label busyLabel, Label fightingLabel) {
         if (workerListeners == null) {
             workerListeners = new ArrayList<>();
@@ -106,6 +145,18 @@ public class PlayerCreatureControl implements CreatureListener {
         WorkerListener workerListener = new WorkerListener(amountLabel, idleLabel, busyLabel, fightingLabel);
         updateWorkerListener(workerListener);
         workerListeners.add(workerListener);
+    }
+
+    /**
+     * Listen to creature updates. Excluding imps
+     *
+     * @param listener the listener
+     */
+    public void addCreatureListener(CreatureListener listener) {
+        if (creatureListeners == null) {
+            creatureListeners = new ArrayList<>();
+        }
+        creatureListeners.add(listener);
     }
 
     private void updateWorkerListener(WorkerListener workerListener) {

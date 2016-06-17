@@ -61,6 +61,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
@@ -86,6 +87,7 @@ import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PossessionCameraState;
 import toniarts.openkeeper.view.PossessionInteractionState;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.listener.CreatureListener;
 
 /**
  * The player state! GUI, camera, etc. Player interactions
@@ -353,14 +355,43 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
         // Player creatures
         Element creatureTab = hud.findElementById("tab-creature");
-        Element contentPanel = creatureTab.findElementById("tab-creature-content");
-        removeAllChildElements(contentPanel);
+        final Element creaturePanel = creatureTab.findElementById("tab-creature-content");
+        removeAllChildElements(creaturePanel);
         for (final Entry<Creature, Set<CreatureControl>> entry : getCreatureControl().getCreatures().entrySet()) {
-            createPlayerCreatureIcon(entry.getKey(), entry.getValue().size()).build(nifty, hud, contentPanel);
+            createPlayerCreatureIcon(entry.getKey(), entry.getValue().size()).build(nifty, hud, creaturePanel);
         }
+        getCreatureControl().addCreatureListener(new CreatureListener() {
+
+            @Override
+            public void onSpawn(CreatureControl creature) {
+                int amount = getCreatureControl().getCreatures().get(creature.getCreature()).size();
+                Element creatureCard = creaturePanel.findElementById("creature_" + creature.getCreature().getCreatureId());
+                if (creatureCard == null) {
+                    createPlayerCreatureIcon(creature.getCreature(), amount).build(nifty, hud, creaturePanel);// Create
+                } else {
+                    creatureCard.setUserData("total", amount);
+                }
+            }
+
+            @Override
+            public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
+                // TODO:
+            }
+
+            @Override
+            public void onDie(CreatureControl creature) {
+                int amount = getCreatureControl().getCreatures().get(creature.getCreature()).size();
+                Element creatureCard = creaturePanel.findElementById("creature_" + creature.getCreature().getCreatureId());
+                if (amount == 0) {
+                    creatureCard.markForRemoval(); // Remove
+                } else {
+                    creatureCard.setUserData("total", amount);
+                }
+            }
+        });
         getCreatureControl().addWorkerListener(creatureTab.findNiftyControl("tab-workers#amount", Label.class), creatureTab.findNiftyControl("tab-workers#idle", Label.class), creatureTab.findNiftyControl("tab-workers#busy", Label.class), creatureTab.findNiftyControl("tab-workers#fighting", Label.class));
 
-        contentPanel = hud.findElementById("tab-room-content");
+        Element contentPanel = hud.findElementById("tab-room-content");
         removeAllChildElements(contentPanel);
         for (final Room room : getAvailableRoomsToBuild()) {
             createRoomIcon(room).build(nifty, hud, contentPanel);
@@ -706,7 +737,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             {
                 filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + creature.getPortraitResource().getName() + ".png"));
                 parameter("total", Integer.toString(creatureAmount));
-                id("creature-_" + creature.getCreatureId());
+                id("creature_" + creature.getCreatureId());
                 interactOnClick("zoomToCreature(" + creature.getCreatureId() + ")");
             }
         };
