@@ -142,6 +142,16 @@ public class GameState extends AbstractPauseAwareState {
 
                     int triggerId = kwdFile.getGameLevel().getTriggerId();
                     if (triggerId != 0) {
+
+                        // TODO: init on constructor?
+                        for (short i = 0; i < 128; i++) {
+                            flags.put(i, 0);
+                        }
+
+                        for (byte i = 0; i < 16; i++) {
+                            timers.put(i, new GameTimer());
+                        }
+
                         triggerControl = new TriggerControl(stateManager, triggerId);
                         setProgress(0.90f);
                     }
@@ -165,14 +175,6 @@ public class GameState extends AbstractPauseAwareState {
                 GameState.this.stateManager.getState(ActionPointState.class).setEnabled(true);
                 GameState.this.stateManager.getState(PartytState.class).setEnabled(true);
                 GameState.this.stateManager.getState(SoundState.class).setEnabled(true);
-
-                for (short i = 0; i < 128; i++) {
-                    flags.put(i, 0);
-                }
-
-                for (byte i = 0; i < 16; i++) {
-                    timers.put(i, new GameTimer());
-                }
             }
         };
         stateManager.attach(loader);
