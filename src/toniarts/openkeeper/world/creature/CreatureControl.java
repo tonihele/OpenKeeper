@@ -58,13 +58,14 @@ import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
+import toniarts.openkeeper.world.listener.CreatureListener;
 
 /**
  * Controller for creature. Bridge between the visual object and AI.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl {
+public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener {
 
     public enum AnimationType {
 
@@ -93,7 +94,18 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
 
     public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldState worldState) {
         super(creature);
-        stateMachine = new DefaultStateMachine<>(this);
+        stateMachine = new DefaultStateMachine<CreatureControl, CreatureState>(this) {
+
+            @Override
+            public void changeState(CreatureState newState) {
+                super.changeState(newState);
+
+                // Notify
+                onStateChange(CreatureControl.this, newState, getPreviousState());
+
+            }
+
+        };
         this.worldState = worldState;
 
         // Attributes
@@ -364,6 +376,9 @@ public class CreatureControl extends AbstractCreatureSteeringControl implements 
     public void die() {
         //TODO: Dying direction
         playAnimation(creature.getAnimDieResource());
+
+        // Notify
+        onDie(CreatureControl.this);
     }
 
     private void removeCreature() {

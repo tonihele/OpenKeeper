@@ -21,13 +21,19 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.CreatureLoader;
+import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -47,8 +53,9 @@ public class ThingLoader {
     private final Node root;
     private final Node nodeCreatures;
     private final Node nodeObjects;
-    private final List<CreatureControl> creatures = new ArrayList<>();
+    private final Set<CreatureControl> creatures = new LinkedHashSet<>();
     private final List<ObjectControl> objects = new ArrayList<>();
+    private Map<Short, List<CreatureListener>> creatureListeners;
 
     private static final Logger logger = Logger.getLogger(ThingLoader.class.getName());
 
@@ -56,7 +63,45 @@ public class ThingLoader {
         this.worldState = worldHandler;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
-        creatureLoader = new CreatureLoader(kwdFile, worldState);
+        creatureLoader = new CreatureLoader(kwdFile, worldState) {
+
+            @Override
+            public void onDie(CreatureControl creature) {
+
+                // Remove the creature
+                creatures.remove(creature);
+
+                // Notify listeners
+                if (creatureListeners != null && creatureListeners.containsKey(creature.getOwnerId())) {
+                    for (CreatureListener listener : creatureListeners.get(creature.getOwnerId())) {
+                        listener.onDie(creature);
+                    }
+                }
+            }
+
+            @Override
+            public void onSpawn(CreatureControl creature) {
+
+                // Notify listeners
+                if (creatureListeners != null && creatureListeners.containsKey(creature.getOwnerId())) {
+                    for (CreatureListener listener : creatureListeners.get(creature.getOwnerId())) {
+                        listener.onSpawn(creature);
+                    }
+                }
+            }
+
+            @Override
+            public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
+
+                // Notify listeners
+                if (creatureListeners != null && creatureListeners.containsKey(creature.getOwnerId())) {
+                    for (CreatureListener listener : creatureListeners.get(creature.getOwnerId())) {
+                        listener.onStateChange(creature, newState, oldState);
+                    }
+                }
+            }
+
+        };
         objectLoader = new ObjectLoader(kwdFile, worldState);
 
         // Create the scene graph
@@ -79,9 +124,12 @@ public class ThingLoader {
 
                     Thing.Creature cr = (Thing.Creature) obj;
                     Spatial creature = creatureLoader.load(assetManager, cr);
-                    creatures.add(creature.getControl(CreatureControl.class));
+                    CreatureControl creatureControl = creature.getControl(CreatureControl.class);
+                    creatures.add(creatureControl);
                     nodeCreatures.attachChild(creature);
 
+                    // Notify spawn
+                    creatureControl.onSpawn(creatureControl);
                 } else if (obj instanceof Thing.Object) {
 
                     Thing.Object objectThing = (Thing.Object) obj;
@@ -109,11 +157,30 @@ public class ThingLoader {
     }
 
     public List<CreatureControl> getCreatures() {
-        return creatures;
+        return new ArrayList<>(creatures);
     }
 
     public List<ObjectControl> getObjects() {
         return objects;
+    }
+
+    /**
+     * If you want to get notified about the creature changes
+     *
+     * @param playerId the player id of which creatures you want to assign the
+     * listener to
+     * @param listener the listener
+     */
+    public void addListener(short playerId, CreatureListener listener) {
+        if (creatureListeners == null) {
+            creatureListeners = new HashMap<>();
+        }
+        List<CreatureListener> listeners = creatureListeners.get(playerId);
+        if (listeners == null) {
+            listeners = new ArrayList<>();
+        }
+        listeners.add(listener);
+        creatureListeners.put(playerId, listeners);
     }
 
 }

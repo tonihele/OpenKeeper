@@ -16,12 +16,13 @@
  */
 package toniarts.openkeeper.game.data;
 
+import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.tools.convert.map.AI.AIType;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
- * Your friendly neighbourhood Keeper, or not
+ * Your FRIENDLY neighbourhood Keeper, or not
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -40,6 +41,7 @@ public class Keeper {
     private final short id;
     private int initialGold = 0;
     private final PlayerGoldControl goldControl = new PlayerGoldControl();
+    private final PlayerCreatureControl creatureControl = new PlayerCreatureControl();
 
     public Keeper(boolean ai, String name, short id) {
         this.ai = ai;
@@ -75,6 +77,10 @@ public class Keeper {
 
     public PlayerGoldControl getGoldControl() {
         return goldControl;
+    }
+
+    public PlayerCreatureControl getCreatureControl() {
+        return creatureControl;
     }
 
     @Override

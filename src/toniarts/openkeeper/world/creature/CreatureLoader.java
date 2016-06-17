@@ -25,6 +25,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -34,14 +35,14 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.listener.CreatureListener;
 
 /**
- * Loads up creatures. TODO: Should perhaps keep a cache of loaded/constructed
- * creatures...
+ * Loads up creatures
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureLoader implements ILoader<Thing.Creature> {
+public abstract class CreatureLoader implements ILoader<Thing.Creature>, CreatureListener {
 
     private final KwdFile kwdFile;
     private final WorldState worldState;
@@ -56,7 +57,24 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
     public Spatial load(AssetManager assetManager, Thing.Creature object) {
         Creature creature = kwdFile.getCreature(object.getCreatureId());
         Node creatureRoot = new Node(creature.getName());
-        CreatureControl creatureControl = new CreatureControl(object, creature, worldState);
+        CreatureControl creatureControl = new CreatureControl(object, creature, worldState) {
+
+            @Override
+            public void onSpawn(CreatureControl creature) {
+                CreatureLoader.this.onSpawn(creature);
+            }
+
+            @Override
+            public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
+                CreatureLoader.this.onStateChange(creature, newState, oldState);
+            }
+
+            @Override
+            public void onDie(CreatureControl creature) {
+                CreatureLoader.this.onDie(creature);
+            }
+
+        };
 
         // Set map position
         creatureRoot.setLocalTranslation(

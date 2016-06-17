@@ -30,6 +30,7 @@ import com.jme3.texture.plugins.AWTLoader;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.NiftyIdCreator;
+import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.HoverEffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
@@ -54,10 +55,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.game.player.PlayerTriggerControl;
@@ -81,6 +85,7 @@ import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PossessionCameraState;
 import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * The player state! GUI, camera, etc. Player interactions
@@ -283,6 +288,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         return null;
     }
 
+    public PlayerCreatureControl getCreatureControl() {
+        GameState gs = stateManager.getState(GameState.class);
+        if (gs != null) {
+            return gs.getPlayer(playerId).getCreatureControl();
+        }
+        return null;
+    }
+
     public PlayerManaControl getManaControl() {
         return manaControl;
     }
@@ -338,7 +351,16 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             getGoldControl().addListener(hud.findNiftyControl("gold", Label.class));
         }
 
-        Element contentPanel = hud.findElementById("tab-room-content");
+        // Player creatures
+        Element creatureTab = hud.findElementById("tab-creature");
+        Element contentPanel = creatureTab.findElementById("tab-creature-content");
+        removeAllChildElements(contentPanel);
+        for (final Entry<Creature, Set<CreatureControl>> entry : getCreatureControl().getCreatures().entrySet()) {
+            createPlayerCreatureIcon(entry.getKey(), entry.getValue().size()).build(nifty, hud, contentPanel);
+        }
+        getCreatureControl().addWorkerListener(creatureTab.findNiftyControl("tab-workers#amount", Label.class), creatureTab.findNiftyControl("tab-workers#idle", Label.class), creatureTab.findNiftyControl("tab-workers#busy", Label.class), creatureTab.findNiftyControl("tab-workers#fighting", Label.class));
+
+        contentPanel = hud.findElementById("tab-room-content");
         removeAllChildElements(contentPanel);
         for (final Room room : getAvailableRoomsToBuild()) {
             createRoomIcon(room).build(nifty, hud, contentPanel);
@@ -679,6 +701,18 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         };
     }
 
+    private ControlBuilder createPlayerCreatureIcon(Creature creature, int creatureAmount) {
+        ControlBuilder cb = new ControlBuilder("creature") {
+            {
+                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + creature.getPortraitResource().getName() + ".png"));
+                parameter("total", Integer.toString(creatureAmount));
+                id("creature-_" + creature.getCreatureId());
+                interactOnClick("zoomToCreature(" + creature.getCreatureId() + ")");
+            }
+        };
+        return cb;
+    }
+
     private ImageBuilder createRoomIcon(final Room room) {
         return new ImageBuilder() {
             {
@@ -942,6 +976,11 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
     public void quitToOS() {
         app.stop();
+    }
+
+    public void zoomToCreature(String creatureId) {
+        GameState gs = stateManager.getState(GameState.class);
+        getCreatureControl().zoomToCreature(gs.getLevelData().getCreature(Short.parseShort(creatureId)));
     }
 
     public void select(String state, String id) {

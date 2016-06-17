@@ -42,10 +42,13 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.task.TaskManager;
@@ -60,10 +63,12 @@ import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
 import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
 import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
 import toniarts.openkeeper.world.effect.EffectManager;
+import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.listener.TileChangeListener;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
@@ -125,13 +130,21 @@ public abstract class WorldState extends AbstractAppState {
         thingsNode = thingLoader.loadAll();
         worldNode.attachChild(thingsNode);
 
+        // Player money
+        initPlayerMoney();
+
+        // Player creatures
+        initPlayerCreatures();
+    }
+
+    private void initPlayerMoney() {
+
         // Set up the money$$$
         for (Keeper player : gameState.getPlayers()) {
             if (player.getInitialGold() > 0) {
                 addGold(player.getId(), player.getInitialGold());
             }
         }
-
         // The max money$$$
         for (Entry<RoomInstance, GenericRoom> roomEntry : mapLoader.getRoomActuals().entrySet()) {
             if (roomEntry.getValue().canStoreGold()) {
@@ -140,6 +153,35 @@ public abstract class WorldState extends AbstractAppState {
                     keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + roomEntry.getValue().getGoldControl().getMaxGoldCapacity());
                 }
             }
+        }
+    }
+
+    private void initPlayerCreatures() {
+
+        // Add the initial creatures and add the listeners
+        Map<Short, List<CreatureControl>> playerCreatures = thingLoader.getCreatures().stream().collect(Collectors.groupingBy(c -> c.getOwnerId()));
+        for (Keeper player : gameState.getPlayers()) {
+            List<CreatureControl> creatures = playerCreatures.get(player.getId());
+            if (creatures != null) {
+                player.getCreatureControl().init(creatures);
+            }
+            thingLoader.addListener(player.getId(), new CreatureListener() {
+
+                @Override
+                public void onSpawn(CreatureControl creature) {
+                    player.getCreatureControl().onSpawn(creature);
+                }
+
+                @Override
+                public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
+                    player.getCreatureControl().onStateChange(creature, newState, oldState);
+                }
+
+                @Override
+                public void onDie(CreatureControl creature) {
+                    player.getCreatureControl().onDie(creature);
+                }
+            });
         }
     }
 
