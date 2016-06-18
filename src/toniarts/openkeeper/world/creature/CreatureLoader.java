@@ -113,7 +113,11 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                                 AnimControl animControl = (AnimControl) spat.getControl(0);
                                 spat.setCullHint(Spatial.CullHint.Inherit);
                                 AnimChannel c = animControl.getChannel(0);
+                                LoopMode loopMode = c.getLoopMode();
                                 c.setAnim("anim", 0);
+                                if (loopMode != null) {
+                                    c.setLoopMode(loopMode);
+                                }
                                 animControl.setEnabled(true);
 
                                 // Hide us
@@ -184,7 +188,11 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                                     AnimControl animControl = (AnimControl) spat.getControl(0);
                                     spat.setCullHint(Spatial.CullHint.Inherit);
                                     AnimChannel c = animControl.getChannel(0);
+                                    LoopMode loopMode = c.getLoopMode();
                                     c.setAnim("anim", 0);
+                                    if (loopMode != null) {
+                                        c.setLoopMode(loopMode);
+                                    }
                                     animControl.setEnabled(true);
                                 } else {
 
@@ -248,7 +256,11 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
             AnimControl animControl = (AnimControl) spat.getControl(0);
             spat.setCullHint(Spatial.CullHint.Inherit);
             AnimChannel channel = animControl.getChannel(0);
+            LoopMode loopMode = channel.getLoopMode();
             channel.setAnim("anim", 0);
+            if (loopMode != null) {
+                channel.setLoopMode(loopMode);
+            }
             animControl.setEnabled(true);
         }
     }
