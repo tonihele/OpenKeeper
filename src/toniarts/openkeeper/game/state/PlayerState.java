@@ -126,6 +126,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private int score = 0;
     private boolean transitionEnd = true;
     private Integer textId = null;
+    private boolean initHud = false;
     private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
 
     public PlayerState(int playerId) {
@@ -185,11 +186,9 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             }
 
             // Load the HUD
+            initHud = true;
             nifty = app.getNifty().getNifty();
             nifty.gotoScreen(HUD_SCREEN_ID);
-
-            // Init the HUD items
-            initHudItems();
 
             // Cursor
             app.getInputManager().setCursorVisible(true);
@@ -234,6 +233,12 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             };
 
             cameraState = new PlayerCameraState(player);
+
+            // Get the tooltip
+            if (tooltip == null) {
+                tooltip = hud.findNiftyControl("tooltip", Label.class);
+            }
+
             interactionState = new PlayerInteractionState(player, gameState, guiConstraint, tooltip) {
                 @Override
                 protected void onInteractionStateChange(InteractionState interactionState, int id) {
@@ -266,8 +271,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             for (AbstractAppState state : appStates) {
                 stateManager.attach(state);
             }
-            // Load the HUD
-            // app.getNifty().getNifty().gotoScreen(HUD_SCREEN_ID);
         } else {
 
             // Detach states
@@ -414,10 +417,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         for (final Trap trap : getAvailableTraps()) {
             createTrapIcon(trap).build(nifty, hud, contentPanel);
         }
-
-        if (tooltip == null) {
-            tooltip = hud.findNiftyControl("tooltip", Label.class);
-        }
     }
 
     public void flashButton(int id, TriggerAction.MakeType type, boolean enabled, int time) {
@@ -462,6 +461,13 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     public void onStartScreen() {
         switch (nifty.getCurrentScreen().getScreenId()) {
             case HUD_SCREEN_ID: {
+
+                if (initHud) {
+
+                    // Init the HUD items
+                    initHud = false;
+                    initHudItems();
+                }
 
                 if (!backgroundSet) {
 
