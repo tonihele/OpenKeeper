@@ -93,6 +93,7 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
             try {
 
                 Spatial spat = loadModel(assetManager, resource.getName(), creatureRoot);
+                spat.setName(resource.getName());
 
                 // If the animations has end and/or start, it is located in a different file
                 if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
