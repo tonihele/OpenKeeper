@@ -33,6 +33,7 @@ import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -198,6 +199,10 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         Vector3f location = MapLoader.getCameraPositionOnMapPoint((int) ((point.getStart().x + point.getEnd().x) / 2),
                 (int) ((point.getStart().y + point.getEnd().y) / 2));
         camera.setLookAt(location);
+    }
+
+    public void setCameraLookAt(Spatial spatial) {
+        camera.setLookAt(spatial.getWorldTranslation());
     }
 
     public void doTransition(int sweepFileId, final ActionPoint point) {
