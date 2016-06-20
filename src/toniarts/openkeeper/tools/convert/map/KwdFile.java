@@ -108,6 +108,7 @@ public final class KwdFile {
     //
     private boolean customOverrides = false;
     private boolean loaded = false;
+    private Creature imp;
     private final String basePath;
     private static final Logger logger = Logger.getLogger(KwdFile.class.getName());
 
@@ -1442,6 +1443,11 @@ public final class KwdFile {
 
             // Add to the hash by the creature ID
             creatures.put(creature.getCreatureId(), creature);
+
+            // Set the imp
+            if (imp == null && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER) && creature.getFlags().contains(Creature.CreatureFlag.IS_EVIL)) {
+                imp = creature;
+            }
 
             // Check file offset
             checkOffset(header, file, offset);
@@ -3042,6 +3048,10 @@ public final class KwdFile {
 
     public java.util.Map<MiscVariable.MiscType, MiscVariable> getVariables() {
         return variables;
+    }
+
+    public Creature getImp() {
+        return imp;
     }
 
     /**
