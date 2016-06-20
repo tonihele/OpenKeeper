@@ -163,7 +163,7 @@ public abstract class WorldState extends AbstractAppState {
         for (Keeper player : gameState.getPlayers()) {
             List<CreatureControl> creatures = playerCreatures.get(player.getId());
             if (creatures != null) {
-                player.getCreatureControl().init(creatures);
+                player.getCreatureControl().init(creatures, kwdFile.getImp());
             }
             thingLoader.addListener(player.getId(), new CreatureListener() {
 

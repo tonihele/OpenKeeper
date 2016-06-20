@@ -37,10 +37,30 @@
             <image filename="Textures/GUI/Tabs/t-cp-imp.png" valign="center" />
             <image filename="Textures/GUI/Creatures/Evil/imp-bg.png" valign="center" childLayout="vertical"
                    padding="6px,6px,6px,0px" width="64px" height="128px">
-                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#amount" height="25%" width="100%" />
-                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#idle" height="25%" width="100%" />
-                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#busy" height="25%" width="100%" />
-                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#fighting" height="25%" width="100%" />
+                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#amount" height="25%" width="100%">
+                    <interact onSecondaryClick="zoomToImp(null)" />
+                    <effect>
+                        <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                    </effect>
+                </control>
+                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#idle" height="25%" width="100%">
+                    <interact onSecondaryClick="zoomToImp(IDLE)" />
+                    <effect>
+                        <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                    </effect>
+                </control>
+                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#busy" height="25%" width="100%">
+                    <interact onSecondaryClick="zoomToImp(BUSY)" />
+                    <effect>
+                        <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                    </effect>
+                </control>
+                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#fighting" height="25%" width="100%">
+                    <interact onSecondaryClick="zoomToImp(FIGHTING)" />
+                    <effect>
+                        <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                    </effect>
+                </control>
             </image>
             <image id="attributes" filename="Textures/GUI/Tabs/t-creature_panel-0.png" valign="center" marginLeft="3px"
                    childLayout="vertical" padding="6px" width="32px" height="128px">

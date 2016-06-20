@@ -30,6 +30,7 @@ import com.jme3.texture.plugins.AWTLoader;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.NiftyIdCreator;
+import de.lessvoid.nifty.NiftyMethodInvoker;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.HoverEffectBuilder;
@@ -361,7 +362,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         final Element creaturePanel = creatureTab.findElementById("tab-creature-content");
         removeAllChildElements(creaturePanel);
         for (final Entry<Creature, Set<CreatureControl>> entry : getCreatureControl().getCreatures().entrySet()) {
-            createPlayerCreatureIcon(entry.getKey(), entry.getValue().size()).build(nifty, hud, creaturePanel);
+            createPlayerCreatureIcon(entry.getKey(), entry.getValue().size(), nifty, hud, creaturePanel);
         }
         getCreatureControl().addCreatureListener(new CreatureListener() {
 
@@ -370,7 +371,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 int amount = getCreatureControl().getCreatures().get(creature.getCreature()).size();
                 Element creatureCard = creaturePanel.findElementById("creature_" + creature.getCreature().getCreatureId());
                 if (creatureCard == null) {
-                    createPlayerCreatureIcon(creature.getCreature(), amount).build(nifty, hud, creaturePanel);// Create
+                    createPlayerCreatureIcon(creature.getCreature(), amount, nifty, hud, creaturePanel);// Create
                 } else {
                     creatureCard.setUserData("total", amount);
                 }
@@ -738,16 +739,16 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         };
     }
 
-    private ControlBuilder createPlayerCreatureIcon(Creature creature, int creatureAmount) {
+    private void createPlayerCreatureIcon(Creature creature, int creatureAmount, Nifty nifty, Screen hud, Element parent) {
         ControlBuilder cb = new ControlBuilder("creature") {
             {
                 filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + creature.getPortraitResource().getName() + ".png"));
                 parameter("total", Integer.toString(creatureAmount));
                 id("creature_" + creature.getCreatureId());
-                interactOnClick("zoomToCreature(" + creature.getCreatureId() + ")");
             }
         };
-        return cb;
+        Element element = cb.build(nifty, hud, parent);
+        element.getElementInteraction().getSecondary().setOnClickMethod(new NiftyMethodInvoker(nifty, "zoomToCreature(" + creature.getCreatureId() + ")", this));
     }
 
     private ImageBuilder createRoomIcon(final Room room) {
@@ -1017,7 +1018,18 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
     public void zoomToCreature(String creatureId) {
         GameState gs = stateManager.getState(GameState.class);
-        getCreatureControl().zoomToCreature(gs.getLevelData().getCreature(Short.parseShort(creatureId)));
+        CreatureControl creature = getCreatureControl().getNextCreature(gs.getLevelData().getCreature(Short.parseShort(creatureId)));
+        cameraState.setCameraLookAt(creature.getSpatial());
+    }
+
+    public void zoomToImp(String state) {
+        CreatureControl creature;
+        if ("null".equals(state)) {
+            creature = getCreatureControl().getNextImp();
+        } else {
+            creature = getCreatureControl().getNextImp(PlayerCreatureControl.CreatureUIState.valueOf(state));
+        }
+        cameraState.setCameraLookAt(creature.getSpatial());
     }
 
     public void select(String state, String id) {

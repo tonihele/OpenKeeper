@@ -18,7 +18,7 @@ package toniarts.openkeeper.game.player;
 
 import de.lessvoid.nifty.controls.Label;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -36,12 +36,19 @@ import toniarts.openkeeper.world.listener.CreatureListener;
  */
 public class PlayerCreatureControl implements CreatureListener {
 
+    public enum CreatureUIState {
+
+        IDLE, BUSY, FIGHTING
+    };
+
     private List<WorkerListener> workerListeners;
     private List<CreatureListener> creatureListeners;
+    private Creature imp;
     private final Map<Creature, Set<CreatureControl>> creatures = new LinkedHashMap<>();
-    private final Set<CreatureControl> imps = new HashSet<>(); // Only imps are separated, not all workers
+    private final Map<Creature, Integer> selectionIndices = new HashMap<>();
 
-    public void init(List<CreatureControl> creatures) {
+    public void init(List<CreatureControl> creatures, Creature imp) {
+        this.imp = imp;
         for (CreatureControl creature : creatures) {
             onSpawn(creature);
         }
@@ -51,22 +58,15 @@ public class PlayerCreatureControl implements CreatureListener {
     public void onSpawn(CreatureControl creature) {
 
         // Add to the list
-        Set<CreatureControl> creatureSet;
-        boolean wasImp = false;
-        if (isImp(creature)) {
-            creatureSet = imps;
-            wasImp = true;
-        } else {
-            creatureSet = creatures.get(creature.getCreature());
-            if (creatureSet == null) {
-                creatureSet = new LinkedHashSet<>();
-                creatures.put(creature.getCreature(), creatureSet);
-            }
+        Set<CreatureControl> creatureSet = creatures.get(creature.getCreature());
+        if (creatureSet == null) {
+            creatureSet = new LinkedHashSet<>();
+            creatures.put(creature.getCreature(), creatureSet);
         }
         creatureSet.add(creature);
 
         // Listeners
-        if (wasImp) {
+        if (isImp(creature)) {
             updateWorkerListeners();
         } else {
             if (creatureListeners != null) {
@@ -94,20 +94,13 @@ public class PlayerCreatureControl implements CreatureListener {
     public void onDie(CreatureControl creature) {
 
         // Delete
-        Set<CreatureControl> creatureSet;
-        boolean wasImp = false;
-        if (isImp(creature)) {
-            creatureSet = imps;
-            wasImp = true;
-        } else {
-            creatureSet = creatures.get(creature.getCreature());
-        }
+        Set<CreatureControl> creatureSet = creatures.get(creature.getCreature());
         if (creatureSet != null) {
             creatureSet.remove(creature);
         }
 
         // Listeners
-        if (wasImp) {
+        if (isImp(creature)) {
             updateWorkerListeners();
         } else {
             if (creatureListeners != null) {
@@ -118,16 +111,15 @@ public class PlayerCreatureControl implements CreatureListener {
         }
     }
 
-    private boolean isImp(CreatureControl creature) {
-        return creature.getCreature().getFlags().contains(Creature.CreatureFlag.IS_WORKER) && creature.getCreature().getFlags().contains(Creature.CreatureFlag.IS_EVIL);
-    }
-
+    /**
+     * Get creatures, minus the imps
+     *
+     * @return the creatures
+     */
     public Map<Creature, Set<CreatureControl>> getCreatures() {
-        return creatures;
-    }
-
-    public void zoomToCreature(Creature creature) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        Map<Creature, Set<CreatureControl>> map = new LinkedHashMap<>(creatures);
+        map.remove(imp);
+        return map;
     }
 
     /**
@@ -163,16 +155,19 @@ public class PlayerCreatureControl implements CreatureListener {
         int idle = 0;
         int fighting = 0;
         int busy = 0;
-        for (CreatureControl creature : imps) {
-            if (creature.getStateMachine().getCurrentState() == CreatureState.IDLE) {
-                idle++;
-            } else if (creature.getStateMachine().getCurrentState() == CreatureState.FIGHT) {
-                fighting++;
-            } else {
-                busy++;
+        Set<CreatureControl> imps = creatures.get(imp);
+        if (imps != null) {
+            for (CreatureControl creature : imps) {
+                if (isCreatureState(creature, CreatureUIState.IDLE)) {
+                    idle++;
+                } else if (isCreatureState(creature, CreatureUIState.FIGHTING)) {
+                    fighting++;
+                } else {
+                    busy++;
+                }
             }
         }
-        workerListener.amountLabel.setText(String.format("%s", imps.size()));
+        workerListener.amountLabel.setText(String.format("%s", imps != null ? imps.size() : 0));
         workerListener.busyLabel.setText(String.format("%s", busy));
         workerListener.fightingLabel.setText(String.format("%s", fighting));
         workerListener.idleLabel.setText(String.format("%s", idle));
@@ -185,6 +180,67 @@ public class PlayerCreatureControl implements CreatureListener {
 
             }
         }
+    }
+
+    /**
+     * Get the next creature. And advances the current selection
+     *
+     * @param creature the type of creature
+     * @return the next creature of the type
+     */
+    public CreatureControl getNextCreature(Creature creature) {
+        return getNextCreature(creature, null);
+    }
+
+    /**
+     * Get the next creature of the selected type. And advances the current
+     * selection
+     *
+     * @param creature the type of creature
+     * @param state the state filter
+     * @return the next creature of the type
+     */
+    public CreatureControl getNextCreature(Creature creature, CreatureUIState state) {
+        List<CreatureControl> creatureList = new ArrayList<>(creatures.get(creature));
+        Integer index = selectionIndices.get(creature);
+        if (index == null || index >= creatureList.size()) {
+            index = 0;
+        }
+
+        // Loop until filter hits
+        int startIndex = index;
+        CreatureControl selectedCreature;
+        do {
+            selectedCreature = creatureList.get(index);
+            index++;
+            selectionIndices.put(creature, index);
+        } while (index != startIndex && !isCreatureState(selectedCreature, state));
+        return selectedCreature;
+    }
+
+    private boolean isCreatureState(CreatureControl creature, CreatureUIState state) {
+        if (state == null) {
+            return true;
+        }
+        if (creature.getStateMachine().getCurrentState() == CreatureState.IDLE) {
+            return state == CreatureUIState.IDLE;
+        } else if (creature.getStateMachine().getCurrentState() == CreatureState.FIGHT) {
+            return state == CreatureUIState.FIGHTING;
+        } else {
+            return state == CreatureUIState.BUSY;
+        }
+    }
+
+    private boolean isImp(CreatureControl creature) {
+        return creature.getCreature().equals(imp);
+    }
+
+    public CreatureControl getNextImp() {
+        return getNextImp(null);
+    }
+
+    public CreatureControl getNextImp(CreatureUIState state) {
+        return getNextCreature(imp, state);
     }
 
     private static class WorkerListener {
