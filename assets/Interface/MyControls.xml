@@ -89,12 +89,11 @@
      <!--Players creature -->
     <controlDefinition style="nifty-panel-style" name="creature" controller="de.lessvoid.nifty.controls.DefaultController">
         <panel marginLeft="3px" valign="center" childLayout="center" visibleToMouse="true">
-            <image filename="$filename" valign="center" >
-                <effect>
-                    <onHover name="imageOverlay" filename="Textures/GUI/Icons/selected_group.png" post="true" neverStopRendering="true" />
-                </effect>
-            </image>
+            <image filename="$filename" valign="center" ></image>
             <control name="label" text="$total" style="text" textHAlign="center" textVAlign="center" />
+            <effect>
+                <onHover name="imageOverlay" filename="Textures/GUI/Icons/selected_group.png" post="true" neverStopRendering="true" overlay="true" />
+            </effect>
         </panel>
     </controlDefinition>
 
