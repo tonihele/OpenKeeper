@@ -59,6 +59,8 @@ import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
 import toniarts.openkeeper.world.listener.CreatureListener;
+import toniarts.openkeeper.world.object.ObjectControl;
+import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
  * Controller for creature. Bridge between the visual object and AI.
@@ -91,6 +93,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private float lastAttributeUpdateTime = 0;
     private AbstractTask assignedTask;
     private AnimationType playingAnimationType = AnimationType.IDLE;
+    private ObjectControl creatureLair;
 
     public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldState worldState) {
         super(creature);
@@ -181,12 +184,6 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void idle() {
-
-        // See if we have some available work
-        if (worldState.getTaskManager().assignTask(this, false)) {
-            stateMachine.changeState(CreatureState.WORK);
-            return; // Found work
-        }
 
         // Find a random accessible tile nearby and do some idling there
         if (idleAnimationPlayCount > 0) {
@@ -281,6 +278,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
                 // Different work animations
                 // TODO: The tasks should have the animation
+                playingAnimationType = AnimationType.WORK;
                 if (assignedTask instanceof RepairWallTileTask || assignedTask instanceof ClaimWallTileTask) {
                     playAnimation(creature.getAnimSleepResource());
                 } else if (assignedTask instanceof DigTileTask) {
@@ -290,9 +288,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 } else if (assignedTask instanceof CarryGoldToTreasuryTask) {
                     playAnimation(creature.getAnimHappyResource());
                 } else {
-                    throw new IllegalArgumentException("Assigned task is unknown!");
+                    onAnimationCycleDone();
                 }
-                playingAnimationType = AnimationType.WORK;
             } else {
                 List<ArtResource> idleAnimations = new ArrayList<>(3);
                 if (creature.getAnimIdle1Resource() != null) {
@@ -382,6 +379,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     private void removeCreature() {
+
+        // Unassing any tasks
+        unassingCurrentTask();
+
         Spatial us = getSpatial();
         us.removeFromParent();
     }
@@ -428,7 +429,18 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void setAssignedTask(AbstractTask task) {
+
+        // Unassign previous task
+        unassingCurrentTask();
+
         assignedTask = task;
+    }
+
+    private void unassingCurrentTask() {
+        if (assignedTask != null) {
+            assignedTask.unassign(this);
+        }
+        assignedTask = null;
     }
 
     public Creature getCreature() {
@@ -469,7 +481,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void dropGold() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     /**
@@ -506,6 +518,47 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public void substractGold(int gold) {
         this.gold -= gold;
+    }
+
+    public boolean isWorker() {
+        return creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER);
+    }
+
+    public boolean findWork() {
+
+        // See if we have some available work
+        return (worldState.getTaskManager().assignTask(this, false));
+    }
+
+    /**
+     * Finds a space for a lair, a task really
+     *
+     * @return true if a lair task is found
+     */
+    public boolean findLair() {
+        return (worldState.getTaskManager().assignClosestRoomTask(this, GenericRoom.ObjectType.LAIR));
+    }
+
+    /**
+     * Does the creature need a lair
+     *
+     * @return needs a lair
+     */
+    public boolean needsLair() {
+        return creature.getTimeSleep() > 0;
+    }
+
+    /**
+     * Does the creature have a lair
+     *
+     * @return has a lair
+     */
+    public boolean hasLair() {
+        return creatureLair != null;
+    }
+
+    public void setCreatureLair(ObjectControl creatureLair) {
+        this.creatureLair = creatureLair;
     }
 
     @Override
