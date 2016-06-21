@@ -32,11 +32,34 @@ public enum CreatureState implements State<CreatureControl> {
 
                 @Override
                 public void enter(CreatureControl entity) {
-                    entity.idle();
+
+                    // Idling is the last resort
+                    if (!findStuffToDo(entity)) {
+                        entity.idle();
+                    }
+                }
+
+                private boolean findStuffToDo(CreatureControl entity) {
+
+                    // Find work
+                    if (entity.isWorker() && entity.findWork()) {
+                        entity.getStateMachine().changeState(CreatureState.WORK);
+                        return true; // Found work
+                    }
+
+                    // See basic needs
+                    if (entity.needsLair() && !entity.hasLair() && entity.findLair()) {
+                        entity.getStateMachine().changeState(CreatureState.WORK);
+                        return true; // Found work
+                    }
+
+                    return false;
                 }
 
                 @Override
                 public void update(CreatureControl entity) {
+                    findStuffToDo(entity);
+
 //                    if (entity.idleTimeExceeded()) {
 //                        entity.getStateMachine().changeState(WANDER);
 //                    }
