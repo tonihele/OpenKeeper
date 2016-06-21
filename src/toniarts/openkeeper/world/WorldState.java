@@ -605,6 +605,12 @@ public abstract class WorldState extends AbstractAppState {
         }
 
         mapLoader.updateTiles(updatableTiles.toArray(new Point[updatableTiles.size()]));
+
+        // New room, calculate gold capacity
+        if (adjacentInstances.isEmpty()) {
+            RoomInstance instance = mapLoader.getRoomCoordinates().get(buildPlots.toArray(new Point[buildPlots.size()])[0]);
+            addGoldCapacityToPlayer(instance);
+        }
     }
 
     /**
