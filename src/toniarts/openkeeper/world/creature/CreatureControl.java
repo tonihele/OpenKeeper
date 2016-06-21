@@ -39,11 +39,6 @@ import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.task.AbstractTask;
-import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
-import toniarts.openkeeper.game.task.worker.ClaimTileTask;
-import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
-import toniarts.openkeeper.game.task.worker.DigTileTask;
-import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -280,14 +275,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 // Different work animations
                 // TODO: The tasks should have the animation
                 playingAnimationType = AnimationType.WORK;
-                if (assignedTask instanceof RepairWallTileTask || assignedTask instanceof ClaimWallTileTask) {
-                    playAnimation(creature.getAnimSleepResource());
-                } else if (assignedTask instanceof DigTileTask) {
-                    playAnimation(creature.getAnimMelee1Resource());
-                } else if (assignedTask instanceof ClaimTileTask) {
-                    playAnimation(creature.getAnimEatResource());
-                } else if (assignedTask instanceof CarryGoldToTreasuryTask) {
-                    playAnimation(creature.getAnimHappyResource());
+                ArtResource anim = assignedTask.getTaskAnimation(this);
+                if (anim != null) {
+                    playAnimation(anim);
                 } else {
                     onAnimationCycleDone();
                 }

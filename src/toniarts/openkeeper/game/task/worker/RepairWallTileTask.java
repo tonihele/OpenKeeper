@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task.worker;
 
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -56,6 +57,11 @@ public class RepairWallTileTask extends DigTileTask {
     @Override
     public void executeTask(CreatureControl creature) {
         worldState.applyClaimTile(getTaskLocation(), playerId);
+    }
+
+    @Override
+    public ArtResource getTaskAnimation(CreatureControl creature) {
+        return creature.getCreature().getAnimSleepResource();
     }
 
 }

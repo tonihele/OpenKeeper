@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.task.creature;
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
@@ -71,6 +72,11 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
 
         // This is a one timer
         executed = true;
+    }
+
+    @Override
+    public ArtResource getTaskAnimation(CreatureControl creature) {
+        return null;
     }
 
 }

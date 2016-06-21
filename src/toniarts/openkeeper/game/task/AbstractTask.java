@@ -22,6 +22,7 @@ import java.awt.Point;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -195,5 +196,14 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
      * @param creature creature executing the task
      */
     public abstract void executeTask(CreatureControl creature);
+
+    /**
+     * Get the animation used for the task. Might be null if no animation is
+     * tied to the task, sufficient to have the creature visit the location
+     *
+     * @param creature executing the task
+     * @return the animation
+     */
+    public abstract ArtResource getTaskAnimation(CreatureControl creature);
 
 }

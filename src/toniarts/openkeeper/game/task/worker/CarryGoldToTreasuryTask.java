@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.task.AbstractRoomTask;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
@@ -65,6 +66,11 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
 
         // This is a one timer
         executed = true;
+    }
+
+    @Override
+    public ArtResource getTaskAnimation(CreatureControl creature) {
+        return null;
     }
 
 }

@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
@@ -55,6 +56,11 @@ public class ClaimTileTask extends AbstractTileTask {
     @Override
     public void executeTask(CreatureControl creature) {
         worldState.applyClaimTile(getTaskLocation(), playerId);
+    }
+
+    @Override
+    public ArtResource getTaskAnimation(CreatureControl creature) {
+        return creature.getCreature().getAnimEatResource();
     }
 
 }
