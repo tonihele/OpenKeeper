@@ -86,6 +86,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private boolean animationPlaying = false;
     private int idleAnimationPlayCount = 1;
     private float lastAttributeUpdateTime = 0;
+    private float lastStateUpdateTime = 0;
     private AbstractTask assignedTask;
     private AnimationType playingAnimationType = AnimationType.IDLE;
     private ObjectControl creatureLair;
@@ -145,7 +146,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             }
         }
 
-        stateMachine.update();
+        //FIXME: ticks
+        lastStateUpdateTime += tpf;
+        if (lastStateUpdateTime >= 0.250) {
+            lastStateUpdateTime -= 0.250;
+            stateMachine.update();
+        }
 
         // Update attributes
         updateAttributes(tpf);
