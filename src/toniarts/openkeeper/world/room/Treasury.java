@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 OpenKeeper
+ * Copyright (C) 2014-2016 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,22 +18,23 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.room.control.RoomLairControl;
+import toniarts.openkeeper.world.room.control.RoomGoldControl;
 
 /**
- * The lair
+ * The Treasury
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Lair extends Normal {
+public abstract class Treasury extends Normal {
 
-    public Lair(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
+    public Treasury(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, roomInstance, direction);
-        addObjectControl(new RoomLairControl(this) {
+
+        addObjectControl(new RoomGoldControl(this) {
 
             @Override
             protected int getObjectsPerTile() {
-                return 1;
+                return Treasury.this.getGoldPerTile();
             }
 
             @Override
@@ -43,8 +44,6 @@ public class Lair extends Normal {
         });
     }
 
-    @Override
-    protected boolean hasPillars() {
-        return false;
-    }
+    protected abstract int getGoldPerTile();
+
 }

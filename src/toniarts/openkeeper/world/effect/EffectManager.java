@@ -19,33 +19,31 @@ package toniarts.openkeeper.world.effect;
 import com.jme3.asset.AssetManager;
 import com.jme3.effect.ParticleEmitter;
 import com.jme3.effect.ParticleMesh;
-import com.jme3.effect.shapes.EmitterBoxShape;
-import com.jme3.effect.shapes.EmitterSphereShape;
 import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import com.jme3.texture.Texture;
 import java.awt.Color;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.EffectElement;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
+import toniarts.openkeeper.utils.AssetUtils;
 
 /**
  *
  * @author ArchDemon
  */
-
-
 public class EffectManager {
+
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
+    private static final Logger logger = Logger.getLogger(EffectManager.class.getName());
 
     public EffectManager(AssetManager assetManager, KwdFile kwdFile) {
         this.kwdFile = kwdFile;
@@ -67,26 +65,33 @@ public class EffectManager {
             for (Integer id : effect.getGenerateIds()) {
                 EffectElement element = kwdFile.getEffectElement(id);
                 ParticleEmitter emitter = getEmitter(effect, element);
-                root.attachChild(emitter);
+                if (emitter != null) {
+                    root.attachChild(emitter);
+                }
             }
         }
         return root;
     }
-    
+
     protected ParticleEmitter getEmitter(Effect effect, EffectElement element) {
 
-        ArtResource recource = element.getArtResource();
+        ArtResource resource = element.getArtResource();
+
+        // TODO: mesh particles
+        if (!(resource.getSettings() instanceof ArtResource.Image)) {
+            logger.log(Level.WARNING, "Only image type particles are supported currently! Was of {0} type!", resource.getSettings().getClass().getName());
+            return null;
+        }
 
         ParticleEmitter emitter = new ParticleEmitter(element.getName(), ParticleMesh.Type.Triangle, effect.getElementsPerTurn());
         if (effect.getGenerationType() == Effect.GenerationType.CUBE_GEN) {
             //emitter.setShape(new EmitterSphereShape(new Vector3f(), 1));
         }
         emitter.setParticlesPerSec(effect.getElementsPerTurn());
-        Material material = new Material(assetManager, "Common/MatDefs/Misc/Particle.j3md");
-        material.setTexture("Texture", loadTexture(recource.getName()));
+        Material material = AssetUtils.createParticleMaterial(assetManager, resource);
         emitter.setMaterial(material);
-        emitter.setImagesX((int) ((ArtResource.Image) recource.getSettings()).getWidth());
-        emitter.setImagesY((int) ((ArtResource.Image) recource.getSettings()).getHeight());
+        emitter.setImagesX(Math.max(1, ((ArtResource.Image) resource.getSettings()).getFrames()));
+        emitter.setImagesY(1);
 
         Color color = element.getColor();
         float alpha = 1f;
@@ -109,15 +114,14 @@ public class EffectManager {
         emitter.setLowLife((effect.getMinHp() + element.getMinHp()) * 0.1f);
         emitter.setHighLife((effect.getMaxHp() + element.getMaxHp()) * 0.1f);
         //
-        float delta = Math.max((effect.getMaxSpeedXy() + element.getMaxSpeedXy() - effect.getMinSpeedXy() - element.getMinSpeedXy()) 
-                / (effect.getMaxSpeedXy() + element.getMaxSpeedXy() + 1), 
+        float delta = Math.max((effect.getMaxSpeedXy() + element.getMaxSpeedXy() - effect.getMinSpeedXy() - element.getMinSpeedXy())
+                / (effect.getMaxSpeedXy() + element.getMaxSpeedXy() + 1),
                 (effect.getMaxSpeedYz() + element.getMaxSpeedYz() - effect.getMinSpeedYz() - element.getMinSpeedYz())
                 / (effect.getMaxSpeedYz() + element.getMaxSpeedYz() + 1));
         emitter.getParticleInfluencer().setVelocityVariation(delta);
 
         return emitter;
     }
-
 
     protected PointLight getLight(Light effectLight) {
         if (effectLight == null) {
@@ -134,10 +138,4 @@ public class EffectManager {
         return light;
     }
 
-
-    protected Texture loadTexture(String texture) {
-
-        return assetManager.loadTexture(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                + "/" + texture + ".png"));
-    }
 }

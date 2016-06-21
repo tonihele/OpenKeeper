@@ -26,7 +26,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.vecmath.Vector3f;
@@ -54,6 +56,13 @@ import toniarts.openkeeper.tools.convert.map.Thing.GoodCreature;
 import toniarts.openkeeper.tools.convert.map.Thing.HeroParty;
 import toniarts.openkeeper.tools.convert.map.Thing.KeeperCreature;
 import toniarts.openkeeper.tools.convert.map.Thing.NeutralCreature;
+import toniarts.openkeeper.tools.convert.map.Variable.Availability;
+import toniarts.openkeeper.tools.convert.map.Variable.CreatureFirstPerson;
+import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
+import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats;
+import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats.StatType;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.tools.convert.map.Variable.Sacrifice;
 
 /**
  * Reads a DK II map file, the KWD is the file name of the main map identifier,
@@ -88,9 +97,18 @@ public final class KwdFile {
     private List<Thing> things;
     private java.util.Map<Short, Shot> shots;
     private java.util.Map<Integer, Trigger> triggers;
-    private List<Variable> variables;
+    // Variables
+    private Set<Availability> availabilities;
+    private Set<CreaturePool> creaturePools;
+    private java.util.Map<StatType, CreatureStats> creatureStatistics;
+    private java.util.Map<StatType, CreatureFirstPerson> creatureFirstPersonStatistics;
+    private java.util.Map<MiscVariable.MiscType, MiscVariable> variables;
+    private Set<Sacrifice> sacrifices;
+    private Set<Variable.Unknown> unknownVariables;
+    //
     private boolean customOverrides = false;
     private boolean loaded = false;
+    private Creature imp;
     private final String basePath;
     private static final Logger logger = Logger.getLogger(KwdFile.class.getName());
 
@@ -1426,6 +1444,11 @@ public final class KwdFile {
             // Add to the hash by the creature ID
             creatures.put(creature.getCreatureId(), creature);
 
+            // Set the imp
+            if (imp == null && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER) && creature.getFlags().contains(Creature.CreatureFlag.IS_EVIL)) {
+                imp = creature;
+            }
+
             // Check file offset
             checkOffset(header, file, offset);
         }
@@ -2673,94 +2696,112 @@ public final class KwdFile {
         // Should be the GlobalVariables first, then the level's own
         if (variables == null) {
             logger.info("Reading variables!");
-            variables = new ArrayList<>(header.getItemCount());
+            availabilities = new HashSet<>();
+            creaturePools = new HashSet<>();
+            creatureStatistics = new HashMap<>();
+            creatureFirstPersonStatistics = new HashMap<>();
+            variables = new HashMap<>();
+            sacrifices = new HashSet<>();
+            unknownVariables = new HashSet<>();
         } else {
             logger.info("Overrides variables!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
             int id = ConversionUtils.readInteger(file);
-            Variable variable;
 
             switch (id) {
                 case Variable.CREATURE_POOL:
-                    variable = new Variable.CreaturePool();
-                    ((Variable.CreaturePool) variable).setCreatureId(ConversionUtils.readInteger(file));
-                    ((Variable.CreaturePool) variable).setValue(ConversionUtils.readInteger(file));
-                    ((Variable.CreaturePool) variable).setPlayerId(ConversionUtils.readInteger(file));
+                    Variable.CreaturePool creaturePool = new Variable.CreaturePool();
+                    creaturePool.setCreatureId(ConversionUtils.readInteger(file));
+                    creaturePool.setValue(ConversionUtils.readInteger(file));
+                    creaturePool.setPlayerId(ConversionUtils.readInteger(file));
+
+                    // Add
+                    creaturePools.add(creaturePool);
                     break;
 
                 case Variable.AVAILABILITY:
-                    variable = new Variable.Availability();
-                    ((Variable.Availability) variable).setType(ConversionUtils.parseEnum(ConversionUtils.readUnsignedShort(file),
+                    Variable.Availability availability = new Variable.Availability();
+                    availability.setType(ConversionUtils.parseEnum(ConversionUtils.readUnsignedShort(file),
                             Variable.Availability.AvailabilityType.class));
-                    ((Variable.Availability) variable).setPlayerId(ConversionUtils.readUnsignedShort(file));
-                    ((Variable.Availability) variable).setTypeId(ConversionUtils.readInteger(file));
-                    ((Variable.Availability) variable).setValue(ConversionUtils.parseEnum(ConversionUtils.readInteger(file),
+                    availability.setPlayerId(ConversionUtils.readUnsignedShort(file));
+                    availability.setTypeId(ConversionUtils.readInteger(file));
+                    availability.setValue(ConversionUtils.parseEnum(ConversionUtils.readInteger(file),
                             Variable.Availability.AvailabilityValue.class));
+
+                    // Add
+                    availabilities.add(availability);
                     break;
 
                 case Variable.SACRIFICES_ID: // not changeable (in editor you can, but changes will not save)
-                    variable = new Variable.Sacrifice();
-                    ((Variable.Sacrifice) variable).setType1(ConversionUtils.parseEnum((short) file.readUnsignedByte(),
+                    Variable.Sacrifice sacrifice = new Variable.Sacrifice();
+                    sacrifice.setType1(ConversionUtils.parseEnum((short) file.readUnsignedByte(),
                             Variable.SacrificeType.class));
-                    ((Variable.Sacrifice) variable).setId1((short) file.readUnsignedByte());
-                    ((Variable.Sacrifice) variable).setType2(ConversionUtils.parseEnum((short) file.readUnsignedByte(),
+                    sacrifice.setId1((short) file.readUnsignedByte());
+                    sacrifice.setType2(ConversionUtils.parseEnum((short) file.readUnsignedByte(),
                             Variable.SacrificeType.class));
-                    ((Variable.Sacrifice) variable).setId2((short) file.readUnsignedByte());
-                    ((Variable.Sacrifice) variable).setType3(ConversionUtils.parseEnum((short) file.readUnsignedByte(),
+                    sacrifice.setId2((short) file.readUnsignedByte());
+                    sacrifice.setType3(ConversionUtils.parseEnum((short) file.readUnsignedByte(),
                             Variable.SacrificeType.class));
-                    ((Variable.Sacrifice) variable).setId3((short) file.readUnsignedByte());
+                    sacrifice.setId3((short) file.readUnsignedByte());
 
-                    ((Variable.Sacrifice) variable).setRewardType(ConversionUtils.parseEnum((short) file.readUnsignedByte(),
+                    sacrifice.setRewardType(ConversionUtils.parseEnum((short) file.readUnsignedByte(),
                             Variable.SacrificeRewardType.class));
-                    ((Variable.Sacrifice) variable).setSpeechId((short) file.readUnsignedByte());
-                    ((Variable.Sacrifice) variable).setRewardValue(ConversionUtils.readInteger(file));
+                    sacrifice.setSpeechId((short) file.readUnsignedByte());
+                    sacrifice.setRewardValue(ConversionUtils.readInteger(file));
+
+                    // Add
+                    sacrifices.add(sacrifice);
                     break;
 
                 case Variable.CREATURE_STATS_ID:
-                    variable = new Variable.CreatureStats();
-                    ((Variable.CreatureStats) variable).setStatId(ConversionUtils.parseEnum(ConversionUtils.readInteger(file),
+                    Variable.CreatureStats creatureStats = new Variable.CreatureStats();
+                    creatureStats.setStatId(ConversionUtils.parseEnum(ConversionUtils.readInteger(file),
                             Variable.CreatureStats.StatType.class));
-                    ((Variable.CreatureStats) variable).setValue(ConversionUtils.readInteger(file));
-                    ((Variable.CreatureStats) variable).setLevel(ConversionUtils.readInteger(file));
+                    creatureStats.setValue(ConversionUtils.readInteger(file));
+                    creatureStats.setLevel(ConversionUtils.readInteger(file));
+
+                    // Add
+                    creatureStatistics.put(creatureStats.getStatId(), creatureStats);
                     break;
 
                 case Variable.CREATURE_FIRST_PERSON_ID:
-                    variable = new Variable.CreatureFirstPerson();
-                    ((Variable.CreatureFirstPerson) variable).setStatId(ConversionUtils.parseEnum(ConversionUtils.readInteger(file),
+                    Variable.CreatureFirstPerson creatureFirstPerson = new Variable.CreatureFirstPerson();
+                    creatureFirstPerson.setStatId(ConversionUtils.parseEnum(ConversionUtils.readInteger(file),
                             Variable.CreatureStats.StatType.class));
-                    ((Variable.CreatureFirstPerson) variable).setValue(ConversionUtils.readInteger(file));
-                    ((Variable.CreatureFirstPerson) variable).setLevel(ConversionUtils.readInteger(file));
+                    creatureFirstPerson.setValue(ConversionUtils.readInteger(file));
+                    creatureFirstPerson.setLevel(ConversionUtils.readInteger(file));
+
+                    // Add
+                    creatureFirstPersonStatistics.put(creatureFirstPerson.getStatId(), creatureFirstPerson);
                     break;
 
                 case Variable.UNKNOWN_17: // FIXME unknown value
                 case Variable.UNKNOWN_66: // FIXME unknown value
                 case Variable.UNKNOWN_0: // FIXME unknownn value
                 case Variable.UNKNOWN_77: // FIXME unknownn value
-                    variable = new Variable.Unknown();
-                    ((Variable.Unknown) variable).setVariableId(id);
-                    ((Variable.Unknown) variable).setValue(ConversionUtils.readInteger(file));
-                    ((Variable.Unknown) variable).setUnknown1(ConversionUtils.readInteger(file));
-                    ((Variable.Unknown) variable).setUnknown2(ConversionUtils.readInteger(file));
+                    Variable.Unknown unknown = new Variable.Unknown();
+                    unknown.setVariableId(id);
+                    unknown.setValue(ConversionUtils.readInteger(file));
+                    unknown.setUnknown1(ConversionUtils.readInteger(file));
+                    unknown.setUnknown2(ConversionUtils.readInteger(file));
+
+                    // Add
+                    unknownVariables.add(unknown);
                     break;
 
                 default:
-                    variable = new Variable.MiscVariable();
-                    ((Variable.MiscVariable) variable).setVariableId(ConversionUtils.parseEnum(id,
+                    Variable.MiscVariable miscVariable = new Variable.MiscVariable();
+                    miscVariable.setVariableId(ConversionUtils.parseEnum(id,
                             Variable.MiscVariable.MiscType.class));
-                    ((Variable.MiscVariable) variable).setValue(ConversionUtils.readInteger(file));
-                    ((Variable.MiscVariable) variable).setUnknown1(ConversionUtils.readInteger(file));
-                    ((Variable.MiscVariable) variable).setUnknown2(ConversionUtils.readInteger(file));
-                    break;
-            }
+                    miscVariable.setValue(ConversionUtils.readInteger(file));
+                    miscVariable.setUnknown1(ConversionUtils.readInteger(file));
+                    miscVariable.setUnknown2(ConversionUtils.readInteger(file));
 
-            // Add to the list
-            int variableExistId = variables.indexOf(variable);
-            if (variableExistId != -1) {
-                variables.add(variableExistId, variable);
-            } else {
-                variables.add(variable);
+                    // Add
+                    variables.put(miscVariable.getVariableId(), miscVariable);
+                    break;
             }
         }
     }
@@ -3003,6 +3044,14 @@ public final class KwdFile {
 
     public java.util.Map<Integer, EffectElement> getEffectElements() {
         return effectElements;
+    }
+
+    public java.util.Map<MiscVariable.MiscType, MiscVariable> getVariables() {
+        return variables;
+    }
+
+    public Creature getImp() {
+        return imp;
     }
 
     /**

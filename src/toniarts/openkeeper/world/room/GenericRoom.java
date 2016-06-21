@@ -24,13 +24,16 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
+import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
 /**
  * Base class for all rooms
@@ -39,13 +42,22 @@ import toniarts.openkeeper.world.effect.EffectManager;
  */
 public abstract class GenericRoom {
 
+    public enum ObjectType {
+
+        GOLD, LAIR;
+
+    };
+
     protected final AssetManager assetManager;
     protected final RoomInstance roomInstance;
     protected final Thing.Room.Direction direction;
     private final static int[] wallIndexes = new int[]{7, 8};
     private Node root;
     private final String tooltip;
+    private static String notOwnedTooltip = null;
     protected final EffectManager effectManager;
+    private ObjectType defaultObjectType;
+    private final Map<ObjectType, RoomObjectControl> objectControls = new HashMap<>();
 
     public GenericRoom(AssetManager assetManager, EffectManager effectManager,
             RoomInstance roomInstance, Thing.Room.Direction direction) {
@@ -53,18 +65,23 @@ public abstract class GenericRoom {
         this.roomInstance = roomInstance;
         this.direction = direction;
         this.effectManager = effectManager;
+
         // Strings
         ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
         tooltip = bundle.getString(Integer.toString(roomInstance.getRoom().getTooltipStringId()));
+        if (notOwnedTooltip == null) {
+            notOwnedTooltip = bundle.getString(Integer.toString(2471));
+        }
     }
 
     public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        this(assetManager, null, roomInstance, direction);        
+        this(assetManager, null, roomInstance, direction);
     }
 
     public Spatial construct() {
 
         // Add the floor
+        getRootNode().detachAllChildren();
         BatchNode floorNode = constructFloor();
         if (floorNode != null) {
             floorNode.setName("Floor");
@@ -83,11 +100,6 @@ public abstract class GenericRoom {
         return getRootNode();
     }
 
-    /**
-     * Get the room's root node
-     *
-     * @return the root node
-     */
     public Node getRootNode() {
         if (root == null) {
             root = new Node(roomInstance.getRoom().getName());
@@ -117,15 +129,7 @@ public abstract class GenericRoom {
         return RenderQueue.ShadowMode.CastAndReceive;
     }
 
-    /**
-     * Get the room's wall spatial at the given point
-     *
-     * @param p the coordinate
-     * @param direction wall direction
-     * @return the wall spatial
-     */
     public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
-        // TODO make models cache ???
         float yAngle = FastMath.PI;
         String resource = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
 
@@ -163,7 +167,7 @@ public abstract class GenericRoom {
                     }
 
                     // Load the piece
-                    Spatial part = assetManager.loadModel(resource + firstPiece + ".j3o");
+                    Spatial part = AssetUtils.loadModel(assetManager, resource + firstPiece + ".j3o", false);
                     resetSpatial(part);
                     part.move(moveFirst);
                     part.rotate(0, yAngle, 0);
@@ -176,7 +180,7 @@ public abstract class GenericRoom {
                         secondPiece = 4; // The sorting direction forces us to do this
                     }
 
-                    part = assetManager.loadModel(resource + secondPiece + ".j3o");
+                    part = AssetUtils.loadModel(assetManager, resource + secondPiece + ".j3o", false);
                     resetSpatial(part);
                     part.move(moveSecond);
                     part.rotate(0, yAngle, 0);
@@ -185,7 +189,7 @@ public abstract class GenericRoom {
                     ((BatchNode) spatial).batch();
                 } else {
                     // Complete walls, 8, 7, 8, 7 and so forth
-                    spatial = assetManager.loadModel(resource + getWallIndex(i) + ".j3o");
+                    spatial = AssetUtils.loadModel(assetManager, resource + getWallIndex(i) + ".j3o", false);
                     resetSpatial(spatial);
                     spatial.rotate(0, yAngle, 0);
 
@@ -260,39 +264,99 @@ public abstract class GenericRoom {
         tile.move(0, -MapLoader.TILE_HEIGHT, 0);
     }
 
-    /**
-     * Get next wall index
-     *
-     * @param index position from the first in section
-     * @return the next wall index
-     */
     public int getWallIndex(int index) {
         int pointer = index % wallIndexes.length;
         return wallIndexes[pointer];
     }
 
-    /**
-     * Override this to report any room obtacles
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @return true if accessible
-     */
     public boolean isTileAccessible(int x, int y) {
         return true;
     }
 
-    /**
-     * Get room tooltip
-     *
-     * @return room tooltip
-     */
-    public String getTooltip() {
-        return tooltip;
+    public boolean isTileAccessible(Point p) {
+        return isTileAccessible(p.x, p.y);
+    }
+
+    public String getTooltip(short playerId) {
+        if (roomInstance.getOwnerId() != playerId && roomInstance.isAttackable()) {
+            return notOwnedTooltip;
+        }
+        return tooltip.replaceAll("%37", Integer.toString(roomInstance.getHealthPercentage())).replaceAll("%38", Integer.toString(getUsedCapacity())).replaceAll("%39", Integer.toString(getMaxCapacity()));
     }
 
     protected final Spatial loadModel(String model) {
-        return assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER
-                + "/" + model + ".j3o"));
+        return AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER
+                + "/" + model + ".j3o", false);
     }
+
+    protected void addObjectControl(RoomObjectControl control) {
+        objectControls.put(control.getObjectType(), control);
+        if (defaultObjectType == null) {
+            defaultObjectType = control.getObjectType();
+        }
+    }
+
+    public boolean hasObjectControl(ObjectType objectType) {
+        return objectControls.containsKey(objectType);
+    }
+
+    public <T extends RoomObjectControl> T getObjectControl(ObjectType objectType) {
+        return (T) objectControls.get(objectType);
+    }
+
+    /**
+     * Can store gold to the room?
+     *
+     * @return can store gold
+     */
+    public boolean canStoreGold() {
+        return hasObjectControl(ObjectType.GOLD);
+    }
+
+    /**
+     * Get room max capacity
+     *
+     * @return room max capacity
+     */
+    protected int getMaxCapacity() {
+        RoomObjectControl control = getDefaultRoomObjectControl();
+        if (control != null) {
+            return control.getMaxCapacity();
+        }
+        return 0;
+    }
+
+    /**
+     * Get used capacity
+     *
+     * @return the used capacity of the room
+     */
+    protected int getUsedCapacity() {
+        RoomObjectControl control = getDefaultRoomObjectControl();
+        if (control != null) {
+            return control.getCurrentCapacity();
+        }
+        return 0;
+    }
+
+    private RoomObjectControl getDefaultRoomObjectControl() {
+        if (defaultObjectType != null) {
+            return objectControls.get(defaultObjectType);
+        }
+        return null;
+    }
+
+    public RoomInstance getRoomInstance() {
+        return roomInstance;
+    }
+
+    /**
+     * Is the room at full capacity
+     *
+     * @return max capacity used
+     */
+    public boolean isFullCapacity() {
+        return getUsedCapacity() >= getMaxCapacity();
+    }
+
 }

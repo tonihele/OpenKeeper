@@ -24,11 +24,7 @@ import com.jme3.app.state.VideoRecorderAppState;
 import com.jme3.asset.AssetEventListener;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
-import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
-import com.jme3.asset.cache.AssetCache;
-import com.jme3.asset.cache.SimpleAssetCache;
-import com.jme3.asset.cache.WeakRefAssetCache;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.light.AmbientLight;
 import com.jme3.math.ColorRGBA;
@@ -36,7 +32,6 @@ import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.renderer.RenderManager;
-import com.jme3.scene.Spatial;
 import com.jme3.system.AppSettings;
 import com.jme3.system.JmeSystem;
 import de.lessvoid.nifty.render.batch.BatchRenderConfiguration;
@@ -62,6 +57,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.MainMenuState;
@@ -72,7 +68,6 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.utils.UTF8Control;
 import toniarts.openkeeper.video.MovieState;
 
@@ -99,8 +94,6 @@ public class Main extends SimpleApplication {
     private static boolean debug;
     private NiftyJmeDisplay nifty;
     private Settings userSettings;
-    private final static AssetCache assetCache = new SimpleAssetCache();
-    private final static AssetCache weakAssetCache = new WeakRefAssetCache();
 
     private Main() {
         super(new StatsAppState(), new DebugKeysAppState());
@@ -436,7 +429,7 @@ public class Main extends SimpleApplication {
                     // Initialize persistent app states
                     MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager);
                     mainMenuState.setEnabled(false);
-                    PlayerState playerState = new PlayerState(3, false);
+                    PlayerState playerState = new PlayerState(Keeper.KEEPER1_ID, false);
 
                     stateManager.attach(mainMenuState);
                     stateManager.attach(playerState);
@@ -709,34 +702,4 @@ public class Main extends SimpleApplication {
         return debug;
     }
 
-    /**
-     * Loads a model. The model is cached on the first call and loaded from
-     * cache.
-     *
-     * @param assetManager the asset manager to use
-     * @param resourceName the model name, the model name is checked and fixed
-     * @param useWeakCache use weak cache, if not then permanently cache the
-     * models. Use weak cache to load some models that are not often needed
-     * (water bed etc.)
-     * @return a cloned instance from the cache
-     */
-    public static Spatial loadModel(AssetManager assetManager, String resourceName, boolean useWeakCache) {
-        ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(resourceName));
-
-        // Set the correct asset cache
-        final AssetCache cache;
-        if (useWeakCache) {
-            cache = weakAssetCache;
-        } else {
-            cache = assetCache;
-        }
-
-        // Get the model from cache
-        Spatial model = cache.getFromCache(assetKey);
-        if (model == null) {
-            model = assetManager.loadModel(assetKey);
-            cache.addToCache(assetKey, model);
-        }
-        return model.clone();
-    }
 }

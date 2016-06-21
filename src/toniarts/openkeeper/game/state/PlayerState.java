@@ -30,6 +30,8 @@ import com.jme3.texture.plugins.AWTLoader;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.NiftyIdCreator;
+import de.lessvoid.nifty.NiftyMethodInvoker;
+import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.HoverEffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
@@ -54,10 +56,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.game.player.PlayerTriggerControl;
@@ -81,6 +87,8 @@ import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PossessionCameraState;
 import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.listener.CreatureListener;
 
 /**
  * The player state! GUI, camera, etc. Player interactions
@@ -116,10 +124,10 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private Label tooltip;
     private PlayerManaControl manaControl = null;
     private PlayerTriggerControl triggerControl = null;
-    private PlayerGoldControl goldControl = null;
     private int score = 0;
     private boolean transitionEnd = true;
     private Integer textId = null;
+    private boolean initHud = false;
     private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
 
     public PlayerState(int playerId) {
@@ -140,7 +148,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         this.stateManager = stateManager;
 
         manaControl = new PlayerManaControl(playerId, stateManager);
-        goldControl = new PlayerGoldControl(playerId, stateManager);
     }
 
     @Override
@@ -180,11 +187,9 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             }
 
             // Load the HUD
+            initHud = true;
             nifty = app.getNifty().getNifty();
             nifty.gotoScreen(HUD_SCREEN_ID);
-
-            // Init the HUD items
-            initHudItems();
 
             // Cursor
             app.getInputManager().setCursorVisible(true);
@@ -229,6 +234,12 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             };
 
             cameraState = new PlayerCameraState(player);
+
+            // Get the tooltip
+            if (tooltip == null) {
+                tooltip = hud.findNiftyControl("tooltip", Label.class);
+            }
+
             interactionState = new PlayerInteractionState(player, gameState, guiConstraint, tooltip) {
                 @Override
                 protected void onInteractionStateChange(InteractionState interactionState, int id) {
@@ -261,8 +272,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             for (AbstractAppState state : appStates) {
                 stateManager.attach(state);
             }
-            // Load the HUD
-            // app.getNifty().getNifty().gotoScreen(HUD_SCREEN_ID);
         } else {
 
             // Detach states
@@ -278,7 +287,19 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     public PlayerGoldControl getGoldControl() {
-        return goldControl;
+        GameState gs = stateManager.getState(GameState.class);
+        if (gs != null) {
+            return gs.getPlayer(playerId).getGoldControl();
+        }
+        return null;
+    }
+
+    public PlayerCreatureControl getCreatureControl() {
+        GameState gs = stateManager.getState(GameState.class);
+        if (gs != null) {
+            return gs.getPlayer(playerId).getCreatureControl();
+        }
+        return null;
     }
 
     public PlayerManaControl getManaControl() {
@@ -332,9 +353,47 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             manaControl.addListener(hud.findNiftyControl("manaLose", Label.class), PlayerManaControl.Type.LOSE);
         }
 
-        if (goldControl != null) {
-            goldControl.addListener(hud.findNiftyControl("gold", Label.class));
+        if (getGoldControl() != null) {
+            getGoldControl().addListener(hud.findNiftyControl("gold", Label.class));
         }
+
+        // Player creatures
+        Element creatureTab = hud.findElementById("tab-creature");
+        final Element creaturePanel = creatureTab.findElementById("tab-creature-content");
+        removeAllChildElements(creaturePanel);
+        for (final Entry<Creature, Set<CreatureControl>> entry : getCreatureControl().getCreatures().entrySet()) {
+            createPlayerCreatureIcon(entry.getKey(), entry.getValue().size(), nifty, hud, creaturePanel);
+        }
+        getCreatureControl().addCreatureListener(new CreatureListener() {
+
+            @Override
+            public void onSpawn(CreatureControl creature) {
+                int amount = getCreatureControl().getCreatures().get(creature.getCreature()).size();
+                Element creatureCard = creaturePanel.findElementById("creature_" + creature.getCreature().getCreatureId());
+                if (creatureCard == null) {
+                    createPlayerCreatureIcon(creature.getCreature(), amount, nifty, hud, creaturePanel);// Create
+                } else {
+                    creatureCard.setUserData("total", amount);
+                }
+            }
+
+            @Override
+            public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
+                // TODO:
+            }
+
+            @Override
+            public void onDie(CreatureControl creature) {
+                int amount = getCreatureControl().getCreatures().get(creature.getCreature()).size();
+                Element creatureCard = creaturePanel.findElementById("creature_" + creature.getCreature().getCreatureId());
+                if (amount == 0) {
+                    creatureCard.markForRemoval(); // Remove
+                } else {
+                    creatureCard.setUserData("total", amount);
+                }
+            }
+        });
+        getCreatureControl().addWorkerListener(creatureTab.findNiftyControl("tab-workers#amount", Label.class), creatureTab.findNiftyControl("tab-workers#idle", Label.class), creatureTab.findNiftyControl("tab-workers#busy", Label.class), creatureTab.findNiftyControl("tab-workers#fighting", Label.class));
 
         Element contentPanel = hud.findElementById("tab-room-content");
         removeAllChildElements(contentPanel);
@@ -358,10 +417,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         removeAllChildElements(contentPanel);
         for (final Trap trap : getAvailableTraps()) {
             createTrapIcon(trap).build(nifty, hud, contentPanel);
-        }
-
-        if (tooltip == null) {
-            tooltip = hud.findNiftyControl("tooltip", Label.class);
         }
     }
 
@@ -407,6 +462,13 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     public void onStartScreen() {
         switch (nifty.getCurrentScreen().getScreenId()) {
             case HUD_SCREEN_ID: {
+
+                if (initHud) {
+
+                    // Init the HUD items
+                    initHud = false;
+                    initHudItems();
+                }
 
                 if (!backgroundSet) {
 
@@ -677,6 +739,18 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         };
     }
 
+    private void createPlayerCreatureIcon(Creature creature, int creatureAmount, Nifty nifty, Screen hud, Element parent) {
+        ControlBuilder cb = new ControlBuilder("creature") {
+            {
+                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + creature.getPortraitResource().getName() + ".png"));
+                parameter("total", Integer.toString(creatureAmount));
+                id("creature_" + creature.getCreatureId());
+            }
+        };
+        Element element = cb.build(nifty, hud, parent);
+        element.getElementInteraction().getSecondary().setOnClickMethod(new NiftyMethodInvoker(nifty, "zoomToCreature(" + creature.getCreatureId() + ")", this));
+    }
+
     private ImageBuilder createRoomIcon(final Room room) {
         return new ImageBuilder() {
             {
@@ -940,6 +1014,22 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
     public void quitToOS() {
         app.stop();
+    }
+
+    public void zoomToCreature(String creatureId) {
+        GameState gs = stateManager.getState(GameState.class);
+        CreatureControl creature = getCreatureControl().getNextCreature(gs.getLevelData().getCreature(Short.parseShort(creatureId)));
+        cameraState.setCameraLookAt(creature.getSpatial());
+    }
+
+    public void zoomToImp(String state) {
+        CreatureControl creature;
+        if ("null".equals(state)) {
+            creature = getCreatureControl().getNextImp();
+        } else {
+            creature = getCreatureControl().getNextImp(PlayerCreatureControl.CreatureUIState.valueOf(state));
+        }
+        cameraState.setCameraLookAt(creature.getSpatial());
     }
 
     public void select(String state, String id) {

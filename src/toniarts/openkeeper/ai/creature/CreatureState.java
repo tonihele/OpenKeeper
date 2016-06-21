@@ -32,11 +32,34 @@ public enum CreatureState implements State<CreatureControl> {
 
                 @Override
                 public void enter(CreatureControl entity) {
-                    entity.idle();
+
+                    // Idling is the last resort
+                    if (!findStuffToDo(entity)) {
+                        entity.idle();
+                    }
+                }
+
+                private boolean findStuffToDo(CreatureControl entity) {
+
+                    // Find work
+                    if (entity.isWorker() && entity.findWork()) {
+                        entity.getStateMachine().changeState(CreatureState.WORK);
+                        return true; // Found work
+                    }
+
+                    // See basic needs
+                    if (entity.needsLair() && !entity.hasLair() && entity.findLair()) {
+                        entity.getStateMachine().changeState(CreatureState.WORK);
+                        return true; // Found work
+                    }
+
+                    return false;
                 }
 
                 @Override
                 public void update(CreatureControl entity) {
+                    findStuffToDo(entity);
+
 //                    if (entity.idleTimeExceeded()) {
 //                        entity.getStateMachine().changeState(WANDER);
 //                    }
@@ -120,6 +143,66 @@ public enum CreatureState implements State<CreatureControl> {
                 public boolean onMessage(CreatureControl entity, Telegram telegram) {
                     return true;
                 }
+            }, WORK {
+
+                @Override
+                public void enter(CreatureControl entity) {
+                    entity.navigateToAssignedTask();
+                }
+
+                @Override
+                public void update(CreatureControl entity) {
+
+                    // Check arrival
+                    if (entity.isAtAssignedTaskTarget()) {
+
+                        // If we have too much gold, drop it to the treasury
+                        if (entity.isTooMuchGold()) {
+                            if (!entity.dropGoldToTreasury()) {
+                                entity.dropGold();
+                            }
+                        }
+                    }
+
+                    // Check validity
+                    // If we have some pocket money left, we should return it to treasury
+                    if (!entity.isAssignedTaskValid() && !entity.dropGoldToTreasury()) {
+                        entity.getStateMachine().changeState(IDLE);
+                    }
+                }
+
+                @Override
+                public void exit(CreatureControl entity) {
+
+                }
+
+                @Override
+                public boolean onMessage(CreatureControl entity, Telegram telegram) {
+                    return true;
+                }
+
+            }, FIGHT {
+
+                @Override
+                public void enter(CreatureControl entity) {
+
+                }
+
+                @Override
+                public void update(CreatureControl entity) {
+
+                }
+
+                @Override
+                public void exit(CreatureControl entity) {
+
+                }
+
+                @Override
+                public boolean onMessage(CreatureControl entity, Telegram telegram) {
+                    return true;
+                }
+
             }
 
 }

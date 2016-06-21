@@ -30,6 +30,8 @@ import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.QUAD;
 import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction._3_BY_3;
 import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction._5_BY_5_ROTATED;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManager;
 
 /**
@@ -46,9 +48,10 @@ public final class RoomConstructor {
     }
 
     public static GenericRoom constructRoom(RoomInstance roomInstance, AssetManager assetManager,
-            EffectManager effectManager, KwdFile kwdFile) {
+            EffectManager effectManager, KwdFile kwdFile, WorldState worldState) {
         String roomName = roomInstance.getRoom().getName();
 
+        // FIXME: refactor this, we should have our own construct for the things, not this general one
         Thing.Room.Direction direction = null;
         for (Thing thing : kwdFile.getThings()) {
             if (thing instanceof Thing.Room) {
@@ -72,11 +75,23 @@ public final class RoomConstructor {
             case HERO_GATE_2_BY_2:
                 return new HeroGateTwoByTwo(assetManager, roomInstance, direction);
 
-            case HERO_GATE_3_BY_1:                
+            case HERO_GATE_3_BY_1:
                 return new HeroGateThreeByOne(assetManager, roomInstance, direction);
 
             case _5_BY_5_ROTATED:
-                return new FiveByFiveRotated(assetManager, effectManager, roomInstance, direction);
+                return new FiveByFiveRotated(assetManager, effectManager, roomInstance, direction) {
+
+                    private Integer goldPerTile;
+
+                    @Override
+                    protected int getGoldPerTile() {
+                        if (goldPerTile == null) {
+                            goldPerTile = (int) worldState.getLevelVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE);
+                        }
+                        return goldPerTile;
+                    }
+
+                };
 
             case NORMAL:
                 if (roomName.equalsIgnoreCase("Lair")) {
@@ -99,6 +114,21 @@ public final class RoomConstructor {
                 }
                 if (roomName.equalsIgnoreCase("Graveyard")) {
                     return new Graveyard(assetManager, roomInstance, direction);
+                }
+                if (roomName.equalsIgnoreCase("Treasury")) {
+                    return new Treasury(assetManager, roomInstance, direction) {
+
+                        private Integer goldPerTile;
+
+                        @Override
+                        protected int getGoldPerTile() {
+                            if (goldPerTile == null) {
+                                goldPerTile = (int) worldState.getLevelVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PER_TREASURY_TILE);
+                            }
+                            return goldPerTile;
+                        }
+
+                    };
                 }
                 return new Normal(assetManager, roomInstance, direction);
 

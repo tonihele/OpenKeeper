@@ -18,6 +18,8 @@ package toniarts.openkeeper.utils;
 
 import java.util.List;
 import java.util.Random;
+import java.util.ResourceBundle;
+import toniarts.openkeeper.Main;
 
 /**
  * Some utility methods
@@ -26,6 +28,7 @@ import java.util.Random;
  */
 public class Utils {
 
+    private static final ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
     private static final Random random = new Random();
     private static Boolean windows;
     private static final String[] BLOOD_TYPES = {"IkI", "BO", "PoE", "BA", "MoO", "O", "ARh"};
@@ -130,5 +133,14 @@ public class Utils {
      */
     public static <T> T getRandomItem(List<T> list) {
         return list.get(random.nextInt(list.size()));
+    }
+
+    /**
+     * Get the game main text resource bundle
+     *
+     * @return the main text resource bundle
+     */
+    public static ResourceBundle getMainTextResourceBundle() {
+        return bundle;
     }
 }

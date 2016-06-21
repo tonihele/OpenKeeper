@@ -36,12 +36,12 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
@@ -49,6 +49,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.control.FlashTileControl;
 import toniarts.openkeeper.world.effect.EffectManager;
 import toniarts.openkeeper.world.room.GenericRoom;
@@ -79,19 +80,22 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final AssetManager assetManager;
     private final EffectManager effectManager;
     private Node roomsNode;
+    private final WorldState worldState;
     private final List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
     private final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private final HashMap<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final HashMap<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
-    private final HashMap<RoomInstance, GenericRoom> roomActuals = new HashMap<>(); // Rooms by room instance
+    private final Map<RoomInstance, GenericRoom> roomActuals = new LinkedHashMap<>(); // Rooms by room instance
     private final HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
-    public MapLoader(AssetManager assetManager, KwdFile kwdFile) {
+    public MapLoader(AssetManager assetManager, KwdFile kwdFile, EffectManager effectManager, WorldState worldState) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
-        this.effectManager = new EffectManager(assetManager, kwdFile);
+        this.effectManager = effectManager;
+        this.worldState = worldState;
+
         // Create modifiable tiles
         mapData = new MapData(kwdFile);
     }
@@ -226,8 +230,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                                         diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY" + textureIndex + ".png");
                                     }
                                 }
-                                Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
-                                material.setTexture("DiffuseMap", texture);
+                                try {
+                                    Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
+                                    material.setTexture("DiffuseMap", texture);
+                                } catch (Exception e) {
+                                    logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, tile.getTerrain().getName(), e.getMessage()});
+                                }
                             }
                         }
 
@@ -411,7 +419,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @return the asset loaded & ready to rock
      */
     public static Spatial loadAsset(final AssetManager assetManager, final String asset, final boolean wall, final boolean useWeakCache) {
-        Spatial spatial = Main.loadModel(assetManager, asset, useWeakCache);
+        Spatial spatial = AssetUtils.loadModel(assetManager, asset, useWeakCache);
 
         // Set the transform and scale to our scale and 0 the transform
         spatial.breadthFirstTraversal(new SceneGraphVisitor() {
@@ -521,7 +529,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             return roomInstance;
         }
 
-        RoomInstance roomInstance = new RoomInstance(room);
+        RoomInstance roomInstance = new RoomInstance(room, mapData);
         findRoom(p, roomInstance);
         findRoomWallSections(roomInstance);
         rooms.add(roomInstance);
@@ -809,7 +817,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param roomInstance the room instance
      */
     private Spatial handleRoom(RoomInstance roomInstance) {
-        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, effectManager, kwdFile);
+        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, effectManager, kwdFile, worldState);
         roomActuals.put(roomInstance, room);
         updateRoomWalls(roomInstance);
         return room.construct();
@@ -1026,7 +1034,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         return null;
     }
 
-    protected Point[] getSurroundingTiles(Point point, boolean diagonal) {
+    public Point[] getSurroundingTiles(Point point, boolean diagonal) {
 
         // Get all surrounding tiles
         List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
@@ -1068,11 +1076,24 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     }
 
     /**
+     * Redraws a room instance
+     *
+     * @param roomInstance the instance to redraw
+     */
+    protected void updateRoom(RoomInstance roomInstance) {
+
+        // Redraw
+        updateRoomWalls(roomInstance);
+        roomActuals.get(roomInstance).construct();
+//        roomsNode.attachChild(roomActuals.get(roomInstance).construct());
+    }
+
+    /**
      * Get a rooms by knowing its instance
      *
      * @return room
      */
-    public HashMap<RoomInstance, GenericRoom> getRoomActuals() {
+    public Map<RoomInstance, GenericRoom> getRoomActuals() {
         return roomActuals;
     }
 
@@ -1083,4 +1104,5 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param max max progress
      */
     protected abstract void updateProgress(final int progress, final int max);
+
 }

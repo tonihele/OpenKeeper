@@ -31,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
 public final class TileData extends Tile {
 
     private boolean selected = false;
+    private short selectedByPlayerId = 0;
     private Integer randomTextureIndex;
     private Terrain terrain;
     private int health;
@@ -65,8 +66,17 @@ public final class TileData extends Tile {
         return selected;
     }
 
-    protected void setSelected(boolean selected) {
+    protected void setSelected(boolean selected, short playerId) {
         this.selected = selected;
+        selectedByPlayerId = playerId;
+    }
+
+    public short getSelectedByPlayerId() {
+        return selectedByPlayerId;
+    }
+
+    public boolean isSelectedByPlayerId(short playerId) {
+        return (selected && selectedByPlayerId == playerId);
     }
 
     @Override
@@ -78,8 +88,15 @@ public final class TileData extends Tile {
     protected void setTerrainId(short terrainId) {
         super.setTerrainId(terrainId);
         if (terrain.getTerrainId() != terrainId) {
+
+            // A change
             terrain = kwdFile.getTerrain(getTerrainId());
             setAttributesFromTerrain();
+
+            // If the terrain is not taggable anymore, reset the tagging data
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                setSelected(false, (short) 0);
+            }
         }
     }
 
@@ -138,6 +155,49 @@ public final class TileData extends Tile {
 
     protected Integer getHealthPercent() {
         return Math.round((float) health / terrain.getMaxHealth() * 100);
+    }
+
+    /**
+     * Apply damage to the tile
+     *
+     * @param damage amount of damage
+     * @return true if the tile is "dead"
+     */
+    public boolean applyDamage(int damage) {
+        health -= damage;
+        return (health <= 0);
+    }
+
+    /**
+     * Apply healing to the tile
+     *
+     * @param healing amount of healing
+     * @return true if the tile is at max
+     */
+    public boolean applyHealing(int healing) {
+        health = Math.min(getTerrain().getMaxHealth(), health + healing);
+        return (health == getTerrain().getMaxHealth());
+    }
+
+    /**
+     * Mine for gold
+     *
+     * @param damage the amount of gold requested
+     * @return the amount of gold got
+     */
+    public int mineGold(int damage) {
+        int minedAmount = Math.min(damage, gold);
+        gold -= minedAmount;
+        return minedAmount;
+    }
+
+    /**
+     * Is tile at full health
+     *
+     * @return true if full health
+     */
+    public boolean isAtFullHealth() {
+        return (health == getTerrain().getMaxHealth());
     }
 
 }

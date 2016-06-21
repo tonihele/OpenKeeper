@@ -25,26 +25,31 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.Main;
+import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.listener.CreatureListener;
 
 /**
- * Loads up creatures. TODO: Should perhaps keep a cache of loaded/constructed
- * creatures...
+ * Loads up creatures
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureLoader implements ILoader<Thing.Creature> {
+public abstract class CreatureLoader implements ILoader<Thing.Creature>, CreatureListener {
 
     private final KwdFile kwdFile;
     private final WorldState worldState;
+
+    private static final String START_ANIMATION_NAME = "Start";
+    private static final String END_ANIMATION_NAME = "End";
+    private static final String ANIM_NAME = "anim";
     private static final Logger logger = Logger.getLogger(CreatureLoader.class.getName());
 
     public CreatureLoader(KwdFile kwdFile, WorldState worldState) {
@@ -56,7 +61,24 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
     public Spatial load(AssetManager assetManager, Thing.Creature object) {
         Creature creature = kwdFile.getCreature(object.getCreatureId());
         Node creatureRoot = new Node(creature.getName());
-        CreatureControl creatureControl = new CreatureControl(object, creature, worldState);
+        CreatureControl creatureControl = new CreatureControl(object, creature, worldState) {
+
+            @Override
+            public void onSpawn(CreatureControl creature) {
+                CreatureLoader.this.onSpawn(creature);
+            }
+
+            @Override
+            public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
+                CreatureLoader.this.onStateChange(creature, newState, oldState);
+            }
+
+            @Override
+            public void onDie(CreatureControl creature) {
+                CreatureLoader.this.onDie(creature);
+            }
+
+        };
 
         // Set map position
         creatureRoot.setLocalTranslation(
@@ -75,10 +97,13 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
             try {
 
                 Spatial spat = loadModel(assetManager, resource.getName(), creatureRoot);
+                spat.setName(resource.getName());
 
                 // If the animations has end and/or start, it is located in a different file
                 if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
-                    Spatial spatStart = loadModel(assetManager, resource.getName() + "Start", creatureRoot);
+                    String name = resource.getName() + START_ANIMATION_NAME;
+                    Spatial spatStart = loadModel(assetManager, name, creatureRoot);
+                    spatStart.setName(START_ANIMATION_NAME);
 
                     // Create kinda a custom animation control
                     AnimControl animControl = spatStart.getControl(AnimControl.class);
@@ -94,7 +119,11 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
                                 AnimControl animControl = (AnimControl) spat.getControl(0);
                                 spat.setCullHint(Spatial.CullHint.Inherit);
                                 AnimChannel c = animControl.getChannel(0);
-                                c.setAnim("anim", 0);
+                                LoopMode loopMode = c.getLoopMode();
+                                c.setAnim(ANIM_NAME, 0);
+                                if (loopMode != null) {
+                                    c.setLoopMode(loopMode);
+                                }
                                 animControl.setEnabled(true);
 
                                 // Hide us
@@ -107,11 +136,13 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
 
                             }
                         });
-                        AnimChannel channel = animControl.createChannel();
+                        animControl.createChannel();
                     }
                 }
                 if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
-                    Spatial spatEnd = loadModel(assetManager, resource.getName() + "End", creatureRoot);
+                    String name = resource.getName() + END_ANIMATION_NAME;
+                    Spatial spatEnd = loadModel(assetManager, name, creatureRoot);
+                    spatEnd.setName(END_ANIMATION_NAME);
 
                     // Create kinda a custom animation control
                     AnimControl animControl = spatEnd.getControl(AnimControl.class);
@@ -122,8 +153,7 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
                             @Override
                             public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
 
-                                // Hide us
-                                control.getSpatial().setCullHint(Spatial.CullHint.Always);
+                                // Stop us
                                 control.setEnabled(false);
 
                                 // Signal stop
@@ -135,7 +165,7 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
 
                             }
                         });
-                        AnimChannel channel = animControl.createChannel();
+                        animControl.createChannel();
                     }
                 }
 
@@ -154,17 +184,24 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
                             // See if we need to stop
                             if (creatureControl.isStopAnimation() || channel.getLoopMode() == LoopMode.DontLoop) {
 
-                                // Hide us
-                                control.getSpatial().setCullHint(Spatial.CullHint.Always);
+                                // Stop us
                                 control.setEnabled(false);
 
                                 // We need to stop
                                 if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
-                                    Spatial spat = creatureRoot.getChild(resource.getName() + "End");
+
+                                    // Hide us
+                                    control.getSpatial().setCullHint(Spatial.CullHint.Always);
+
+                                    Spatial spat = creatureRoot.getChild(END_ANIMATION_NAME);
                                     AnimControl animControl = (AnimControl) spat.getControl(0);
                                     spat.setCullHint(Spatial.CullHint.Inherit);
                                     AnimChannel c = animControl.getChannel(0);
-                                    c.setAnim("anim", 0);
+                                    LoopMode loopMode = c.getLoopMode();
+                                    c.setAnim(ANIM_NAME, 0);
+                                    if (loopMode != null) {
+                                        c.setLoopMode(loopMode);
+                                    }
                                     animControl.setEnabled(true);
                                 } else {
 
@@ -193,7 +230,7 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
     private static Spatial loadModel(AssetManager assetManager, String resourceName, Node creatureRoot) {
 
         // Load the model and attach it without the root
-        Spatial model = ((Node) Main.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + resourceName + ".j3o", false)).getChild(0);
+        Spatial model = ((Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + resourceName + ".j3o", false)).getChild(0);
         model.setCullHint(Spatial.CullHint.Always);
         creatureRoot.attachChild(model);
         return model;
@@ -216,7 +253,7 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
         // Get the anim node
         String animNodeName = anim.getName();
         if (anim.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
-            animNodeName = anim.getName() + "Start";
+            animNodeName = START_ANIMATION_NAME;
         }
         Spatial spat = root.getChild(animNodeName);
         if (spat != null) {
@@ -228,7 +265,11 @@ public class CreatureLoader implements ILoader<Thing.Creature> {
             AnimControl animControl = (AnimControl) spat.getControl(0);
             spat.setCullHint(Spatial.CullHint.Inherit);
             AnimChannel channel = animControl.getChannel(0);
-            channel.setAnim("anim", 0);
+            LoopMode loopMode = channel.getLoopMode();
+            channel.setAnim(ANIM_NAME, 0);
+            if (loopMode != null) {
+                channel.setLoopMode(loopMode);
+            }
             animControl.setEnabled(true);
         }
     }

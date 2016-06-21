@@ -18,6 +18,7 @@ package toniarts.openkeeper.world;
 
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -60,8 +61,24 @@ public class EntityInstance<T> {
         matrix = null;
     }
 
+    public void addCoordinates(Collection<Point> points) {
+        for (Point p : points) {
+            addCoordinate(p);
+        }
+    }
+
+    public void removeCoordinate(Point p) {
+        coordinates.remove(Collections.binarySearch(coordinates, p, new EntityInstance.PointComparator()));
+        minX = Math.max(p.x, minX);
+        maxX = Math.min(p.x, maxX);
+        minY = Math.max(p.y, minY);
+        maxY = Math.min(p.y, maxY);
+        matrixStartPoint = null;
+        matrix = null;
+    }
+
     public boolean hasCoordinate(Point p) {
-        return coordinates.contains(p);
+        return Collections.binarySearch(coordinates, p, new PointComparator()) >= 0;
     }
 
     public Point getCenter() {

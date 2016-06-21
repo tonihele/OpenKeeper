@@ -30,15 +30,15 @@ import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ResourceBundle;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.task.AbstractTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -50,15 +50,24 @@ import toniarts.openkeeper.tools.convert.map.Thing.NeutralCreature;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
+import toniarts.openkeeper.world.listener.CreatureListener;
+import toniarts.openkeeper.world.object.ObjectControl;
+import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
  * Controller for creature. Bridge between the visual object and AI.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureControl extends AbstractCreatureSteeringControl {
+public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener {
+
+    public enum AnimationType {
+
+        MOVE, WORK, IDLE;
+    }
 
     // Attributes
     private final String name;
@@ -76,17 +85,27 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     private CreatureState state;
     private boolean animationPlaying = false;
     private int idleAnimationPlayCount = 1;
-    private final String tooltip;
     private float lastAttributeUpdateTime = 0;
+    private float lastStateUpdateTime = 0;
+    private AbstractTask assignedTask;
+    private AnimationType playingAnimationType = AnimationType.IDLE;
+    private ObjectControl creatureLair;
 
     public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldState worldState) {
         super(creature);
-        stateMachine = new DefaultStateMachine<>(this);
-        this.worldState = worldState;
+        stateMachine = new DefaultStateMachine<CreatureControl, CreatureState>(this) {
 
-        // Strings
-        ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
-        tooltip = bundle.getString(Integer.toString(creature.getTooltipStringId()));
+            @Override
+            public void changeState(CreatureState newState) {
+                super.changeState(newState);
+
+                // Notify
+                onStateChange(CreatureControl.this, newState, getPreviousState());
+
+            }
+
+        };
+        this.worldState = worldState;
 
         // Attributes
         name = Utils.generateCreatureName();
@@ -127,7 +146,12 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
             }
         }
 
-        stateMachine.update();
+        //FIXME: ticks
+        lastStateUpdateTime += tpf;
+        if (lastStateUpdateTime >= 0.250) {
+            lastStateUpdateTime -= 0.250;
+            stateMachine.update();
+        }
 
         // Update attributes
         updateAttributes(tpf);
@@ -161,6 +185,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     }
 
     public void idle() {
+        unassingCurrentTask();
 
         // Find a random accessible tile nearby and do some idling there
         if (idleAnimationPlayCount > 0) {
@@ -170,11 +195,11 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
     }
 
     private void navigateToRandomPoint() {
-        Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getLocalTranslation()), 10, creature);
+        Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, creature);
         if (p != null) {
             GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, creature);
 
-            if (outPath.getCount() > 1) {
+            if (outPath != null && outPath.getCount() > 1) {
 
                 // Debug
 //                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
@@ -208,7 +233,8 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
      * @return stop or not
      */
     boolean isStopAnimation() {
-        return (steeringBehavior == null);
+        // FIXME: not very elegant to check this way
+        return (steeringBehavior == null || (stateMachine.getCurrentState() == CreatureState.WORK && isAssignedTaskValid()));
     }
 
     /**
@@ -238,12 +264,29 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
      */
     void onAnimationCycleDone() {
 
+        if (stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid()) {
+
+            // Different work based reactions
+            assignedTask.executeTask(this);
+        }
     }
 
     private void playStateAnimation() {
         if (!animationPlaying) {
             if (steeringBehavior != null) {
                 playAnimation(creature.getAnimWalkResource());
+                playingAnimationType = AnimationType.MOVE;
+            } else if (stateMachine.getCurrentState() == CreatureState.WORK) {
+
+                // Different work animations
+                // TODO: The tasks should have the animation
+                playingAnimationType = AnimationType.WORK;
+                ArtResource anim = assignedTask.getTaskAnimation(this);
+                if (anim != null) {
+                    playAnimation(anim);
+                } else {
+                    onAnimationCycleDone();
+                }
             } else {
                 List<ArtResource> idleAnimations = new ArrayList<>(3);
                 if (creature.getAnimIdle1Resource() != null) {
@@ -258,6 +301,7 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
                 }
                 idleAnimationPlayCount++;
                 playAnimation(idleAnim);
+                playingAnimationType = AnimationType.IDLE;
             }
         }
     }
@@ -270,22 +314,42 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
         return path;
     }
 
-    public String getTooltip() {
+    @Override
+    public String getTooltip(short playerId) {
+        String tooltip;
+        if (ownerId == playerId) {
+            tooltip = Utils.getMainTextResourceBundle().getString("2841");
+        } else {
+            tooltip = Utils.getMainTextResourceBundle().getString(Integer.toString(creature.getTooltipStringId()));
+        }
         return formatString(tooltip);
     }
 
     private String formatString(String string) {
-        return string.replaceAll("%29", name).replaceAll("%30", creature.getName());
+        return string.replaceAll("%29", name).replaceAll("%30", creature.getName()).replaceAll("%31", getStatusText());
     }
 
-    public boolean isSlappable() {
-        // TODO: Player id
-        return creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) && !stateMachine.isInState(CreatureState.DEAD);
+    private String getStatusText() {
+        switch (state) {
+            case IDLE: {
+                return Utils.getMainTextResourceBundle().getString("2599");
+            }
+            case WORK: {
+                return assignedTask.getTooltip();
+            }
+            case WANDER: {
+                return Utils.getMainTextResourceBundle().getString("2628");
+            }
+            case DEAD: {
+                return Utils.getMainTextResourceBundle().getString("2598");
+            }
+        }
+        return "";
     }
 
-    public void slap() {
+    private boolean slap(short playerId) {
         // TODO: Direction & sound
-        if (isSlappable()) {
+        if (isSlappable(playerId)) {
             stateMachine.changeState(CreatureState.SLAPPED);
             steeringBehavior = null;
             idleAnimationPlayCount = 0;
@@ -297,15 +361,30 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
             } else {
                 playAnimation(creature.getAnimFallbackResource());
             }
+
+            return true;
         }
+        return false;
     }
 
     public void die() {
         //TODO: Dying direction
         playAnimation(creature.getAnimDieResource());
+
+        // Notify
+        onDie(CreatureControl.this);
     }
 
     private void removeCreature() {
+
+        // Unassing any tasks
+        unassingCurrentTask();
+
+        // Remove lair
+        if (creatureLair != null) {
+            creatureLair.removeObject();
+        }
+
         Spatial us = getSpatial();
         us.removeFromParent();
     }
@@ -324,6 +403,194 @@ public class CreatureControl extends AbstractCreatureSteeringControl {
                 //TODO: other leveling stuff, max levels etc.
             }
         }
+    }
+
+    public short getOwnerId() {
+        return ownerId;
+    }
+
+    public void navigateToAssignedTask() {
+
+        Vector2f loc = assignedTask.getTarget(this);
+        if (loc != null) {
+            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), creature);
+
+            if (outPath != null && outPath.getCount() > 1) {
+
+                // Debug
+//                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
+                PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+                FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(pathToArray(outPath), true), 2);
+                followPath.setDecelerationRadius(1f);
+                followPath.setArrivalTolerance(0.2f);
+                prioritySteering.add(followPath);
+
+                setSteeringBehavior(prioritySteering);
+            }
+        }
+    }
+
+    public void setAssignedTask(AbstractTask task) {
+
+        // Unassign previous task
+        unassingCurrentTask();
+
+        assignedTask = task;
+    }
+
+    private void unassingCurrentTask() {
+        if (assignedTask != null) {
+            assignedTask.unassign(this);
+        }
+        assignedTask = null;
+    }
+
+    public Creature getCreature() {
+        return creature;
+    }
+
+    public boolean isAtAssignedTaskTarget() {
+        // FIXME: not like this, universal solution
+        return (assignedTask != null && assignedTask.getTarget(this) != null && steeringBehavior == null && isNear(assignedTask.getTarget(this)));
+    }
+
+    public boolean isAssignedTaskValid() {
+        // FIXME: yep
+        return (assignedTask != null && assignedTask.isValid());
+    }
+
+    private boolean isNear(Vector2f target) {
+        return (target.distanceSquared(getSpatial().getWorldTranslation().x, getSpatial().getWorldTranslation().z) < 0.5f);
+    }
+
+    private boolean isSlappable(short playerId) {
+        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) && !stateMachine.isInState(CreatureState.DEAD);
+    }
+
+    public boolean isTooMuchGold() {
+        return gold >= creature.getMaxGoldHeld();
+    }
+
+    public boolean dropGoldToTreasury() {
+        if (gold > 0) {
+            if (worldState.getTaskManager().assignGoldToTreasuryTask(this)) {
+                navigateToAssignedTask();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void dropGold() {
+//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    /**
+     * Get the creature coordinates, in tile coordinates
+     *
+     * @return the tile coordinates
+     */
+    public Point getCreatureCoordinates() {
+        return worldState.getTileCoordinates(getSpatial().getWorldTranslation());
+    }
+
+    /**
+     * Get current creature gold amount
+     *
+     * @return the posessed gold
+     */
+    public int getGold() {
+        return gold;
+    }
+
+    /**
+     * Add gold to creature
+     *
+     * @param gold the amount of gold to add
+     */
+    public void addGold(int gold) {
+        this.gold += gold;
+    }
+
+    /**
+     * Remove gold from the creature
+     *
+     * @param gold the amount of gold to remove
+     */
+    public void substractGold(int gold) {
+        this.gold -= gold;
+    }
+
+    public boolean isWorker() {
+        return creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER);
+    }
+
+    public boolean findWork() {
+
+        // See if we have some available work
+        return (worldState.getTaskManager().assignTask(this, false));
+    }
+
+    /**
+     * Finds a space for a lair, a task really
+     *
+     * @return true if a lair task is found
+     */
+    public boolean findLair() {
+        return (worldState.getTaskManager().assignClosestRoomTask(this, GenericRoom.ObjectType.LAIR));
+    }
+
+    /**
+     * Does the creature need a lair
+     *
+     * @return needs a lair
+     */
+    public boolean needsLair() {
+        return creature.getTimeSleep() > 0;
+    }
+
+    /**
+     * Does the creature have a lair
+     *
+     * @return has a lair
+     */
+    public boolean hasLair() {
+        return creatureLair != null;
+    }
+
+    public void removeObject(ObjectControl object) {
+        // TODO: basically we don't own execpt lair, but if we do, we need similar controls as the rooms have
+        if (object.equals(creatureLair)) {
+            creatureLair = null;
+        }
+    }
+
+    public void setCreatureLair(ObjectControl creatureLair) {
+        this.creatureLair = creatureLair;
+        if (creatureLair != null) {
+            creatureLair.setCreature(this);
+        }
+    }
+
+    @Override
+    public boolean isPickable(short playerId) {
+        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP) && !stateMachine.isInState(CreatureState.DEAD);
+    }
+
+    @Override
+    public boolean isInteractable(short playerId) {
+        return isSlappable(playerId);
+    }
+
+    @Override
+    public boolean pickUp(short playerId) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public boolean interact(short playerId) {
+        return slap(playerId);
     }
 
 }
