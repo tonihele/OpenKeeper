@@ -608,7 +608,7 @@ public abstract class WorldState extends AbstractAppState {
 
         // New room, calculate gold capacity
         if (adjacentInstances.isEmpty()) {
-            RoomInstance instance = mapLoader.getRoomCoordinates().get(buildPlots.toArray(new Point[buildPlots.size()])[0]);
+            RoomInstance instance = mapLoader.getRoomCoordinates().get(instancePlots.get(0));
             addGoldCapacityToPlayer(instance);
         }
     }
