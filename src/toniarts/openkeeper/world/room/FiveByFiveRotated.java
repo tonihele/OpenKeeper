@@ -54,7 +54,7 @@ public abstract class FiveByFiveRotated extends GenericRoom {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
-                return 8;
+                return 16;
             }
         });
     }
