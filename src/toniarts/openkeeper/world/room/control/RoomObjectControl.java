@@ -17,6 +17,8 @@
 package toniarts.openkeeper.world.room.control;
 
 import java.awt.Point;
+import java.util.HashMap;
+import java.util.Map;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.ObjectControl;
@@ -25,11 +27,13 @@ import toniarts.openkeeper.world.room.GenericRoom;
 /**
  * Room object controller
  *
+ * @param <T> the held object type
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomObjectControl {
+public abstract class RoomObjectControl<T extends ObjectControl> {
 
     protected final GenericRoom parent;
+    protected final Map<Point, T> objects = new HashMap<>();
 
     public RoomObjectControl(GenericRoom parent) {
         this.parent = parent;
@@ -60,7 +64,9 @@ public abstract class RoomObjectControl {
      * @param p the object from point
      * @return the object in given point
      */
-    public abstract ObjectControl getItem(Point p);
+    public T getItem(Point p) {
+        return objects.get(p);
+    }
 
     public int getMaxCapacity() {
         return getObjectsPerTile() * getNumberOfAccessibleTiles();
@@ -73,6 +79,15 @@ public abstract class RoomObjectControl {
      */
     public boolean isFullCapacity() {
         return getCurrentCapacity() >= getMaxCapacity();
+    }
+
+    /**
+     * Remove an item
+     *
+     * @param object the object
+     */
+    public void removeItem(T object) {
+        objects.values().remove(object);
     }
 
 }

@@ -17,13 +17,10 @@
 package toniarts.openkeeper.world.room.control;
 
 import java.awt.Point;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.GoldObjectControl;
-import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
@@ -33,10 +30,9 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomGoldControl extends RoomObjectControl {
+public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectControl> {
 
     private int storedGold = 0;
-    private final Map<Point, GoldObjectControl> goldPiles = new HashMap<>();
 
     public RoomGoldControl(GenericRoom parent) {
         super(parent);
@@ -63,7 +59,7 @@ public abstract class RoomGoldControl extends RoomObjectControl {
 
     private int putGold(int sum, Point p, ThingLoader thingLoader) {
         int pointStoredGold = 0;
-        GoldObjectControl goldPile = goldPiles.get(p);
+        GoldObjectControl goldPile = objects.get(p);
         if (goldPile != null) {
             pointStoredGold = goldPile.getGold();
         }
@@ -75,8 +71,10 @@ public abstract class RoomGoldControl extends RoomObjectControl {
 
             // Add the visuals
             if (goldPile == null) {
-                goldPile = thingLoader.addRoomGold(p, parent.getRoomInstance().getOwnerId(), goldToStore);
-                goldPiles.put(p, goldPile);
+                GoldObjectControl object = thingLoader.addRoomGold(p, parent.getRoomInstance().getOwnerId(), goldToStore);
+                goldPile = object;
+                objects.put(p, goldPile);
+                object.setRoomObjectControl(this);
             } else {
 
                 // Adjust the gold sum
@@ -89,11 +87,6 @@ public abstract class RoomGoldControl extends RoomObjectControl {
     @Override
     public int getCurrentCapacity() {
         return storedGold;
-    }
-
-    @Override
-    public ObjectControl getItem(Point p) {
-        return goldPiles.get(p);
     }
 
     @Override

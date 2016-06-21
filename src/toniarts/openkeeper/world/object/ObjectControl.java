@@ -18,11 +18,14 @@ package toniarts.openkeeper.world.object;
 
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
+import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
+import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
 /**
  * Control for object
@@ -34,6 +37,10 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     private final WorldState worldState;
     private final toniarts.openkeeper.tools.convert.map.Object object;
     private final String tooltip;
+
+    // Owners
+    private RoomObjectControl roomObjectControl;
+    private CreatureControl creature;
 
     public ObjectControl(int ownerId, toniarts.openkeeper.tools.convert.map.Object object, WorldState worldState) {
         super();
@@ -59,6 +66,37 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     @Override
     public String getTooltip(short playerId) {
         return tooltip;
+    }
+
+    /**
+     * Remove object
+     */
+    public void removeObject() {
+
+        // Physically from the view
+        Spatial us = getSpatial();
+        us.removeFromParent();
+
+        // From the things registry
+        worldState.getThingLoader().onObjectRemoved(this);
+
+        // If we belong to a creature, remove us
+        if (creature != null) {
+            creature.removeObject(this);
+        }
+
+        // If we belong to a room, remove us
+        if (roomObjectControl != null) {
+            roomObjectControl.removeItem(this);
+        }
+    }
+
+    public void setCreature(CreatureControl creature) {
+        this.creature = creature;
+    }
+
+    public void setRoomObjectControl(RoomObjectControl roomObjectControl) {
+        this.roomObjectControl = roomObjectControl;
     }
 
     @Override

@@ -181,6 +181,10 @@ public class ThingLoader {
         return control;
     }
 
+    public void onObjectRemoved(ObjectControl object) {
+        objects.remove(object);
+    }
+
     public List<CreatureControl> getCreatures() {
         return new ArrayList<>(creatures);
     }

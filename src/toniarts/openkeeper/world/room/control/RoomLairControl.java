@@ -17,8 +17,6 @@
 package toniarts.openkeeper.world.room.control;
 
 import java.awt.Point;
-import java.util.HashMap;
-import java.util.Map;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.ObjectControl;
@@ -29,9 +27,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomLairControl extends RoomObjectControl {
-
-    private final Map<Point, ObjectControl> lairs = new HashMap<>();
+public abstract class RoomLairControl extends RoomObjectControl<ObjectControl> {
 
     public RoomLairControl(GenericRoom parent) {
         super(parent);
@@ -39,7 +35,7 @@ public abstract class RoomLairControl extends RoomObjectControl {
 
     @Override
     public int getCurrentCapacity() {
-        return lairs.size();
+        return objects.size();
     }
 
     @Override
@@ -49,16 +45,13 @@ public abstract class RoomLairControl extends RoomObjectControl {
 
     @Override
     public int addItem(int sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
-        if (lairs.containsKey(p)) {
+        if (objects.containsKey(p)) {
             return sum; // Already a lair here
         }
-        lairs.put(p, thingLoader.addObject(p, creature.getCreature().getLairObjectId(), creature.getOwnerId()));
+        ObjectControl object = thingLoader.addObject(p, creature.getCreature().getLairObjectId(), creature.getOwnerId());
+        objects.put(p, object);
+        object.setRoomObjectControl(this);
         return 0;
-    }
-
-    @Override
-    public ObjectControl getItem(Point p) {
-        return lairs.get(p);
     }
 
 }

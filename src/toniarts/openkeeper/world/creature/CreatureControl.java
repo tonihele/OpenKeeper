@@ -374,6 +374,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         // Unassing any tasks
         unassingCurrentTask();
 
+        // Remove lair
+        if (creatureLair != null) {
+            creatureLair.removeObject();
+        }
+
         Spatial us = getSpatial();
         us.removeFromParent();
     }
@@ -548,8 +553,18 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return creatureLair != null;
     }
 
+    public void removeObject(ObjectControl object) {
+        // TODO: basically we don't own execpt lair, but if we do, we need similar controls as the rooms have
+        if (object.equals(creatureLair)) {
+            creatureLair = null;
+        }
+    }
+
     public void setCreatureLair(ObjectControl creatureLair) {
         this.creatureLair = creatureLair;
+        if (creatureLair != null) {
+            creatureLair.setCreature(this);
+        }
     }
 
     @Override
