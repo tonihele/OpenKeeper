@@ -184,6 +184,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void idle() {
+        unassingCurrentTask();
 
         // Find a random accessible tile nearby and do some idling there
         if (idleAnimationPlayCount > 0) {
