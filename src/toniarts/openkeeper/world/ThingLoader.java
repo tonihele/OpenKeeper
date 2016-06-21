@@ -148,12 +148,37 @@ public class ThingLoader {
         return root;
     }
 
+    /**
+     * Add room type gold
+     *
+     * @param p the point to add
+     * @param playerId the player id, the owner
+     * @param initialAmount the amount of gold
+     * @return the gold object
+     */
     public GoldObjectControl addRoomGold(Point p, short playerId, int initialAmount) {
         // TODO: the room gold object id..
         Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, initialAmount, 0, (short) 3, playerId);
-        objects.add(object.getControl(ObjectControl.class));
+        GoldObjectControl control = object.getControl(GoldObjectControl.class);
+        objects.add(control);
         nodeObjects.attachChild(object);
-        return null;
+        return control;
+    }
+
+    /**
+     * Add an object
+     *
+     * @param p the point to add
+     * @param objectId the object id
+     * @param playerId the player id, the owner
+     * @return the object contol
+     */
+    public ObjectControl addObject(Point p, short objectId, short playerId) {
+        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, 0, 0, objectId, playerId);
+        ObjectControl control = object.getControl(ObjectControl.class);
+        objects.add(control);
+        nodeObjects.attachChild(object);
+        return control;
     }
 
     public List<CreatureControl> getCreatures() {
