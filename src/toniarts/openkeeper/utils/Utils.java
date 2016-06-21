@@ -132,6 +132,9 @@ public class Utils {
      * @return random item from the list
      */
     public static <T> T getRandomItem(List<T> list) {
+        if (list.size() == 1) {
+            return list.get(0);
+        }
         return list.get(random.nextInt(list.size()));
     }
 
