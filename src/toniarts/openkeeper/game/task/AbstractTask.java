@@ -69,6 +69,15 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
     }
 
     /**
+     * Unassing a creature from the job. A place for doing some cleanup
+     *
+     * @param creature
+     */
+    public void unassign(CreatureControl creature) {
+
+    }
+
+    /**
      * How many workers have already been assigned to this task
      *
      * @return number of assignees on duty

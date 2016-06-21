@@ -27,15 +27,13 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
  */
 public abstract class Treasury extends Normal {
 
-    private final RoomGoldControl goldControl;
-
     public Treasury(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, roomInstance, direction);
 
-        this.goldControl = new RoomGoldControl(this) {
+        addObjectControl(new RoomGoldControl(this) {
 
             @Override
-            protected int getGoldPerTile() {
+            protected int getObjectsPerTile() {
                 return Treasury.this.getGoldPerTile();
             }
 
@@ -43,12 +41,7 @@ public abstract class Treasury extends Normal {
             protected int getNumberOfAccessibleTiles() {
                 return roomInstance.getCoordinates().size();
             }
-        };
-    }
-
-    @Override
-    public RoomGoldControl getGoldControl() {
-        return goldControl;
+        });
     }
 
     protected abstract int getGoldPerTile();

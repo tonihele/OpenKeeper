@@ -37,8 +37,10 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
 
     @Override
     public boolean isValid() {
-        // TODO:
-        return !executed;
+        if (!executed) {
+            return super.isValid();
+        }
+        return false;
     }
 
     @Override
@@ -49,6 +51,11 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
     @Override
     protected String getStringId() {
         return "2786";
+    }
+
+    @Override
+    protected GenericRoom.ObjectType getRoomObjectType() {
+        return GenericRoom.ObjectType.GOLD;
     }
 
     @Override

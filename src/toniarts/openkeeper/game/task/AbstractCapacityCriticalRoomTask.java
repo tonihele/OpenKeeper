@@ -17,39 +17,30 @@
 package toniarts.openkeeper.game.task;
 
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
-import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
 /**
- * A base of a task that involves a room
+ * A base class for tasks that we should keep track off
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractRoomTask extends AbstractTileTask {
+public abstract class AbstractCapacityCriticalRoomTask extends AbstractRoomTask {
 
-    private final GenericRoom room;
+    protected final TaskManager taskManager;
 
-    public AbstractRoomTask(WorldState worldState, int x, int y, short playerId, GenericRoom room) {
-        super(worldState, x, y, playerId);
+    public AbstractCapacityCriticalRoomTask(WorldState worldState, int x, int y, short playerId, GenericRoom room, TaskManager taskManager) {
+        super(worldState, x, y, playerId, room);
 
-        this.room = room;
-    }
-
-    protected GenericRoom getRoom() {
-        return room;
+        this.taskManager = taskManager;
     }
 
     @Override
-    public boolean isValid() {
+    public void unassign(CreatureControl creature) {
+        super.unassign(creature);
 
-        // See that the room exists and has capacity etc.
-        return room.getRoomInstance().getOwnerId() == playerId && worldState.getMapLoader().getRoomActuals().containsKey(room.getRoomInstance()) && !getRoomObjectControl().isFullCapacity();
-    }
-
-    protected abstract GenericRoom.ObjectType getRoomObjectType();
-
-    protected RoomObjectControl getRoomObjectControl() {
-        return getRoom().getObjectControl(getRoomObjectType());
+        // Remove us
+        taskManager.removeRoomTask(this);
     }
 
 }

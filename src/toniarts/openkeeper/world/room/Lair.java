@@ -18,6 +18,7 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.room.control.RoomLairControl;
 
 /**
  * The lair
@@ -28,6 +29,18 @@ public class Lair extends Normal {
 
     public Lair(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, roomInstance, direction);
+        addObjectControl(new RoomLairControl(this) {
+
+            @Override
+            protected int getObjectsPerTile() {
+                return 1;
+            }
+
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                return roomInstance.getCoordinates().size();
+            }
+        });
     }
 
     @Override

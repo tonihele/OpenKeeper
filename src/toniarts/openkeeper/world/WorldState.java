@@ -72,6 +72,7 @@ import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.listener.TileChangeListener;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
+import toniarts.openkeeper.world.room.control.RoomGoldControl;
 
 /**
  * Handles the handling of game world, physics & visual wise
@@ -150,7 +151,7 @@ public abstract class WorldState extends AbstractAppState {
             if (roomEntry.getValue().canStoreGold()) {
                 Keeper keeper = gameState.getPlayer(roomEntry.getKey().getOwnerId());
                 if (keeper != null) {
-                    keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + roomEntry.getValue().getGoldControl().getMaxGoldCapacity());
+                    keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + roomEntry.getValue().getObjectControl(GenericRoom.ObjectType.GOLD).getMaxCapacity());
                 }
             }
         }
@@ -249,6 +250,10 @@ public abstract class WorldState extends AbstractAppState {
      */
     public MapLoader getMapLoader() {
         return mapLoader;
+    }
+
+    public ThingLoader getThingLoader() {
+        return thingLoader;
     }
 
     public Node getWorld() {
@@ -1136,7 +1141,8 @@ public abstract class WorldState extends AbstractAppState {
             if (roomInstance != null) {
                 GenericRoom room = getMapLoader().getRoomActuals().get(roomInstance);
                 if (room.canStoreGold()) {
-                    sum = room.getGoldControl().addGold(sum, p, thingLoader);
+                    RoomGoldControl control = room.getObjectControl(GenericRoom.ObjectType.GOLD);
+                    sum = control.addItem(sum, p, thingLoader, null);
                 } else {
                     // TODO: generate loose gold
                 }
@@ -1148,7 +1154,8 @@ public abstract class WorldState extends AbstractAppState {
             // Distribute the gold
             for (Entry<RoomInstance, GenericRoom> roomEntry : getMapLoader().getRoomActuals().entrySet()) {
                 if (roomEntry.getKey().getOwnerId() == playerId && roomEntry.getValue().canStoreGold()) {
-                    sum = roomEntry.getValue().getGoldControl().addGold(sum, p, thingLoader);
+                    RoomGoldControl control = roomEntry.getValue().getObjectControl(GenericRoom.ObjectType.GOLD);
+                    sum = control.addItem(sum, p, thingLoader, null);
                     if (sum == 0) {
                         break;
                     }
@@ -1183,7 +1190,8 @@ public abstract class WorldState extends AbstractAppState {
         GenericRoom room = mapLoader.getRoomActuals().get(instance);
         if (room.canStoreGold()) {
             Keeper keeper = gameState.getPlayer(instance.getOwnerId());
-            keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() - room.getGoldControl().getMaxGoldCapacity());
+            RoomGoldControl control = room.getObjectControl(GenericRoom.ObjectType.GOLD);
+            keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() - control.getMaxCapacity());
         }
     }
 
@@ -1191,7 +1199,8 @@ public abstract class WorldState extends AbstractAppState {
         GenericRoom room = mapLoader.getRoomActuals().get(instance);
         if (room.canStoreGold()) {
             Keeper keeper = gameState.getPlayer(instance.getOwnerId());
-            keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + room.getGoldControl().getMaxGoldCapacity());
+            RoomGoldControl control = room.getObjectControl(GenericRoom.ObjectType.GOLD);
+            keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + control.getMaxCapacity());
         }
     }
 

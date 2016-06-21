@@ -21,7 +21,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.world.ThingLoader;
+import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.GoldObjectControl;
+import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
@@ -31,33 +33,17 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomGoldControl {
+public abstract class RoomGoldControl extends RoomObjectControl {
 
-    private final GenericRoom parent;
     private int storedGold = 0;
     private final Map<Point, GoldObjectControl> goldPiles = new HashMap<>();
 
     public RoomGoldControl(GenericRoom parent) {
-        this.parent = parent;
+        super(parent);
     }
 
-    protected abstract int getGoldPerTile();
-
-    protected abstract int getNumberOfAccessibleTiles();
-
-    public int getMaxGoldCapacity() {
-        return getGoldPerTile() * getNumberOfAccessibleTiles();
-    }
-
-    /**
-     * Add gold to room
-     *
-     * @param sum the sum to add
-     * @param p preferred dropping point for the gold
-     * @param thingLoader thing loader for displaying the actual gold
-     * @return the gold that doesn't fit
-     */
-    public int addGold(int sum, Point p, ThingLoader thingLoader) {
+    @Override
+    public int addItem(int sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
         if (p != null) {
             sum = putGold(sum, p, thingLoader);
         }
@@ -81,8 +67,8 @@ public abstract class RoomGoldControl {
         if (goldPile != null) {
             pointStoredGold = goldPile.getGold();
         }
-        if (pointStoredGold < getGoldPerTile()) {
-            int goldToStore = Math.min(sum, getGoldPerTile() - pointStoredGold);
+        if (pointStoredGold < getObjectsPerTile()) {
+            int goldToStore = Math.min(sum, getObjectsPerTile() - pointStoredGold);
             pointStoredGold += goldToStore;
             sum -= goldToStore;
             storedGold += goldToStore;
@@ -100,8 +86,19 @@ public abstract class RoomGoldControl {
         return sum;
     }
 
-    public int getStoredGold() {
+    @Override
+    public int getCurrentCapacity() {
         return storedGold;
+    }
+
+    @Override
+    public ObjectControl getItem(Point p) {
+        return goldPiles.get(p);
+    }
+
+    @Override
+    public GenericRoom.ObjectType getObjectType() {
+        return GenericRoom.ObjectType.GOLD;
     }
 
 }

@@ -32,6 +32,7 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
 import toniarts.openkeeper.game.task.worker.ClaimRoomTask;
 import toniarts.openkeeper.game.task.worker.ClaimTileTask;
@@ -55,6 +56,7 @@ public class TaskManager {
 
     private final WorldState worldState;
     private final Map<Short, Set<AbstractTask>> taskQueues;
+    private final Map<GenericRoom, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
     private static final Logger logger = Logger.getLogger(TaskManager.class.getName());
 
     public TaskManager(WorldState worldState, short... playerIds) {
@@ -207,28 +209,25 @@ public class TaskManager {
         // See if the creature's player lacks of gold
         Keeper player = worldState.getGameState().getPlayer(creature.getOwnerId());
         if (!player.getGoldControl().isFullCapacity()) {
-            return assignClosestRoomTask(creature);
+            return assignClosestRoomTask(creature, GenericRoom.ObjectType.GOLD);
         }
         return false;
     }
 
     /**
-     * Assigns closest room task to a given creature of requested type. TODO:
-     * the type, should be general, enum, etc. Now only gold. And somekind of
-     * factory.
+     * Assigns closest room task to a given creature of requested type
      *
      * @param creature the creature to assign to
+     * @param objectType the type of room service
      * @return true if the task was assigned
      */
-    public boolean assignClosestRoomTask(CreatureControl creature) {
+    public boolean assignClosestRoomTask(CreatureControl creature, GenericRoom.ObjectType objectType) {
         Point currentPosition = creature.getCreatureCoordinates();
 
         // Get all the rooms of the given type
         Map<Integer, GenericRoom> distancesToRooms = new TreeMap<>();
         for (GenericRoom room : worldState.getMapLoader().getRoomActuals().values()) {
-
-            // TODO: type
-            if (room.getRoomInstance().getOwnerId() == creature.getOwnerId() && room.canStoreGold() && !room.isFullCapacity()) {
+            if (room.getRoomInstance().getOwnerId() == creature.getOwnerId() && room.hasObjectControl(objectType) && !room.isFullCapacity()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[room.getRoomInstance().getCoordinates().size()])), room
                 );
             }
@@ -242,8 +241,10 @@ public class TaskManager {
             // FIXME: now just eliminate the non-accessible ones
             List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
             Iterator<Point> iter = coordinates.iterator();
+            Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(room);
             while (iter.hasNext()) {
-                if (!room.isTileAccessible(iter.next())) {
+                Point p = iter.next();
+                if (!room.isTileAccessible(p) || (taskPoints != null && taskPoints.containsKey(p))) {
                     iter.remove();
                 }
             }
@@ -252,7 +253,14 @@ public class TaskManager {
             if (path != null || target == creature.getCreatureCoordinates()) {
 
                 // Assign the task
-                AbstractTask task = new CarryGoldToTreasuryTask(worldState, target.x, target.y, creature.getOwnerId(), room);
+                AbstractTask task = getRoomTask(objectType, target, creature, room);
+                if (task instanceof AbstractCapacityCriticalRoomTask) {
+                    if (taskPoints == null) {
+                        taskPoints = new HashMap<>();
+                    }
+                    taskPoints.put(target, (AbstractCapacityCriticalRoomTask) task);
+                    roomTasks.put(room, taskPoints);
+                }
                 task.assign(creature);
                 return true;
             }
@@ -275,6 +283,26 @@ public class TaskManager {
 
     private static int calculateDistance(Point currentPosition, Point p) {
         return Math.abs(currentPosition.x - p.x) + Math.abs(currentPosition.y - p.y);
+    }
+
+    private AbstractTask getRoomTask(GenericRoom.ObjectType objectType, Point target, CreatureControl creature, GenericRoom room) {
+        switch (objectType) {
+            case GOLD: {
+                return new CarryGoldToTreasuryTask(worldState, target.x, target.y, creature.getOwnerId(), room);
+            }
+            case LAIR: {
+                return new ClaimLair(worldState, target.x, target.y, creature.getOwnerId(), room, this);
+            }
+        }
+        return null;
+    }
+
+    protected void removeRoomTask(AbstractCapacityCriticalRoomTask task) {
+        Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(task.getRoom());
+        taskPoints.remove(task.getTaskLocation());
+        if (taskPoints.isEmpty()) {
+            roomTasks.remove(task.getRoom());
+        }
     }
 
 }

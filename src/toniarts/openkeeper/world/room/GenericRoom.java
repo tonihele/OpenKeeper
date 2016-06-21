@@ -24,6 +24,8 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -31,7 +33,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
-import toniarts.openkeeper.world.room.control.RoomGoldControl;
+import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
 /**
  * Base class for all rooms
@@ -39,6 +41,12 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class GenericRoom {
+
+    public enum ObjectType {
+
+        GOLD, LAIR;
+
+    };
 
     protected final AssetManager assetManager;
     protected final RoomInstance roomInstance;
@@ -48,6 +56,8 @@ public abstract class GenericRoom {
     private final String tooltip;
     private static String notOwnedTooltip = null;
     protected final EffectManager effectManager;
+    private ObjectType defaultObjectType;
+    private final Map<ObjectType, RoomObjectControl> objectControls = new HashMap<>();
 
     public GenericRoom(AssetManager assetManager, EffectManager effectManager,
             RoomInstance roomInstance, Thing.Room.Direction direction) {
@@ -279,23 +289,28 @@ public abstract class GenericRoom {
                 + "/" + model + ".j3o", false);
     }
 
+    protected void addObjectControl(RoomObjectControl control) {
+        objectControls.put(control.getObjectType(), control);
+        if (defaultObjectType == null) {
+            defaultObjectType = control.getObjectType();
+        }
+    }
+
+    public boolean hasObjectControl(ObjectType objectType) {
+        return objectControls.containsKey(objectType);
+    }
+
+    public <T extends RoomObjectControl> T getObjectControl(ObjectType objectType) {
+        return (T) objectControls.get(objectType);
+    }
+
     /**
      * Can store gold to the room?
      *
      * @return can store gold
      */
     public boolean canStoreGold() {
-        return getGoldControl() != null;
-    }
-
-    /**
-     * Get the room gold control
-     *
-     * @see #canStoreGold()
-     * @return the gold control
-     */
-    public RoomGoldControl getGoldControl() {
-        return null;
+        return hasObjectControl(ObjectType.GOLD);
     }
 
     /**
@@ -304,8 +319,9 @@ public abstract class GenericRoom {
      * @return room max capacity
      */
     protected int getMaxCapacity() {
-        if (canStoreGold()) {
-            return getGoldControl().getMaxGoldCapacity();
+        RoomObjectControl control = getDefaultRoomObjectControl();
+        if (control != null) {
+            return control.getMaxCapacity();
         }
         return 0;
     }
@@ -316,10 +332,18 @@ public abstract class GenericRoom {
      * @return the used capacity of the room
      */
     protected int getUsedCapacity() {
-        if (canStoreGold()) {
-            return getGoldControl().getStoredGold();
+        RoomObjectControl control = getDefaultRoomObjectControl();
+        if (control != null) {
+            return control.getCurrentCapacity();
         }
         return 0;
+    }
+
+    private RoomObjectControl getDefaultRoomObjectControl() {
+        if (defaultObjectType != null) {
+            return objectControls.get(defaultObjectType);
+        }
+        return null;
     }
 
     public RoomInstance getRoomInstance() {

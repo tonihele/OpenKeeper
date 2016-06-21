@@ -28,8 +28,8 @@ import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
-import toniarts.openkeeper.world.room.control.RoomGoldControl;
 import toniarts.openkeeper.world.room.control.PlugControl;
+import toniarts.openkeeper.world.room.control.RoomGoldControl;
 
 /**
  * Constructs 5 by 5 "rotated" buildings. As far as I know, only Dungeon Heart
@@ -41,15 +41,14 @@ public abstract class FiveByFiveRotated extends GenericRoom {
     private int centreDecay = -1;
     private boolean destroyed = false;
     private boolean created = false;
-    private final RoomGoldControl goldControl;
 
     public FiveByFiveRotated(AssetManager assetManager, EffectManager effectManager,
             RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, effectManager, roomInstance, direction);
-        this.goldControl = new RoomGoldControl(this) {
+        addObjectControl(new RoomGoldControl(this) {
 
             @Override
-            protected int getGoldPerTile() {
+            protected int getObjectsPerTile() {
                 return FiveByFiveRotated.this.getGoldPerTile();
             }
 
@@ -57,12 +56,7 @@ public abstract class FiveByFiveRotated extends GenericRoom {
             protected int getNumberOfAccessibleTiles() {
                 return 8;
             }
-        };
-    }
-
-    @Override
-    public RoomGoldControl getGoldControl() {
-        return goldControl;
+        });
     }
 
     protected abstract int getGoldPerTile();
