@@ -153,8 +153,7 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                             @Override
                             public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
 
-                                // Hide us
-                                control.getSpatial().setCullHint(Spatial.CullHint.Always);
+                                // Stop us
                                 control.setEnabled(false);
 
                                 // Signal stop
@@ -185,12 +184,15 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                             // See if we need to stop
                             if (creatureControl.isStopAnimation() || channel.getLoopMode() == LoopMode.DontLoop) {
 
-                                // Hide us
-                                control.getSpatial().setCullHint(Spatial.CullHint.Always);
+                                // Stop us
                                 control.setEnabled(false);
 
                                 // We need to stop
                                 if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
+
+                                    // Hide us
+                                    control.getSpatial().setCullHint(Spatial.CullHint.Always);
+
                                     Spatial spat = creatureRoot.getChild(END_ANIMATION_NAME);
                                     AnimControl animControl = (AnimControl) spat.getControl(0);
                                     spat.setCullHint(Spatial.CullHint.Inherit);
