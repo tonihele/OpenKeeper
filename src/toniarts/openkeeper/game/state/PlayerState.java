@@ -373,7 +373,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 if (creatureCard == null) {
                     createPlayerCreatureIcon(creature.getCreature(), amount, nifty, hud, creaturePanel);// Create
                 } else {
-                    creatureCard.setUserData("total", amount);
+                    Label totalLabel = creatureCard.findNiftyControl("#total", Label.class);
+                    totalLabel.setText(Integer.toString(amount));
                 }
             }
 
@@ -389,7 +390,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 if (amount == 0) {
                     creatureCard.markForRemoval(); // Remove
                 } else {
-                    creatureCard.setUserData("total", amount);
+                    Label totalLabel = creatureCard.findNiftyControl("#total", Label.class);
+                    totalLabel.setText(Integer.toString(amount));
                 }
             }
         });
