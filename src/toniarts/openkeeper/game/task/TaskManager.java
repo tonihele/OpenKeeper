@@ -248,21 +248,25 @@ public class TaskManager {
                     iter.remove();
                 }
             }
-            Point target = Utils.getRandomItem(coordinates);
-            GraphPath<TileData> path = worldState.findPath(creature.getCreatureCoordinates(), target, creature.getCreature());
-            if (path != null || target == creature.getCreatureCoordinates()) {
 
-                // Assign the task
-                AbstractTask task = getRoomTask(objectType, target, creature, room);
-                if (task instanceof AbstractCapacityCriticalRoomTask) {
-                    if (taskPoints == null) {
-                        taskPoints = new HashMap<>();
+            // Assign
+            if (!coordinates.isEmpty()) {
+                Point target = Utils.getRandomItem(coordinates);
+                GraphPath<TileData> path = worldState.findPath(creature.getCreatureCoordinates(), target, creature.getCreature());
+                if (path != null || target == creature.getCreatureCoordinates()) {
+
+                    // Assign the task
+                    AbstractTask task = getRoomTask(objectType, target, creature, room);
+                    if (task instanceof AbstractCapacityCriticalRoomTask) {
+                        if (taskPoints == null) {
+                            taskPoints = new HashMap<>();
+                        }
+                        taskPoints.put(target, (AbstractCapacityCriticalRoomTask) task);
+                        roomTasks.put(room, taskPoints);
                     }
-                    taskPoints.put(target, (AbstractCapacityCriticalRoomTask) task);
-                    roomTasks.put(room, taskPoints);
+                    task.assign(creature);
+                    return true;
                 }
-                task.assign(creature);
-                return true;
             }
         }
 
