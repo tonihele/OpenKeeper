@@ -90,7 +90,6 @@ public class GameState extends AbstractPauseAwareState {
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
-        super.initialize(stateManager, app);
         this.app = (Main) app;
         this.stateManager = stateManager;
 
@@ -166,14 +165,17 @@ public class GameState extends AbstractPauseAwareState {
             @Override
             public void onLoadComplete() {
 
-                // Set the processors
-                GameState.this.app.setViewProcessors();
-
                 // Enable player state
                 GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);
                 GameState.this.stateManager.getState(ActionPointState.class).setEnabled(true);
                 GameState.this.stateManager.getState(PartytState.class).setEnabled(true);
                 GameState.this.stateManager.getState(SoundState.class).setEnabled(true);
+
+                // Set initialized
+                initialized = true;
+
+                // Set the processors
+                GameState.this.app.setViewProcessors();
             }
         };
         stateManager.attach(loader);
