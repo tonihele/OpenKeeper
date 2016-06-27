@@ -38,6 +38,7 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.task.AbstractTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -91,7 +92,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private AbstractTask assignedTask;
     private AnimationType playingAnimationType = AnimationType.IDLE;
     private ObjectControl creatureLair;
+
+    // Good creature specific stuff
     private Party party;
+    private Thing.HeroParty.Objective objective;
+    private ActionPoint objectiveTargetActionPoint;
+    //
 
     public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldState worldState) {
         super(creature);
@@ -122,6 +128,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             health = (int) (((GoodCreature) creatureInstance).getInitialHealth() / 100f * health);
             level = ((GoodCreature) creatureInstance).getLevel();
             ownerId = Player.GOOD_PLAYER_ID;
+            objective = ((GoodCreature) creatureInstance).getObjective();
+            if (((GoodCreature) creatureInstance).getObjectiveTargetActionPointId() != 0) {
+                objectiveTargetActionPoint = worldState.getGameState().getActionPointState().getActionPoint(((GoodCreature) creatureInstance).getObjectiveTargetActionPointId());
+            }
         } else if (creatureInstance instanceof NeutralCreature) {
             health = (int) (((NeutralCreature) creatureInstance).getInitialHealth() / 100f * health);
             level = ((NeutralCreature) creatureInstance).getLevel();
@@ -283,9 +293,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 // Different work animations
                 // TODO: The tasks should have the animation
                 playingAnimationType = AnimationType.WORK;
-                ArtResource anim = assignedTask.getTaskAnimation(this);
-                if (anim != null) {
-                    playAnimation(anim);
+                if (assignedTask != null && assignedTask.getTaskAnimation(this) != null) {
+                    playAnimation(assignedTask.getTaskAnimation(this));
                 } else {
                     onAnimationCycleDone();
                 }
@@ -581,6 +590,24 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public void setParty(Party party) {
         this.party = party;
+    }
+
+    public boolean hasObjective() {
+        return objective != null && objective != Thing.HeroParty.Objective.NONE;
+    }
+
+    public Thing.HeroParty.Objective getObjective() {
+        return objective;
+    }
+
+    public ActionPoint getObjectiveTargetActionPoint() {
+        return objectiveTargetActionPoint;
+    }
+
+    public boolean followObjective() {
+
+        // See if we have some available work
+        return (worldState.getTaskManager().assignObjectiveTask(this, objective));
     }
 
     @Override
