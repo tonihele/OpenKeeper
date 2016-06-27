@@ -116,11 +116,14 @@ public class GameState extends AbstractPauseAwareState {
                         }
                     }
 
+                    GameState.this.stateManager.attach(new ActionPointState(false));
+                    setProgress(0.20f);
+
                     // Create the actual level
                     WorldState worldState = new WorldState(kwdFile, assetManager, GameState.this) {
                         @Override
                         protected void updateProgress(int progress, int max) {
-                            setProgress(0.1f + ((float) progress / max * 0.5f));
+                            setProgress(0.2f + ((float) progress / max * 0.6f));
                         }
                     };
 
@@ -132,9 +135,6 @@ public class GameState extends AbstractPauseAwareState {
 
                     GameState.this.stateManager.attach(new SoundState(false));
                     setProgress(0.60f);
-
-                    GameState.this.stateManager.attach(new ActionPointState(false));
-                    setProgress(0.70f);
 
                     GameState.this.stateManager.attach(new PartyState(false));
                     setProgress(0.80f);
@@ -185,9 +185,9 @@ public class GameState extends AbstractPauseAwareState {
     public void cleanup() {
 
         // Detach
+        stateManager.detach(stateManager.getState(WorldState.class));
         stateManager.detach(stateManager.getState(ActionPointState.class));
         stateManager.detach(stateManager.getState(PartyState.class));
-        stateManager.detach(stateManager.getState(WorldState.class));
         stateManager.detach(stateManager.getState(SoundState.class));
 
         super.cleanup();
