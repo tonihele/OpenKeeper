@@ -172,7 +172,7 @@ public class GameState extends AbstractPauseAwareState {
                 GameState.this.stateManager.getState(SoundState.class).setEnabled(true);
 
                 // Set initialized
-                initialized = true;
+                GameState.this.initialized = true;
 
                 // Set the processors
                 GameState.this.app.setViewProcessors();
