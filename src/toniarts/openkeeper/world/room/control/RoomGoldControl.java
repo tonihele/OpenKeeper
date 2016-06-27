@@ -94,4 +94,13 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
         return GenericRoom.ObjectType.GOLD;
     }
 
+    @Override
+    public void destroy() {
+
+        // Delete all gold
+        removeAllObjects();
+
+        // TODO: Create some loose gold
+    }
+
 }

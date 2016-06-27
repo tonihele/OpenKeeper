@@ -58,6 +58,7 @@ public abstract class GenericRoom {
     protected final EffectManager effectManager;
     private ObjectType defaultObjectType;
     private final Map<ObjectType, RoomObjectControl> objectControls = new HashMap<>();
+    private boolean destroyed = false;
 
     public GenericRoom(AssetManager assetManager, EffectManager effectManager,
             RoomInstance roomInstance, Thing.Room.Direction direction) {
@@ -302,6 +303,29 @@ public abstract class GenericRoom {
 
     public <T extends RoomObjectControl> T getObjectControl(ObjectType objectType) {
         return (T) objectControls.get(objectType);
+    }
+
+    /**
+     * Destroy the room, marks the room as destroyed and releases all the
+     * controls. The room <strong>should not</strong> be used after this.
+     */
+    public void destroy() {
+        destroyed = true;
+
+        // Destroy the controls
+        for (RoomObjectControl control : objectControls.values()) {
+            control.destroy();
+        }
+    }
+
+    /**
+     * Is this room instance destroyed? Not in the world anymore.
+     *
+     * @see #destroy()
+     * @return is the room destroyed
+     */
+    public boolean isDestroyed() {
+        return destroyed;
     }
 
     /**

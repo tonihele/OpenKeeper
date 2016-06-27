@@ -17,7 +17,9 @@
 package toniarts.openkeeper.world.room.control;
 
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -43,9 +45,24 @@ public abstract class RoomObjectControl<T extends ObjectControl> {
 
     protected abstract int getNumberOfAccessibleTiles();
 
+    /**
+     * Get the room currently used capacity
+     *
+     * @return the currently used capacity in number of objects
+     */
     public abstract int getCurrentCapacity();
 
+    /**
+     * Get the type of object that can be stored in here
+     *
+     * @return the object type
+     */
     public abstract GenericRoom.ObjectType getObjectType();
+
+    /**
+     * When the room gets destroyed, controls need to be destroyed
+     */
+    public abstract void destroy();
 
     /**
      * Add item to room
@@ -68,6 +85,11 @@ public abstract class RoomObjectControl<T extends ObjectControl> {
         return objects.get(p);
     }
 
+    /**
+     * Get the max capacity of the room
+     *
+     * @return max capacity in number of objects
+     */
     public int getMaxCapacity() {
         return getObjectsPerTile() * getNumberOfAccessibleTiles();
     }
@@ -88,6 +110,16 @@ public abstract class RoomObjectControl<T extends ObjectControl> {
      */
     public void removeItem(T object) {
         objects.values().remove(object);
+    }
+
+    /**
+     * Removes all objects (for real)
+     */
+    protected void removeAllObjects() {
+        List<ObjectControl> objectList = new ArrayList<>(objects.values());
+        for (ObjectControl obj : objectList) {
+            obj.removeObject();
+        }
     }
 
 }

@@ -43,7 +43,7 @@ public abstract class AbstractRoomTask extends AbstractTileTask {
     public boolean isValid() {
 
         // See that the room exists and has capacity etc.
-        return room.getRoomInstance().getOwnerId() == playerId && worldState.getMapLoader().getRoomActuals().containsKey(room.getRoomInstance()) && !getRoomObjectControl().isFullCapacity();
+        return room.getRoomInstance().getOwnerId() == playerId && !room.isDestroyed() && !getRoomObjectControl().isFullCapacity();
     }
 
     protected abstract GenericRoom.ObjectType getRoomObjectType();

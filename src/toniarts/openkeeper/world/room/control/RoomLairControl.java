@@ -54,4 +54,11 @@ public abstract class RoomLairControl extends RoomObjectControl<ObjectControl> {
         return 0;
     }
 
+    @Override
+    public void destroy() {
+
+        // Just release all the lairs
+        removeAllObjects();
+    }
+
 }

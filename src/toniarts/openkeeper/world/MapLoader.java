@@ -912,6 +912,11 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             roomsNode.detachChild(roomNodes.get(instance));
             roomNodes.remove(instance);
             rooms.remove(instance);
+
+            // Signal the room
+            GenericRoom room = roomActuals.get(instance);
+            room.destroy();
+
             roomActuals.remove(instance);
             for (Point p : instance.getCoordinates()) {
                 roomCoordinates.remove(p);
