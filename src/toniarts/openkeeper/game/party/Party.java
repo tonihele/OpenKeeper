@@ -25,8 +25,6 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  *
  * @author ArchDemon
  */
-
-
 public class Party extends Container {
 
     public enum Type implements IValueEnum {
@@ -45,10 +43,10 @@ public class Party extends Container {
         }
         private final int id;
     };
-    private int id;
-    private int triggerId;
-    private String name;
-    private List<Thing.GoodCreature> members;
+    private final int id;
+    private final int triggerId;
+    private final String name;
+    private final List<Thing.GoodCreature> members;
     private Type type;
     private boolean created = false;
 
@@ -86,4 +84,9 @@ public class Party extends Container {
     public List<Thing.GoodCreature> getMembers() {
         return members;
     }
+
+    public String getName() {
+        return name;
+    }
+
 }
