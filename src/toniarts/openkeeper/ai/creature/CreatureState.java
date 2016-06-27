@@ -41,6 +41,12 @@ public enum CreatureState implements State<CreatureControl> {
 
                 private boolean findStuffToDo(CreatureControl entity) {
 
+                    // See if we have an objective
+                    if (entity.hasObjective() && entity.followObjective()) {
+                        entity.getStateMachine().changeState(CreatureState.WORK);
+                        return true;
+                    }
+
                     // Find work
                     if (entity.isWorker() && entity.findWork()) {
                         entity.getStateMachine().changeState(CreatureState.WORK);
