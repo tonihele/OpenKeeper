@@ -132,7 +132,7 @@ public class ThingLoader {
 
                 }
             } catch (Exception ex) {
-                logger.log(Level.WARNING, "Could not load Thing.", ex.fillInStackTrace());
+                logger.log(Level.WARNING, "Could not load Thing.", ex);
             }
         }
 
