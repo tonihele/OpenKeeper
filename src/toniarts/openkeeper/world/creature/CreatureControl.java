@@ -19,10 +19,12 @@ package toniarts.openkeeper.world.creature;
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.ai.steer.behaviors.Cohesion;
 import com.badlogic.gdx.ai.steer.behaviors.FollowPath;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance;
 import com.badlogic.gdx.ai.steer.behaviors.Wander;
+import com.badlogic.gdx.ai.steer.proximities.InfiniteProximity;
 import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
 import com.badlogic.gdx.ai.steer.utils.paths.LinePath.LinePathParam;
 import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
@@ -36,8 +38,11 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.action.ActionPoint;
+import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.task.AbstractTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -90,6 +95,14 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private AbstractTask assignedTask;
     private AnimationType playingAnimationType = AnimationType.IDLE;
     private ObjectControl creatureLair;
+    private CreatureControl followTarget;
+
+    // Good creature specific stuff
+    private Party party;
+    private Thing.HeroParty.Objective objective;
+    private ActionPoint objectiveTargetActionPoint;
+    private EnumSet<Thing.Creature.CreatureFlag> flags;
+    //
 
     public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldState worldState) {
         super(creature);
@@ -120,6 +133,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             health = (int) (((GoodCreature) creatureInstance).getInitialHealth() / 100f * health);
             level = ((GoodCreature) creatureInstance).getLevel();
             ownerId = Player.GOOD_PLAYER_ID;
+            objective = ((GoodCreature) creatureInstance).getObjective();
+            if (((GoodCreature) creatureInstance).getObjectiveTargetActionPointId() != 0) {
+                objectiveTargetActionPoint = worldState.getGameState().getActionPointState().getActionPoint(((GoodCreature) creatureInstance).getObjectiveTargetActionPointId());
+            }
+            flags = ((GoodCreature) creatureInstance).getFlags();
         } else if (creatureInstance instanceof NeutralCreature) {
             health = (int) (((NeutralCreature) creatureInstance).getInitialHealth() / 100f * health);
             level = ((NeutralCreature) creatureInstance).getLevel();
@@ -281,9 +299,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 // Different work animations
                 // TODO: The tasks should have the animation
                 playingAnimationType = AnimationType.WORK;
-                ArtResource anim = assignedTask.getTaskAnimation(this);
-                if (anim != null) {
-                    playAnimation(anim);
+                if (assignedTask != null && assignedTask.getTaskAnimation(this) != null) {
+                    playAnimation(assignedTask.getTaskAnimation(this));
                 } else {
                     onAnimationCycleDone();
                 }
@@ -571,6 +588,82 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (creatureLair != null) {
             creatureLair.setCreature(this);
         }
+    }
+
+    public Party getParty() {
+        return party;
+    }
+
+    public void setParty(Party party) {
+        this.party = party;
+    }
+
+    public boolean hasObjective() {
+        return objective != null && objective != Thing.HeroParty.Objective.NONE;
+    }
+
+    public Thing.HeroParty.Objective getObjective() {
+        return objective;
+    }
+
+    public ActionPoint getObjectiveTargetActionPoint() {
+        return objectiveTargetActionPoint;
+    }
+
+    public boolean followObjective() {
+
+        // See if we have some available work
+        return (worldState.getTaskManager().assignObjectiveTask(this, objective));
+    }
+
+    /**
+     * Get creature instance specifig flags
+     *
+     * @return set of creature flags
+     */
+    public EnumSet<Thing.Creature.CreatureFlag> getFlags() {
+        return flags;
+    }
+
+    /**
+     * Set follow mode
+     *
+     * @param target the target to follow
+     * @return true if it is valid to follow it
+     */
+    public boolean followTarget(CreatureControl target) {
+        if (target != null) {
+            followTarget = target;
+            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+
+            // Create proximity
+            Array<CreatureControl> creatures;
+            if (party != null) {
+                creatures = new Array<>(party.getActualMembers().size());
+                for (CreatureControl cr : party.getActualMembers()) {
+                    creatures.add(cr);
+                }
+            } else {
+                creatures = new Array<>(2);
+                creatures.add(target);
+                creatures.add(this);
+            }
+
+            // Hmm, proximity should be the same instance? Gotten from the party?
+            Cohesion<Vector2> cohersion = new Cohesion<>(this, new InfiniteProximity<Vector2>(this, creatures));
+            prioritySteering.add(cohersion);
+
+            setSteeringBehavior(prioritySteering);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Sets the target to follow to null. A cleanup method.
+     */
+    public void resetFollowTarget() {
+        followTarget = null;
     }
 
     @Override

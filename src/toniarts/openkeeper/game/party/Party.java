@@ -16,17 +16,17 @@
  */
 package toniarts.openkeeper.game.party;
 
+import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.game.control.Container;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  *
  * @author ArchDemon
  */
-
-
 public class Party extends Container {
 
     public enum Type implements IValueEnum {
@@ -45,10 +45,11 @@ public class Party extends Container {
         }
         private final int id;
     };
-    private int id;
-    private int triggerId;
-    private String name;
-    private List<Thing.GoodCreature> members;
+    private final int id;
+    private final int triggerId;
+    private final String name;
+    private final List<Thing.GoodCreature> members;
+    private final List<CreatureControl> actualMembers;
     private Type type;
     private boolean created = false;
 
@@ -57,6 +58,7 @@ public class Party extends Container {
         name = heroParty.getName();
         triggerId = heroParty.getTriggerId();
         members = heroParty.getHeroPartyMembers();
+        actualMembers = new ArrayList<>(members.size());
     }
 
     public int getId() {
@@ -83,7 +85,42 @@ public class Party extends Container {
         this.type = type;
     }
 
+    /**
+     * Get members
+     *
+     * @see #getActualMembers()
+     * @return the members
+     */
     public List<Thing.GoodCreature> getMembers() {
         return members;
     }
+
+    public void addMemberInstance(CreatureControl creatureInstance) {
+        actualMembers.add(creatureInstance);
+    }
+
+    /**
+     * Get the party members, as real instances, if the party has been created
+     *
+     * @return the member instances
+     */
+    public List<CreatureControl> getActualMembers() {
+        return actualMembers;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Get the leader of this party
+     *
+     * @return party leader instance
+     */
+    public CreatureControl getPartyLeader() {
+
+        // TODO: now just the first one, and check if he is alive
+        return getActualMembers().get(0);
+    }
+
 }

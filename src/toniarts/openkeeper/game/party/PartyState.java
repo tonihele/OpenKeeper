@@ -30,16 +30,16 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 
 
-public class PartytState extends AbstractAppState {
+public class PartyState extends AbstractAppState {
 
     private AppStateManager stateManager;
     private Main app;
     private HashMap<Integer, Party> parties = null;
 
-    public PartytState() {
+    public PartyState() {
     }
 
-    public PartytState(boolean enabled) {
+    public PartyState(boolean enabled) {
         super.setEnabled(false);
     }
 

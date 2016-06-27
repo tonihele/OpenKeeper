@@ -126,9 +126,8 @@ public class AssetUtils {
 
                 // Add to cache
                 assetCache.addToCache(assetKey, mat);
-
-                return mat.clone();
             }
+            return mat.clone();
         }
         return null;
     }

@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.party.Party;
-import toniarts.openkeeper.game.party.PartytState;
+import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.player.PlayerCameraControl;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
@@ -36,13 +36,14 @@ import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerAction.FlagTargetValueActionType;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.view.PlayerCameraState;
+import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  *
  * @author ArchDemon
  */
-
 public class TriggerControl extends Control {
 
     protected TriggerGenericData trigger;
@@ -236,12 +237,12 @@ public class TriggerControl extends Control {
                 party.setType(ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Party.Type.class));
                 ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
 
-                //KwdFile kwdFile = stateManager.getState(GameState.class).getLevelData();
-                //BulletAppState bulletState = stateManager.getState(BulletAppState.class);
-                //AssetManager assetManager = app.getAssetManager();
+                // Load the party members
+                ThingLoader loader = stateManager.getState(WorldState.class).getThingLoader();
                 for (Thing.GoodCreature creature : party.getMembers()) {
-                    // TODO create
-                    //GameCreature c = CreatureLoader.load(creature, bulletState, assetManager, kwdFile);
+                    CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter());
+                    creatureInstance.setParty(party);
+                    party.addMemberInstance(creatureInstance);
                 }
                 party.setCreated(true);
                 break;
@@ -390,7 +391,7 @@ public class TriggerControl extends Control {
     }
 
     protected Party getParty(int id) {
-        return stateManager.getState(PartytState.class).getParty(id);
+        return stateManager.getState(PartyState.class).getParty(id);
     }
 
     private int getTargetValue(int base, int value, EnumSet<FlagTargetValueActionType> flagType) {

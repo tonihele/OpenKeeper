@@ -18,6 +18,7 @@ package toniarts.openkeeper.ai.creature;
 
 import com.badlogic.gdx.ai.fsm.State;
 import com.badlogic.gdx.ai.msg.Telegram;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
@@ -40,6 +41,17 @@ public enum CreatureState implements State<CreatureControl> {
                 }
 
                 private boolean findStuffToDo(CreatureControl entity) {
+
+                    // See if we should just follow
+                    if (entity.getParty() != null && entity.getFlags().contains(Thing.Creature.CreatureFlag.FOLLOWER) && entity.followTarget(entity.getParty().getPartyLeader())) {
+                        entity.getStateMachine().changeState(CreatureState.FOLLOW);
+                    }
+
+                    // See if we have an objective
+                    if (entity.hasObjective() && entity.followObjective()) {
+                        entity.getStateMachine().changeState(CreatureState.WORK);
+                        return true;
+                    }
 
                     // Find work
                     if (entity.isWorker() && entity.findWork()) {
@@ -196,6 +208,28 @@ public enum CreatureState implements State<CreatureControl> {
                 @Override
                 public void exit(CreatureControl entity) {
 
+                }
+
+                @Override
+                public boolean onMessage(CreatureControl entity, Telegram telegram) {
+                    return true;
+                }
+
+            }, FOLLOW {
+
+                @Override
+                public void enter(CreatureControl entity) {
+
+                }
+
+                @Override
+                public void update(CreatureControl entity) {
+
+                }
+
+                @Override
+                public void exit(CreatureControl entity) {
+                    entity.resetFollowTarget();
                 }
 
                 @Override
