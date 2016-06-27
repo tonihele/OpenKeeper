@@ -62,6 +62,7 @@ public class SendToActionPoint extends AbstractTileTask {
 
     @Override
     public void executeTask(CreatureControl creature) {
+        // TODO: Wait delay
         executed = true;
         if (actionPoint.getNextWaypointId() != 0) {
 
