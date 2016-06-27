@@ -1009,7 +1009,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     public void quitToMainMenu() {
 
         // Disable us, detach game and enable start
-        stateManager.detach(stateManager.getState(GameState.class));
+        stateManager.getState(GameState.class).detach();
         setEnabled(false);
         stateManager.getState(MainMenuState.class).setEnabled(true);
     }

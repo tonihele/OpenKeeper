@@ -181,14 +181,28 @@ public class GameState extends AbstractPauseAwareState {
         stateManager.attach(loader);
     }
 
-    @Override
-    public void cleanup() {
-
-        // Detach
+    private void detachRelatedAppStates() {
         stateManager.detach(stateManager.getState(WorldState.class));
         stateManager.detach(stateManager.getState(ActionPointState.class));
         stateManager.detach(stateManager.getState(PartyState.class));
         stateManager.detach(stateManager.getState(SoundState.class));
+    }
+
+    /**
+     * If you are getting rid of the game state, use this so that all the
+     * related states are detached on the same render loop. Otherwise the app
+     * might crash.
+     */
+    public void detach() {
+        stateManager.detach(this);
+        detachRelatedAppStates();
+    }
+
+    @Override
+    public void cleanup() {
+
+        // Detach
+        detachRelatedAppStates();
 
         super.cleanup();
     }
