@@ -33,12 +33,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
+import toniarts.openkeeper.game.task.objective.SendToActionPoint;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
 import toniarts.openkeeper.game.task.worker.ClaimRoomTask;
 import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
 import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
@@ -307,6 +309,24 @@ public class TaskManager {
         if (taskPoints.isEmpty()) {
             roomTasks.remove(task.getRoom());
         }
+    }
+
+    /**
+     * Assign a task according to the creature's objectives
+     *
+     * @param creature the creature
+     * @param objective the objective
+     * @return true if the objective task could be accomplished
+     */
+    public boolean assignObjectiveTask(CreatureControl creature, Thing.HeroParty.Objective objective) {
+        switch (objective) {
+            case SEND_TO_ACTION_POINT: {
+                AbstractTask task = new SendToActionPoint(worldState, creature.getObjectiveTargetActionPoint(), creature.getOwnerId());
+                task.assign(creature);
+                return true;
+            }
+        }
+        return false;
     }
 
 }
