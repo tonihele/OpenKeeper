@@ -38,6 +38,7 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.task.AbstractTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -90,6 +91,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private AbstractTask assignedTask;
     private AnimationType playingAnimationType = AnimationType.IDLE;
     private ObjectControl creatureLair;
+    private Party party;
 
     public CreatureControl(Thing.Creature creatureInstance, Creature creature, WorldState worldState) {
         super(creature);
@@ -571,6 +573,14 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (creatureLair != null) {
             creatureLair.setCreature(this);
         }
+    }
+
+    public Party getParty() {
+        return party;
+    }
+
+    public void setParty(Party party) {
+        this.party = party;
     }
 
     @Override
