@@ -17,6 +17,7 @@
 package toniarts.openkeeper.world;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector2f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
@@ -121,15 +122,7 @@ public class ThingLoader {
         for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
             try {
                 if (obj instanceof Thing.Creature) {
-
-                    Thing.Creature cr = (Thing.Creature) obj;
-                    Spatial creature = creatureLoader.load(assetManager, cr);
-                    CreatureControl creatureControl = creature.getControl(CreatureControl.class);
-                    creatures.add(creatureControl);
-                    nodeCreatures.attachChild(creature);
-
-                    // Notify spawn
-                    creatureControl.onSpawn(creatureControl);
+                    spawnCreature((Thing.Creature) obj, null);
                 } else if (obj instanceof Thing.Object) {
 
                     Thing.Object objectThing = (Thing.Object) obj;
@@ -146,6 +139,28 @@ public class ThingLoader {
         root.attachChild(nodeCreatures);
         root.attachChild(nodeObjects);
         return root;
+    }
+
+    /**
+     * Spawn a creature
+     *
+     * @param cr creature data
+     * @param position the position to spawn to, may be {@code null}
+     * @return the actual spawned creature
+     */
+    public CreatureControl spawnCreature(Thing.Creature cr, Vector2f position) {
+        Spatial creature = creatureLoader.load(assetManager, cr);
+        if (position != null) {
+            CreatureLoader.setPosition(creature, position);
+        }
+        CreatureControl creatureControl = creature.getControl(CreatureControl.class);
+        creatures.add(creatureControl);
+        nodeCreatures.attachChild(creature);
+
+        // Notify spawn
+        creatureControl.onSpawn(creatureControl);
+
+        return creatureControl;
     }
 
     /**

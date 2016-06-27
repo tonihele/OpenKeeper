@@ -21,6 +21,7 @@ import com.jme3.animation.AnimControl;
 import com.jme3.animation.AnimEventListener;
 import com.jme3.animation.LoopMode;
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector2f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Level;
@@ -284,6 +285,13 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                 animControl.setEnabled(false);
             }
         }
+    }
+
+    public static void setPosition(Spatial creature, Vector2f position) {
+        creature.setLocalTranslation(
+                position.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
+                0 * MapLoader.TILE_HEIGHT,
+                position.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
     }
 
 }
