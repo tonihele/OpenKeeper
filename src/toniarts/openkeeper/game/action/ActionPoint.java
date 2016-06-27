@@ -25,17 +25,15 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  *
  * @author ArchDemon
  */
-
-
 public class ActionPoint extends Container {
 
-    private int id;
-    private int triggerId;
-    private Vector2f start;
-    private Vector2f end;
-    private EnumSet<Thing.ActionPoint.ActionPointFlag> flags;
-    private int waitDelay;
-    private int nextWaypointId;
+    private final int id;
+    private final int triggerId;
+    private final Vector2f start;
+    private final Vector2f end;
+    private final EnumSet<Thing.ActionPoint.ActionPointFlag> flags;
+    private final int waitDelay;
+    private final int nextWaypointId;
 
     public ActionPoint(Thing.ActionPoint acionPoint) {
         id = acionPoint.getId();
