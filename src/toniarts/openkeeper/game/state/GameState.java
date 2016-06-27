@@ -276,4 +276,8 @@ public class GameState extends AbstractPauseAwareState {
     public boolean isPauseable() {
         return true;
     }
+
+    public ActionPointState getActionPointState() {
+        return stateManager.getState(ActionPointState.class);
+    }
 }
