@@ -36,13 +36,14 @@ import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerAction.FlagTargetValueActionType;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.view.PlayerCameraState;
+import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  *
  * @author ArchDemon
  */
-
 public class TriggerControl extends Control {
 
     protected TriggerGenericData trigger;
@@ -236,12 +237,11 @@ public class TriggerControl extends Control {
                 party.setType(ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Party.Type.class));
                 ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
 
-                //KwdFile kwdFile = stateManager.getState(GameState.class).getLevelData();
-                //BulletAppState bulletState = stateManager.getState(BulletAppState.class);
-                //AssetManager assetManager = app.getAssetManager();
+                // Load the party members
+                ThingLoader loader = stateManager.getState(WorldState.class).getThingLoader();
                 for (Thing.GoodCreature creature : party.getMembers()) {
-                    // TODO create
-                    //GameCreature c = CreatureLoader.load(creature, bulletState, assetManager, kwdFile);
+                    CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter());
+                    creatureInstance.setParty(party);
                 }
                 party.setCreated(true);
                 break;
