@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.party.Party;
-import toniarts.openkeeper.game.party.PartytState;
+import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.player.PlayerCameraControl;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
@@ -390,7 +390,7 @@ public class TriggerControl extends Control {
     }
 
     protected Party getParty(int id) {
-        return stateManager.getState(PartytState.class).getParty(id);
+        return stateManager.getState(PartyState.class).getParty(id);
     }
 
     private int getTargetValue(int base, int value, EnumSet<FlagTargetValueActionType> flagType) {

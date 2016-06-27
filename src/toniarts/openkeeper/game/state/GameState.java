@@ -31,7 +31,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.party.PartytState;
+import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
@@ -136,7 +136,7 @@ public class GameState extends AbstractPauseAwareState {
                     GameState.this.stateManager.attach(new ActionPointState(false));
                     setProgress(0.70f);
 
-                    GameState.this.stateManager.attach(new PartytState(false));
+                    GameState.this.stateManager.attach(new PartyState(false));
                     setProgress(0.80f);
 
                     // Trigger data
@@ -168,7 +168,7 @@ public class GameState extends AbstractPauseAwareState {
                 // Enable player state
                 GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);
                 GameState.this.stateManager.getState(ActionPointState.class).setEnabled(true);
-                GameState.this.stateManager.getState(PartytState.class).setEnabled(true);
+                GameState.this.stateManager.getState(PartyState.class).setEnabled(true);
                 GameState.this.stateManager.getState(SoundState.class).setEnabled(true);
 
                 // Set initialized
@@ -186,7 +186,7 @@ public class GameState extends AbstractPauseAwareState {
 
         // Detach
         stateManager.detach(stateManager.getState(ActionPointState.class));
-        stateManager.detach(stateManager.getState(PartytState.class));
+        stateManager.detach(stateManager.getState(PartyState.class));
         stateManager.detach(stateManager.getState(WorldState.class));
         stateManager.detach(stateManager.getState(SoundState.class));
 
