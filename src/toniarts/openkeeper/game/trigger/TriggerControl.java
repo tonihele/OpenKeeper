@@ -242,6 +242,7 @@ public class TriggerControl extends Control {
                 for (Thing.GoodCreature creature : party.getMembers()) {
                     CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter());
                     creatureInstance.setParty(party);
+                    party.addMemberInstance(creatureInstance);
                 }
                 party.setCreated(true);
                 break;
