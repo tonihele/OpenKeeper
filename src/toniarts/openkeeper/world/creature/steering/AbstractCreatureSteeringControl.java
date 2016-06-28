@@ -21,9 +21,11 @@ import com.badlogic.gdx.ai.steer.SteeringAcceleration;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.Vector2;
+import com.jme3.app.Application;
 import com.jme3.bounding.BoundingBox;
-import com.jme3.math.Vector3f;
+import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
+import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
@@ -31,21 +33,22 @@ import toniarts.openkeeper.tools.convert.map.Creature;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractCreatureSteeringControl extends AbstractControl implements Steerable<Vector2> {
+public abstract class AbstractCreatureSteeringControl extends AbstractControl implements Steerable<Vector2>, IGameLogicUpdateable {
 
     protected final Creature creature;
     protected SteeringBehavior<Vector2> steeringBehavior;
     private static final SteeringAcceleration<Vector2> steeringOutput = new SteeringAcceleration<>(new Vector2());
     private final Vector2 position = new Vector2();
+    private float orientation = 0;
     private final Vector2 linearVelocity = new Vector2();
     private float angularVelocity;
-    private float boundingRadius;
     private boolean tagged;
     private boolean independentFacing = false;
     private float maxLinearSpeed = 1;
     private float maxLinearAcceleration = 2;
     private float maxAngularSpeed = 0.1f;
     private float maxAngularAcceleration = 0.1f;
+    private volatile boolean applySteering = false;
 
     public AbstractCreatureSteeringControl(Creature creature) {
         this.creature = creature;
@@ -54,7 +57,26 @@ public abstract class AbstractCreatureSteeringControl extends AbstractControl im
     }
 
     @Override
+    public void setSpatial(Spatial spatial) {
+        super.setSpatial(spatial);
+
+        // Init the position
+        position.set(getSpatial().getLocalTranslation().x, getSpatial().getLocalTranslation().z);
+        orientation = getSpatial().getLocalRotation().getY();
+    }
+
+    @Override
     protected void controlUpdate(float tpf) {
+
+        // Set the actual location to where we believe it is
+        if (applySteering) {
+            applySteering = false;
+            getSpatial().setLocalTranslation(position.x, 0, position.y);
+            getSpatial().setLocalRotation(getSpatial().getLocalRotation().fromAngles(0, -orientation, 0));
+        }
+    }
+
+    public void processSteeringTick(float tpf, Application app) {
         if (steeringBehavior != null) {
 
             // Calculate steering acceleration
@@ -69,13 +91,14 @@ public abstract class AbstractCreatureSteeringControl extends AbstractControl im
              */
             // Apply steering acceleration
             applySteering(steeringOutput, tpf);
+            applySteering = true;
         }
     }
 
     protected void applySteering(SteeringAcceleration<Vector2> steering, float tpf) {
 
         // Update position and linear velocity. Velocity is trimmed to maximum speed
-        getSpatial().setLocalTranslation(getSpatial().getLocalTranslation().addLocal(linearVelocity.x * tpf, 0, linearVelocity.y * tpf));
+        position.add(linearVelocity.x * tpf, linearVelocity.y * tpf);
         linearVelocity.mulAdd(steering.linear, tpf).limit(getMaxLinearSpeed());
 
         // We are done
@@ -100,20 +123,17 @@ public abstract class AbstractCreatureSteeringControl extends AbstractControl im
 
     @Override
     public Vector2 getPosition() {
-        Vector3f pos = getSpatial().getLocalTranslation();
-        position.x = pos.x;
-        position.y = pos.z;
         return position;
     }
 
     @Override
     public float getOrientation() {
-        return getSpatial().getLocalRotation().getY();
+        return orientation;
     }
 
     @Override
     public void setOrientation(float orientation) {
-        getSpatial().setLocalRotation(getSpatial().getLocalRotation().fromAngles(0, -orientation, 0));
+        this.orientation = orientation;
     }
 
     @Override
