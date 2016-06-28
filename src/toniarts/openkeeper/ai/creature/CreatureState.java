@@ -55,7 +55,7 @@ public enum CreatureState implements State<CreatureControl> {
                     }
 
                     // Find work
-                    if (entity.isWorker() && entity.findWork()) {
+                    if (entity.isWorker() && (entity.findWork() || (entity.isTooMuchGold() && entity.dropGoldToTreasury()))) {
                         entity.getStateMachine().changeState(CreatureState.WORK);
                         return true; // Found work
                     }
