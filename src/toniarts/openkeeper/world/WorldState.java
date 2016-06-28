@@ -64,6 +64,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.creature.CreatureLoader;
 import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
 import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
 import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
@@ -213,6 +214,21 @@ public abstract class WorldState extends AbstractAppState {
         stateManager.detach(stateManager.getState(BulletAppState.class));
 
         super.cleanup();
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+
+        // Stop all the animations
+        for (CreatureControl creature : getThingLoader().getCreatures()) {
+            creature.setEnabled(enabled);
+            if (enabled) {
+                CreatureLoader.resumeAnimations(creature.getSpatial());
+            } else {
+                CreatureLoader.pauseAnimations(creature.getSpatial());
+            }
+        }
     }
 
     public AssetManager getAssetManager() {
