@@ -18,7 +18,6 @@ package toniarts.openkeeper.game.task.objective;
 
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.action.ActionPoint;
-import toniarts.openkeeper.game.task.AbstractTask;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.world.WorldState;
@@ -66,10 +65,8 @@ public class SendToActionPoint extends AbstractTileTask {
         executed = true;
         if (actionPoint.getNextWaypointId() != 0) {
 
-            // Assign new task
-            AbstractTask task = new SendToActionPoint(worldState, worldState.getGameState().getActionPointState().getActionPoint(actionPoint.getNextWaypointId()), creature.getOwnerId());
-            task.assign(creature);
-            creature.navigateToAssignedTask();
+            // Assign new objective
+            creature.setObjectiveTargetActionPoint(worldState.getGameState().getActionPointState().getActionPoint(actionPoint.getNextWaypointId()));
         }
     }
 

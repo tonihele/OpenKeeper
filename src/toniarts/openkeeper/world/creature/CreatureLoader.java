@@ -292,6 +292,37 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                 position.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
                 0 * MapLoader.TILE_HEIGHT,
                 position.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
+
+        // Need to re-adjust the steering
+        CreatureControl creatureControl = creature.getControl(CreatureControl.class);
+        creatureControl.setSpatial(creature);
+    }
+
+    /**
+     * Restarts all animations that were playing
+     *
+     * @param spatial the root node of the creature
+     */
+    public static void resumeAnimations(Spatial spatial) {
+        setAnimSpeeds((Node) spatial, 1.0f);
+    }
+
+    /**
+     * Stops all animations that were playing
+     *
+     * @param spatial the root node of the creature
+     */
+    public static void pauseAnimations(Spatial spatial) {
+        setAnimSpeeds((Node) spatial, 0.0f);
+    }
+
+    private static void setAnimSpeeds(Node node, float speed) {
+        for (Spatial child : node.getChildren()) {
+            AnimControl animControl = (AnimControl) child.getControl(AnimControl.class);
+            if (animControl != null) {
+                animControl.getChannel(0).setSpeed(speed);
+            }
+        }
     }
 
 }

@@ -31,6 +31,7 @@ import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
 import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import com.jme3.app.Application;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
@@ -150,9 +151,19 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     @Override
     protected void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
+
+        // Set the appropriate animation
+        playStateAnimation();
+    }
+
+    @Override
+    public void processTick(float tpf, Application app) {
         if (stateMachine.getCurrentState() == null) {
             stateMachine.changeState(CreatureState.IDLE);
         }
+
+        // Update attributes
+        updateAttributes(tpf);
 
         // Set the time in state
         if (stateMachine.getCurrentState() != null) {
@@ -164,18 +175,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             }
         }
 
-        //FIXME: ticks
-        lastStateUpdateTime += tpf;
-        if (lastStateUpdateTime >= 0.250) {
-            lastStateUpdateTime -= 0.250;
-            stateMachine.update();
-        }
-
-        // Update attributes
-        updateAttributes(tpf);
-
-        // Set the appropriate animation
-        playStateAnimation();
+        // Update state machine
+        stateMachine.update();
     }
 
     @Override
@@ -608,6 +609,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public ActionPoint getObjectiveTargetActionPoint() {
         return objectiveTargetActionPoint;
+    }
+
+    public void setObjectiveTargetActionPoint(ActionPoint objectiveTargetActionPoint) {
+        this.objectiveTargetActionPoint = objectiveTargetActionPoint;
     }
 
     public boolean followObjective() {
