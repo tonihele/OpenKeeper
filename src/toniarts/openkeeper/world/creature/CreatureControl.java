@@ -203,17 +203,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         setSteeringBehavior(prioritySteering);
     }
 
-    public void idle() {
-        unassingCurrentTask();
-
-        // Find a random accessible tile nearby and do some idling there
-        if (idleAnimationPlayCount > 0) {
-            navigateToRandomPoint();
-            idleAnimationPlayCount = 0;
-        }
-    }
-
-    private void navigateToRandomPoint() {
+    public void navigateToRandomPoint() {
         Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, creature);
         if (p != null) {
             GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, creature);
@@ -228,6 +218,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 followPath.setArrivalTolerance(0.2f);
                 prioritySteering.add(followPath);
 
+                prioritySteering.setEnabled(!isAnimationPlaying());
                 setSteeringBehavior(prioritySteering);
             }
         }
@@ -253,7 +244,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     boolean isStopAnimation() {
         // FIXME: not very elegant to check this way
-        return (steeringBehavior == null || (stateMachine.getCurrentState() == CreatureState.WORK && isAssignedTaskValid()));
+        return (steeringBehavior == null || !steeringBehavior.isEnabled() || (stateMachine.getCurrentState() == CreatureState.WORK && isAssignedTaskValid()));
+    }
+
+    private boolean isAnimationPlaying() {
+        return animationPlaying;
     }
 
     /**
@@ -261,11 +256,13 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     void onAnimationStop() {
         animationPlaying = false;
-        if (stateMachine.getCurrentState() == CreatureState.IDLE && idleAnimationPlayCount > 0) {
 
-            // Find a new target
-            idle();
-        } else if (stateMachine.getCurrentState() == CreatureState.SLAPPED) {
+        // If steering is set, enable it
+        if (steeringBehavior != null && !steeringBehavior.isEnabled()) {
+            steeringBehavior.setEnabled(true);
+        }
+
+        if (stateMachine.getCurrentState() == CreatureState.SLAPPED) {
 
             // Return to previous state
             stateMachine.revertToPreviousState();
@@ -278,12 +275,16 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         }
     }
 
+    public int getIdleAnimationPlayCount() {
+        return idleAnimationPlayCount;
+    }
+
     /**
      * An animation cycle is finished
      */
     void onAnimationCycleDone() {
 
-        if (stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid()) {
+        if (isStopped() && stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid()) {
 
             // Different work based reactions
             assignedTask.executeTask(this);
@@ -317,10 +318,13 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 if (idleAnimations.size() > 1) {
                     idleAnim = Utils.getRandomItem(idleAnimations);
                 }
-                idleAnimationPlayCount++;
                 playAnimation(idleAnim);
+                idleAnimationPlayCount++;
                 playingAnimationType = AnimationType.IDLE;
+                return;
             }
+
+            idleAnimationPlayCount = 0;
         }
     }
 
@@ -443,6 +447,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 followPath.setArrivalTolerance(0.2f);
                 prioritySteering.add(followPath);
 
+                prioritySteering.setEnabled(!isAnimationPlaying());
                 setSteeringBehavior(prioritySteering);
             }
         }
@@ -456,7 +461,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         assignedTask = task;
     }
 
-    private void unassingCurrentTask() {
+    public void unassingCurrentTask() {
         if (assignedTask != null) {
             assignedTask.unassign(this);
         }
@@ -475,6 +480,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public boolean isAssignedTaskValid() {
         // FIXME: yep
         return (assignedTask != null && assignedTask.isValid());
+    }
+
+    public boolean isStopped() {
+        return (steeringBehavior == null);
     }
 
     private boolean isNear(Vector2f target) {

@@ -35,8 +35,9 @@ public enum CreatureState implements State<CreatureControl> {
                 public void enter(CreatureControl entity) {
 
                     // Idling is the last resort
+                    entity.unassingCurrentTask();
                     if (!findStuffToDo(entity)) {
-                        entity.idle();
+                        entity.navigateToRandomPoint();
                     }
                 }
 
@@ -70,11 +71,10 @@ public enum CreatureState implements State<CreatureControl> {
 
                 @Override
                 public void update(CreatureControl entity) {
-                    findStuffToDo(entity);
 
-//                    if (entity.idleTimeExceeded()) {
-//                        entity.getStateMachine().changeState(WANDER);
-//                    }
+                    if (!findStuffToDo(entity) && entity.getIdleAnimationPlayCount() > 0 && entity.isStopped()) {
+                        entity.navigateToRandomPoint();
+                    }
                 }
 
                 @Override

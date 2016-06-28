@@ -77,7 +77,7 @@ public abstract class AbstractCreatureSteeringControl extends AbstractControl im
     }
 
     public void processSteeringTick(float tpf, Application app) {
-        if (steeringBehavior != null) {
+        if (steeringBehavior != null && steeringBehavior.isEnabled()) {
 
             // Calculate steering acceleration
             steeringBehavior.calculateSteering(steeringOutput);
