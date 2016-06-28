@@ -25,12 +25,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.logic.CreatureLogicState;
+import toniarts.openkeeper.game.logic.GameLogicThread;
+import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
+import toniarts.openkeeper.game.logic.MovementThread;
 import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
@@ -39,6 +45,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 import toniarts.openkeeper.world.WorldState;
 
 /**
@@ -46,7 +53,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameState extends AbstractPauseAwareState {
+public class GameState extends AbstractPauseAwareState implements IGameLogicUpdateable {
 
     private Main app;
 
@@ -64,6 +71,8 @@ public class GameState extends AbstractPauseAwareState {
     private Float timeLimit = null;
     private TaskManager taskManager;
     private final Map<Short, Keeper> players = new HashMap<>();
+    private PauseableScheduledThreadPoolExecutor exec;
+    private static final float MOVEMENT_UPDATE_TPF = 0.02f;
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
 
     /**
@@ -154,6 +163,18 @@ public class GameState extends AbstractPauseAwareState {
                         setProgress(0.90f);
                     }
 
+                    // Game logic thread & movement
+                    exec = new PauseableScheduledThreadPoolExecutor(2, true);
+                    exec.setThreadFactory(new ThreadFactory() {
+
+                        @Override
+                        public Thread newThread(Runnable r) {
+                            return new Thread(r, "GameLogicAndMovementThread");
+                        }
+                    });
+                    exec.scheduleAtFixedRate(new GameLogicThread(GameState.this.app, 1.0f / kwdFile.getGameLevel().getTicksPerSec(), GameState.this, new CreatureLogicState(worldState.getThingLoader())), 0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
+                    exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()), 0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
+
                     setProgress(1.0f);
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Failed to load the game!", e);
@@ -176,9 +197,25 @@ public class GameState extends AbstractPauseAwareState {
 
                 // Set the processors
                 GameState.this.app.setViewProcessors();
+
+                // Enable game logic thread
+                exec.resume();
             }
         };
         stateManager.attach(loader);
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+
+        // Game logic thread
+        if (enabled) {
+            exec.resume();
+        } else {
+            exec.pause();
+        }
+        stateManager.getState(WorldState.class).setEnabled(enabled);
     }
 
     private void detachRelatedAppStates() {
@@ -194,6 +231,7 @@ public class GameState extends AbstractPauseAwareState {
      * might crash.
      */
     public void detach() {
+        exec.shutdownNow();
         stateManager.detach(this);
         detachRelatedAppStates();
     }
@@ -202,20 +240,16 @@ public class GameState extends AbstractPauseAwareState {
     public void cleanup() {
 
         // Detach
-        detachRelatedAppStates();
+        detach();
 
         super.cleanup();
     }
 
     @Override
-    public void update(float tpf) {
-        if (!isEnabled() || !isInitialized()) {
-            return;
-        }
+    public void processTick(float tpf, Application app) {
 
         // Update time for AI
         GdxAI.getTimepiece().update(tpf);
-        gameTime += tpf;
 
         if (timeLimit != null && timeLimit > 0) {
             timeLimit -= tpf;
@@ -228,8 +262,6 @@ public class GameState extends AbstractPauseAwareState {
         if (triggerControl != null) {
             triggerControl.update(tpf);
         }
-
-        super.update(tpf);
     }
 
     /**
