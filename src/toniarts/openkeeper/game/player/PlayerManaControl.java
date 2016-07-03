@@ -31,26 +31,26 @@ import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
 /**
- * Ingame player information
- * TODO: use level Variables to get mana lose and gain information
+ * Ingame player information TODO: use level Variables to get mana lose and gain
+ * information
+ *
  * @author ArchDemon
  */
 public class PlayerManaControl extends AbstractControl {
 
     public enum Type {
+
         CURRENT, GET, LOSE;
     }
     private float tick = 0;
     private short playerId;
     private AppStateManager stateManager;
     private Map<Type, Label> listeners = new HashMap();
-
     private int manaCurrent;
     private int manaMax = 200000;
     private int manaGet;  // mana get per second
     private int manaGetBase = 30;  // I think this dungeon heart
     private int manaGetFromTiles = 0;
-
     private int manaLose;  // mana lose per second
     private int manaLosePerImp = 7;  // I don`t find in Creature.java
     private int manaLoseFromCreatures = 0;
@@ -116,7 +116,7 @@ public class PlayerManaControl extends AbstractControl {
                 continue;
             }
 
-            Thing.KeeperCreature creature = ((Thing.KeeperCreature)thing);
+            Thing.KeeperCreature creature = ((Thing.KeeperCreature) thing);
             if (creature.getPlayerId() == this.playerId && creature.getCreatureId() == 1) {
                 result++;
             }
@@ -143,15 +143,13 @@ public class PlayerManaControl extends AbstractControl {
         this.updateManaGet();
         this.updateManaLose();
 
-        this.manaCurrent += this.manaGet - this.manaLose;
+        this.addMana(this.manaGet - this.manaLose);
+    }
 
-        if (this.manaCurrent > this.manaMax) {
-            this.manaCurrent = this.manaMax;
-        }
-
-        if (listeners.containsKey(Type.CURRENT)) {
-            listeners.get(Type.CURRENT).setText(String.format("%s", manaCurrent));
-        }
+    public void addMana(int value) {
+        value = Math.max(0, this.manaCurrent + value);
+        this.manaCurrent = Math.min(value, this.manaMax);
+        updateListerners();
     }
 
     public int getMana() {
@@ -164,6 +162,12 @@ public class PlayerManaControl extends AbstractControl {
 
     public int getManaLose() {
         return this.manaLose;
+    }
+
+    private void updateListerners() {
+        if (listeners.containsKey(Type.CURRENT)) {
+            listeners.get(Type.CURRENT).setText(String.format("%s", manaCurrent));
+        }
     }
 
     public void addListener(Label label, Type type) {
