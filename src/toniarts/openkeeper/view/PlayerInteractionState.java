@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.CheatState;
 import static toniarts.openkeeper.game.state.CheatState.CheatType.MONEY;
 import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -181,7 +182,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
                 switch (cheat) {
                     case MONEY:
-                        getWorldHandler().addGold(player.getPlayerId(), 1000000);
+                        getWorldHandler().addGold(player.getPlayerId(), 100000);
+                        break;
+                    case MANA:
+                        getPlayerState().getManaControl().addMana(100000);
                         break;
                     default:
                         logger.log(Level.WARNING, "Cheat {0} not implemented yet!", cheat.toString());
@@ -342,6 +346,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     @Override
     public void onKeyEvent(KeyInputEvent evt) {
         // FIXME use CTRL + ALT + C to activate cheats!
+        // TODO Disable in multi player!
         if (evt.isPressed() && evt.getKeyCode() == KeyInput.KEY_F12) {
             CheatState cheat = stateManager.getState(CheatState.class);
             if (!cheat.isEnabled()) {
@@ -356,6 +361,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     private WorldState getWorldHandler() {
         return stateManager.getState(WorldState.class);
+    }
+
+    private PlayerState getPlayerState() {
+        return stateManager.getState(PlayerState.class);
     }
 
     /**
