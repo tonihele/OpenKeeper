@@ -43,7 +43,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
     public enum CheatType {
 
         MONEY("show me the money"),
-        MANA("ha ha hisaway ha ha thataway"),
+        MANA("ha ha thisaway ha ha thataway"),
         LEVELUP("feel the power"),
         UNLOCK_ROOMS("this is my church"),
         UNLOCK_SPELLS("i believe its magic"),
@@ -127,12 +127,12 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         if (evt.isPressed()) {
             this.cheat += evt.getKeyChar();
 
-            // Leave Cheatmode if message was incorrect
+            // Leave cheat mode if message was incorrect
             if (!CheatType.hasCheat(cheat)) {
                 this.setEnabled(false);
             }
 
-            // Check if cheatcode already entered completely
+            // Check if cheat code is completely entered
             CheatType cheatCode = CheatType.getCheatType(this.cheat);
             if (cheatCode != null) {
                 logger.log(Level.INFO, "Executing cheat {0}", cheatCode.toString());
