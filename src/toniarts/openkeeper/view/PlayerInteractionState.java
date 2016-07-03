@@ -22,6 +22,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.collision.CollisionResults;
 import com.jme3.font.Rectangle;
 import com.jme3.input.InputManager;
+import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.RawInputListener;
 import com.jme3.input.event.JoyAxisEvent;
@@ -38,10 +39,13 @@ import de.lessvoid.nifty.controls.Label;
 import java.awt.Point;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
+import toniarts.openkeeper.game.state.CheatState;
+import static toniarts.openkeeper.game.state.CheatState.CheatType.MONEY;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -72,11 +76,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     }
     private Main app;
     private GameState gameState;
-
     private AssetManager assetManager;
     private AppStateManager stateManager;
     private InputManager inputManager;
-
     private final Player player;
     private SelectionHandler handler;
     private boolean startSet = false;
@@ -172,6 +174,21 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 }
             }
         };
+
+        CheatState cheatState = new CheatState(app) {
+            @Override
+            public void onSuccess(CheatState.CheatType cheat) {
+
+                switch (cheat) {
+                    case MONEY:
+                        getWorldHandler().addGold(player.getPlayerId(), 1000000);
+                        break;
+                    default:
+                        logger.log(Level.WARNING, "Cheat {0} not implemented yet!", cheat.toString());
+                }
+            }
+        };
+        this.stateManager.attach(cheatState);
 
         // Add listener
         if (isEnabled()) {
@@ -324,6 +341,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     @Override
     public void onKeyEvent(KeyInputEvent evt) {
+        // FIXME use CTRL + ALT + C to activate cheats!
+        if (evt.isPressed() && evt.getKeyCode() == KeyInput.KEY_F12) {
+            CheatState cheat = stateManager.getState(CheatState.class);
+            if (!cheat.isEnabled()) {
+                cheat.setEnabled(true);
+            }
+        }
     }
 
     @Override
