@@ -27,12 +27,18 @@ import com.jme3.network.MessageListener;
 
 
 public class ClientListener implements MessageListener<Client> {
+    private NetworkClient client;
+
+    public ClientListener(NetworkClient client) {
+        this.client = client;
+    }
+    
     @Override
     public void messageReceived(Client source, Message message) {
         if (message instanceof MessageChat) {
             // do something with the message
             MessageChat msg = (MessageChat) message;
-            System.out.println("Client #" + source.getId() + " received: '" + msg.getData() + "'");
+            client.onChatMessageRecive(msg.getData());
         }
     }
 }

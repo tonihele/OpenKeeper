@@ -29,16 +29,14 @@ import com.jme3.input.InputManager;
 import com.jme3.input.KeyNames;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
-import com.jme3.network.Client;
-import com.jme3.network.Network;
-import com.jme3.network.Server;
 import com.jme3.niftygui.NiftyJmeDisplay;
-import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.controls.Chat;
+import de.lessvoid.nifty.controls.ChatTextSendEvent;
 import de.lessvoid.nifty.controls.CheckBox;
 import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
 import de.lessvoid.nifty.controls.DropDown;
@@ -62,8 +60,6 @@ import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -85,13 +81,9 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
-import toniarts.openkeeper.game.network.ClientListener;
-import toniarts.openkeeper.game.network.ClientStateChangeListener;
-import toniarts.openkeeper.game.network.LocalServerSearch;
 import toniarts.openkeeper.game.network.MessageChat;
-import toniarts.openkeeper.game.network.ServerConnectionListener;
-import toniarts.openkeeper.game.network.ServerInfo;
-import toniarts.openkeeper.game.network.ServerListener;
+import toniarts.openkeeper.game.network.NetworkClient;
+import toniarts.openkeeper.game.network.NetworkServer;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
@@ -139,10 +131,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private KwdFile selectedMap;
     private final List<Keeper> skirmishPlayers = new ArrayList<>(4);
     private boolean skirmishMapSelect = false;
-    private Server server = null;
-    private ServerInfo serverInfo = null;
-    private Client client = null;
-    private boolean isServer = true;
+    private NetworkServer server = null;
+    private NetworkClient client = null;
 
     static {
         cutscenes.put("image", "Intro,000,001,002,003,004,005,006,007,008,009,010,011,012,013,014,015,016,017,018,Outro".split(","));
@@ -254,11 +244,11 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             menuNode = null;
         }
 
-        if (server != null && server.isRunning()) {
+        if (server != null) {
             server.close();
         }
 
-        if (client != null && client.isStarted()) {
+        if (client != null) {
             client.close();
         }
 
@@ -425,14 +415,31 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 if (selectedMap == null) {
                     selectRandomMap();
                 }
-                Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
-                title.setText(client.getGameName());
-
-                if (!isServer) {
-                    Element element = screen.findElementById("skirmishGameControl");
-                    element.hide();
-                    element = screen.findElementById("skirmishPlayerControl");
-                    element.hide();
+                                
+                if (client != null) {
+                    ListBox<TableRow> players = screen.findNiftyControl("playersTable", ListBox.class);
+                    if (players != null) {
+                        players.addItem(new TableRow(players.itemCount(), client.getName()));
+                    }
+                    
+                    client.setChat(MainMenuState.this.screen.findNiftyControl("multiplayerChat", Chat.class));
+                    
+                    Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
+                    if (title != null) {
+                        title.setText(client.getClient().getGameName());
+                    }
+                    
+                    if (client.getRole() == NetworkClient.Role.SLAVE) {
+                        // TODO disable map change, add, kick players and other stuf
+                        Element element = screen.findElementById("skirmishGameControl");
+                        if (element != null) {
+                            element.hide();
+                        }
+                        element = screen.findElementById("skirmishPlayerControl");
+                        if (element != null) {
+                            element.hide();
+                        }
+                    }
                 }
                 break;
 
@@ -453,56 +460,37 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
     }
 
-    public void multiplayerCreate() throws UnknownHostException {
-        isServer = true;
+    public void multiplayerCreate() throws IOException {
 
         TextField player = screen.findNiftyControl("playerName", TextField.class);
         TextField game = screen.findNiftyControl("gameName", TextField.class);
         TextField port = screen.findNiftyControl("gamePort", TextField.class);
-        serverInfo = new ServerInfo(game.getRealText(), player.getRealText(), Integer.valueOf(port.getRealText()));
-
-        multiplayerCreateServer();
-
-        InetAddress address = InetAddress.getLocalHost();
-        multiplayerConnectServer(address.getHostName(), serverInfo.getPort());
-    }
-
-    private boolean multiplayerCreateServer() {
+        
         try {
-            if (server == null) {
-                server = Network.createServer(serverInfo.getName(), 1, serverInfo.getPort(), serverInfo.getPort());
-            }
-            server.addMessageListener(new ServerListener(), MessageChat.class);
-            server.addConnectionListener(new ServerConnectionListener());
+            server = new NetworkServer(game.getRealText(), Integer.valueOf(port.getRealText()));            
             server.start();
             logger.info("Server created");
-            return true;
         } catch (IOException ex) {
             logger.log(java.util.logging.Level.SEVERE, null, ex);
             goToScreen("multiplayerLocal");
         }
-        return false;
-    }
-
-    private boolean multiplayerConnectServer(String host, int port) {
+        
+        client = new NetworkClient(player.getRealText());                
+        
         try {
-            if (client == null) {
-                client = Network.connectToServer(host, port);
-            }
-
-            client.addMessageListener(new ClientListener(), MessageChat.class);
-            client.addClientStateListener(new ClientStateChangeListener());
-            client.start();
-            goToScreen("multiplayerCreate");
-            return true;
+            
+            client.start(server.getHost(), server.getPort());
         } catch (IOException ex) {
+            server.close();
             logger.log(java.util.logging.Level.SEVERE, null, ex);
-            //goToScreen("multiplayerLocal");
+            goToScreen("multiplayerLocal");
         }
-        return false;
+        
+        goToScreen("multiplayerCreate");
     }
 
     public void multiplayerRefresh() {
+        /*
         TextField port = screen.findNiftyControl("gamePort", TextField.class);
         int serverPort = Integer.valueOf(port.getRealText());
 
@@ -517,16 +505,17 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             int i = 0;
 
             @Override
-            public void onFound(ServerInfo server) {
+            public void onFound(NetworkServer server) {
                 TableRow row = new TableRow(i++, server.getName(), server.getHost(), server.getPort() + "");
                 games.addItem(row);
             }
         };
         searcher.start();
+        */
     }
 
     public void multiplayerConnect() {
-        isServer = false;
+        /*
         ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
         if (games == null) {
             logger.warning("Element multiplayerGamesTable not found");
@@ -535,18 +524,41 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         TableRow row = games.getFocusItem();
         String host = row.getData().get(1);
         String port = row.getData().get(2);
-
-        multiplayerConnectServer(host, Integer.valueOf(port));
-    }
-
-    public void multiplayerSend() {
-        if (client == null) {
-            logger.warning("Bad");
+        */
+        TextField player = screen.findNiftyControl("playerName", TextField.class);
+        TextField hostAdderss = screen.findNiftyControl("hostAddress", TextField.class);
+        if (player == null || player.getRealText().isEmpty() 
+                || hostAdderss == null || hostAdderss.getRealText().isEmpty()) {
             return;
         }
+        
+        String[] address = hostAdderss.getRealText().split(":");
+        String host = address[0];
+        Integer port = (address.length == 2) ? Integer.valueOf(address[1]) : 7575;
+        
+        client = new NetworkClient(player.getRealText(), NetworkClient.Role.SLAVE);
+        try {
+            
+            client.start(host, port);
+            goToScreen("multiplayerCreate");
 
-        client.send(new MessageChat("ololo"));
+        } catch (IOException ex) {
+            logger.log(java.util.logging.Level.SEVERE, null, ex);
+            //goToScreen("multiplayerLocal");
+        }        
     }
+
+    @NiftyEventSubscriber(id="multiplayerChat")
+    public void onChatTextSend(final String id, final ChatTextSendEvent event) {
+        if (client == null) {
+            logger.warning("Network client not initialized");
+            return;
+        }        
+        
+        // event.getChatControl().addPlayer("ID " + client.getId(), null);
+        // event.getChatControl().receivedChatLine(event.getText(), null);
+        client.getClient().send(new MessageChat(client.getName() + ": " + event.getText()));
+    } 
 
     @Override
     public void onEndScreen() {
@@ -559,16 +571,12 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 break;
             case "multiplayerCreate":
                 if (client != null) {
-                    if (client.isConnected() || client.isStarted()) {
-                        client.close();
-                    }
+                    client.close();
                     client = null;
                 }
 
-                if (server != null) {
-                    if (server.isRunning()) {
-                        server.close();
-                    }
+                if (server != null) {                    
+                    server.close();                    
                     server = null;
                 }
                 break;

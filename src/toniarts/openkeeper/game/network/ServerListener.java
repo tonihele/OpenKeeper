@@ -32,7 +32,7 @@ public class ServerListener implements MessageListener<HostedConnection> {
         if (message instanceof MessageChat) {
             // do something with the message
             MessageChat msg = (MessageChat) message;
-            System.out.println("Server received '" + msg.getData() + "' from client #" + source.getId());
+            source.getServer().broadcast(message);
         }
     } 
 }

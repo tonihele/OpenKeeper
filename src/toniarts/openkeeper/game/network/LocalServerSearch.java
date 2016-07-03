@@ -16,33 +16,35 @@
  */
 package toniarts.openkeeper.game.network;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
- *
+ * @deprecated
  * @author ArchDemon
  */
-
-
 public abstract class LocalServerSearch {
 
     private final static int nThreads = 10;
     private int port = 7575;
     private final ServerQuery[] threads;
-    private final LinkedList<ServerInfo> queue;
-    private List<ServerInfo> servers = new ArrayList();
+    private final LinkedList<NetworkServer> queue;
+    private List<NetworkServer> servers = new ArrayList();
     private static final Logger logger = Logger.getLogger(LocalServerSearch.class.getName());
 
     public LocalServerSearch(int port) {
         this.port = port;
         queue = new LinkedList();
-        threads = new ServerQuery[nThreads];
+        threads = new ServerQuery[nThreads];        
         addLocalHosts();
     }
 
@@ -51,7 +53,7 @@ public abstract class LocalServerSearch {
             threads[i] = new ServerQuery(queue) {
 
                 @Override
-                public void onFound(ServerInfo server) {
+                public void onFound(NetworkServer server) {
                     servers.add(server);
                     LocalServerSearch.this.onFound(server);
                 }
@@ -71,23 +73,42 @@ public abstract class LocalServerSearch {
                         ConversionUtils.toUnsignedByte(ipLan[1]),
                         ConversionUtils.toUnsignedByte(ipLan[2]),
                         i);
-                add(new ServerInfo(host, port));
+                add(new NetworkServer(host, port));
             }
         } catch (UnknownHostException ex) {
             logger.log(java.util.logging.Level.SEVERE, null, ex);
         }
     }
 
-    private void add(ServerInfo r) {
+    private void add(NetworkServer r) {
         synchronized(queue) {
             queue.addLast(r);
             queue.notify();
         }
     }
 
-    public List<ServerInfo> getServers() {
+    public List<NetworkServer> getServers() {
         return servers;
     }
 
-    public abstract void onFound(ServerInfo server);
+    public abstract void onFound(NetworkServer server);
+    
+
+    private void getInterfaces() throws SocketException {
+
+        Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+        while (interfaces.hasMoreElements()) {
+          NetworkInterface ni = (NetworkInterface) interfaces.nextElement();
+          Enumeration addresses = ni.getInetAddresses(); 
+          while (addresses.hasMoreElements()) { 
+            InetAddress address = (InetAddress)addresses.nextElement();
+            if (address instanceof Inet6Address || address.isLoopbackAddress()) {                
+                continue; 
+            }
+            System.out.printf("InetAddress: %s%n", address);
+            //DatagramSocket socket = new DatagramSocket(port, address);
+             //Try to read the broadcast messages from socket here
+          }
+        }
+    }
 }

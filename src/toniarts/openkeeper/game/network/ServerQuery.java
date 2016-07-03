@@ -24,11 +24,11 @@ import java.util.LinkedList;
 import java.util.logging.Logger;
 
 /**
- *
+ * @deprecated 
  * @author ArchDemon
  */
 public abstract class ServerQuery extends Thread {
-    private LinkedList<ServerInfo> queue;
+    private LinkedList<NetworkServer> queue;
     private static final Logger logger = Logger.getLogger(ServerQuery.class.getName());
 
     public ServerQuery(LinkedList queue) {
@@ -37,7 +37,7 @@ public abstract class ServerQuery extends Thread {
 
     @Override
     public void run() {
-        ServerInfo server;
+        NetworkServer server;
 
         while (true) {
             synchronized(queue) {
@@ -61,6 +61,6 @@ public abstract class ServerQuery extends Thread {
         }
     }
 
-    public abstract void onFound(ServerInfo server);
+    public abstract void onFound(NetworkServer server);
 }
 

@@ -30,11 +30,11 @@ public class ServerConnectionListener implements ConnectionListener {
 
     @Override
     public void connectionAdded(Server server, HostedConnection conn) {
-        System.out.println(conn.getId() + " connected");
+        server.broadcast(new MessageChat("Server: connected " + conn.getId()));
     }
 
     @Override
     public void connectionRemoved(Server server, HostedConnection conn) {
-        System.out.println(conn.getId() + " disconnected");
+        server.broadcast(new MessageChat("Server: disconnected " + conn.getId()));
     }
 }
