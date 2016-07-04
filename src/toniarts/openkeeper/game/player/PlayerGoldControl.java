@@ -63,8 +63,9 @@ public class PlayerGoldControl extends AbstractControl {
         if (value < 0) {
             return;
         }
-        gold += value;
-        goldMined += value; // Nope, need to get this some other way
+
+        gold = Math.min(gold + value, goldMax);
+        goldMined = Math.min(goldMined + value, goldMax); // Nope, need to get this some other way
         updateListeners();
     }
 
