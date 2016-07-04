@@ -35,4 +35,6 @@ public interface IInteractiveControl extends Control {
 
     public boolean interact(short playerId);
 
+    public void onHover();
+
 }

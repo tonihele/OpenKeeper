@@ -672,11 +672,30 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return false;
     }
 
+    public int getHealth() {
+        return health;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+
+
     /**
      * Sets the target to follow to null. A cleanup method.
      */
     public void resetFollowTarget() {
         followTarget = null;
+    }
+
+    public void showUnitFlower() {
+        CreatureLoader.showUnitFlower(this);
+    }
+
+    @Override
+    public void onHover() {
+        showUnitFlower();
     }
 
     @Override
