@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.world;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -236,5 +237,15 @@ public class MapThumbnailGenerator {
 
     private static boolean isRoom(Terrain tile) {
         return tile.getFlags().contains(Terrain.TerrainFlag.ROOM);
+    }
+
+    /**
+     * Get player color
+     *
+     * @param playerId the player ID
+     * @return the player color
+     */
+    public static Color getPlayerColor(short playerId) {
+        return new Color(readPalette().getRGB(35 + playerId));
     }
 }
