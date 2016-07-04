@@ -299,7 +299,6 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             } else if (stateMachine.getCurrentState() == CreatureState.WORK) {
 
                 // Different work animations
-                // TODO: The tasks should have the animation
                 playingAnimationType = AnimationType.WORK;
                 if (assignedTask != null && assignedTask.getTaskAnimation(this) != null) {
                     playAnimation(assignedTask.getTaskAnimation(this));
