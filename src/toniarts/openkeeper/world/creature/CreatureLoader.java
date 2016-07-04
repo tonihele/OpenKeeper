@@ -36,6 +36,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.control.AbstractUnitFlowerControl;
 import toniarts.openkeeper.world.listener.CreatureListener;
 
 /**
@@ -89,6 +90,35 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
 
         // Add the creature control
         creatureRoot.addControl(creatureControl);
+
+        // Creature flower
+        AbstractUnitFlowerControl aufc = new AbstractUnitFlowerControl(assetManager) {
+            @Override
+            protected short getOwnerId() {
+                return creatureControl.getOwnerId();
+            }
+
+            @Override
+            protected int getHealthMax() {
+                return creatureControl.getCreature().getHp();
+            }
+
+            @Override
+            protected int getHealthCurrent() {
+                return creatureControl.getHealth();
+            }
+
+            @Override
+            protected String getCenterIcon() {
+                return "Textures/GUI/moods/SL-" + String.format("%02d", creatureControl.getLevel()) + ".png";
+            }
+
+            @Override
+            protected float getHeight() {
+                return creature.getHeight();
+            }
+        };
+        creatureRoot.addControl(aufc);
 
         return creatureRoot;
     }
@@ -248,7 +278,15 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
         Node root = (Node) spatial;
 
         // Attach the anim node and get rid of the rest
-        root.detachAllChildren();
+        AbstractUnitFlowerControl aufc = root.getControl(AbstractUnitFlowerControl.class);
+        for (Spatial child : root.getChildren()) {
+
+            // Don't hide the unit flower
+            if (aufc != null && aufc.getSpatial().equals(child)) {
+                continue;
+            }
+            child.removeFromParent();
+        }
         attachResource(root, root.getControl(CreatureControl.class), anim, assetManager);
 
         // Get the anim node
@@ -276,7 +314,14 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
     }
 
     private static void hideAllNodes(Node root) {
+        AbstractUnitFlowerControl aufc = root.getControl(AbstractUnitFlowerControl.class);
         for (Spatial child : root.getChildren()) {
+
+            // Don't hide the unit flower
+            if (aufc != null && aufc.getSpatial().equals(child)) {
+                continue;
+            }
+
             child.setCullHint(Spatial.CullHint.Always);
 
             // Also stop any animations
@@ -323,6 +368,11 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                 animControl.getChannel(0).setSpeed(speed);
             }
         }
+    }
+
+    static void showUnitFlower(CreatureControl creature) {
+        AbstractUnitFlowerControl aufc = creature.getSpatial().getControl(AbstractUnitFlowerControl.class);
+        aufc.show();
     }
 
 }
