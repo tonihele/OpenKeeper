@@ -69,6 +69,7 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.utils.UTF8Control;
 import toniarts.openkeeper.video.MovieState;
 
@@ -83,11 +84,7 @@ public class Main extends SimpleApplication {
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
     public final static String TITLE = "OpenKeeper";
-    private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
-    private final static String TEST_FILE = AssetsConverter.MAPS_FOLDER.concat("FrontEnd3DLevel.kwd");
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
-    private final static AppSettings appSettings = new AppSettings(false);
-    public final static String SETTINGS_FILE = "openkeeper.properties";
     private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
@@ -163,7 +160,7 @@ public class Main extends SimpleApplication {
         boolean saveSetup = false;
 
         // First and foremost, the folder
-        if (!checkDkFolder(dkIIFolder)) {
+        if (!SettingUtils.checkDkFolder(dkIIFolder)) {
             logger.info("Dungeon Keeper II folder not found or valid! Prompting user!");
             saveSetup = true;
 
@@ -175,7 +172,7 @@ public class Main extends SimpleApplication {
                     if (!path.endsWith(File.separator)) {
                         dkIIFolder = path.concat(File.separator);
                     }
-                    app.getSettings().putString(DKII_FOLDER_KEY, dkIIFolder);
+                    SettingUtils.setDKIIFolder(dkIIFolder);
                     folderOk = true;
                 }
             };
@@ -210,11 +207,7 @@ public class Main extends SimpleApplication {
         // If everything is ok, we might need to save the setup
         boolean result = folderOk && conversionOk;
         if (result && saveSetup) {
-            try {
-                app.getSettings().save(new FileOutputStream(new File(SETTINGS_FILE)));
-            } catch (IOException ex) {
-                Logger.getLogger(Main.class.getName()).log(Level.WARNING, "Settings file failed to save!", ex);
-            }
+            SettingUtils.saveSettings();
         }
 
         return result;
@@ -229,17 +222,8 @@ public class Main extends SimpleApplication {
         // Init the user settings (which in JME are app settings)
         app.getUserSettings();
 
-        // Init the application settings which contain just the conversion & folder data
-        File settingsFile = new File(SETTINGS_FILE);
-        if (settingsFile.exists()) {
-            try {
-                appSettings.load(new FileInputStream(settingsFile));
-            } catch (IOException ex) {
-                logger.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
-            }
-        }
         // DKII settings
-        dkIIFolder = appSettings.getString(DKII_FOLDER_KEY);
+        dkIIFolder = SettingUtils.getDKIIFolder();
     }
 
     /**
@@ -267,28 +251,7 @@ public class Main extends SimpleApplication {
      * @return application settings
      */
     public AppSettings getSettings() {
-        return appSettings;
-    }
-
-    /**
-     * Checks the DK 2 folder validity
-     *
-     * @param folder the supposed DK II folder
-     * @return true if the folder is valid
-     */
-    public static boolean checkDkFolder(String folder) {
-
-        // Throw a simple test to the folder, try to find a test file
-        if (folder != null && !folder.isEmpty() && new File(folder).exists()) {
-            if (!folder.endsWith(File.separator)) {
-                folder = folder.concat(File.separator);
-            }
-            File testFile = new File(folder.concat(TEST_FILE));
-            return testFile.exists();
-        }
-
-        // Better luck next time
-        return false;
+        return SettingUtils.getSettings();
     }
 
     /**

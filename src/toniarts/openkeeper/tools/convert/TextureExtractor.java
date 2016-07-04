@@ -18,6 +18,7 @@ package toniarts.openkeeper.tools.convert;
 
 import java.io.File;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
+import toniarts.openkeeper.utils.SettingUtils;
 
 /**
  *
@@ -25,19 +26,22 @@ import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesF
  */
 public class TextureExtractor {
 
+    private static String dkIIFolder;
+
     public static void main(String[] args) {
 
         //Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 2 || !new File(args[0]).exists()) {
-            throw new RuntimeException("Please provide Dungeon Keeper II root folder as a first parameter! Second parameter is the extraction target folder!");
+            dkIIFolder = SettingUtils.getDKIIFolder();
+            if (dkIIFolder == null)
+            {
+                throw new RuntimeException("Please provide Dungeon Keeper II root folder as a first parameter! Second parameter is the extraction target folder!");
+            }
+        } else {
+            dkIIFolder = SettingUtils.fixFilePath(args[0]);
         }
 
-        //Form the data path
-        String dataDirectory = args[0];
-        if (!dataDirectory.endsWith(File.separator)) {
-            dataDirectory = dataDirectory.concat(File.separator);
-        }
-        dataDirectory = dataDirectory.concat("DK2TextureCache").concat(File.separator);
+        dkIIFolder = dkIIFolder.concat("DK2TextureCache").concat(File.separator);
 
         //And the destination
         String destination = args[1];
@@ -46,7 +50,7 @@ public class TextureExtractor {
         }
 
         //Extract the meshes
-        EngineTexturesFile etFile = new EngineTexturesFile(new File(dataDirectory + "EngineTextures.dat"));
+        EngineTexturesFile etFile = new EngineTexturesFile(new File(dkIIFolder + "EngineTextures.dat"));
         etFile.extractFileData(destination);
     }
 }

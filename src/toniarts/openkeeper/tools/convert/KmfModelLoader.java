@@ -70,6 +70,7 @@ import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEn
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.modelviewer.ModelViewer;
 import toniarts.openkeeper.utils.TangentBinormalGenerator;
+import toniarts.openkeeper.utils.SettingUtils;
 
 /**
  * Loads up and converts a Dungeon Keeper II model to JME model<br>
@@ -82,6 +83,7 @@ public class KmfModelLoader implements AssetLoader {
 
     /* Some textures are broken */
     private final static HashMap<String, String> textureFixes;
+    private static String dkIIFolder;
 
     static {
         textureFixes = new HashMap<>();
@@ -108,14 +110,20 @@ public class KmfModelLoader implements AssetLoader {
 
         //Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 2 || !new File(args[0]).exists()) {
-            throw new RuntimeException("Please provide Dungeon Keeper II root folder as a first parameter! Second parameter is the actual model file!");
+            dkIIFolder = SettingUtils.getDKIIFolder();
+            if (dkIIFolder == null)
+            {
+                throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter! Second parameter is the file path to the model ");
+            }
+        } else {
+            dkIIFolder = SettingUtils.fixFilePath(args[0]);
         }
 
         AssetInfo ai = new AssetInfo(/*main.getAssetManager()*/null, null) {
                     @Override
                     public InputStream openStream() {
                         try {
-                            final File file = new File(args[0]);
+                            final File file = new File(dkIIFolder);
                             key = new AssetKey() {
                                 @Override
                                 public String getName() {
@@ -130,7 +138,7 @@ public class KmfModelLoader implements AssetLoader {
                     }
                 };
 
-        ModelViewer app = new ModelViewer(new File(args[1]), args[0]);
+        ModelViewer app = new ModelViewer(new File(args[1]), dkIIFolder);
         app.start();
     }
 

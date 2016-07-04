@@ -28,6 +28,7 @@ import java.util.List;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.bf4.Bf4Entry;
 import toniarts.openkeeper.tools.convert.bf4.Bf4File;
+import toniarts.openkeeper.utils.SettingUtils;
 
 /**
  * Simple class to extract all the font bitmaps to given location
@@ -36,19 +37,22 @@ import toniarts.openkeeper.tools.convert.bf4.Bf4File;
  */
 public class Bf4Extractor {
 
+    private static String dkIIFolder;
+
     public static void main(String[] args) throws IOException {
 
         //Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 2 || !new File(args[0]).exists()) {
-            throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter! Second parameter is the extraction target folder!");
+            dkIIFolder = SettingUtils.getDKIIFolder();
+            if (dkIIFolder == null)
+            {
+                throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter! Second parameter is the extraction folder!");
+            }
+        } else {
+            dkIIFolder = SettingUtils.fixFilePath(args[0]);
         }
 
-        //Form the data path
-        String dataDirectory = args[0];
-        if (!dataDirectory.endsWith(File.separator)) {
-            dataDirectory = dataDirectory.concat(File.separator);
-        }
-        dataDirectory = dataDirectory.concat("Data").concat(File.separator).concat("Text").concat(File.separator).concat("Default").concat(File.separator);
+        dkIIFolder = dkIIFolder.concat("Data").concat(File.separator).concat("Text").concat(File.separator).concat("Default").concat(File.separator);
 
         //And the destination
         String destination = args[1];
@@ -58,7 +62,7 @@ public class Bf4Extractor {
 
         //Find all the font files
         final List<File> bf4Files = new ArrayList<>();
-        File dataDir = new File(dataDirectory);
+        File dataDir = new File(dkIIFolder);
         Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
