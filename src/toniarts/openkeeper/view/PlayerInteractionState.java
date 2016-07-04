@@ -215,6 +215,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public void cleanup() {
         app.getInputManager().removeRawInputListener(this);
         handler.cleanup();
+        CheatState cheatState = this.stateManager.getState(CheatState.class);
+        if (cheatState != null) {
+            this.stateManager.detach(cheatState);
+        }
 
         super.cleanup();
     }
