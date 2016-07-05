@@ -53,6 +53,7 @@ import toniarts.openkeeper.tools.convert.map.Thing.DeadBody;
 import toniarts.openkeeper.tools.convert.map.Thing.GoodCreature;
 import toniarts.openkeeper.tools.convert.map.Thing.KeeperCreature;
 import toniarts.openkeeper.tools.convert.map.Thing.NeutralCreature;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
@@ -83,6 +84,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private int health = 1;
     private int experience = 0;
     private short ownerId;
+    private final int maxLevel;
     //
 
     protected final StateMachine<CreatureControl, CreatureState> stateMachine;
@@ -122,6 +124,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         this.worldState = worldState;
 
         // Attributes
+        maxLevel = (int) worldState.getLevelVariable(Variable.MiscVariable.MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL);
         name = Utils.generateCreatureName();
         bloodType = Utils.generateBloodType();
         gold = creatureInstance.getGoldHeld();
@@ -356,7 +359,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 return Utils.getMainTextResourceBundle().getString("2599");
             }
             case WORK: {
-                return assignedTask.getTooltip();
+                if (assignedTask != null) {
+                    return assignedTask.getTooltip();
+                }
             }
             case WANDER: {
                 return Utils.getMainTextResourceBundle().getString("2628");
@@ -415,14 +420,25 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (lastAttributeUpdateTime >= 1) {
             lastAttributeUpdateTime -= 1;
 
-            experience += creature.getExpPerSecond();
+            // Experience gaining, I don't know how accurate this should be, like clock the time in work animation etc.
+            if (level < maxLevel) {
+                if (playingAnimationType == AnimationType.WORK && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER) || creature.getFlags().contains(Creature.CreatureFlag.TRAIN_WHEN_IDLE)) {
+                    if (worldState.getLevelData().getImp().equals(creature)) {
+                        experience += worldState.getLevelVariable(Variable.MiscVariable.MiscType.IMP_EXPERIENCE_GAIN_PER_SECOND);
+                    } else {
+                        experience += creature.getExpPerSecond();
+                    }
+            }
+                if (experience >= getExperienceToNextLevel()) { // Probably multiply the value per level?
+                    experience -= getExperienceToNextLevel();
+                level++;
+                //TODO: we need a wrapper for the creature stats, so no need to always multply them tc.
+            }
+            }
+
+            // Health
             health += creature.getOwnLandHealthIncrease(); // FIXME, need to detect prev & current pos
             health = Math.min(health, creature.getHp());
-            if (experience >= creature.getExpForNextLevel()) { // Probably multiply the value per level?
-                experience -= creature.getExpForNextLevel();
-                level++;
-                //TODO: other leveling stuff, max levels etc.
-            }
         }
     }
 
@@ -672,11 +688,40 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return false;
     }
 
+    public int getHealth() {
+        return health;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public int getExperience() {
+        return experience;
+    }
+
+    public int getExperienceToNextLevel() {
+        return creature.getExpForNextLevel(); // FIXME: the altered attributes
+    }
+
+    protected AbstractTask getAssignedTask() {
+        return assignedTask;
+    }
+
     /**
      * Sets the target to follow to null. A cleanup method.
      */
     public void resetFollowTarget() {
         followTarget = null;
+    }
+
+    public void showUnitFlower() {
+        CreatureLoader.showUnitFlower(this);
+    }
+
+    @Override
+    public void onHover() {
+        showUnitFlower();
     }
 
     @Override

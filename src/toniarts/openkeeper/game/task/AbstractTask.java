@@ -206,4 +206,11 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
      */
     public abstract ArtResource getTaskAnimation(CreatureControl creature);
 
+    /**
+     * The task icon for unit flowers
+     *
+     * @return the path t the icon
+     */
+    public abstract String getTaskIcon();
+
 }

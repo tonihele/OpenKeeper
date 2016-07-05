@@ -75,4 +75,9 @@ public class SendToActionPoint extends AbstractTileTask {
         return null;
     }
 
+    @Override
+    public String getTaskIcon() {
+        return null;
+    }
+
 }

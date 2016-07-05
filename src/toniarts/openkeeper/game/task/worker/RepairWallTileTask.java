@@ -64,4 +64,9 @@ public class RepairWallTileTask extends DigTileTask {
         return creature.getCreature().getAnimSleepResource();
     }
 
+    @Override
+    public String getTaskIcon() {
+        return "Textures/GUI/moods/SJ-Reinforce.png";
+    }
+
 }

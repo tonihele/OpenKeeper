@@ -79,4 +79,8 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
         return null;
     }
 
+    @Override
+    public String getTaskIcon() {
+        return "Textures/GUI/moods/SJ-Rest.png";
+    }
 }
