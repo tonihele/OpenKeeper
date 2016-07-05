@@ -56,4 +56,13 @@ public class GameLogicThread implements Runnable {
         logger.log(tickTime < tpf * 1000 ? Level.FINEST : Level.SEVERE, "Tick took {0}ms!", tickTime);
     }
 
+    /**
+     * Get the elapsed game time, in seconds
+     *
+     * @return the game time
+     */
+    public double getGameTime() {
+        return ticks * tpf;
+    }
+
 }
