@@ -47,14 +47,14 @@ import toniarts.openkeeper.world.MapThumbnailGenerator;
  */
 public abstract class AbstractUnitFlowerControl extends BillboardControl {
 
-    private static final float DISPLAY_SECONDS = 1;
+    private static final float DISPLAY_SECONDS = 2.5f;
     private static final Logger logger = Logger.getLogger(AbstractUnitFlowerControl.class.getName());
 
     private float targetTimeVisible = DISPLAY_SECONDS;
     private float timeVisible = 0;
     private int currentHealthIndex = 0;
     private Node unitSpatial;
-    protected boolean updateRequired = false;
+    private boolean updateRequired = false;
     private Material material;
     private final AssetManager assetManager;
 
@@ -63,19 +63,83 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
         setAlignment(Alignment.Screen);
     }
 
-
+    /**
+     * Get the unit owner id, for the color
+     *
+     * @return the unit player id
+     */
     protected abstract short getOwnerId();
 
+    /**
+     * Get unit max health
+     *
+     * @return max health
+     */
     protected abstract int getHealthMax();
 
+    /**
+     * Get current unit health
+     *
+     * @return unit current health
+     */
     protected abstract int getHealthCurrent();
 
+    /**
+     * Get the center icon resource as a string resource path
+     *
+     * @return the center icon
+     */
     protected abstract String getCenterIcon();
 
+    /**
+     * Get unit height, to correctly position the flower
+     *
+     * @return the unit height
+     */
     protected abstract float getHeight();
 
+    /**
+     * Get the objective icon as a string resource path, the flower around the
+     * icon
+     *
+     * @return objective icon
+     */
     protected String getObjectiveIcon() {
         return null;
+    }
+
+    /**
+     * Prior to show the flower (note that the flower might already be showing)
+     */
+    protected void onShow() {
+
+    }
+
+    /**
+     * The flower is hidden
+     */
+    protected void onHide() {
+
+    }
+
+    /**
+     * The flower texture has been generated, but the graphics are still open
+     * for modifying
+     *
+     * @param g the graphics for modifying
+     */
+    protected void onTextureGenerated(Graphics2D g) {
+
+    }
+
+    /**
+     * On update loop, only when we are showing
+     *
+     * @param tpf the time since last update
+     * @return true if a redraw of the icon is needed
+     */
+    protected boolean onUpdate(float tpf) {
+        return false;
     }
 
     /**
@@ -100,6 +164,8 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
 
         // Enable
         setEnabled(true);
+
+        onShow();
     }
 
     /**
@@ -108,10 +174,12 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
     public final void hide() {
         setEnabled(false);
         unitSpatial.detachChild(getFlower());
+
+        onHide();
     }
 
     @Override
-    protected void controlUpdate(float tpf) {
+    protected final void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
 
         timeVisible += tpf;
@@ -127,7 +195,7 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
         updateHealth();
 
         // See if we need to update
-        if (updateRequired) {
+        if (onUpdate(tpf) || updateRequired) {
             generateTexture();
         }
     }
@@ -182,6 +250,8 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
             // The rest
             drawImage(assetManager, g, flower.getWidth(), flower.getHeight(), getCenterIcon());
             drawImage(assetManager, g, flower.getWidth(), flower.getHeight(), getObjectiveIcon());
+
+            onTextureGenerated(g);
 
             // Dispose
             g.dispose();
