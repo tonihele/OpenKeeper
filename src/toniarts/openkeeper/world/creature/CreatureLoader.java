@@ -92,32 +92,7 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
         creatureRoot.addControl(creatureControl);
 
         // Creature flower
-        AbstractUnitFlowerControl aufc = new AbstractUnitFlowerControl(assetManager) {
-            @Override
-            protected short getOwnerId() {
-                return creatureControl.getOwnerId();
-            }
-
-            @Override
-            protected int getHealthMax() {
-                return creatureControl.getCreature().getHp();
-            }
-
-            @Override
-            protected int getHealthCurrent() {
-                return creatureControl.getHealth();
-            }
-
-            @Override
-            protected String getCenterIcon() {
-                return "Textures/GUI/moods/SL-" + String.format("%02d", creatureControl.getLevel()) + ".png";
-            }
-
-            @Override
-            protected float getHeight() {
-                return creature.getHeight();
-            }
-        };
+        AbstractUnitFlowerControl aufc = new CreatureUnitFlowerControl(assetManager, creatureControl);
         creatureRoot.addControl(aufc);
 
         return creatureRoot;
