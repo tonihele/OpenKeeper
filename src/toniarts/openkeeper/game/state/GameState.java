@@ -62,12 +62,12 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private String level;
     private KwdFile kwdFile;
 
+    private GameLogicThread gameLogicThread;
     private TriggerControl triggerControl = null;
     private final Map<Short, Integer> flags = new HashMap<>(127);
     // TODO What timer class we should take ?
     private final Map<Byte, GameTimer> timers = new HashMap<>(15);
 
-    private float gameTime = 0;
     private Float timeLimit = null;
     private TaskManager taskManager;
     private final Map<Short, Keeper> players = new HashMap<>();
@@ -104,6 +104,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
         // Set up the loading screen
         SingleBarLoadingState loader = new SingleBarLoadingState() {
+
             @Override
             public Void onLoad() {
 
@@ -172,7 +173,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                             return new Thread(r, "GameLogicAndMovementThread");
                         }
                     });
-                    exec.scheduleAtFixedRate(new GameLogicThread(GameState.this.app, 1.0f / kwdFile.getGameLevel().getTicksPerSec(), GameState.this, new CreatureLogicState(worldState.getThingLoader())), 0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
+                    gameLogicThread = new GameLogicThread(GameState.this.app, 1.0f / kwdFile.getGameLevel().getTicksPerSec(), GameState.this, new CreatureLogicState(worldState.getThingLoader()));
+                    exec.scheduleAtFixedRate(gameLogicThread, 0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
                     exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()), 0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
 
                     setProgress(1.0f);
@@ -285,8 +287,15 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         return timers.get((byte) id);
     }
 
-    public float getGameTime() {
-        return gameTime;
+    /**
+     * @see GameLogicThread#getGameTime()
+     * @return the game time
+     */
+    public double getGameTime() {
+        if (gameLogicThread != null) {
+            return gameLogicThread.getGameTime();
+        }
+        return 0;
     }
 
     public String getLevel() {
