@@ -63,4 +63,9 @@ public class ClaimTileTask extends AbstractTileTask {
         return creature.getCreature().getAnimEatResource();
     }
 
+    @Override
+    public String getTaskIcon() {
+        return "Textures/GUI/moods/SJ-Claim.png";
+    }
+
 }

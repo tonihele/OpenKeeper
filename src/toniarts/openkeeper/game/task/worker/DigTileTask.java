@@ -97,4 +97,9 @@ public class DigTileTask extends AbstractTileTask {
         return creature.getCreature().getAnimMelee1Resource();
     }
 
+    @Override
+    public String getTaskIcon() {
+        return "Textures/GUI/moods/SJ-Dig.png";
+    }
+
 }

@@ -73,4 +73,9 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
         return null;
     }
 
+    @Override
+    public String getTaskIcon() {
+        return "Textures/GUI/moods/SJ-Take_Gold.png";
+    }
+
 }
