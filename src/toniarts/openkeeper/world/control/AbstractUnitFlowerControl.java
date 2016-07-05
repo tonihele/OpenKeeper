@@ -267,11 +267,12 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
     private static void drawImage(AssetManager assetManager, Graphics2D g, int width, int height, String image) {
 
         if (image != null) {
-        try {
-            BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(image)).openStream());
-            g.drawImage(img, (width - img.getWidth()) / 2, (height - img.getHeight()) / 2, null);
-        } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Can't load the texture " + image + "!", ex);
+            try {
+                // TODO: cache the images
+                BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(image)).openStream());
+                g.drawImage(img, (width - img.getWidth()) / 2, (height - img.getHeight()) / 2, null);
+            } catch (Exception ex) {
+                logger.log(Level.SEVERE, "Can't load the texture " + image + "!", ex);
             }
         }
     }
