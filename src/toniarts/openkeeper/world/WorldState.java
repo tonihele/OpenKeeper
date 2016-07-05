@@ -141,12 +141,6 @@ public abstract class WorldState extends AbstractAppState {
 
     private void initPlayerMoney() {
 
-        // Set up the money$$$
-        for (Keeper player : gameState.getPlayers()) {
-            if (player.getInitialGold() > 0) {
-                addGold(player.getId(), player.getInitialGold());
-            }
-        }
         // The max money$$$
         for (Entry<RoomInstance, GenericRoom> roomEntry : mapLoader.getRoomActuals().entrySet()) {
             if (roomEntry.getValue().canStoreGold()) {
@@ -154,6 +148,13 @@ public abstract class WorldState extends AbstractAppState {
                 if (keeper != null) {
                     keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + roomEntry.getValue().getObjectControl(GenericRoom.ObjectType.GOLD).getMaxCapacity());
                 }
+            }
+        }
+
+        // Set up the money$$$
+        for (Keeper player : gameState.getPlayers()) {
+            if (player.getInitialGold() > 0) {
+                addGold(player.getId(), player.getInitialGold());
             }
         }
     }
