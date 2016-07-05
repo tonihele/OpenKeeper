@@ -212,7 +212,8 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
             spatial.setMaterial(material);
             material.getAdditionalRenderState().setFaceCullMode(FaceCullMode.Off);
             material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-            spatial.setQueueBucket(Bucket.Transparent);
+            material.getAdditionalRenderState().setDepthTest(false);
+            spatial.setQueueBucket(Bucket.Translucent);
 
             generateTexture();
         }
