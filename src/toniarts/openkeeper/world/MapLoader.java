@@ -233,6 +233,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                                 try {
                                     Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
                                     material.setTexture("DiffuseMap", texture);
+
+                                    AssetUtils.assignMapsToMaterial(assetManager, material);
                                 } catch (Exception e) {
                                     logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, tile.getTerrain().getName(), e.getMessage()});
                                 }
@@ -388,6 +390,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                         // Load new material
                         Material newMaterial = assetManager.loadMaterial(asset.substring(0,
                                 asset.lastIndexOf(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR) + 1).concat(tex + ".j3m"));
+                        AssetUtils.assignMapsToMaterial(assetManager, newMaterial);
                         g.setMaterial(newMaterial);
                     }
                 }
