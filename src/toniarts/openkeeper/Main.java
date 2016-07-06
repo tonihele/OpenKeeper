@@ -462,7 +462,7 @@ public class Main extends SimpleApplication {
 
                 // FIXME: We need ambient light, but it may be different for different states. There just seems to be a bug in BatchNodes concerning the removal of the light. So this is temporary perhaps
                 AmbientLight al = new AmbientLight();
-                al.setColor(ColorRGBA.White);
+                al.setColor(ColorRGBA.White.multLocal(0.4f));
                 rootNode.addLight(al);
 
                 if (params.containsKey("nomovies") || params.containsKey("level")) {
