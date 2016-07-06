@@ -39,7 +39,6 @@ import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.scene.control.LodControl;
 import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
-import com.jme3.util.TangentBinormalGenerator;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -70,6 +69,7 @@ import toniarts.openkeeper.tools.convert.kmf.Uv;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEntry;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.modelviewer.ModelViewer;
+import toniarts.openkeeper.utils.TangentBinormalGenerator;
 
 /**
  * Loads up and converts a Dungeon Keeper II model to JME model<br>
@@ -268,7 +268,7 @@ public class KmfModelLoader implements AssetLoader {
             mesh.setStatic();
 
             // Create geometry
-            Geometry geom = createGeometry(index, mesh, materials, meshSprite.getMaterialIndex());
+            Geometry geom = createGeometry(index, sourceMesh.getName(), mesh, materials, meshSprite.getMaterialIndex());
 
             //Attach the geometry to the node
             node.attachChild(geom);
@@ -499,7 +499,7 @@ public class KmfModelLoader implements AssetLoader {
             mesh.setStreamed();
 
             // Create geometry
-            Geometry geom = createGeometry(index, mesh, materials, animSprite.getMaterialIndex());
+            Geometry geom = createGeometry(index, anim.getName(), mesh, materials, animSprite.getMaterialIndex());
 
             //Attach the geometry to the node
             node.attachChild(geom);
@@ -557,13 +557,14 @@ public class KmfModelLoader implements AssetLoader {
      * Creates a geometry from the given mesh, applies material and LOD control
      * to it
      *
-     * @param index mesh index (just for naming)
+     * @param index         mesh index (just for naming)
+     * @param name          the name, just for logging
      * @param mesh the mesh
      * @param materials list of materials
      * @param materialIndex the material index
      * @return
      */
-    private Geometry createGeometry(int index, Mesh mesh, HashMap<Integer, List<Material>> materials, int materialIndex) {
+    private Geometry createGeometry(int index, String name, Mesh mesh, HashMap<Integer, List<Material>> materials, int materialIndex) {
 
         //Create geometry
         Geometry geom = new Geometry(index + "", mesh);
@@ -591,9 +592,11 @@ public class KmfModelLoader implements AssetLoader {
         // Update bounds
         geom.updateModelBound();
 
-        // If the material has a normal map, generate tangents
-        if (geom.getMaterial().getTextureParam("NormalMap") != null || geom.getMaterial().getTextureParam("ParallaxMap") != null) {
+        // Try to generate tangents
+        try {
             TangentBinormalGenerator.generate(mesh);
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to generate tangent binormals for " + name + "! ", e);
         }
 
         return geom;
