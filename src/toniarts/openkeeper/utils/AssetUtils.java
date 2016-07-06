@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.utils;
 
+import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.MaterialKey;
@@ -26,6 +27,8 @@ import com.jme3.asset.cache.SimpleAssetCache;
 import com.jme3.asset.cache.WeakRefAssetCache;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
+import com.jme3.scene.Geometry;
+import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
@@ -34,6 +37,8 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.RescaleOp;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -49,6 +54,8 @@ public class AssetUtils {
 
     private final static AssetCache assetCache = new SimpleAssetCache();
     private final static AssetCache weakAssetCache = new WeakRefAssetCache();
+    private final static Map<String, TextureKey> textureKeyMapCache = new HashMap<>();
+    private final static Map<TextureKey, Boolean> textureMapCache = new HashMap<>();
     private static final Logger logger = Logger.getLogger(AssetUtils.class.getName());
 
     private AssetUtils() {
@@ -81,9 +88,78 @@ public class AssetUtils {
         Spatial model = cache.getFromCache(assetKey);
         if (model == null) {
             model = assetManager.loadModel(assetKey);
+
+            // Assign maps
+            assignMapsToMaterial(model, assetManager);
+
             cache.addToCache(assetKey, model);
         }
         return model.clone();
+    }
+
+    private static void assignMapsToMaterial(Spatial model, AssetManager assetManager) {
+        model.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (spatial instanceof Geometry) {
+                    Material material = ((Geometry) spatial).getMaterial();
+                    assignMapsToMaterial(assetManager, material);
+                }
+            }
+
+        });
+    }
+
+    /**
+     * Assign different kind of maps (Specular, Norma, etc.) to material, if
+     * found
+     *
+     * @param assetManager   the asset manager
+     * @param material     the material to apply to
+     */
+    public static void assignMapsToMaterial(AssetManager assetManager, Material material) {
+        String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName(); // Unharmed texture
+
+        assignMapToMaterial(assetManager, material, "NormalMap", getNormalMapName(diffuseTexture));
+        assignMapToMaterial(assetManager, material, "SpecularMap", getSpecularMapName(diffuseTexture));
+    }
+
+    private static void assignMapToMaterial(AssetManager assetManager, Material material, String paramName, String textureName) {
+
+        // Try to locate the texture
+        TextureKey textureKey = textureKeyMapCache.get(textureName);
+        boolean found;
+        if (textureKey == null) {
+            textureKey = new TextureKey(textureName, false);
+            textureKeyMapCache.put(paramName, textureKey);
+
+            // See if it exists
+            AssetInfo assetInfo = assetManager.locateAsset(textureKey);
+            found = (assetInfo != null);
+            textureMapCache.put(textureKey, found);
+        } else {
+            found = textureMapCache.get(textureKey);
+        }
+
+        // Set it
+        if (found) {
+            material.setTexture(paramName, assetManager.loadTexture(textureKey));
+        } else {
+            material.clearParam(paramName);
+        }
+    }
+
+    private static String getNormalMapName(String texture) {
+        return getCustomTextureMapName(texture, "n");
+    }
+
+    private static String getSpecularMapName(String texture) {
+        return getCustomTextureMapName(texture, "s");
+    }
+
+    private static String getCustomTextureMapName(String texture, String suffix) {
+        int extensionIndex = texture.lastIndexOf(".");
+        return texture.substring(0, extensionIndex).concat("_").concat(suffix).concat(texture.substring(extensionIndex));
     }
 
     /**
