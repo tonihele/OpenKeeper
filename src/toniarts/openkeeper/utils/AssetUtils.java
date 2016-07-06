@@ -54,8 +54,7 @@ public class AssetUtils {
 
     private final static AssetCache assetCache = new SimpleAssetCache();
     private final static AssetCache weakAssetCache = new WeakRefAssetCache();
-    private final static Map<String, TextureKey> textureKeyMapCache = new HashMap<>();
-    private final static Map<TextureKey, Boolean> textureMapCache = new HashMap<>();
+    private final static Map<String, Boolean> textureMapCache = new HashMap<>();
     private static final Logger logger = Logger.getLogger(AssetUtils.class.getName());
 
     private AssetUtils() {
@@ -127,22 +126,19 @@ public class AssetUtils {
     private static void assignMapToMaterial(AssetManager assetManager, Material material, String paramName, String textureName) {
 
         // Try to locate the texture
-        TextureKey textureKey = textureKeyMapCache.get(textureName);
-        boolean found;
-        if (textureKey == null) {
-            textureKey = new TextureKey(textureName, false);
-            textureKeyMapCache.put(textureName, textureKey);
+        Boolean found = textureMapCache.get(textureName);
+        if (found == null) {
+            TextureKey textureKey = new TextureKey(textureName, false);
 
             // See if it exists
             AssetInfo assetInfo = assetManager.locateAsset(textureKey);
             found = (assetInfo != null);
-            textureMapCache.put(textureKey, found);
-        } else {
-            found = textureMapCache.get(textureKey);
+            textureMapCache.put(textureName, found);
         }
 
         // Set it
         if (found) {
+            TextureKey textureKey = new TextureKey(textureName, false);
             material.setTexture(paramName, assetManager.loadTexture(textureKey));
         } else {
             material.clearParam(paramName);
