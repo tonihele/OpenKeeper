@@ -70,6 +70,7 @@ import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TerrainLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
@@ -374,7 +375,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 case MODELS: {
 
                     // Load the selected model
-                    Node spat = (Node) this.getAssetManager().loadModel(((String) selection.get(0)).concat(".j3o").replaceAll(Matcher.quoteReplacement(File.separator), "/"));
+                    Node spat = (Node) AssetUtils.loadModel(assetManager, ((String) selection.get(0)).concat(".j3o").replaceAll(Matcher.quoteReplacement(File.separator), "/"), false);
                     setupModel(spat, false);
                     break;
                 }
