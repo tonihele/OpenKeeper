@@ -47,9 +47,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
-import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -618,7 +619,7 @@ public class Main extends SimpleApplication {
     private void playIntro() {
 
         // The intro sequence
-        PriorityQueue<String> introSequence = new PriorityQueue<>(2);
+        Queue<String> introSequence = new LinkedList<>();
         introSequence.add(getDkIIFolder().concat("Data".concat(File.separator).concat("Movies").concat(File.separator).concat("BullfrogIntro.tgq")));
         introSequence.add(getDkIIFolder().concat("Data".concat(File.separator).concat("Movies").concat(File.separator).concat("INTRO.TGQ")));
         playMovie(introSequence);
@@ -630,7 +631,7 @@ public class Main extends SimpleApplication {
      *
      * @param introSequence movie queue
      */
-    private void playMovie(final PriorityQueue<String> introSequence) {
+    private void playMovie(final Queue<String> introSequence) {
 
         String movieFile = introSequence.poll();
         if (movieFile != null) {
