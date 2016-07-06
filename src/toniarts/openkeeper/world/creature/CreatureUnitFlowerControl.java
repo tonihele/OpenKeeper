@@ -69,7 +69,7 @@ public class CreatureUnitFlowerControl extends AbstractUnitFlowerControl {
 
     @Override
     protected String getCenterIcon() {
-        if (currentStatus == Status.STATUS) {
+        if (currentStatus == Status.STATUS && creatureControl.stateMachine.getCurrentState() != null) {
             switch (creatureControl.stateMachine.getCurrentState()) {
                 case FIGHT: {
                     return "Textures/GUI/moods/SJ-Fighting.png";
