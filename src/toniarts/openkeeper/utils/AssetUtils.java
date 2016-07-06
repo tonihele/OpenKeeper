@@ -131,7 +131,7 @@ public class AssetUtils {
         boolean found;
         if (textureKey == null) {
             textureKey = new TextureKey(textureName, false);
-            textureKeyMapCache.put(paramName, textureKey);
+            textureKeyMapCache.put(textureName, textureKey);
 
             // See if it exists
             AssetInfo assetInfo = assetManager.locateAsset(textureKey);
