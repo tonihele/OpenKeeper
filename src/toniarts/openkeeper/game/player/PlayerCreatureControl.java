@@ -65,12 +65,12 @@ public class PlayerCreatureControl implements CreatureListener {
             creatures.put(creature.getCreature(), creatureSet);
         }
         creatureSet.add(creature);
-        creatureCount++;
 
         // Listeners
         if (isImp(creature)) {
             updateWorkerListeners();
         } else {
+            creatureCount++;
             if (creatureListeners != null) {
                 for (CreatureListener listener : creatureListeners) {
                     listener.onSpawn(creature);
@@ -100,12 +100,12 @@ public class PlayerCreatureControl implements CreatureListener {
         if (creatureSet != null) {
             creatureSet.remove(creature);
         }
-        creatureCount--;
 
         // Listeners
         if (isImp(creature)) {
             updateWorkerListeners();
         } else {
+            creatureCount--;
             if (creatureListeners != null) {
                 for (CreatureListener listener : creatureListeners) {
                     listener.onDie(creature);
@@ -246,6 +246,11 @@ public class PlayerCreatureControl implements CreatureListener {
         return getNextCreature(imp, state);
     }
 
+    /**
+     * Get player creature count. Excluding imps.
+     *
+     * @return the creature count
+     */
     public int getCreatureCount() {
         return creatureCount;
     }
