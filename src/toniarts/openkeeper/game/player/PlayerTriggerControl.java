@@ -61,7 +61,28 @@ public class PlayerTriggerControl extends TriggerControl {
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case PLAYER_CREATURES:
-                return false;
+                short playerId = trigger.getUserData("playerId", short.class);
+                GameState gameState = stateManager.getState(GameState.class);
+                PlayerCreatureControl pcc;
+                if (playerId == 0) {
+                    pcc = playerState.getCreatureControl(); // Current player
+                } else {
+                    pcc = gameState.getPlayer(playerId).getCreatureControl();
+                }
+                short creatureId = trigger.getUserData("creatureId", short.class);
+                boolean isValue = trigger.getUserData("flag", short.class) == 1;
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                    if (creatureId == 0) {
+                        target = pcc.getCreatureCount();
+                    } else {
+                        target = pcc.getCreatureCount(gameState.getLevelData().getCreature(creatureId));
+                    }
+                } else {
+                    // TODO what?
+                    return false;
+                }
+                break;
             case PLAYER_HAPPY_CREATURES:
                 return false;
             case PLAYER_ANGRY_CREATURES:
@@ -85,12 +106,12 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_GOLD:
                 PlayerGoldControl pgc = playerState.getGoldControl();
                 target = pgc.getGold();
-                boolean isValue = trigger.getUserData("flag", short.class) == 1;
+                isValue = trigger.getUserData("flag", short.class) == 1;
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
                     // TODO get value from other player
-                    short playerId = trigger.getUserData("targetId", short.class);
+                    playerId = trigger.getUserData("targetId", short.class);
                     return false;
                 }
                 break;
@@ -103,7 +124,7 @@ public class PlayerTriggerControl extends TriggerControl {
                     value = trigger.getUserData("value", int.class);
                 } else {
                     // TODO get value from other player
-                    short playerId = trigger.getUserData("targetId", short.class);
+                    playerId = trigger.getUserData("targetId", short.class);
                     return false;
                 }
                 break;
@@ -129,7 +150,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
             case PLAYER_CREATURE_SLAPPED:
                 PlayerStatsControl psc = playerState.getStatsControl();
-                short creatureId = trigger.getUserData("creatureId", short.class);
+                creatureId = trigger.getUserData("creatureId", short.class);
                 if (creatureId == 0) {
 
                     // Any creature
