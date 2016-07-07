@@ -99,6 +99,7 @@ public class KmfModelLoader implements AssetLoader {
      * material possibilities
      */
     public static final String MATERIAL_ALTERNATIVE_TEXTURES_COUNT = "AlternativeTextureCount";
+    public static final String FRAME_FACTOR_FUNCTION = "FrameFactorFunction";
     private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
     /* Already saved materials are stored here */
     private static final HashMap<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
@@ -290,6 +291,7 @@ public class KmfModelLoader implements AssetLoader {
 
         //Source mesh is node
         Node node = new Node(anim.getName());
+        node.setUserData(FRAME_FACTOR_FUNCTION, anim.getFrameFactorFunction().name());
         node.setLocalTranslation(new Vector3f(anim.getPos().x, -anim.getPos().z, anim.getPos().y));
 
         // Create pose tracks for each mesh index

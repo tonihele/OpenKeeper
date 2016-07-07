@@ -28,6 +28,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
+import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -225,6 +227,18 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                     AnimChannel channel = animControl.createChannel();
                     if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP)) {
                         channel.setLoopMode(LoopMode.DontLoop);
+                    } else {
+                        Anim.FrameFactorFunction func = Anim.FrameFactorFunction.valueOf(spat.getUserData(KmfModelLoader.FRAME_FACTOR_FUNCTION));
+                        switch (func) {
+                            case CLAMP: {
+                                channel.setLoopMode(LoopMode.Cycle);
+                                break;
+                            }
+                            case WRAP: {
+                                channel.setLoopMode(LoopMode.Loop);
+                                break;
+                            }
+                        }
                     }
                 }
             } catch (Exception e) {
