@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.player;
 
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
@@ -127,7 +128,17 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_CREATURE_DROPPED:
                 return false;
             case PLAYER_CREATURE_SLAPPED:
-                return false;
+                PlayerStatsControl psc = playerState.getStatsControl();
+                short creatureId = trigger.getUserData("creatureId", short.class);
+                if (creatureId == 0) {
+
+                    // Any creature
+                    return psc.hasSlapped();
+                } else {
+
+                    // Certain creature
+                    return psc.hasSlapped(stateManager.getState(GameState.class).getLevelData().getCreature(creatureId));
+                }
             case PLAYER_CREATURE_SACKED:
                 return false;
             case PLAYER_ROOM_FURNITURE:
