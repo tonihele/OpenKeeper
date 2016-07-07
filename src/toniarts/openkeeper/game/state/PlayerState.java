@@ -1092,6 +1092,10 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         }
     }
 
+    public short getPlayerId() {
+        return playerId;
+    }
+
     private class GameMenu {
 
         protected String title;
