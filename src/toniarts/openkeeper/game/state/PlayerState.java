@@ -66,6 +66,7 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
+import toniarts.openkeeper.game.player.PlayerStatsControl;
 import toniarts.openkeeper.game.player.PlayerTriggerControl;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
@@ -284,6 +285,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 nifty.gotoScreen("empty");
             }
         }
+    }
+
+    public PlayerStatsControl getStatsControl() {
+        GameState gs = stateManager.getState(GameState.class);
+        if (gs != null) {
+            return gs.getPlayer(playerId).getStatsControl();
+        }
+        return null;
     }
 
     public PlayerGoldControl getGoldControl() {
@@ -1081,6 +1090,10 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         if (element != null) {
             element.setFocus();
         }
+    }
+
+    public short getPlayerId() {
+        return playerId;
     }
 
     private class GameMenu {

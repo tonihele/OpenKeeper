@@ -130,12 +130,12 @@ public class TriggerControl extends Control {
                 if ((Short) trigger.getUserData("flag") == 1) {
                     value = (Integer) trigger.getUserData("value");
                 } else {
-                    value = (int) stateManager.getState(GameState.class).getTimer((Short) trigger.getUserData("timerId")).getTime();
+                    value = (int) Math.floor(stateManager.getState(GameState.class).getTimer((Short) trigger.getUserData("timerId")).getTime());
                 }
                 break;
 
             case LEVEL_TIME:
-                target = (int) stateManager.getState(GameState.class).getGameTime();
+                target = (int) Math.floor(stateManager.getState(GameState.class).getGameTime());
                 value = (Integer) trigger.getUserData("value");
                 break;
             case LEVEL_CREATURES:

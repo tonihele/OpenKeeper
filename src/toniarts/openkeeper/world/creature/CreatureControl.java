@@ -388,6 +388,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 playAnimation(creature.getAnimFallbackResource());
             }
 
+            // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
+            worldState.getGameState().getPlayer(playerId).getStatsControl().creaturedSlapped(creature);
+
             return true;
         }
         return false;

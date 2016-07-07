@@ -18,6 +18,8 @@ package toniarts.openkeeper.game.player;
 
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
@@ -60,7 +62,23 @@ public class PlayerTriggerControl extends TriggerControl {
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case PLAYER_CREATURES:
-                return false;
+                short playerId = trigger.getUserData("playerId", short.class);
+                Keeper keeper = getPlayer(playerId);
+                short creatureId = trigger.getUserData("creatureId", short.class);
+                boolean isValue = trigger.getUserData("flag", short.class) == 1;
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                    if (creatureId == 0) {
+                        target = keeper.getCreatureControl().getCreatureCount();
+                    } else {
+                        GameState gameState = stateManager.getState(GameState.class);
+                        target = keeper.getCreatureControl().getCreatureCount(gameState.getLevelData().getCreature(creatureId));
+                    }
+                } else {
+                    // TODO what?
+                    return false;
+                }
+                break;
             case PLAYER_HAPPY_CREATURES:
                 return false;
             case PLAYER_ANGRY_CREATURES:
@@ -84,12 +102,12 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_GOLD:
                 PlayerGoldControl pgc = playerState.getGoldControl();
                 target = pgc.getGold();
-                boolean isValue = trigger.getUserData("flag", short.class) == 1;
+                isValue = trigger.getUserData("flag", short.class) == 1;
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
                     // TODO get value from other player
-                    short playerId = trigger.getUserData("targetId", short.class);
+                    playerId = trigger.getUserData("targetId", short.class);
                     return false;
                 }
                 break;
@@ -102,7 +120,7 @@ public class PlayerTriggerControl extends TriggerControl {
                     value = trigger.getUserData("value", int.class);
                 } else {
                     // TODO get value from other player
-                    short playerId = trigger.getUserData("targetId", short.class);
+                    playerId = trigger.getUserData("targetId", short.class);
                     return false;
                 }
                 break;
@@ -127,7 +145,17 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_CREATURE_DROPPED:
                 return false;
             case PLAYER_CREATURE_SLAPPED:
-                return false;
+                PlayerStatsControl psc = playerState.getStatsControl();
+                creatureId = trigger.getUserData("creatureId", short.class);
+                if (creatureId == 0) {
+
+                    // Any creature
+                    return psc.hasSlapped();
+                } else {
+
+                    // Certain creature
+                    return psc.hasSlapped(stateManager.getState(GameState.class).getLevelData().getCreature(creatureId));
+                }
             case PLAYER_CREATURE_SACKED:
                 return false;
             case PLAYER_ROOM_FURNITURE:
@@ -154,5 +182,14 @@ public class PlayerTriggerControl extends TriggerControl {
         }
 
         return result;
+    }
+
+    private Keeper getPlayer(short playerId) {
+        GameState gameState = stateManager.getState(GameState.class);
+        if (playerId == 0) {
+            return gameState.getPlayer(playerState.getPlayerId()); // Current player
+        } else {
+            return gameState.getPlayer(playerId);
+        }
     }
 }
