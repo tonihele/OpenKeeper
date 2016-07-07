@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.data;
 
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
+import toniarts.openkeeper.game.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.AI.AIType;
 import toniarts.openkeeper.tools.convert.map.Player;
 
@@ -42,6 +43,7 @@ public class Keeper {
     private int initialGold = 0;
     private final PlayerGoldControl goldControl = new PlayerGoldControl();
     private final PlayerCreatureControl creatureControl = new PlayerCreatureControl();
+    private final PlayerStatsControl statsControl = new PlayerStatsControl();
 
     public Keeper(boolean ai, String name, short id) {
         this.ai = ai;
@@ -81,6 +83,10 @@ public class Keeper {
 
     public PlayerCreatureControl getCreatureControl() {
         return creatureControl;
+    }
+
+    public PlayerStatsControl getStatsControl() {
+        return statsControl;
     }
 
     @Override
