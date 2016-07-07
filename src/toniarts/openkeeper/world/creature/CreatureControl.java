@@ -247,7 +247,20 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     boolean isStopAnimation() {
         // FIXME: not very elegant to check this way
-        return (steeringBehavior == null || !steeringBehavior.isEnabled() || (stateMachine.getCurrentState() == CreatureState.WORK && isAssignedTaskValid()));
+        switch (playingAnimationType) {
+            case IDLE: {
+                return (stateMachine.getCurrentState() != CreatureState.IDLE || steeringBehavior != null);
+            }
+            case MOVE: {
+                return (steeringBehavior == null || !steeringBehavior.isEnabled());
+            }
+            case WORK: {
+                return (steeringBehavior != null || !isAssignedTaskValid());
+            }
+            default: {
+                return true;
+            }
+        }
     }
 
     private boolean isAnimationPlaying() {
@@ -296,7 +309,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     private void playStateAnimation() {
         if (!animationPlaying) {
-            if (steeringBehavior != null) {
+            if (steeringBehavior != null && steeringBehavior.isEnabled()) {
                 playAnimation(creature.getAnimWalkResource());
                 playingAnimationType = AnimationType.MOVE;
             } else if (stateMachine.getCurrentState() == CreatureState.WORK) {
