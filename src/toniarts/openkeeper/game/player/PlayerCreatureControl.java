@@ -45,6 +45,7 @@ public class PlayerCreatureControl implements CreatureListener {
     private List<CreatureListener> creatureListeners;
     private Creature imp;
     private final Map<Creature, Set<CreatureControl>> creatures = new LinkedHashMap<>();
+    private int creatureCount = 0;
     private final Map<Creature, Integer> selectionIndices = new HashMap<>();
 
     public void init(List<CreatureControl> creatures, Creature imp) {
@@ -64,6 +65,7 @@ public class PlayerCreatureControl implements CreatureListener {
             creatures.put(creature.getCreature(), creatureSet);
         }
         creatureSet.add(creature);
+        creatureCount++;
 
         // Listeners
         if (isImp(creature)) {
@@ -98,6 +100,7 @@ public class PlayerCreatureControl implements CreatureListener {
         if (creatureSet != null) {
             creatureSet.remove(creature);
         }
+        creatureCount--;
 
         // Listeners
         if (isImp(creature)) {
@@ -241,6 +244,18 @@ public class PlayerCreatureControl implements CreatureListener {
 
     public CreatureControl getNextImp(CreatureUIState state) {
         return getNextCreature(imp, state);
+    }
+
+    public int getCreatureCount() {
+        return creatureCount;
+    }
+
+    public int getCreatureCount(Creature creature) {
+        Set<CreatureControl> creatureSet = creatures.get(creature);
+        if (creatureSet != null) {
+            return creatureSet.size();
+        }
+        return 0;
     }
 
     private static class WorkerListener {
