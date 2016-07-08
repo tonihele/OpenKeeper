@@ -16,29 +16,29 @@
  */
 package toniarts.openkeeper.game.network;
 
+import toniarts.openkeeper.game.network.message.MessageChat;
+import toniarts.openkeeper.game.network.message.MessageTime;
 import com.jme3.network.Client;
 import com.jme3.network.Message;
 import com.jme3.network.MessageListener;
 
 /**
- *
+ * @deprecated used ObjectMessageDelegator in NetworkClient
  * @author ArchDemon
  */
-
-
 public class ClientListener implements MessageListener<Client> {
     private NetworkClient client;
 
     public ClientListener(NetworkClient client) {
         this.client = client;
     }
-    
+
     @Override
     public void messageReceived(Client source, Message message) {
         if (message instanceof MessageChat) {
-            // do something with the message
-            MessageChat msg = (MessageChat) message;
-            client.onChatMessageRecive(msg.getData());
+            client.onMessageChat((MessageChat) message);
+        } else if (message instanceof MessageTime) {
+            client.onMessageTime((MessageTime) message);
         }
     }
 }

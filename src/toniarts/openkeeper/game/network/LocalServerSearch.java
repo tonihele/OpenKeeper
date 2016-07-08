@@ -44,7 +44,7 @@ public abstract class LocalServerSearch {
     public LocalServerSearch(int port) {
         this.port = port;
         queue = new LinkedList();
-        threads = new ServerQuery[nThreads];        
+        threads = new ServerQuery[nThreads];
         addLocalHosts();
     }
 
@@ -92,18 +92,18 @@ public abstract class LocalServerSearch {
     }
 
     public abstract void onFound(NetworkServer server);
-    
+
 
     private void getInterfaces() throws SocketException {
 
         Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
         while (interfaces.hasMoreElements()) {
           NetworkInterface ni = (NetworkInterface) interfaces.nextElement();
-          Enumeration addresses = ni.getInetAddresses(); 
-          while (addresses.hasMoreElements()) { 
+          Enumeration addresses = ni.getInetAddresses();
+          while (addresses.hasMoreElements()) {
             InetAddress address = (InetAddress)addresses.nextElement();
-            if (address instanceof Inet6Address || address.isLoopbackAddress()) {                
-                continue; 
+            if (address instanceof Inet6Address || address.isLoopbackAddress()) {
+                continue;
             }
             System.out.printf("InetAddress: %s%n", address);
             //DatagramSocket socket = new DatagramSocket(port, address);

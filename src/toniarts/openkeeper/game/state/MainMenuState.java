@@ -81,7 +81,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
-import toniarts.openkeeper.game.network.MessageChat;
+import toniarts.openkeeper.game.network.message.MessageChat;
 import toniarts.openkeeper.game.network.NetworkClient;
 import toniarts.openkeeper.game.network.NetworkServer;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
@@ -419,7 +419,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 if (client != null) {
                     ListBox<TableRow> players = screen.findNiftyControl("playersTable", ListBox.class);
                     if (players != null) {
-                        players.addItem(new TableRow(players.itemCount(), client.getName()));
+                        players.addItem(new TableRow(players.itemCount(), client.getPlayer()));
                     }
                     
                     client.setChat(MainMenuState.this.screen.findNiftyControl("multiplayerChat", Chat.class));
@@ -557,7 +557,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         
         // event.getChatControl().addPlayer("ID " + client.getId(), null);
         // event.getChatControl().receivedChatLine(event.getText(), null);
-        client.getClient().send(new MessageChat(client.getName() + ": " + event.getText()));
+        client.getClient().send(new MessageChat(client.getPlayer() + ": " + event.getText()));
     } 
 
     @Override

@@ -16,9 +16,10 @@
  */
 package toniarts.openkeeper.game.network;
 
+import toniarts.openkeeper.game.network.message.*;
 import com.jme3.network.Network;
 import com.jme3.network.Server;
-import com.jme3.network.serializing.Serializer;
+import com.simsilica.es.server.EntityDataHostService;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -28,42 +29,55 @@ import java.net.UnknownHostException;
  * @author ArchDemon
  */
 public class NetworkServer {
+    public final static String GAME_NAME = "OpenKeeper";
+    public final static int PROTOCOL_VERSION = 1;
+
     private String host;
     private int port;
     private String name;
-    private final int VERSION = 1;
-    
+    private EntityDataHostService edHost;
+
     private Server server = null;
+    private long start = System.nanoTime();
+
+    static {
+        ClassSerializer.initialize();
+    }
 
     public NetworkServer(String name, int port) throws UnknownHostException {
         this.host = InetAddress.getLocalHost().getCanonicalHostName();
         this.name = name;
         this.port = port;
     }
-    
+
+    private void initialize() {
+        server.addMessageListener(new ServerListener(this),
+                MessageChat.class,
+                MessageTime.class,
+                MessagePlayerInfo.class,
+                MessageServerInfo.class);
+    }
+
     public void start() throws IOException {
         if (server == null) {
             server = Network.createServer(port);
-            //server = Network.createServer(name, VERSION, port, port);
+            //server = Network.createServer(GAME_NAME, PROTOCOL_VERSION, port, port);
         }
-                
-        register();
-        
-        server.addMessageListener(new ServerListener(), MessageChat.class);
-        server.addConnectionListener(new ServerConnectionListener());
+        server.addChannel(port + 1);
+
+        initialize();
+        server.addConnectionListener(new ServerConnectionListener(this));
         server.start();
+
+        start = System.nanoTime();
     }
-  
+
     public void close() {
         if (server != null && server.isRunning()) {
             server.close();
-        }        
+        }
     }
-    
-    private void register() {
-        Serializer.registerClass(MessageChat.class);
-    }
-    
+
     public String getName() {
         return name;
     }
@@ -82,5 +96,9 @@ public class NetworkServer {
 
     public Server getServer() {
         return server;
+    }
+
+    public long getGameTime() {
+        return System.nanoTime() - start;
     }
 }

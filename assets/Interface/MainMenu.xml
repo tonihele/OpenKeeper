@@ -573,16 +573,22 @@
             </panel>
 
             <panel height="*" align="center" valign="center" childLayout="center" visibleToMouse="true">
-                <panel align="center" childLayout="horizontal" width="50%">
-                    <!-- TODO Need normal server connection -->
-                    <text style="menuTitleText" text="Name" />
-                    <control name="textfield" id="playerName" text="ArchDemon" maxLength="20" />
-                    <text style="menuTitleText" text="Address" />
-                    <control name="textfield" id="hostAddress" text="192.168.0.100" maxLength="20" />
-                    <text style="menuText" text="Connect">
-                        <interact onClick="multiplayerConnect()" />
-                    </text>
-                </panel>                
+                <panel align="center" childLayout="vertical" width="50%">
+                    <panel align="center" childLayout="horizontal" >
+                        <!-- TODO Need normal server connection -->
+                        <text style="menuTitleText" text="Name" />
+                        <control name="textfield" id="playerName" text="ArchDemon" maxLength="20" />
+                    </panel>
+                    <panel align="center" childLayout="horizontal">
+                        <text style="menuTitleText" text="Address" />
+                        <control name="textfield" id="hostAddress" text="192.168.0.100" maxLength="20" />
+                    </panel>
+                    <panel align="right" childLayout="horizontal">
+                        <text style="menuText" text="Connect">
+                            <interact onClick="multiplayerConnect()" />
+                        </text>
+                    </panel>
+                </panel>
             </panel>
 
             <panel childLayout="horizontal" align="right" valign="bottom">
@@ -596,7 +602,7 @@
            <panel childLayout="center" height="14%" align="center" valign="center">
                 <control name="label" style="menuTitleText" id="multiplayerTitle" text="" />
             </panel>
-            
+
             <!--Two panels, left the game stuff, right the map selection stuff-->
             <panel width="95%" childLayout="horizontal" align="center" valign="center">
                 <panel width="66%" childLayout="vertical" align="center" valign="top" paddingRight="5%">
@@ -640,7 +646,7 @@
                         </panel>
                     </panel>
                     <panel height="*" align="center" valign="bottom" childLayout="center" visibleToMouse="true">
-                        <!-- TODO Use chat control or custom ? 
+                        <!-- TODO Use chat control or custom ?
                         <control id="#chatBox" name="listBox" vertical="optional" horizontal="optional" selection="Disabled"
                              displayItems="5" />
                         <control id="multiplayerChatText" name="textfield" />
@@ -649,7 +655,7 @@
                         </control>
                         -->
                         <!-- TODO sendLabel="Send Message" -->
-                        <control id="multiplayerChat" name="nifty-chat" width="100%" height="100%" lines="5" />  
+                        <control id="multiplayerChat" name="nifty-chat" width="100%" height="100%" lines="5" />
 
                     </panel>
                 </panel>

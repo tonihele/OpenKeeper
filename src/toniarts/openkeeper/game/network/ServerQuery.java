@@ -24,7 +24,7 @@ import java.util.LinkedList;
 import java.util.logging.Logger;
 
 /**
- * @deprecated 
+ * @deprecated
  * @author ArchDemon
  */
 public abstract class ServerQuery extends Thread {

@@ -16,21 +16,27 @@
  */
 package toniarts.openkeeper.game.network;
 
+import toniarts.openkeeper.game.network.message.MessageChat;
 import com.jme3.network.ConnectionListener;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.Server;
+import toniarts.openkeeper.game.network.message.MessageServerInfo;
 
 /**
  *
  * @author ArchDemon
  */
-
-
 public class ServerConnectionListener implements ConnectionListener {
+    private final NetworkServer host;
+
+    public ServerConnectionListener(NetworkServer host) {
+        this.host = host;
+    }
 
     @Override
     public void connectionAdded(Server server, HostedConnection conn) {
         server.broadcast(new MessageChat("Server: connected " + conn.getId()));
+        server.broadcast(new MessageServerInfo(host.getName()));
     }
 
     @Override

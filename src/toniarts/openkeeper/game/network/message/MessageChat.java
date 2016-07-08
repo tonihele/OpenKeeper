@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.network;
+package toniarts.openkeeper.game.network.message;
 
 import com.jme3.network.AbstractMessage;
 import com.jme3.network.serializing.Serializable;
@@ -23,7 +23,6 @@ import com.jme3.network.serializing.Serializable;
  *
  * @author ArchDemon
  */
-
 @Serializable
 public class MessageChat extends AbstractMessage {
     private String data;       // custom message data

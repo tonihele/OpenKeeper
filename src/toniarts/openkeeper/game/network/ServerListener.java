@@ -16,23 +16,45 @@
  */
 package toniarts.openkeeper.game.network;
 
+import toniarts.openkeeper.game.network.message.*;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.Message;
 import com.jme3.network.MessageListener;
 
 /**
- *
+ * TODO need to process all messages
  * @author ArchDemon
  */
-
-
 public class ServerListener implements MessageListener<HostedConnection> {
+    private final NetworkServer host;
+
+    public ServerListener(NetworkServer host) {
+        this.host = host;
+    }
+
     @Override
     public void messageReceived(HostedConnection source, Message message) {
         if (message instanceof MessageChat) {
             // do something with the message
             MessageChat msg = (MessageChat) message;
             source.getServer().broadcast(message);
+
+        } else if (message instanceof MessageTime) {
+            // Send the latest game time back
+            MessageTime msg = (MessageTime) message;
+            long time = host.getGameTime();
+            source.send(msg.updateGameTime(time).setReliable(true));
+
+        } else if (message instanceof MessagePlayerInfo) {
+            MessagePlayerInfo msg = (MessagePlayerInfo) message;
+
+            // Send a message back to the player with their entity ID
+            source.send(new MessagePlayerInfo(msg.getName()).setReliable(true));
+
+            // Send the current game time
+            long time = host.getGameTime();
+            source.send(new MessageTime(time).setReliable(true));
+
         }
-    } 
+    }
 }

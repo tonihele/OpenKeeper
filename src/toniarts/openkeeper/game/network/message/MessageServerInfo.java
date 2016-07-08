@@ -14,32 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.network;
+package toniarts.openkeeper.game.network.message;
 
-import com.jme3.network.Client;
-import com.jme3.network.ClientStateListener;
+import com.jme3.network.AbstractMessage;
+import com.jme3.network.serializing.Serializable;
 
 /**
- *
+ * Message that is used to tell the client about the new server info
+ * TODO need to create full class
  * @author ArchDemon
  */
-public class ClientStateChangeListener implements ClientStateListener {
-    private final NetworkClient client;
-
-    public ClientStateChangeListener(NetworkClient client) {
-        this.client = client;
+@Serializable
+public class MessageServerInfo extends AbstractMessage {
+    private String name;
+    private String map;
+    
+    public MessageServerInfo() {
     }
-
-    @Override
-    public void clientConnected(Client c) {
-        client.onConnected();
-        //System.out.println(c.getGameName() + " is onConnected");
+    
+    public MessageServerInfo( String name ) {
+        this.name = name;
     }
-
-    @Override
-    public void clientDisconnected(Client c, DisconnectInfo info) {
-        client.onDisconnected(info);
-        //System.out.println(c.getGameName() + " is onDisconnected");
-    }
-
 }
