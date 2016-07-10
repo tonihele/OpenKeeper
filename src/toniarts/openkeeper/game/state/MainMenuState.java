@@ -645,8 +645,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             // Disable us
             setEnabled(false);
 
-            // Create the level state
-            GameState gameState = new GameState(selectedMap);
+            // Create the level state. FIXME maybe some bugs
+            GameState gameState = new GameState(selectedMap, skirmishPlayers);
             stateManager.attach(gameState);
         }
     }
@@ -1149,11 +1149,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
 
         selectedMap = map;
-        setSkirmishMapDataToGUI();
-            // Create the level state
-            GameState gameState = new GameState(selectedMap, skirmishPlayers);
-            stateManager.attach(gameState);
-        }
+        setSkirmishMapDataToGUI();  
     }
 
     private void populateSkirmishPlayerTable() {
