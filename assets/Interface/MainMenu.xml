@@ -6,6 +6,8 @@
     <useStyles filename="Interface/ScrollpanelStyle.xml" />
     <useStyles filename="Interface/SliderStyle.xml" />
     <useStyles filename="Interface/CheckBoxStyle.xml" />
+    <useStyles filename="Interface/TextFieldStyle.xml" />
+    <useStyles filename="Interface/ChatStyle.xml" />
     <useControls filename="nifty-default-controls.xml" />
     <useControls filename="Interface/MyControls.xml" />
     <useControls filename="Interface/CreditsControl.xml" />

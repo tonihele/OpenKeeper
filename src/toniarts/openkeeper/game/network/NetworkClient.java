@@ -155,7 +155,11 @@ public class NetworkClient {
 
     protected void onMessageChat(MessageChat message){
         if (chat != null) {
-            chat.receivedChatLine(message.getData(), null, "chat");
+            // FIXME bug with num lines. If more than max => crush
+            try {
+                chat.receivedChatLine(message.getData(), null, "chat");
+            } catch (Exception ex) {
+            }
         }
     }
 

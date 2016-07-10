@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-styles xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+
+    <style id="nifty-chat-control#mainPanel">
+        <attributes childLayout="vertical" width="100%"/>
+    </style>
+
+    <style id="nifty-chat-control#chatPanel">
+        <attributes childLayout="horizontal" width="100%" align="center"/>
+    </style>
+
+    <style id="nifty-chat-control#chatArea">
+        <attributes childLayout="horizontal" align="left" width="100%"/>
+    </style>
+
+    <style id="nifty-chat-control#playerArea" >
+        <attributes childLayout="vertical" width="0%"/>
+    </style>
+
+    <style id="nifty-chat-control#spacer">
+        <attributes height="9px" width="100%"/>
+    </style>
+
+    <style id="nifty-chat-control#chatTextArea">
+        <attributes childLayout="horizontal" align="left" width="100%"/>
+    </style>
+    <!--
+    <style id="current-player" base="menuTextSmall">
+        <attributes backgroundImage="panel/nifty-panel-red-no-shadow.png"
+                    imageMode="resize:8,210,8,8,8,210,8,209,8,210,8,8" backgroundColor="#0f05"/>
+    </style>
+
+    <style id="default" base="menuTextSmall">
+        <attributes backgroundImage="panel/nifty-panel-no-shadow.png"
+                    imageMode="resize:8,210,8,8,8,210,8,209,8,210,8,8" backgroundColor="#00f5"/>
+    </style>
+    -->
+    <style id="nifty-chat-control#chatBox" base="menuTextSmall">
+        <attributes font="Interface/Fonts/Frontend20.fnt" color="#bbbcbb" vertical="on" />
+    </style>
+    
+    <style id="nifty-chat-line#chat-line-text" base="menuTextSmall">
+        <attributes font="Interface/Fonts/Frontend20.fnt" color="#bbbcbb" />
+    </style>
+
+</nifty-styles>

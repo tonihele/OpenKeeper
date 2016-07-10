@@ -43,7 +43,10 @@ public class ClassSerializer {
 
     public static void initialize() {
 
-        Serializer.registerClasses(classes);
+        try {
+            Serializer.registerClasses(classes);
+        } catch (Exception ex) {
+        }
 
         // Register these manually since Spider Monkey currently
         // requires them all to have @Serializable but we already know
@@ -59,7 +62,7 @@ public class ClassSerializer {
                 error = true;
             }
         }
-        if( error ) {
+        if (error) {
             throw new RuntimeException("Some classes failed to register");
         }
     }
