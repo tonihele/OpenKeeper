@@ -44,6 +44,9 @@ public class TableRowViewConverter implements ListBox.ListBoxViewConverter<Table
         int width = 0;
         int i = 0;
         for (String s : item.getData()) {
+            if (s == null) {
+                s = "";
+            }
             TextRenderer renderer = listBoxItem.findElementById("#col-" + String.valueOf(i)).getRenderer(TextRenderer.class);
             width += renderer.getFont().getWidth(s);
             i++;

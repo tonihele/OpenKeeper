@@ -16,6 +16,7 @@ repositories {
     // maven { url 'http://updates.jmonkeyengine.org/maven' }
     maven { url "https://jitpack.io" }
     maven { url "http://nifty-gui.sourceforge.net/nifty-maven-repo" }
+    maven { url "http://jcenter.bintray.com/com/simsilica" }
 }
 
 // NetBeans will automatically add "run" and "debug" tasks relying on the
@@ -64,6 +65,8 @@ dependencies {
     compile "org.jmonkeyengine:jme3-niftygui:$jmonkeyengine_version"
     compile "com.badlogicgames.gdx:gdx-ai:1.8.0"
     compile "javax.vecmath:vecmath:1.5.2"
+    compile "com.simsilica:zay-es:1.2.1"
+    compile "com.simsilica:zay-es-net:1.2.1"
 }
 
 sourceSets {
