@@ -24,6 +24,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.control.Control;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.player.PlayerCameraControl;
@@ -31,6 +32,7 @@ import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerAction.FlagTargetValueActionType;
@@ -172,15 +174,20 @@ public class TriggerControl extends Control {
                         TriggerAction.MakeType.class);
                 boolean available = trigger.getUserData("available", short.class) != 0;
                 short playerId = trigger.getUserData("playerId", short.class);
+                Keeper keeper = getPlayer(playerId);
+                KwdFile kwdFile = stateManager.getState(GameState.class).getLevelData();
+                short targetId = trigger.getUserData("available", short.class);
 
                 switch (flag) {
                     case CREATURE:
+                        keeper.getCreatureControl().setTypeAvailable(kwdFile.getCreature(targetId), available);
                         break;
                     case DOOR:
                         break;
                     case KEEPER_SPELL:
                         break;
                     case ROOM:
+                        keeper.getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
                         break;
                     case TRAP:
                         break;
@@ -218,7 +225,7 @@ public class TriggerControl extends Control {
                 PlayerState player = stateManager.getState(PlayerState.class);
                 TriggerAction.MakeType buttonType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
                         TriggerAction.MakeType.class);
-                short targetId = trigger.getUserData("targetId", short.class);
+                targetId = trigger.getUserData("targetId", short.class);
                 boolean enable = trigger.getUserData("available", short.class) != 0;
                 int time = trigger.getUserData("value", int.class);
                 player.flashButton(targetId, buttonType, enable, time);
@@ -406,5 +413,14 @@ public class TriggerControl extends Control {
 
         logger.warning("Unsupported target flag type");
         return 0;
+    }
+
+    protected Keeper getPlayer(short playerId) {
+        GameState gameState = stateManager.getState(GameState.class);
+        if (playerId == 0) {
+            return gameState.getPlayer(this.stateManager.getState(PlayerState.class).getPlayerId()); // Current player
+        } else {
+            return gameState.getPlayer(playerId);
+        }
     }
 }

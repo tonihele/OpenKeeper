@@ -195,8 +195,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 // TODO: Not very pretty
                 for (Entry<Short, Keeper> entry : players.entrySet()) {
                     if (entry.getKey() >= Keeper.KEEPER1_ID) {
-                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) 2));
-                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) 4));
+                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) 2), true);
+                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) 4), true);
                     }
                 }
 
@@ -210,15 +210,11 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
                     switch (availability.getType()) {
                         case CREATURE: {
-                            if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
-                                player.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()));
-                            }
+                            player.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
                             break;
                         }
                         case ROOM: {
-                            if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
-                                player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()));
-                            }
+                            player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
                             break;
                         }
                     }

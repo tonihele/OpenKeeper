@@ -39,11 +39,14 @@ public abstract class AbstractPlayerControl<K extends Comparable<K>, V> {
      * Add a type to the availability pool of this player
      *
      * @param type the creature to add
+     * @param available set available or not
      */
-    public void setTypeAvailable(K type) {
+    public void setTypeAvailable(K type, boolean available) {
         int index = Collections.binarySearch(typesAvailable, type);
-        if (index < 0) {
+        if (index < 0 && available) {
             typesAvailable.add(~index, type);
+        } else if (index >= 0 && !available) {
+            typesAvailable.remove(index);
         }
     }
 

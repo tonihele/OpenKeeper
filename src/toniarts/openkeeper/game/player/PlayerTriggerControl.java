@@ -199,12 +199,4 @@ public class PlayerTriggerControl extends TriggerControl {
         return result;
     }
 
-    private Keeper getPlayer(short playerId) {
-        GameState gameState = stateManager.getState(GameState.class);
-        if (playerId == 0) {
-            return gameState.getPlayer(playerState.getPlayerId()); // Current player
-        } else {
-            return gameState.getPlayer(playerId);
-        }
-    }
 }
