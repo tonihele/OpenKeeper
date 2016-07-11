@@ -73,7 +73,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public enum AnimationType {
 
-        MOVE, WORK, IDLE;
+        MOVE, WORK, IDLE, OTHER;
     }
 
     // Attributes
@@ -399,6 +399,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 stateMachine.changeState(CreatureState.DEAD);
             } else {
                 playAnimation(creature.getAnimFallbackResource());
+                playingAnimationType = AnimationType.OTHER;
             }
 
             // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
@@ -444,12 +445,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                     } else {
                         experience += creature.getExpPerSecond();
                     }
-            }
+                }
                 if (experience >= getExperienceToNextLevel()) { // Probably multiply the value per level?
                     experience -= getExperienceToNextLevel();
-                level++;
-                //TODO: we need a wrapper for the creature stats, so no need to always multply them tc.
-            }
+                    level++;
+                    //TODO: we need a wrapper for the creature stats, so no need to always multply them tc.
+                }
             }
 
             // Health
