@@ -80,6 +80,11 @@ import toniarts.openkeeper.tools.convert.map.Variable.Sacrifice;
  */
 public final class KwdFile {
 
+    // These are needed in various places, I don't know how to else regognize these
+    private final static short ROOM_PORTAL_ID = 3;
+    private final static short ROOM_LAIR_ID = 2;
+    private final static short ROOM_HATCHERY_ID = 4;
+
     private GameLevel gameLevel;
     private Map map;
     private java.util.Map<Short, Player> players;
@@ -3056,6 +3061,18 @@ public final class KwdFile {
 
     public Creature getImp() {
         return imp;
+    }
+
+    public Room getPortal() {
+        return getRoomById(ROOM_PORTAL_ID);
+    }
+
+    public Room getLair() {
+        return getRoomById(ROOM_LAIR_ID);
+    }
+
+    public Room getHatchery() {
+        return getRoomById(ROOM_HATCHERY_ID);
     }
 
     /**

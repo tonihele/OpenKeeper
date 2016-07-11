@@ -195,8 +195,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 // TODO: Not very pretty
                 for (Entry<Short, Keeper> entry : players.entrySet()) {
                     if (entry.getKey() >= Keeper.KEEPER1_ID) {
-                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) 2), true);
-                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) 4), true);
+                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getLair(), true);
+                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getHatchery(), true);
                     }
                 }
 
