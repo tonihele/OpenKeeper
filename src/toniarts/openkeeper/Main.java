@@ -39,8 +39,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
@@ -69,6 +67,7 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.utils.UTF8Control;
 import toniarts.openkeeper.video.MovieState;
@@ -160,7 +159,7 @@ public class Main extends SimpleApplication {
         boolean saveSetup = false;
 
         // First and foremost, the folder
-        if (!SettingUtils.checkDkFolder(dkIIFolder)) {
+        if (!PathUtils.checkDkFolder(dkIIFolder)) {
             logger.info("Dungeon Keeper II folder not found or valid! Prompting user!");
             saveSetup = true;
 
@@ -169,10 +168,7 @@ public class Main extends SimpleApplication {
             DKFolderSelector frame = new DKFolderSelector() {
                 @Override
                 protected void continueOk(String path) {
-                    if (!path.endsWith(File.separator)) {
-                        dkIIFolder = path.concat(File.separator);
-                    }
-                    SettingUtils.setDKIIFolder(dkIIFolder);
+                    PathUtils.setDKIIFolder(PathUtils.fixFilePath(dkIIFolder));
                     folderOk = true;
                 }
             };
@@ -223,7 +219,7 @@ public class Main extends SimpleApplication {
         app.getUserSettings();
 
         // DKII settings
-        dkIIFolder = SettingUtils.getDKIIFolder();
+        dkIIFolder = PathUtils.getDKIIFolder();
     }
 
     /**
@@ -368,10 +364,8 @@ public class Main extends SimpleApplication {
                         if (folder == null) {
                             folder = SCREENSHOTS_FOLDER;
                         }
-                        if (!folder.endsWith(File.separator)) {
-                            folder = folder.concat(File.separator);
-                        }
-                        folder = folder.concat(getSettings().getTitle()).concat("-").concat(String.valueOf(System.currentTimeMillis() / 1000)).concat(".avi");
+
+                        folder = PathUtils.fixFilePath(folder).concat(getSettings().getTitle()).concat("-").concat(String.valueOf(System.currentTimeMillis() / 1000)).concat(".avi");
                         recorder.setFile(new File(folder));
 
                         stateManager.attach(recorder);

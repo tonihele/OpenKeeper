@@ -28,7 +28,7 @@ import java.util.List;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.bf4.Bf4Entry;
 import toniarts.openkeeper.tools.convert.bf4.Bf4File;
-import toniarts.openkeeper.utils.SettingUtils;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Simple class to extract all the font bitmaps to given location
@@ -43,26 +43,23 @@ public class Bf4Extractor {
 
         //Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 2 || !new File(args[1]).exists()) {
-            dkIIFolder = SettingUtils.getDKIIFolder();
+            dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null || args.length == 0)
             {
                 throw new RuntimeException("Please provide extraction folder as a first parameter! Second parameter is the Dungeon Keeper II main folder (optional)!");
             }
         } else {
-            dkIIFolder = SettingUtils.fixFilePath(args[1]);
+            dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        dkIIFolder = dkIIFolder.concat("Data").concat(File.separator).concat("Text").concat(File.separator).concat("Default").concat(File.separator);
+        final String textFolder = dkIIFolder.concat("Data").concat(File.separator).concat("Text").concat(File.separator).concat("Default").concat(File.separator);
 
         //And the destination
-        String destination = args[0];
-        if (!destination.endsWith(File.separator)) {
-            destination = destination.concat(File.separator);
-        }
+        String destination = PathUtils.fixFilePath(args[0]);
 
         //Find all the font files
         final List<File> bf4Files = new ArrayList<>();
-        File dataDir = new File(dkIIFolder);
+        File dataDir = new File(textFolder);
         Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {

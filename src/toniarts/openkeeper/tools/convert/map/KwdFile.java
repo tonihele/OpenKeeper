@@ -63,6 +63,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats;
 import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats.StatType;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.Sacrifice;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Reads a DK II map file, the KWD is the file name of the main map identifier,
@@ -142,10 +143,7 @@ public final class KwdFile {
             //Fug
             throw new RuntimeException("Failed to read the file " + file + "!", e);
         }
-        if (!basePath.endsWith(File.separator)) {
-            basePath = basePath.concat(File.separator);
-        }
-        this.basePath = basePath;
+        this.basePath = PathUtils.fixFilePath(basePath);
 
         // See if we need to load the actual data
         if (load) {

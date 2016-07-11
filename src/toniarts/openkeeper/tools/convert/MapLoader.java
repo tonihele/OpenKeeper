@@ -18,7 +18,7 @@ package toniarts.openkeeper.tools.convert;
 
 import java.io.File;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.utils.SettingUtils;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * A simple class to load up a map file
@@ -33,13 +33,13 @@ public class MapLoader {
 
         //Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 2 || !new File(args[1]).exists()) {
-            dkIIFolder = SettingUtils.getDKIIFolder();
+            dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null || args.length == 0)
             {
                 throw new RuntimeException("Please provide actual map file as a first parameter! Second parameter is the Dungeon Keeper II main folder (optional)!");
             }
         } else {
-            dkIIFolder = SettingUtils.fixFilePath(args[1]);
+            dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
         //Load the map

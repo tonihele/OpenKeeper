@@ -69,8 +69,8 @@ import toniarts.openkeeper.tools.convert.kmf.Uv;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEntry;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.modelviewer.ModelViewer;
+import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.TangentBinormalGenerator;
-import toniarts.openkeeper.utils.SettingUtils;
 
 /**
  * Loads up and converts a Dungeon Keeper II model to JME model<br>
@@ -110,13 +110,13 @@ public class KmfModelLoader implements AssetLoader {
 
         //Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 2 || !new File(args[1]).exists()) {
-            dkIIFolder = SettingUtils.getDKIIFolder();
+            dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null)
             {
                 throw new RuntimeException("Please provide file path to the model as a first parameter! Second parameter is the Dungeon Keeper II main folder (optional)");
             }
         } else {
-            dkIIFolder = SettingUtils.fixFilePath(args[1]);
+            dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
         AssetInfo ai = new AssetInfo(/*main.getAssetManager()*/null, null) {

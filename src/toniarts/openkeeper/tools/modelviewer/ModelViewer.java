@@ -71,7 +71,7 @@ import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.utils.SettingUtils;
+import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TerrainLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
@@ -124,13 +124,13 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         //Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 1 || !new File(args[0]).exists()) {
-            dkIIFolder = SettingUtils.getDKIIFolder();
+            dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null)
             {
                 throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter!");
             }
         } else {
-            dkIIFolder = SettingUtils.fixFilePath(args[0]);
+            dkIIFolder = PathUtils.fixFilePath(args[0]);
         }
 
         ModelViewer app = new ModelViewer();

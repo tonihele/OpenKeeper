@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Stores the wad file structure and contains the methods to handle the WAD
@@ -177,10 +178,7 @@ public class WadFile {
     private File extractFileData(String fileName, String destination, RandomAccessFile rawWad, boolean simulation) {
 
         //See that the destination is formatted correctly and create it if it does not exist
-        String dest = destination;
-        if (!dest.endsWith(File.separator)) {
-            dest = dest.concat(File.separator);
-        }
+        String dest = PathUtils.fixFilePath(destination);
 
         String mkdir = dest;
         if (fileName.contains(File.separator)) {

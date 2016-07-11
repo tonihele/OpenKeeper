@@ -70,6 +70,7 @@ import toniarts.openkeeper.tools.convert.str.StrFile;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.textures.loadingscreens.LoadingScreenFile;
 import toniarts.openkeeper.tools.convert.wad.WadFile;
+import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.world.MapThumbnailGenerator;
 
 /**
@@ -509,10 +510,7 @@ public abstract class AssetsConverter {
      */
     public static String getCurrentFolder() {
         String currentFolder = Paths.get("").toAbsolutePath().toString();
-        if (!currentFolder.endsWith(File.separator)) {
-            currentFolder = currentFolder.concat(File.separator);
-        }
-        return currentFolder;
+        return PathUtils.fixFilePath(currentFolder);
     }
 
     /**
