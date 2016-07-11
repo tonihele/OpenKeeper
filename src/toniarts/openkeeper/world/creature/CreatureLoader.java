@@ -67,7 +67,7 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
     }
 
     public Spatial load(AssetManager assetManager, short creatureId, short playerId, short level) {
-        return load(assetManager, null, creatureId, (short) 0, (short) 0);
+        return load(assetManager, null, creatureId, playerId, level);
     }
 
     private Spatial load(AssetManager assetManager, Thing.Creature object, short creatureId, short playerId, short level) {
