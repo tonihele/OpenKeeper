@@ -663,10 +663,10 @@
                 </panel>
                 <panel width="*" childLayout="vertical" align="center" valign="top">
                     <text style="menuText" text="${menu.1495}" align="center">
-                        <interact onClick="selectMap(multiplayerCreate)" />
+                        <interact onClick="goToScreen(skirmishMapSelect)" />
                     </text>
                     <text style="menuText" text="${menu.1496}" align="center">
-                        <interact onClick="selectRandomMap(multiplayer)" />
+                        <interact onClick="selectRandomMap()" />
                     </text>
                     <text style="menuText" text="${menu.2803}" align="center">
                         <!--<interact onClick="gameSettings()" />-->
@@ -776,10 +776,10 @@
                 </panel>
                 <panel id="skirmishGameControl" width="*" childLayout="vertical" align="center" valign="top">
                     <text style="menuText" text="${menu.1495}" align="center">
-                        <interact onClick="selectMap(skirmish)" />
+                        <interact onClick="goToScreen(skirmishMapSelect)" />
                     </text>
                     <text style="menuText" text="${menu.1496}" align="center">
-                        <interact onClick="selectRandomMap(skirmish)" />
+                        <interact onClick="selectRandomMap()" />
                     </text>
                     <text style="menuText" text="${menu.2803}" align="center">
                         <!--<interact onClick="gameSettings()" />-->
