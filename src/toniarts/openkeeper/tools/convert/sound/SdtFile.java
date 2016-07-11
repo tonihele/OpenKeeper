@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Stores the SDT file structure and contains the methods to handle the SDT
@@ -132,10 +133,7 @@ public class SdtFile {
     private void extractFileData(String fileName, String destination, RandomAccessFile rawSdt) {
 
         //See that the destination is formatted correctly and create it if it does not exist
-        String dest = destination;
-        if (!dest.endsWith(File.separator)) {
-            dest = dest.concat(File.separator);
-        }
+        String dest = PathUtils.fixFilePath(destination);
         File destinationFolder = new File(dest);
         destinationFolder.mkdirs();
         dest = dest.concat(fileName);

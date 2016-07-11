@@ -69,6 +69,7 @@ import toniarts.openkeeper.tools.convert.kmf.Uv;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEntry;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.modelviewer.ModelViewer;
+import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.TangentBinormalGenerator;
 
 /**
@@ -82,6 +83,7 @@ public class KmfModelLoader implements AssetLoader {
 
     /* Some textures are broken */
     private final static HashMap<String, String> textureFixes;
+    private static String dkIIFolder;
 
     static {
         textureFixes = new HashMap<>();
@@ -107,15 +109,21 @@ public class KmfModelLoader implements AssetLoader {
     public static void main(final String[] args) throws IOException {
 
         //Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 2 || !new File(args[0]).exists()) {
-            throw new RuntimeException("Please provide Dungeon Keeper II root folder as a first parameter! Second parameter is the actual model file!");
+        if (args.length != 2 || !new File(args[1]).exists()) {
+            dkIIFolder = PathUtils.getDKIIFolder();
+            if (dkIIFolder == null)
+            {
+                throw new RuntimeException("Please provide file path to the model as a first parameter! Second parameter is the Dungeon Keeper II main folder (optional)");
+            }
+        } else {
+            dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
         AssetInfo ai = new AssetInfo(/*main.getAssetManager()*/null, null) {
                     @Override
                     public InputStream openStream() {
                         try {
-                            final File file = new File(args[0]);
+                            final File file = new File(dkIIFolder);
                             key = new AssetKey() {
                                 @Override
                                 public String getName() {
@@ -130,7 +138,7 @@ public class KmfModelLoader implements AssetLoader {
                     }
                 };
 
-        ModelViewer app = new ModelViewer(new File(args[1]), args[0]);
+        ModelViewer app = new ModelViewer(new File(args[0]), dkIIFolder);
         app.start();
     }
 
