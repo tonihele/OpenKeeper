@@ -183,7 +183,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
             int triggerId = gameState.getLevelData().getPlayer(playerId).getTriggerId();
             if (triggerId != 0) {
-                triggerControl = new PlayerTriggerControl(stateManager, triggerId);
+                triggerControl = new PlayerTriggerControl(stateManager, triggerId, playerId);
                 triggerControl.setPlayerState(this);
             }
 

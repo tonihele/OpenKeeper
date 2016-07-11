@@ -32,14 +32,17 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 public class PlayerTriggerControl extends TriggerControl {
 
     private PlayerState playerState = null;
+    private final short playerId;
     private static final Logger logger = Logger.getLogger(PlayerTriggerControl.class.getName());
 
     public PlayerTriggerControl() { // empty serialization constructor
         super();
+        playerId = Keeper.KEEPER1_ID;
     }
 
-    public PlayerTriggerControl(final AppStateManager stateManager, int triggerId) {
+    public PlayerTriggerControl(final AppStateManager stateManager, int triggerId, short playerId) {
         super(stateManager, triggerId);
+        this.playerId = playerId;
     }
 
     public void setPlayerState(PlayerState playerState) {
@@ -197,6 +200,14 @@ public class PlayerTriggerControl extends TriggerControl {
         }
 
         return result;
+    }
+
+    @Override
+    protected Keeper getPlayer(short playerId) {
+        if (playerId == 0) {
+            return super.getPlayer(this.playerId);
+        }
+        return super.getPlayer(playerId); //To change body of generated methods, choose Tools | Templates.
     }
 
 }
