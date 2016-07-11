@@ -18,24 +18,29 @@ package toniarts.openkeeper.game.player;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Abstract base for player controls that have availabilities
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
- * @param <T> the type of object this control manages
+ * @param <K> the type of object this control manages
+ * @param <V> the value behind the type
  */
-public class AbstractPlayerControl<T extends Comparable<T>> {
+public abstract class AbstractPlayerControl<K extends Comparable<K>, V> {
 
-    private final List<T> typesAvailable = new ArrayList<>();
+    private final List<K> typesAvailable = new ArrayList<>();
+    protected final Map<K, Set<V>> types = new LinkedHashMap<>();
 
     /**
      * Add a type to the availability pool of this player
      *
      * @param type the creature to add
      */
-    public void setTypeAvailable(T type) {
+    public void setTypeAvailable(K type) {
         int index = Collections.binarySearch(typesAvailable, type);
         if (index < 0) {
             typesAvailable.add(~index, type);
@@ -47,8 +52,37 @@ public class AbstractPlayerControl<T extends Comparable<T>> {
      *
      * @return the types available
      */
-    public List<T> getTypesAvailable() {
+    public List<K> getTypesAvailable() {
         return typesAvailable;
     }
+
+    protected Set<V> get(K key) {
+        return types.get(key);
+    }
+
+    protected Set<V> put(K key, Set<V> value) {
+        return types.put(key, value);
+    }
+
+    /**
+     * Get the amount of object types the player has
+     *
+     * @param key the type
+     * @return amount of types
+     */
+    public int getTypeCount(K key) {
+        Set<V> set = types.get(key);
+        if (set != null) {
+            return set.size();
+        }
+        return 0;
+    }
+
+    /**
+     * Get the amount of all object types the player has
+     *
+     * @return amount of all types
+     */
+    public abstract int getTypeCount();
 
 }

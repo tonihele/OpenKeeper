@@ -34,7 +34,7 @@ import toniarts.openkeeper.world.listener.CreatureListener;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerCreatureControl extends AbstractPlayerControl<Creature> implements CreatureListener {
+public class PlayerCreatureControl extends AbstractPlayerControl<Creature, CreatureControl> implements CreatureListener {
 
     public enum CreatureUIState {
 
@@ -44,7 +44,6 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature> imple
     private List<WorkerListener> workerListeners;
     private List<CreatureListener> creatureListeners;
     private Creature imp;
-    private final Map<Creature, Set<CreatureControl>> creatures = new LinkedHashMap<>();
     private int creatureCount = 0;
     private final Map<Creature, Integer> selectionIndices = new HashMap<>();
 
@@ -59,10 +58,10 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature> imple
     public void onSpawn(CreatureControl creature) {
 
         // Add to the list
-        Set<CreatureControl> creatureSet = creatures.get(creature.getCreature());
+        Set<CreatureControl> creatureSet = get(creature.getCreature());
         if (creatureSet == null) {
             creatureSet = new LinkedHashSet<>();
-            creatures.put(creature.getCreature(), creatureSet);
+            put(creature.getCreature(), creatureSet);
         }
         creatureSet.add(creature);
 
@@ -96,7 +95,7 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature> imple
     public void onDie(CreatureControl creature) {
 
         // Delete
-        Set<CreatureControl> creatureSet = creatures.get(creature.getCreature());
+        Set<CreatureControl> creatureSet = get(creature.getCreature());
         if (creatureSet != null) {
             creatureSet.remove(creature);
         }
@@ -120,7 +119,7 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature> imple
      * @return the creatures
      */
     public Map<Creature, Set<CreatureControl>> getCreatures() {
-        Map<Creature, Set<CreatureControl>> map = new LinkedHashMap<>(creatures);
+        Map<Creature, Set<CreatureControl>> map = new LinkedHashMap<>(types);
         map.remove(imp);
         return map;
     }
@@ -158,7 +157,7 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature> imple
         int idle = 0;
         int fighting = 0;
         int busy = 0;
-        Set<CreatureControl> imps = creatures.get(imp);
+        Set<CreatureControl> imps = get(imp);
         if (imps != null) {
             for (CreatureControl creature : imps) {
                 if (isCreatureState(creature, CreatureUIState.IDLE)) {
@@ -204,7 +203,7 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature> imple
      * @return the next creature of the type
      */
     public CreatureControl getNextCreature(Creature creature, CreatureUIState state) {
-        List<CreatureControl> creatureList = new ArrayList<>(creatures.get(creature));
+        List<CreatureControl> creatureList = new ArrayList<>(get(creature));
         Integer index = selectionIndices.get(creature);
         if (index == null || index >= creatureList.size()) {
             index = 0;
@@ -251,16 +250,9 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature> imple
      *
      * @return the creature count
      */
-    public int getCreatureCount() {
+    @Override
+    public int getTypeCount() {
         return creatureCount;
-    }
-
-    public int getCreatureCount(Creature creature) {
-        Set<CreatureControl> creatureSet = creatures.get(creature);
-        if (creatureSet != null) {
-            return creatureSet.size();
-        }
-        return 0;
     }
 
     private static class WorkerListener {

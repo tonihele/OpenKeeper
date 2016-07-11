@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.player;
 
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -31,9 +30,9 @@ import toniarts.openkeeper.world.room.RoomInstance;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerRoomControl extends AbstractPlayerControl<Room> implements RoomListener {
+public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> implements RoomListener {
 
-    private final Map<Room, Set<GenericRoom>> rooms = new HashMap<>();
+    private int roomCount = 0;
 
     public void init(List<Map.Entry<RoomInstance, GenericRoom>> rooms) {
         for (Map.Entry<RoomInstance, GenericRoom> entry : rooms) {
@@ -45,12 +44,13 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room> implements Ro
     public void onBuild(GenericRoom room) {
 
         // Add to the list
-        Set<GenericRoom> roomSet = rooms.get(room.getRoom());
+        Set<GenericRoom> roomSet = get(room.getRoom());
         if (roomSet == null) {
             roomSet = new LinkedHashSet<>();
-            rooms.put(room.getRoom(), roomSet);
+            put(room.getRoom(), roomSet);
         }
         roomSet.add(room);
+        roomCount++;
     }
 
     @Override
@@ -67,10 +67,21 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room> implements Ro
     public void onSold(GenericRoom room) {
 
         // Delete
-        Set<GenericRoom> roomSet = rooms.get(room.getRoom());
+        Set<GenericRoom> roomSet = get(room.getRoom());
         if (roomSet != null) {
             roomSet.remove(room);
+            roomCount--;
         }
+    }
+
+    /**
+     * Get player room count. Even the non-buildables.
+     *
+     * @return the room count
+     */
+    @Override
+    public int getTypeCount() {
+        return roomCount;
     }
 
 }
