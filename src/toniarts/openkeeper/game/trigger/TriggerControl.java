@@ -20,11 +20,13 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.math.FastMath;
 import java.awt.Point;
 import java.util.EnumSet;
+import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.player.PlayerCameraControl;
@@ -41,6 +43,7 @@ import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
  *
@@ -320,6 +323,18 @@ public class TriggerControl extends Control {
                 break;
 
             case GENERATE_CREATURE:
+                short creatureId = trigger.getUserData("creatureId", short.class);
+                short level = trigger.getUserData("level", short.class);
+                keeper = getPlayer((short) 0);
+
+                // Get first spawn point of the player (this flag is only for the players)
+                Set<GenericRoom> rooms = keeper.getRoomControl().getTypes().get(stateManager.getState(GameState.class).getLevelData().getPortal());
+                if (rooms == null || rooms.isEmpty()) {
+                    logger.warning("Generate creature triggered but no entrances found!");
+                    break;
+                }
+                Point p = rooms.iterator().next().getRoomInstance().getCoordinates().get(0);
+                CreatureSpawnLogicState.spawnCreature(creatureId, keeper.getId(), level, stateManager.getState(GameState.class).getApplication(), stateManager.getState(WorldState.class).getThingLoader(), p, true);
                 break;
             case SHOW_HEALTH_FLOWER:
                 break;
@@ -334,6 +349,8 @@ public class TriggerControl extends Control {
             case COLLAPSE_HERO_GATE:
                 break;
             case SET_PORTAL_STATUS:
+                available = trigger.getUserData("available", short.class) != 0;
+                getPlayer((short) 0).getRoomControl().setPortalsOpen(available);
                 break;
             case SET_WIDESCREEN_MODE:
                 PlayerState ps = stateManager.getState(PlayerState.class);
