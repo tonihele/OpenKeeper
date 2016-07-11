@@ -3050,6 +3050,10 @@ public final class KwdFile {
         return variables;
     }
 
+    public List<Availability> getAvailabilities() {
+        return new ArrayList<>(availabilities);
+    }
+
     public Creature getImp() {
         return imp;
     }
