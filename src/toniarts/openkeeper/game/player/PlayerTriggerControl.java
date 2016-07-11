@@ -115,27 +115,27 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_KEEPER_SPELL:
                 return false;
             case PLAYER_GOLD:
-                PlayerGoldControl pgc = playerState.getGoldControl();
-                target = pgc.getGold();
+                playerId = trigger.getUserData("playerId", short.class);
+                keeper = getPlayer(playerId);
+                target = keeper.getGoldControl().getGold();
                 isValue = trigger.getUserData("flag", short.class) == 1;
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
-                    // TODO get value from other player
-                    playerId = trigger.getUserData("targetId", short.class);
+                    // TODO what?
                     return false;
                 }
                 break;
 
             case PLAYER_GOLD_MINED:
-                pgc = playerState.getGoldControl();
-                target = pgc.getGoldMined();
+                playerId = trigger.getUserData("playerId", short.class);
+                keeper = getPlayer(playerId);
+                target = keeper.getGoldControl().getGoldMined();
                 isValue = trigger.getUserData("flag", short.class) == 1;
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
-                    // TODO get value from other player
-                    playerId = trigger.getUserData("targetId", short.class);
+                    // TODO what?
                     return false;
                 }
                 break;
