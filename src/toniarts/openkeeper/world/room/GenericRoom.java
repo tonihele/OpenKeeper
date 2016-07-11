@@ -393,4 +393,13 @@ public abstract class GenericRoom {
         return roomInstance.getRoom();
     }
 
+    /**
+     * Are we the dungeon heart?
+     *
+     * @return are we?
+     */
+    public boolean isDungeonHeart() {
+        return false;
+    }
+
 }
