@@ -150,10 +150,33 @@ public class ThingLoader {
      */
     public CreatureControl spawnCreature(Thing.Creature cr, Vector2f position) {
         Spatial creature = creatureLoader.load(assetManager, cr);
+        return spawnCreature(creature, position, false);
+    }
+
+    /**
+     * Spawn a creature
+     *
+     * @param creatureId the creature ID to generate
+     * @param playerId the owner
+     * @param level the creature level
+     * @param position the position to spawn to, may be {@code null}
+     * @param entrance whether this an enrance for the creature (coming out of a
+     * portal)
+     * @return the actual spawned creature
+     */
+    public CreatureControl spawnCreature(short creatureId, short playerId, short level, Vector2f position, boolean entrance) {
+        Spatial creature = creatureLoader.load(assetManager, creatureId, playerId, level);
+        return spawnCreature(creature, position, entrance);
+    }
+
+    private CreatureControl spawnCreature(Spatial creature, Vector2f position, boolean entrance) {
         if (position != null) {
             CreatureLoader.setPosition(creature, position);
         }
         CreatureControl creatureControl = creature.getControl(CreatureControl.class);
+        if (entrance) {
+            creatureControl.getStateMachine().setInitialState(CreatureState.ENTERING_DUNGEON);
+        }
         creatures.add(creatureControl);
         nodeCreatures.attachChild(creature);
 
