@@ -59,6 +59,15 @@ public abstract class AbstractPlayerControl<K extends Comparable<K>, V> {
         return typesAvailable;
     }
 
+    /**
+     * Get all the objects by the types
+     *
+     * @return the objects
+     */
+    public Map<K, Set<V>> getTypes() {
+        return types;
+    }
+
     protected Set<V> get(K key) {
         return types.get(key);
     }
