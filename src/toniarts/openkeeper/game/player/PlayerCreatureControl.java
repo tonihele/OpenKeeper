@@ -18,7 +18,6 @@ package toniarts.openkeeper.game.player;
 
 import de.lessvoid.nifty.controls.Label;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -35,14 +34,13 @@ import toniarts.openkeeper.world.listener.CreatureListener;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerCreatureControl implements CreatureListener {
+public class PlayerCreatureControl extends AbstractPlayerControl<Creature> implements CreatureListener {
 
     public enum CreatureUIState {
 
         IDLE, BUSY, FIGHTING
     };
 
-    private List<Creature> creatureTypesAvailable = new ArrayList<>();
     private List<WorkerListener> workerListeners;
     private List<CreatureListener> creatureListeners;
     private Creature imp;
@@ -263,27 +261,6 @@ public class PlayerCreatureControl implements CreatureListener {
             return creatureSet.size();
         }
         return 0;
-    }
-
-    /**
-     * Add a creature to the availability pool of this player
-     *
-     * @param creature the creature to add
-     */
-    public void setCreatureTypeAvailable(Creature creature) {
-        int index = Collections.binarySearch(creatureTypesAvailable, creature);
-        if (index < 0) {
-            creatureTypesAvailable.add(~index, creature);
-        }
-    }
-
-    /**
-     * Get the creature types available for this player
-     *
-     * @return the creature types available
-     */
-    public List<Creature> getCreatureTypesAvailable() {
-        return creatureTypesAvailable;
     }
 
     private static class WorkerListener {
