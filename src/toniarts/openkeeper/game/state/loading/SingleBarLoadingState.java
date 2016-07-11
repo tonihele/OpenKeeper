@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.lwjgl.opengl.Display;
+import toniarts.openkeeper.Main;
 
 /**
  * Loading state with a single loading bar
@@ -74,7 +74,7 @@ public abstract class SingleBarLoadingState extends LoadingState {
 
         // Set the loading bar
         progressBar = new Geometry("ProgressBar", new Quad(0, imageHeight * (BAR_HEIGHT / 100)));
-        progressBar.setLocalTranslation((Display.getWidth() - imageWidth) / 2 + imageWidth * (BAR_X / 100), imageHeight - ((Display.getHeight() - imageHeight) / 2 + imageHeight * (BAR_Y / 100)) - imageHeight * (BAR_HEIGHT / 100), 0);
+        progressBar.setLocalTranslation((((Main) app).getUserSettings().getAppSettings().getWidth() - imageWidth) / 2 + imageWidth * (BAR_X / 100), imageHeight - ((((Main) app).getUserSettings().getAppSettings().getHeight() - imageHeight) / 2 + imageHeight * (BAR_Y / 100)) - imageHeight * (BAR_HEIGHT / 100), 0);
         Material mat = new Material(assetManager,
                 "Common/MatDefs/Misc/Unshaded.j3md");
         mat.setColor("Color", new ColorRGBA(BAR_COLOR.getRed() / 255f, BAR_COLOR.getGreen() / 255f, BAR_COLOR.getBlue() / 255f, BAR_COLOR.getAlpha() / 255f));
@@ -86,7 +86,7 @@ public abstract class SingleBarLoadingState extends LoadingState {
     protected Texture getLoadingScreenTexture() {
 
         // Use binary search to get the nearest resolution index
-        int index = Collections.binarySearch(AVAILABLE_WIDTHS, Display.getWidth());
+        int index = Collections.binarySearch(AVAILABLE_WIDTHS, app.getUserSettings().getAppSettings().getWidth());
         if (index < 0) {
             index = Math.min(AVAILABLE_WIDTHS.size() - 1, ~index + 1);
         }

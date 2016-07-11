@@ -31,7 +31,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import org.lwjgl.opengl.Display;
 import toniarts.openkeeper.Main;
 
 /**
@@ -87,17 +86,19 @@ public abstract class LoadingState extends AbstractAppState {
         int imgWidth = tex.getImage().getWidth();
         int imgHeight = tex.getImage().getHeight();
         float imageRatio = imgWidth / (float) imgHeight;
-        imageWidth = (int) (Display.getHeight() * imageRatio);
-        imageHeight = (int) (Display.getWidth() / imageRatio);
-        if (Display.getWidth() / (float) Display.getHeight() > imageRatio) {
-            imageHeight = Display.getHeight();
+        int height = app.getUserSettings().getAppSettings().getHeight();
+        int width = app.getUserSettings().getAppSettings().getWidth();
+        imageWidth = (int) (height * imageRatio);
+        imageHeight = (int) (width / imageRatio);
+        if (width / (float) height > imageRatio) {
+            imageHeight = height;
         } else {
-            imageWidth = Display.getWidth();
+            imageWidth = width;
         }
 
         // The canvas
         titleScreen = new Geometry("TitleScreen", new Quad(imageWidth, imageHeight));
-        titleScreen.setLocalTranslation((Display.getWidth() - imageWidth) / 2, (Display.getHeight() - imageHeight) / 2, 0);
+        titleScreen.setLocalTranslation((width - imageWidth) / 2, (height - imageHeight) / 2, 0);
         Material mat = new Material(assetManager,
                 "Common/MatDefs/Misc/Unshaded.j3md");
         mat.setTexture("ColorMap", tex);
