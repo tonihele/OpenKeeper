@@ -255,6 +255,15 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
         return creatureCount;
     }
 
+    /**
+     * Get the imp count
+     *
+     * @return the number of imps
+     */
+    public int getImpCount() {
+        return get(imp).size();
+    }
+
     private static class WorkerListener {
 
         private final Label amountLabel;
