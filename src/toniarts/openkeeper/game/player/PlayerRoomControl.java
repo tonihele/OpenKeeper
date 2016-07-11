@@ -33,6 +33,7 @@ import toniarts.openkeeper.world.room.RoomInstance;
 public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> implements RoomListener {
 
     private int roomCount = 0;
+    private boolean portalsOpen = true;
 
     public void init(List<Map.Entry<RoomInstance, GenericRoom>> rooms) {
         for (Map.Entry<RoomInstance, GenericRoom> entry : rooms) {
@@ -82,6 +83,14 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> 
     @Override
     public int getTypeCount() {
         return roomCount;
+    }
+
+    public boolean isPortalsOpen() {
+        return portalsOpen;
+    }
+
+    public void setPortalsOpen(boolean portalsOpen) {
+        this.portalsOpen = portalsOpen;
     }
 
 }
