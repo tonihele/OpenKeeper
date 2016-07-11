@@ -134,11 +134,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             gold = creatureInstance.getGoldHeld();
             if (creatureInstance instanceof KeeperCreature) {
                 health = (int) (((KeeperCreature) creatureInstance).getInitialHealth() / 100f * health);
-                level = ((KeeperCreature) creatureInstance).getLevel();
+                this.level = ((KeeperCreature) creatureInstance).getLevel();
                 ownerId = ((KeeperCreature) creatureInstance).getPlayerId();
             } else if (creatureInstance instanceof GoodCreature) {
                 health = (int) (((GoodCreature) creatureInstance).getInitialHealth() / 100f * health);
-                level = ((GoodCreature) creatureInstance).getLevel();
+                this.level = ((GoodCreature) creatureInstance).getLevel();
                 ownerId = Player.GOOD_PLAYER_ID;
                 objective = ((GoodCreature) creatureInstance).getObjective();
                 if (((GoodCreature) creatureInstance).getObjectiveTargetActionPointId() != 0) {
@@ -147,7 +147,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 flags = ((GoodCreature) creatureInstance).getFlags();
             } else if (creatureInstance instanceof NeutralCreature) {
                 health = (int) (((NeutralCreature) creatureInstance).getInitialHealth() / 100f * health);
-                level = ((NeutralCreature) creatureInstance).getLevel();
+                this.level = ((NeutralCreature) creatureInstance).getLevel();
                 ownerId = Player.NEUTRAL_PLAYER_ID;
             } else if (creatureInstance instanceof DeadBody) {
                 ownerId = ((DeadBody) creatureInstance).getPlayerId();
