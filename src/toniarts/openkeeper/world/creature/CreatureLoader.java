@@ -63,9 +63,17 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
 
     @Override
     public Spatial load(AssetManager assetManager, Thing.Creature object) {
-        Creature creature = kwdFile.getCreature(object.getCreatureId());
+        return load(assetManager, object, object.getCreatureId(), (short) 0, (short) 0);
+    }
+
+    public Spatial load(AssetManager assetManager, short creatureId, short playerId, short level) {
+        return load(assetManager, null, creatureId, (short) 0, (short) 0);
+    }
+
+    private Spatial load(AssetManager assetManager, Thing.Creature object, short creatureId, short playerId, short level) {
+        Creature creature = kwdFile.getCreature(creatureId);
         Node creatureRoot = new Node(creature.getName());
-        CreatureControl creatureControl = new CreatureControl(object, creature, worldState) {
+        CreatureControl creatureControl = new CreatureControl(object, creature, worldState, playerId, level) {
 
             @Override
             public void onSpawn(CreatureControl creature) {
