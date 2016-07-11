@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.player;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -91,6 +92,43 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> 
 
     public void setPortalsOpen(boolean portalsOpen) {
         this.portalsOpen = portalsOpen;
+    }
+
+    /**
+     * Get room slab count, all rooms
+     *
+     * @return slab count
+     */
+    int getRoomSlabsCount() {
+        int count = 0;
+        if (!types.isEmpty()) {
+            for (Room room : new ArrayList<>(types.keySet())) {
+                Set<GenericRoom> rooms = get(room);
+                if (!rooms.isEmpty()) {
+                    for (GenericRoom genericRoom : new ArrayList<>(rooms)) {
+                        count += genericRoom.getRoomInstance().getCoordinates().size();
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Get room slab count, certain type of room
+     *
+     * @param room the room
+     * @return slab count
+     */
+    int getRoomSlabsCount(Room room) {
+        int count = 0;
+        Set<GenericRoom> rooms = get(room);
+        if (rooms != null && !rooms.isEmpty()) {
+            for (GenericRoom genericRoom : new ArrayList<>(rooms)) {
+                count += genericRoom.getRoomInstance().getCoordinates().size();
+            }
+        }
+        return count;
     }
 
 }
