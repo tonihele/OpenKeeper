@@ -1030,8 +1030,7 @@ public abstract class WorldState extends AbstractAppState {
      * @return variable value
      */
     public float getLevelVariable(Variable.MiscVariable.MiscType variable) {
-        // TODO: player is able to change these, so need a wrapper and store these to GameState
-        return kwdFile.getVariables().get(variable).getValue();
+        return gameState.getLevelVariable(variable);
     }
 
     /**
