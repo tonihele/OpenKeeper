@@ -29,8 +29,6 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  *
  * @author ArchDemon
  */
-
-
 public class PlayerTriggerControl extends TriggerControl {
 
     private PlayerState playerState = null;
@@ -69,10 +67,10 @@ public class PlayerTriggerControl extends TriggerControl {
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                     if (creatureId == 0) {
-                        target = keeper.getCreatureControl().getCreatureCount();
+                        target = keeper.getCreatureControl().getTypeCount();
                     } else {
                         GameState gameState = stateManager.getState(GameState.class);
-                        target = keeper.getCreatureControl().getCreatureCount(gameState.getLevelData().getCreature(creatureId));
+                        target = keeper.getCreatureControl().getTypeCount(gameState.getLevelData().getCreature(creatureId));
                     }
                 } else {
                     // TODO what?
@@ -89,8 +87,25 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
             case PLAYER_ROOM_SLABS:
                 return false;
-            case PLAYER_ROOMS:
-                return false;
+            case PLAYER_ROOMS: {
+                playerId = trigger.getUserData("playerId", short.class);
+                keeper = getPlayer(playerId);
+                short roomId = trigger.getUserData("roomId", short.class);
+                isValue = trigger.getUserData("flag", short.class) == 1;
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                    if (roomId == 0) {
+                        target = keeper.getRoomControl().getTypeCount();
+                    } else {
+                        GameState gameState = stateManager.getState(GameState.class);
+                        target = keeper.getRoomControl().getTypeCount(gameState.getLevelData().getRoomById(roomId));
+                    }
+                } else {
+                    // TODO what?
+                    return false;
+                }
+                break;
+            }
             case PLAYER_ROOM_SIZE:
                 return false;
             case PLAYER_DOORS:
