@@ -93,10 +93,12 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
         };
 
         // Set map position
-        creatureRoot.setLocalTranslation(
-                object.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
-                object.getPosZ() * MapLoader.TILE_HEIGHT,
-                object.getPosY() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
+        if (object != null) {
+            creatureRoot.setLocalTranslation(
+                    object.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
+                    object.getPosZ() * MapLoader.TILE_HEIGHT,
+                    object.getPosY() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
+        }
 
         // Add the creature control
         creatureRoot.addControl(creatureControl);
