@@ -191,14 +191,33 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     }
                 }
 
+                // Seems that the campaign maps at least never have lair nor hatchery, but they should be available always
+                // TODO: Not very pretty
+                for (Entry<Short, Keeper> entry : players.entrySet()) {
+                    if (entry.getKey() >= Keeper.KEEPER1_ID) {
+                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) 2));
+                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) 4));
+                    }
+                }
+
                 // Set player availabilities
                 // TODO: the player customized game settings
                 for (Variable.Availability availability : kwdFile.getAvailabilities()) {
                     Keeper player = getPlayer((short) availability.getPlayerId());
+                    if (player == null) {
+                        continue;
+                    }
+
                     switch (availability.getType()) {
                         case CREATURE: {
                             if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
-                                player.getCreatureControl().setCreatureTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()));
+                                player.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()));
+                            }
+                            break;
+                        }
+                        case ROOM: {
+                            if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
+                                player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()));
                             }
                             break;
                         }
