@@ -45,6 +45,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 import toniarts.openkeeper.world.WorldState;
 
@@ -119,12 +120,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     }
                     setProgress(0.1f);
 
-                    // Setup players
-                    if (players.isEmpty()) {
-                        for (Entry<Short, Player> entry : kwdFile.getPlayers().entrySet()) {
-                            players.put(entry.getKey(), new Keeper(entry.getValue()));
-                        }
-                    }
+                    // The players
+                    setupPlayers();
 
                     GameState.this.stateManager.attach(new ActionPointState(false));
                     setProgress(0.20f);
@@ -183,6 +180,30 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 }
 
                 return null;
+            }
+
+            private void setupPlayers() {
+
+                // Setup players
+                if (players.isEmpty()) {
+                    for (Entry<Short, Player> entry : kwdFile.getPlayers().entrySet()) {
+                        players.put(entry.getKey(), new Keeper(entry.getValue()));
+                    }
+                }
+
+                // Set player availabilities
+                // TODO: the player customized game settings
+                for (Variable.Availability availability : kwdFile.getAvailabilities()) {
+                    Keeper player = getPlayer((short) availability.getPlayerId());
+                    switch (availability.getType()) {
+                        case CREATURE: {
+                            if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
+                                player.getCreatureControl().setCreatureTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()));
+                            }
+                            break;
+                        }
+                    }
+                }
             }
 
             @Override
