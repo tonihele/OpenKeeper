@@ -39,6 +39,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.world.room.ICreatureEntrance;
 
 /**
  * Handles creatures spawning, from Portals, Dungeon Hearts...
@@ -98,25 +99,24 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
 
             // Add new ones
             for (Entry<Room, Set<GenericRoom>> keeperRooms : keeperRoomTimes.getKey().getRoomControl().getTypes().entrySet()) {
-                if (isEntrance(keeperRooms.getKey())) {
 
-                    // See that should we add
-                    for (GenericRoom genericRoom : keeperRooms.getValue()) {
-                        if (!keeperRoomTimes.getValue().containsKey(genericRoom)) {
-                            keeperRoomTimes.getValue().put(genericRoom, Float.MAX_VALUE);
+                // See that should we add
+                for (GenericRoom genericRoom : keeperRooms.getValue()) {
 
-                            evaluateAndSpawnCreature(keeperRoomTimes.getKey(), genericRoom, app);
-                        }
+                    // A bit clumsy to check like this
+                    if (!(genericRoom instanceof ICreatureEntrance)) {
+                        break;
+                    }
+
+                    if (!keeperRoomTimes.getValue().containsKey(genericRoom)) {
+                        keeperRoomTimes.getValue().put(genericRoom, Float.MAX_VALUE);
+
+                        evaluateAndSpawnCreature(keeperRoomTimes.getKey(), genericRoom, app);
                     }
                 }
             }
         }
 
-    }
-
-    private boolean isEntrance(Room room) {
-        // TODO: How?? To the GenericRoom as overridable?
-        return !room.getFlags().contains(Room.RoomFlag.BUILDABLE) && room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND);
     }
 
     private void evaluateAndSpawnCreature(Keeper player, GenericRoom room, Application app) {
@@ -127,7 +127,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
                 if (player.getCreatureControl().getImpCount() < minimunImpCount) {
 
                     // Spawn imp
-                    spawnCreature(kwdFile.getImp().getCreatureId(), player.getId(), (short) 1, app, thingLoader, room.getRoomInstance().getCoordinates().get(0), false);
+                    spawnCreature(kwdFile.getImp().getCreatureId(), player.getId(), (short) 1, app, thingLoader, ((ICreatureEntrance) room).getEntranceCoordinate(), false);
                     spawned = true;
                 }
             } else if (player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
@@ -144,7 +144,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
 
                 // Spawn random?
                 if (!possibleCreatures.isEmpty()) {
-                    spawnCreature(Utils.getRandomItem(possibleCreatures).getCreatureId(), player.getId(), (short) 1, app, thingLoader, room.getRoomInstance().getCoordinates().get(0), true);
+                    spawnCreature(Utils.getRandomItem(possibleCreatures).getCreatureId(), player.getId(), (short) 1, app, thingLoader, ((ICreatureEntrance) room).getEntranceCoordinate(), true);
                     spawned = true;
                 }
             }
@@ -158,8 +158,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
     }
 
     private boolean isDungeonHeart(GenericRoom room) {
-        // TODO: How?? To the GenericRoom as overridable?
-        return room.getRoom().getTileConstruction() == Room.TileConstruction._5_BY_5_ROTATED;
+        return room.isDungeonHeart();
     }
 
     // FIXME: There is a bit of a problem, we need to add the creature immediately to our registry, only the visual side can be queued for later

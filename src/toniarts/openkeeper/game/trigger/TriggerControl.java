@@ -44,6 +44,7 @@ import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.world.room.ICreatureEntrance;
 
 /**
  *
@@ -333,7 +334,7 @@ public class TriggerControl extends Control {
                     logger.warning("Generate creature triggered but no entrances found!");
                     break;
                 }
-                Point p = rooms.iterator().next().getRoomInstance().getCoordinates().get(0);
+                Point p = ((ICreatureEntrance) rooms.iterator().next()).getEntranceCoordinate();
                 CreatureSpawnLogicState.spawnCreature(creatureId, keeper.getId(), level, stateManager.getState(GameState.class).getApplication(), stateManager.getState(WorldState.class).getThingLoader(), p, true);
                 break;
             case SHOW_HEALTH_FLOWER:
