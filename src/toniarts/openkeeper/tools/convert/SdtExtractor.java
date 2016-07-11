@@ -40,20 +40,20 @@ public class SdtExtractor {
     public static void main(String[] args) throws IOException {
 
         //Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 2 || !new File(args[0]).exists()) {
+        if (args.length != 2 || !new File(args[1]).exists()) {
             dkIIFolder = SettingUtils.getDKIIFolder();
-            if (dkIIFolder == null)
+            if (dkIIFolder == null || args.length == 0)
             {
-                throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter! Second parameter is the extraction target folder!");
+                throw new RuntimeException("Please provide extraction target folder as a first parameter! Second parameter is the Dungeon Keeper II main folder (optional)!");
             }
         } else {
-            dkIIFolder = SettingUtils.fixFilePath(args[0]);
+            dkIIFolder = SettingUtils.fixFilePath(args[1]);
         }
 
         dkIIFolder = dkIIFolder.concat("data").concat(File.separator).concat("sound").concat(File.separator).concat("sfx").concat(File.separator);
 
         //And the destination
-        String destination = args[1];
+        String destination = args[0];
         if (!destination.endsWith(File.separator)) {
             destination = destination.concat(File.separator);
         }

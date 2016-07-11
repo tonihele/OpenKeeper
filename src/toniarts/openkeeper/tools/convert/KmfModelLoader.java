@@ -109,14 +109,14 @@ public class KmfModelLoader implements AssetLoader {
     public static void main(final String[] args) throws IOException {
 
         //Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 2 || !new File(args[0]).exists()) {
+        if (args.length != 2 || !new File(args[1]).exists()) {
             dkIIFolder = SettingUtils.getDKIIFolder();
             if (dkIIFolder == null)
             {
-                throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter! Second parameter is the file path to the model ");
+                throw new RuntimeException("Please provide file path to the model as a first parameter! Second parameter is the Dungeon Keeper II main folder (optional)");
             }
         } else {
-            dkIIFolder = SettingUtils.fixFilePath(args[0]);
+            dkIIFolder = SettingUtils.fixFilePath(args[1]);
         }
 
         AssetInfo ai = new AssetInfo(/*main.getAssetManager()*/null, null) {
@@ -138,7 +138,7 @@ public class KmfModelLoader implements AssetLoader {
                     }
                 };
 
-        ModelViewer app = new ModelViewer(new File(args[1]), dkIIFolder);
+        ModelViewer app = new ModelViewer(new File(args[0]), dkIIFolder);
         app.start();
     }
 
