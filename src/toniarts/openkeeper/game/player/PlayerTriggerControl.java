@@ -89,11 +89,27 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_KILLS_CREATURES:
                 return false;
             case PLAYER_ROOM_SLABS:
-                return false;
-            case PLAYER_ROOMS: {
                 playerId = trigger.getUserData("playerId", short.class);
                 keeper = getPlayer(playerId);
                 short roomId = trigger.getUserData("roomId", short.class);
+                isValue = trigger.getUserData("flag", short.class) == 1;
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                    if (roomId == 0) {
+                        target = keeper.getRoomControl().getRoomSlabsCount();
+                    } else {
+                        GameState gameState = stateManager.getState(GameState.class);
+                        target = keeper.getRoomControl().getRoomSlabsCount(gameState.getLevelData().getRoomById(roomId));
+                    }
+                } else {
+                    // TODO what?
+                    return false;
+                }
+                break;
+            case PLAYER_ROOMS: {
+                playerId = trigger.getUserData("playerId", short.class);
+                keeper = getPlayer(playerId);
+                roomId = trigger.getUserData("roomId", short.class);
                 isValue = trigger.getUserData("flag", short.class) == 1;
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
