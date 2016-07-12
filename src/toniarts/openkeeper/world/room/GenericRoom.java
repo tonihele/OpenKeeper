@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
@@ -381,6 +382,24 @@ public abstract class GenericRoom {
      */
     public boolean isFullCapacity() {
         return getUsedCapacity() >= getMaxCapacity();
+    }
+
+    /**
+     * Get the room type
+     *
+     * @return the room type
+     */
+    public Room getRoom() {
+        return roomInstance.getRoom();
+    }
+
+    /**
+     * Are we the dungeon heart?
+     *
+     * @return are we?
+     */
+    public boolean isDungeonHeart() {
+        return false;
     }
 
 }

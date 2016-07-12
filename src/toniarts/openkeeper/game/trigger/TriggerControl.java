@@ -20,10 +20,13 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.math.FastMath;
 import java.awt.Point;
 import java.util.EnumSet;
+import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.control.Control;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.player.PlayerCameraControl;
@@ -31,6 +34,7 @@ import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerAction.FlagTargetValueActionType;
@@ -39,6 +43,8 @@ import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.world.room.ICreatureEntrance;
 
 /**
  *
@@ -172,15 +178,23 @@ public class TriggerControl extends Control {
                         TriggerAction.MakeType.class);
                 boolean available = trigger.getUserData("available", short.class) != 0;
                 short playerId = trigger.getUserData("playerId", short.class);
+                Keeper keeper = getPlayer(playerId);
+                KwdFile kwdFile = stateManager.getState(GameState.class).getLevelData();
+                short targetId = trigger.getUserData("available", short.class);
 
                 switch (flag) {
                     case CREATURE:
+                        keeper.getCreatureControl().setTypeAvailable(kwdFile.getCreature(targetId), available);
                         break;
                     case DOOR:
                         break;
                     case KEEPER_SPELL:
                         break;
                     case ROOM:
+                        keeper.getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
+
+                        // FIXME: A hack :(
+                        stateManager.getState(PlayerState.class).populateRoomTab();
                         break;
                     case TRAP:
                         break;
@@ -218,7 +232,7 @@ public class TriggerControl extends Control {
                 PlayerState player = stateManager.getState(PlayerState.class);
                 TriggerAction.MakeType buttonType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
                         TriggerAction.MakeType.class);
-                short targetId = trigger.getUserData("targetId", short.class);
+                targetId = trigger.getUserData("targetId", short.class);
                 boolean enable = trigger.getUserData("available", short.class) != 0;
                 int time = trigger.getUserData("value", int.class);
                 player.flashButton(targetId, buttonType, enable, time);
@@ -313,6 +327,18 @@ public class TriggerControl extends Control {
                 break;
 
             case GENERATE_CREATURE:
+                short creatureId = trigger.getUserData("creatureId", short.class);
+                short level = trigger.getUserData("level", short.class);
+                keeper = getPlayer((short) 0);
+
+                // Get first spawn point of the player (this flag is only for the players)
+                Set<GenericRoom> rooms = keeper.getRoomControl().getTypes().get(stateManager.getState(GameState.class).getLevelData().getPortal());
+                if (rooms == null || rooms.isEmpty()) {
+                    logger.warning("Generate creature triggered but no entrances found!");
+                    break;
+                }
+                Point p = ((ICreatureEntrance) rooms.iterator().next()).getEntranceCoordinate();
+                CreatureSpawnLogicState.spawnCreature(creatureId, keeper.getId(), level, stateManager.getState(GameState.class).getApplication(), stateManager.getState(WorldState.class).getThingLoader(), p, true);
                 break;
             case SHOW_HEALTH_FLOWER:
                 break;
@@ -327,6 +353,8 @@ public class TriggerControl extends Control {
             case COLLAPSE_HERO_GATE:
                 break;
             case SET_PORTAL_STATUS:
+                available = trigger.getUserData("available", short.class) != 0;
+                getPlayer((short) 0).getRoomControl().setPortalsOpen(available);
                 break;
             case SET_WIDESCREEN_MODE:
                 PlayerState ps = stateManager.getState(PlayerState.class);
@@ -406,5 +434,14 @@ public class TriggerControl extends Control {
 
         logger.warning("Unsupported target flag type");
         return 0;
+    }
+
+    protected Keeper getPlayer(short playerId) {
+        GameState gameState = stateManager.getState(GameState.class);
+        if (playerId == 0) {
+            return gameState.getPlayer(this.stateManager.getState(PlayerState.class).getPlayerId()); // Current player
+        } else {
+            return gameState.getPlayer(playerId);
+        }
     }
 }

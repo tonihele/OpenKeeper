@@ -30,7 +30,7 @@ import toniarts.openkeeper.world.MapLoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ThreeByThree extends GenericRoom {
+public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
 
     public ThreeByThree(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, roomInstance, direction);
@@ -69,5 +69,10 @@ public class ThreeByThree extends GenericRoom {
     @Override
     protected BatchNode constructWall() {
         return null;
+    }
+
+    @Override
+    public Point getEntranceCoordinate() {
+        return roomInstance.getCoordinates().get(0);
     }
 }

@@ -39,6 +39,7 @@ import com.jme3.scene.shape.Line;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -70,6 +71,7 @@ import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
 import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
 import toniarts.openkeeper.world.effect.EffectManager;
 import toniarts.openkeeper.world.listener.CreatureListener;
+import toniarts.openkeeper.world.listener.RoomListener;
 import toniarts.openkeeper.world.listener.TileChangeListener;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
@@ -96,6 +98,7 @@ public abstract class WorldState extends AbstractAppState {
     private final BulletAppState bulletAppState;
     private final EffectManager effectManager;
     private List<TileChangeListener> tileChangeListener;
+    private Map<Short, List<RoomListener>> roomListeners;
     private final GameState gameState;
 
     private static final Logger logger = Logger.getLogger(WorldState.class.getName());
@@ -137,6 +140,9 @@ public abstract class WorldState extends AbstractAppState {
 
         // Player creatures
         initPlayerCreatures();
+
+        // Player rooms
+        initPlayerRooms();
     }
 
     private void initPlayerMoney() {
@@ -185,6 +191,21 @@ public abstract class WorldState extends AbstractAppState {
                     player.getCreatureControl().onDie(creature);
                 }
             });
+        }
+    }
+
+    private void initPlayerRooms() {
+
+        // Add the initial creatures and add the listeners
+        Map<Short, List<Entry<RoomInstance, GenericRoom>>> playerRooms = mapLoader.getRoomActuals().entrySet().stream().collect(Collectors.groupingBy(entry -> entry.getKey().getOwnerId()));
+        for (Keeper player : gameState.getPlayers()) {
+            List<Entry<RoomInstance, GenericRoom>> rooms = playerRooms.get(player.getId());
+            if (rooms != null) {
+                player.getRoomControl().init(rooms);
+            }
+
+            // Add the listener
+            addListener(player.getId(), player.getRoomControl());
         }
     }
 
@@ -627,6 +648,7 @@ public abstract class WorldState extends AbstractAppState {
         if (adjacentInstances.isEmpty()) {
             RoomInstance instance = mapLoader.getRoomCoordinates().get(instancePlots.get(0));
             addGoldCapacityToPlayer(instance);
+            notifyOnBuild(instance.getOwnerId(), mapLoader.getRoomActuals().get(instance));
         }
     }
 
@@ -1008,8 +1030,7 @@ public abstract class WorldState extends AbstractAppState {
      * @return variable value
      */
     public float getLevelVariable(Variable.MiscVariable.MiscType variable) {
-        // TODO: player is able to change these, so need a wrapper and store these to GameState
-        return kwdFile.getVariables().get(variable).getValue();
+        return gameState.getLevelVariable(variable);
     }
 
     /**
@@ -1101,7 +1122,8 @@ public abstract class WorldState extends AbstractAppState {
 
         // Calculate the damage
         int damage;
-        if (tile.getPlayerId() == 0) {
+        short owner = tile.getPlayerId();
+        if (owner == 0) {
             damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.CONVERT_ROOM_HEALTH);
         } else {
             damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_ROOM_HEALTH);
@@ -1127,6 +1149,12 @@ public abstract class WorldState extends AbstractAppState {
                     // TODO: Claimed room wall tiles lose the claiming I think?
                     notifyTileChange(p2);
                 }
+
+                // Notify
+                GenericRoom genericRoom = mapLoader.getRoomActuals().get(room);
+                notifyOnCapturedByEnemy(owner, genericRoom);
+                notifyOnCaptured(playerId, genericRoom);
+
                 break;
             }
         }
@@ -1194,6 +1222,7 @@ public abstract class WorldState extends AbstractAppState {
     private void removeRoomInstances(RoomInstance... instances) {
         for (RoomInstance instance : instances) {
             substractGoldCapacityFromPlayer(instance);
+            notifyOnSold(instance.getOwnerId(), mapLoader.getRoomActuals().get(instance));
 
             // TODO: The gold stored should turn into a loose gold
             // Not only gold but all items that the rooms can hold
@@ -1229,6 +1258,57 @@ public abstract class WorldState extends AbstractAppState {
 
     public GameState getGameState() {
         return gameState;
+    }
+
+    /**
+     * If you want to get notified about the room changes
+     *
+     * @param playerId the player id of which room you want to assign the
+     * listener to
+     * @param listener the listener
+     */
+    public void addListener(short playerId, RoomListener listener) {
+        if (roomListeners == null) {
+            roomListeners = new HashMap<>();
+        }
+        List<RoomListener> listeners = roomListeners.get(playerId);
+        if (listeners == null) {
+            listeners = new ArrayList<>();
+        }
+        listeners.add(listener);
+        roomListeners.put(playerId, listeners);
+    }
+
+    private void notifyOnBuild(short playerId, GenericRoom room) {
+        if (roomListeners != null && roomListeners.containsKey(playerId)) {
+            for (RoomListener listener : roomListeners.get(playerId)) {
+                listener.onBuild(room);
+            }
+        }
+    }
+
+    private void notifyOnCaptured(short playerId, GenericRoom room) {
+        if (roomListeners != null && roomListeners.containsKey(playerId)) {
+            for (RoomListener listener : roomListeners.get(playerId)) {
+                listener.onCaptured(room);
+            }
+        }
+    }
+
+    private void notifyOnCapturedByEnemy(short playerId, GenericRoom room) {
+        if (roomListeners != null && roomListeners.containsKey(playerId)) {
+            for (RoomListener listener : roomListeners.get(playerId)) {
+                listener.onCapturedByEnemy(room);
+            }
+        }
+    }
+
+    private void notifyOnSold(short playerId, GenericRoom room) {
+        if (roomListeners != null && roomListeners.containsKey(playerId)) {
+            for (RoomListener listener : roomListeners.get(playerId)) {
+                listener.onSold(room);
+            }
+        }
     }
 
 }

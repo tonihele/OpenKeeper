@@ -29,19 +29,20 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  *
  * @author ArchDemon
  */
-
-
 public class PlayerTriggerControl extends TriggerControl {
 
     private PlayerState playerState = null;
+    private final short playerId;
     private static final Logger logger = Logger.getLogger(PlayerTriggerControl.class.getName());
 
     public PlayerTriggerControl() { // empty serialization constructor
         super();
+        playerId = Keeper.KEEPER1_ID;
     }
 
-    public PlayerTriggerControl(final AppStateManager stateManager, int triggerId) {
+    public PlayerTriggerControl(final AppStateManager stateManager, int triggerId, short playerId) {
         super(stateManager, triggerId);
+        this.playerId = playerId;
     }
 
     public void setPlayerState(PlayerState playerState) {
@@ -69,10 +70,10 @@ public class PlayerTriggerControl extends TriggerControl {
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                     if (creatureId == 0) {
-                        target = keeper.getCreatureControl().getCreatureCount();
+                        target = keeper.getCreatureControl().getTypeCount();
                     } else {
                         GameState gameState = stateManager.getState(GameState.class);
-                        target = keeper.getCreatureControl().getCreatureCount(gameState.getLevelData().getCreature(creatureId));
+                        target = keeper.getCreatureControl().getTypeCount(gameState.getLevelData().getCreature(creatureId));
                     }
                 } else {
                     // TODO what?
@@ -88,9 +89,42 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_KILLS_CREATURES:
                 return false;
             case PLAYER_ROOM_SLABS:
-                return false;
-            case PLAYER_ROOMS:
-                return false;
+                playerId = trigger.getUserData("playerId", short.class);
+                keeper = getPlayer(playerId);
+                short roomId = trigger.getUserData("roomId", short.class);
+                isValue = trigger.getUserData("flag", short.class) == 1;
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                    if (roomId == 0) {
+                        target = keeper.getRoomControl().getRoomSlabsCount();
+                    } else {
+                        GameState gameState = stateManager.getState(GameState.class);
+                        target = keeper.getRoomControl().getRoomSlabsCount(gameState.getLevelData().getRoomById(roomId));
+                    }
+                } else {
+                    // TODO what?
+                    return false;
+                }
+                break;
+            case PLAYER_ROOMS: {
+                playerId = trigger.getUserData("playerId", short.class);
+                keeper = getPlayer(playerId);
+                roomId = trigger.getUserData("roomId", short.class);
+                isValue = trigger.getUserData("flag", short.class) == 1;
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                    if (roomId == 0) {
+                        target = keeper.getRoomControl().getTypeCount();
+                    } else {
+                        GameState gameState = stateManager.getState(GameState.class);
+                        target = keeper.getRoomControl().getTypeCount(gameState.getLevelData().getRoomById(roomId));
+                    }
+                } else {
+                    // TODO what?
+                    return false;
+                }
+                break;
+            }
             case PLAYER_ROOM_SIZE:
                 return false;
             case PLAYER_DOORS:
@@ -100,27 +134,27 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_KEEPER_SPELL:
                 return false;
             case PLAYER_GOLD:
-                PlayerGoldControl pgc = playerState.getGoldControl();
-                target = pgc.getGold();
+                playerId = trigger.getUserData("playerId", short.class);
+                keeper = getPlayer(playerId);
+                target = keeper.getGoldControl().getGold();
                 isValue = trigger.getUserData("flag", short.class) == 1;
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
-                    // TODO get value from other player
-                    playerId = trigger.getUserData("targetId", short.class);
+                    // TODO what?
                     return false;
                 }
                 break;
 
             case PLAYER_GOLD_MINED:
-                pgc = playerState.getGoldControl();
-                target = pgc.getGoldMined();
+                playerId = trigger.getUserData("playerId", short.class);
+                keeper = getPlayer(playerId);
+                target = keeper.getGoldControl().getGoldMined();
                 isValue = trigger.getUserData("flag", short.class) == 1;
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
-                    // TODO get value from other player
-                    playerId = trigger.getUserData("targetId", short.class);
+                    // TODO what?
                     return false;
                 }
                 break;
@@ -184,12 +218,12 @@ public class PlayerTriggerControl extends TriggerControl {
         return result;
     }
 
-    private Keeper getPlayer(short playerId) {
-        GameState gameState = stateManager.getState(GameState.class);
+    @Override
+    protected Keeper getPlayer(short playerId) {
         if (playerId == 0) {
-            return gameState.getPlayer(playerState.getPlayerId()); // Current player
-        } else {
-            return gameState.getPlayer(playerId);
+            return super.getPlayer(this.playerId);
         }
+        return super.getPlayer(playerId); //To change body of generated methods, choose Tools | Templates.
     }
+
 }

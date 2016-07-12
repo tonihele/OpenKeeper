@@ -54,7 +54,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -63,6 +62,7 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
@@ -183,7 +183,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
             int triggerId = gameState.getLevelData().getPlayer(playerId).getTriggerId();
             if (triggerId != 0) {
-                triggerControl = new PlayerTriggerControl(stateManager, triggerId);
+                triggerControl = new PlayerTriggerControl(stateManager, triggerId, playerId);
                 triggerControl.setPlayerState(this);
             }
 
@@ -287,26 +287,39 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         }
     }
 
-    public PlayerStatsControl getStatsControl() {
+    /**
+     * Get this player
+     *
+     * @return this player
+     */
+    public Keeper getPlayer() {
         GameState gs = stateManager.getState(GameState.class);
         if (gs != null) {
-            return gs.getPlayer(playerId).getStatsControl();
+            return gs.getPlayer(playerId);
+        }
+        return null;
+    }
+
+    public PlayerStatsControl getStatsControl() {
+        Keeper keeper = getPlayer();
+        if (keeper != null) {
+            return keeper.getStatsControl();
         }
         return null;
     }
 
     public PlayerGoldControl getGoldControl() {
-        GameState gs = stateManager.getState(GameState.class);
-        if (gs != null) {
-            return gs.getPlayer(playerId).getGoldControl();
+        Keeper keeper = getPlayer();
+        if (keeper != null) {
+            return keeper.getGoldControl();
         }
         return null;
     }
 
     public PlayerCreatureControl getCreatureControl() {
-        GameState gs = stateManager.getState(GameState.class);
-        if (gs != null) {
-            return gs.getPlayer(playerId).getCreatureControl();
+        Keeper keeper = getPlayer();
+        if (keeper != null) {
+            return keeper.getCreatureControl();
         }
         return null;
     }
@@ -406,13 +419,9 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         });
         getCreatureControl().addWorkerListener(creatureTab.findNiftyControl("tab-workers#amount", Label.class), creatureTab.findNiftyControl("tab-workers#idle", Label.class), creatureTab.findNiftyControl("tab-workers#busy", Label.class), creatureTab.findNiftyControl("tab-workers#fighting", Label.class));
 
-        Element contentPanel = hud.findElementById("tab-room-content");
-        removeAllChildElements(contentPanel);
-        for (final Room room : getAvailableRoomsToBuild()) {
-            createRoomIcon(room).build(nifty, hud, contentPanel);
-        }
+        populateRoomTab();
 
-        contentPanel = hud.findElementById("tab-spell-content");
+        Element contentPanel = hud.findElementById("tab-spell-content");
         removeAllChildElements(contentPanel);
         for (final KeeperSpell spell : getAvailableKeeperSpells()) {
             createSpellIcon(spell).build(nifty, hud, contentPanel);
@@ -428,6 +437,18 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         removeAllChildElements(contentPanel);
         for (final Trap trap : getAvailableTraps()) {
             createTrapIcon(trap).build(nifty, hud, contentPanel);
+        }
+    }
+
+    /**
+     * Populates the player rooms tab
+     */
+    public void populateRoomTab() {
+        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+        Element contentPanel = hud.findElementById("tab-room-content");
+        removeAllChildElements(contentPanel);
+        for (final Room room : getAvailableRoomsToBuild()) {
+            createRoomIcon(room).build(nifty, hud, contentPanel);
         }
     }
 
@@ -871,15 +892,8 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     private List<Room> getAvailableRoomsToBuild() {
-        GameState gameState = stateManager.getState(GameState.class);
-        List<Room> rooms = gameState.getLevelData().getRooms();
-        for (Iterator<Room> iter = rooms.iterator(); iter.hasNext();) {
-            Room room = iter.next();
-            if (!room.getFlags().contains(Room.RoomFlag.BUILDABLE)) {
-                iter.remove();
-            }
-        }
-        return rooms;
+        Keeper keeper = getPlayer();
+        return keeper.getRoomControl().getTypesAvailable();
     }
 
     private List<KeeperSpell> getAvailableKeeperSpells() {

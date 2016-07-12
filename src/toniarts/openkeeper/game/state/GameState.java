@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.CreatureLogicState;
+import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.game.logic.GameLogicThread;
 import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.game.logic.MovementThread;
@@ -45,6 +46,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 import toniarts.openkeeper.world.WorldState;
 
@@ -119,12 +121,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     }
                     setProgress(0.1f);
 
-                    // Setup players
-                    if (players.isEmpty()) {
-                        for (Entry<Short, Player> entry : kwdFile.getPlayers().entrySet()) {
-                            players.put(entry.getKey(), new Keeper(entry.getValue()));
-                        }
-                    }
+                    // The players
+                    setupPlayers();
 
                     GameState.this.stateManager.attach(new ActionPointState(false));
                     setProgress(0.20f);
@@ -173,7 +171,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                             return new Thread(r, "GameLogicAndMovementThread");
                         }
                     });
-                    gameLogicThread = new GameLogicThread(GameState.this.app, 1.0f / kwdFile.getGameLevel().getTicksPerSec(), GameState.this, new CreatureLogicState(worldState.getThingLoader()));
+                    gameLogicThread = new GameLogicThread(GameState.this.app, 1.0f / kwdFile.getGameLevel().getTicksPerSec(), GameState.this, new CreatureLogicState(worldState.getThingLoader()), new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this));
                     exec.scheduleAtFixedRate(gameLogicThread, 0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
                     exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()), 0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
 
@@ -183,6 +181,45 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 }
 
                 return null;
+            }
+
+            private void setupPlayers() {
+
+                // Setup players
+                if (players.isEmpty()) {
+                    for (Entry<Short, Player> entry : kwdFile.getPlayers().entrySet()) {
+                        players.put(entry.getKey(), new Keeper(entry.getValue()));
+                    }
+                }
+
+                // Seems that the campaign maps at least never have lair nor hatchery, but they should be available always
+                // TODO: Not very pretty
+                for (Entry<Short, Keeper> entry : players.entrySet()) {
+                    if (entry.getKey() >= Keeper.KEEPER1_ID) {
+                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getLair(), true);
+                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getHatchery(), true);
+                    }
+                }
+
+                // Set player availabilities
+                // TODO: the player customized game settings
+                for (Variable.Availability availability : kwdFile.getAvailabilities()) {
+                    Keeper player = getPlayer((short) availability.getPlayerId());
+                    if (player == null) {
+                        continue;
+                    }
+
+                    switch (availability.getType()) {
+                        case CREATURE: {
+                            player.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+                            break;
+                        }
+                        case ROOM: {
+                            player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+                            break;
+                        }
+                    }
+                }
             }
 
             @Override
@@ -334,5 +371,20 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     public ActionPointState getActionPointState() {
         return stateManager.getState(ActionPointState.class);
+    }
+
+    /**
+     * Get level variable value
+     *
+     * @param variable the variable type
+     * @return variable value
+     */
+    public float getLevelVariable(Variable.MiscVariable.MiscType variable) {
+        // TODO: player is able to change these, so need a wrapper and store these to GameState
+        return kwdFile.getVariables().get(variable).getValue();
+    }
+
+    public Application getApplication() {
+        return app;
     }
 }
