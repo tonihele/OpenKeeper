@@ -49,23 +49,23 @@ import toniarts.openkeeper.world.room.ICreatureEntrance;
 public class CreatureSpawnLogicState extends AbstractAppState implements IGameLogicUpdateable {
 
     private final ThingLoader thingLoader;
-    private final Collection<Keeper> players;
     private final int minimunImpCount;
     private final int entranceCoolDownTime;
     private final int initialPortalCapacity;
     private final int additionalPortalCapacity;
+    private final int freeImpCoolDownTime;
     private final Map<Keeper, Map<GenericRoom, Float>> entranceSpawnTimes;
     private final KwdFile kwdFile;
 
     public CreatureSpawnLogicState(ThingLoader thingLoader, Collection<Keeper> players, GameState gameState) {
         this.thingLoader = thingLoader;
-        this.players = players;
 
         // We need the game state just for the variables
         entranceCoolDownTime = (int) gameState.getLevelVariable(Variable.MiscVariable.MiscType.ENTRANCE_GENERATION_SPEED_SECONDS);
         minimunImpCount = (int) gameState.getLevelVariable(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD);
         initialPortalCapacity = (int) gameState.getLevelVariable(Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL);
         additionalPortalCapacity = (int) gameState.getLevelVariable(Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL);
+        freeImpCoolDownTime = (int) gameState.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS);
         kwdFile = gameState.getLevelData();
 
         // Create entrance counters for all players
@@ -89,7 +89,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
                     roomTimesIter.remove();
                 } else {
                     // TODO: Should we advance the timer if the entrances are not open?
-                    if (entry.getValue() < entranceCoolDownTime) {
+                    if (entry.getValue() + tpf <= Float.MAX_VALUE) {
                         entry.setValue(entry.getValue() + tpf);
                     }
 
@@ -122,31 +122,29 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
     private void evaluateAndSpawnCreature(Keeper player, GenericRoom room, Application app) {
         float spawnTime = entranceSpawnTimes.get(player).get(room);
         boolean spawned = false;
-        if (spawnTime >= entranceCoolDownTime) {
-            if (isDungeonHeart(room)) {
-                if (player.getCreatureControl().getImpCount() < minimunImpCount) {
+        if (spawnTime >= freeImpCoolDownTime && isDungeonHeart(room)) {
+            if (player.getCreatureControl().getImpCount() < minimunImpCount) {
 
-                    // Spawn imp
-                    spawnCreature(kwdFile.getImp().getCreatureId(), player.getId(), (short) 1, app, thingLoader, ((ICreatureEntrance) room).getEntranceCoordinate(), false);
-                    spawned = true;
-                }
-            } else if (player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
+                // Spawn imp
+                spawnCreature(kwdFile.getImp().getCreatureId(), player.getId(), (short) 1, app, thingLoader, ((ICreatureEntrance) room).getEntranceCoordinate(), false);
+                spawned = true;
+            }
+        } else if (spawnTime >= entranceCoolDownTime && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
 
-                // Evaluate what creature can we spawn
-                List<Creature> possibleCreatures = new ArrayList<>(player.getCreatureControl().getTypesAvailable());
-                Iterator<Creature> iter = possibleCreatures.iterator();
-                while (iter.hasNext()) {
-                    Creature creature = iter.next();
-                    if (!isCreatureRequirementsSatisfied(creature, player)) {
-                        iter.remove();
-                    }
+            // Evaluate what creature can we spawn
+            List<Creature> possibleCreatures = new ArrayList<>(player.getCreatureControl().getTypesAvailable());
+            Iterator<Creature> iter = possibleCreatures.iterator();
+            while (iter.hasNext()) {
+                Creature creature = iter.next();
+                if (!isCreatureRequirementsSatisfied(creature, player)) {
+                    iter.remove();
                 }
+            }
 
-                // Spawn random?
-                if (!possibleCreatures.isEmpty()) {
-                    spawnCreature(Utils.getRandomItem(possibleCreatures).getCreatureId(), player.getId(), (short) 1, app, thingLoader, ((ICreatureEntrance) room).getEntranceCoordinate(), true);
-                    spawned = true;
-                }
+            // Spawn random?
+            if (!possibleCreatures.isEmpty()) {
+                spawnCreature(Utils.getRandomItem(possibleCreatures).getCreatureId(), player.getId(), (short) 1, app, thingLoader, ((ICreatureEntrance) room).getEntranceCoordinate(), true);
+                spawned = true;
             }
         }
 
