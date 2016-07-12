@@ -75,7 +75,7 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
      * @param creature
      */
     public void unassign(CreatureControl creature) {
-
+        assignees.remove(creature);
     }
 
     /**
