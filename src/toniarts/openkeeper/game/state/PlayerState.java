@@ -419,13 +419,9 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         });
         getCreatureControl().addWorkerListener(creatureTab.findNiftyControl("tab-workers#amount", Label.class), creatureTab.findNiftyControl("tab-workers#idle", Label.class), creatureTab.findNiftyControl("tab-workers#busy", Label.class), creatureTab.findNiftyControl("tab-workers#fighting", Label.class));
 
-        Element contentPanel = hud.findElementById("tab-room-content");
-        removeAllChildElements(contentPanel);
-        for (final Room room : getAvailableRoomsToBuild()) {
-            createRoomIcon(room).build(nifty, hud, contentPanel);
-        }
+        populateRoomTab();
 
-        contentPanel = hud.findElementById("tab-spell-content");
+        Element contentPanel = hud.findElementById("tab-spell-content");
         removeAllChildElements(contentPanel);
         for (final KeeperSpell spell : getAvailableKeeperSpells()) {
             createSpellIcon(spell).build(nifty, hud, contentPanel);
@@ -441,6 +437,18 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         removeAllChildElements(contentPanel);
         for (final Trap trap : getAvailableTraps()) {
             createTrapIcon(trap).build(nifty, hud, contentPanel);
+        }
+    }
+
+    /**
+     * Populates the player rooms tab
+     */
+    public void populateRoomTab() {
+        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+        Element contentPanel = hud.findElementById("tab-room-content");
+        removeAllChildElements(contentPanel);
+        for (final Room room : getAvailableRoomsToBuild()) {
+            createRoomIcon(room).build(nifty, hud, contentPanel);
         }
     }
 

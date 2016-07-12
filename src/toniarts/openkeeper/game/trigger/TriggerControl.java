@@ -192,6 +192,9 @@ public class TriggerControl extends Control {
                         break;
                     case ROOM:
                         keeper.getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
+
+                        // FIXME: A hack :(
+                        stateManager.getState(PlayerState.class).populateRoomTab();
                         break;
                     case TRAP:
                         break;
