@@ -641,8 +641,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
             GameState gameState = new GameState(mapSelector.getMap(), skirmishPlayers);
             stateManager.attach(gameState);
-            
-        } else if ("multiplayer".equals(type.toLowerCase())) {            
+
+        } else if ("multiplayer".equals(type.toLowerCase())) {
             if (mapSelector.getMap() == null) {
                 logger.warning("Multiplayer map not selected");
                 return;
@@ -650,9 +650,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             // Disable us
             setEnabled(false);
             //TODO make true multiplayer start
-            GameState gameState = new GameState(mapSelector.getMap(), new ArrayList<Keeper>());
+            GameState gameState = new GameState(mapSelector.getMap(), new ArrayList<>());
             stateManager.attach(gameState);
-            
+
         } else {
             logger.warning("Unknown type of Level " + type);
         }
