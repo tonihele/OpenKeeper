@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.sound;
 
+import toniarts.openkeeper.tools.convert.IValueEnum;
+
 /**
  * Stores the sdt file entry structure
  *
@@ -23,10 +25,30 @@ package toniarts.openkeeper.tools.convert.sound;
  */
 public class SdtFileEntry {
 
+    public enum SoundType implements IValueEnum {
+        NONE(0),
+        WAV(2),
+        MP2_MONO(36),
+        MP2_STEREO(37);
+
+        private int type;
+
+        private SoundType(int type) {
+            this.type = type;
+        }
+        
+        @Override
+        public int getValue() {
+            return this.type;
+        }
+    } 
+    
     private int indexSize;
     private int size;
-    private int unknown1;
-    private int unknown2;
+    private int sampling_rate; // 22050
+    private int unknown2; // 16
+    private SoundType type; // 36 on mp2 (64kbit/s mono), 37 on mp2 (112kbit/s stereo), 2 on wav, 0 on blanks
+    private int unknown3;
     private int nSamples;
     private int unknown4;
     private long dataOffset;
@@ -47,12 +69,12 @@ public class SdtFileEntry {
         this.size = size;
     }
 
-    public int getUnknown1() {
-        return unknown1;
+    public int getSamplingRate() {
+        return sampling_rate;
     }
 
-    protected void setUnknown1(int unknown1) {
-        this.unknown1 = unknown1;
+    protected void setSamplingRate(int samplingRate) {
+        this.sampling_rate = samplingRate;
     }
 
     public int getUnknown2() {
@@ -62,7 +84,23 @@ public class SdtFileEntry {
     protected void setUnknown2(int unknown2) {
         this.unknown2 = unknown2;
     }
+    
+    public SoundType getType() {
+        return type;
+    }
 
+    public void setType(SoundType type) {
+        this.type = type;
+    }
+    
+    public int getUnknown3() {
+        return unknown3;
+    }
+
+    protected void setUnknown3(int unknown3) {
+        this.unknown3 = unknown3;
+    }
+    
     public int getnSamples() {
         return nSamples;
     }

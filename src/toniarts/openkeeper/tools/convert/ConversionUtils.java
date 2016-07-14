@@ -82,6 +82,20 @@ public class ConversionUtils {
     }
 
     /**
+     * Reads 1 byte and converts it to JAVA int from LITTLE ENDIAN int
+     *
+     * @param file the file to read from
+     * @return JAVA native int
+     * @throws IOException may fail
+     * @see #readUnsignedIntegerAsLong(java.io.RandomAccessFile)
+     */
+    public static int readByteAsInteger(RandomAccessFile file) throws IOException {
+        byte[] bytes = new byte[1];
+        file.read(bytes);
+        return readInteger(bytes);
+    }
+    
+    /**
      * Converts 4 bytes to JAVA int from LITTLE ENDIAN unsigned int presented by
      * a byte array
      *
