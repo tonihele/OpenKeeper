@@ -67,8 +67,11 @@ public class SoundState extends AbstractPauseAwareState {
     }
 
     private void playSpeech(int speechId) {
-        String file = String.format("Sounds/speech_%s/lvlspe%02d.mp2",
-                stateManager.getState(GameState.class).getLevel().toLowerCase(), speechId);
+        String levelName = stateManager.getState(GameState.class).getLevel().toLowerCase();
+        if (levelName.contains("mpd")) {
+            levelName = "mypetdungeon";
+        }
+        String file = String.format("Sounds/speech_%s/lvlspe%02d.mp2", levelName, speechId);
         speech = new AudioNode(app.getAssetManager(), file, false);
         if (background == null) {
             logger.log(Level.WARNING, "Audio file {0} not found", file);
