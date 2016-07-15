@@ -123,8 +123,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private PossessionCameraState possessionCameraState;
     private Label goldCurrent;
     private Label tooltip;
-    private PlayerManaControl manaControl = null;
-    private PlayerTriggerControl triggerControl = null;
     private int score = 0;
     private boolean transitionEnd = true;
     private Integer textId = null;
@@ -147,8 +145,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         this.app = (Main) app;
         assetManager = this.app.getAssetManager();
         this.stateManager = stateManager;
-
-        manaControl = new PlayerManaControl(playerId, stateManager);
     }
 
     @Override
@@ -179,12 +175,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 } catch (Exception ex) {
                     logger.warning(ex.toString());
                 }
-            }
-
-            int triggerId = gameState.getLevelData().getPlayer(playerId).getTriggerId();
-            if (triggerId != 0) {
-                triggerControl = new PlayerTriggerControl(stateManager, triggerId, playerId);
-                triggerControl.setPlayerState(this);
             }
 
             // Load the HUD
@@ -324,10 +314,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         return null;
     }
 
-    public PlayerManaControl getManaControl() {
-        return manaControl;
-    }
-
     public void setTransitionEnd(boolean value) {
         transitionEnd = value;
     }
@@ -369,6 +355,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
         Screen hud = nifty.getScreen(HUD_SCREEN_ID);
 
+        PlayerManaControl manaControl = getPlayer().getManaControl();
         if (manaControl != null) {
             manaControl.addListener(hud.findNiftyControl("mana", Label.class), PlayerManaControl.Type.CURRENT);
             manaControl.addListener(hud.findNiftyControl("manaGet", Label.class), PlayerManaControl.Type.GET);
@@ -471,14 +458,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     public void update(float tpf) {
         if (!isInitialized() || !isEnabled()) {
             return;
-        }
-
-        if (manaControl != null) {
-            manaControl.update(tpf);
-        }
-
-        if (triggerControl != null) {
-            triggerControl.update(tpf);
         }
 
         super.update(tpf);

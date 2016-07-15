@@ -185,7 +185,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                         getWorldHandler().addGold(player.getPlayerId(), 100000);
                         break;
                     case MANA:
-                        getPlayerState().getManaControl().addMana(100000);
+                        gameState.getPlayer(player.getPlayerId()).getManaControl().addMana(100000);
                         break;
                     default:
                         logger.log(Level.WARNING, "Cheat {0} not implemented yet!", cheat.toString());
@@ -310,18 +310,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
 
             Vector2f pos = handler.getRoundedMousePos();
-            if (interactionState == InteractionState.NONE && Main.isDebug()) {
-
-                // Debug
-                // taggable -> "dig"
-                if (getWorldHandler().isTaggable((int) pos.x, (int) pos.y)) {
-                    getWorldHandler().digTile((int) pos.x, (int) pos.y);
-                } // ownable -> "claim"
-                else if (getWorldHandler().isClaimable((int) pos.x, (int) pos.y, player.getPlayerId())) {
-                    getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
-                }
-                //
-            } else if (interactionState == InteractionState.NONE) {
+            if (interactionState == InteractionState.NONE) {
                 IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
                 if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
                     getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, Utils.getRandomItem(SLAP_SOUNDS));
@@ -338,12 +327,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             startSet = false;
             handler.getSelectionArea().setStart(pos);
             handler.updateSelectionBox();
-
-        } else if (evt.getButtonIndex() == MouseInput.BUTTON_MIDDLE && evt.isReleased()) {
-            Vector2f pos = handler.getRoundedMousePos();
-            if (Main.isDebug()) {
-                getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
-            }
         }
     }
 

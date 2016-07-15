@@ -70,8 +70,6 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
 
     private ArrayList<Integer> keys = new ArrayList<>();
     private Settings settings;
-    private float timer = 0;
-    private float rotate = 0;
     private static final Logger logger = Logger.getLogger(PlayerCameraState.class.getName());
     // Extra keys
     private static final float ZOOM_MOUSE = 0.08f;
@@ -147,11 +145,6 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
 
     public PlayerCamera getCamera() {
         return camera;
-    }
-
-    public void addRotation(float angle, int time) {
-        timer = time;
-        rotate = angle;
     }
 
     private Vector2f getCameraMapLimit() {
@@ -253,11 +246,6 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         // Update audio listener position
         app.getListener().setLocation(app.getCamera().getLocation());
         app.getListener().setRotation(app.getCamera().getRotation());
-
-        if (timer > 0) {
-            timer -= tpf;
-            camera.rotateAround(rotate * tpf);
-        }
     }
 
     private void addKeyMapping(Setting s) {

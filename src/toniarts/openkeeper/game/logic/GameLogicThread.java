@@ -45,7 +45,12 @@ public class GameLogicThread implements Runnable {
 
         // Update updatables
         for (IGameLogicUpdateable updatable : updatables) {
-            updatable.processTick(tpf, app);
+            try {
+                updatable.processTick(tpf, app);
+            }catch (Exception e) {
+                logger.severe(e.toString());
+                e.printStackTrace();
+            }
         }
 
         // Increase ticks
@@ -53,7 +58,7 @@ public class GameLogicThread implements Runnable {
 
         // Logging
         long tickTime = System.currentTimeMillis() - start;
-        logger.log(tickTime < tpf * 1000 ? Level.FINEST : Level.SEVERE, "Tick took {0}ms!", tickTime);
+        logger.log(tickTime < tpf * 1000 ? Level.FINEST : Level.SEVERE, "Tick took {0} ms!", tickTime);
     }
 
     /**

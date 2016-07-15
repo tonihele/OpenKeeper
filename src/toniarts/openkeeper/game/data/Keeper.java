@@ -16,10 +16,14 @@
  */
 package toniarts.openkeeper.game.data;
 
+import com.jme3.app.Application;
+import com.jme3.app.state.AppStateManager;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
+import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.game.player.PlayerRoomControl;
 import toniarts.openkeeper.game.player.PlayerStatsControl;
+import toniarts.openkeeper.game.player.PlayerTriggerControl;
 import toniarts.openkeeper.tools.convert.map.AI.AIType;
 import toniarts.openkeeper.tools.convert.map.Player;
 
@@ -46,6 +50,8 @@ public class Keeper {
     private final PlayerCreatureControl creatureControl = new PlayerCreatureControl();
     private final PlayerStatsControl statsControl = new PlayerStatsControl();
     private final PlayerRoomControl roomControl = new PlayerRoomControl();
+    private PlayerTriggerControl triggerControl;
+    private PlayerManaControl manaControl;
 
     public Keeper(boolean ai, String name, short id) {
         this.ai = ai;
@@ -61,6 +67,15 @@ public class Keeper {
         this.player = player;
         this.id = player.getPlayerId();
         initialGold = player.getStartingGold();
+    }
+    
+    public void initialize(final AppStateManager stateManager, final Application app) {
+        int triggerId = player.getTriggerId();
+        if (triggerId != 0) {
+            triggerControl = new PlayerTriggerControl(stateManager, triggerId, id);
+        }
+        
+        manaControl = new PlayerManaControl(id, stateManager);
     }
 
     public boolean isReady() {
@@ -93,6 +108,24 @@ public class Keeper {
 
     public PlayerRoomControl getRoomControl() {
         return roomControl;
+    }
+    
+    public PlayerTriggerControl getTriggerControl() {
+        return triggerControl;
+    }
+    
+    public PlayerManaControl getManaControl() {
+        return manaControl;
+    }
+    
+    public void update(float tpf) {
+        if (triggerControl != null) {
+            triggerControl.update(tpf);
+        }
+        
+        if (manaControl != null) {
+            manaControl.update(tpf);
+        }
     }
 
     @Override

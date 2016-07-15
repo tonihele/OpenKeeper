@@ -261,6 +261,9 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
      * @return the number of imps
      */
     public int getImpCount() {
+        if (imp == null) {
+            return 0;
+        }
         return get(imp).size();
     }
 
