@@ -157,7 +157,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         // Add ambient light
         AmbientLight al = new AmbientLight();
-        al.setColor(ColorRGBA.White);
+        al.setColor(ColorRGBA.White.multLocal(0.4f));
         rootNode.addLight(al);
 
         /* Drop shadows */
