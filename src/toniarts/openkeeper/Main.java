@@ -168,7 +168,7 @@ public class Main extends SimpleApplication {
             DKFolderSelector frame = new DKFolderSelector() {
                 @Override
                 protected void continueOk(String path) {
-                    PathUtils.setDKIIFolder(PathUtils.fixFilePath(dkIIFolder));
+                    PathUtils.setDKIIFolder(PathUtils.fixFilePath(path));
                     folderOk = true;
                 }
             };
