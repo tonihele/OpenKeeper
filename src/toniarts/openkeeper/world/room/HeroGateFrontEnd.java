@@ -27,6 +27,7 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import toniarts.openkeeper.utils.FullMoon;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Level.LevelType;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -144,87 +145,84 @@ public class HeroGateFrontEnd extends GenericRoom {
             root.attachChild(tile);
 
             // Add some objects according to the tile number
-            if (i == 2) {
-                root.attachChild(loadObject("3DFE_GemHolder", assetManager, start, p, false));
-
-                // The light beams, I dunno, there are maybe several of these here
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
-                root.attachChild(loadObject("3dfe_beams", assetManager, start, p, true).rotate(quat).move(0, 0.4f, 0.1f));
-
-                // TODO: Add a point/spot light here
-
-                // Banners
-                root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
-                root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
-
-                // The "candles"
-                addCandles(root, assetManager, start, p);
-            } else if (i == 5) {
-
-                // Banners
-                root.attachChild(loadObject("banner3_swing", assetManager, start, p, true));
-                root.attachChild(loadObject("banner4_swing", assetManager, start, p, true));
-
-                // The "candles"
-                addCandles(root, assetManager, start, p);
-            } else if (i == 8) {
-
-                // Banners
-                root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
-                root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
-
-                // The "candles"
-                addCandles(root, assetManager, start, p);
-            } else if (i == 11) {
-
-                // Banners
-                root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
-                root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
-
-                // The "candles"
-                addCandles(root, assetManager, start, p);
-
-                // Map
-                Node map = new Node("Map");
-                for (int x = 1; x < 21; x++) {
-                    switch (x) {
-                        case 6:
-                            attachAndCreateLevel(map, LevelType.Level, x, "a", assetManager, start, p, false);
-                            map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                            attachAndCreateLevel(map, LevelType.Level, x, "b", assetManager, start, p, false);
-                            map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
-                            break;
-                        case 11:
-                            attachAndCreateLevel(map, LevelType.Level, x, "a", assetManager, start, p, false);
-                            map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                            attachAndCreateLevel(map, LevelType.Level, x, "b", assetManager, start, p, false);
-                            map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
-                            attachAndCreateLevel(map, LevelType.Level, x, "c", assetManager, start, p, false);
-                            map.attachChild(loadObject("3dmaplevel" + x + "c" + "_arrows", assetManager, start, p, false));
-                            break;
-                        case 15:
-                            attachAndCreateLevel(map, LevelType.Level, x, "a", assetManager, start, p, false);
-                            map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
-                            attachAndCreateLevel(map, LevelType.Level, x, "b", assetManager, start, p, false);
-                            map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
-                            break;
-                        default:
-                            attachAndCreateLevel(map, LevelType.Level, x, null, assetManager, start, p, false);
-                            map.attachChild(loadObject("3dmaplevel" + x + "_arrows", assetManager, start, p, false));
-                    }
-                }
-
-                // Secret levels
-                for (int x = 1; x < 6; x++) {
-                    attachAndCreateLevel(map, LevelType.Secret, x, null, assetManager, start, p, false);
-                }
-
-                // The map base
-                map.attachChild(loadObject("3dmap_level21", assetManager, start, p, false));
-
-                // Add the map node
-                root.attachChild(map);
+            switch (i) {
+                case 2:
+                    root.attachChild(loadObject("3DFE_GemHolder", assetManager, start, p, false));
+                    // The light beams, I dunno, there are maybe several of these here
+                    Quaternion quat = new Quaternion();
+                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
+                    root.attachChild(loadObject("3dfe_beams", assetManager, start, p, true).rotate(quat).move(0, 0.4f, 0.1f));
+                    // TODO: Add a point/spot light here
+                    
+                    // Banners
+                    root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
+                    root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
+                    // The "candles"
+                    addCandles(root, assetManager, start, p);
+                    break;
+                case 5:
+                    // Banners
+                    root.attachChild(loadObject("banner3_swing", assetManager, start, p, true));
+                    root.attachChild(loadObject("banner4_swing", assetManager, start, p, true));
+                    // The "candles"
+                    addCandles(root, assetManager, start, p);
+                    break;
+                case 8:
+                    // Banners
+                    root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
+                    root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
+                    // The "candles"
+                    addCandles(root, assetManager, start, p);
+                    break;
+                case 11:
+                    // Banners
+                    root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
+                    root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
+                    // The "candles"
+                    addCandles(root, assetManager, start, p);
+                    // Map
+                    Node map = new Node("Map");
+                    for (int x = 1; x < 21; x++) {
+                        switch (x) {
+                            case 6:
+                                attachAndCreateLevel(map, LevelType.Level, x, "a", assetManager, start, p, false);
+                                map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
+                                attachAndCreateLevel(map, LevelType.Level, x, "b", assetManager, start, p, false);
+                                map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
+                                break;
+                            case 11:
+                                attachAndCreateLevel(map, LevelType.Level, x, "a", assetManager, start, p, false);
+                                map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
+                                attachAndCreateLevel(map, LevelType.Level, x, "b", assetManager, start, p, false);
+                                map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
+                                attachAndCreateLevel(map, LevelType.Level, x, "c", assetManager, start, p, false);
+                                map.attachChild(loadObject("3dmaplevel" + x + "c" + "_arrows", assetManager, start, p, false));
+                                break;
+                            case 15:
+                                attachAndCreateLevel(map, LevelType.Level, x, "a", assetManager, start, p, false);
+                                map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p, false));
+                                attachAndCreateLevel(map, LevelType.Level, x, "b", assetManager, start, p, false);
+                                map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p, false));
+                                break;
+                            default:
+                                attachAndCreateLevel(map, LevelType.Level, x, null, assetManager, start, p, false);
+                                map.attachChild(loadObject("3dmaplevel" + x + "_arrows", assetManager, start, p, false));
+                        }
+                    }   // Secret levels
+                    for (int x = 1; x < 6; x++) {
+                        if (x == 5 && !FullMoon.isFullMoon())
+                        {
+                            // don't show full moon level
+                            continue;
+                        }
+                        attachAndCreateLevel(map, LevelType.Secret, x, null, assetManager, start, p, false);
+                    }   // The map base
+                    map.attachChild(loadObject("3dmap_level21", assetManager, start, p, false));
+                    // Add the map node
+                    root.attachChild(map);
+                    break;
+                default:
+                    break;
             }
 
             i++;
