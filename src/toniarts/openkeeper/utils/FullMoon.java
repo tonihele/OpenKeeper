@@ -50,7 +50,7 @@ public class FullMoon {
         LocalDateTime now = LocalDateTime.now();
         
         // percentiage to 100% phase
-        double diffToFull = (1 - MoonPhase(year, month, day, hour)) * 100;
+        double diffToFull = (1 - getMoonPhase(year, month, day, hour)) * 100;
         return diffToFull < DEVIATION;
     }
 
@@ -62,7 +62,7 @@ public class FullMoon {
      * @param day
      * @return the number of julian days for the specified day.
      */
-    private static double Julian(int year,int month, final double day) {
+    private static double getJulianDays(int year,int month, final double day) {
         int a,
             b = 0,
             c,
@@ -81,7 +81,7 @@ public class FullMoon {
         return b + c + e + day + 1720994.5;
     }
 
-    private static double SunPosition(double j) {
+    private static double getSunPosition(double j) {
         double n,x,e,l,dl,v;
         double m2;
         int i;
@@ -104,7 +104,7 @@ public class FullMoon {
         return l;
     }
 
-    private static double MoonPosition(final double j, final double ls) {
+    private static double getMoonPosition(final double j, final double ls) {
 
         double ms,l,mm,n,ev,sms,z,x,lm,bm,ae,ec;
         double d;
@@ -142,10 +142,10 @@ public class FullMoon {
      * @param hour
      * @return the moon phase as a real number (0-1)
      */
-    private static double MoonPhase(final int year, final int month, final int day, final int hour) {
-        double j = Julian(year, month, (double)day + hour / 24.0) - 2444238.5;
-        double ls = SunPosition(j);
-        double lm = MoonPosition(j, ls);
+    private static double getMoonPhase(final int year, final int month, final int day, final int hour) {
+        double j = getJulianDays(year, month, (double)day + hour / 24.0) - 2444238.5;
+        double ls = getSunPosition(j);
+        double lm = getMoonPosition(j, ls);
 
         double t = lm - ls;
         if (t < 0) t += 360;
