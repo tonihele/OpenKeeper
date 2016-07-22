@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert;
 
 import java.io.File;
+
 import toniarts.openkeeper.tools.convert.wad.WadFile;
 import toniarts.openkeeper.utils.PathUtils;
 
@@ -42,7 +43,7 @@ public class WadExtractor {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        final String dataFolder = dkIIFolder.concat("data").concat(File.separator);
+        final String dataFolder = dkIIFolder.concat(PathUtils.DKII_DATA_FOLDER).concat(File.separator);
 
         //And the destination
         String destination = PathUtils.fixFilePath(args[0]);

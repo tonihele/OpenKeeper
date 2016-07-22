@@ -92,6 +92,7 @@ import static toniarts.openkeeper.tools.convert.AssetsConverter.MAP_THUMBNAILS_F
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
@@ -684,7 +685,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      */
     public void playMovie(String movieFile) {
         try {
-            MovieState movieState = new MovieState(getDkIIFolder().concat("Data".concat(File.separator).concat("Movies").concat(File.separator).concat(movieFile + ".TGQ"))) {
+            MovieState movieState = new MovieState(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat(movieFile + ".TGQ"))) {
                 @Override
                 protected void onPlayingEnd() {
                 }
