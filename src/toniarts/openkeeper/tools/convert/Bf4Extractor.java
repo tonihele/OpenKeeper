@@ -26,6 +26,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
+
+import toniarts.openkeeper.constants.DkIIFolderConstants;
 import toniarts.openkeeper.tools.convert.bf4.Bf4Entry;
 import toniarts.openkeeper.tools.convert.bf4.Bf4File;
 import toniarts.openkeeper.utils.PathUtils;
@@ -52,7 +54,7 @@ public class Bf4Extractor {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        final String textFolder = dkIIFolder.concat("Data").concat(File.separator).concat("Text").concat(File.separator).concat("Default").concat(File.separator);
+        final String textFolder = dkIIFolder.concat(DkIIFolderConstants.DKII_DATA_FOLDER).concat(File.separator).concat(DkIIFolderConstants.DKII_TEXT_FOLDER).concat(File.separator).concat(DkIIFolderConstants.DKII_DEFAULT_FOLDER).concat(File.separator);
 
         //And the destination
         String destination = PathUtils.fixFilePath(args[0]);

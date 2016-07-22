@@ -55,6 +55,7 @@ import javax.imageio.ImageIO;
 import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
+import toniarts.openkeeper.constants.DkIIFolderConstants;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.tools.convert.bf4.Bf4File;
 import toniarts.openkeeper.tools.convert.hiscores.HiScoresEntry;
@@ -145,7 +146,7 @@ public abstract class AssetsConverter {
     public static final String TEXTS_FOLDER = "Interface".concat(File.separator).concat("Texts");
     public static final String PATHS_FOLDER = "Interface".concat(File.separator).concat("Paths");
     public static final String MAP_THUMBNAILS_FOLDER = TEXTURES_FOLDER.concat(File.separator).concat("Thumbnails");
-    public static final String MAPS_FOLDER = "Data".concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator);
+    public static final String MAPS_FOLDER = DkIIFolderConstants.DKII_DATA_FOLDER.concat(File.separator).concat(DkIIFolderConstants.DKII_EDITOR_FOLDER).concat(File.separator).concat(DkIIFolderConstants.DKII_MAPS_FOLDER).concat(File.separator);
     private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
 
@@ -249,8 +250,8 @@ public abstract class AssetsConverter {
         WadFile frontEnd;
         WadFile engineTextures;
         try {
-            frontEnd = new WadFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, "Data".concat(File.separator).concat("FrontEnd.WAD"))));
-            engineTextures = new WadFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, "Data".concat(File.separator).concat("EngineTextures.WAD"))));
+            frontEnd = new WadFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, DkIIFolderConstants.DKII_DATA_FOLDER.concat(File.separator).concat("FrontEnd.WAD"))));
+            engineTextures = new WadFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, DkIIFolderConstants.DKII_DATA_FOLDER.concat(File.separator).concat("EngineTextures.WAD"))));
         } catch (IOException e) {
             throw new RuntimeException("Failed to open a WAD file!", e);
         }
@@ -312,7 +313,7 @@ public abstract class AssetsConverter {
         EngineTexturesFile engineTexturesFile = getEngineTexturesFile(dungeonKeeperFolder);
 
         //Meshes are in the data folder, access the packed file
-        WadFile wad = new WadFile(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Meshes.WAD")));
+        WadFile wad = new WadFile(new File(dungeonKeeperFolder.concat(DkIIFolderConstants.DKII_DATA_FOLDER).concat(File.separator).concat("Meshes.WAD")));
         HashMap<String, KmfFile> kmfs = new HashMap<>();
         File tmpdir = new File(System.getProperty("java.io.tmpdir"));
         int i = 0;
@@ -418,7 +419,7 @@ public abstract class AssetsConverter {
         updateStatus(null, null, ConvertProcess.MOUSE_CURSORS);
 
         //Mouse cursors are PNG files in the Sprite.WAD
-        WadFile wadFile = new WadFile(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Sprite.WAD")));
+        WadFile wadFile = new WadFile(new File(dungeonKeeperFolder.concat(DkIIFolderConstants.DKII_DATA_FOLDER).concat(File.separator).concat("Sprite.WAD")));
         int i = 0;
         int total = wadFile.getWadFileEntryCount();
         File destinationFolder = new File(getAssetsFolder().concat(TEXTURES_FOLDER).concat(File.separator).concat("Sprites/"));
@@ -455,7 +456,7 @@ public abstract class AssetsConverter {
         }
         logger.log(Level.INFO, "Extracting sounds to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MUSIC_AND_SOUNDS);
-        String dataDirectory = dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Sound").concat(File.separator).concat("Sfx").concat(File.separator);
+        String dataDirectory = dungeonKeeperFolder.concat(DkIIFolderConstants.DKII_DATA_FOLDER).concat(File.separator).concat(DkIIFolderConstants.DKII_SOUND_FOLDER).concat(File.separator).concat(DkIIFolderConstants.DKII_SFX_FOLDER).concat(File.separator);
 
         //Find all the sound files
         final List<File> sdtFiles = new ArrayList<>();
@@ -551,7 +552,7 @@ public abstract class AssetsConverter {
         }
         logger.log(Level.INFO, "Extracting texts to: {0}", destination);
         updateStatus(null, null, ConvertProcess.INTERFACE_TEXTS);
-        String dataDirectory = dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Text").concat(File.separator).concat("Default").concat(File.separator);
+        String dataDirectory = dungeonKeeperFolder.concat(DkIIFolderConstants.DKII_DATA_FOLDER).concat(File.separator).concat(DkIIFolderConstants.DKII_TEXT_FOLDER).concat(File.separator).concat(DkIIFolderConstants.DKII_DEFAULT_FOLDER).concat(File.separator);
 
         //Find all the STR files
         final List<File> srtFiles = new ArrayList<>();
@@ -655,7 +656,7 @@ public abstract class AssetsConverter {
         updateStatus(null, null, ConvertProcess.PATHS);
 
         //Paths are in the data folder, access the packed file
-        WadFile wad = new WadFile(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Paths.WAD")));
+        WadFile wad = new WadFile(new File(dungeonKeeperFolder.concat(DkIIFolderConstants.DKII_DATA_FOLDER).concat(File.separator).concat("Paths.WAD")));
         int i = 0;
         int total = wad.getWadFileEntryCount();
         File tmpdir = new File(System.getProperty("java.io.tmpdir"));
@@ -760,7 +761,7 @@ public abstract class AssetsConverter {
 
             // Find all the font files
             final List<File> bf4Files = new ArrayList<>();
-            Files.walkFileTree(new File(dungeonKeeperFolder.concat("Data").concat(File.separator).concat("Text").concat(File.separator).concat("Default").concat(File.separator)).toPath(), new SimpleFileVisitor<Path>() {
+            Files.walkFileTree(new File(dungeonKeeperFolder.concat(DkIIFolderConstants.DKII_DATA_FOLDER).concat(File.separator).concat(DkIIFolderConstants.DKII_TEXT_FOLDER).concat(File.separator).concat(DkIIFolderConstants.DKII_DEFAULT_FOLDER).concat(File.separator)).toPath(), new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 

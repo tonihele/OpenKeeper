@@ -63,6 +63,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+
+import toniarts.openkeeper.constants.DkIIFolderConstants;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
@@ -82,6 +84,8 @@ import toniarts.openkeeper.world.effect.EffectManager;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class ModelViewer extends SimpleApplication implements ScreenController {
+
+
 
     public enum Types {
 
@@ -562,7 +566,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         if (kwdFile == null) {
 
             // Read Alcatraz.kwd by default
-            kwdFile = new KwdFile(dkIIFolder, new File(dkIIFolder.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("Alcatraz.kwd")));
+            kwdFile = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(DkIIFolderConstants.DKII_DATA_FOLDER).concat(File.separator).concat(DkIIFolderConstants.DKII_EDITOR_FOLDER).concat(File.separator).concat(DkIIFolderConstants.DKII_MAPS_FOLDER).concat(File.separator).concat("Alcatraz.kwd")));
         }
         return kwdFile;
     }
