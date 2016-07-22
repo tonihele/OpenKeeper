@@ -264,7 +264,8 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
         if (imp == null) {
             return 0;
         }
-        return get(imp).size();
+        Set<CreatureControl> imps = get(imp);
+        return (imps != null ? imps.size() : 0);
     }
 
     private static class WorkerListener {
