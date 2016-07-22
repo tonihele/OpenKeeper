@@ -40,7 +40,7 @@ task(debug, dependsOn: classes, type: JavaExec) {
     main = getProperty('mainClass')
     classpath = sourceSets.main.runtimeClasspath
     if (project.hasProperty('args')) {
-      args(myargs.split(','))
+        args(project.getAt('args').split(','))
     }
     standardInput = System.in
     ignoreExitValue = true
