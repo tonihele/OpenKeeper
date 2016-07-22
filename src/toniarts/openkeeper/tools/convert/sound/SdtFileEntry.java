@@ -26,27 +26,28 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
 public class SdtFileEntry {
 
     public enum SoundType implements IValueEnum {
+
         NONE(0),
         WAV(2),
         MP2_MONO(36),
         MP2_STEREO(37);
 
-        private int type;
+        private final int type;
 
         private SoundType(int type) {
             this.type = type;
         }
-        
+
         @Override
         public int getValue() {
             return this.type;
         }
-    } 
-    
+    }
+
     private int indexSize;
     private int size;
-    private int sampling_rate; // 22050
-    private int unknown2; // 16
+    private int samplingRate; // 22050
+    private short unknown2; // 16
     private SoundType type; // 36 on mp2 (64kbit/s mono), 37 on mp2 (112kbit/s stereo), 2 on wav, 0 on blanks
     private int unknown3;
     private int nSamples;
@@ -70,21 +71,21 @@ public class SdtFileEntry {
     }
 
     public int getSamplingRate() {
-        return sampling_rate;
+        return samplingRate;
     }
 
     protected void setSamplingRate(int samplingRate) {
-        this.sampling_rate = samplingRate;
+        this.samplingRate = samplingRate;
     }
 
-    public int getUnknown2() {
+    public short getUnknown2() {
         return unknown2;
     }
 
-    protected void setUnknown2(int unknown2) {
+    protected void setUnknown2(short unknown2) {
         this.unknown2 = unknown2;
     }
-    
+
     public SoundType getType() {
         return type;
     }
@@ -92,7 +93,7 @@ public class SdtFileEntry {
     public void setType(SoundType type) {
         this.type = type;
     }
-    
+
     public int getUnknown3() {
         return unknown3;
     }
@@ -100,7 +101,7 @@ public class SdtFileEntry {
     protected void setUnknown3(int unknown3) {
         this.unknown3 = unknown3;
     }
-    
+
     public int getnSamples() {
         return nSamples;
     }
