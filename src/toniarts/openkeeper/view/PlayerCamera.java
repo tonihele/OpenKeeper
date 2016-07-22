@@ -116,7 +116,7 @@ public class PlayerCamera {
      *
      * @param value
      */
-    protected void rotateAround(float value) {
+    public void rotateAround(float value) {
 
         Matrix3f mat = new Matrix3f();
         mat.fromAngleNormalAxis(value, Vector3f.UNIT_Y.clone());

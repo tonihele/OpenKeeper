@@ -27,7 +27,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
 /**
- *
+ * @deprecated
  * @author ArchDemon
  */
 public class PathFinder {

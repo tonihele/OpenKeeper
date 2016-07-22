@@ -26,7 +26,7 @@ import com.jme3.export.Savable;
 public interface IControl extends Savable {
 
     /**
-     * @param spatial the spatial to be controlled. This should not be called from user code.
+     * @param parent the spatial to be controlled. This should not be called from user code.
      */
     public void setParent(IContainer parent);
 

@@ -56,6 +56,8 @@ import toniarts.openkeeper.world.WorldState;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class GameState extends AbstractPauseAwareState implements IGameLogicUpdateable {
+    public static final int TIME_LIMIT_ID = 16;
+    public static final int SCORE_ID = 128;
 
     private Main app;
 
@@ -148,11 +150,11 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     setProgress(0.80f);
 
                     // Trigger data
-                    for (short i = 0; i < 128; i++) {
+                    for (short i = 0; i < SCORE_ID; i++) {
                         flags.put(i, 0);
                     }
 
-                    for (byte i = 0; i < 16; i++) {
+                    for (byte i = 0; i < TIME_LIMIT_ID; i++) {
                         timers.put(i, new GameTimer());
                     }
 
@@ -195,9 +197,12 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 // Seems that the campaign maps at least never have lair nor hatchery, but they should be available always
                 // TODO: Not very pretty
                 for (Entry<Short, Keeper> entry : players.entrySet()) {
+                    Keeper keeper = entry.getValue();
+
+                    keeper.initialize(stateManager, app);
                     if (entry.getKey() >= Keeper.KEEPER1_ID) {
-                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getLair(), true);
-                        entry.getValue().getRoomControl().setTypeAvailable(kwdFile.getHatchery(), true);
+                        keeper.getRoomControl().setTypeAvailable(kwdFile.getLair(), true);
+                        keeper.getRoomControl().setTypeAvailable(kwdFile.getHatchery(), true);
                     }
                 }
 
@@ -300,6 +305,10 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
         if (triggerControl != null) {
             triggerControl.update(tpf);
+        }
+
+        for (Keeper player : players.values()) {
+            player.update(tpf);
         }
     }
 

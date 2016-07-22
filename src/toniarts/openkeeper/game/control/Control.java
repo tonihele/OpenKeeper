@@ -32,6 +32,9 @@ public abstract class Control implements IControl {
     protected boolean enabled = true;
     protected IContainer parent;
 
+    /**
+     * empty serialization constructor
+     */
     public Control() {
     }
 
@@ -57,6 +60,7 @@ public abstract class Control implements IControl {
 
     /**
      * To be implemented in subclass.
+     * @param tpf time per frame
      */
     protected abstract void updateControl(float tpf);
 

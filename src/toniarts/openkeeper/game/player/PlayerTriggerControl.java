@@ -32,21 +32,21 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 public class PlayerTriggerControl extends TriggerControl {
 
     private PlayerState playerState = null;
-    private final short playerId;
+    private short playerId;
     private static final Logger logger = Logger.getLogger(PlayerTriggerControl.class.getName());
 
-    public PlayerTriggerControl() { // empty serialization constructor
+    /**
+     * empty serialization constructor
+     */
+    public PlayerTriggerControl() {
         super();
-        playerId = Keeper.KEEPER1_ID;
     }
 
     public PlayerTriggerControl(final AppStateManager stateManager, int triggerId, short playerId) {
         super(stateManager, triggerId);
-        this.playerId = playerId;
-    }
 
-    public void setPlayerState(PlayerState playerState) {
-        this.playerState = playerState;
+        this.playerState = this.stateManager.getState(PlayerState.class);
+        this.playerId = playerId;
     }
 
     @Override
@@ -63,23 +63,19 @@ public class PlayerTriggerControl extends TriggerControl {
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case PLAYER_CREATURES:
-                short playerId = trigger.getUserData("playerId", short.class);
-                Keeper keeper = getPlayer(playerId);
                 short creatureId = trigger.getUserData("creatureId", short.class);
                 boolean isValue = trigger.getUserData("flag", short.class) == 1;
+
+                target = getCreaturesCount(0, creatureId);
+
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
-                    if (creatureId == 0) {
-                        target = keeper.getCreatureControl().getTypeCount();
-                    } else {
-                        GameState gameState = stateManager.getState(GameState.class);
-                        target = keeper.getCreatureControl().getTypeCount(gameState.getLevelData().getCreature(creatureId));
-                    }
                 } else {
-                    // TODO what?
-                    return false;
+                    short otherPlayerId = trigger.getUserData("playerId", short.class);
+                    value = getCreaturesCount(otherPlayerId, creatureId);
                 }
                 break;
+
             case PLAYER_HAPPY_CREATURES:
                 return false;
             case PLAYER_ANGRY_CREATURES:
@@ -89,42 +85,33 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_KILLS_CREATURES:
                 return false;
             case PLAYER_ROOM_SLABS:
-                playerId = trigger.getUserData("playerId", short.class);
-                keeper = getPlayer(playerId);
                 short roomId = trigger.getUserData("roomId", short.class);
                 isValue = trigger.getUserData("flag", short.class) == 1;
+
+                target = getRoomSlabsCount(0, roomId);
+
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
-                    if (roomId == 0) {
-                        target = keeper.getRoomControl().getRoomSlabsCount();
-                    } else {
-                        GameState gameState = stateManager.getState(GameState.class);
-                        target = keeper.getRoomControl().getRoomSlabsCount(gameState.getLevelData().getRoomById(roomId));
-                    }
                 } else {
-                    // TODO what?
-                    return false;
+                    short otherPlayerId = trigger.getUserData("playerId", short.class);
+                    value = getRoomSlabsCount(otherPlayerId, roomId);
                 }
                 break;
-            case PLAYER_ROOMS: {
-                playerId = trigger.getUserData("playerId", short.class);
-                keeper = getPlayer(playerId);
+
+            case PLAYER_ROOMS:
                 roomId = trigger.getUserData("roomId", short.class);
                 isValue = trigger.getUserData("flag", short.class) == 1;
+
+                target = getRoomCount(0, roomId);
+
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
-                    if (roomId == 0) {
-                        target = keeper.getRoomControl().getTypeCount();
-                    } else {
-                        GameState gameState = stateManager.getState(GameState.class);
-                        target = keeper.getRoomControl().getTypeCount(gameState.getLevelData().getRoomById(roomId));
-                    }
                 } else {
-                    // TODO what?
-                    return false;
+                    short otherPlayerId = trigger.getUserData("playerId", short.class);
+                    value = getRoomCount(otherPlayerId, roomId);
                 }
                 break;
-            }
+
             case PLAYER_ROOM_SIZE:
                 return false;
             case PLAYER_DOORS:
@@ -134,34 +121,42 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_KEEPER_SPELL:
                 return false;
             case PLAYER_GOLD:
-                playerId = trigger.getUserData("playerId", short.class);
-                keeper = getPlayer(playerId);
-                target = keeper.getGoldControl().getGold();
                 isValue = trigger.getUserData("flag", short.class) == 1;
+
+                target = getPlayer().getGoldControl().getGold();
+
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
-                    // TODO what?
-                    return false;
+                    short otherPlayerId = trigger.getUserData("playerId", short.class);
+                    value = getPlayer(otherPlayerId).getGoldControl().getGold();
                 }
                 break;
 
             case PLAYER_GOLD_MINED:
-                playerId = trigger.getUserData("playerId", short.class);
-                keeper = getPlayer(playerId);
-                target = keeper.getGoldControl().getGoldMined();
                 isValue = trigger.getUserData("flag", short.class) == 1;
+
+                target = getPlayer().getGoldControl().getGoldMined();
+
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
-                    // TODO what?
-                    return false;
+                    short otherPlayerId = trigger.getUserData("playerId", short.class);
+                    value = getPlayer(otherPlayerId).getGoldControl().getGoldMined();
                 }
                 break;
 
             case PLAYER_MANA:
-                PlayerManaControl pmc = playerState.getManaControl();
-                target = pmc.getMana();
+                isValue = trigger.getUserData("flag", short.class) == 1;
+
+                target = getPlayer().getManaControl().getMana();
+
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                } else {
+                    short otherPlayerId = trigger.getUserData("playerId", short.class);
+                    value = getPlayer(otherPlayerId).getManaControl().getMana();
+                }
                 break;
 
             case PLAYER_DESTROYS:
@@ -179,17 +174,17 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_CREATURE_DROPPED:
                 return false;
             case PLAYER_CREATURE_SLAPPED:
-                PlayerStatsControl psc = playerState.getStatsControl();
+                PlayerStatsControl psc = getPlayer().getStatsControl();
                 creatureId = trigger.getUserData("creatureId", short.class);
-                if (creatureId == 0) {
 
+                if (creatureId == 0) {
                     // Any creature
                     return psc.hasSlapped();
                 } else {
-
                     // Certain creature
                     return psc.hasSlapped(stateManager.getState(GameState.class).getLevelData().getCreature(creatureId));
                 }
+
             case PLAYER_CREATURE_SACKED:
                 return false;
             case PLAYER_ROOM_FURNITURE:
@@ -218,12 +213,46 @@ public class PlayerTriggerControl extends TriggerControl {
         return result;
     }
 
-    @Override
-    protected Keeper getPlayer(short playerId) {
-        if (playerId == 0) {
-            return super.getPlayer(this.playerId);
-        }
-        return super.getPlayer(playerId); //To change body of generated methods, choose Tools | Templates.
+    private Keeper getPlayer() {
+        return super.getPlayer(playerId);
     }
 
+    private int getCreaturesCount(int playerId, short creatureId) {
+        int result;
+
+        if (creatureId == 0) {
+            result = getPlayer((short) playerId).getCreatureControl().getTypeCount();
+        } else {
+            GameState gameState = stateManager.getState(GameState.class);
+            result = getPlayer((short) playerId).getCreatureControl().getTypeCount(gameState.getLevelData().getCreature(creatureId));
+        }
+
+        return result;
+    }
+
+    private int getRoomSlabsCount(int playerId, short roomId) {
+        int result;
+
+        if (roomId == 0) {
+            result = getPlayer((short) playerId).getRoomControl().getRoomSlabsCount();
+        } else {
+            GameState gameState = stateManager.getState(GameState.class);
+            result = getPlayer((short) playerId).getRoomControl().getRoomSlabsCount(gameState.getLevelData().getRoomById(roomId));
+        }
+
+        return result;
+    }
+
+    private int getRoomCount(int playerId, short roomId) {
+        int result;
+
+        if (roomId == 0) {
+            result = getPlayer((short) playerId).getRoomControl().getTypeCount();
+        } else {
+            GameState gameState = stateManager.getState(GameState.class);
+            result = getPlayer((short) playerId).getRoomControl().getTypeCount(gameState.getLevelData().getRoomById(roomId));
+        }
+
+        return result;
+    }
 }
