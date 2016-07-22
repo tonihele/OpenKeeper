@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -56,6 +57,7 @@ import toniarts.openkeeper.world.WorldState;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class GameState extends AbstractPauseAwareState implements IGameLogicUpdateable {
+
     public static final int TIME_LIMIT_ID = 16;
     public static final int SCORE_ID = 128;
 
@@ -242,8 +244,18 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 // Set the processors
                 GameState.this.app.setViewProcessors();
 
-                // Enable game logic thread
-                exec.resume();
+                // FIXME: this is not correct
+                // Enqueue the thread starting to next frame so that the states are initialized
+                app.enqueue(new Callable() {
+                    @Override
+                    public Object call() throws Exception {
+
+                        // Enable game logic thread
+                        exec.resume();
+
+                        return null;
+                    }
+                });
             }
         };
         stateManager.attach(loader);
