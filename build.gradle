@@ -39,7 +39,7 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 task(debug, dependsOn: classes, type: JavaExec) {
     main = getProperty('mainClass')
     classpath = sourceSets.main.runtimeClasspath
-    if (project.hasProperty('myargs')) {
+    if (project.hasProperty('args')) {
       args(myargs.split(','))
     }
     standardInput = System.in
@@ -101,5 +101,5 @@ compileJava {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.12'
+    gradleVersion = '2.14'
 }
