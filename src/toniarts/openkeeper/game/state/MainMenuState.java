@@ -21,6 +21,7 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
+import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
 import com.jme3.cinematic.events.CinematicEvent;
@@ -374,7 +375,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                         subObjectiveImage.setHeight(img.getHeight());
 
                         // Play some tunes!!
-                        levelBriefing = new AudioNode(assetManager, "Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2", false);
+                        levelBriefing = new AudioNode(assetManager, ConversionUtils.getCanonicalAssetKey("Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2"), DataType.Stream);
                         levelBriefing.setLooping(false);
                         levelBriefing.setDirectional(false);
                         levelBriefing.setPositional(false);
@@ -482,40 +483,40 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
     public void multiplayerRefresh() {
         /*
-        TextField port = screen.findNiftyControl("gamePort", TextField.class);
-        int serverPort = Integer.valueOf(port.getRealText());
+         TextField port = screen.findNiftyControl("gamePort", TextField.class);
+         int serverPort = Integer.valueOf(port.getRealText());
 
-        ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
-        if (games == null) {
-            logger.warning("Element multiplayerGamesTable not found");
-            return;
-        }
-        games.clear();
+         ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
+         if (games == null) {
+         logger.warning("Element multiplayerGamesTable not found");
+         return;
+         }
+         games.clear();
 
-        LocalServerSearch searcher = new LocalServerSearch(serverPort) {
-            int i = 0;
+         LocalServerSearch searcher = new LocalServerSearch(serverPort) {
+         int i = 0;
 
-            @Override
-            public void onFound(NetworkServer server) {
-                TableRow row = new TableRow(i++, server.getName(), server.getHost(), server.getPort() + "");
-                games.addItem(row);
-            }
-        };
-        searcher.start();
-        */
+         @Override
+         public void onFound(NetworkServer server) {
+         TableRow row = new TableRow(i++, server.getName(), server.getHost(), server.getPort() + "");
+         games.addItem(row);
+         }
+         };
+         searcher.start();
+         */
     }
 
     public void multiplayerConnect() {
         /*
-        ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
-        if (games == null) {
-            logger.warning("Element multiplayerGamesTable not found");
-            return;
-        }
-        TableRow row = games.getFocusItem();
-        String host = row.getData().get(1);
-        String port = row.getData().get(2);
-        */
+         ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
+         if (games == null) {
+         logger.warning("Element multiplayerGamesTable not found");
+         return;
+         }
+         TableRow row = games.getFocusItem();
+         String host = row.getData().get(1);
+         String port = row.getData().get(2);
+         */
         TextField player = screen.findNiftyControl("playerName", TextField.class);
         TextField hostAdderss = screen.findNiftyControl("hostAddress", TextField.class);
         if (player == null || player.getRealText().isEmpty()
@@ -539,7 +540,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
     }
 
-    @NiftyEventSubscriber(id="multiplayerChat")
+    @NiftyEventSubscriber(id = "multiplayerChat")
     public void onChatTextSend(final String id, final ChatTextSendEvent event) {
         if (client == null) {
             logger.warning("Network client not initialized");
@@ -619,7 +620,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
     /**
      * Called by the GUI, start the selected level
-     * @param type where level selected. @TODO change campaign like others or otherwise
+     *
+     * @param type where level selected. @TODO change campaign like others or
+     * otherwise
      */
     public void startLevel(String type) {
         if ("campaign".equals(type.toLowerCase())) {
