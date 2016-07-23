@@ -76,7 +76,6 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.cinematics.Cinematic;
-import toniarts.openkeeper.constants.DkIIFolderConstants;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
@@ -95,6 +94,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.GameLevel.LevFlag;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
@@ -675,7 +675,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      */
     public void playMovie(String movieFile) {
         try {
-            MovieState movieState = new MovieState(getDkIIFolder().concat(DkIIFolderConstants.DKII_DATA_FOLDER.concat(File.separator).concat(DkIIFolderConstants.DKII_MOVIES_FOLDER).concat(File.separator).concat(movieFile + ".TGQ"))) {
+            MovieState movieState = new MovieState(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat(movieFile + ".TGQ"))) {
                 @Override
                 protected void onPlayingEnd() {
                 }

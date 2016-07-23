@@ -56,7 +56,6 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
-import toniarts.openkeeper.constants.DkIIFolderConstants;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.GameState;
@@ -575,8 +574,8 @@ public class Main extends SimpleApplication {
 
         // The intro sequence
         Queue<String> introSequence = new LinkedList<>();
-        introSequence.add(getDkIIFolder().concat(DkIIFolderConstants.DKII_DATA_FOLDER.concat(File.separator).concat(DkIIFolderConstants.DKII_MOVIES_FOLDER).concat(File.separator).concat("BullfrogIntro.tgq")));
-        introSequence.add(getDkIIFolder().concat(DkIIFolderConstants.DKII_DATA_FOLDER.concat(File.separator).concat(DkIIFolderConstants.DKII_MOVIES_FOLDER).concat(File.separator).concat("INTRO.TGQ")));
+        introSequence.add(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat("BullfrogIntro.tgq")));
+        introSequence.add(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat("INTRO.TGQ")));
         playMovie(introSequence);
     }
 
