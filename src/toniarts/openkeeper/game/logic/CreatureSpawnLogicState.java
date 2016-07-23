@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -161,16 +160,9 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
 
     // FIXME: There is a bit of a problem, we need to add the creature immediately to our registry, only the visual side can be queued for later
     public static void spawnCreature(short creatureId, short playerId, short level, Application app, ThingLoader thingLoader, Point tile, boolean entrance) {
-        app.enqueue(new Callable() {
-            @Override
-            public Object call() throws Exception {
 
-                // Spawn the creature
-                thingLoader.spawnCreature(creatureId, playerId, level, new Vector2f(tile.x + 0.5f, tile.y + 0.5f), entrance);
-
-                return null;
-            }
-        });
+        // Spawn the creature
+        thingLoader.spawnCreature(creatureId, playerId, level, new Vector2f(tile.x + 0.5f, tile.y + 0.5f), entrance, app);
     }
 
     private boolean isCreatureLimitReached(Keeper player) {

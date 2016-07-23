@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.trigger;
 
 import com.jme3.app.state.AppStateManager;
-import com.jme3.math.FastMath;
 import java.awt.Point;
 import java.util.EnumSet;
 import java.util.Set;
@@ -260,7 +259,7 @@ public class TriggerControl extends Control {
                 // Load the party members
                 ThingLoader loader = stateManager.getState(WorldState.class).getThingLoader();
                 for (Thing.GoodCreature creature : party.getMembers()) {
-                    CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter());
+                    CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter(), stateManager.getApplication());
                     creatureInstance.setParty(party);
                     party.addMemberInstance(creatureInstance);
                 }
