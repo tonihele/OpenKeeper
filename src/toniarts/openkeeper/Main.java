@@ -79,7 +79,6 @@ import toniarts.openkeeper.video.MovieState;
  */
 public class Main extends SimpleApplication {
 
-    private static String dkIIFolder;
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
     public final static String TITLE = "OpenKeeper";
@@ -159,7 +158,7 @@ public class Main extends SimpleApplication {
         boolean saveSetup = false;
 
         // First and foremost, the folder
-        if (!PathUtils.checkDkFolder(dkIIFolder)) {
+        if (!PathUtils.checkDkFolder(getDkIIFolder())) {
             logger.info("Dungeon Keeper II folder not found or valid! Prompting user!");
             saveSetup = true;
 
@@ -168,7 +167,7 @@ public class Main extends SimpleApplication {
             DKFolderSelector frame = new DKFolderSelector() {
                 @Override
                 protected void continueOk(String path) {
-                    PathUtils.setDKIIFolder(PathUtils.fixFilePath(dkIIFolder));
+                    PathUtils.setDKIIFolder(PathUtils.fixFilePath(path));
                     folderOk = true;
                 }
             };
@@ -188,7 +187,7 @@ public class Main extends SimpleApplication {
                     Thread.currentThread().getContextClassLoader()
                     .getResource("com/jme3/asset/Desktop.cfg")); // Get temporary asset manager instance since we not yet have one ourselves
             assetManager.registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
-            DKConverter frame = new DKConverter(dkIIFolder, assetManager) {
+            DKConverter frame = new DKConverter(getDkIIFolder(), assetManager) {
                 @Override
                 protected void continueOk() {
                     AssetsConverter.setConversionSettings(app.getSettings());
@@ -218,8 +217,6 @@ public class Main extends SimpleApplication {
         // Init the user settings (which in JME are app settings)
         app.getUserSettings();
 
-        // DKII settings
-        dkIIFolder = PathUtils.getDKIIFolder();
     }
 
     /**
@@ -486,7 +483,7 @@ public class Main extends SimpleApplication {
      * @return the DK II folder
      */
     public static String getDkIIFolder() {
-        return dkIIFolder;
+        return PathUtils.getDKIIFolder();
     }
 
     @Override
@@ -577,8 +574,8 @@ public class Main extends SimpleApplication {
 
         // The intro sequence
         Queue<String> introSequence = new LinkedList<>();
-        introSequence.add(getDkIIFolder().concat("Data".concat(File.separator).concat("Movies").concat(File.separator).concat("BullfrogIntro.tgq")));
-        introSequence.add(getDkIIFolder().concat("Data".concat(File.separator).concat("Movies").concat(File.separator).concat("INTRO.TGQ")));
+        introSequence.add(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat("BullfrogIntro.tgq")));
+        introSequence.add(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat("INTRO.TGQ")));
         playMovie(introSequence);
     }
 

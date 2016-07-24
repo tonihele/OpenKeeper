@@ -20,6 +20,14 @@ import java.io.File;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 
 public class PathUtils {
+    public static final String DKII_DATA_FOLDER = "Data";
+    public static final String DKII_SOUND_FOLDER = "Sound";
+    public static final String DKII_SFX_FOLDER = "sfx";
+    public static final String DKII_MOVIES_FOLDER = "Movies";
+    public static final String DKII_TEXT_FOLDER = "Text";
+    public static final String DKII_DEFAULT_FOLDER = "Default";
+    public static final String DKII_EDITOR_FOLDER = "editor";
+    public static final String DKII_MAPS_FOLDER = "maps";
     private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
     private final static String TEST_FILE = AssetsConverter.MAPS_FOLDER.concat("FrontEnd3DLevel.kwd");
     

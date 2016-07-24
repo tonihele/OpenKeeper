@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.vecmath.Vector3f;
+
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource.Animation;
 import toniarts.openkeeper.tools.convert.map.ArtResource.Image;
@@ -1128,12 +1129,12 @@ public final class KwdFile {
 
         // Hmm, seems that normal maps don't refer the effects nor effect elements
         if (!customOverrides) {
-            FilePath file = new FilePath(MapDataTypeEnum.EFFECTS, "Data" + File.separator + "editor" + File.separator + "Effects.kwd");
+            FilePath file = new FilePath(MapDataTypeEnum.EFFECTS, PathUtils.DKII_DATA_FOLDER + File.separator + PathUtils.DKII_EDITOR_FOLDER + File.separator + "Effects.kwd");
             if (!gameLevel.getPaths().contains(file)) {
                 gameLevel.getPaths().add(file);
             }
 
-            file = new FilePath(MapDataTypeEnum.EFFECT_ELEMENTS, "Data" + File.separator + "editor" + File.separator + "EffectElements.kwd");
+            file = new FilePath(MapDataTypeEnum.EFFECT_ELEMENTS, PathUtils.DKII_DATA_FOLDER + File.separator + PathUtils.DKII_EDITOR_FOLDER + File.separator + "EffectElements.kwd");
             if (!gameLevel.getPaths().contains(file)) {
                 gameLevel.getPaths().add(file);
             }
