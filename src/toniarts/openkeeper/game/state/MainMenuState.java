@@ -21,13 +21,13 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
-import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyNames;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.scene.Node;
@@ -58,10 +58,12 @@ import java.awt.DisplayMode;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -74,7 +76,6 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.cinematics.Cinematic;
-import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
@@ -90,6 +91,7 @@ import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.MAP_THUMBNAILS_FOLDER;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.GameLevel.LevFlag;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.PathUtils;
@@ -125,9 +127,11 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
     public static HiScores hiscores = HiScores.load();
     private static final HashMap<String, String[]> cutscenes = new HashMap<>(3);
-    private MapSelector mapSelector;
+    private List<KwdFile> skirmishMaps;
+    private List<KwdFile> multiplayerMaps;
+    private KwdFile selectedMap;
     private final List<Keeper> skirmishPlayers = new ArrayList<>(4);
-
+    private boolean skirmishMapSelect = false;
     private NetworkServer server = null;
     private NetworkClient client = null;
 
@@ -180,8 +184,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             loadingScreen.setProgress(1.0f);
         }
 
-        // Init the skirmish and multiplayer maps selector
-        mapSelector = new MapSelector();
+        // Init the skirmish maps
+        initMapSelection();
     }
 
     @Override
@@ -211,7 +215,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      * Load the initial main menu camera position
      */
     private void loadCameraStartLocation() {
-        Player player = kwdFile.getPlayer(Keeper.KEEPER1_ID);
+        Player player = kwdFile.getPlayer((short) 3); // Keeper 1
         startLocation = new Vector3f(MapLoader.getCameraPositionOnMapPoint(player.getStartingCameraX(), player.getStartingCameraY()));
 
         // Set the actual camera location
@@ -332,8 +336,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         bind(nifty, nifty.getCurrentScreen());
         switch (nifty.getCurrentScreen().getScreenId()) {
             case "singlePlayer":
-                mapSelector.reset();
-                initSkirmishPlayers();
+                selectedMap = null;
                 break;
 
             case "selectCampaignLevel":
@@ -376,7 +379,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                         subObjectiveImage.setHeight(img.getHeight());
 
                         // Play some tunes!!
-                        levelBriefing = new AudioNode(assetManager, ConversionUtils.getCanonicalAssetKey("Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2"), DataType.Stream);
+                        levelBriefing = new AudioNode(assetManager, "Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2", false);
                         levelBriefing.setLooping(false);
                         levelBriefing.setDirectional(false);
                         levelBriefing.setPositional(false);
@@ -401,32 +404,32 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 break;
             case "skirmish":
                 // Init the screen
-                mapSelector.setSkirmish(true);
-                populateSelectedMap(mapSelector.getMap());
+                skirmishMapSelect = true;
+                if (selectedMap == null) {
+                    selectRandomMap();
+                }
                 populateSkirmishPlayerTable();
                 break;
 
-            case "multiplayer":
-                mapSelector.reset();
-                break;
-
             case "multiplayerCreate":
-                mapSelector.setSkirmish(false);
-                populateSelectedMap(mapSelector.getMap());
-
+                skirmishMapSelect = false;
+                if (selectedMap == null) {
+                    selectRandomMap();
+                }
+                                
                 if (client != null) {
                     ListBox<TableRow> players = screen.findNiftyControl("playersTable", ListBox.class);
                     if (players != null) {
                         players.addItem(new TableRow(players.itemCount(), client.getPlayer()));
                     }
-
+                    
                     client.setChat(MainMenuState.this.screen.findNiftyControl("multiplayerChat", Chat.class));
-
+                    
                     Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
                     if (title != null) {
                         title.setText(client.getClient().getGameName());
                     }
-
+                    
                     if (client.getRole() == NetworkClient.Role.SLAVE) {
                         // TODO disable map change, add, kick players and other stuf
                         Element element = screen.findElementById("skirmishGameControl");
@@ -442,13 +445,18 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 break;
 
             case "multiplayerLocal":
-                mapSelector.reset();
+                selectedMap = null;
                 // multiplayerRefresh();
                 break;
 
             case "skirmishMapSelect": {
+
                 // Populate the maps
-                populateMapSelection();
+                if (skirmishMapSelect) {
+                    populateMapSelection(skirmishMaps, selectedMap);
+                } else {
+                    populateMapSelection(multiplayerMaps, selectedMap);
+                }
             }
         }
     }
@@ -458,100 +466,100 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         TextField player = screen.findNiftyControl("playerName", TextField.class);
         TextField game = screen.findNiftyControl("gameName", TextField.class);
         TextField port = screen.findNiftyControl("gamePort", TextField.class);
-
+        
         try {
-            server = new NetworkServer(game.getRealText(), Integer.valueOf(port.getRealText()));
+            server = new NetworkServer(game.getRealText(), Integer.valueOf(port.getRealText()));            
             server.start();
             logger.info("Server created");
         } catch (IOException ex) {
             logger.log(java.util.logging.Level.SEVERE, null, ex);
             goToScreen("multiplayerLocal");
         }
-
-        client = new NetworkClient(player.getRealText());
-
+        
+        client = new NetworkClient(player.getRealText());                
+        
         try {
-
+            
             client.start(server.getHost(), server.getPort());
         } catch (IOException ex) {
             server.close();
             logger.log(java.util.logging.Level.SEVERE, null, ex);
             goToScreen("multiplayerLocal");
         }
-
+        
         goToScreen("multiplayerCreate");
     }
 
     public void multiplayerRefresh() {
         /*
-         TextField port = screen.findNiftyControl("gamePort", TextField.class);
-         int serverPort = Integer.valueOf(port.getRealText());
+        TextField port = screen.findNiftyControl("gamePort", TextField.class);
+        int serverPort = Integer.valueOf(port.getRealText());
 
-         ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
-         if (games == null) {
-         logger.warning("Element multiplayerGamesTable not found");
-         return;
-         }
-         games.clear();
+        ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
+        if (games == null) {
+            logger.warning("Element multiplayerGamesTable not found");
+            return;
+        }
+        games.clear();
 
-         LocalServerSearch searcher = new LocalServerSearch(serverPort) {
-         int i = 0;
+        LocalServerSearch searcher = new LocalServerSearch(serverPort) {
+            int i = 0;
 
-         @Override
-         public void onFound(NetworkServer server) {
-         TableRow row = new TableRow(i++, server.getName(), server.getHost(), server.getPort() + "");
-         games.addItem(row);
-         }
-         };
-         searcher.start();
-         */
+            @Override
+            public void onFound(NetworkServer server) {
+                TableRow row = new TableRow(i++, server.getName(), server.getHost(), server.getPort() + "");
+                games.addItem(row);
+            }
+        };
+        searcher.start();
+        */
     }
 
     public void multiplayerConnect() {
         /*
-         ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
-         if (games == null) {
-         logger.warning("Element multiplayerGamesTable not found");
-         return;
-         }
-         TableRow row = games.getFocusItem();
-         String host = row.getData().get(1);
-         String port = row.getData().get(2);
-         */
+        ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
+        if (games == null) {
+            logger.warning("Element multiplayerGamesTable not found");
+            return;
+        }
+        TableRow row = games.getFocusItem();
+        String host = row.getData().get(1);
+        String port = row.getData().get(2);
+        */
         TextField player = screen.findNiftyControl("playerName", TextField.class);
         TextField hostAdderss = screen.findNiftyControl("hostAddress", TextField.class);
-        if (player == null || player.getRealText().isEmpty()
+        if (player == null || player.getRealText().isEmpty() 
                 || hostAdderss == null || hostAdderss.getRealText().isEmpty()) {
             return;
         }
-
+        
         String[] address = hostAdderss.getRealText().split(":");
         String host = address[0];
         Integer port = (address.length == 2) ? Integer.valueOf(address[1]) : 7575;
-
+        
         client = new NetworkClient(player.getRealText(), NetworkClient.Role.SLAVE);
         try {
-
+            
             client.start(host, port);
             goToScreen("multiplayerCreate");
 
         } catch (IOException ex) {
             logger.log(java.util.logging.Level.SEVERE, null, ex);
             //goToScreen("multiplayerLocal");
-        }
+        }        
     }
 
-    @NiftyEventSubscriber(id = "multiplayerChat")
+    @NiftyEventSubscriber(id="multiplayerChat")
     public void onChatTextSend(final String id, final ChatTextSendEvent event) {
         if (client == null) {
             logger.warning("Network client not initialized");
             return;
-        }
-
+        }        
+        
         // event.getChatControl().addPlayer("ID " + client.getId(), null);
         // event.getChatControl().receivedChatLine(event.getText(), null);
         client.getClient().send(new MessageChat(client.getPlayer() + ": " + event.getText()));
-    }
+    } 
 
     @Override
     public void onEndScreen() {
@@ -568,8 +576,8 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                     client = null;
                 }
 
-                if (server != null) {
-                    server.close();
+                if (server != null) {                    
+                    server.close();                    
                     server = null;
                 }
                 break;
@@ -621,9 +629,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
     /**
      * Called by the GUI, start the selected level
-     *
-     * @param type where level selected. @TODO change campaign like others or
-     * otherwise
+     * @param type where level selected. @TODO change campaign like others or otherwise
      */
     public void startLevel(String type) {
         if ("campaign".equals(type.toLowerCase())) {
@@ -635,30 +641,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             GameState gameState = new GameState(level);
             stateManager.attach(gameState);
 
-        } else if ("skirmish".equals(type.toLowerCase())) {
-            if (mapSelector.getMap() == null) {
-                logger.warning("Skirmish map not selected");
-                return;
-            }
+        } else if (selectedMap != null) {
+
             // Disable us
             setEnabled(false);
 
-            GameState gameState = new GameState(mapSelector.getMap(), skirmishPlayers);
+            // Create the level state. FIXME maybe some bugs
+            GameState gameState = new GameState(selectedMap, skirmishPlayers);
             stateManager.attach(gameState);
-
-        } else if ("multiplayer".equals(type.toLowerCase())) {
-            if (mapSelector.getMap() == null) {
-                logger.warning("Multiplayer map not selected");
-                return;
-            }
-            // Disable us
-            setEnabled(false);
-            //TODO make true multiplayer start
-            GameState gameState = new GameState(mapSelector.getMap(), new ArrayList<>());
-            stateManager.attach(gameState);
-
-        } else {
-            logger.warning("Unknown type of Level " + type);
         }
     }
 
@@ -1071,46 +1061,96 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         }
     }
 
-    /**
-     * Init skirmish players
-     */
-    private void initSkirmishPlayers() {
-        skirmishPlayers.clear();
+    private void initMapSelection() {
 
+        // Get the skirmish maps
+        File f = new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER));
+        File[] files = f.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.toLowerCase().endsWith(".kwd");
+            }
+        });
+
+        // Read them
+        multiplayerMaps = new ArrayList<>(files.length);
+        skirmishMaps = new ArrayList<>(files.length);
+        for (File file : files) {
+            KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
+            if (kwd.getGameLevel().getLvlFlags().contains(LevFlag.IS_SKIRMISH_LEVEL)) {
+                skirmishMaps.add(kwd);
+            }
+            if (kwd.getGameLevel().getLvlFlags().contains(LevFlag.IS_MULTIPLAYER_LEVEL)) {
+                multiplayerMaps.add(kwd);
+            }
+        }
+
+        // Sort them
+        Comparator c = new Comparator<KwdFile>() {
+            @Override
+            public int compare(KwdFile o1, KwdFile o2) {
+                return o1.getGameLevel().getName().compareToIgnoreCase(o2.getGameLevel().getName());
+            }
+        };
+        Collections.sort(skirmishMaps, c);
+        Collections.sort(multiplayerMaps, c);
+
+        // Init skirmish players
         Keeper keeper = new Keeper(false, "Player", Keeper.KEEPER1_ID);
         skirmishPlayers.add(keeper);
         keeper = new Keeper(true, null, Keeper.KEEPER2_ID);
         skirmishPlayers.add(keeper);
     }
 
-    private void populateSelectedMap(KwdFile map) {
+    private void setSkirmishMapDataToGUI() {
+
         // The map title
         Label label = screen.findNiftyControl("mapNameTitle", Label.class);
-        label.setText(map == null ? "No maps found from " + AssetsConverter.MAPS_FOLDER : map.getGameLevel().getName());
+        label.setText(selectedMap == null ? "No maps found from " + AssetsConverter.MAPS_FOLDER : selectedMap.getGameLevel().getName());
         NiftyUtils.resetContraints(label);
 
-        if (map != null) {
+        if (selectedMap != null) {
 
             // Player count
             label = screen.findNiftyControl("playerCount", Label.class);
-            label.setText(": " + map.getGameLevel().getPlayerCount());
+            label.setText(": " + selectedMap.getGameLevel().getPlayerCount());
             NiftyUtils.resetContraints(label);
 
             // Map image
             Element mapImage = screen.findElementById("mapImage");
-            NiftyImage img = getMapThumbnail(map);
+            NiftyImage img = getMapThumbnail(selectedMap);
             mapImage.getRenderer(ImageRenderer.class).setImage(img);
             mapImage.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
             mapImage.setConstraintHeight(new SizeValue(img.getHeight() + "px"));
 
             // We can't have more players than the map supports
-            if (skirmishPlayers.size() > map.getGameLevel().getPlayerCount()) {
-                skirmishPlayers.subList(map.getGameLevel().getPlayerCount(), skirmishPlayers.size()).clear();
+            if (skirmishPlayers.size() > selectedMap.getGameLevel().getPlayerCount()) {
+                skirmishPlayers.subList(selectedMap.getGameLevel().getPlayerCount(), skirmishPlayers.size()).clear();
             }
         }
 
         // Re-populate
         screen.layoutLayers();
+    }
+
+    public void selectRandomMap() {
+        KwdFile map;
+        List<KwdFile> maps;
+
+        maps = skirmishMapSelect ?  skirmishMaps : multiplayerMaps;
+
+        if (maps.isEmpty()) {
+            return;
+        } else if (maps.size() == 1) {
+            map = maps.get(0);
+        } else {
+            do {
+                map = maps.get(FastMath.nextRandomInt(0, maps.size() - 1));
+            } while (map.equals(selectedMap));
+        }
+
+        selectedMap = map;
+        setSkirmishMapDataToGUI();  
     }
 
     private void populateSkirmishPlayerTable() {
@@ -1124,37 +1164,39 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     }
 
     /**
-     * part of screen controller
+     * Go to map selection
+     *
+     * @param mapFor skirmish/multiplayer
      */
-    public void selectRandomMap() {
-        mapSelector.random();
-        populateSelectedMap(mapSelector.getMap());
+    public void selectMap(String mapFor) {
+        if ("skirmish".equals(mapFor)) {
+            skirmishMapSelect = true;
+        } else {
+            skirmishMapSelect = false;
+        }
+        nifty.gotoScreen("skirmishMapSelect");
     }
 
-    /**
-     * part of screen controller
-     */
     public void cancelMapSelection() {
-        if (mapSelector.isSkirmish()) {
+        if (skirmishMapSelect) {
             nifty.gotoScreen("skirmish");
         } else {
             nifty.gotoScreen("multiplayerCreate");
         }
+        skirmishMapSelect = false;
     }
 
-    /**
-     * part of screen controller
-     */
     public void mapSelected() {
         ListBox<TableRow> listBox = screen.findNiftyControl("mapsTable", ListBox.class);
         int selectedMapIndex = listBox.getSelectedIndices().get(0);
-
-        mapSelector.selectMap(selectedMapIndex);
-        if (mapSelector.isSkirmish()) {
+        if (skirmishMapSelect) {
+            selectedMap = skirmishMaps.get(selectedMapIndex);
             nifty.gotoScreen("skirmish");
         } else {
+            selectedMap = multiplayerMaps.get(selectedMapIndex);
             nifty.gotoScreen("multiplayerCreate");
         }
+        skirmishMapSelect = false;
     }
 
     @NiftyEventSubscriber(id = "mapsTable")
@@ -1164,28 +1206,65 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             return;
         }
 
-        KwdFile map = mapSelector.getMaps().get(event.getSelectionIndices().get(0));
+        // Put the map info in
+        KwdFile selectedMap;
+        if (skirmishMapSelect) {
+            selectedMap = skirmishMaps.get(event.getSelectionIndices().get(0));
+        } else {
+            selectedMap = multiplayerMaps.get(event.getSelectionIndices().get(0));
+        }
+
         // The map title
-        populateSelectedMap(map);
+        Label label = screen.findNiftyControl("mapNameTitle", Label.class);
+        label.setText(selectedMap == null ? "No maps found from " + AssetsConverter.MAPS_FOLDER : selectedMap.getGameLevel().getName());
+        NiftyUtils.resetContraints(label);
+
+        if (selectedMap != null) {
+
+            // Player count
+            label = screen.findNiftyControl("playerCount", Label.class);
+            label.setText(": " + selectedMap.getGameLevel().getPlayerCount());
+            NiftyUtils.resetContraints(label);
+
+            // Map image
+            // TODO: static generator to MapLoader etc. place, I don't really want to use the BMPs
+            Element mapImage = screen.findElementById("mapImage");
+            NiftyImage img = getMapThumbnail(selectedMap);
+            mapImage.getRenderer(ImageRenderer.class).setImage(img);
+            mapImage.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
+            mapImage.setConstraintHeight(new SizeValue(img.getHeight() + "px"));
+
+            // Map size
+            label = screen.findNiftyControl("mapSize", Label.class);
+            label.setText(selectedMap.getMap().getWidth() + " x " + selectedMap.getMap().getHeight());
+            NiftyUtils.resetContraints(label);
+        }
+
+        // Re-populate
+        screen.layoutLayers();
     }
 
     /**
      * Populate the map selection with given maps
+     *
+     * @param kwds map selection
+     * @param selectedMap the selected map
      */
-    private void populateMapSelection() {
+    private void populateMapSelection(List<KwdFile> kwds, KwdFile selectedMap) {
         ListBox<TableRow> listBox = screen.findNiftyControl("mapsTable", ListBox.class);
         int i = 0;
+        int selected = 0;
         listBox.clear();
-        for (KwdFile kwd : mapSelector.getMaps()) {
+        for (KwdFile kwd : kwds) {
+            if (kwd.equals(selectedMap)) {
+                selected = i;
+            }
             listBox.addItem(new TableRow(i, kwd.getGameLevel().getName(),
                     String.valueOf(kwd.getGameLevel().getPlayerCount()),
-                    String.format("%s x %s", kwd.getMap().getWidth(), kwd.getMap().getHeight())));
-
-            if (kwd.equals(mapSelector.getMap())) {
-                listBox.selectItemByIndex(i);
-            }
+                    kwd.getMap().getWidth() + " x " + kwd.getMap().getHeight()));
             i++;
         }
+        listBox.selectItemByIndex(selected);
     }
 
     private NiftyImage getMapThumbnail(KwdFile map) {
