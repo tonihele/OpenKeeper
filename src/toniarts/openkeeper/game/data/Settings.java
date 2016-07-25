@@ -155,7 +155,11 @@ public class Settings {
         RECORDER_QUALITY(Float.class, 0.8f, SettingCategory.MISCELLANEOUS),
         RECORDER_FPS(Integer.class, 60, SettingCategory.MISCELLANEOUS),
         // Cursor
-        USE_CURSORS(Boolean.class, true, SettingCategory.MISCELLANEOUS);
+        USE_CURSORS(Boolean.class, true, SettingCategory.MISCELLANEOUS),
+        // Multiplayer settings
+        PLAYER_NAME(String.class, System.getProperty("user.name"), SettingCategory.MISCELLANEOUS),
+        GAME_NAME(String.class, "My OpenKeeper game", SettingCategory.MISCELLANEOUS),
+        LAST_CONNECTION(String.class, "127.0.0.1", SettingCategory.MISCELLANEOUS);
 
         private Setting(Class clazz, Integer specialKey, Object defValue, SettingCategory category, Integer resourceKey) {
             this.clazz = clazz;
