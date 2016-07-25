@@ -611,9 +611,9 @@
                     <control id="playersTable" name="table" vertical="optional" displayItems="4" selection="Single"
                              colCount="5"
                              col0="${menu.1688};34;java.lang.String;#32050c30"
-                             col1=";33;java.lang.String;#32050c30"
-                             col2=";11;java.lang.String;#00752430"
-                             col3=";11;java.lang.String;#00779e30"
+                             col1="${menu.263};33;java.lang.String;#32050c30"
+                             col2="${menu.195};11;java.lang.String;#00752430"
+                             col3="${menu.1499};11;java.lang.String;#00779e30"
                              col4=";11;java.lang.String;#00752430"
                     />
                 </panel>
