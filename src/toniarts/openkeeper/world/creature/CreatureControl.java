@@ -84,7 +84,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private int health = 1;
     private int experience = 0;
     private short ownerId;
-    private final int maxLevel;
+    private static final int MAX_CREATURE_LEVEL = 10;
     //
 
     protected final StateMachine<CreatureControl, CreatureState> stateMachine;
@@ -124,7 +124,6 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         this.worldState = worldState;
 
         // Attributes
-        maxLevel = (int) worldState.getLevelVariable(Variable.MiscVariable.MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL);
         name = Utils.generateCreatureName();
         bloodType = Utils.generateBloodType();
         health = creature.getHp();
@@ -444,7 +443,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             lastAttributeUpdateTime -= 1;
 
             // Experience gaining, I don't know how accurate this should be, like clock the time in work animation etc.
-            if (level < maxLevel) {
+            if (level < MAX_CREATURE_LEVEL) {
                 if (playingAnimationType == AnimationType.WORK && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER) || creature.getFlags().contains(Creature.CreatureFlag.TRAIN_WHEN_IDLE)) {
                     if (worldState.getLevelData().getImp().equals(creature)) {
                         experience += worldState.getLevelVariable(Variable.MiscVariable.MiscType.IMP_EXPERIENCE_GAIN_PER_SECOND);
