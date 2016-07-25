@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.vecmath.Vector3f;
-
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource.Animation;
 import toniarts.openkeeper.tools.convert.map.ArtResource.Image;
@@ -107,8 +106,8 @@ public final class KwdFile {
     // Variables
     private Set<Availability> availabilities;
     private Set<CreaturePool> creaturePools;
-    private java.util.Map<StatType, CreatureStats> creatureStatistics;
-    private java.util.Map<StatType, CreatureFirstPerson> creatureFirstPersonStatistics;
+    private java.util.Map<Integer, java.util.Map<StatType, CreatureStats>> creatureStatistics;
+    private java.util.Map<Integer, java.util.Map<StatType, CreatureFirstPerson>> creatureFirstPersonStatistics;
     private java.util.Map<MiscVariable.MiscType, MiscVariable> variables;
     private Set<Sacrifice> sacrifices;
     private Set<Variable.Unknown> unknownVariables;
@@ -2767,7 +2766,12 @@ public final class KwdFile {
                     creatureStats.setLevel(ConversionUtils.readInteger(file));
 
                     // Add
-                    creatureStatistics.put(creatureStats.getStatId(), creatureStats);
+                    java.util.Map<StatType, CreatureStats> stats = creatureStatistics.get(creatureStats.getLevel());
+                    if (stats == null) {
+                        stats = new HashMap<>(CreatureStats.StatType.values().length);
+                        creatureStatistics.put(creatureStats.getLevel(), stats);
+                    }
+                    stats.put(creatureStats.getStatId(), creatureStats);
                     break;
 
                 case Variable.CREATURE_FIRST_PERSON_ID:
@@ -2778,7 +2782,12 @@ public final class KwdFile {
                     creatureFirstPerson.setLevel(ConversionUtils.readInteger(file));
 
                     // Add
-                    creatureFirstPersonStatistics.put(creatureFirstPerson.getStatId(), creatureFirstPerson);
+                    java.util.Map<StatType, CreatureFirstPerson> firstPersonstats = creatureFirstPersonStatistics.get(creatureFirstPerson.getLevel());
+                    if (firstPersonstats == null) {
+                        firstPersonstats = new HashMap<>(CreatureStats.StatType.values().length);
+                        creatureFirstPersonStatistics.put(creatureFirstPerson.getLevel(), firstPersonstats);
+                    }
+                    firstPersonstats.put(creatureFirstPerson.getStatId(), creatureFirstPerson);
                     break;
 
                 case Variable.UNKNOWN_17: // FIXME unknown value
@@ -3072,6 +3081,17 @@ public final class KwdFile {
 
     public Room getHatchery() {
         return getRoomById(ROOM_HATCHERY_ID);
+    }
+
+    /**
+     * Get the creature stats by level. There might not be a record for every
+     * level. Then should just default to 100% stat.
+     *
+     * @param level the creature level
+     * @return the creature stats on given level
+     */
+    public java.util.Map<CreatureStats.StatType, CreatureStats> getCreatureStats(int level) {
+        return creatureStatistics.get(level);
     }
 
     /**
