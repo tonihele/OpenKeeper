@@ -20,19 +20,26 @@ import com.jme3.network.AbstractMessage;
 import com.jme3.network.serializing.Serializable;
 
 /**
- * Message that is used to tell the client about the new server info
- * TODO need to create full class
+ * Message that is used to tell the client about the new server info TODO need
+ * to create full class
+ *
  * @author ArchDemon
  */
 @Serializable
 public class MessageServerInfo extends AbstractMessage {
+
     private String name;
     private String map;
-    
+
     public MessageServerInfo() {
     }
-    
-    public MessageServerInfo( String name ) {
+
+    public MessageServerInfo(String name) {
         this.name = name;
     }
+
+    public String getName() {
+        return name;
+    }
+
 }
