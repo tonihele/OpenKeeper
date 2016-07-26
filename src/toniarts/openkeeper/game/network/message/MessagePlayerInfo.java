@@ -21,36 +21,42 @@ import com.jme3.network.serializing.Serializable;
 import com.simsilica.es.EntityId;
 
 /**
- *  Message that is used to tell the server about the new player info
+ * Message that is used to tell the server about the new player info
  *
- *  @author ArchDemon
+ * @author ArchDemon
  */
 @Serializable
 public class MessagePlayerInfo extends AbstractMessage {
 
     private String name;
+    private int memory;
     private EntityId entityId;
 
     public MessagePlayerInfo() {
     }
-    
-    public MessagePlayerInfo( String name ) {
+
+    public MessagePlayerInfo(String name, int memory) {
         this.name = name;
+        this.memory = memory;
     }
-    
-    public MessagePlayerInfo( EntityId id ) {
+
+    public MessagePlayerInfo(EntityId id) {
         this.entityId = id;
     }
-    
+
     public String getName() {
         return name;
     }
-    
+
     public EntityId getEntityId() {
         return entityId;
     }
- 
-    @Override   
+
+    public int getMemory() {
+        return memory;
+    }
+
+    @Override
     public String toString() {
         return "PlayerInfoMessage[name=" + name + ", entityId=" + entityId + "]";
     }
