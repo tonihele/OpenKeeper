@@ -94,12 +94,14 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
      * Single use game states
      *
      * @param level the level to load
-     * @param players player particicipating in this game
+     * @param players player participating in this game, can be {@code null}
      */
     public GameState(KwdFile level, List<Keeper> players) {
         this.kwdFile = level;
-        for (Keeper keeper : players) {
-            this.players.put(keeper.getId(), keeper);
+        if (players != null) {
+            for (Keeper keeper : players) {
+                this.players.put(keeper.getId(), keeper);
+            }
         }
     }
 
@@ -354,10 +356,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
             return gameLogicThread.getGameTime();
         }
         return 0;
-    }
-
-    public String getLevel() {
-        return level;
     }
 
     public Float getTimeLimit() {
