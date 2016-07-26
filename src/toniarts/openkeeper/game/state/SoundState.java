@@ -26,6 +26,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 
+/**
+ * This state plays different sounds
+ *
+ * @author ArchDemon
+ */
 public class SoundState extends AbstractPauseAwareState {
 
     private Main app;
