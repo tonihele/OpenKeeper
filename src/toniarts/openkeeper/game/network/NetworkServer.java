@@ -35,11 +35,11 @@ import toniarts.openkeeper.game.network.message.MessageTime;
  */
 public class NetworkServer {
 
-    public final static String GAME_NAME = "OpenKeeper";
     public final static int PROTOCOL_VERSION = 1;
+    public final static String GAME_NAME = "OpenKeeper";
 
-    private String host;
-    private int port;
+    private final String host;
+    private final int port;
     private String name;
     private EntityDataHostService edHost;
 
@@ -66,8 +66,7 @@ public class NetworkServer {
 
     public void start() throws IOException {
         if (server == null) {
-            server = Network.createServer(port);
-            //server = Network.createServer(GAME_NAME, PROTOCOL_VERSION, port, port);
+            server = Network.createServer(GAME_NAME, PROTOCOL_VERSION, port, port);
         }
         server.addChannel(port + 1);
 
