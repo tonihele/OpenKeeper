@@ -105,7 +105,7 @@ public final class KwdFile {
     private java.util.Map<Integer, Trigger> triggers;
     // Variables
     private Set<Availability> availabilities;
-    private Set<CreaturePool> creaturePools;
+    private java.util.Map<Integer, java.util.Map<Integer, CreaturePool>> creaturePools;
     private java.util.Map<Integer, java.util.Map<StatType, CreatureStats>> creatureStatistics;
     private java.util.Map<Integer, java.util.Map<StatType, CreatureFirstPerson>> creatureFirstPersonStatistics;
     private java.util.Map<MiscVariable.MiscType, MiscVariable> variables;
@@ -2700,9 +2700,9 @@ public final class KwdFile {
         if (variables == null) {
             logger.info("Reading variables!");
             availabilities = new HashSet<>();
-            creaturePools = new HashSet<>();
-            creatureStatistics = new HashMap<>();
-            creatureFirstPersonStatistics = new HashMap<>();
+            creaturePools = new HashMap<>(4);
+            creatureStatistics = new HashMap<>(10);
+            creatureFirstPersonStatistics = new HashMap<>(10);
             variables = new HashMap<>();
             sacrifices = new HashSet<>();
             unknownVariables = new HashSet<>();
@@ -2721,7 +2721,12 @@ public final class KwdFile {
                     creaturePool.setPlayerId(ConversionUtils.readInteger(file));
 
                     // Add
-                    creaturePools.add(creaturePool);
+                    java.util.Map<Integer, CreaturePool> playerCreaturePool = creaturePools.get(creaturePool.getPlayerId());
+                    if (playerCreaturePool == null) {
+                        playerCreaturePool = new HashMap<>(12);
+                        creaturePools.put(creaturePool.getPlayerId(), playerCreaturePool);
+                    }
+                    playerCreaturePool.put(creaturePool.getCreatureId(), creaturePool);
                     break;
 
                 case Variable.AVAILABILITY:
@@ -2782,12 +2787,12 @@ public final class KwdFile {
                     creatureFirstPerson.setLevel(ConversionUtils.readInteger(file));
 
                     // Add
-                    java.util.Map<StatType, CreatureFirstPerson> firstPersonstats = creatureFirstPersonStatistics.get(creatureFirstPerson.getLevel());
-                    if (firstPersonstats == null) {
-                        firstPersonstats = new HashMap<>(CreatureStats.StatType.values().length);
-                        creatureFirstPersonStatistics.put(creatureFirstPerson.getLevel(), firstPersonstats);
+                    java.util.Map<StatType, CreatureFirstPerson> firstPersonStats = creatureFirstPersonStatistics.get(creatureFirstPerson.getLevel());
+                    if (firstPersonStats == null) {
+                        firstPersonStats = new HashMap<>(CreatureStats.StatType.values().length);
+                        creatureFirstPersonStatistics.put(creatureFirstPerson.getLevel(), firstPersonStats);
                     }
-                    firstPersonstats.put(creatureFirstPerson.getStatId(), creatureFirstPerson);
+                    firstPersonStats.put(creatureFirstPerson.getStatId(), creatureFirstPerson);
                     break;
 
                 case Variable.UNKNOWN_17: // FIXME unknown value
@@ -3065,6 +3070,16 @@ public final class KwdFile {
 
     public List<Availability> getAvailabilities() {
         return new ArrayList<>(availabilities);
+    }
+
+    /**
+     * Get player specific creature pool
+     *
+     * @param playerId the player id
+     * @return the creature pool
+     */
+    public java.util.Map<Integer, CreaturePool> getCreaturePool(short playerId) {
+        return creaturePools.get(Short.valueOf(playerId).intValue());
     }
 
     public Creature getImp() {
