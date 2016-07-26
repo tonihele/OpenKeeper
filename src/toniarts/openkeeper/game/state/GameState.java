@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -76,7 +77,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     private Float timeLimit = null;
     private TaskManager taskManager;
-    private final Map<Short, Keeper> players = new HashMap<>();
+    private final Map<Short, Keeper> players = new TreeMap<>();
     private PauseableScheduledThreadPoolExecutor exec;
     private static final float MOVEMENT_UPDATE_TPF = 0.02f;
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
