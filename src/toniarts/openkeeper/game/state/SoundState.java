@@ -24,17 +24,15 @@ import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import toniarts.openkeeper.Main;
 
 /**
- * This state play different sounds
+ * This state plays different sounds
  *
  * @author ArchDemon
  */
-
-
 public class SoundState extends AbstractPauseAwareState {
+
     private Main app;
     private AppStateManager stateManager;
     private AudioNode speech = null;
@@ -67,11 +65,7 @@ public class SoundState extends AbstractPauseAwareState {
     }
 
     private void playSpeech(int speechId) {
-        String levelName = stateManager.getState(GameState.class).getLevel().toLowerCase();
-        if (levelName.contains("mpd")) {
-            levelName = "mypetdungeon";
-        }
-        String file = String.format("Sounds/speech_%s/lvlspe%02d.mp2", levelName, speechId);
+        String file = String.format("Sounds/%s/lvlspe%02d.mp2", stateManager.getState(GameState.class).getLevelData().getGameLevel().getSpeechStr().toLowerCase(), speechId);
         speech = new AudioNode(app.getAssetManager(), file, false);
         if (background == null) {
             logger.log(Level.WARNING, "Audio file {0} not found", file);
@@ -153,7 +147,6 @@ public class SoundState extends AbstractPauseAwareState {
     @Override
     public void update(float tpf) {
         super.update(tpf);
-
 
         if (!speechQueue.isEmpty()) {
             if (speech == null || speech.getStatus() == AudioSource.Status.Stopped) {

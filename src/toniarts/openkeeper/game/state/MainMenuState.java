@@ -90,6 +90,7 @@ import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.MAP_THUMBNAILS_FOLDER;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.PathUtils;
@@ -344,16 +345,19 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 // Set the dynamic values
                 Label levelTitle = screen.findNiftyControl("levelTitle", Label.class);
                 levelTitle.setText(getLevelTitle());
+
+                // In the level data there are the text IDs for these, but they don't make sense
                 Label mainObjective = screen.findNiftyControl("mainObjective", Label.class);
-                mainObjective.setText(getLevelResourceBundle().getString("2"));
+                ResourceBundle briefingBundle = getLevelResourceBundle(selectedLevel);
+                mainObjective.setText(briefingBundle.getString("2"));
                 Element mainObjectiveImage = screen.findElementById("mainObjectiveImage");
                 NiftyImage img = nifty.createImage("Textures/Obj_Shots/" + selectedLevel.getFullName() + "-0.png", false);
                 mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
                 mainObjectiveImage.setWidth(img.getWidth());
                 mainObjectiveImage.setHeight(img.getHeight());
-                String subText1 = getLevelResourceBundle().getString("3");
-                String subText2 = getLevelResourceBundle().getString("4");
-                String subText3 = getLevelResourceBundle().getString("5");
+                String subText1 = briefingBundle.getString("3");
+                String subText2 = briefingBundle.getString("4");
+                String subText3 = briefingBundle.getString("5");
                 Element subObjectivePanel = screen.findElementById("subObjectivePanel");
 
                 subObjectivePanel.hide();
@@ -656,8 +660,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
             setEnabled(false);
 
             // Create the level state
-            String level = String.format("%s%s%s", selectedLevel.getType(), selectedLevel.getLevel(), selectedLevel.getVariation());
-            GameState gameState = new GameState(level);
+            GameState gameState = new GameState(selectedLevel.getKwdFile(), null);
             stateManager.attach(gameState);
 
         } else if ("skirmish".equals(type.toLowerCase())) {
@@ -845,7 +848,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
      */
     public String getLevelTitle() {
         if (selectedLevel != null) {
-            ResourceBundle dict = getLevelResourceBundle();
+            ResourceBundle dict = getLevelResourceBundle(selectedLevel);
             StringBuilder sb = new StringBuilder();
             String name = dict.getString("0");
             if (!name.equals("")) {
@@ -860,24 +863,16 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     }
 
     /**
-     * Gets the selected level resource bundle
+     * Gets the selected level briefing resource bundle
      *
      * @return the resource bundle
      */
-    private ResourceBundle getLevelResourceBundle() {
-        String briefingName;
-        switch (selectedLevel.getType()) {
-            case MPD:
-                briefingName = selectedLevel.getFullName();
-                break;
-            case Secret:
-                briefingName = "S" + selectedLevel.getLevel();
-                break;
-            default:
-                briefingName = selectedLevel.getLevel() + selectedLevel.getVariation().toUpperCase();
-                break;
+    private static ResourceBundle getLevelResourceBundle(Level selectedLevel) {
+        GameLevel level = selectedLevel.getKwdFile().getGameLevel();
+        if (level.getTextTableId().getLevelBriefingDictFile() != null) {
+            return Main.getResourceBundle("Interface/Texts/".concat(level.getTextTableId().getLevelBriefingDictFile()));
         }
-        return Main.getResourceBundle("Interface/Texts/LEVEL" + briefingName + "_BRIEFING");
+        return null;
     }
 
     /**

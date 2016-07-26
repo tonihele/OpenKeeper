@@ -43,7 +43,7 @@ public class Keeper {
     private AIType aiType = AIType.MASTER_KEEPER;
     private String name;
     private boolean ready = false;
-    private final Player player;
+    private Player player;
     private final short id;
     private int initialGold = 0;
     private final PlayerGoldControl goldControl = new PlayerGoldControl();
@@ -56,7 +56,6 @@ public class Keeper {
     public Keeper(boolean ai, String name, short id) {
         this.ai = ai;
         this.name = name;
-        player = null;
         this.id = id;
 
         // AI is always ready
@@ -68,13 +67,13 @@ public class Keeper {
         this.id = player.getPlayerId();
         initialGold = player.getStartingGold();
     }
-    
+
     public void initialize(final AppStateManager stateManager, final Application app) {
         int triggerId = player.getTriggerId();
         if (triggerId != 0) {
             triggerControl = new PlayerTriggerControl(stateManager, triggerId, id);
         }
-        
+
         manaControl = new PlayerManaControl(id, stateManager);
     }
 
@@ -109,23 +108,30 @@ public class Keeper {
     public PlayerRoomControl getRoomControl() {
         return roomControl;
     }
-    
+
     public PlayerTriggerControl getTriggerControl() {
         return triggerControl;
     }
-    
+
     public PlayerManaControl getManaControl() {
         return manaControl;
     }
-    
+
     public void update(float tpf) {
         if (triggerControl != null) {
             triggerControl.update(tpf);
         }
-        
+
         if (manaControl != null) {
             manaControl.update(tpf);
         }
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
+
+        // Set the gold
+        initialGold = player.getStartingGold();
     }
 
     @Override
