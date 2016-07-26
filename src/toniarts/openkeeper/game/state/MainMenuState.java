@@ -425,14 +425,14 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                     ListBox<TableRow> players = screen.findNiftyControl("playersTable", ListBox.class);
                     if (players != null) {
                         players.clear();
-                        players.addItem(new TableRow(players.itemCount(), client.getPlayer()));
+                        players.addItem(new TableRow(players.itemCount(), client.getPlayer(), "", "", Integer.toString(client.getSystemMemory())));
                     }
 
                     client.setChat(MainMenuState.this.screen.findNiftyControl("multiplayerChat", Chat.class));
 
                     Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
                     if (title != null) {
-                        title.setText(client.getClient().getGameName());
+                        title.setText(client.getGameName());
                     }
 
                     if (client.getRole() == NetworkClient.Role.SLAVE) {
