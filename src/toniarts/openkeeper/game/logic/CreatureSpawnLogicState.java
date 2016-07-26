@@ -129,7 +129,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
                 spawnCreature(kwdFile.getImp().getCreatureId(), player.getId(), (short) 1, app, thingLoader, ((ICreatureEntrance) room).getEntranceCoordinate(), false);
                 spawned = true;
             }
-        } else if (spawnTime >= entranceCoolDownTime * player.getCreatureControl().getTypeCount() * 0.5 && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
+        } else if (spawnTime >= Math.max(entranceCoolDownTime, entranceCoolDownTime * player.getCreatureControl().getTypeCount() * 0.5) && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
 
             // Evaluate what creature can we spawn
             Map<Integer, CreaturePool> pool = kwdFile.getCreaturePool(player.getId());
