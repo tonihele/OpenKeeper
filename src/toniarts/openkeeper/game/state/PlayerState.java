@@ -74,7 +74,6 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell;
 import toniarts.openkeeper.tools.convert.map.Door;
-import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -165,14 +164,13 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Get the game state
             final GameState gameState = stateManager.getState(GameState.class);
 
-            // Load the level dictionary on campaign maps
-            if (!gameState.getLevelData().getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)) {
-                String levelResource = "Interface/Texts/" + gameState.getLevel().toUpperCase();
-                // for custom levels
+            // Load the level dictionary
+            if (gameState.getLevelData().getGameLevel().getTextTableId().getLevelDictFile() != null) {
+                String levelResource = "Interface/Texts/".concat(gameState.getLevelData().getGameLevel().getTextTableId().getLevelDictFile());
                 try {
                     this.app.getNifty().getNifty().addResourceBundle("level", Main.getResourceBundle(levelResource));
                 } catch (Exception ex) {
-                    logger.warning(ex.toString());
+                    logger.log(Level.WARNING, "Failed to load the level dictionary!", ex);
                 }
             }
 
