@@ -16,8 +16,6 @@
  */
 package toniarts.openkeeper.game.network;
 
-import toniarts.openkeeper.game.network.message.MessageChat;
-import toniarts.openkeeper.game.network.message.MessageTime;
 import com.jme3.network.Client;
 import com.jme3.network.ClientStateListener;
 import com.jme3.network.Network;
@@ -29,8 +27,11 @@ import de.lessvoid.nifty.controls.Chat;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.network.message.MessageChat;
 import toniarts.openkeeper.game.network.message.MessagePlayerInfo;
 import toniarts.openkeeper.game.network.message.MessageServerInfo;
+import toniarts.openkeeper.game.network.message.MessageTime;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  *
@@ -39,6 +40,7 @@ import toniarts.openkeeper.game.network.message.MessageServerInfo;
 public class NetworkClient {
 
     public enum Role {
+
         MASTER,
         SLAVE
     }
@@ -46,6 +48,8 @@ public class NetworkClient {
     private Client client;
     private final String player;
     private final Role role;
+    private String gameName;
+    private int systemMemory = Utils.getSystemMemory();
 
     private RemoteEntityData ed;
     private EntityId entity;
@@ -99,12 +103,7 @@ public class NetworkClient {
 
     public void start(String ip, int port) throws IOException {
         if (client == null) {
-            client = Network.connectToServer(ip, port);
-            /*
-            this.client = Network.connectToServer(NetworkServer.GAME_NAME,
-                                                  NetworkServer.PROTOCOL_VERSION,
-                                                  host, port, port);
-            */
+            client = Network.connectToServer(NetworkServer.GAME_NAME, NetworkServer.PROTOCOL_VERSION, ip, port);
         }
         this.ed = new RemoteEntityData(client, 0);
 
@@ -115,7 +114,7 @@ public class NetworkClient {
         logger.info("Network: Player starting");
         client.start();
 
-        client.send(new MessagePlayerInfo(player).setReliable(true));
+        client.send(new MessagePlayerInfo(player, systemMemory).setReliable(true));
     }
 
     public void close() {
@@ -153,7 +152,7 @@ public class NetworkClient {
         this.chat = chat;
     }
 
-    protected void onMessageChat(MessageChat message){
+    protected void onMessageChat(MessageChat message) {
         if (chat != null) {
             // FIXME bug with num lines. If more than max => crush
             try {
@@ -176,7 +175,7 @@ public class NetworkClient {
         long now = System.nanoTime();
         long predictedOffset = now - time;
         //System.out.println( "predicted offset:" + predictedOffset );
-        if( Math.abs(predictedOffset - serverTimeOffset) > 15000000 ) {
+        if (Math.abs(predictedOffset - serverTimeOffset) > 15000000) {
             //System.out.println( "Adjusting time offset." );
             // If it's more than 15 ms then we will adjust
             serverTimeOffset = predictedOffset;
@@ -190,6 +189,7 @@ public class NetworkClient {
 
     protected void onMessageServerInfo(MessageServerInfo msg) {
         logger.log(Level.INFO, "Network: server info {0}", msg);
+        gameName = msg.getName();
     }
 
     protected void onConnected() {
@@ -199,4 +199,13 @@ public class NetworkClient {
     protected void onDisconnected(ClientStateListener.DisconnectInfo di) {
         logger.log(Level.INFO, "Network: player disconnected {0}", di);
     }
+
+    public String getGameName() {
+        return gameName;
+    }
+
+    public int getSystemMemory() {
+        return systemMemory;
+    }
+
 }

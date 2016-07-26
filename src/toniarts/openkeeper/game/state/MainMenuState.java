@@ -80,9 +80,9 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
-import toniarts.openkeeper.game.network.message.MessageChat;
 import toniarts.openkeeper.game.network.NetworkClient;
 import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.message.MessageChat;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
@@ -410,6 +410,13 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 mapSelector.reset();
                 break;
 
+            case "multiplayerWatch":
+                TextField player = screen.findNiftyControl("playerName", TextField.class);
+                TextField hostAddress = screen.findNiftyControl("hostAddress", TextField.class);
+                player.setText((String) app.getUserSettings().getSetting(Setting.PLAYER_NAME));
+                hostAddress.setText((String) app.getUserSettings().getSetting(Setting.LAST_CONNECTION));
+                break;
+
             case "multiplayerCreate":
                 mapSelector.setSkirmish(false);
                 populateSelectedMap(mapSelector.getMap());
@@ -417,14 +424,15 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                 if (client != null) {
                     ListBox<TableRow> players = screen.findNiftyControl("playersTable", ListBox.class);
                     if (players != null) {
-                        players.addItem(new TableRow(players.itemCount(), client.getPlayer()));
+                        players.clear();
+                        players.addItem(new TableRow(players.itemCount(), client.getPlayer(), "", "", Integer.toString(client.getSystemMemory())));
                     }
 
                     client.setChat(MainMenuState.this.screen.findNiftyControl("multiplayerChat", Chat.class));
 
                     Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
                     if (title != null) {
-                        title.setText(client.getClient().getGameName());
+                        title.setText(client.getGameName());
                     }
 
                     if (client.getRole() == NetworkClient.Role.SLAVE) {
@@ -443,6 +451,13 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
             case "multiplayerLocal":
                 mapSelector.reset();
+
+                // Set the game & user name
+                player = screen.findNiftyControl("playerName", TextField.class);
+                TextField game = screen.findNiftyControl("gameName", TextField.class);
+                player.setText((String) app.getUserSettings().getSetting(Setting.PLAYER_NAME));
+                game.setText((String) app.getUserSettings().getSetting(Setting.GAME_NAME));
+
                 // multiplayerRefresh();
                 break;
 
@@ -458,6 +473,11 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
         TextField player = screen.findNiftyControl("playerName", TextField.class);
         TextField game = screen.findNiftyControl("gameName", TextField.class);
         TextField port = screen.findNiftyControl("gamePort", TextField.class);
+
+        // Save player name & game name
+        app.getUserSettings().setSetting(Setting.PLAYER_NAME, player.getRealText());
+        app.getUserSettings().setSetting(Setting.GAME_NAME, game.getRealText());
+        app.getUserSettings().save();
 
         try {
             server = new NetworkServer(game.getRealText(), Integer.valueOf(port.getRealText()));
@@ -519,20 +539,25 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
          String port = row.getData().get(2);
          */
         TextField player = screen.findNiftyControl("playerName", TextField.class);
-        TextField hostAdderss = screen.findNiftyControl("hostAddress", TextField.class);
+        TextField hostAddress = screen.findNiftyControl("hostAddress", TextField.class);
         if (player == null || player.getRealText().isEmpty()
-                || hostAdderss == null || hostAdderss.getRealText().isEmpty()) {
+                || hostAddress == null || hostAddress.getRealText().isEmpty()) {
             return;
         }
 
-        String[] address = hostAdderss.getRealText().split(":");
+        String[] address = hostAddress.getRealText().split(":");
         String host = address[0];
         Integer port = (address.length == 2) ? Integer.valueOf(address[1]) : 7575;
 
         client = new NetworkClient(player.getRealText(), NetworkClient.Role.SLAVE);
         try {
-
             client.start(host, port);
+
+            // Save player name & last connection
+            app.getUserSettings().setSetting(Setting.PLAYER_NAME, player.getRealText());
+            app.getUserSettings().setSetting(Setting.LAST_CONNECTION, hostAddress.getRealText());
+            app.getUserSettings().save();
+
             goToScreen("multiplayerCreate");
 
         } catch (IOException ex) {

@@ -16,16 +16,20 @@
  */
 package toniarts.openkeeper.game.network;
 
-import toniarts.openkeeper.game.network.message.*;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.Message;
 import com.jme3.network.MessageListener;
+import toniarts.openkeeper.game.network.message.MessageChat;
+import toniarts.openkeeper.game.network.message.MessagePlayerInfo;
+import toniarts.openkeeper.game.network.message.MessageTime;
 
 /**
  * TODO need to process all messages
+ *
  * @author ArchDemon
  */
 public class ServerListener implements MessageListener<HostedConnection> {
+
     private final NetworkServer host;
 
     public ServerListener(NetworkServer host) {
@@ -49,7 +53,7 @@ public class ServerListener implements MessageListener<HostedConnection> {
             MessagePlayerInfo msg = (MessagePlayerInfo) message;
 
             // Send a message back to the player with their entity ID
-            source.send(new MessagePlayerInfo(msg.getName()).setReliable(true));
+            source.send(new MessagePlayerInfo(msg.getName(), msg.getMemory()).setReliable(true));
 
             // Send the current game time
             long time = host.getGameTime();

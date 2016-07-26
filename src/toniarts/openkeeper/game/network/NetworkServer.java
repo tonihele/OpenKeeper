@@ -16,24 +16,30 @@
  */
 package toniarts.openkeeper.game.network;
 
-import toniarts.openkeeper.game.network.message.*;
+import com.jme3.network.HostedConnection;
 import com.jme3.network.Network;
 import com.jme3.network.Server;
+import com.jme3.network.serializing.Serializer;
 import com.simsilica.es.server.EntityDataHostService;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import toniarts.openkeeper.game.network.message.MessageChat;
+import toniarts.openkeeper.game.network.message.MessagePlayerInfo;
+import toniarts.openkeeper.game.network.message.MessageServerInfo;
+import toniarts.openkeeper.game.network.message.MessageTime;
 
 /**
  *
  * @author ArchDemon
  */
 public class NetworkServer {
-    public final static String GAME_NAME = "OpenKeeper";
-    public final static int PROTOCOL_VERSION = 1;
 
-    private String host;
-    private int port;
+    public final static int PROTOCOL_VERSION = 1;
+    public final static String GAME_NAME = "OpenKeeper";
+
+    private final String host;
+    private final int port;
     private String name;
     private EntityDataHostService edHost;
 
@@ -60,8 +66,7 @@ public class NetworkServer {
 
     public void start() throws IOException {
         if (server == null) {
-            server = Network.createServer(port);
-            //server = Network.createServer(GAME_NAME, PROTOCOL_VERSION, port, port);
+            server = Network.createServer(GAME_NAME, PROTOCOL_VERSION, port, port);
         }
         server.addChannel(port + 1);
 
@@ -74,7 +79,17 @@ public class NetworkServer {
 
     public void close() {
         if (server != null && server.isRunning()) {
+
+            // Close the client connections gracefully
+            for (HostedConnection conn : server.getConnections()) {
+                conn.close("Server closing!");
+            }
+
             server.close();
+
+            // FIXME: Really, I'm sure this is not meant to be
+            // https://hub.jmonkeyengine.org/t/solved-for-now-serializer-locked-error-what-does-it-mean-version-jme-3-1/33671
+            Serializer.setReadOnly(false);
         }
     }
 
