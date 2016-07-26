@@ -35,6 +35,7 @@ import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.room.GenericRoom;
@@ -128,14 +129,15 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
                 spawnCreature(kwdFile.getImp().getCreatureId(), player.getId(), (short) 1, app, thingLoader, ((ICreatureEntrance) room).getEntranceCoordinate(), false);
                 spawned = true;
             }
-        } else if (spawnTime >= entranceCoolDownTime && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
+        } else if (spawnTime >= Math.max(entranceCoolDownTime, entranceCoolDownTime * player.getCreatureControl().getTypeCount() * 0.5) && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
 
             // Evaluate what creature can we spawn
+            Map<Integer, CreaturePool> pool = kwdFile.getCreaturePool(player.getId());
             List<Creature> possibleCreatures = new ArrayList<>(player.getCreatureControl().getTypesAvailable());
             Iterator<Creature> iter = possibleCreatures.iterator();
             while (iter.hasNext()) {
                 Creature creature = iter.next();
-                if (!isCreatureRequirementsSatisfied(creature, player)) {
+                if (!isCreatureAvailableFromPool(creature, player, pool) || !isCreatureRequirementsSatisfied(creature, player)) {
                     iter.remove();
                 }
             }
@@ -199,6 +201,15 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
             }
         }
         return true;
+    }
+
+    private boolean isCreatureAvailableFromPool(Creature creature, Keeper player, Map<Integer, CreaturePool> pool) {
+        CreaturePool creaturePool = pool.get(Short.valueOf(creature.getCreatureId()).intValue());
+        if (creaturePool != null) {
+            int creatures = player.getCreatureControl().getTypeCount(creature);
+            return creaturePool.getValue() > creatures;
+        }
+        return false;
     }
 
 }

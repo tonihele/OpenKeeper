@@ -74,7 +74,10 @@ public class Keeper {
             triggerControl = new PlayerTriggerControl(stateManager, triggerId, id);
         }
 
-        manaControl = new PlayerManaControl(id, stateManager);
+        // Don't create mana control for neutral nor good player
+        if (id != Player.GOOD_PLAYER_ID && id != Player.NEUTRAL_PLAYER_ID) {
+            manaControl = new PlayerManaControl(id, stateManager);
+        }
     }
 
     public boolean isReady() {
