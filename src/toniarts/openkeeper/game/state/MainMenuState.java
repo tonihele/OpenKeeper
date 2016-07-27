@@ -380,7 +380,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
                         subObjectiveImage.setHeight(img.getHeight());
 
                         // Play some tunes!!
-                        levelBriefing = new AudioNode(assetManager, ConversionUtils.getCanonicalAssetKey("Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2"), DataType.Stream);
+                        levelBriefing = new AudioNode(assetManager, ConversionUtils.getCanonicalAssetKey("Sounds/speech_mentor/lev" + String.format("%02d", selectedLevel.getLevel()) + "001.mp2"), DataType.Buffer);
                         levelBriefing.setLooping(false);
                         levelBriefing.setDirectional(false);
                         levelBriefing.setPositional(false);
@@ -1097,9 +1097,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private void initSkirmishPlayers() {
         skirmishPlayers.clear();
 
-        Keeper keeper = new Keeper(false, "Player", Keeper.KEEPER1_ID);
+        Keeper keeper = new Keeper(false, "Player", Keeper.KEEPER1_ID, app);
         skirmishPlayers.add(keeper);
-        keeper = new Keeper(true, null, Keeper.KEEPER2_ID);
+        keeper = new Keeper(true, null, Keeper.KEEPER2_ID, app);
         skirmishPlayers.add(keeper);
     }
 

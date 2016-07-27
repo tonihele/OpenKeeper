@@ -52,6 +52,9 @@ import toniarts.openkeeper.world.room.ICreatureEntrance;
  */
 public class TriggerControl extends Control {
 
+    private static final short LEVEL_SCORE_FLAG_ID = 128;
+    private static final short TIME_LIMIT_TIMER_ID = 16;
+
     protected TriggerGenericData trigger;
     protected TriggerGenericData root;
 
@@ -127,7 +130,14 @@ public class TriggerControl extends Control {
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case FLAG:
-                target = stateManager.getState(GameState.class).getFlag((Short) trigger.getUserData("targetId"));
+                short targetId = (Short) trigger.getUserData("targetId");
+                if (targetId == LEVEL_SCORE_FLAG_ID) {
+
+                    // A special value, level score
+                    target = stateManager.getState(GameState.class).getLevelScore();
+                } else {
+                    target = stateManager.getState(GameState.class).getFlag(targetId);
+                }
                 if ((Short) trigger.getUserData("flag") == 1) {
                     value = (Integer) trigger.getUserData("value");
                 } else {
@@ -184,7 +194,7 @@ public class TriggerControl extends Control {
                 short playerId = trigger.getUserData("playerId", short.class);
                 Keeper keeper = getPlayer(playerId);
                 KwdFile kwdFile = stateManager.getState(GameState.class).getLevelData();
-                short targetId = trigger.getUserData("available", short.class);
+                short targetId = trigger.getUserData("targetId", short.class);
 
                 switch (flag) {
                     case CREATURE:
@@ -196,9 +206,6 @@ public class TriggerControl extends Control {
                         break;
                     case ROOM:
                         keeper.getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
-
-                        // FIXME: A hack :(
-                        stateManager.getState(PlayerState.class).populateRoomTab();
                         break;
                     case TRAP:
                         break;
@@ -214,9 +221,9 @@ public class TriggerControl extends Control {
                     value = stateManager.getState(GameState.class).getFlag(value);
                 }
 
-                if (flagId == GameState.SCORE_ID) {
-                    PlayerState ps = stateManager.getState(PlayerState.class);
-                    ps.setScore(getTargetValue(ps.getScore(), value, flagType));
+                if (flagId == LEVEL_SCORE_FLAG_ID) {
+                    GameState gs = stateManager.getState(GameState.class);
+                    gs.setLevelScore(getTargetValue(gs.getLevelScore(), value, flagType));
                 } else {
                     int base = stateManager.getState(GameState.class).getFlag(flagId);
                     stateManager.getState(GameState.class).setFlag(flagId, getTargetValue(base, value, flagType));
@@ -225,7 +232,7 @@ public class TriggerControl extends Control {
 
             case INITIALIZE_TIMER:
                 short timerId = trigger.getUserData("timerId", short.class);
-                if (timerId == GameState.TIME_LIMIT_ID) {
+                if (timerId == TIME_LIMIT_TIMER_ID) {
                     value = trigger.getUserData("value", int.class);
                     stateManager.getState(GameState.class).setTimeLimit(value);
                 } else {

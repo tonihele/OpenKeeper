@@ -28,7 +28,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
@@ -190,28 +189,25 @@ public class ThingLoader {
         // Enqueue if app is set
         if (app != null) {
 
-            app.enqueue(new Callable() {
-                @Override
-                public Object call() throws Exception {
+            app.enqueue(() -> {
 
-                    // Spawn the creature
-                    attachCreature(creature, creatureControl);
+                // Spawn the creature
+                attachCreature(creature);
 
-                    return null;
-                }
+                return null;
             });
         } else {
-            attachCreature(creature, creatureControl);
+            attachCreature(creature);
         }
+
+        // Notify spawn
+        creatureControl.onSpawn(creatureControl);
 
         return creatureControl;
     }
 
-    private void attachCreature(Spatial creature, CreatureControl creatureControl) {
+    private void attachCreature(Spatial creature) {
         nodeCreatures.attachChild(creature);
-
-        // Notify spawn
-        creatureControl.onSpawn(creatureControl);
     }
 
     /**

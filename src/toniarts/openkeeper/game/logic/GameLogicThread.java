@@ -47,9 +47,8 @@ public class GameLogicThread implements Runnable {
         for (IGameLogicUpdateable updatable : updatables) {
             try {
                 updatable.processTick(tpf, app);
-            }catch (Exception e) {
-                logger.severe(e.toString());
-                e.printStackTrace();
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Error in game logic tick on " + updatable.getClass() + "!", e);
             }
         }
 

@@ -83,8 +83,6 @@ public final class KwdFile {
 
     // These are needed in various places, I don't know how to else regognize these
     private final static short ROOM_PORTAL_ID = 3;
-    private final static short ROOM_LAIR_ID = 2;
-    private final static short ROOM_HATCHERY_ID = 4;
 
     private GameLevel gameLevel;
     private Map map;
@@ -104,7 +102,7 @@ public final class KwdFile {
     private java.util.Map<Short, Shot> shots;
     private java.util.Map<Integer, Trigger> triggers;
     // Variables
-    private Set<Availability> availabilities;
+    private List<Availability> availabilities;
     private java.util.Map<Integer, java.util.Map<Integer, CreaturePool>> creaturePools;
     private java.util.Map<Integer, java.util.Map<StatType, CreatureStats>> creatureStatistics;
     private java.util.Map<Integer, java.util.Map<StatType, CreatureFirstPerson>> creatureFirstPersonStatistics;
@@ -2699,7 +2697,7 @@ public final class KwdFile {
         // Should be the GlobalVariables first, then the level's own
         if (variables == null) {
             logger.info("Reading variables!");
-            availabilities = new HashSet<>();
+            availabilities = new ArrayList<>();
             creaturePools = new HashMap<>(4);
             creatureStatistics = new HashMap<>(10);
             creatureFirstPersonStatistics = new HashMap<>(10);
@@ -3069,7 +3067,7 @@ public final class KwdFile {
     }
 
     public List<Availability> getAvailabilities() {
-        return new ArrayList<>(availabilities);
+        return availabilities;
     }
 
     /**
@@ -3088,14 +3086,6 @@ public final class KwdFile {
 
     public Room getPortal() {
         return getRoomById(ROOM_PORTAL_ID);
-    }
-
-    public Room getLair() {
-        return getRoomById(ROOM_LAIR_ID);
-    }
-
-    public Room getHatchery() {
-        return getRoomById(ROOM_HATCHERY_ID);
     }
 
     /**

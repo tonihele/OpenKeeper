@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.player;
 
+import com.jme3.app.Application;
 import de.lessvoid.nifty.controls.Label;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,12 +46,21 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
     private List<CreatureListener> creatureListeners;
     private Creature imp;
     private int creatureCount = 0;
+    private int impIdle = 0;
+    private int impFighting = 0;
+    private int impBusy = 0;
     private final Map<Creature, Integer> selectionIndices = new HashMap<>();
+
+    public PlayerCreatureControl(Application application) {
+        super(application);
+    }
 
     public void init(List<CreatureControl> creatures, Creature imp) {
         this.imp = imp;
-        for (CreatureControl creature : creatures) {
-            onSpawn(creature);
+        if (creatures != null) {
+            for (CreatureControl creature : creatures) {
+                onSpawn(creature);
+            }
         }
     }
 
@@ -71,9 +81,11 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
         } else {
             creatureCount++;
             if (creatureListeners != null) {
-                for (CreatureListener listener : creatureListeners) {
-                    listener.onSpawn(creature);
-                }
+                application.enqueue(() -> {
+                    for (CreatureListener listener : creatureListeners) {
+                        listener.onSpawn(creature);
+                    }
+                });
             }
         }
     }
@@ -84,9 +96,11 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
             updateWorkerListeners();
         } else {
             if (creatureListeners != null) {
-                for (CreatureListener listener : creatureListeners) {
-                    listener.onStateChange(creature, newState, oldState);
-                }
+                application.enqueue(() -> {
+                    for (CreatureListener listener : creatureListeners) {
+                        listener.onStateChange(creature, newState, oldState);
+                    }
+                });
             }
         }
     }
@@ -106,9 +120,11 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
         } else {
             creatureCount--;
             if (creatureListeners != null) {
-                for (CreatureListener listener : creatureListeners) {
-                    listener.onDie(creature);
-                }
+                application.enqueue(() -> {
+                    for (CreatureListener listener : creatureListeners) {
+                        listener.onDie(creature);
+                    }
+                });
             }
         }
     }
@@ -153,34 +169,39 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
         creatureListeners.add(listener);
     }
 
-    private void updateWorkerListener(WorkerListener workerListener) {
-        int idle = 0;
-        int fighting = 0;
-        int busy = 0;
-        Set<CreatureControl> imps = get(imp);
-        if (imps != null) {
-            for (CreatureControl creature : imps) {
-                if (isCreatureState(creature, CreatureUIState.IDLE)) {
-                    idle++;
-                } else if (isCreatureState(creature, CreatureUIState.FIGHTING)) {
-                    fighting++;
-                } else {
-                    busy++;
-                }
-            }
-        }
-        workerListener.amountLabel.setText(String.format("%s", imps != null ? imps.size() : 0));
-        workerListener.busyLabel.setText(String.format("%s", busy));
-        workerListener.fightingLabel.setText(String.format("%s", fighting));
-        workerListener.idleLabel.setText(String.format("%s", idle));
+    private void updateWorkerListener(final WorkerListener workerListener) {
+        workerListener.amountLabel.setText(String.format("%s", getImpCount()));
+        workerListener.busyLabel.setText(String.format("%s", impBusy));
+        workerListener.fightingLabel.setText(String.format("%s", impFighting));
+        workerListener.idleLabel.setText(String.format("%s", impIdle));
     }
 
     private void updateWorkerListeners() {
         if (workerListeners != null) {
-            for (WorkerListener workerListener : workerListeners) {
-                updateWorkerListener(workerListener);
 
+            // Calculate
+            impIdle = 0;
+            impFighting = 0;
+            impBusy = 0;
+            Set<CreatureControl> imps = get(imp);
+            if (imps != null) {
+                for (CreatureControl creature : imps) {
+                    if (isCreatureState(creature, CreatureUIState.IDLE)) {
+                        impIdle++;
+                    } else if (isCreatureState(creature, CreatureUIState.FIGHTING)) {
+                        impFighting++;
+                    } else {
+                        impBusy++;
+                    }
+                }
             }
+
+            // Update
+            application.enqueue(() -> {
+                for (WorkerListener workerListener : workerListeners) {
+                    updateWorkerListener(workerListener);
+                }
+            });
         }
     }
 

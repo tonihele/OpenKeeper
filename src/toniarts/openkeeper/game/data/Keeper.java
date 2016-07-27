@@ -47,25 +47,31 @@ public class Keeper {
     private final short id;
     private int initialGold = 0;
     private final PlayerGoldControl goldControl = new PlayerGoldControl();
-    private final PlayerCreatureControl creatureControl = new PlayerCreatureControl();
+    private final PlayerCreatureControl creatureControl;
     private final PlayerStatsControl statsControl = new PlayerStatsControl();
-    private final PlayerRoomControl roomControl = new PlayerRoomControl();
+    private final PlayerRoomControl roomControl;
     private PlayerTriggerControl triggerControl;
     private PlayerManaControl manaControl;
 
-    public Keeper(boolean ai, String name, short id) {
+    public Keeper(boolean ai, String name, short id, final Application app) {
         this.ai = ai;
         this.name = name;
         this.id = id;
 
         // AI is always ready
         ready = ai;
+
+        creatureControl = new PlayerCreatureControl(app);
+        roomControl = new PlayerRoomControl(app);
     }
 
-    public Keeper(Player player) {
+    public Keeper(Player player, final Application app) {
         this.player = player;
         this.id = player.getPlayerId();
         initialGold = player.getStartingGold();
+
+        creatureControl = new PlayerCreatureControl(app);
+        roomControl = new PlayerRoomControl(app);
     }
 
     public void initialize(final AppStateManager stateManager, final Application app) {

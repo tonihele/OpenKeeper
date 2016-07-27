@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.player;
 
+import com.jme3.app.Application;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -35,10 +36,35 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> 
 
     private int roomCount = 0;
     private boolean portalsOpen = true;
+    private List<IRoomAvailabilityListener> roomAvailabilityListeners;
+
+    public PlayerRoomControl(Application application) {
+        super(application);
+    }
 
     public void init(List<Map.Entry<RoomInstance, GenericRoom>> rooms) {
         for (Map.Entry<RoomInstance, GenericRoom> entry : rooms) {
             onBuild(entry.getValue());
+        }
+    }
+
+    @Override
+    public void setTypeAvailable(Room type, boolean available) {
+
+        // Skip non-buildables, I don't know what purpose they serve
+        if (!type.getFlags().contains(Room.RoomFlag.BUILDABLE)) {
+            return;
+        }
+
+        super.setTypeAvailable(type, available);
+
+        // Notify listeners
+        if (roomAvailabilityListeners != null) {
+            application.enqueue(() -> {
+                for (IRoomAvailabilityListener listener : roomAvailabilityListeners) {
+                    listener.onChange();
+                }
+            });
         }
     }
 
@@ -99,7 +125,7 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> 
      *
      * @return slab count
      */
-    int getRoomSlabsCount() {
+    public int getRoomSlabsCount() {
         int count = 0;
         if (!types.isEmpty()) {
             for (Room room : new ArrayList<>(types.keySet())) {
@@ -120,7 +146,7 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> 
      * @param room the room
      * @return slab count
      */
-    int getRoomSlabsCount(Room room) {
+    public int getRoomSlabsCount(Room room) {
         int count = 0;
         Set<GenericRoom> rooms = get(room);
         if (rooms != null && !rooms.isEmpty()) {
@@ -129,6 +155,27 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> 
             }
         }
         return count;
+    }
+
+    /**
+     * Listen to room availability changes
+     *
+     * @param listener the listener
+     */
+    public void addRoomAvailabilityListener(IRoomAvailabilityListener listener) {
+        if (roomAvailabilityListeners == null) {
+            roomAvailabilityListeners = new ArrayList<>();
+        }
+        roomAvailabilityListeners.add(listener);
+    }
+
+    /**
+     * A small interface for getting notified about room availability changes
+     */
+    public interface IRoomAvailabilityListener {
+
+        public void onChange();
+
     }
 
 }

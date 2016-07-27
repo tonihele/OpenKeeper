@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -59,8 +58,8 @@ import toniarts.openkeeper.world.WorldState;
  */
 public class GameState extends AbstractPauseAwareState implements IGameLogicUpdateable {
 
-    public static final int TIME_LIMIT_ID = 16;
-    public static final int SCORE_ID = 128;
+    public static final int LEVEL_TIMER_MAX_COUNT = 16;
+    private static final int LEVEL_FLAG_MAX_COUNT = 128;
 
     private Main app;
 
@@ -71,9 +70,10 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     private GameLogicThread gameLogicThread;
     private TriggerControl triggerControl = null;
-    private final Map<Short, Integer> flags = new HashMap<>(127);
+    private final Map<Short, Integer> flags = new HashMap<>(LEVEL_FLAG_MAX_COUNT);
     // TODO What timer class we should take ?
-    private final Map<Byte, GameTimer> timers = new HashMap<>(15);
+    private final Map<Byte, GameTimer> timers = new HashMap<>(LEVEL_TIMER_MAX_COUNT);
+    private int levelScore = 0;
 
     private Float timeLimit = null;
     private TaskManager taskManager;
@@ -155,11 +155,11 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     setProgress(0.80f);
 
                     // Trigger data
-                    for (short i = 0; i < SCORE_ID; i++) {
+                    for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
                         flags.put(i, 0);
                     }
 
-                    for (byte i = 0; i < TIME_LIMIT_ID; i++) {
+                    for (byte i = 0; i < LEVEL_TIMER_MAX_COUNT; i++) {
                         timers.put(i, new GameTimer());
                     }
 
@@ -195,42 +195,46 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 // Setup players
                 boolean addMissingPlayers = players.isEmpty(); // Add all if none is given (campaign..)
                 for (Entry<Short, Player> entry : kwdFile.getPlayers().entrySet()) {
+                    Keeper keeper = null;
                     if (players.containsKey(entry.getKey())) {
-                        players.get(entry.getKey()).setPlayer(entry.getValue());
+                        keeper = players.get(entry.getKey());
+                        keeper.setPlayer(entry.getValue());
                     } else if (addMissingPlayers || entry.getKey() < Keeper.KEEPER1_ID) {
-                        players.put(entry.getKey(), new Keeper(entry.getValue()));
+                        keeper = new Keeper(entry.getValue(), app);
+                        players.put(entry.getKey(), keeper);
                     }
-                }
 
-                // Seems that the campaign maps at least never have lair nor hatchery, but they should be available always
-                // TODO: Not very pretty
-                for (Entry<Short, Keeper> entry : players.entrySet()) {
-                    Keeper keeper = entry.getValue();
-
-                    keeper.initialize(stateManager, app);
-                    if (entry.getKey() >= Keeper.KEEPER1_ID) {
-                        keeper.getRoomControl().setTypeAvailable(kwdFile.getLair(), true);
-                        keeper.getRoomControl().setTypeAvailable(kwdFile.getHatchery(), true);
+                    // Init
+                    if (keeper != null) {
+                        keeper.initialize(stateManager, app);
                     }
                 }
 
                 // Set player availabilities
                 // TODO: the player customized game settings
                 for (Variable.Availability availability : kwdFile.getAvailabilities()) {
-                    Keeper player = getPlayer((short) availability.getPlayerId());
-                    if (player == null) {
-                        continue;
-                    }
+                    if (availability.getPlayerId() == 0) {
 
-                    switch (availability.getType()) {
-                        case CREATURE: {
-                            player.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
-                            break;
+                        // All players
+                        for (Keeper player : getPlayers()) {
+                            setAvailability(player, availability);
                         }
-                        case ROOM: {
-                            player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
-                            break;
-                        }
+                    } else {
+                        Keeper player = getPlayer((short) availability.getPlayerId());
+                        setAvailability(player, availability);
+                    }
+                }
+            }
+
+            private void setAvailability(Keeper player, Variable.Availability availability) {
+                switch (availability.getType()) {
+                    case CREATURE: {
+                        player.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+                        break;
+                    }
+                    case ROOM: {
+                        player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+                        break;
                     }
                 }
             }
@@ -252,15 +256,12 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
                 // FIXME: this is not correct
                 // Enqueue the thread starting to next frame so that the states are initialized
-                app.enqueue(new Callable() {
-                    @Override
-                    public Object call() throws Exception {
+                app.enqueue(() -> {
 
-                        // Enable game logic thread
-                        exec.resume();
+                    // Enable game logic thread
+                    exec.resume();
 
-                        return null;
-                    }
+                    return null;
                 });
             }
         };
@@ -410,4 +411,18 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     public Application getApplication() {
         return app;
     }
+
+    /**
+     * Get level score, not really a player score... kinda
+     *
+     * @return the level score
+     */
+    public int getLevelScore() {
+        return levelScore;
+    }
+
+    public void setLevelScore(int levelScore) {
+        this.levelScore = levelScore;
+    }
+
 }

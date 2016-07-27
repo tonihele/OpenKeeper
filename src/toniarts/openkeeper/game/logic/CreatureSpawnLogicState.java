@@ -161,7 +161,6 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
         return room.isDungeonHeart();
     }
 
-    // FIXME: There is a bit of a problem, we need to add the creature immediately to our registry, only the visual side can be queued for later
     public static void spawnCreature(short creatureId, short playerId, short level, Application app, ThingLoader thingLoader, Point tile, boolean entrance) {
 
         // Spawn the creature
