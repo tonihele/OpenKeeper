@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.player;
 
+import com.jme3.app.Application;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -34,6 +35,11 @@ public abstract class AbstractPlayerControl<K extends Comparable<K>, V> {
 
     private final List<K> typesAvailable = new ArrayList<>();
     protected final Map<K, Set<V>> types = new LinkedHashMap<>();
+    protected final Application application;
+
+    public AbstractPlayerControl(Application application) {
+        this.application = application;
+    }
 
     /**
      * Add a type to the availability pool of this player

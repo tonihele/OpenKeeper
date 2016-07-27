@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.player;
 
+import com.jme3.app.Application;
 import de.lessvoid.nifty.controls.Label;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,6 +48,10 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
     private int creatureCount = 0;
     private final Map<Creature, Integer> selectionIndices = new HashMap<>();
 
+    public PlayerCreatureControl(Application application) {
+        super(application);
+    }
+
     public void init(List<CreatureControl> creatures, Creature imp) {
         this.imp = imp;
         for (CreatureControl creature : creatures) {
@@ -71,9 +76,11 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
         } else {
             creatureCount++;
             if (creatureListeners != null) {
-                for (CreatureListener listener : creatureListeners) {
-                    listener.onSpawn(creature);
-                }
+                application.enqueue(() -> {
+                    for (CreatureListener listener : creatureListeners) {
+                        listener.onSpawn(creature);
+                    }
+                });
             }
         }
     }
@@ -84,9 +91,11 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
             updateWorkerListeners();
         } else {
             if (creatureListeners != null) {
-                for (CreatureListener listener : creatureListeners) {
-                    listener.onStateChange(creature, newState, oldState);
-                }
+                application.enqueue(() -> {
+                    for (CreatureListener listener : creatureListeners) {
+                        listener.onStateChange(creature, newState, oldState);
+                    }
+                });
             }
         }
     }
@@ -106,9 +115,11 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
         } else {
             creatureCount--;
             if (creatureListeners != null) {
-                for (CreatureListener listener : creatureListeners) {
-                    listener.onDie(creature);
-                }
+                application.enqueue(() -> {
+                    for (CreatureListener listener : creatureListeners) {
+                        listener.onDie(creature);
+                    }
+                });
             }
         }
     }
@@ -153,7 +164,7 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
         creatureListeners.add(listener);
     }
 
-    private void updateWorkerListener(WorkerListener workerListener) {
+    private void updateWorkerListener(final WorkerListener workerListener) {
         int idle = 0;
         int fighting = 0;
         int busy = 0;
@@ -177,10 +188,11 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
 
     private void updateWorkerListeners() {
         if (workerListeners != null) {
-            for (WorkerListener workerListener : workerListeners) {
-                updateWorkerListener(workerListener);
-
-            }
+            application.enqueue(() -> {
+                for (WorkerListener workerListener : workerListeners) {
+                    updateWorkerListener(workerListener);
+                }
+            });
         }
     }
 

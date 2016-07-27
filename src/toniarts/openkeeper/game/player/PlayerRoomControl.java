@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.player;
 
+import com.jme3.app.Application;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -35,6 +36,10 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> 
 
     private int roomCount = 0;
     private boolean portalsOpen = true;
+
+    public PlayerRoomControl(Application application) {
+        super(application);
+    }
 
     public void init(List<Map.Entry<RoomInstance, GenericRoom>> rooms) {
         for (Map.Entry<RoomInstance, GenericRoom> entry : rooms) {

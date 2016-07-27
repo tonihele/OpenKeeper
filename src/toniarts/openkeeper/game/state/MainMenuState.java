@@ -1097,9 +1097,9 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
     private void initSkirmishPlayers() {
         skirmishPlayers.clear();
 
-        Keeper keeper = new Keeper(false, "Player", Keeper.KEEPER1_ID);
+        Keeper keeper = new Keeper(false, "Player", Keeper.KEEPER1_ID, app);
         skirmishPlayers.add(keeper);
-        keeper = new Keeper(true, null, Keeper.KEEPER2_ID);
+        keeper = new Keeper(true, null, Keeper.KEEPER2_ID, app);
         skirmishPlayers.add(keeper);
     }
 

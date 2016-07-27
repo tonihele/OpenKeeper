@@ -359,7 +359,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         PlayerManaControl manaControl = getPlayer().getManaControl();
         if (manaControl != null) {
             manaControl.addListener(hud.findNiftyControl("mana", Label.class), PlayerManaControl.Type.CURRENT);
-            manaControl.addListener(hud.findNiftyControl("manaGet", Label.class), PlayerManaControl.Type.GET);
+            manaControl.addListener(hud.findNiftyControl("manaGet", Label.class), PlayerManaControl.Type.GAIN);
             manaControl.addListener(hud.findNiftyControl("manaLose", Label.class), PlayerManaControl.Type.LOSE);
         }
 

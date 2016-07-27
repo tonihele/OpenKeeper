@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -198,7 +197,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     if (players.containsKey(entry.getKey())) {
                         players.get(entry.getKey()).setPlayer(entry.getValue());
                     } else if (addMissingPlayers || entry.getKey() < Keeper.KEEPER1_ID) {
-                        players.put(entry.getKey(), new Keeper(entry.getValue()));
+                        players.put(entry.getKey(), new Keeper(entry.getValue(), app));
                     }
                 }
 
@@ -252,15 +251,12 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
                 // FIXME: this is not correct
                 // Enqueue the thread starting to next frame so that the states are initialized
-                app.enqueue(new Callable() {
-                    @Override
-                    public Object call() throws Exception {
+                app.enqueue(() -> {
 
-                        // Enable game logic thread
-                        exec.resume();
+                    // Enable game logic thread
+                    exec.resume();
 
-                        return null;
-                    }
+                    return null;
                 });
             }
         };

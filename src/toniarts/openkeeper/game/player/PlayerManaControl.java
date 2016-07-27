@@ -20,36 +20,35 @@ import com.jme3.app.state.AppStateManager;
 import de.lessvoid.nifty.controls.Label;
 import java.util.HashMap;
 import java.util.Map;
-import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Controller of player mana
+ *
  * @author ArchDemon
  */
 public class PlayerManaControl extends Control {
 
     public enum Type {
 
-        CURRENT, GET, LOSE;
+        CURRENT, GAIN, LOSE;
     }
     private float tick = 0;
-    private short playerId;
-    private AppStateManager stateManager;
-    private Map<Type, Label> listeners = new HashMap();
+    private final short playerId;
+    private final AppStateManager stateManager;
+    private final Map<Type, Label> listeners = new HashMap<>();
     private int manaCurrent;
-    private int manaMax;
-    private int manaGet;  // mana get per second
-    private int manaGetBase;
-    private int manaGetFromTiles = 0;
+    private final int manaMax;
+    private int manaGain;  // mana get per second
+    private final int manaGainBase;
+    private int manaGainFromTiles = 0;
     private int manaLose;  // mana lose per second
-    private int manaLosePerImp = 7;  // I don`t find in Creature.java
+    private final static int MANA_LOSE_PER_IMP = 7;  // I don`t find in Creature.java
     private int manaLoseFromCreatures = 0;
 
     public PlayerManaControl(short playerId, AppStateManager stateManager) {
@@ -59,12 +58,12 @@ public class PlayerManaControl extends Control {
         GameState gs = this.stateManager.getState(GameState.class);
 
         manaMax = (int) gs.getLevelVariable(MiscType.MAXIMUM_MANA_THRESHOLD);
-        manaGetBase = (int) gs.getLevelVariable(MiscType.DUNGEON_HEART_MANA_GENERATION_INCREASE_PER_SECOND);
+        manaGainBase = (int) gs.getLevelVariable(MiscType.DUNGEON_HEART_MANA_GENERATION_INCREASE_PER_SECOND);
         // FIXME where mana lose per imp ???
         //manaLosePerImp = (int) gs.getLevelVariable(MiscType.GAME_TICKS);
     }
 
-        @Override
+    @Override
     protected void updateControl(float tpf) {
         tick += tpf;
         if (tick >= 1) {
@@ -90,21 +89,21 @@ public class PlayerManaControl extends Control {
             }
         }
 
-        manaGetFromTiles = result;
+        manaGainFromTiles = result;
     }
 
     private void updateManaFromCreatures() {
         GameState gs = stateManager.getState(GameState.class);
         int result = gs.getPlayer(playerId).getCreatureControl().getImpCount();
 
-        this.manaLoseFromCreatures = result * this.manaLosePerImp;
+        this.manaLoseFromCreatures = result * MANA_LOSE_PER_IMP;
     }
 
     private void update() {
-        manaGet = manaGetBase + manaGetFromTiles;
+        manaGain = manaGainBase + manaGainFromTiles;
         manaLose = manaLoseFromCreatures;
 
-        addMana(this.manaGet - this.manaLose);
+        addMana(this.manaGain - this.manaLose);
 
         updateListerners();
     }
@@ -119,7 +118,7 @@ public class PlayerManaControl extends Control {
     }
 
     public int getManaGain() {
-        return this.manaGet;
+        return this.manaGain;
     }
 
     public int getManaLose() {
@@ -127,22 +126,27 @@ public class PlayerManaControl extends Control {
     }
 
     private void updateListerners() {
-        for (Map.Entry<Type, Label> entry : listeners.entrySet()) {
-            String text = "";
-            Label label = entry.getValue();
-            switch(entry.getKey()) {
-                case CURRENT:
-                    text = String.format("%s", manaCurrent);
-                    break;
-                case GET:
-                    text = String.format("%s", manaGet);
-                    break;
-                case LOSE:
-                    text = String.format("- %s", manaLose);
-                    break;
+        stateManager.getApplication().enqueue(() -> {
+
+            for (Map.Entry<Type, Label> entry : listeners.entrySet()) {
+                String text = "";
+                Label label = entry.getValue();
+                switch (entry.getKey()) {
+                    case CURRENT:
+                        text = String.format("%s", manaCurrent);
+                        break;
+                    case GAIN:
+                        text = String.format("%s", manaGain);
+                        break;
+                    case LOSE:
+                        text = String.format("- %s", manaLose);
+                        break;
+                }
+                label.setText(text);
             }
-            label.setText(text);
-        }
+
+            return null;
+        });
     }
 
     public void addListener(Label label, Type type) {
