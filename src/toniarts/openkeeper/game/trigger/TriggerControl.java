@@ -127,7 +127,14 @@ public class TriggerControl extends Control {
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case FLAG:
-                target = stateManager.getState(GameState.class).getFlag((Short) trigger.getUserData("targetId"));
+                short targetId = (Short) trigger.getUserData("targetId");
+                if (targetId == GameState.SCORE_ID) {
+
+                    // A special value, level score (I'm not sure if we should keep it within the player, maybe in game state as it is titled "level score")
+                    target = stateManager.getState(PlayerState.class).getScore();
+                } else {
+                    target = stateManager.getState(GameState.class).getFlag(targetId);
+                }
                 if ((Short) trigger.getUserData("flag") == 1) {
                     value = (Integer) trigger.getUserData("value");
                 } else {
