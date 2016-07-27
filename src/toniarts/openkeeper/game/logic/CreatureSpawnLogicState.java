@@ -78,6 +78,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
     @Override
     public void processTick(float tpf, Application app) {
 
+        // FIXME: really should use the listeners, I think this just produces unnecessary garbage
         // Maintain the players entrance registry
         for (Entry<Keeper, Map<GenericRoom, Float>> keeperRoomTimes : entranceSpawnTimes.entrySet()) {
 
