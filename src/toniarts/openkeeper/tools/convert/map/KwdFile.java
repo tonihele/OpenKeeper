@@ -63,6 +63,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats;
 import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats.StatType;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.Sacrifice;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Reads a DK II map file, the KWD is the file name of the main map identifier,
@@ -79,6 +80,9 @@ import toniarts.openkeeper.tools.convert.map.Variable.Sacrifice;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class KwdFile {
+
+    // These are needed in various places, I don't know how to else regognize these
+    private final static short ROOM_PORTAL_ID = 3;
 
     private GameLevel gameLevel;
     private Map map;
@@ -98,10 +102,10 @@ public final class KwdFile {
     private java.util.Map<Short, Shot> shots;
     private java.util.Map<Integer, Trigger> triggers;
     // Variables
-    private Set<Availability> availabilities;
-    private Set<CreaturePool> creaturePools;
-    private java.util.Map<StatType, CreatureStats> creatureStatistics;
-    private java.util.Map<StatType, CreatureFirstPerson> creatureFirstPersonStatistics;
+    private List<Availability> availabilities;
+    private java.util.Map<Integer, java.util.Map<Integer, CreaturePool>> creaturePools;
+    private java.util.Map<Integer, java.util.Map<StatType, CreatureStats>> creatureStatistics;
+    private java.util.Map<Integer, java.util.Map<StatType, CreatureFirstPerson>> creatureFirstPersonStatistics;
     private java.util.Map<MiscVariable.MiscType, MiscVariable> variables;
     private Set<Sacrifice> sacrifices;
     private Set<Variable.Unknown> unknownVariables;
@@ -142,10 +146,7 @@ public final class KwdFile {
             //Fug
             throw new RuntimeException("Failed to read the file " + file + "!", e);
         }
-        if (!basePath.endsWith(File.separator)) {
-            basePath = basePath.concat(File.separator);
-        }
-        this.basePath = basePath;
+        this.basePath = PathUtils.fixFilePath(basePath);
 
         // See if we need to load the actual data
         if (load) {
@@ -1125,12 +1126,12 @@ public final class KwdFile {
 
         // Hmm, seems that normal maps don't refer the effects nor effect elements
         if (!customOverrides) {
-            FilePath file = new FilePath(MapDataTypeEnum.EFFECTS, "Data" + File.separator + "editor" + File.separator + "Effects.kwd");
+            FilePath file = new FilePath(MapDataTypeEnum.EFFECTS, PathUtils.DKII_DATA_FOLDER + File.separator + PathUtils.DKII_EDITOR_FOLDER + File.separator + "Effects.kwd");
             if (!gameLevel.getPaths().contains(file)) {
                 gameLevel.getPaths().add(file);
             }
 
-            file = new FilePath(MapDataTypeEnum.EFFECT_ELEMENTS, "Data" + File.separator + "editor" + File.separator + "EffectElements.kwd");
+            file = new FilePath(MapDataTypeEnum.EFFECT_ELEMENTS, PathUtils.DKII_DATA_FOLDER + File.separator + PathUtils.DKII_EDITOR_FOLDER + File.separator + "EffectElements.kwd");
             if (!gameLevel.getPaths().contains(file)) {
                 gameLevel.getPaths().add(file);
             }
@@ -2696,10 +2697,10 @@ public final class KwdFile {
         // Should be the GlobalVariables first, then the level's own
         if (variables == null) {
             logger.info("Reading variables!");
-            availabilities = new HashSet<>();
-            creaturePools = new HashSet<>();
-            creatureStatistics = new HashMap<>();
-            creatureFirstPersonStatistics = new HashMap<>();
+            availabilities = new ArrayList<>();
+            creaturePools = new HashMap<>(4);
+            creatureStatistics = new HashMap<>(10);
+            creatureFirstPersonStatistics = new HashMap<>(10);
             variables = new HashMap<>();
             sacrifices = new HashSet<>();
             unknownVariables = new HashSet<>();
@@ -2718,7 +2719,12 @@ public final class KwdFile {
                     creaturePool.setPlayerId(ConversionUtils.readInteger(file));
 
                     // Add
-                    creaturePools.add(creaturePool);
+                    java.util.Map<Integer, CreaturePool> playerCreaturePool = creaturePools.get(creaturePool.getPlayerId());
+                    if (playerCreaturePool == null) {
+                        playerCreaturePool = new HashMap<>(12);
+                        creaturePools.put(creaturePool.getPlayerId(), playerCreaturePool);
+                    }
+                    playerCreaturePool.put(creaturePool.getCreatureId(), creaturePool);
                     break;
 
                 case Variable.AVAILABILITY:
@@ -2763,7 +2769,12 @@ public final class KwdFile {
                     creatureStats.setLevel(ConversionUtils.readInteger(file));
 
                     // Add
-                    creatureStatistics.put(creatureStats.getStatId(), creatureStats);
+                    java.util.Map<StatType, CreatureStats> stats = creatureStatistics.get(creatureStats.getLevel());
+                    if (stats == null) {
+                        stats = new HashMap<>(CreatureStats.StatType.values().length);
+                        creatureStatistics.put(creatureStats.getLevel(), stats);
+                    }
+                    stats.put(creatureStats.getStatId(), creatureStats);
                     break;
 
                 case Variable.CREATURE_FIRST_PERSON_ID:
@@ -2774,7 +2785,12 @@ public final class KwdFile {
                     creatureFirstPerson.setLevel(ConversionUtils.readInteger(file));
 
                     // Add
-                    creatureFirstPersonStatistics.put(creatureFirstPerson.getStatId(), creatureFirstPerson);
+                    java.util.Map<StatType, CreatureFirstPerson> firstPersonStats = creatureFirstPersonStatistics.get(creatureFirstPerson.getLevel());
+                    if (firstPersonStats == null) {
+                        firstPersonStats = new HashMap<>(CreatureStats.StatType.values().length);
+                        creatureFirstPersonStatistics.put(creatureFirstPerson.getLevel(), firstPersonStats);
+                    }
+                    firstPersonStats.put(creatureFirstPerson.getStatId(), creatureFirstPerson);
                     break;
 
                 case Variable.UNKNOWN_17: // FIXME unknown value
@@ -3050,8 +3066,37 @@ public final class KwdFile {
         return variables;
     }
 
+    public List<Availability> getAvailabilities() {
+        return availabilities;
+    }
+
+    /**
+     * Get player specific creature pool
+     *
+     * @param playerId the player id
+     * @return the creature pool
+     */
+    public java.util.Map<Integer, CreaturePool> getCreaturePool(short playerId) {
+        return creaturePools.get(Short.valueOf(playerId).intValue());
+    }
+
     public Creature getImp() {
         return imp;
+    }
+
+    public Room getPortal() {
+        return getRoomById(ROOM_PORTAL_ID);
+    }
+
+    /**
+     * Get the creature stats by level. There might not be a record for every
+     * level. Then should just default to 100% stat.
+     *
+     * @param level the creature level
+     * @return the creature stats on given level
+     */
+    public java.util.Map<CreatureStats.StatType, CreatureStats> getCreatureStats(int level) {
+        return creatureStatistics.get(level);
     }
 
     /**

@@ -28,6 +28,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
+import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -61,9 +63,17 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
 
     @Override
     public Spatial load(AssetManager assetManager, Thing.Creature object) {
-        Creature creature = kwdFile.getCreature(object.getCreatureId());
+        return load(assetManager, object, object.getCreatureId(), (short) 0, (short) 0);
+    }
+
+    public Spatial load(AssetManager assetManager, short creatureId, short playerId, short level) {
+        return load(assetManager, null, creatureId, playerId, level);
+    }
+
+    private Spatial load(AssetManager assetManager, Thing.Creature object, short creatureId, short playerId, short level) {
+        Creature creature = kwdFile.getCreature(creatureId);
         Node creatureRoot = new Node(creature.getName());
-        CreatureControl creatureControl = new CreatureControl(object, creature, worldState) {
+        CreatureControl creatureControl = new CreatureControl(object, creature, worldState, playerId, level) {
 
             @Override
             public void onSpawn(CreatureControl creature) {
@@ -83,10 +93,12 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
         };
 
         // Set map position
-        creatureRoot.setLocalTranslation(
-                object.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
-                object.getPosZ() * MapLoader.TILE_HEIGHT,
-                object.getPosY() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
+        if (object != null) {
+            creatureRoot.setLocalTranslation(
+                    object.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
+                    object.getPosZ() * MapLoader.TILE_HEIGHT,
+                    object.getPosY() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
+        }
 
         // Add the creature control
         creatureRoot.addControl(creatureControl);
@@ -225,6 +237,18 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                     AnimChannel channel = animControl.createChannel();
                     if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP)) {
                         channel.setLoopMode(LoopMode.DontLoop);
+                    } else {
+                        Anim.FrameFactorFunction func = Anim.FrameFactorFunction.valueOf(spat.getUserData(KmfModelLoader.FRAME_FACTOR_FUNCTION));
+                        switch (func) {
+                            case CLAMP: {
+                                channel.setLoopMode(LoopMode.Cycle);
+                                break;
+                            }
+                            case WRAP: {
+                                channel.setLoopMode(LoopMode.Loop);
+                                break;
+                            }
+                        }
                     }
                 }
             } catch (Exception e) {

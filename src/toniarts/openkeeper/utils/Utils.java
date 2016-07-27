@@ -16,9 +16,14 @@
  */
 package toniarts.openkeeper.utils;
 
+import java.lang.management.ManagementFactory;
 import java.util.List;
 import java.util.Random;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 import toniarts.openkeeper.Main;
 
 /**
@@ -28,6 +33,7 @@ import toniarts.openkeeper.Main;
  */
 public class Utils {
 
+    private static final Logger logger = Logger.getLogger(Utils.class.getName());
     private static final ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
     private static final Random random = new Random();
     private static Boolean windows;
@@ -145,5 +151,21 @@ public class Utils {
      */
     public static ResourceBundle getMainTextResourceBundle() {
         return bundle;
+    }
+
+    /**
+     * Get the system memory in GB
+     *
+     * @return system memory
+     */
+    public static int getSystemMemory() {
+        try {
+            MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+            Long bytes = (Long) mBeanServer.getAttribute(new ObjectName("java.lang", "type", "OperatingSystem"), "TotalPhysicalMemorySize");
+            return (int) Math.round(bytes / 1024d / 1024d / 1024d);
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to get system memory!", e);
+        }
+        return 0;
     }
 }

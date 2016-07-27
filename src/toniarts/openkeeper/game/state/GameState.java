@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -34,6 +35,7 @@ import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.CreatureLogicState;
+import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.game.logic.GameLogicThread;
 import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.game.logic.MovementThread;
@@ -45,6 +47,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 import toniarts.openkeeper.world.WorldState;
 
@@ -55,6 +58,9 @@ import toniarts.openkeeper.world.WorldState;
  */
 public class GameState extends AbstractPauseAwareState implements IGameLogicUpdateable {
 
+    public static final int LEVEL_TIMER_MAX_COUNT = 16;
+    private static final int LEVEL_FLAG_MAX_COUNT = 128;
+
     private Main app;
 
     private AppStateManager stateManager;
@@ -64,13 +70,14 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     private GameLogicThread gameLogicThread;
     private TriggerControl triggerControl = null;
-    private final Map<Short, Integer> flags = new HashMap<>(127);
+    private final Map<Short, Integer> flags = new HashMap<>(LEVEL_FLAG_MAX_COUNT);
     // TODO What timer class we should take ?
-    private final Map<Byte, GameTimer> timers = new HashMap<>(15);
+    private final Map<Byte, GameTimer> timers = new HashMap<>(LEVEL_TIMER_MAX_COUNT);
+    private int levelScore = 0;
 
     private Float timeLimit = null;
     private TaskManager taskManager;
-    private final Map<Short, Keeper> players = new HashMap<>();
+    private final Map<Short, Keeper> players = new TreeMap<>();
     private PauseableScheduledThreadPoolExecutor exec;
     private static final float MOVEMENT_UPDATE_TPF = 0.02f;
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
@@ -88,12 +95,14 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
      * Single use game states
      *
      * @param level the level to load
-     * @param players player particicipating in this game
+     * @param players player participating in this game, can be {@code null}
      */
     public GameState(KwdFile level, List<Keeper> players) {
         this.kwdFile = level;
-        for (Keeper keeper : players) {
-            this.players.put(keeper.getId(), keeper);
+        if (players != null) {
+            for (Keeper keeper : players) {
+                this.players.put(keeper.getId(), keeper);
+            }
         }
     }
 
@@ -119,12 +128,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     }
                     setProgress(0.1f);
 
-                    // Setup players
-                    if (players.isEmpty()) {
-                        for (Entry<Short, Player> entry : kwdFile.getPlayers().entrySet()) {
-                            players.put(entry.getKey(), new Keeper(entry.getValue()));
-                        }
-                    }
+                    // The players
+                    setupPlayers();
 
                     GameState.this.stateManager.attach(new ActionPointState(false));
                     setProgress(0.20f);
@@ -150,11 +155,11 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     setProgress(0.80f);
 
                     // Trigger data
-                    for (short i = 0; i < 128; i++) {
+                    for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
                         flags.put(i, 0);
                     }
 
-                    for (byte i = 0; i < 16; i++) {
+                    for (byte i = 0; i < LEVEL_TIMER_MAX_COUNT; i++) {
                         timers.put(i, new GameTimer());
                     }
 
@@ -173,7 +178,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                             return new Thread(r, "GameLogicAndMovementThread");
                         }
                     });
-                    gameLogicThread = new GameLogicThread(GameState.this.app, 1.0f / kwdFile.getGameLevel().getTicksPerSec(), GameState.this, new CreatureLogicState(worldState.getThingLoader()));
+                    gameLogicThread = new GameLogicThread(GameState.this.app, 1.0f / kwdFile.getGameLevel().getTicksPerSec(), GameState.this, new CreatureLogicState(worldState.getThingLoader()), new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this));
                     exec.scheduleAtFixedRate(gameLogicThread, 0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
                     exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()), 0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
 
@@ -183,6 +188,55 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 }
 
                 return null;
+            }
+
+            private void setupPlayers() {
+
+                // Setup players
+                boolean addMissingPlayers = players.isEmpty(); // Add all if none is given (campaign..)
+                for (Entry<Short, Player> entry : kwdFile.getPlayers().entrySet()) {
+                    Keeper keeper = null;
+                    if (players.containsKey(entry.getKey())) {
+                        keeper = players.get(entry.getKey());
+                        keeper.setPlayer(entry.getValue());
+                    } else if (addMissingPlayers || entry.getKey() < Keeper.KEEPER1_ID) {
+                        keeper = new Keeper(entry.getValue(), app);
+                        players.put(entry.getKey(), keeper);
+                    }
+
+                    // Init
+                    if (keeper != null) {
+                        keeper.initialize(stateManager, app);
+                    }
+                }
+
+                // Set player availabilities
+                // TODO: the player customized game settings
+                for (Variable.Availability availability : kwdFile.getAvailabilities()) {
+                    if (availability.getPlayerId() == 0) {
+
+                        // All players
+                        for (Keeper player : getPlayers()) {
+                            setAvailability(player, availability);
+                        }
+                    } else {
+                        Keeper player = getPlayer((short) availability.getPlayerId());
+                        setAvailability(player, availability);
+                    }
+                }
+            }
+
+            private void setAvailability(Keeper player, Variable.Availability availability) {
+                switch (availability.getType()) {
+                    case CREATURE: {
+                        player.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+                        break;
+                    }
+                    case ROOM: {
+                        player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+                        break;
+                    }
+                }
             }
 
             @Override
@@ -200,8 +254,15 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 // Set the processors
                 GameState.this.app.setViewProcessors();
 
-                // Enable game logic thread
-                exec.resume();
+                // FIXME: this is not correct
+                // Enqueue the thread starting to next frame so that the states are initialized
+                app.enqueue(() -> {
+
+                    // Enable game logic thread
+                    exec.resume();
+
+                    return null;
+                });
             }
         };
         stateManager.attach(loader);
@@ -264,6 +325,10 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         if (triggerControl != null) {
             triggerControl.update(tpf);
         }
+
+        for (Keeper player : players.values()) {
+            player.update(tpf);
+        }
     }
 
     /**
@@ -296,10 +361,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
             return gameLogicThread.getGameTime();
         }
         return 0;
-    }
-
-    public String getLevel() {
-        return level;
     }
 
     public Float getTimeLimit() {
@@ -335,4 +396,33 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     public ActionPointState getActionPointState() {
         return stateManager.getState(ActionPointState.class);
     }
+
+    /**
+     * Get level variable value
+     *
+     * @param variable the variable type
+     * @return variable value
+     */
+    public float getLevelVariable(Variable.MiscVariable.MiscType variable) {
+        // TODO: player is able to change these, so need a wrapper and store these to GameState
+        return kwdFile.getVariables().get(variable).getValue();
+    }
+
+    public Application getApplication() {
+        return app;
+    }
+
+    /**
+     * Get level score, not really a player score... kinda
+     *
+     * @return the level score
+     */
+    public int getLevelScore() {
+        return levelScore;
+    }
+
+    public void setLevelScore(int levelScore) {
+        this.levelScore = levelScore;
+    }
+
 }

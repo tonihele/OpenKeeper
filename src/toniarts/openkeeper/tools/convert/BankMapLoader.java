@@ -25,7 +25,9 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Simple class to open up and browse through the *Bank.map files
@@ -34,23 +36,26 @@ import toniarts.openkeeper.tools.convert.sound.BankMapFile;
  */
 public class BankMapLoader {
 
+    private static String dkIIFolder;
+
     public static void main(String[] args) throws IOException {
 
         //Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 1 || !new File(args[0]).exists()) {
-            throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter!");
+            dkIIFolder = PathUtils.getDKIIFolder();
+            if (dkIIFolder == null)
+            {
+                throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter!");
+            }
+        } else {
+            dkIIFolder = PathUtils.fixFilePath(args[0]);
         }
 
-        //Form the data path
-        String dataDirectory = args[0];
-        if (!dataDirectory.endsWith(File.separator)) {
-            dataDirectory = dataDirectory.concat(File.separator);
-        }
-        dataDirectory = dataDirectory.concat("data").concat(File.separator).concat("sound").concat(File.separator).concat("sfx").concat(File.separator);
+        final String soundFolder = dkIIFolder.concat(PathUtils.DKII_DATA_FOLDER).concat(File.separator).concat(PathUtils.DKII_SOUND_FOLDER).concat(File.separator).concat(PathUtils.DKII_SFX_FOLDER).concat(File.separator);
 
         //Find all the bank.map files
         final List<File> bankMapFiles = new ArrayList<>();
-        File dataDir = new File(dataDirectory);
+        File dataDir = new File(soundFolder);
         Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {

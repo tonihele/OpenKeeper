@@ -32,7 +32,6 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Quad;
 import java.io.File;
 import java.io.FileNotFoundException;
-import org.lwjgl.opengl.Display;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.video.tgq.TgqFrame;
 
@@ -69,10 +68,12 @@ public abstract class MovieState extends AbstractAppState {
         inputManager.addListener(actionListener, KEY_SKIP);
 
         // Create the canvas
-        boolean squareScreen = ((0f + Display.getWidth()) / Display.getHeight()) < 1.6f;
-        movieMaterial = new MovieMaterial(app, squareScreen ? false : true);
+        int width = ((Main) app).getUserSettings().getAppSettings().getWidth();
+        int height = ((Main) app).getUserSettings().getAppSettings().getHeight();
+        boolean squareScreen = ((0f + width) / height) < 1.6f;
+        movieMaterial = new MovieMaterial(app, !squareScreen);
         movieMaterial.setLetterboxColor(ColorRGBA.Black);
-        movieScreen = new Geometry("MovieScreen", new Quad(Display.getWidth(), Display.getHeight()));
+        movieScreen = new Geometry("MovieScreen", new Quad(width, height));
         movieScreen.setMaterial(movieMaterial.getMaterial());
         this.app.getGuiNode().attachChild(movieScreen);
 

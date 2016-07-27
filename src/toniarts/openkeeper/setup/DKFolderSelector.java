@@ -21,6 +21,7 @@ import java.util.Arrays;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  *
@@ -130,7 +131,7 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
 
             // Test the directory
             ImageIcon icon = null;
-            if (Main.checkDkFolder(fc.getSelectedFile().getPath())) {
+            if (PathUtils.checkDkFolder(fc.getSelectedFile().getPath())) {
                 continueButton.setEnabled(true);
                 icon = new ImageIcon(DKFolderSelector.class.getResource("images/Action-ok-icon.png"));
                 statusIcon.setToolTipText("The selected folder is valid!");

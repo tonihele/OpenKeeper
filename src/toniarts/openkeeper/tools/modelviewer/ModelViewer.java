@@ -63,6 +63,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
@@ -71,6 +72,7 @@ import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TerrainLoader;
 import toniarts.openkeeper.world.effect.EffectManager;
@@ -81,6 +83,8 @@ import toniarts.openkeeper.world.effect.EffectManager;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class ModelViewer extends SimpleApplication implements ScreenController {
+
+
 
     public enum Types {
 
@@ -96,12 +100,12 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             return name;
         }
     }
-    private final String dkIIFolder;
+    private static String dkIIFolder;
     private final Vector3f lightDir = new Vector3f(-1, -1, .5f).normalizeLocal();
     private DirectionalLight dl;
     private Nifty nifty;
     private Screen screen;
-    private final File kmfModel;
+    private File kmfModel = null;
     private boolean wireframe = false;
     private boolean rotate = true;
     private boolean showNormals = false;
@@ -123,22 +127,27 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         //Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 1 || !new File(args[0]).exists()) {
-            throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter!");
+            dkIIFolder = PathUtils.getDKIIFolder();
+            if (dkIIFolder == null)
+            {
+                throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter!");
+            }
+        } else {
+            dkIIFolder = PathUtils.fixFilePath(args[0]);
         }
 
-        ModelViewer app = new ModelViewer(null, args[0]);
+        ModelViewer app = new ModelViewer();
         app.start();
     }
 
-    public ModelViewer(File kmfModel, String dkIIFolder) {
-        super();
-
+    public ModelViewer(File kmfModel, String dkFolder) {
+        this();
         this.kmfModel = kmfModel;
-        if (!dkIIFolder.endsWith(File.separator)) {
-            this.dkIIFolder = dkIIFolder.concat(File.separator);
-        } else {
-            this.dkIIFolder = dkIIFolder;
-        }
+        dkIIFolder = dkFolder;
+    }
+    
+    public ModelViewer() {
+        super();
     }
 
     private void setupLighting() {
@@ -151,7 +160,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         // Add ambient light
         AmbientLight al = new AmbientLight();
-        al.setColor(ColorRGBA.White);
+        al.setColor(ColorRGBA.White.multLocal(0.4f));
         rootNode.addLight(al);
 
         /* Drop shadows */
@@ -556,7 +565,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         if (kwdFile == null) {
 
             // Read Alcatraz.kwd by default
-            kwdFile = new KwdFile(dkIIFolder, new File(dkIIFolder.concat("Data").concat(File.separator).concat("editor").concat(File.separator).concat("maps").concat(File.separator).concat("Alcatraz.kwd")));
+            kwdFile = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(PathUtils.DKII_DATA_FOLDER).concat(File.separator).concat(PathUtils.DKII_EDITOR_FOLDER).concat(File.separator).concat(PathUtils.DKII_MAPS_FOLDER).concat(File.separator).concat("Alcatraz.kwd")));
         }
         return kwdFile;
     }

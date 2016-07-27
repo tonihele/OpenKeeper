@@ -69,6 +69,7 @@ import toniarts.openkeeper.tools.convert.kmf.Uv;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEntry;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.modelviewer.ModelViewer;
+import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.TangentBinormalGenerator;
 
 /**
@@ -82,6 +83,7 @@ public class KmfModelLoader implements AssetLoader {
 
     /* Some textures are broken */
     private final static HashMap<String, String> textureFixes;
+    private static String dkIIFolder;
 
     static {
         textureFixes = new HashMap<>();
@@ -99,6 +101,7 @@ public class KmfModelLoader implements AssetLoader {
      * material possibilities
      */
     public static final String MATERIAL_ALTERNATIVE_TEXTURES_COUNT = "AlternativeTextureCount";
+    public static final String FRAME_FACTOR_FUNCTION = "FrameFactorFunction";
     private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
     /* Already saved materials are stored here */
     private static final HashMap<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
@@ -106,15 +109,21 @@ public class KmfModelLoader implements AssetLoader {
     public static void main(final String[] args) throws IOException {
 
         //Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 2 || !new File(args[0]).exists()) {
-            throw new RuntimeException("Please provide Dungeon Keeper II root folder as a first parameter! Second parameter is the actual model file!");
+        if (args.length != 2 || !new File(args[1]).exists()) {
+            dkIIFolder = PathUtils.getDKIIFolder();
+            if (dkIIFolder == null)
+            {
+                throw new RuntimeException("Please provide file path to the model as a first parameter! Second parameter is the Dungeon Keeper II main folder (optional)");
+            }
+        } else {
+            dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
         AssetInfo ai = new AssetInfo(/*main.getAssetManager()*/null, null) {
                     @Override
                     public InputStream openStream() {
                         try {
-                            final File file = new File(args[0]);
+                            final File file = new File(dkIIFolder);
                             key = new AssetKey() {
                                 @Override
                                 public String getName() {
@@ -129,7 +138,7 @@ public class KmfModelLoader implements AssetLoader {
                     }
                 };
 
-        ModelViewer app = new ModelViewer(new File(args[1]), args[0]);
+        ModelViewer app = new ModelViewer(new File(args[0]), dkIIFolder);
         app.start();
     }
 
@@ -290,6 +299,7 @@ public class KmfModelLoader implements AssetLoader {
 
         //Source mesh is node
         Node node = new Node(anim.getName());
+        node.setUserData(FRAME_FACTOR_FUNCTION, anim.getFrameFactorFunction().name());
         node.setLocalTranslation(new Vector3f(anim.getPos().x, -anim.getPos().z, anim.getPos().y));
 
         // Create pose tracks for each mesh index

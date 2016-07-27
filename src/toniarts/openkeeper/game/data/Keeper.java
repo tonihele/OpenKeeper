@@ -16,8 +16,14 @@
  */
 package toniarts.openkeeper.game.data;
 
+import com.jme3.app.Application;
+import com.jme3.app.state.AppStateManager;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
+import toniarts.openkeeper.game.player.PlayerManaControl;
+import toniarts.openkeeper.game.player.PlayerRoomControl;
+import toniarts.openkeeper.game.player.PlayerStatsControl;
+import toniarts.openkeeper.game.player.PlayerTriggerControl;
 import toniarts.openkeeper.tools.convert.map.AI.AIType;
 import toniarts.openkeeper.tools.convert.map.Player;
 
@@ -37,26 +43,47 @@ public class Keeper {
     private AIType aiType = AIType.MASTER_KEEPER;
     private String name;
     private boolean ready = false;
-    private final Player player;
+    private Player player;
     private final short id;
     private int initialGold = 0;
     private final PlayerGoldControl goldControl = new PlayerGoldControl();
-    private final PlayerCreatureControl creatureControl = new PlayerCreatureControl();
+    private final PlayerCreatureControl creatureControl;
+    private final PlayerStatsControl statsControl = new PlayerStatsControl();
+    private final PlayerRoomControl roomControl;
+    private PlayerTriggerControl triggerControl;
+    private PlayerManaControl manaControl;
 
-    public Keeper(boolean ai, String name, short id) {
+    public Keeper(boolean ai, String name, short id, final Application app) {
         this.ai = ai;
         this.name = name;
-        player = null;
         this.id = id;
 
         // AI is always ready
         ready = ai;
+
+        creatureControl = new PlayerCreatureControl(app);
+        roomControl = new PlayerRoomControl(app);
     }
 
-    public Keeper(Player player) {
+    public Keeper(Player player, final Application app) {
         this.player = player;
         this.id = player.getPlayerId();
         initialGold = player.getStartingGold();
+
+        creatureControl = new PlayerCreatureControl(app);
+        roomControl = new PlayerRoomControl(app);
+    }
+
+    public void initialize(final AppStateManager stateManager, final Application app) {
+        int triggerId = player.getTriggerId();
+        if (triggerId != 0) {
+            triggerControl = new PlayerTriggerControl(stateManager, triggerId, id);
+        }
+
+        // Don't create mana control for neutral nor good player
+        if (id != Player.GOOD_PLAYER_ID && id != Player.NEUTRAL_PLAYER_ID) {
+            manaControl = new PlayerManaControl(id, stateManager);
+        }
     }
 
     public boolean isReady() {
@@ -81,6 +108,39 @@ public class Keeper {
 
     public PlayerCreatureControl getCreatureControl() {
         return creatureControl;
+    }
+
+    public PlayerStatsControl getStatsControl() {
+        return statsControl;
+    }
+
+    public PlayerRoomControl getRoomControl() {
+        return roomControl;
+    }
+
+    public PlayerTriggerControl getTriggerControl() {
+        return triggerControl;
+    }
+
+    public PlayerManaControl getManaControl() {
+        return manaControl;
+    }
+
+    public void update(float tpf) {
+        if (triggerControl != null) {
+            triggerControl.update(tpf);
+        }
+
+        if (manaControl != null) {
+            manaControl.update(tpf);
+        }
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
+
+        // Set the gold
+        initialGold = player.getStartingGold();
     }
 
     @Override

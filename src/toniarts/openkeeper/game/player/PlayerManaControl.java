@@ -17,56 +17,57 @@
 package toniarts.openkeeper.game.player;
 
 import com.jme3.app.state.AppStateManager;
-import com.jme3.renderer.RenderManager;
-import com.jme3.renderer.ViewPort;
-import com.jme3.scene.control.AbstractControl;
 import de.lessvoid.nifty.controls.Label;
 import java.util.HashMap;
 import java.util.Map;
+import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.state.GameState;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
 /**
- * Ingame player information TODO: use level Variables to get mana lose and gain
- * information
+ * Controller of player mana
  *
  * @author ArchDemon
  */
-public class PlayerManaControl extends AbstractControl {
+public class PlayerManaControl extends Control {
 
     public enum Type {
 
-        CURRENT, GET, LOSE;
+        CURRENT, GAIN, LOSE;
     }
     private float tick = 0;
-    private short playerId;
-    private AppStateManager stateManager;
-    private Map<Type, Label> listeners = new HashMap();
+    private final short playerId;
+    private final AppStateManager stateManager;
+    private final Map<Type, Label> listeners = new HashMap<>();
     private int manaCurrent;
-    private int manaMax = 200000;
-    private int manaGet;  // mana get per second
-    private int manaGetBase = 30;  // I think this dungeon heart
-    private int manaGetFromTiles = 0;
+    private final int manaMax;
+    private int manaGain;  // mana get per second
+    private final int manaGainBase;
+    private int manaGainFromTiles = 0;
     private int manaLose;  // mana lose per second
-    private int manaLosePerImp = 7;  // I don`t find in Creature.java
+    private final static int MANA_LOSE_PER_IMP = 7;  // I don`t find in Creature.java
     private int manaLoseFromCreatures = 0;
 
     public PlayerManaControl(short playerId, AppStateManager stateManager) {
         this.playerId = playerId;
         this.stateManager = stateManager;
 
-        //this.updateManaFromTiles();
-        //this.updateManaFromCreatures();
+        GameState gs = this.stateManager.getState(GameState.class);
+
+        manaMax = (int) gs.getLevelVariable(MiscType.MAXIMUM_MANA_THRESHOLD);
+        manaGainBase = (int) gs.getLevelVariable(MiscType.DUNGEON_HEART_MANA_GENERATION_INCREASE_PER_SECOND);
+        // FIXME where mana lose per imp ???
+        //manaLosePerImp = (int) gs.getLevelVariable(MiscType.GAME_TICKS);
     }
 
     @Override
-    protected void controlUpdate(float tpf) {
+    protected void updateControl(float tpf) {
         tick += tpf;
         if (tick >= 1) {
+            // TODO change update mana only from external event
             updateManaFromTiles();
             updateManaFromCreatures();
             update();
@@ -74,82 +75,42 @@ public class PlayerManaControl extends AbstractControl {
         }
     }
 
-    @Override
-    protected void controlRender(RenderManager rm, ViewPort vp) {
-        /*
-         if (listeners.containsKey(Type.CURRENT)) {
-         listeners.get(Type.CURRENT).setText(String.format("%s", manaCurrent));
-         }
-         if (listeners.containsKey(Type.GET)) {
-         listeners.get(Type.GET).setText(String.format("+ %s", manaGet));
-         }
-         if (listeners.containsKey(Type.LOSE)) {
-         listeners.get(Type.LOSE).setText(String.format("- %s", manaLose));
-
-         }
-         */
-    }
-
     private void updateManaFromTiles() {
         int result = 0;
 
         MapData mapData = stateManager.getState(WorldState.class).getMapData();
-        KwdFile kwdFile = stateManager.getState(GameState.class).getLevelData();
 
         for (int x = 0; x < mapData.getWidth(); x++) {
             for (int y = 0; y < mapData.getHeight(); y++) {
                 TileData tile = mapData.getTile(x, y);
                 if (tile.getPlayerId() == this.playerId) {
-                    result += kwdFile.getTerrain(tile.getTerrainId()).getManaGain();
+                    result += tile.getTerrain().getManaGain();
                 }
             }
         }
 
-        this.manaGetFromTiles = result;
+        manaGainFromTiles = result;
     }
 
     private void updateManaFromCreatures() {
-        int result = 0;
+        GameState gs = stateManager.getState(GameState.class);
+        int result = gs.getPlayer(playerId).getCreatureControl().getImpCount();
 
-        for (Thing thing : stateManager.getState(GameState.class).getLevelData().getThings()) {
-            if (!(thing instanceof Thing.KeeperCreature)) {
-                continue;
-            }
-
-            Thing.KeeperCreature creature = ((Thing.KeeperCreature) thing);
-            if (creature.getPlayerId() == this.playerId && creature.getCreatureId() == 1) {
-                result++;
-            }
-        }
-
-        this.manaLoseFromCreatures = result * this.manaLosePerImp;
-    }
-
-    private void updateManaGet() {
-        manaGet = manaGetBase + manaGetFromTiles;
-        if (listeners.containsKey(Type.GET)) {
-            listeners.get(Type.GET).setText(String.format("+ %s", manaGet));
-        }
-    }
-
-    private void updateManaLose() {
-        manaLose = manaLoseFromCreatures;
-        if (listeners.containsKey(Type.LOSE)) {
-            listeners.get(Type.LOSE).setText(String.format("- %s", manaLose));
-        }
+        this.manaLoseFromCreatures = result * MANA_LOSE_PER_IMP;
     }
 
     private void update() {
-        this.updateManaGet();
-        this.updateManaLose();
+        manaGain = manaGainBase + manaGainFromTiles;
+        manaLose = manaLoseFromCreatures;
 
-        this.addMana(this.manaGet - this.manaLose);
+        addMana(this.manaGain - this.manaLose);
+
+        updateListerners();
     }
 
     public void addMana(int value) {
         value = Math.max(0, this.manaCurrent + value);
         this.manaCurrent = Math.min(value, this.manaMax);
-        updateListerners();
     }
 
     public int getMana() {
@@ -157,7 +118,7 @@ public class PlayerManaControl extends AbstractControl {
     }
 
     public int getManaGain() {
-        return this.manaGet;
+        return this.manaGain;
     }
 
     public int getManaLose() {
@@ -165,9 +126,27 @@ public class PlayerManaControl extends AbstractControl {
     }
 
     private void updateListerners() {
-        if (listeners.containsKey(Type.CURRENT)) {
-            listeners.get(Type.CURRENT).setText(String.format("%s", manaCurrent));
-        }
+        stateManager.getApplication().enqueue(() -> {
+
+            for (Map.Entry<Type, Label> entry : listeners.entrySet()) {
+                String text = "";
+                Label label = entry.getValue();
+                switch (entry.getKey()) {
+                    case CURRENT:
+                        text = String.format("%s", manaCurrent);
+                        break;
+                    case GAIN:
+                        text = String.format("%s", manaGain);
+                        break;
+                    case LOSE:
+                        text = String.format("- %s", manaLose);
+                        break;
+                }
+                label.setText(text);
+            }
+
+            return null;
+        });
     }
 
     public void addListener(Label label, Type type) {

@@ -94,76 +94,89 @@ public class GameLevel {
 
     public enum TextTable implements IValueEnum {
 
-        NONE(0),
-        LEVEL_1(1),
-        LEVEL_2(2),
-        LEVEL_3(3),
-        LEVEL_4(4),
-        LEVEL_5(5),
-        LEVEL_6A(6),
-        LEVEL_6B(7),
-        LEVEL_7(8),
-        LEVEL_8(9),
-        LEVEL_9(10),
-        LEVEL_10(11),
-        LEVEL_11A(12),
-        LEVEL_11B(13),
-        LEVEL_11C(14),
-        LEVEL_12(15),
-        LEVEL_13(16),
-        LEVEL_14(17),
-        LEVEL_15A(18),
-        LEVEL_15B(19),
-        LEVEL_16(20),
-        LEVEL_17(21),
-        LEVEL_18(22),
-        LEVEL_19(23),
-        LEVEL_20(24),
-        MULTI_PLAYER_1(25),
-        MY_PET_DUNGEON_1(26),
-        SECRET_1(27),
-        SECRET_2(28),
-        SECRET_3(29),
-        SECRET_4(30),
-        SECRET_5(31),
-        DEMO_1(32),
-        DEMO_2(33),
-        DEMO_3(34),
-        MY_PET_DUNGEON_2(35),
-        MY_PET_DUNGEON_3(36),
-        MY_PET_DUNGEON_4(37),
-        MY_PET_DUNGEON_5(38),
-        MY_PET_DUNGEON_6(39),
-        UNKNOWN_40(40), // FIXME unknown flag
-        MULTI_PLAYER_2(41),
-        MULTI_PLAYER_3(42),
-        MULTI_PLAYER_4(43),
-        MULTI_PLAYER_5(44),
-        MULTI_PLAYER_6(45),
-        MULTI_PLAYER_7(46),
-        MULTI_PLAYER_8(47),
-        MULTI_PLAYER_9(48),
-        MULTI_PLAYER_10(49),
-        MULTI_PLAYER_11(50),
-        MULTI_PLAYER_12(51),
-        MULTI_PLAYER_13(52),
-        MULTI_PLAYER_14(53),
-        MULTI_PLAYER_15(54),
-        MULTI_PLAYER_16(55),
-        MULTI_PLAYER_17(56),
-        MULTI_PLAYER_18(57),
-        MULTI_PLAYER_19(58),
-        MULTI_PLAYER_20(59);
+        NONE(0, null, null),
+        LEVEL_1(1, "LEVEL1", "LEVEL1_BRIEFING"),
+        LEVEL_2(2, "LEVEL2", "LEVEL2_BRIEFING"),
+        LEVEL_3(3, "LEVEL3", "LEVEL3_BRIEFING"),
+        LEVEL_4(4, "LEVEL4", "LEVEL4_BRIEFING"),
+        LEVEL_5(5, "LEVEL5", "LEVEL5_BRIEFING"),
+        LEVEL_6A(6, "LEVEL6A", "LEVEL6A_BRIEFING"),
+        LEVEL_6B(7, "LEVEL6B", "LEVEL6B_BRIEFING"),
+        LEVEL_7(8, "LEVEL7", "LEVEL7_BRIEFING"),
+        LEVEL_8(9, "LEVEL8", "LEVEL8_BRIEFING"),
+        LEVEL_9(10, "LEVEL9", "LEVEL9_BRIEFING"),
+        LEVEL_10(11, "LEVEL10", "LEVEL10_BRIEFING"),
+        LEVEL_11A(12, "LEVEL11A", "LEVEL11A_BRIEFING"),
+        LEVEL_11B(13, "LEVEL11B", "LEVEL11B_BRIEFING"),
+        LEVEL_11C(14, "LEVEL11C", "LEVEL11C_BRIEFING"),
+        LEVEL_12(15, "LEVEL12", "LEVEL12_BRIEFING"),
+        LEVEL_13(16, "LEVEL13", "LEVEL13_BRIEFING"),
+        LEVEL_14(17, "LEVEL14", "LEVEL14_BRIEFING"),
+        LEVEL_15A(18, "LEVEL15A", "LEVEL15A_BRIEFING"),
+        LEVEL_15B(19, "LEVEL15B", "LEVEL15B_BRIEFING"),
+        LEVEL_16(20, "LEVEL16", "LEVEL16_BRIEFING"),
+        LEVEL_17(21, "LEVEL17", "LEVEL17_BRIEFING"),
+        LEVEL_18(22, "LEVEL18", "LEVEL18_BRIEFING"),
+        LEVEL_19(23, "LEVEL19", "LEVEL19_BRIEFING"),
+        LEVEL_20(24, "LEVEL20", "LEVEL20_BRIEFING"),
+        MULTI_PLAYER_1(25, "MULTIPLAYER", "LEVELM1_BRIEFING"),
+        MY_PET_DUNGEON_1(26, "MYPETDUNGEON", "LEVELMPD1_BRIEFING"),
+        SECRET_1(27, "SECRET1", "LEVELS1_BRIEFING"),
+        SECRET_2(28, "SECRET2", "LEVELS2_BRIEFING"),
+        SECRET_3(29, "SECRET3", "LEVELS3_BRIEFING"),
+        SECRET_4(30, "SECRET4", "LEVELS4_BRIEFING"),
+        SECRET_5(31, "SECRET5", "LEVELS5_BRIEFING"),
+        DEMO_1(32, "DEMO1", null),
+        DEMO_2(33, "DEMO2", null),
+        DEMO_3(34, "DEMO3", null),
+        MY_PET_DUNGEON_2(35, "MYPETDUNGEON", "LEVELMPD2_BRIEFING"),
+        MY_PET_DUNGEON_3(36, "MYPETDUNGEON", "LEVELMPD3_BRIEFING"),
+        MY_PET_DUNGEON_4(37, "MYPETDUNGEON", "LEVELMPD4_BRIEFING"),
+        MY_PET_DUNGEON_5(38, "MYPETDUNGEON", "LEVELMPD5_BRIEFING"),
+        MY_PET_DUNGEON_6(39, "MYPETDUNGEON", "LEVELMPD6_BRIEFING"),
+        MY_PET_DUNGEON_7(40, "MYPETDUNGEON", "LEVELMPD7_BRIEFING"),
+        MULTI_PLAYER_2(41, "MULTIPLAYER", "LEVELM2_BRIEFING"),
+        MULTI_PLAYER_3(42, "MULTIPLAYER", "LEVELM3_BRIEFING"),
+        MULTI_PLAYER_4(43, "MULTIPLAYER", "LEVELM4_BRIEFING"),
+        MULTI_PLAYER_5(44, "MULTIPLAYER", "LEVELM5_BRIEFING"),
+        MULTI_PLAYER_6(45, "MULTIPLAYER", "LEVELM6_BRIEFING"),
+        MULTI_PLAYER_7(46, "MULTIPLAYER", "LEVELM7_BRIEFING"),
+        MULTI_PLAYER_8(47, "MULTIPLAYER", "LEVELM8_BRIEFING"),
+        MULTI_PLAYER_9(48, "MULTIPLAYER", "LEVELM9_BRIEFING"),
+        MULTI_PLAYER_10(49, "MULTIPLAYER", "LEVELM10_BRIEFING"),
+        MULTI_PLAYER_11(50, "MULTIPLAYER", "LEVELM11_BRIEFING"),
+        MULTI_PLAYER_12(51, "MULTIPLAYER", "LEVELM12_BRIEFING"),
+        MULTI_PLAYER_13(52, "MULTIPLAYER", "LEVELM13_BRIEFING"),
+        MULTI_PLAYER_14(53, "MULTIPLAYER", "LEVELM14_BRIEFING"),
+        MULTI_PLAYER_15(54, "MULTIPLAYER", "LEVELM15_BRIEFING"),
+        MULTI_PLAYER_16(55, "MULTIPLAYER", "LEVELM16_BRIEFING"),
+        MULTI_PLAYER_17(56, "MULTIPLAYER", "LEVELM17_BRIEFING"),
+        MULTI_PLAYER_18(57, "MULTIPLAYER", "LEVELM18_BRIEFING"),
+        MULTI_PLAYER_19(58, "MULTIPLAYER", "LEVELM19_BRIEFING"),
+        MULTI_PLAYER_20(59, "MULTIPLAYER", "LEVELM20_BRIEFING");
 
-        private TextTable(int id) {
+        private TextTable(int id, String levelDictFile, String levelBriefingDictFile) {
             this.id = id;
+            this.levelDictFile = levelDictFile;
+            this.levelBriefingDictFile = levelBriefingDictFile;
         }
 
         @Override
         public int getValue() {
             return id;
         }
+
+        public String getLevelDictFile() {
+            return levelDictFile;
+        }
+
+        public String getLevelBriefingDictFile() {
+            return levelBriefingDictFile;
+        }
+
         private final int id;
+        private final String levelDictFile;
+        private final String levelBriefingDictFile;
     }
 
     public enum LevelReward implements IValueEnum {
@@ -217,7 +230,7 @@ public class GameLevel {
         }
         private final int id;
     }
-    
+
     protected String name;
     protected String description;
     protected String author;
@@ -259,11 +272,11 @@ public class GameLevel {
     //
     protected List<FilePath> paths;
     protected int unknown[];
-    
+
     public String getName() {
         return name;
     }
-    
+
     protected void setName(String name) {
         this.name = name;
     }
@@ -271,39 +284,35 @@ public class GameLevel {
     public String getDescription() {
         return description;
     }
-    
+
     protected void setDescription(String description) {
         this.description = description;
     }
 
-
     public String getAuthor() {
         return author;
     }
-    
+
     protected void setAuthor(String author) {
         this.author = author;
     }
 
-
     public String getEmail() {
         return email;
     }
-    
+
     protected void setEmail(String email) {
         this.email = email;
     }
 
-
     public String getInformation() {
         return information;
     }
-    
+
     protected void setInformation(String information) {
         this.information = information;
     }
 
-    
     /**
      * Get level flags
      *
@@ -312,8 +321,8 @@ public class GameLevel {
     public EnumSet<LevFlag> getLvlFlags() {
         return lvlFlags;
     }
-    
-    public void setLvlFlags(EnumSet<LevFlag> flags) {
+
+    protected void setLvlFlags(EnumSet<LevFlag> flags) {
         this.lvlFlags = flags;
     }
 
@@ -325,16 +334,16 @@ public class GameLevel {
     public short getPlayerCount() {
         return playerCount;
     }
-    
-    public void setPlayerCount(short playerCount) {
-         this.playerCount = playerCount;
+
+    protected void setPlayerCount(short playerCount) {
+        this.playerCount = playerCount;
     }
 
     public int getTriggerId() {
         return triggerId;
     }
 
-    public void setTriggerId(int triggerId) {
+    protected void setTriggerId(int triggerId) {
         this.triggerId = triggerId;
     }
 
@@ -342,7 +351,7 @@ public class GameLevel {
         return ticksPerSec;
     }
 
-    public void setTicksPerSec(int ticksPerSec) {
+    protected void setTicksPerSec(int ticksPerSec) {
         this.ticksPerSec = ticksPerSec;
     }
 
@@ -350,7 +359,7 @@ public class GameLevel {
         return x01184;
     }
 
-    public void setX01184(short[] x01184) {
+    protected void setX01184(short[] x01184) {
         this.x01184 = x01184;
     }
 
@@ -358,7 +367,7 @@ public class GameLevel {
         return messages;
     }
 
-    public void setMessages(List<String> messages) {
+    protected void setMessages(List<String> messages) {
         this.messages = messages;
     }
 
@@ -366,7 +375,7 @@ public class GameLevel {
         return speechStr;
     }
 
-    public void setSpeechStr(String speechStr) {
+    protected void setSpeechStr(String speechStr) {
         this.speechStr = speechStr;
     }
 
@@ -374,7 +383,7 @@ public class GameLevel {
         return talismanPieces;
     }
 
-    public void setTalismanPieces(short talismanPieces) {
+    protected void setTalismanPieces(short talismanPieces) {
         this.talismanPieces = talismanPieces;
     }
 
@@ -382,7 +391,7 @@ public class GameLevel {
         return rewardPrev;
     }
 
-    public void setRewardPrev(List<LevelReward> rewardPrev) {
+    protected void setRewardPrev(List<LevelReward> rewardPrev) {
         this.rewardPrev = rewardPrev;
     }
 
@@ -390,7 +399,7 @@ public class GameLevel {
         return rewardNext;
     }
 
-    public void setRewardNext(List<LevelReward> rewardNext) {
+    protected void setRewardNext(List<LevelReward> rewardNext) {
         this.rewardNext = rewardNext;
     }
 
@@ -398,7 +407,7 @@ public class GameLevel {
         return soundTrack;
     }
 
-    public void setSoundTrack(short soundTrack) {
+    protected void setSoundTrack(short soundTrack) {
         this.soundTrack = soundTrack;
     }
 
@@ -406,7 +415,7 @@ public class GameLevel {
         return textTableId;
     }
 
-    public void setTextTableId(TextTable textTableId) {
+    protected void setTextTableId(TextTable textTableId) {
         this.textTableId = textTableId;
     }
 
@@ -414,7 +423,7 @@ public class GameLevel {
         return textTitleId;
     }
 
-    public void setTextTitleId(int textTitleId) {
+    protected void setTextTitleId(int textTitleId) {
         this.textTitleId = textTitleId;
     }
 
@@ -422,7 +431,7 @@ public class GameLevel {
         return textPlotId;
     }
 
-    public void setTextPlotId(int textPlotId) {
+    protected void setTextPlotId(int textPlotId) {
         this.textPlotId = textPlotId;
     }
 
@@ -430,7 +439,7 @@ public class GameLevel {
         return textDebriefId;
     }
 
-    public void setTextDebriefId(int textDebriefId) {
+    protected void setTextDebriefId(int textDebriefId) {
         this.textDebriefId = textDebriefId;
     }
 
@@ -438,7 +447,7 @@ public class GameLevel {
         return textObjectvId;
     }
 
-    public void setTextObjectvId(int textObjectvId) {
+    protected void setTextObjectvId(int textObjectvId) {
         this.textObjectvId = textObjectvId;
     }
 
@@ -446,7 +455,7 @@ public class GameLevel {
         return x063c3;
     }
 
-    public void setX063c3(int x063c3) {
+    protected void setX063c3(int x063c3) {
         this.x063c3 = x063c3;
     }
 
@@ -454,7 +463,7 @@ public class GameLevel {
         return textSubobjctvId1;
     }
 
-    public void setTextSubobjctvId1(int textSubobjctvId1) {
+    protected void setTextSubobjctvId1(int textSubobjctvId1) {
         this.textSubobjctvId1 = textSubobjctvId1;
     }
 
@@ -462,7 +471,7 @@ public class GameLevel {
         return textSubobjctvId2;
     }
 
-    public void setTextSubobjctvId2(int textSubobjctvId2) {
+    protected void setTextSubobjctvId2(int textSubobjctvId2) {
         this.textSubobjctvId2 = textSubobjctvId2;
     }
 
@@ -470,7 +479,7 @@ public class GameLevel {
         return textSubobjctvId3;
     }
 
-    public void setTextSubobjctvId3(int textSubobjctvId3) {
+    protected void setTextSubobjctvId3(int textSubobjctvId3) {
         this.textSubobjctvId3 = textSubobjctvId3;
     }
 
@@ -478,7 +487,7 @@ public class GameLevel {
         return speclvlIdx;
     }
 
-    public void setSpeclvlIdx(int speclvlIdx) {
+    protected void setSpeclvlIdx(int speclvlIdx) {
         this.speclvlIdx = speclvlIdx;
     }
 
@@ -486,7 +495,7 @@ public class GameLevel {
         return introductionOverrideTextIds;
     }
 
-    public void setIntroductionOverrideTextIds(Map<Short, Integer> introductionOverrideTextIds) {
+    protected void setIntroductionOverrideTextIds(Map<Short, Integer> introductionOverrideTextIds) {
         this.introductionOverrideTextIds = introductionOverrideTextIds;
     }
 
@@ -494,7 +503,7 @@ public class GameLevel {
         return terrainPath;
     }
 
-    public void setTerrainPath(String terrainPath) {
+    protected void setTerrainPath(String terrainPath) {
         this.terrainPath = terrainPath;
     }
 
@@ -502,7 +511,7 @@ public class GameLevel {
         return oneShotHornyLev;
     }
 
-    public void setOneShotHornyLev(short oneShotHornyLev) {
+    protected void setOneShotHornyLev(short oneShotHornyLev) {
         this.oneShotHornyLev = oneShotHornyLev;
     }
 
@@ -510,7 +519,7 @@ public class GameLevel {
         return x06405;
     }
 
-    public void setX06405(short x06405) {
+    protected void setX06405(short x06405) {
         this.x06405 = x06405;
     }
 
@@ -518,7 +527,7 @@ public class GameLevel {
         return x06406;
     }
 
-    public void setX06406(short x06406) {
+    protected void setX06406(short x06406) {
         this.x06406 = x06406;
     }
 
@@ -526,7 +535,7 @@ public class GameLevel {
         return speechHornyId;
     }
 
-    public void setSpeechHornyId(int speechHornyId) {
+    protected void setSpeechHornyId(int speechHornyId) {
         this.speechHornyId = speechHornyId;
     }
 
@@ -534,7 +543,7 @@ public class GameLevel {
         return speechPrelvlId;
     }
 
-    public void setSpeechPrelvlId(int speechPrelvlId) {
+    protected void setSpeechPrelvlId(int speechPrelvlId) {
         this.speechPrelvlId = speechPrelvlId;
     }
 
@@ -542,7 +551,7 @@ public class GameLevel {
         return speechPostlvlWin;
     }
 
-    public void setSpeechPostlvlWin(int speechPostlvlWin) {
+    protected void setSpeechPostlvlWin(int speechPostlvlWin) {
         this.speechPostlvlWin = speechPostlvlWin;
     }
 
@@ -550,7 +559,7 @@ public class GameLevel {
         return speechPostlvlLost;
     }
 
-    public void setSpeechPostlvlLost(int speechPostlvlLost) {
+    protected void setSpeechPostlvlLost(int speechPostlvlLost) {
         this.speechPostlvlLost = speechPostlvlLost;
     }
 
@@ -558,7 +567,7 @@ public class GameLevel {
         return speechPostlvlNews;
     }
 
-    public void setSpeechPostlvlNews(int speechPostlvlNews) {
+    protected void setSpeechPostlvlNews(int speechPostlvlNews) {
         this.speechPostlvlNews = speechPostlvlNews;
     }
 
@@ -566,7 +575,7 @@ public class GameLevel {
         return speechPrelvlGenr;
     }
 
-    public void setSpeechPrelvlGenr(int speechPrelvlGenr) {
+    protected void setSpeechPrelvlGenr(int speechPrelvlGenr) {
         this.speechPrelvlGenr = speechPrelvlGenr;
     }
 
@@ -574,7 +583,7 @@ public class GameLevel {
         return heroName;
     }
 
-    public void setHeroName(String heroName) {
+    protected void setHeroName(String heroName) {
         this.heroName = heroName;
     }
 
@@ -582,7 +591,7 @@ public class GameLevel {
         return paths;
     }
 
-    public void setPaths(List<FilePath> paths) {
+    protected void setPaths(List<FilePath> paths) {
         this.paths = paths;
     }
 
@@ -590,10 +599,10 @@ public class GameLevel {
         return unknown;
     }
 
-    public void setUnknown(int[] unknown) {
+    protected void setUnknown(int[] unknown) {
         this.unknown = unknown;
     }
-    
+
     public String getFile(MapDataTypeEnum type) {
         for (FilePath file : paths) {
             if (file.getId() == type) {

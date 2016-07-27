@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.world;
 
+import com.jme3.app.Application;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector2f;
 import com.jme3.scene.Node;
@@ -122,7 +123,7 @@ public class ThingLoader {
         for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
             try {
                 if (obj instanceof Thing.Creature) {
-                    spawnCreature((Thing.Creature) obj, null);
+                    spawnCreature((Thing.Creature) obj, null, null);
                 } else if (obj instanceof Thing.Object) {
 
                     Thing.Object objectThing = (Thing.Object) obj;
@@ -146,21 +147,67 @@ public class ThingLoader {
      *
      * @param cr creature data
      * @param position the position to spawn to, may be {@code null}
+     * @param app if the app is set, the creature is attached in the next render
+     * loop, may be {@code null}. <strong>You need this parameter if calling
+     * from outside the render loop!</strong>
      * @return the actual spawned creature
      */
-    public CreatureControl spawnCreature(Thing.Creature cr, Vector2f position) {
+    public CreatureControl spawnCreature(Thing.Creature cr, Vector2f position, Application app) {
         Spatial creature = creatureLoader.load(assetManager, cr);
+        return spawnCreature(creature, position, false, app);
+    }
+
+    /**
+     * Spawn a creature
+     *
+     * @param creatureId the creature ID to generate
+     * @param playerId the owner
+     * @param level the creature level
+     * @param position the position to spawn to, may be {@code null}
+     * @param entrance whether this an enrance for the creature (coming out of a
+     * portal)
+     * @param app if the app is set, the creature is attached in the next render
+     * loop, may be {@code null}. <strong>You need this parameter if calling
+     * from outside the render loop!</strong>
+     * @return the actual spawned creature
+     */
+    public CreatureControl spawnCreature(short creatureId, short playerId, short level, Vector2f position, boolean entrance, Application app) {
+        Spatial creature = creatureLoader.load(assetManager, creatureId, playerId, level);
+        return spawnCreature(creature, position, entrance, app);
+    }
+
+    private CreatureControl spawnCreature(Spatial creature, Vector2f position, boolean entrance, Application app) {
         if (position != null) {
             CreatureLoader.setPosition(creature, position);
         }
         CreatureControl creatureControl = creature.getControl(CreatureControl.class);
+        if (entrance) {
+            creatureControl.getStateMachine().setInitialState(CreatureState.ENTERING_DUNGEON);
+        }
         creatures.add(creatureControl);
-        nodeCreatures.attachChild(creature);
+
+        // Enqueue if app is set
+        if (app != null) {
+
+            app.enqueue(() -> {
+
+                // Spawn the creature
+                attachCreature(creature);
+
+                return null;
+            });
+        } else {
+            attachCreature(creature);
+        }
 
         // Notify spawn
         creatureControl.onSpawn(creatureControl);
 
         return creatureControl;
+    }
+
+    private void attachCreature(Spatial creature) {
+        nodeCreatures.attachChild(creature);
     }
 
     /**

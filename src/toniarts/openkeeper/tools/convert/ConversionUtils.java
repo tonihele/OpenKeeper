@@ -195,7 +195,7 @@ public class ConversionUtils {
      * Converts 4 bytes to JAVA float from LITTLE ENDIAN float presented by a
      * byte array
      *
-     * @param unsignedInt the byte array
+     * @param f the byte array
      * @return JAVA native float
      */
     public static float readFloat(byte[] f) {
@@ -331,7 +331,7 @@ public class ConversionUtils {
         file.read(bytes);
         for (byte b : bytes) {
             if (b != 0) {
-                throw new RuntimeException("value not equal 0");
+                logger.log(Level.WARNING, "Value not 0! Was {0}!", b);
             }
         }
     }
@@ -375,7 +375,7 @@ public class ConversionUtils {
         byte[] byteArray = new byte[bytes.size()];
         int i = 0;
         for (Byte b : bytes) {
-            byteArray[i] = b.byteValue();
+            byteArray[i] = b;
             i++;
         }
         return byteArray;
@@ -492,6 +492,7 @@ public class ConversionUtils {
      * Parse a flag to enumeration set of given class
      *
      * @param flag the flag value
+     * @param <E> enumeration class
      * @param enumeration the enumeration class
      * @return the set
      */
@@ -563,9 +564,16 @@ public class ConversionUtils {
         public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
             if (startingPath.equals(dir)) {
                 return FileVisitResult.CONTINUE; // Just the root
-            } else if (level < path.length - 1 && startingPath.relativize(dir).getName(level).toString().equalsIgnoreCase(path[level])) {
-                level++;
-                return FileVisitResult.CONTINUE;
+            } else if (startingPath.relativize(dir).getName(level).toString().equalsIgnoreCase(path[level])) {
+                if (level < path.length - 1) {
+                    level++;
+                    return FileVisitResult.CONTINUE; // Go to dir
+                } else {
+
+                    // We are looking for a directory and we found it
+                    this.file = dir.toFile().getCanonicalPath().concat(File.separator);
+                    return FileVisitResult.TERMINATE;
+                }
             }
             return FileVisitResult.SKIP_SUBTREE;
         }

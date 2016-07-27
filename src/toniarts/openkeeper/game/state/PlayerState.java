@@ -54,7 +54,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -63,10 +62,12 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
-import toniarts.openkeeper.game.player.PlayerTriggerControl;
+import toniarts.openkeeper.game.player.PlayerRoomControl;
+import toniarts.openkeeper.game.player.PlayerStatsControl;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -74,7 +75,6 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell;
 import toniarts.openkeeper.tools.convert.map.Door;
-import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -120,11 +120,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private PossessionInteractionState possessionState;
     private PlayerCameraState cameraState;
     private PossessionCameraState possessionCameraState;
-    private Label goldCurrent;
     private Label tooltip;
-    private PlayerManaControl manaControl = null;
-    private PlayerTriggerControl triggerControl = null;
-    private int score = 0;
     private boolean transitionEnd = true;
     private Integer textId = null;
     private boolean initHud = false;
@@ -146,8 +142,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         this.app = (Main) app;
         assetManager = this.app.getAssetManager();
         this.stateManager = stateManager;
-
-        manaControl = new PlayerManaControl(playerId, stateManager);
     }
 
     @Override
@@ -169,21 +163,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             // Get the game state
             final GameState gameState = stateManager.getState(GameState.class);
 
-            // Load the level dictionary on campaign maps
-            if (!gameState.getLevelData().getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)) {
-                String levelResource = "Interface/Texts/" + gameState.getLevel().toUpperCase();
-                // for custom levels
+            // Load the level dictionary
+            if (gameState.getLevelData().getGameLevel().getTextTableId().getLevelDictFile() != null) {
+                String levelResource = "Interface/Texts/".concat(gameState.getLevelData().getGameLevel().getTextTableId().getLevelDictFile());
                 try {
                     this.app.getNifty().getNifty().addResourceBundle("level", Main.getResourceBundle(levelResource));
                 } catch (Exception ex) {
-                    logger.warning(ex.toString());
+                    logger.log(Level.WARNING, "Failed to load the level dictionary!", ex);
                 }
-            }
-
-            int triggerId = gameState.getLevelData().getPlayer(playerId).getTriggerId();
-            if (triggerId != 0) {
-                triggerControl = new PlayerTriggerControl(stateManager, triggerId);
-                triggerControl.setPlayerState(this);
             }
 
             // Load the HUD
@@ -286,24 +273,49 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         }
     }
 
-    public PlayerGoldControl getGoldControl() {
+    /**
+     * Get this player
+     *
+     * @return this player
+     */
+    public Keeper getPlayer() {
         GameState gs = stateManager.getState(GameState.class);
         if (gs != null) {
-            return gs.getPlayer(playerId).getGoldControl();
+            return gs.getPlayer(playerId);
+        }
+        return null;
+    }
+
+    public PlayerStatsControl getStatsControl() {
+        Keeper keeper = getPlayer();
+        if (keeper != null) {
+            return keeper.getStatsControl();
+        }
+        return null;
+    }
+
+    public PlayerGoldControl getGoldControl() {
+        Keeper keeper = getPlayer();
+        if (keeper != null) {
+            return keeper.getGoldControl();
         }
         return null;
     }
 
     public PlayerCreatureControl getCreatureControl() {
-        GameState gs = stateManager.getState(GameState.class);
-        if (gs != null) {
-            return gs.getPlayer(playerId).getCreatureControl();
+        Keeper keeper = getPlayer();
+        if (keeper != null) {
+            return keeper.getCreatureControl();
         }
         return null;
     }
 
-    public PlayerManaControl getManaControl() {
-        return manaControl;
+    public PlayerRoomControl getRoomControl() {
+        Keeper keeper = getPlayer();
+        if (keeper != null) {
+            return keeper.getRoomControl();
+        }
+        return null;
     }
 
     public void setTransitionEnd(boolean value) {
@@ -314,15 +326,11 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         return transitionEnd;
     }
 
-    public int getScore() {
-        return score;
-    }
-
-    public void setScore(int score) {
-        this.score = score;
-    }
-
     public void setWideScreen(boolean enable) {
+        if (interactionState.isInitialized()) {
+            interactionState.setEnabled(!enable);
+        }
+
         if (enable) {
             app.getNifty().getNifty().gotoScreen(PlayerState.CINEMATIC_SCREEN_ID);
         } else {
@@ -347,9 +355,10 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
         Screen hud = nifty.getScreen(HUD_SCREEN_ID);
 
+        PlayerManaControl manaControl = getPlayer().getManaControl();
         if (manaControl != null) {
             manaControl.addListener(hud.findNiftyControl("mana", Label.class), PlayerManaControl.Type.CURRENT);
-            manaControl.addListener(hud.findNiftyControl("manaGet", Label.class), PlayerManaControl.Type.GET);
+            manaControl.addListener(hud.findNiftyControl("manaGet", Label.class), PlayerManaControl.Type.GAIN);
             manaControl.addListener(hud.findNiftyControl("manaLose", Label.class), PlayerManaControl.Type.LOSE);
         }
 
@@ -397,13 +406,17 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         });
         getCreatureControl().addWorkerListener(creatureTab.findNiftyControl("tab-workers#amount", Label.class), creatureTab.findNiftyControl("tab-workers#idle", Label.class), creatureTab.findNiftyControl("tab-workers#busy", Label.class), creatureTab.findNiftyControl("tab-workers#fighting", Label.class));
 
-        Element contentPanel = hud.findElementById("tab-room-content");
-        removeAllChildElements(contentPanel);
-        for (final Room room : getAvailableRoomsToBuild()) {
-            createRoomIcon(room).build(nifty, hud, contentPanel);
-        }
+        // Rooms
+        getRoomControl().addRoomAvailabilityListener(new PlayerRoomControl.IRoomAvailabilityListener() {
 
-        contentPanel = hud.findElementById("tab-spell-content");
+            @Override
+            public void onChange() {
+                populateRoomTab();
+            }
+        });
+        populateRoomTab();
+
+        Element contentPanel = hud.findElementById("tab-spell-content");
         removeAllChildElements(contentPanel);
         for (final KeeperSpell spell : getAvailableKeeperSpells()) {
             createSpellIcon(spell).build(nifty, hud, contentPanel);
@@ -419,6 +432,18 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         removeAllChildElements(contentPanel);
         for (final Trap trap : getAvailableTraps()) {
             createTrapIcon(trap).build(nifty, hud, contentPanel);
+        }
+    }
+
+    /**
+     * Populates the player rooms tab
+     */
+    public void populateRoomTab() {
+        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+        Element contentPanel = hud.findElementById("tab-room-content");
+        removeAllChildElements(contentPanel);
+        for (final Room room : getAvailableRoomsToBuild()) {
+            createRoomIcon(room).build(nifty, hud, contentPanel);
         }
     }
 
@@ -441,14 +466,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     public void update(float tpf) {
         if (!isInitialized() || !isEnabled()) {
             return;
-        }
-
-        if (manaControl != null) {
-            manaControl.update(tpf);
-        }
-
-        if (triggerControl != null) {
-            triggerControl.update(tpf);
         }
 
         super.update(tpf);
@@ -862,15 +879,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     private List<Room> getAvailableRoomsToBuild() {
-        GameState gameState = stateManager.getState(GameState.class);
-        List<Room> rooms = gameState.getLevelData().getRooms();
-        for (Iterator<Room> iter = rooms.iterator(); iter.hasNext();) {
-            Room room = iter.next();
-            if (!room.getFlags().contains(Room.RoomFlag.BUILDABLE)) {
-                iter.remove();
-            }
-        }
-        return rooms;
+        return getRoomControl().getTypesAvailable();
     }
 
     private List<KeeperSpell> getAvailableKeeperSpells() {
@@ -1081,6 +1090,10 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         if (element != null) {
             element.setFocus();
         }
+    }
+
+    public short getPlayerId() {
+        return playerId;
     }
 
     private class GameMenu {

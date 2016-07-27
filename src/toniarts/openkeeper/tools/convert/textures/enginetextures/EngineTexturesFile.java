@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Reads Dungeon Keeper II EngineTextures.dat file to a structure<br>
@@ -166,10 +167,8 @@ public class EngineTexturesFile implements Iterable<String> {
     private File extractFileData(String textureEntry, String destination, RandomAccessFile rawTextures, boolean overwrite) {
 
         //See that the destination is formatted correctly and create it if it does not exist
-        String dest = destination;
-        if (!dest.endsWith(File.separator)) {
-            dest = dest.concat(File.separator);
-        }
+        String dest = PathUtils.fixFilePath(destination);
+
         File destinationFile = new File(dest.concat(textureEntry).concat(".png"));
         if (!overwrite && destinationFile.exists()) {
 

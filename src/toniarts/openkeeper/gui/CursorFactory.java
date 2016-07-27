@@ -80,7 +80,7 @@ public final class CursorFactory {
         //
         // Static mouse cursors
         //
-        cursors.put(CursorType.POINTER, new Cursor(assetManager, "Idle.png", 1, 2));
+        cursors.put(CursorType.POINTER, new Cursor(assetManager, "Idle.png", 2, 14));
         cursors.put(CursorType.PICKAXE_TAG, new Cursor(assetManager, "PickAxeTag.png", 10, 65));
         cursors.put(CursorType.HOLD_PICKAXE, new Cursor(assetManager, "PickAxeHold.png", 3, 40));
         cursors.put(CursorType.HOLD_PICKAXE_TAGGING, new Cursor(assetManager, "PickAxeHoldTagging.png", 10, 65));

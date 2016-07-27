@@ -17,20 +17,24 @@
 package toniarts.openkeeper.game.trigger;
 
 import com.jme3.app.state.AppStateManager;
-import com.jme3.math.FastMath;
 import java.awt.Point;
 import java.util.EnumSet;
+import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.control.Control;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.player.PlayerCameraControl;
+import toniarts.openkeeper.game.player.PlayerCameraRotateControl;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerAction.FlagTargetValueActionType;
@@ -39,12 +43,17 @@ import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.world.room.ICreatureEntrance;
 
 /**
  *
  * @author ArchDemon
  */
 public class TriggerControl extends Control {
+
+    private static final short LEVEL_SCORE_FLAG_ID = 128;
+    private static final short TIME_LIMIT_TIMER_ID = 16;
 
     protected TriggerGenericData trigger;
     protected TriggerGenericData root;
@@ -53,7 +62,11 @@ public class TriggerControl extends Control {
     protected boolean checked = true;
     private static final Logger logger = Logger.getLogger(TriggerControl.class.getName());
 
+    /**
+     * empty serialization constructor
+     */
     public TriggerControl() {
+        super();
     }
 
     public TriggerControl(final AppStateManager stateManager, int triggerId) {
@@ -117,7 +130,14 @@ public class TriggerControl extends Control {
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case FLAG:
-                target = stateManager.getState(GameState.class).getFlag((Short) trigger.getUserData("targetId"));
+                short targetId = (Short) trigger.getUserData("targetId");
+                if (targetId == LEVEL_SCORE_FLAG_ID) {
+
+                    // A special value, level score
+                    target = stateManager.getState(GameState.class).getLevelScore();
+                } else {
+                    target = stateManager.getState(GameState.class).getFlag(targetId);
+                }
                 if ((Short) trigger.getUserData("flag") == 1) {
                     value = (Integer) trigger.getUserData("value");
                 } else {
@@ -130,12 +150,12 @@ public class TriggerControl extends Control {
                 if ((Short) trigger.getUserData("flag") == 1) {
                     value = (Integer) trigger.getUserData("value");
                 } else {
-                    value = (int) stateManager.getState(GameState.class).getTimer((Short) trigger.getUserData("timerId")).getTime();
+                    value = (int) Math.floor(stateManager.getState(GameState.class).getTimer((Short) trigger.getUserData("timerId")).getTime());
                 }
                 break;
 
             case LEVEL_TIME:
-                target = (int) stateManager.getState(GameState.class).getGameTime();
+                target = (int) Math.floor(stateManager.getState(GameState.class).getGameTime());
                 value = (Integer) trigger.getUserData("value");
                 break;
             case LEVEL_CREATURES:
@@ -172,15 +192,20 @@ public class TriggerControl extends Control {
                         TriggerAction.MakeType.class);
                 boolean available = trigger.getUserData("available", short.class) != 0;
                 short playerId = trigger.getUserData("playerId", short.class);
+                Keeper keeper = getPlayer(playerId);
+                KwdFile kwdFile = stateManager.getState(GameState.class).getLevelData();
+                short targetId = trigger.getUserData("targetId", short.class);
 
                 switch (flag) {
                     case CREATURE:
+                        keeper.getCreatureControl().setTypeAvailable(kwdFile.getCreature(targetId), available);
                         break;
                     case DOOR:
                         break;
                     case KEEPER_SPELL:
                         break;
                     case ROOM:
+                        keeper.getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
                         break;
                     case TRAP:
                         break;
@@ -196,9 +221,9 @@ public class TriggerControl extends Control {
                     value = stateManager.getState(GameState.class).getFlag(value);
                 }
 
-                if (flagId == 128) {
-                    PlayerState ps = stateManager.getState(PlayerState.class);
-                    ps.setScore(getTargetValue(ps.getScore(), value, flagType));
+                if (flagId == LEVEL_SCORE_FLAG_ID) {
+                    GameState gs = stateManager.getState(GameState.class);
+                    gs.setLevelScore(getTargetValue(gs.getLevelScore(), value, flagType));
                 } else {
                     int base = stateManager.getState(GameState.class).getFlag(flagId);
                     stateManager.getState(GameState.class).setFlag(flagId, getTargetValue(base, value, flagType));
@@ -207,10 +232,11 @@ public class TriggerControl extends Control {
 
             case INITIALIZE_TIMER:
                 short timerId = trigger.getUserData("timerId", short.class);
-                if (timerId == 16) {
-                    stateManager.getState(GameState.class).setTimeLimit(trigger.getUserData("value", int.class));
+                if (timerId == TIME_LIMIT_TIMER_ID) {
+                    value = trigger.getUserData("value", int.class);
+                    stateManager.getState(GameState.class).setTimeLimit(value);
                 } else {
-                    stateManager.getState(GameState.class).getTimer(trigger.getUserData("timerId", short.class)).setActive(true);
+                    stateManager.getState(GameState.class).getTimer(timerId).setActive(true);
                 }
                 break;
 
@@ -218,7 +244,7 @@ public class TriggerControl extends Control {
                 PlayerState player = stateManager.getState(PlayerState.class);
                 TriggerAction.MakeType buttonType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
                         TriggerAction.MakeType.class);
-                short targetId = trigger.getUserData("targetId", short.class);
+                targetId = trigger.getUserData("targetId", short.class);
                 boolean enable = trigger.getUserData("available", short.class) != 0;
                 int time = trigger.getUserData("value", int.class);
                 player.flashButton(targetId, buttonType, enable, time);
@@ -240,7 +266,7 @@ public class TriggerControl extends Control {
                 // Load the party members
                 ThingLoader loader = stateManager.getState(WorldState.class).getThingLoader();
                 for (Thing.GoodCreature creature : party.getMembers()) {
-                    CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter());
+                    CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter(), stateManager.getApplication());
                     creatureInstance.setParty(party);
                     party.addMemberInstance(creatureInstance);
                 }
@@ -301,19 +327,30 @@ public class TriggerControl extends Control {
                 break;
 
             case ROTATE_AROUND_ACTION_POINT:
-                // TODO Not tested
                 ap = getActionPoint(trigger.getUserData("targetId", short.class));
-                boolean relative = trigger.getUserData("available", short.class) == 0;
+                boolean isRelative = trigger.getUserData("available", short.class) == 0;
                 int angle = trigger.getUserData("angle", int.class);
                 time = trigger.getUserData("time", int.class);
-                // TODO convert to control
+
                 pcs = stateManager.getState(PlayerCameraState.class);
-                pcs.setCameraLookAt(ap);
-                pcs.addRotation(angle * FastMath.DEG_TO_RAD, time);
+                ap.addControl(new PlayerCameraRotateControl(pcs.getCamera(), isRelative, angle, time));
                 break;
 
             case GENERATE_CREATURE:
+                short creatureId = trigger.getUserData("creatureId", short.class);
+                short level = trigger.getUserData("level", short.class);
+                keeper = getPlayer((short) 0);
+
+                // Get first spawn point of the player (this flag is only for the players)
+                Set<GenericRoom> rooms = keeper.getRoomControl().getTypes().get(stateManager.getState(GameState.class).getLevelData().getPortal());
+                if (rooms == null || rooms.isEmpty()) {
+                    logger.warning("Generate creature triggered but no entrances found!");
+                    break;
+                }
+                Point p = ((ICreatureEntrance) rooms.iterator().next()).getEntranceCoordinate();
+                CreatureSpawnLogicState.spawnCreature(creatureId, keeper.getId(), level, stateManager.getState(GameState.class).getApplication(), stateManager.getState(WorldState.class).getThingLoader(), p, true);
                 break;
+
             case SHOW_HEALTH_FLOWER:
                 break;
             case FOLLOW_CAMERA_PATH:
@@ -327,7 +364,10 @@ public class TriggerControl extends Control {
             case COLLAPSE_HERO_GATE:
                 break;
             case SET_PORTAL_STATUS:
+                available = trigger.getUserData("available", short.class) != 0;
+                getPlayer((short) 0).getRoomControl().setPortalsOpen(available);
                 break;
+
             case SET_WIDESCREEN_MODE:
                 PlayerState ps = stateManager.getState(PlayerState.class);
                 enable = trigger.getUserData("available", short.class) != 0;
@@ -406,5 +446,14 @@ public class TriggerControl extends Control {
 
         logger.warning("Unsupported target flag type");
         return 0;
+    }
+
+    protected Keeper getPlayer(short playerId) {
+        GameState gameState = stateManager.getState(GameState.class);
+        if (playerId == 0) {
+            return gameState.getPlayer(this.stateManager.getState(PlayerState.class).getPlayerId()); // Current player
+        } else {
+            return gameState.getPlayer(playerId);
+        }
     }
 }

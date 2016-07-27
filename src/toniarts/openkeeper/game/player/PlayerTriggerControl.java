@@ -18,6 +18,8 @@ package toniarts.openkeeper.game.player;
 
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
@@ -27,23 +29,24 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  *
  * @author ArchDemon
  */
-
-
 public class PlayerTriggerControl extends TriggerControl {
 
     private PlayerState playerState = null;
+    private short playerId;
     private static final Logger logger = Logger.getLogger(PlayerTriggerControl.class.getName());
 
-    public PlayerTriggerControl() { // empty serialization constructor
+    /**
+     * empty serialization constructor
+     */
+    public PlayerTriggerControl() {
         super();
     }
 
-    public PlayerTriggerControl(final AppStateManager stateManager, int triggerId) {
+    public PlayerTriggerControl(final AppStateManager stateManager, int triggerId, short playerId) {
         super(stateManager, triggerId);
-    }
 
-    public void setPlayerState(PlayerState playerState) {
-        this.playerState = playerState;
+        this.playerState = this.stateManager.getState(PlayerState.class);
+        this.playerId = playerId;
     }
 
     @Override
@@ -60,7 +63,19 @@ public class PlayerTriggerControl extends TriggerControl {
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case PLAYER_CREATURES:
-                return false;
+                short creatureId = trigger.getUserData("creatureId", short.class);
+                boolean isValue = trigger.getUserData("flag", short.class) == 1;
+
+                target = getCreaturesCount(0, creatureId);
+
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                } else {
+                    short otherPlayerId = trigger.getUserData("playerId", short.class);
+                    value = getCreaturesCount(otherPlayerId, creatureId);
+                }
+                break;
+
             case PLAYER_HAPPY_CREATURES:
                 return false;
             case PLAYER_ANGRY_CREATURES:
@@ -70,9 +85,33 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_KILLS_CREATURES:
                 return false;
             case PLAYER_ROOM_SLABS:
-                return false;
+                short roomId = trigger.getUserData("roomId", short.class);
+                isValue = trigger.getUserData("flag", short.class) == 1;
+
+                target = getRoomSlabsCount(0, roomId);
+
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                } else {
+                    short otherPlayerId = trigger.getUserData("playerId", short.class);
+                    value = getRoomSlabsCount(otherPlayerId, roomId);
+                }
+                break;
+
             case PLAYER_ROOMS:
-                return false;
+                roomId = trigger.getUserData("roomId", short.class);
+                isValue = trigger.getUserData("flag", short.class) == 1;
+
+                target = getRoomCount(0, roomId);
+
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                } else {
+                    short otherPlayerId = trigger.getUserData("playerId", short.class);
+                    value = getRoomCount(otherPlayerId, roomId);
+                }
+                break;
+
             case PLAYER_ROOM_SIZE:
                 return false;
             case PLAYER_DOORS:
@@ -82,34 +121,42 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_KEEPER_SPELL:
                 return false;
             case PLAYER_GOLD:
-                PlayerGoldControl pgc = playerState.getGoldControl();
-                target = pgc.getGold();
-                boolean isValue = trigger.getUserData("flag", short.class) == 1;
+                isValue = trigger.getUserData("flag", short.class) == 1;
+
+                target = getPlayer().getGoldControl().getGold();
+
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
-                    // TODO get value from other player
-                    short playerId = trigger.getUserData("targetId", short.class);
-                    return false;
+                    short otherPlayerId = trigger.getUserData("playerId", short.class);
+                    value = getPlayer(otherPlayerId).getGoldControl().getGold();
                 }
                 break;
 
             case PLAYER_GOLD_MINED:
-                pgc = playerState.getGoldControl();
-                target = pgc.getGoldMined();
                 isValue = trigger.getUserData("flag", short.class) == 1;
+
+                target = getPlayer().getGoldControl().getGoldMined();
+
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
-                    // TODO get value from other player
-                    short playerId = trigger.getUserData("targetId", short.class);
-                    return false;
+                    short otherPlayerId = trigger.getUserData("playerId", short.class);
+                    value = getPlayer(otherPlayerId).getGoldControl().getGoldMined();
                 }
                 break;
 
             case PLAYER_MANA:
-                PlayerManaControl pmc = playerState.getManaControl();
-                target = pmc.getMana();
+                isValue = trigger.getUserData("flag", short.class) == 1;
+
+                target = getPlayer().getManaControl().getMana();
+
+                if (isValue) {
+                    value = trigger.getUserData("value", int.class);
+                } else {
+                    short otherPlayerId = trigger.getUserData("playerId", short.class);
+                    value = getPlayer(otherPlayerId).getManaControl().getMana();
+                }
                 break;
 
             case PLAYER_DESTROYS:
@@ -127,7 +174,17 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_CREATURE_DROPPED:
                 return false;
             case PLAYER_CREATURE_SLAPPED:
-                return false;
+                PlayerStatsControl psc = getPlayer().getStatsControl();
+                creatureId = trigger.getUserData("creatureId", short.class);
+
+                if (creatureId == 0) {
+                    // Any creature
+                    return psc.hasSlapped();
+                } else {
+                    // Certain creature
+                    return psc.hasSlapped(stateManager.getState(GameState.class).getLevelData().getCreature(creatureId));
+                }
+
             case PLAYER_CREATURE_SACKED:
                 return false;
             case PLAYER_ROOM_FURNITURE:
@@ -151,6 +208,49 @@ public class PlayerTriggerControl extends TriggerControl {
         TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
         if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
             result = compare(target, comparisonType, value);
+        }
+
+        return result;
+    }
+
+    private Keeper getPlayer() {
+        return super.getPlayer(playerId);
+    }
+
+    private int getCreaturesCount(int playerId, short creatureId) {
+        int result;
+
+        if (creatureId == 0) {
+            result = getPlayer((short) playerId).getCreatureControl().getTypeCount();
+        } else {
+            GameState gameState = stateManager.getState(GameState.class);
+            result = getPlayer((short) playerId).getCreatureControl().getTypeCount(gameState.getLevelData().getCreature(creatureId));
+        }
+
+        return result;
+    }
+
+    private int getRoomSlabsCount(int playerId, short roomId) {
+        int result;
+
+        if (roomId == 0) {
+            result = getPlayer((short) playerId).getRoomControl().getRoomSlabsCount();
+        } else {
+            GameState gameState = stateManager.getState(GameState.class);
+            result = getPlayer((short) playerId).getRoomControl().getRoomSlabsCount(gameState.getLevelData().getRoomById(roomId));
+        }
+
+        return result;
+    }
+
+    private int getRoomCount(int playerId, short roomId) {
+        int result;
+
+        if (roomId == 0) {
+            result = getPlayer((short) playerId).getRoomControl().getTypeCount();
+        } else {
+            GameState gameState = stateManager.getState(GameState.class);
+            result = getPlayer((short) playerId).getRoomControl().getTypeCount(gameState.getLevelData().getRoomById(roomId));
         }
 
         return result;

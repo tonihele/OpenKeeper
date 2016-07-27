@@ -65,6 +65,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      * @param cameraSweepFile the camera sweep file name that is the basis for
      * this animation (without the extension)
      * @param scene scene node to attach to
+     * @param stateManager the state manager
      */
     public Cinematic(AssetManager assetManager, Camera cam, Point start, String cameraSweepFile, Node scene, AppStateManager stateManager) {
         this(assetManager, cam, MapLoader.getCameraPositionOnMapPoint(start.x, start.y), cameraSweepFile, scene, stateManager);
@@ -83,6 +84,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      * @param cameraSweepFile the camera sweep file name that is the basis for
      * this animation (without the extension)
      * @param scene scene node to attach to
+     * @param stateManager the state manager
      */
     public Cinematic(AssetManager assetManager, final Camera cam, final Vector3f start, String cameraSweepFile, Node scene, final AppStateManager stateManager) {
         super(scene);
@@ -160,7 +162,6 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
             @Override
             public void onStop() {
                 super.onStop();
-
 
             }
         };

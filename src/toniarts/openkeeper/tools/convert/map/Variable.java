@@ -76,16 +76,16 @@ public class Variable { //    struct VariableBlock {
     }
     // Variable IDs
     public final static int CREATURE_POOL = 1;
-    public final static int AVAILABILITY = 2;    
+    public final static int AVAILABILITY = 2;
     // 17, 19, 29, 43, 44, 56 - 66, 69, 72, 74, 77, 80, 81, 89 - 92, 99,
     // 107 - 109, 117 - 124, 137, 153, 171, 172
     public final static int SACRIFICES_ID = 43;
     public final static int CREATURE_STATS_ID = 65;
     public final static int CREATURE_FIRST_PERSON_ID = 224;
-    
+
     public final static int UNKNOWN_0 = 0;
     public final static int UNKNOWN_17 = 17;
-    public final static int UNKNOWN_66 = 66;  
+    public final static int UNKNOWN_66 = 66;
     public final static int UNKNOWN_77 = 77;
 
     public static class CreaturePool extends Variable {
@@ -132,7 +132,7 @@ public class Variable { //    struct VariableBlock {
             DOOR(4),
             TRAP(3),
             SPELL(5),
-            CREATYRE(2);
+            CREATURE(2);
 
             private AvailabilityType(int id) {
                 this.id = id;
@@ -211,11 +211,11 @@ public class Variable { //    struct VariableBlock {
 
         public enum StatType implements IValueEnum {
 
-            HEIGHT_TILES(0),  // +
+            HEIGHT_TILES(0), // +
             HEALTH(1),
             FEAR(2),
             THREAT(3),
-            MELEE_DAMAGE(4),  // +
+            MELEE_DAMAGE(4), // +
             PAY(5),
             MAX_GOLD_HELD(6),
             INITIAL_GOLD_HELD(7),
@@ -254,7 +254,7 @@ public class Variable { //    struct VariableBlock {
             }
             private final int id;
         }
-        
+
         private StatType statId;
         private int value; // Stat Increase Percentages For Level
         private int level;
@@ -308,7 +308,7 @@ public class Variable { //    struct VariableBlock {
             }
             return true;
         }
-        
+
         @Override
         public String toString() {
             return "CreatureStats{" + "statId=" + statId + ", value=" + value + ", level=" + level + '}';
@@ -323,15 +323,15 @@ public class Variable { //    struct VariableBlock {
         }
     }
 
-    public static class MiscVariable extends Variable {        
-        
+    public static class MiscVariable extends Variable {
+
         public enum MiscType implements IValueEnum {
 
-            ENTRANCE_GENERATION_SPEED_SECONDS(3),  // value=25
-            CLAIM_TILE_HEALTH(4),  // value=825
-            ATTACK_TILE_HEALTH(5),  // value=-140
-            REPAIR_TILE_HEALTH(6),  // value=125
-            MINE_GOLD_HEALTH(7),  // value=-300
+            ENTRANCE_GENERATION_SPEED_SECONDS(3), // value=25
+            CLAIM_TILE_HEALTH(4), // value=825
+            ATTACK_TILE_HEALTH(5), // value=-140
+            REPAIR_TILE_HEALTH(6), // value=125
+            MINE_GOLD_HEALTH(7), // value=-300
             DIG_ROCK_HEALTH(8), // value=-5000
             DIG_OWN_WALL_HEALTH(9), // value=-130
             DIG_ENEMY_WALL_HEALTH(10), // value=-8
@@ -379,7 +379,7 @@ public class Variable { //    struct VariableBlock {
             PAY_DAY_CUT_OFF_TIME_SECONDS(68), // value=120
             CASINO_MODIFY_CREATURE_GOLD_PER_SECOND(70), // value=-50
             CASINO_BIG_WIN_KEEPER_LOSS_PERCENTAGE(71), // value=0
-            CREATURES_SUPPORTED_BY_FIRST_PORTAL(73), // value=15            
+            CREATURES_SUPPORTED_BY_FIRST_PORTAL(73), // value=15
             MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND(75), // value=100
             MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND(76), // value=-550
             MODIFY_ANGER_IN_COMPANY_OF_HATED_CREATURES_PER_SECOND(78), // value=150
@@ -511,24 +511,23 @@ public class Variable { //    struct VariableBlock {
             MPD_SCORE_LAND_OWNED(229), // value=5
             MPD_SCORE_GOLD_SLABS_MINED(230), // value=1
             MPD_SCORE_ITEM_MANUFACTURED(231), // value=10
-            MPD_SCORE_CREATURE_ENTERED(232), // value=20            
+            MPD_SCORE_CREATURE_ENTERED(232), // value=20
             TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED(234), // value=0
             MAXIMUM_MANA_GAIN_PER_SECOND(235), // value=500
             CLAIM_SCAN_LIGHT_RED(236), // value=200
             CLAIM_SCAN_LIGHT_GREEN(237), // value=80
             CLAIM_SCAN_LIGHT_BLUE(238), // value=35
             PIT_PERCENTAGE_DAMAGE_TAKEN_OF_NORMAL_COMBAT(239), // value=20
-            BOULDER_SLAP_DAMAGE(240),  // value=400
-            
+            BOULDER_SLAP_DAMAGE(240), // value=400
+
             GAME_TICKS(74), // value=4
             LEVEL_RATING(241),
             AVERAGE_TIME(242),
-            
             UNKNOWN_233(233), // value=40
             UNKNOWN_61(61), // value=305493641, unknown_1=-1413218304, unknown_2=0}
             UNKNOWN_62(62), // value=-377003726, unknown_1=1420541952, unknown_2=0}
             UNKNOWN_63(63); // value=305498471, unknown_1=-878624768, unknown_2=0}
-                        
+
             private MiscType(int id) {
                 this.id = id;
             }
@@ -564,14 +563,14 @@ public class Variable { //    struct VariableBlock {
             if (this.variableId == MiscType.GAME_TICKS) {
                 result = MiscVariable.gameTicks / value;
             } else if (this.variableId == MiscType.LEVEL_RATING) {
-                result = value >> 12; // FIXME Why ??? 
+                result = value >> 12; // FIXME Why ???
             } else if (this.variableId == MiscType.BOULDER_DETERIORATION_DAMAGE_PERCENTAGE_PER_SECOND
                     || this.variableId == MiscType.BOULDER_SPEED_TILES_PER_SECOND
                     || this.variableId == MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND
                     || this.variableId == MiscType.DEFAULT_TORCH_LIGHT_RADIUS_TILES
                     || this.variableId == MiscType.DEFAULT_TORCH_LIGHT_HEIGHT_TILES) {
                 result = value / ConversionUtils.FLOAT;
-            } 
+            }
             this.value = result;
         }
 
@@ -618,13 +617,14 @@ public class Variable { //    struct VariableBlock {
             return "MiscVariable{" + "variableId=" + variableId + ", value=" + value + ", unknown_1=" + unknown1 + ", unknown_2=" + unknown2 + '}';
         }
     }
-    
+
     public static class Unknown extends Variable {
+
         public int variableId;
         private int value;
         private int unknown1;
         private int unknown2;
-        
+
         public int getVariableId() {
             return variableId;
         }
@@ -687,7 +687,7 @@ public class Variable { //    struct VariableBlock {
         public String toString() {
             return "Unknown{" + "variableId=" + variableId + ", value=" + value + ", unknown1=" + unknown1 + ", unknown2=" + unknown2 + '}';
         }
-        
+
     }
 
     public static class Sacrifice extends Variable {
@@ -777,7 +777,7 @@ public class Variable { //    struct VariableBlock {
         @Override
         public String toString() {
             return "Sacrifice{" + "type_1=" + type1 + ", id_1=" + id1 + ", type_2=" + type2 + ", id_2=" + id2
-                    + ", type_3=" + type3 + ", id_3=" + id3 + ", rewardType=" + rewardType 
+                    + ", type_3=" + type3 + ", id_3=" + id3 + ", rewardType=" + rewardType
                     + ", speeachId=" + speechId + ", rewardValue=" + rewardValue + '}';
         }
     }

@@ -36,7 +36,7 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class FiveByFiveRotated extends GenericRoom {
+public abstract class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance {
 
     private int centreDecay = -1;
     private boolean destroyed = false;
@@ -325,4 +325,16 @@ public abstract class FiveByFiveRotated extends GenericRoom {
     protected BatchNode constructWall() {
         return null;
     }
+
+    @Override
+    public boolean isDungeonHeart() {
+        return true;
+    }
+
+    @Override
+    public Point getEntranceCoordinate() {
+        // FIXME: hmm, some random or logical point?
+        return roomInstance.getCoordinates().get(0);
+    }
+
 }

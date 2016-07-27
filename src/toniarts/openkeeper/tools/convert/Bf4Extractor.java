@@ -26,8 +26,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
+
 import toniarts.openkeeper.tools.convert.bf4.Bf4Entry;
 import toniarts.openkeeper.tools.convert.bf4.Bf4File;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Simple class to extract all the font bitmaps to given location
@@ -36,29 +38,29 @@ import toniarts.openkeeper.tools.convert.bf4.Bf4File;
  */
 public class Bf4Extractor {
 
+    private static String dkIIFolder;
+
     public static void main(String[] args) throws IOException {
 
         //Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 2 || !new File(args[0]).exists()) {
-            throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter! Second parameter is the extraction target folder!");
+        if (args.length != 2 || !new File(args[1]).exists()) {
+            dkIIFolder = PathUtils.getDKIIFolder();
+            if (dkIIFolder == null || args.length == 0)
+            {
+                throw new RuntimeException("Please provide extraction folder as a first parameter! Second parameter is the Dungeon Keeper II main folder (optional)!");
+            }
+        } else {
+            dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        //Form the data path
-        String dataDirectory = args[0];
-        if (!dataDirectory.endsWith(File.separator)) {
-            dataDirectory = dataDirectory.concat(File.separator);
-        }
-        dataDirectory = dataDirectory.concat("Data").concat(File.separator).concat("Text").concat(File.separator).concat("Default").concat(File.separator);
+        final String textFolder = dkIIFolder.concat(PathUtils.DKII_DATA_FOLDER).concat(File.separator).concat(PathUtils.DKII_TEXT_FOLDER).concat(File.separator).concat(PathUtils.DKII_DEFAULT_FOLDER).concat(File.separator);
 
         //And the destination
-        String destination = args[1];
-        if (!destination.endsWith(File.separator)) {
-            destination = destination.concat(File.separator);
-        }
+        String destination = PathUtils.fixFilePath(args[0]);
 
         //Find all the font files
         final List<File> bf4Files = new ArrayList<>();
-        File dataDir = new File(dataDirectory);
+        File dataDir = new File(textFolder);
         Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-styles xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+    <registerMouseCursor id="textFieldCursor" filename="textfield/mouse-cursor-textfield.png" hotspotX="3"
+                         hotspotY="12"/>
+
+    <!-- the background of the textfield -->
+    <style id="nifty-textfield#panel">
+        <attributes childLayout="overlay" height="40px"/>
+         <effect>
+            <onHover name="changeMouseCursor" id="textFieldCursor"/>
+            <!-- <onHover name="border" color="#822f" post="true"/>-->
+        </effect> 
+    </style>
+
+    <!-- the actual input field -->
+    <style id="nifty-textfield#field">
+        <attributes childLayout="center" childClip="true" backgroundColor="#fff1" padding="0px,2px" />
+        <effect>
+            <!-- <onActive name="border" color="#222f" post="true" inset="1px"/> -->
+            <onFocus name="colorBar" color="#fff3" post="true" inset="1px"/>
+            <onEnabled name="renderQuad" startColor="#fff8" endColor="#fff0" post="true" length="150"/>
+            <onDisabled name="renderQuad" startColor="#fff0" endColor="#fff8" post="true" length="150"/>
+        </effect>
+    </style>
+
+    <!-- the text in the input field -->
+    <style id="nifty-textfield#text" base="menuTextSmall">
+        <attributes selectionColor="#f60f" visibleToMouse="false" align="left" valign="center" textHAlign="left" />
+        <effect>
+            <onFocus name="textColor" post="false" color="#ffff"/>
+        </effect>
+    </style>
+
+    <!-- the cursor is rendered in a separate layer on top of the input field and this is the parent panel of this -->
+    <style id="nifty-textfield#cursor-panel">
+        <attributes childLayout="absolute" padding="0px,2px"/>
+    </style>
+
+    <!-- the actual cursor -->
+    <style id="nifty-textfield#cursor">
+         <attributes filename="textfield/cursor-empty.png"/>
+        <effect>
+            <onCustom name="imageOverlayPulsate" period="500" timeType="infinite" pulsateType="rectangle"
+                      filename="textfield/cursor.png" post="true"/>
+        </effect>
+    </style>
+
+</nifty-styles>

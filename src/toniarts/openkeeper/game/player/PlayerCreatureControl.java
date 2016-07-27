@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.player;
 
+import com.jme3.app.Application;
 import de.lessvoid.nifty.controls.Label;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +35,7 @@ import toniarts.openkeeper.world.listener.CreatureListener;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerCreatureControl implements CreatureListener {
+public class PlayerCreatureControl extends AbstractPlayerControl<Creature, CreatureControl> implements CreatureListener {
 
     public enum CreatureUIState {
 
@@ -44,13 +45,22 @@ public class PlayerCreatureControl implements CreatureListener {
     private List<WorkerListener> workerListeners;
     private List<CreatureListener> creatureListeners;
     private Creature imp;
-    private final Map<Creature, Set<CreatureControl>> creatures = new LinkedHashMap<>();
+    private int creatureCount = 0;
+    private int impIdle = 0;
+    private int impFighting = 0;
+    private int impBusy = 0;
     private final Map<Creature, Integer> selectionIndices = new HashMap<>();
+
+    public PlayerCreatureControl(Application application) {
+        super(application);
+    }
 
     public void init(List<CreatureControl> creatures, Creature imp) {
         this.imp = imp;
-        for (CreatureControl creature : creatures) {
-            onSpawn(creature);
+        if (creatures != null) {
+            for (CreatureControl creature : creatures) {
+                onSpawn(creature);
+            }
         }
     }
 
@@ -58,10 +68,10 @@ public class PlayerCreatureControl implements CreatureListener {
     public void onSpawn(CreatureControl creature) {
 
         // Add to the list
-        Set<CreatureControl> creatureSet = creatures.get(creature.getCreature());
+        Set<CreatureControl> creatureSet = get(creature.getCreature());
         if (creatureSet == null) {
             creatureSet = new LinkedHashSet<>();
-            creatures.put(creature.getCreature(), creatureSet);
+            put(creature.getCreature(), creatureSet);
         }
         creatureSet.add(creature);
 
@@ -69,10 +79,13 @@ public class PlayerCreatureControl implements CreatureListener {
         if (isImp(creature)) {
             updateWorkerListeners();
         } else {
+            creatureCount++;
             if (creatureListeners != null) {
-                for (CreatureListener listener : creatureListeners) {
-                    listener.onSpawn(creature);
-                }
+                application.enqueue(() -> {
+                    for (CreatureListener listener : creatureListeners) {
+                        listener.onSpawn(creature);
+                    }
+                });
             }
         }
     }
@@ -83,9 +96,11 @@ public class PlayerCreatureControl implements CreatureListener {
             updateWorkerListeners();
         } else {
             if (creatureListeners != null) {
-                for (CreatureListener listener : creatureListeners) {
-                    listener.onStateChange(creature, newState, oldState);
-                }
+                application.enqueue(() -> {
+                    for (CreatureListener listener : creatureListeners) {
+                        listener.onStateChange(creature, newState, oldState);
+                    }
+                });
             }
         }
     }
@@ -94,7 +109,7 @@ public class PlayerCreatureControl implements CreatureListener {
     public void onDie(CreatureControl creature) {
 
         // Delete
-        Set<CreatureControl> creatureSet = creatures.get(creature.getCreature());
+        Set<CreatureControl> creatureSet = get(creature.getCreature());
         if (creatureSet != null) {
             creatureSet.remove(creature);
         }
@@ -103,10 +118,13 @@ public class PlayerCreatureControl implements CreatureListener {
         if (isImp(creature)) {
             updateWorkerListeners();
         } else {
+            creatureCount--;
             if (creatureListeners != null) {
-                for (CreatureListener listener : creatureListeners) {
-                    listener.onDie(creature);
-                }
+                application.enqueue(() -> {
+                    for (CreatureListener listener : creatureListeners) {
+                        listener.onDie(creature);
+                    }
+                });
             }
         }
     }
@@ -117,7 +135,7 @@ public class PlayerCreatureControl implements CreatureListener {
      * @return the creatures
      */
     public Map<Creature, Set<CreatureControl>> getCreatures() {
-        Map<Creature, Set<CreatureControl>> map = new LinkedHashMap<>(creatures);
+        Map<Creature, Set<CreatureControl>> map = new LinkedHashMap<>(types);
         map.remove(imp);
         return map;
     }
@@ -151,34 +169,39 @@ public class PlayerCreatureControl implements CreatureListener {
         creatureListeners.add(listener);
     }
 
-    private void updateWorkerListener(WorkerListener workerListener) {
-        int idle = 0;
-        int fighting = 0;
-        int busy = 0;
-        Set<CreatureControl> imps = creatures.get(imp);
-        if (imps != null) {
-            for (CreatureControl creature : imps) {
-                if (isCreatureState(creature, CreatureUIState.IDLE)) {
-                    idle++;
-                } else if (isCreatureState(creature, CreatureUIState.FIGHTING)) {
-                    fighting++;
-                } else {
-                    busy++;
-                }
-            }
-        }
-        workerListener.amountLabel.setText(String.format("%s", imps != null ? imps.size() : 0));
-        workerListener.busyLabel.setText(String.format("%s", busy));
-        workerListener.fightingLabel.setText(String.format("%s", fighting));
-        workerListener.idleLabel.setText(String.format("%s", idle));
+    private void updateWorkerListener(final WorkerListener workerListener) {
+        workerListener.amountLabel.setText(String.format("%s", getImpCount()));
+        workerListener.busyLabel.setText(String.format("%s", impBusy));
+        workerListener.fightingLabel.setText(String.format("%s", impFighting));
+        workerListener.idleLabel.setText(String.format("%s", impIdle));
     }
 
     private void updateWorkerListeners() {
         if (workerListeners != null) {
-            for (WorkerListener workerListener : workerListeners) {
-                updateWorkerListener(workerListener);
 
+            // Calculate
+            impIdle = 0;
+            impFighting = 0;
+            impBusy = 0;
+            Set<CreatureControl> imps = get(imp);
+            if (imps != null) {
+                for (CreatureControl creature : imps) {
+                    if (isCreatureState(creature, CreatureUIState.IDLE)) {
+                        impIdle++;
+                    } else if (isCreatureState(creature, CreatureUIState.FIGHTING)) {
+                        impFighting++;
+                    } else {
+                        impBusy++;
+                    }
+                }
             }
+
+            // Update
+            application.enqueue(() -> {
+                for (WorkerListener workerListener : workerListeners) {
+                    updateWorkerListener(workerListener);
+                }
+            });
         }
     }
 
@@ -201,7 +224,7 @@ public class PlayerCreatureControl implements CreatureListener {
      * @return the next creature of the type
      */
     public CreatureControl getNextCreature(Creature creature, CreatureUIState state) {
-        List<CreatureControl> creatureList = new ArrayList<>(creatures.get(creature));
+        List<CreatureControl> creatureList = new ArrayList<>(get(creature));
         Integer index = selectionIndices.get(creature);
         if (index == null || index >= creatureList.size()) {
             index = 0;
@@ -241,6 +264,29 @@ public class PlayerCreatureControl implements CreatureListener {
 
     public CreatureControl getNextImp(CreatureUIState state) {
         return getNextCreature(imp, state);
+    }
+
+    /**
+     * Get player creature count. Excluding imps.
+     *
+     * @return the creature count
+     */
+    @Override
+    public int getTypeCount() {
+        return creatureCount;
+    }
+
+    /**
+     * Get the imp count
+     *
+     * @return the number of imps
+     */
+    public int getImpCount() {
+        if (imp == null) {
+            return 0;
+        }
+        Set<CreatureControl> imps = get(imp);
+        return (imps != null ? imps.size() : 0);
     }
 
     private static class WorkerListener {

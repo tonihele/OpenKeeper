@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Stores the SDT file structure and contains the methods to handle the SDT
@@ -66,18 +67,20 @@ public class SdtFile {
                 //ISize: integer;
                 //Size: integer;
                 //Filename: array[0..15] of char;
-                //Unknow1: integer;
-                //Unknow2: integer;
-                //Unknow3: integer;
-                //Unknow4: integer;
+                //SamplingRate: ushort;
+                //Unknown2: byte;
+                //type: byte;
+                //Unknown3: integer;
+                //nSamples: integer;
+                //Unknown4: integer;
                 SdtFileEntry entry = new SdtFileEntry();
                 entry.setIndexSize(ConversionUtils.readUnsignedInteger(rawSdt));
                 entry.setSize(ConversionUtils.readUnsignedInteger(rawSdt));
-                byte[] nameBytes = new byte[16];
-                rawSdt.read(nameBytes);
-                String filename = ConversionUtils.convertFileSeparators(ConversionUtils.bytesToString(nameBytes).trim());
-                entry.setUnknown1(ConversionUtils.readUnsignedInteger(rawSdt));
-                entry.setUnknown2(ConversionUtils.readUnsignedInteger(rawSdt));
+                String filename = ConversionUtils.convertFileSeparators(ConversionUtils.bytesToString(rawSdt, 16).trim());
+                entry.setSamplingRate(ConversionUtils.readUnsignedShort(rawSdt));
+                entry.setUnknown2(ConversionUtils.toUnsignedByte(rawSdt.readByte()));
+                entry.setType(ConversionUtils.parseEnum(ConversionUtils.toUnsignedByte(rawSdt.readByte()), SdtFileEntry.SoundType.class));
+                entry.setUnknown3(ConversionUtils.readUnsignedInteger(rawSdt));
                 entry.setnSamples(ConversionUtils.readUnsignedInteger(rawSdt));
                 entry.setUnknown4(ConversionUtils.readUnsignedInteger(rawSdt));
                 entry.setDataOffset(rawSdt.getFilePointer());
@@ -132,10 +135,7 @@ public class SdtFile {
     private void extractFileData(String fileName, String destination, RandomAccessFile rawSdt) {
 
         //See that the destination is formatted correctly and create it if it does not exist
-        String dest = destination;
-        if (!dest.endsWith(File.separator)) {
-            dest = dest.concat(File.separator);
-        }
+        String dest = PathUtils.fixFilePath(destination);
         File destinationFolder = new File(dest);
         destinationFolder.mkdirs();
         dest = dest.concat(fileName);

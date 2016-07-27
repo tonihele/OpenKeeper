@@ -43,7 +43,6 @@ public class QuadConstructor extends TileConstructor {
      *
      * @param mapData the tiles
      * @param terrain the terrain
-     * @param tile the tile
      * @param x x
      * @param y y
      * @param assetManager the asset manager instance

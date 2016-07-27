@@ -39,8 +39,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
@@ -69,6 +67,8 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.utils.UTF8Control;
 import toniarts.openkeeper.video.MovieState;
 
@@ -79,15 +79,10 @@ import toniarts.openkeeper.video.MovieState;
  */
 public class Main extends SimpleApplication {
 
-    private static String dkIIFolder;
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
     public final static String TITLE = "OpenKeeper";
-    private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
-    private final static String TEST_FILE = AssetsConverter.MAPS_FOLDER.concat("FrontEnd3DLevel.kwd");
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
-    private final static AppSettings appSettings = new AppSettings(false);
-    public final static String SETTINGS_FILE = "openkeeper.properties";
     private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
@@ -163,7 +158,7 @@ public class Main extends SimpleApplication {
         boolean saveSetup = false;
 
         // First and foremost, the folder
-        if (!checkDkFolder(dkIIFolder)) {
+        if (!PathUtils.checkDkFolder(getDkIIFolder())) {
             logger.info("Dungeon Keeper II folder not found or valid! Prompting user!");
             saveSetup = true;
 
@@ -172,10 +167,7 @@ public class Main extends SimpleApplication {
             DKFolderSelector frame = new DKFolderSelector() {
                 @Override
                 protected void continueOk(String path) {
-                    if (!path.endsWith(File.separator)) {
-                        dkIIFolder = path.concat(File.separator);
-                    }
-                    app.getSettings().putString(DKII_FOLDER_KEY, dkIIFolder);
+                    PathUtils.setDKIIFolder(PathUtils.fixFilePath(path));
                     folderOk = true;
                 }
             };
@@ -195,7 +187,7 @@ public class Main extends SimpleApplication {
                     Thread.currentThread().getContextClassLoader()
                     .getResource("com/jme3/asset/Desktop.cfg")); // Get temporary asset manager instance since we not yet have one ourselves
             assetManager.registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
-            DKConverter frame = new DKConverter(dkIIFolder, assetManager) {
+            DKConverter frame = new DKConverter(getDkIIFolder(), assetManager) {
                 @Override
                 protected void continueOk() {
                     AssetsConverter.setConversionSettings(app.getSettings());
@@ -210,11 +202,7 @@ public class Main extends SimpleApplication {
         // If everything is ok, we might need to save the setup
         boolean result = folderOk && conversionOk;
         if (result && saveSetup) {
-            try {
-                app.getSettings().save(new FileOutputStream(new File(SETTINGS_FILE)));
-            } catch (IOException ex) {
-                Logger.getLogger(Main.class.getName()).log(Level.WARNING, "Settings file failed to save!", ex);
-            }
+            SettingUtils.saveSettings();
         }
 
         return result;
@@ -229,17 +217,6 @@ public class Main extends SimpleApplication {
         // Init the user settings (which in JME are app settings)
         app.getUserSettings();
 
-        // Init the application settings which contain just the conversion & folder data
-        File settingsFile = new File(SETTINGS_FILE);
-        if (settingsFile.exists()) {
-            try {
-                appSettings.load(new FileInputStream(settingsFile));
-            } catch (IOException ex) {
-                logger.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
-            }
-        }
-        // DKII settings
-        dkIIFolder = appSettings.getString(DKII_FOLDER_KEY);
     }
 
     /**
@@ -267,28 +244,7 @@ public class Main extends SimpleApplication {
      * @return application settings
      */
     public AppSettings getSettings() {
-        return appSettings;
-    }
-
-    /**
-     * Checks the DK 2 folder validity
-     *
-     * @param folder the supposed DK II folder
-     * @return true if the folder is valid
-     */
-    public static boolean checkDkFolder(String folder) {
-
-        // Throw a simple test to the folder, try to find a test file
-        if (folder != null && !folder.isEmpty() && new File(folder).exists()) {
-            if (!folder.endsWith(File.separator)) {
-                folder = folder.concat(File.separator);
-            }
-            File testFile = new File(folder.concat(TEST_FILE));
-            return testFile.exists();
-        }
-
-        // Better luck next time
-        return false;
+        return SettingUtils.getSettings();
     }
 
     /**
@@ -405,10 +361,8 @@ public class Main extends SimpleApplication {
                         if (folder == null) {
                             folder = SCREENSHOTS_FOLDER;
                         }
-                        if (!folder.endsWith(File.separator)) {
-                            folder = folder.concat(File.separator);
-                        }
-                        folder = folder.concat(getSettings().getTitle()).concat("-").concat(String.valueOf(System.currentTimeMillis() / 1000)).concat(".avi");
+
+                        folder = PathUtils.fixFilePath(folder).concat(getSettings().getTitle()).concat("-").concat(String.valueOf(System.currentTimeMillis() / 1000)).concat(".avi");
                         recorder.setFile(new File(folder));
 
                         stateManager.attach(recorder);
@@ -529,7 +483,7 @@ public class Main extends SimpleApplication {
      * @return the DK II folder
      */
     public static String getDkIIFolder() {
-        return dkIIFolder;
+        return PathUtils.getDKIIFolder();
     }
 
     @Override
@@ -620,8 +574,8 @@ public class Main extends SimpleApplication {
 
         // The intro sequence
         Queue<String> introSequence = new LinkedList<>();
-        introSequence.add(getDkIIFolder().concat("Data".concat(File.separator).concat("Movies").concat(File.separator).concat("BullfrogIntro.tgq")));
-        introSequence.add(getDkIIFolder().concat("Data".concat(File.separator).concat("Movies").concat(File.separator).concat("INTRO.TGQ")));
+        introSequence.add(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat("BullfrogIntro.tgq")));
+        introSequence.add(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat("INTRO.TGQ")));
         playMovie(introSequence);
     }
 
