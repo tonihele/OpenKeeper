@@ -455,12 +455,13 @@ public abstract class AssetsConverter {
         }
         logger.log(Level.INFO, "Extracting sounds to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MUSIC_AND_SOUNDS);
-        String dataDirectory = dungeonKeeperFolder.concat(PathUtils.DKII_DATA_FOLDER).concat(File.separator).concat(PathUtils.DKII_SOUND_FOLDER).concat(File.separator).concat(PathUtils.DKII_SFX_FOLDER).concat(File.separator);
+        String dataDirectory = (PathUtils.DKII_DATA_FOLDER).concat(File.separator).concat(PathUtils.DKII_SOUND_FOLDER).concat(File.separator).concat(PathUtils.DKII_SFX_FOLDER).concat(File.separator);
 
         //Find all the sound files
         final List<File> sdtFiles = new ArrayList<>();
-        File dataDir = new File(dataDirectory);
+        File dataDir = null;
         try {
+            dataDir = new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, dataDirectory));
             Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
