@@ -171,9 +171,7 @@ public abstract class WorldState extends AbstractAppState {
         Map<Short, List<CreatureControl>> playerCreatures = thingLoader.getCreatures().stream().collect(Collectors.groupingBy(c -> c.getOwnerId()));
         for (Keeper player : gameState.getPlayers()) {
             List<CreatureControl> creatures = playerCreatures.get(player.getId());
-            if (creatures != null) {
-                player.getCreatureControl().init(creatures, kwdFile.getImp());
-            }
+            player.getCreatureControl().init(creatures, kwdFile.getImp());
             thingLoader.addListener(player.getId(), new CreatureListener() {
 
                 @Override
