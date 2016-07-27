@@ -57,8 +57,10 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
 
     public void init(List<CreatureControl> creatures, Creature imp) {
         this.imp = imp;
-        for (CreatureControl creature : creatures) {
-            onSpawn(creature);
+        if (creatures != null) {
+            for (CreatureControl creature : creatures) {
+                onSpawn(creature);
+            }
         }
     }
 
