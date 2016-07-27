@@ -66,6 +66,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
+import toniarts.openkeeper.game.player.PlayerRoomControl;
 import toniarts.openkeeper.game.player.PlayerStatsControl;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
@@ -311,6 +312,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         return null;
     }
 
+    public PlayerRoomControl getRoomControl() {
+        Keeper keeper = getPlayer();
+        if (keeper != null) {
+            return keeper.getRoomControl();
+        }
+        return null;
+    }
+
     public void setTransitionEnd(boolean value) {
         transitionEnd = value;
     }
@@ -407,6 +416,14 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         });
         getCreatureControl().addWorkerListener(creatureTab.findNiftyControl("tab-workers#amount", Label.class), creatureTab.findNiftyControl("tab-workers#idle", Label.class), creatureTab.findNiftyControl("tab-workers#busy", Label.class), creatureTab.findNiftyControl("tab-workers#fighting", Label.class));
 
+        // Rooms
+        getRoomControl().addRoomAvailabilityListener(new PlayerRoomControl.IRoomAvailabilityListener() {
+
+            @Override
+            public void onChange() {
+                populateRoomTab();
+            }
+        });
         populateRoomTab();
 
         Element contentPanel = hud.findElementById("tab-spell-content");
@@ -872,8 +889,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     }
 
     private List<Room> getAvailableRoomsToBuild() {
-        Keeper keeper = getPlayer();
-        return keeper.getRoomControl().getTypesAvailable();
+        return getRoomControl().getTypesAvailable();
     }
 
     private List<KeeperSpell> getAvailableKeeperSpells() {
