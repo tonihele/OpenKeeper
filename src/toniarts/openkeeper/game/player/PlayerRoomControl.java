@@ -48,6 +48,17 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> 
     }
 
     @Override
+    public void setTypeAvailable(Room type, boolean available) {
+
+        // Skip non-buildables, I don't know what purpose they serve
+        if (!type.getFlags().contains(Room.RoomFlag.BUILDABLE)) {
+            return;
+        }
+
+        super.setTypeAvailable(type, available);
+    }
+
+    @Override
     public void onBuild(GenericRoom room) {
 
         // Add to the list
