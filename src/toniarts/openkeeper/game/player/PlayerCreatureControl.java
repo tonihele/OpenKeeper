@@ -46,6 +46,9 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
     private List<CreatureListener> creatureListeners;
     private Creature imp;
     private int creatureCount = 0;
+    private int impIdle = 0;
+    private int impFighting = 0;
+    private int impBusy = 0;
     private final Map<Creature, Integer> selectionIndices = new HashMap<>();
 
     public PlayerCreatureControl(Application application) {
@@ -165,29 +168,33 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Creat
     }
 
     private void updateWorkerListener(final WorkerListener workerListener) {
-        int idle = 0;
-        int fighting = 0;
-        int busy = 0;
-        Set<CreatureControl> imps = get(imp);
-        if (imps != null) {
-            for (CreatureControl creature : imps) {
-                if (isCreatureState(creature, CreatureUIState.IDLE)) {
-                    idle++;
-                } else if (isCreatureState(creature, CreatureUIState.FIGHTING)) {
-                    fighting++;
-                } else {
-                    busy++;
-                }
-            }
-        }
-        workerListener.amountLabel.setText(String.format("%s", imps != null ? imps.size() : 0));
-        workerListener.busyLabel.setText(String.format("%s", busy));
-        workerListener.fightingLabel.setText(String.format("%s", fighting));
-        workerListener.idleLabel.setText(String.format("%s", idle));
+        workerListener.amountLabel.setText(String.format("%s", getImpCount()));
+        workerListener.busyLabel.setText(String.format("%s", impBusy));
+        workerListener.fightingLabel.setText(String.format("%s", impFighting));
+        workerListener.idleLabel.setText(String.format("%s", impIdle));
     }
 
     private void updateWorkerListeners() {
         if (workerListeners != null) {
+
+            // Calculate
+            impIdle = 0;
+            impFighting = 0;
+            impBusy = 0;
+            Set<CreatureControl> imps = get(imp);
+            if (imps != null) {
+                for (CreatureControl creature : imps) {
+                    if (isCreatureState(creature, CreatureUIState.IDLE)) {
+                        impIdle++;
+                    } else if (isCreatureState(creature, CreatureUIState.FIGHTING)) {
+                        impFighting++;
+                    } else {
+                        impBusy++;
+                    }
+                }
+            }
+
+            // Update
             application.enqueue(() -> {
                 for (WorkerListener workerListener : workerListeners) {
                     updateWorkerListener(workerListener);
