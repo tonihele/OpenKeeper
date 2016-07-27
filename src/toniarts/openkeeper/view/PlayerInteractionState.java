@@ -31,9 +31,12 @@ import com.jme3.input.event.KeyInputEvent;
 import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
+import com.jme3.light.PointLight;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.Camera;
 import com.jme3.scene.control.AbstractControl;
 import de.lessvoid.nifty.controls.Label;
 import java.awt.Point;
@@ -55,6 +58,8 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
+import toniarts.openkeeper.world.MapLoader;
+import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
@@ -93,6 +98,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private boolean isOnView = false;
     private boolean isInteractable = false;
     private final Label tooltip;
+    private PointLight keeperLight;
     private static final List<String> SLAP_SOUNDS = Arrays.asList(new String[]{"/Global/Slap_1.mp2", "/Global/slap_2.mp2", "/Global/Slap_3.mp2", "/Global/Slap_4.mp2"});
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
@@ -194,6 +200,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         };
         this.stateManager.attach(cheatState);
 
+        // Create Keeper light
+        keeperLight = new PointLight(Vector3f.ZERO, ColorRGBA.Orange, TILE_WIDTH * 2);
+        keeperLight.setName("Keeper Hand");
+
         // Add listener
         if (isEnabled()) {
             setEnabled(true);
@@ -205,8 +215,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         super.setEnabled(enabled);
 
         if (enabled) {
+            app.getRootNode().addLight(keeperLight);
             app.getInputManager().addRawInputListener(this);
         } else {
+            app.getRootNode().removeLight(keeperLight);
             app.getInputManager().removeRawInputListener(this);
         }
     }
@@ -214,6 +226,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     @Override
     public void cleanup() {
         app.getInputManager().removeRawInputListener(this);
+        app.getRootNode().removeLight(keeperLight);
         handler.cleanup();
         CheatState cheatState = this.stateManager.getState(CheatState.class);
         if (cheatState != null) {
@@ -259,6 +272,21 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             handler.getSelectionArea().setEnd(pos);
             handler.updateSelectionBox();
         }
+
+        // Set the keeper light position
+        Camera cam = app.getCamera();
+        Vector3f camPos = cam.getLocation();
+        Vector3f tmp = cam.getWorldCoordinates(mousePosition, 0f).clone();
+        Vector3f dir = cam.getWorldCoordinates(mousePosition, 1f).subtractLocal(tmp).normalizeLocal();
+        dir.multLocal((MapLoader.TILE_HEIGHT - camPos.getY()) / dir.getY()).addLocal(camPos);
+
+        float lightHeight = MapLoader.TILE_HEIGHT / 2;
+        TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
+        if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            lightHeight += MapLoader.TILE_HEIGHT;
+        }
+
+        keeperLight.setPosition(new Vector3f(dir.getX(), lightHeight, dir.getZ()));
     }
 
     @Override
