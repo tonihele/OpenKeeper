@@ -58,8 +58,8 @@ import toniarts.openkeeper.world.WorldState;
  */
 public class GameState extends AbstractPauseAwareState implements IGameLogicUpdateable {
 
-    public static final int TIME_LIMIT_ID = 16;
-    public static final int SCORE_ID = 128;
+    public static final int LEVEL_TIMER_MAX_COUNT = 16;
+    private static final int LEVEL_FLAG_MAX_COUNT = 128;
 
     private Main app;
 
@@ -70,9 +70,10 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     private GameLogicThread gameLogicThread;
     private TriggerControl triggerControl = null;
-    private final Map<Short, Integer> flags = new HashMap<>(127);
+    private final Map<Short, Integer> flags = new HashMap<>(LEVEL_FLAG_MAX_COUNT);
     // TODO What timer class we should take ?
-    private final Map<Byte, GameTimer> timers = new HashMap<>(15);
+    private final Map<Byte, GameTimer> timers = new HashMap<>(LEVEL_TIMER_MAX_COUNT);
+    private int levelScore = 0;
 
     private Float timeLimit = null;
     private TaskManager taskManager;
@@ -154,11 +155,11 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     setProgress(0.80f);
 
                     // Trigger data
-                    for (short i = 0; i < SCORE_ID; i++) {
+                    for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
                         flags.put(i, 0);
                     }
 
-                    for (byte i = 0; i < TIME_LIMIT_ID; i++) {
+                    for (byte i = 0; i < LEVEL_TIMER_MAX_COUNT; i++) {
                         timers.put(i, new GameTimer());
                     }
 
@@ -410,4 +411,18 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     public Application getApplication() {
         return app;
     }
+
+    /**
+     * Get level score, not really a player score... kinda
+     *
+     * @return the level score
+     */
+    public int getLevelScore() {
+        return levelScore;
+    }
+
+    public void setLevelScore(int levelScore) {
+        this.levelScore = levelScore;
+    }
+
 }

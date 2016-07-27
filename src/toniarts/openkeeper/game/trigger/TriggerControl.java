@@ -52,6 +52,9 @@ import toniarts.openkeeper.world.room.ICreatureEntrance;
  */
 public class TriggerControl extends Control {
 
+    private static final short LEVEL_SCORE_FLAG_ID = 128;
+    private static final short TIME_LIMIT_TIMER_ID = 16;
+
     protected TriggerGenericData trigger;
     protected TriggerGenericData root;
 
@@ -128,10 +131,10 @@ public class TriggerControl extends Control {
         switch (targetType) {
             case FLAG:
                 short targetId = (Short) trigger.getUserData("targetId");
-                if (targetId == GameState.SCORE_ID) {
+                if (targetId == LEVEL_SCORE_FLAG_ID) {
 
-                    // A special value, level score (I'm not sure if we should keep it within the player, maybe in game state as it is titled "level score")
-                    target = stateManager.getState(PlayerState.class).getScore();
+                    // A special value, level score
+                    target = stateManager.getState(GameState.class).getLevelScore();
                 } else {
                     target = stateManager.getState(GameState.class).getFlag(targetId);
                 }
@@ -218,9 +221,9 @@ public class TriggerControl extends Control {
                     value = stateManager.getState(GameState.class).getFlag(value);
                 }
 
-                if (flagId == GameState.SCORE_ID) {
-                    PlayerState ps = stateManager.getState(PlayerState.class);
-                    ps.setScore(getTargetValue(ps.getScore(), value, flagType));
+                if (flagId == LEVEL_SCORE_FLAG_ID) {
+                    GameState gs = stateManager.getState(GameState.class);
+                    gs.setLevelScore(getTargetValue(gs.getLevelScore(), value, flagType));
                 } else {
                     int base = stateManager.getState(GameState.class).getFlag(flagId);
                     stateManager.getState(GameState.class).setFlag(flagId, getTargetValue(base, value, flagType));
@@ -229,7 +232,7 @@ public class TriggerControl extends Control {
 
             case INITIALIZE_TIMER:
                 short timerId = trigger.getUserData("timerId", short.class);
-                if (timerId == GameState.TIME_LIMIT_ID) {
+                if (timerId == TIME_LIMIT_TIMER_ID) {
                     value = trigger.getUserData("value", int.class);
                     stateManager.getState(GameState.class).setTimeLimit(value);
                 } else {

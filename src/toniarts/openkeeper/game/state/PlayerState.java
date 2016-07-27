@@ -120,9 +120,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private PossessionInteractionState possessionState;
     private PlayerCameraState cameraState;
     private PossessionCameraState possessionCameraState;
-    private Label goldCurrent;
     private Label tooltip;
-    private int score = 0;
     private boolean transitionEnd = true;
     private Integer textId = null;
     private boolean initHud = false;
@@ -326,14 +324,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
 
     public boolean isTransitionEnd() {
         return transitionEnd;
-    }
-
-    public int getScore() {
-        return score;
-    }
-
-    public void setScore(int score) {
-        this.score = score;
     }
 
     public void setWideScreen(boolean enable) {
