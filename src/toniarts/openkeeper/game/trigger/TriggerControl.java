@@ -184,7 +184,7 @@ public class TriggerControl extends Control {
                 short playerId = trigger.getUserData("playerId", short.class);
                 Keeper keeper = getPlayer(playerId);
                 KwdFile kwdFile = stateManager.getState(GameState.class).getLevelData();
-                short targetId = trigger.getUserData("available", short.class);
+                short targetId = trigger.getUserData("targetId", short.class);
 
                 switch (flag) {
                     case CREATURE:
@@ -196,9 +196,6 @@ public class TriggerControl extends Control {
                         break;
                     case ROOM:
                         keeper.getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
-
-                        // FIXME: A hack :(
-                        stateManager.getState(PlayerState.class).populateRoomTab();
                         break;
                     case TRAP:
                         break;
