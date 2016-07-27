@@ -194,10 +194,18 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 // Setup players
                 boolean addMissingPlayers = players.isEmpty(); // Add all if none is given (campaign..)
                 for (Entry<Short, Player> entry : kwdFile.getPlayers().entrySet()) {
+                    Keeper keeper = null;
                     if (players.containsKey(entry.getKey())) {
-                        players.get(entry.getKey()).setPlayer(entry.getValue());
+                        keeper = players.get(entry.getKey());
+                        keeper.setPlayer(entry.getValue());
                     } else if (addMissingPlayers || entry.getKey() < Keeper.KEEPER1_ID) {
-                        players.put(entry.getKey(), new Keeper(entry.getValue(), app));
+                        keeper = new Keeper(entry.getValue(), app);
+                        players.put(entry.getKey(), keeper);
+                    }
+
+                    // Init
+                    if (keeper != null) {
+                        keeper.initialize(stateManager, app);
                     }
                 }
 
