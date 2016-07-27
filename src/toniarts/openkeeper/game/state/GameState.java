@@ -201,35 +201,31 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     }
                 }
 
-                // Seems that the campaign maps at least never have lair nor hatchery, but they should be available always
-                // TODO: Not very pretty
-                for (Entry<Short, Keeper> entry : players.entrySet()) {
-                    Keeper keeper = entry.getValue();
-
-                    keeper.initialize(stateManager, app);
-                    if (entry.getKey() >= Keeper.KEEPER1_ID) {
-                        keeper.getRoomControl().setTypeAvailable(kwdFile.getLair(), true);
-                        keeper.getRoomControl().setTypeAvailable(kwdFile.getHatchery(), true);
-                    }
-                }
-
                 // Set player availabilities
                 // TODO: the player customized game settings
                 for (Variable.Availability availability : kwdFile.getAvailabilities()) {
-                    Keeper player = getPlayer((short) availability.getPlayerId());
-                    if (player == null) {
-                        continue;
-                    }
+                    if (availability.getPlayerId() == 0) {
 
-                    switch (availability.getType()) {
-                        case CREATURE: {
-                            player.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
-                            break;
+                        // All players
+                        for (Keeper player : getPlayers()) {
+                            setAvailability(player, availability);
                         }
-                        case ROOM: {
-                            player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
-                            break;
-                        }
+                    } else {
+                        Keeper player = getPlayer((short) availability.getPlayerId());
+                        setAvailability(player, availability);
+                    }
+                }
+            }
+
+            private void setAvailability(Keeper player, Variable.Availability availability) {
+                switch (availability.getType()) {
+                    case CREATURE: {
+                        player.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+                        break;
+                    }
+                    case ROOM: {
+                        player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+                        break;
                     }
                 }
             }
