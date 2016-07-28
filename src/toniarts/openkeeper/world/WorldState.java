@@ -53,6 +53,7 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.task.TaskManager;
+import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -103,7 +104,7 @@ public abstract class WorldState extends AbstractAppState {
 
     private static final Logger logger = Logger.getLogger(WorldState.class.getName());
 
-    public WorldState(final KwdFile kwdFile, final AssetManager assetManager, GameState gameState) {
+    public WorldState(final KwdFile kwdFile, final AssetManager assetManager, GameState gameState, CreatureTriggerState creatureTriggerState) {
         this.kwdFile = kwdFile;
         this.gameState = gameState;
 
@@ -132,7 +133,7 @@ public abstract class WorldState extends AbstractAppState {
 
         // Things
         thingLoader = new ThingLoader(this, kwdFile, assetManager);
-        thingsNode = thingLoader.loadAll();
+        thingsNode = thingLoader.loadAll(creatureTriggerState);
         worldNode.attachChild(thingsNode);
 
         // Player money

@@ -780,6 +780,14 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return experience;
     }
 
+    public int getMaxHealth() {
+        return maxHealth;
+    }
+
+    public float getHeight() {
+        return height;
+    }
+
     protected AbstractTask getAssignedTask() {
         return assignedTask;
     }
@@ -792,7 +800,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void showUnitFlower() {
-        CreatureLoader.showUnitFlower(this);
+        showUnitFlower(null);
+    }
+
+    public void showUnitFlower(Integer seconds) {
+        CreatureLoader.showUnitFlower(this, seconds);
     }
 
     @Override

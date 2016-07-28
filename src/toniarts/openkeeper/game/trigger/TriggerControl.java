@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.player.PlayerCameraRotateControl;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
+import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -269,6 +270,11 @@ public class TriggerControl extends Control {
                     CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter(), stateManager.getApplication());
                     creatureInstance.setParty(party);
                     party.addMemberInstance(creatureInstance);
+
+                    // Also add to the creature trigger control
+                    if (creature.getTriggerId() != 0) {
+                        stateManager.getState(CreatureTriggerState.class).addCreature(creature.getTriggerId(), creatureInstance);
+                    }
                 }
                 party.setCreated(true);
                 break;
@@ -293,8 +299,6 @@ public class TriggerControl extends Control {
                 // add fog of war to tiles in action point
                 break;
             case SET_ALLIANCE:
-                break;
-            case ATTACH_PORTAL_GEM:
                 break;
             case ALTER_TERRAIN_TYPE:
                 Point pos = new Point(trigger.getUserData("posX", int.class), trigger.getUserData("posY", int.class));
@@ -351,8 +355,6 @@ public class TriggerControl extends Control {
                 CreatureSpawnLogicState.spawnCreature(creatureId, keeper.getId(), level, stateManager.getState(GameState.class).getApplication(), stateManager.getState(WorldState.class).getThingLoader(), p, true);
                 break;
 
-            case SHOW_HEALTH_FLOWER:
-                break;
             case FOLLOW_CAMERA_PATH:
                 // TODO disable control
                 //GameState.setEnabled(false);
