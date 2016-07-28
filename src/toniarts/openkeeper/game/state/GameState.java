@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
+import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -132,10 +133,12 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     setupPlayers();
 
                     GameState.this.stateManager.attach(new ActionPointState(false));
+                    CreatureTriggerState creatureTriggerState = new CreatureTriggerState(false);
+                    GameState.this.stateManager.attach(creatureTriggerState);
                     setProgress(0.20f);
 
                     // Create the actual level
-                    WorldState worldState = new WorldState(kwdFile, assetManager, GameState.this) {
+                    WorldState worldState = new WorldState(kwdFile, assetManager, GameState.this, creatureTriggerState) {
                         @Override
                         protected void updateProgress(int progress, int max) {
                             setProgress(0.2f + ((float) progress / max * 0.6f));
@@ -244,6 +247,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
                 // Enable player state
                 GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);
+                GameState.this.stateManager.getState(CreatureTriggerState.class).setEnabled(true);
                 GameState.this.stateManager.getState(ActionPointState.class).setEnabled(true);
                 GameState.this.stateManager.getState(PartyState.class).setEnabled(true);
                 GameState.this.stateManager.getState(SoundState.class).setEnabled(true);
@@ -285,6 +289,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         stateManager.detach(stateManager.getState(WorldState.class));
         stateManager.detach(stateManager.getState(ActionPointState.class));
         stateManager.detach(stateManager.getState(PartyState.class));
+        stateManager.detach(stateManager.getState(CreatureTriggerState.class));
         stateManager.detach(stateManager.getState(SoundState.class));
     }
 

@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -115,15 +116,30 @@ public class ThingLoader {
     /**
      * Load all the initial things from the level KWD file
      *
+     * @param creatureTriggerState the creature trigger state to assign the
+     * created creatures to triggers
      * @return the things node
      */
-    public Node loadAll() {
+    public Node loadAll(CreatureTriggerState creatureTriggerState) {
 
         //Create a root
         for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
             try {
                 if (obj instanceof Thing.Creature) {
-                    spawnCreature((Thing.Creature) obj, null, null);
+                    CreatureControl creatureControl = spawnCreature((Thing.Creature) obj, null, null);
+
+                    // Also add to the creature trigger control
+                    int triggerId = 0;
+                    if (obj instanceof Thing.GoodCreature) {
+                        triggerId = ((Thing.GoodCreature) obj).getTriggerId();
+                    } else if (obj instanceof Thing.NeutralCreature) {
+                        triggerId = ((Thing.NeutralCreature) obj).getTriggerId();
+                    } else if (obj instanceof Thing.KeeperCreature) {
+                        triggerId = ((Thing.KeeperCreature) obj).getTriggerId();
+                    }
+                    if (triggerId != 0) {
+                        creatureTriggerState.addCreature(triggerId, creatureControl);
+                    }
                 } else if (obj instanceof Thing.Object) {
 
                     Thing.Object objectThing = (Thing.Object) obj;
