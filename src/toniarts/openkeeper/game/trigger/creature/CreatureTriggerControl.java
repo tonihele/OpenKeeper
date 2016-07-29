@@ -14,22 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game;
+package toniarts.openkeeper.game.trigger.creature;
 
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
+import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
+import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  *
  * @author ArchDemon
  */
-
-
 public class CreatureTriggerControl extends TriggerControl {
 
+    private CreatureControl creature;
     private static final Logger logger = Logger.getLogger(CreatureTriggerControl.class.getName());
 
     public CreatureTriggerControl() { // empty serialization constructor
@@ -53,8 +56,11 @@ public class CreatureTriggerControl extends TriggerControl {
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case CREATURE_CREATED:
-                return false;
+                return creature != null;
             case CREATURE_KILLED:
+                if (creature != null && creature.getStateMachine().getCurrentState() != null) {
+                    return creature.getStateMachine().getCurrentState().equals(CreatureState.DEAD);
+                }
                 return false;
             case CREATURE_SLAPPED:
                 return false;
@@ -81,6 +87,10 @@ public class CreatureTriggerControl extends TriggerControl {
             case CREATURE_DYING:
                 return false;
             case CREATURE_HEALTH:
+                if (creature != null) {
+                    target = ((float) creature.getHealth() / creature.getMaxHealth()) * 100; // Percentage
+                    break;
+                }
                 return false;
             case CREATURE_GOLD_HELD:
                 return false;
@@ -98,13 +108,58 @@ public class CreatureTriggerControl extends TriggerControl {
                 logger.warning("Target Type not supported");
                 return false;
         }
-        /*
-         TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
-         if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
-         result = compare(target, comparisonType, (int) trigger.getUserData("value"));
-         }
 
-         return result;
-         */
+        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
+        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
+            result = compare(target, comparisonType, (int) trigger.getUserData("value"));
+        }
+
+        return result;
+    }
+
+    @Override
+    protected void doAction(TriggerActionData trigger) {
+        TriggerAction.ActionType type = trigger.getType();
+
+        // Some triggers are bound to the creature itself
+        switch (type) {
+            case ATTACH_PORTAL_GEM: {
+                break;
+            }
+            case MAKE_HUNGRY: {
+                break;
+            }
+            case SHOW_HEALTH_FLOWER: {
+                if (creature != null) {
+                    creature.showUnitFlower(trigger.getUserData("value", Integer.class));
+                }
+                break;
+            }
+            // TODO: Undiscovered
+//            case ALTER_SPEED: {
+//                break;
+//            }
+            case REMOVE_FROM_MAP: {
+                break;
+            }
+            case SET_FIGHT_FLAG: {
+                break;
+            }
+            case ZOOM_TO: {
+                break;
+            }
+            default: {
+                super.doAction(trigger);
+            }
+        }
+    }
+
+    /**
+     * Add the actual creature instance to this trigger control
+     *
+     * @param creatureInstance the creature instance
+     */
+    protected void addCreature(CreatureControl creatureInstance) {
+        creature = creatureInstance;
     }
 }

@@ -53,7 +53,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.control.FlashTileControl;
-import toniarts.openkeeper.world.effect.EffectManager;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomConstructor;
 import toniarts.openkeeper.world.room.RoomInstance;
@@ -80,7 +80,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private Node map;
     private final MapData mapData;
     private final AssetManager assetManager;
-    private final EffectManager effectManager;
+    private final EffectManagerState effectManager;
     private Node roomsNode;
     private final Map<Point, Light> lightMap = new HashMap<>();
     private final WorldState worldState;
@@ -93,7 +93,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
-    public MapLoader(AssetManager assetManager, KwdFile kwdFile, EffectManager effectManager, WorldState worldState) {
+    public MapLoader(AssetManager assetManager, KwdFile kwdFile, EffectManagerState effectManager, WorldState worldState) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.effectManager = effectManager;

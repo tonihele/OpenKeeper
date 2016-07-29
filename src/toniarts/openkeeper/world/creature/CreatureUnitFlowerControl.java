@@ -29,6 +29,7 @@ import toniarts.openkeeper.world.control.AbstractUnitFlowerControl;
 public class CreatureUnitFlowerControl extends AbstractUnitFlowerControl {
 
     private enum Status {
+
         LEVEL, STATUS
     }
 
@@ -118,7 +119,7 @@ public class CreatureUnitFlowerControl extends AbstractUnitFlowerControl {
 
     @Override
     protected int getHealthMax() {
-        return creatureControl.getCreature().getHp();
+        return creatureControl.getMaxHealth();
     }
 
     @Override
@@ -128,7 +129,7 @@ public class CreatureUnitFlowerControl extends AbstractUnitFlowerControl {
 
     @Override
     protected float getHeight() {
-        return creatureControl.getCreature().getHeight();
+        return creatureControl.getHeight();
     }
 
 }

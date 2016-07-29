@@ -113,8 +113,8 @@ public class AssetUtils {
      * Assign different kind of maps (Specular, Norma, etc.) to material, if
      * found
      *
-     * @param assetManager   the asset manager
-     * @param material     the material to apply to
+     * @param assetManager the asset manager
+     * @param material the material to apply to
      */
     public static void assignMapsToMaterial(AssetManager assetManager, Material material) {
         String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName(); // Unharmed texture

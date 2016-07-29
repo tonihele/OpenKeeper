@@ -28,8 +28,6 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  *
  * @author ArchDemon
  */
-
-
 public class PartyState extends AbstractAppState {
 
     private AppStateManager stateManager;

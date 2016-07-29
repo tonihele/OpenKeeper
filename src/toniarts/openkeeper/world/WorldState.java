@@ -53,6 +53,7 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.task.TaskManager;
+import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -69,7 +70,7 @@ import toniarts.openkeeper.world.creature.CreatureLoader;
 import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
 import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
 import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
-import toniarts.openkeeper.world.effect.EffectManager;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.listener.RoomListener;
 import toniarts.openkeeper.world.listener.TileChangeListener;
@@ -96,19 +97,19 @@ public abstract class WorldState extends AbstractAppState {
     private final MapDistance heuristic;
     private final Node thingsNode;
     private final BulletAppState bulletAppState;
-    private final EffectManager effectManager;
+    private final EffectManagerState effectManager;
     private List<TileChangeListener> tileChangeListener;
     private Map<Short, List<RoomListener>> roomListeners;
     private final GameState gameState;
 
     private static final Logger logger = Logger.getLogger(WorldState.class.getName());
 
-    public WorldState(final KwdFile kwdFile, final AssetManager assetManager, GameState gameState) {
+    public WorldState(final KwdFile kwdFile, final AssetManager assetManager, GameState gameState, CreatureTriggerState creatureTriggerState) {
         this.kwdFile = kwdFile;
         this.gameState = gameState;
 
         // Effect manager
-        effectManager = new EffectManager(assetManager, kwdFile);
+        effectManager = new EffectManagerState(kwdFile, assetManager);
 
         // World node
         worldNode = new Node("World");
@@ -132,7 +133,7 @@ public abstract class WorldState extends AbstractAppState {
 
         // Things
         thingLoader = new ThingLoader(this, kwdFile, assetManager);
-        thingsNode = thingLoader.loadAll();
+        thingsNode = thingLoader.loadAll(creatureTriggerState);
         worldNode.attachChild(thingsNode);
 
         // Player money
@@ -217,6 +218,9 @@ public abstract class WorldState extends AbstractAppState {
         // Attach physics
         this.stateManager.attach(bulletAppState);
 
+        // Effects
+        this.stateManager.attach(effectManager);
+
         // Attach the world
         this.app.getRootNode().attachChild(worldNode);
     }
@@ -231,7 +235,10 @@ public abstract class WorldState extends AbstractAppState {
         }
 
         // Physics away
-        stateManager.detach(stateManager.getState(BulletAppState.class));
+        stateManager.detach(bulletAppState);
+
+        // Effects
+        this.stateManager.detach(effectManager);
 
         super.cleanup();
     }
@@ -950,9 +957,7 @@ public abstract class WorldState extends AbstractAppState {
             // TODO: effect, drop loot & checks, claimed walls should also get destroyed if all adjacent tiles are not in cotrol anymore
             // The tile is dead
             if (terrain.getDestroyedEffectId() != 0) {
-//                Node effect = effectManager.load(terrain.getDestroyedEffectId());
-//                effect.setLocalTranslation(point.x + 0.5f, 0, point.y + 0.5f);
-//                worldNode.attachChild(effect);
+                effectManager.load(worldNode, new Vector3f(point.x + 0.5f, 0, point.y + 0.5f), terrain.getDestroyedEffectId(), false);
             }
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
 
@@ -1002,9 +1007,7 @@ public abstract class WorldState extends AbstractAppState {
             // TODO: effect & checks
             // The tile is upgraded
             if (terrain.getMaxHealthEffectId() != 0) {
-//                Node effect = effectManager.load(terrain.getMaxHealthEffectId());
-//                effect.setLocalTranslation(point.x + 0.5f, 0, point.y + 0.5f);
-//                worldNode.attachChild(effect);
+                effectManager.load(worldNode, new Vector3f(point.x + 0.5f, 0, point.y + 0.5f), terrain.getMaxHealthEffectId(), false);
             }
             if (terrain.getMaxHealthTypeTerrainId() > 0) {
                 tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());

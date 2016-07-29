@@ -369,9 +369,13 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
         }
     }
 
-    static void showUnitFlower(CreatureControl creature) {
+    static void showUnitFlower(CreatureControl creature, Integer seconds) {
         AbstractUnitFlowerControl aufc = creature.getSpatial().getControl(AbstractUnitFlowerControl.class);
-        aufc.show();
+        if (seconds != null) {
+            aufc.show(seconds);
+        } else {
+            aufc.show();
+        }
     }
 
 }
