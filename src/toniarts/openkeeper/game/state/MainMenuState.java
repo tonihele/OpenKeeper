@@ -96,7 +96,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.effect.EffectManager;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
 /**
@@ -169,7 +169,7 @@ public class MainMenuState extends AbstractAppState implements ScreenController 
 
         // Attach the 3D Front end
         menuNode = new Node("Main menu");
-        menuNode.attachChild(new MapLoader(assetManager, kwdFile, new EffectManager(assetManager, kwdFile), null) {
+        menuNode.attachChild(new MapLoader(assetManager, kwdFile, new EffectManagerState(kwdFile, assetManager), null) {
             @Override
             protected void updateProgress(int progress, int max) {
                 if (loadingScreen != null) {
