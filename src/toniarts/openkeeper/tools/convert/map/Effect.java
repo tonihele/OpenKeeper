@@ -16,10 +16,10 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IValueEnum;
-import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
 import java.util.List;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
+import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
  * Container class for Effects.kwd
@@ -47,6 +47,9 @@ public class Effect implements Comparable<Effect> {
         FADE_OUT(0x1000),
         FADE_IN_OUT(0x2000),
         USE_GENERATION_SCALE(0x4000),
+        /**
+         * Triggers even when not in player's view
+         */
         ALWAYS_TRIGGER(0x8000);
         private final long flagValue;
 

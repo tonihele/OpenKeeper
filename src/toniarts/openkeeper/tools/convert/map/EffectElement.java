@@ -16,9 +16,9 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.awt.Color;
 import java.util.EnumSet;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
 
 /**
  * Container class for EffectElements.kwd
@@ -39,6 +39,9 @@ public class EffectElement implements Comparable<EffectElement> {
         DIRECTIONAL_FRICTION(0x0010),
         CAN_BE_DISTURBED(0x0020),
         ROTATE_TO_MOVEMENT_DIRECTION(0x0040),
+        /**
+         * Triggers even when not in player's view
+         */
         ALWAYS_TRIGGER(0x0200);
         private final long flagValue;
 
