@@ -21,13 +21,14 @@ import com.jme3.animation.AnimControl;
 import com.jme3.animation.LoopMode;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.effect.EffectManager;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.room.control.PlugControl;
 import toniarts.openkeeper.world.room.control.RoomGoldControl;
 
@@ -42,7 +43,7 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
     private boolean destroyed = false;
     private boolean created = false;
 
-    public FiveByFiveRotated(AssetManager assetManager, EffectManager effectManager,
+    public FiveByFiveRotated(AssetManager assetManager, EffectManagerState effectManager,
             RoomInstance roomInstance, Thing.Room.Direction direction) {
         super(assetManager, effectManager, roomInstance, direction);
         addObjectControl(new RoomGoldControl(this) {
@@ -190,9 +191,7 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
                     }
 
                     for (Integer id : roomInstance.getRoom().getEffects()) {
-                        Node effect = effectManager.load(id);
-                        resetAndMoveSpatial(effect, start, p);
-                        root.attachChild(effect);
+                        effectManager.load(root, new Vector3f(p.x - start.x, -MapLoader.TILE_HEIGHT, p.y - start.y), id, true);
                     }
 
                     root.attachChild(tile.move(0, MapLoader.TILE_HEIGHT / 4, 0));

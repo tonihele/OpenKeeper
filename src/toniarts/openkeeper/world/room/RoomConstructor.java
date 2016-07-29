@@ -32,7 +32,7 @@ import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction._5_BY_
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.effect.EffectManager;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 
 /**
  * A factory class you can use to build buildings
@@ -48,7 +48,7 @@ public final class RoomConstructor {
     }
 
     public static GenericRoom constructRoom(RoomInstance roomInstance, AssetManager assetManager,
-            EffectManager effectManager, KwdFile kwdFile, WorldState worldState) {
+            EffectManagerState effectManager, KwdFile kwdFile, WorldState worldState) {
         String roomName = roomInstance.getRoom().getName();
 
         // FIXME: refactor this, we should have our own construct for the things, not this general one
