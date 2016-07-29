@@ -63,7 +63,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
@@ -75,7 +74,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TerrainLoader;
-import toniarts.openkeeper.world.effect.EffectManager;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 
 /**
  * Simple model viewer
@@ -83,8 +82,6 @@ import toniarts.openkeeper.world.effect.EffectManager;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class ModelViewer extends SimpleApplication implements ScreenController {
-
-
 
     public enum Types {
 
@@ -128,8 +125,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         //Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 1 || !new File(args[0]).exists()) {
             dkIIFolder = PathUtils.getDKIIFolder();
-            if (dkIIFolder == null)
-            {
+            if (dkIIFolder == null) {
                 throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter!");
             }
         } else {
@@ -145,7 +141,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         this.kmfModel = kmfModel;
         dkIIFolder = dkFolder;
     }
-    
+
     public ModelViewer() {
         super();
     }
@@ -400,7 +396,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     // Load the selected map
                     String file = ((String) selection.get(0)).concat(".kwd").replaceAll(Matcher.quoteReplacement(File.separator), "/");
                     KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(file)));
-                    Node spat = (Node) new MapLoader(this.getAssetManager(), kwd, new EffectManager(assetManager, kwdFile), null) {
+                    Node spat = (Node) new MapLoader(this.getAssetManager(), kwd, new EffectManagerState(kwdFile, this.getAssetManager()), null) {
                         @Override
                         protected void updateProgress(int progress, int max) {
                             // Do nothing
