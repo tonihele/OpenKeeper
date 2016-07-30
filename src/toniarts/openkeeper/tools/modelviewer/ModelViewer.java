@@ -67,6 +67,7 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
+import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -74,6 +75,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TerrainLoader;
+import toniarts.openkeeper.world.creature.CreatureLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 
 /**
@@ -123,7 +125,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     public static void main(String[] args) {
 
         //Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 1 || !new File(args[0]).exists()) {
+        if (args.length != 1 || (args.length > 0 && !new File(args[0]).exists())) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null) {
                 throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter!");
@@ -486,11 +488,12 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         toggleShowNormals();
 
         // Animate!
-        AnimControl animControl = (AnimControl) spat.getChild(0).getControl(AnimControl.class);
+        final Spatial spatial = spat.getChild(0);
+        AnimControl animControl = (AnimControl) spatial.getControl(AnimControl.class);
         if (animControl != null) {
             AnimChannel channel = animControl.createChannel();
             channel.setAnim("anim");
-            channel.setLoopMode(LoopMode.Loop);
+            CreatureLoader.setLoopModeOnChannel(spatial, channel);
         }
     }
 
