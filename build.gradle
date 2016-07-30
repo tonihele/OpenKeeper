@@ -2,6 +2,7 @@ apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'eclipse'
 apply plugin: 'maven'
+apply plugin: 'idea'
 
 ext {
     jmonkeyengine_version = '[3.1,)'
@@ -92,6 +93,13 @@ eclipse {
     }
     project {
         natures 'org.springsource.ide.eclipse.gradle.core.nature'
+    }
+}
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
     }
 }
 
