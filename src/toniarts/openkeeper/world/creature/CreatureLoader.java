@@ -238,21 +238,25 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                     if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP)) {
                         channel.setLoopMode(LoopMode.DontLoop);
                     } else {
-                        Anim.FrameFactorFunction func = Anim.FrameFactorFunction.valueOf(spat.getUserData(KmfModelLoader.FRAME_FACTOR_FUNCTION));
-                        switch (func) {
-                            case CLAMP: {
-                                channel.setLoopMode(LoopMode.Cycle);
-                                break;
-                            }
-                            case WRAP: {
-                                channel.setLoopMode(LoopMode.Loop);
-                                break;
-                            }
-                        }
+                        setLoopModeOnChannel(spat, channel);
                     }
                 }
             } catch (Exception e) {
                 logger.log(Level.WARNING, e.getMessage());
+            }
+        }
+    }
+
+    public static void setLoopModeOnChannel(final Spatial spat, final AnimChannel channel) {
+        final Anim.FrameFactorFunction func = Anim.FrameFactorFunction.valueOf(spat.getUserData(KmfModelLoader.FRAME_FACTOR_FUNCTION));
+        switch (func) {
+            case CLAMP: {
+                channel.setLoopMode(LoopMode.Cycle);
+                break;
+            }
+            case WRAP: {
+                channel.setLoopMode(LoopMode.Loop);
+                break;
             }
         }
     }
