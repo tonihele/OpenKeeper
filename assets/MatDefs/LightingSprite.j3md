@@ -273,7 +273,7 @@ MaterialDef Phong Lighting {
     }
 
     Technique PostShadow{
-        VertexShader GLSL100:   Shaders/SpritePostShadow.vert
+        VertexShader GLSL100:   Shaders/PostShadowSprite.vert
         FragmentShader GLSL100: Common/MatDefs/Shadow/PostShadow.frag
 
         WorldParameters {
