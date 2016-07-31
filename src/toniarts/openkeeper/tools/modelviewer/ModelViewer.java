@@ -56,10 +56,7 @@ import de.lessvoid.nifty.spi.render.RenderFont;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -68,6 +65,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
+import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -85,7 +83,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     public enum Types {
 
-        MODELS("Models"), TERRAIN("Terrain"), /*OBJECTS("Objects"),*/ MAPS("Maps");
+        MODELS("Models"), TERRAIN("Terrain"), /*OBJECTS("Objects"),*/ MAPS("Maps"),EFFECTS("Effects");
         private final String name;
 
         private Types(String name) {
@@ -371,6 +369,17 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         getModelListBox().addAllItems(Arrays.asList(objects.toArray()));
     }
 
+    private void fillEffects() {
+        KwdFile kwfFile = getKwdFile();
+        Map<Integer, Effect> effects = kwfFile.getEffects();
+        final ArrayList<String> items = new ArrayList<>();
+        for(Map.Entry entry : effects.entrySet() ) {
+            final Effect effect = (Effect) entry.getValue();
+            items.add(effect.getName());
+        }
+        getModelListBox().addAllItems(Arrays.asList(items.toArray()));
+    }
+
     @NiftyEventSubscriber(id = "modelListBox")
     public void onListBoxSelectionChanged(final String id, final ListBoxSelectionChangedEvent<Object> event) {
         List<Object> selection = event.getSelection();
@@ -412,6 +421,15 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 //                    setupModel(spat, false);
 //                    break;
 //                }
+                case EFFECTS: {
+
+                    // Load the selected effect
+                    KwdFile kwfFile = getKwdFile();
+                    final int selectedIndex = event.getSelectionIndices().get(0) + 1;
+                    final EffectManagerState effectManagerState = new EffectManagerState(kwfFile, assetManager);
+                    effectManagerState.load(rootNode, new Vector3f(10, 25, 30)  ,selectedIndex, true);
+                    break;
+                }
             }
         }
     }
@@ -534,6 +552,10 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 //                fillObjects();
 //                break;
 //            }
+            case EFFECTS: {
+                fillEffects();
+                break;
+            }
         }
     }
 
