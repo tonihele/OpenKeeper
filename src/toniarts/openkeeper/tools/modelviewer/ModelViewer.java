@@ -118,6 +118,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private static final String KEY_MAPPING_TOGGLE_ROTATION = "toggle rotation";
     private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
 
+
+    private EffectManagerState effectManagerState;
+
     public static void main(String[] args) {
 
         //Take Dungeon Keeper 2 root folder as parameter
@@ -269,6 +272,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         // Distribution locator
         getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
 
+        //Effects manager
+        this.effectManagerState = new EffectManagerState(getKwdFile(), assetManager);
+
         // The GUI
         NiftyJmeDisplay niftyDisplay = new NiftyJmeDisplay(assetManager,
                 inputManager,
@@ -360,13 +366,13 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private void fillTerrain() {
         KwdFile kwfFile = getKwdFile();
         Collection<Terrain> terrains = kwfFile.getTerrainList();
-        getModelListBox().addAllItems(Arrays.asList(terrains.toArray()));
+        getModelListBox().addAllItems(terrains);
     }
 
     private void fillObjects() {
         KwdFile kwfFile = getKwdFile();
         Collection<toniarts.openkeeper.tools.convert.map.Object> objects = kwfFile.getObjectList();
-        getModelListBox().addAllItems(Arrays.asList(objects.toArray()));
+        getModelListBox().addAllItems(objects);
     }
 
     private void fillEffects() {
@@ -377,7 +383,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             final Effect effect = (Effect) entry.getValue();
             items.add(effect.getName());
         }
-        getModelListBox().addAllItems(Arrays.asList(items.toArray()));
+        getModelListBox().addAllItems(items);
     }
 
     @NiftyEventSubscriber(id = "modelListBox")
@@ -424,10 +430,8 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 case EFFECTS: {
 
                     // Load the selected effect
-                    KwdFile kwfFile = getKwdFile();
                     final int selectedIndex = event.getSelectionIndices().get(0) + 1;
-                    final EffectManagerState effectManagerState = new EffectManagerState(kwfFile, assetManager);
-                    effectManagerState.load(rootNode, new Vector3f(10, 25, 30)  ,selectedIndex, true);
+                    effectManagerState.loadSingleEffect(rootNode, new Vector3f(10, 25, 30)  ,selectedIndex, true);
                     break;
                 }
             }
@@ -441,6 +445,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     @Override
     public void simpleUpdate(float tpf) {
+        effectManagerState.update(tpf);
     }
 
     @Override

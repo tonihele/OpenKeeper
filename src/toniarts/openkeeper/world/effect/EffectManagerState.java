@@ -66,6 +66,27 @@ public class EffectManagerState extends AbstractAppState {
      * @param infinite the effect should restart always, infinite effect (room
      * effects...?)
      */
+    public void loadSingleEffect(Node node, Vector3f location, int effectId, boolean infinite) {
+
+        // Load the effect
+        VisualEffect visualEffect = new VisualEffect(kwdFile, assetManager, this, node, location, kwdFile.getEffect(effectId), infinite);
+        clearActiveEffects();
+        activeEffects.add(visualEffect);
+    }
+
+    private void clearActiveEffects() {
+        activeEffects.clear();
+    }
+
+    /**
+     * Loads up an particle effect
+     *
+     * @param node the node to attach the effect to
+     * @param location particle effect node location, maybe {@code null}
+     * @param effectId the effect ID to load
+     * @param infinite the effect should restart always, infinite effect (room
+     * effects...?)
+     */
     public void load(Node node, Vector3f location, int effectId, boolean infinite) {
 
         // Load the effect
