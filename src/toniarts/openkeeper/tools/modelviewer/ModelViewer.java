@@ -56,10 +56,7 @@ import de.lessvoid.nifty.spi.render.RenderFont;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -68,6 +65,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
+import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -85,7 +83,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     public enum Types {
 
-        MODELS("Models"), TERRAIN("Terrain"), /*OBJECTS("Objects"),*/ MAPS("Maps");
+        MODELS("Models"), TERRAIN("Terrain"), /*OBJECTS("Objects"),*/ MAPS("Maps"),EFFECTS("Effects");
         private final String name;
 
         private Types(String name) {
@@ -120,6 +118,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private static final String KEY_MAPPING_TOGGLE_ROTATION = "toggle rotation";
     private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
 
+
+    private EffectManagerState effectManagerState;
+
     public static void main(String[] args) {
 
         //Take Dungeon Keeper 2 root folder as parameter
@@ -140,6 +141,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         this();
         this.kmfModel = kmfModel;
         dkIIFolder = dkFolder;
+
     }
 
     public ModelViewer() {
@@ -271,6 +273,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         // Distribution locator
         getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
 
+        //Effects manager
+        this.effectManagerState = new EffectManagerState(getKwdFile(), assetManager);
+
         // The GUI
         NiftyJmeDisplay niftyDisplay = new NiftyJmeDisplay(assetManager,
                 inputManager,
@@ -362,13 +367,24 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private void fillTerrain() {
         KwdFile kwfFile = getKwdFile();
         Collection<Terrain> terrains = kwfFile.getTerrainList();
-        getModelListBox().addAllItems(Arrays.asList(terrains.toArray()));
+        getModelListBox().addAllItems(terrains);
     }
 
     private void fillObjects() {
         KwdFile kwfFile = getKwdFile();
         Collection<toniarts.openkeeper.tools.convert.map.Object> objects = kwfFile.getObjectList();
-        getModelListBox().addAllItems(Arrays.asList(objects.toArray()));
+        getModelListBox().addAllItems(objects);
+    }
+
+    private void fillEffects() {
+        KwdFile kwfFile = getKwdFile();
+        Map<Integer, Effect> effects = kwfFile.getEffects();
+        final ArrayList<String> items = new ArrayList<>();
+        for(Map.Entry entry : effects.entrySet() ) {
+            final Effect effect = (Effect) entry.getValue();
+            items.add(effect.getName());
+        }
+        getModelListBox().addAllItems(items);
     }
 
     @NiftyEventSubscriber(id = "modelListBox")
@@ -412,6 +428,13 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 //                    setupModel(spat, false);
 //                    break;
 //                }
+                case EFFECTS: {
+
+                    // Load the selected effect
+                    final int selectedIndex = event.getSelectionIndices().get(0) + 1;
+                    effectManagerState.loadSingleEffect(rootNode, new Vector3f(10, 25, 30)  ,selectedIndex, true);
+                    break;
+                }
             }
         }
     }
@@ -423,6 +446,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     @Override
     public void simpleUpdate(float tpf) {
+        effectManagerState.update(tpf);
     }
 
     @Override
@@ -534,6 +558,10 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 //                fillObjects();
 //                break;
 //            }
+            case EFFECTS: {
+                fillEffects();
+                break;
+            }
         }
     }
 
