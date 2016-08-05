@@ -486,11 +486,13 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         toggleShowNormals();
 
         // Animate!
-        AnimControl animControl = (AnimControl) spat.getChild(0).getControl(AnimControl.class);
-        if (animControl != null) {
-            AnimChannel channel = animControl.createChannel();
-            channel.setAnim("anim");
-            channel.setLoopMode(LoopMode.Loop);
+        if(!spat.getChildren().isEmpty()) {
+            AnimControl animControl = (AnimControl) spat.getChild(0).getControl(AnimControl.class);
+            if (animControl != null) {
+                AnimChannel channel = animControl.createChannel();
+                channel.setAnim("anim");
+                channel.setLoopMode(LoopMode.Loop);
+            }
         }
     }
 
