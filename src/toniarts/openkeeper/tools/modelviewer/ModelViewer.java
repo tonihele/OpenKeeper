@@ -388,9 +388,13 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     @NiftyEventSubscriber(id = "modelListBox")
     public void onListBoxSelectionChanged(final String id, final ListBoxSelectionChangedEvent<Object> event) {
+
+
+        effectManagerState.setEnabled(false);
+
+
         List<Object> selection = event.getSelection();
         if (selection.size() == 1) {
-
             switch (getTypeDropDown().getSelection()) {
                 case MODELS: {
 
@@ -429,9 +433,12 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 //                }
                 case EFFECTS: {
 
+                    Node spat = new Node();
+                    effectManagerState.setEnabled(true);
                     // Load the selected effect
                     final int selectedIndex = event.getSelectionIndices().get(0) + 1;
-                    effectManagerState.loadSingleEffect(rootNode, new Vector3f(10, 25, 30)  ,selectedIndex, true);
+                    effectManagerState.loadSingleEffect(spat, new Vector3f(10, 25, 30)  ,selectedIndex, true);
+                    setupModel(spat, false);
                     break;
                 }
             }

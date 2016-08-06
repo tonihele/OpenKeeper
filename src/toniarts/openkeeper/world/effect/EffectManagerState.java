@@ -47,10 +47,13 @@ public class EffectManagerState extends AbstractAppState {
     @Override
     public void update(float tpf) {
 
-        // Maintain the effects (on every frame?)
         Iterator<VisualEffect> iterator = activeEffects.iterator();
+        // Maintain the effects (on every frame?)
         while (iterator.hasNext()) {
             VisualEffect visualEffect = iterator.next();
+            if(!this.isEnabled()) {
+                visualEffect.removeEffect();
+            }
             if (!visualEffect.update(tpf)) {
                 iterator.remove();
             }
@@ -74,7 +77,13 @@ public class EffectManagerState extends AbstractAppState {
         activeEffects.add(visualEffect);
     }
 
-    private void clearActiveEffects() {
+    public void clearActiveEffects() {
+        Iterator<VisualEffect> iterator = activeEffects.iterator();
+        while (iterator.hasNext()) {
+            VisualEffect visualEffect = iterator.next();
+            visualEffect.removeEffect();
+            visualEffect.update(-1);
+        }
         activeEffects.clear();
     }
 

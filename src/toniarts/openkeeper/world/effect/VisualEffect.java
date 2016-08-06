@@ -62,7 +62,7 @@ public class VisualEffect {
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
     private final EffectManagerState effectManagerState;
-    private final boolean infinite;
+    private boolean infinite;
     private PointLight light;
     private static final Logger logger = Logger.getLogger(VisualEffect.class.getName());
 
@@ -287,4 +287,9 @@ public class VisualEffect {
         return true;
     }
 
+    public void removeEffect() {
+        effects.clear();
+        effectElements.clear();
+        infinite = false;
+    }
 }
