@@ -276,6 +276,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         //Effects manager
         this.effectManagerState = new EffectManagerState(getKwdFile(), assetManager);
+        stateManager.attach(effectManagerState);
 
         // The GUI
         NiftyJmeDisplay niftyDisplay = new NiftyJmeDisplay(assetManager,
@@ -390,10 +391,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     @NiftyEventSubscriber(id = "modelListBox")
     public void onListBoxSelectionChanged(final String id, final ListBoxSelectionChangedEvent<Object> event) {
-
-
         effectManagerState.setEnabled(false);
-
 
         List<Object> selection = event.getSelection();
         if (selection.size() == 1) {
@@ -454,7 +452,6 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     @Override
     public void simpleUpdate(float tpf) {
-        effectManagerState.update(tpf);
     }
 
     @Override

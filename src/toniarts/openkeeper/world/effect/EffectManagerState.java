@@ -51,9 +51,6 @@ public class EffectManagerState extends AbstractAppState {
         // Maintain the effects (on every frame?)
         while (iterator.hasNext()) {
             VisualEffect visualEffect = iterator.next();
-            if(!this.isEnabled()) {
-                visualEffect.removeEffect();
-            }
             if (!visualEffect.update(tpf)) {
                 iterator.remove();
             }
