@@ -47,14 +47,44 @@ public class EffectManagerState extends AbstractAppState {
     @Override
     public void update(float tpf) {
 
-        // Maintain the effects (on every frame?)
         Iterator<VisualEffect> iterator = activeEffects.iterator();
+        // Maintain the effects (on every frame?)
         while (iterator.hasNext()) {
             VisualEffect visualEffect = iterator.next();
+            if(!this.isEnabled()) {
+                visualEffect.removeEffect();
+            }
             if (!visualEffect.update(tpf)) {
                 iterator.remove();
             }
         }
+    }
+
+    /**
+     * Loads up an particle effect
+     *
+     * @param node the node to attach the effect to
+     * @param location particle effect node location, maybe {@code null}
+     * @param effectId the effect ID to load
+     * @param infinite the effect should restart always, infinite effect (room
+     * effects...?)
+     */
+    public void loadSingleEffect(Node node, Vector3f location, int effectId, boolean infinite) {
+
+        // Load the effect
+        VisualEffect visualEffect = new VisualEffect(kwdFile, assetManager, this, node, location, kwdFile.getEffect(effectId), infinite);
+        clearActiveEffects();
+        activeEffects.add(visualEffect);
+    }
+
+    public void clearActiveEffects() {
+        Iterator<VisualEffect> iterator = activeEffects.iterator();
+        while (iterator.hasNext()) {
+            VisualEffect visualEffect = iterator.next();
+            visualEffect.removeEffect();
+            visualEffect.update(-1);
+        }
+        activeEffects.clear();
     }
 
     /**
