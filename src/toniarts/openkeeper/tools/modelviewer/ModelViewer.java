@@ -515,12 +515,14 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         toggleShowNormals();
 
         // Animate!
-        final Spatial spatial = spat.getChild(0);
-        AnimControl animControl = (AnimControl) spatial.getControl(AnimControl.class);
-        if (animControl != null) {
-            AnimChannel channel = animControl.createChannel();
-            channel.setAnim("anim");
-            CreatureLoader.setLoopModeOnChannel(spatial, channel);
+        if(!spat.getChildren().isEmpty()) {
+            final Spatial spatial = spat.getChild(0);
+            AnimControl animControl = (AnimControl) spatial.getControl(AnimControl.class);
+            if (animControl != null) {
+                AnimChannel channel = animControl.createChannel();
+                channel.setAnim("anim");
+                CreatureLoader.setLoopModeOnChannel(spatial, channel);
+            }
         }
     }
 
