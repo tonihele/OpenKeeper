@@ -89,7 +89,14 @@ public class Main extends SimpleApplication {
     private static HashMap<String, String> params;
     private static boolean debug;
     private NiftyJmeDisplay nifty;
-    private Settings userSettings;
+    private static final Settings userSettings;
+    static {
+            userSettings = Settings.getInstance(new AppSettings(true));
+
+            // Assing some app level settings
+            userSettings.getAppSettings().setTitle(TITLE);
+            userSettings.getAppSettings().setIcons(getApplicationIcons());
+    }
 
     private Main() {
         super(new StatsAppState(), new DebugKeysAppState());
@@ -215,8 +222,7 @@ public class Main extends SimpleApplication {
         new File(SCREENSHOTS_FOLDER).mkdirs();
 
         // Init the user settings (which in JME are app settings)
-        app.getUserSettings();
-
+        app.settings = getUserSettings().getAppSettings();
     }
 
     /**
@@ -224,15 +230,7 @@ public class Main extends SimpleApplication {
      *
      * @return the user settings
      */
-    public Settings getUserSettings() {
-        if (userSettings == null) {
-            settings = new AppSettings(true);
-            userSettings = Settings.getInstance(settings);
-
-            // Assing some app level settings
-            userSettings.getAppSettings().setTitle(TITLE);
-            userSettings.getAppSettings().setIcons(getApplicationIcons());
-        }
+    public static Settings getUserSettings() {
         return userSettings;
     }
 
@@ -243,7 +241,7 @@ public class Main extends SimpleApplication {
      * @see #getUserSettings()
      * @return application settings
      */
-    public AppSettings getSettings() {
+    public static AppSettings getSettings() {
         return SettingUtils.getSettings();
     }
 
