@@ -83,7 +83,7 @@ public class TriggerControl extends Control {
     }
 
     @Override
-    protected void controlUpdate(float tpf) {
+    protected void updateControl(float tpf) {
         TriggerGenericData next = null;
         trigger.subRepeatTimes();
 

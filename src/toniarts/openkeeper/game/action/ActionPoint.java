@@ -31,7 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 public class ActionPoint extends Container {
 
     private final int id;
-    private final ActionPointState parent;
+    private ActionPointState parent;
     private final int triggerId;
     private final Point start;
     private final Point end;

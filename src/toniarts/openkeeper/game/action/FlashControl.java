@@ -46,7 +46,7 @@ public class FlashControl extends Control {
     }
 
     @Override
-    protected void controlUpdate(float tpf) {
+    protected void updateControl(float tpf) {
         if (!enabled) {
             return;
         }

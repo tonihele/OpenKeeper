@@ -25,8 +25,6 @@ import java.io.IOException;
  *
  * @author ArchDemon
  */
-
-
 public abstract class Control implements IControl {
 
     protected boolean enabled = true;
@@ -62,12 +60,12 @@ public abstract class Control implements IControl {
      * To be implemented in subclass.
      * @param tpf time per frame
      */
-    protected abstract void controlUpdate(float tpf);
+    protected abstract void updateControl(float tpf);
 
     @Override
     public void update(float tpf) {
         if (enabled) {
-            controlUpdate(tpf);
+            updateControl(tpf);
         }
     }
 
