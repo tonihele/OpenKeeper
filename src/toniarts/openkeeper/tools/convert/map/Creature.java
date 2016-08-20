@@ -62,7 +62,7 @@ public class Creature implements Comparable<Creature> {
         REVEALS_ADJACENT_TRAPS(67108864),
         IS_UNIQUE(134217728),
         CAMERA_ROLLS_WHEN_TURNING(268435456), // 1st person movement flag
-        UNKNOWN_5(0x20000000),  // FIXME unknown flag. In Imp
+        UNKNOWN_5(0x20000000), // FIXME unknown flag. In Imp
         MPD_RANDOM_INVADER(1073741824), // My Pet Dungeon?
         IS_MALE(2147483648l);  // Obviously otherwise it is female
         private final long flagValue;
@@ -543,7 +543,7 @@ public class Creature implements Comparable<Creature> {
     private ArtResource animHappyResource;
     private ArtResource animAngryResource;
     private ArtResource animStunnedPoseResource;
-    private ArtResource animSwingResource;
+    private ArtResource animInHandResource;
     private ArtResource animSleepResource;
     private ArtResource animEatResource;
     private ArtResource animResearchResource;
@@ -816,12 +816,12 @@ public class Creature implements Comparable<Creature> {
         this.animStunnedPoseResource = animStunnedPoseResource;
     }
 
-    public ArtResource getAnimSwingResource() {
-        return animSwingResource;
+    public ArtResource getAnimInHandResource() {
+        return animInHandResource;
     }
 
-    protected void setAnimSwingResource(ArtResource animSwingResource) {
-        this.animSwingResource = animSwingResource;
+    protected void setAnimInHandResource(ArtResource animInHandResource) {
+        this.animInHandResource = animInHandResource;
     }
 
     public ArtResource getAnimSleepResource() {
