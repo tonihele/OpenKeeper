@@ -309,7 +309,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
                     // Creature/object pickup
                     IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
-                    if (interactiveControl != null && interactiveControl.isPickable(player.getPlayerId())) {
+                    if (interactiveControl != null && !keeperHand.isFull() && interactiveControl.isPickable(player.getPlayerId())) {
                         keeperHand.push(interactiveControl.pickUp(player.getPlayerId()));
                         setCursor();
                     } else {
