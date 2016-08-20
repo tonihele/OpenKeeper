@@ -22,6 +22,8 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -110,7 +112,7 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     }
 
     @Override
-    public boolean pickUp(short playerId) {
+    public IInteractiveControl pickUp(short playerId) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -122,6 +124,16 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     @Override
     public void onHover() {
 
+    }
+
+    @Override
+    public CursorFactory.CursorType getInHandCursor() {
+        return CursorFactory.CursorType.HOLD_THING;
+    }
+
+    @Override
+    public ArtResource getInHandMesh() {
+        return object.getInHandMeshResource();
     }
 
 }

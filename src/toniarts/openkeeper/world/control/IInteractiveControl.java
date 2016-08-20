@@ -16,7 +16,10 @@
  */
 package toniarts.openkeeper.world.control;
 
+import com.jme3.scene.Spatial;
 import com.jme3.scene.control.Control;
+import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 
 /**
  * A small interface telling that the control in interactive
@@ -31,7 +34,13 @@ public interface IInteractiveControl extends Control {
 
     public boolean isInteractable(short playerId);
 
-    public boolean pickUp(short playerId);
+    public IInteractiveControl pickUp(short playerId);
+
+    public CursorFactory.CursorType getInHandCursor();
+
+    public ArtResource getInHandMesh();
+
+    public Spatial getSpatial();
 
     public boolean interact(short playerId);
 

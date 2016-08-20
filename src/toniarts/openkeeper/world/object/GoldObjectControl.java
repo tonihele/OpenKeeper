@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.world.object;
 
+import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.world.WorldState;
 
@@ -39,6 +40,11 @@ public class GoldObjectControl extends ObjectControl {
 
     public void setGold(int gold) {
         this.gold = gold;
+    }
+
+    @Override
+    public CursorFactory.CursorType getInHandCursor() {
+        return CursorFactory.CursorType.HOLD_GOLD;
     }
 
 }

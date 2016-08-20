@@ -46,6 +46,8 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.task.AbstractTask;
+import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.gui.CursorFactory.CursorType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -193,7 +195,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         }
 
         // Update attributes
-        updateAttributes(tpf);
+        if (stateMachine.getCurrentState() != null && stateMachine.getCurrentState() == CreatureState.PICKED_UP) {
+            updateAttributes(tpf);
+        }
 
         // Set the time in state
         if (stateMachine.getCurrentState() != null) {
@@ -274,6 +278,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     boolean isStopAnimation() {
         // FIXME: not very elegant to check this way
+        if (!enabled) {
+            return false;
+        }
         switch (playingAnimationType) {
             case IDLE: {
                 return (stateMachine.getCurrentState() != CreatureState.IDLE || steeringBehavior != null);
@@ -823,13 +830,32 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     @Override
-    public boolean pickUp(short playerId) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public IInteractiveControl pickUp(short playerId) {
+
+        // Stop everything
+        stateMachine.changeState(CreatureState.PICKED_UP);
+        unassingCurrentTask();
+        steeringBehavior = null;
+        setEnabled(false);
+
+        // Remove from view
+        getSpatial().removeFromParent();
+        return this;
     }
 
     @Override
     public boolean interact(short playerId) {
         return slap(playerId);
+    }
+
+    @Override
+    public CursorType getInHandCursor() {
+        return CursorFactory.CursorType.HOLD_THING;
+    }
+
+    @Override
+    public ArtResource getInHandMesh() {
+        return creature.getAnimInHandResource();
     }
 
 }
