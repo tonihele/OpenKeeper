@@ -31,9 +31,15 @@ import com.jme3.input.event.KeyInputEvent;
 import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
+import com.jme3.light.AmbientLight;
+import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
+import com.jme3.math.Matrix3f;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.Node;
 import com.jme3.scene.control.AbstractControl;
 import de.lessvoid.nifty.controls.Label;
 import java.awt.Point;
@@ -52,12 +58,14 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
+import toniarts.openkeeper.world.creature.CreatureLoader;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
@@ -73,7 +81,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     public enum InteractionState {
 
-        NONE, ROOM, SELL, SPELL, TRAP, DOOR, CREATURE
+        NONE, ROOM, SELL, SPELL, TRAP, DOOR, STUFF_IN_HAND
     }
     private Main app;
     private GameState gameState;
@@ -93,6 +101,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private boolean isOnView = false;
     private boolean isInteractable = false;
     private final Label tooltip;
+    private final KeeperHandQueue keeperHand;
+    private IInteractiveControl itemInHand;
+    private final Node keeperHandNode = new Node("Keeper hand");
     private static final List<String> SLAP_SOUNDS = Arrays.asList(new String[]{"/Global/Slap_1.mp2", "/Global/slap_2.mp2", "/Global/Slap_3.mp2", "/Global/Slap_4.mp2"});
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
@@ -100,6 +111,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         this.player = player;
         this.guiConstraint = guiConstraint;
         this.tooltip = tooltip;
+
+        // Init the keeper hand
+        keeperHandNode.setLocalScale(500);
+        Quaternion rotation = new Quaternion();
+        rotation.fromAngleAxis(-FastMath.PI / 4, new Vector3f(-1, 1, 0));
+        keeperHandNode.setLocalRotation(rotation);
+        keeperHandNode.addLight(new AmbientLight(ColorRGBA.White));
+        keeperHand = new KeeperHandQueue((int) gameState.getLevelVariable(Variable.MiscVariable.MiscType.MAX_NUMBER_OF_THINGS_IN_HAND));
     }
 
     @Override
@@ -110,6 +129,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         this.stateManager = this.app.getStateManager();
         inputManager = this.app.getInputManager();
         gameState = this.stateManager.getState(GameState.class);
+
+        this.app.getGuiNode().attachChild(keeperHandNode);
+
         // Init handler
         handler = new SelectionHandler(this.app, this) {
             @Override
@@ -213,6 +235,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     @Override
     public void cleanup() {
+        app.getGuiNode().detachChild(keeperHandNode);
         app.getInputManager().removeRawInputListener(this);
         handler.cleanup();
         CheatState cheatState = this.stateManager.getState(CheatState.class);
@@ -259,6 +282,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             handler.getSelectionArea().setEnd(pos);
             handler.updateSelectionBox();
         }
+
+        // Move the picked up item
+        keeperHandNode.setLocalTranslation(evt.getX(), evt.getY(), 0);
     }
 
     @Override
@@ -280,19 +306,29 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 }
             } else {
                 if (evt.isPressed()) {
-                    if (!startSet) {
-                        handler.getSelectionArea().setStart(handler.getRoundedMousePos());
-                    }
-                    startSet = true;
 
-                    // I suppose we are tagging
-                    if (isTaggable) {
-                        isTagging = true;
+                    // Creature/object pickup
+                    IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
+                    if (interactiveControl != null && interactiveControl.isPickable(player.getPlayerId())) {
+                        keeperHand.push(interactiveControl.pickUp(player.getPlayerId()));
                         setCursor();
+                    } else {
 
-                        // The tagging sound is positional and played against the cursor change, not the action itself
-                        Vector2f pos = handler.getRoundedMousePos();
-                        getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, "/Global/dk1tag.mp2");
+                        // Selection stuff
+                        if (!startSet) {
+                            handler.getSelectionArea().setStart(handler.getRoundedMousePos());
+                        }
+                        startSet = true;
+
+                        // I suppose we are tagging
+                        if (isTaggable) {
+                            isTagging = true;
+                            setCursor();
+
+                            // The tagging sound is positional and played against the cursor change, not the action itself
+                            Vector2f pos = handler.getRoundedMousePos();
+                            getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, "/Global/dk1tag.mp2");
+                        }
                     }
 
                 } else if (evt.isReleased()) {
@@ -538,16 +574,46 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     }
 
     protected void setCursor() {
-        if (app.getUserSettings().getSettingBoolean(Settings.Setting.USE_CURSORS)) {
+        removeItemInHand();
+        if (Main.getUserSettings().getSettingBoolean(Settings.Setting.USE_CURSORS)) {
             if (isOnGui || isInteractable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
             } else if (isTagging) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE_TAGGING, assetManager));
             } else if (isTaggable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE, assetManager));
+            } else if (!keeperHand.isEmpty()) {
+
+                // Keeper hand item
+                itemInHand = keeperHand.peek();
+                inputManager.setMouseCursor(CursorFactory.getCursor(itemInHand.getInHandCursor(), assetManager));
+                setupItemInHand();
             } else {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.IDLE, assetManager));
             }
+        } else if (!keeperHand.isEmpty()) {
+            itemInHand = keeperHand.peek();
+            setupItemInHand();
+        }
+    }
+
+    private void setupItemInHand() {
+        if (itemInHand != null && itemInHand.getInHandMesh() != null) {
+
+            // Attach to GUI node and play the animation
+            itemInHand.getSpatial().setLocalTranslation(0, 0, 0);
+            itemInHand.getSpatial().setLocalRotation(Matrix3f.ZERO);
+            keeperHandNode.attachChild(itemInHand.getSpatial());
+            CreatureLoader.playAnimation(itemInHand.getSpatial(), itemInHand.getInHandMesh(), assetManager);
+        }
+    }
+
+    private void removeItemInHand() {
+        if (itemInHand != null && itemInHand.getInHandMesh() != null) {
+
+            // Remove from GUI node
+            itemInHand.getSpatial().removeFromParent();
+            itemInHand = null;
         }
     }
 
