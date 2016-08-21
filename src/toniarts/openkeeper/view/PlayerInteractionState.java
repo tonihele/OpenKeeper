@@ -148,7 +148,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     // When building, you can even tag taggables
                     switch (interactionState) {
                         case NONE: {
-                            return isTaggable;
+                            return (isTaggable || itemInHand != null);
                         }
                         case ROOM: {
                             return isOnView;
@@ -173,6 +173,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     pos = handler.getSelectionArea().getActualStartingCoordinates();
                 } else {
                     pos = handler.getRoundedMousePos();
+                }
+                if (interactionState == InteractionState.NONE && itemInHand != null) {
+                    TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
+                    IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile);
+                    return (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE ? SelectionColorIndicator.BLUE : SelectionColorIndicator.RED);
                 }
                 if (interactionState == InteractionState.SELL) {
                     return SelectionColorIndicator.RED;
@@ -347,7 +352,19 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
             Vector2f pos = handler.getRoundedMousePos();
             if (interactionState == InteractionState.NONE) {
-                if (Main.isDebug()) {
+
+                // Drop
+                if (itemInHand != null) {
+                    TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
+                    IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile);
+                    if (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE) {
+
+                        // Drop & update cursor
+                        itemInHand = null;
+                        keeperHand.pop().drop(tile);
+                        setCursor();
+                    }
+                } else if (Main.isDebug()) {
                     // taggable -> "dig"
                     if (getWorldHandler().isTaggable((int) pos.x, (int) pos.y)) {
                         getWorldHandler().digTile((int) pos.x, (int) pos.y);
