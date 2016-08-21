@@ -77,9 +77,6 @@ public final class TileData extends Tile {
     }
 
     public void setFlashed(boolean flashed) {
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            flashed = false;
-        }
         this.flashed = flashed;
     }
 
@@ -109,10 +106,8 @@ public final class TileData extends Tile {
             if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
                 setSelected(false, (short) 0);
             }
-            
-            if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                flashed = false;
-            }
+            // FIXME realy need?
+            setFlashed(false);
         }
     }
 

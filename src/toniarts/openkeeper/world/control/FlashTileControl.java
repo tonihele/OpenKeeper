@@ -32,7 +32,7 @@ import toniarts.openkeeper.world.WorldState;
 
 public class FlashTileControl extends AbstractControl {
     private float tick = 0;
-    public final float FLASH_PERIOD = 0.3f;
+    public final float FLASH_PERIOD = 0.5f;
     private boolean flashed = false;
     private WorldState worldState;
     private final List<Point> points = new ArrayList<>();
