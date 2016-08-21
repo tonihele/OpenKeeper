@@ -28,7 +28,7 @@ public class GoldObjectControl extends ObjectControl {
 
     private int gold = 0;
 
-    public GoldObjectControl(int ownerId, Object object, WorldState worldState, int initialGoldAmount) {
+    public GoldObjectControl(short ownerId, Object object, WorldState worldState, int initialGoldAmount) {
         super(ownerId, object, worldState);
 
         this.gold = initialGoldAmount;
