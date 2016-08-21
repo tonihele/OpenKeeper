@@ -31,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
 public final class TileData extends Tile {
 
     private boolean selected = false;
+    private boolean flashed = false;
     private short selectedByPlayerId = 0;
     private Integer randomTextureIndex;
     private Terrain terrain;
@@ -71,6 +72,14 @@ public final class TileData extends Tile {
         selectedByPlayerId = playerId;
     }
 
+    public boolean isFlashed() {
+        return flashed;
+    }
+
+    public void setFlashed(boolean flashed) {
+        this.flashed = flashed;
+    }
+
     public short getSelectedByPlayerId() {
         return selectedByPlayerId;
     }
@@ -97,6 +106,8 @@ public final class TileData extends Tile {
             if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
                 setSelected(false, (short) 0);
             }
+            // FIXME realy need?
+            setFlashed(false);
         }
     }
 

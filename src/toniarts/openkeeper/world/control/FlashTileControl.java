@@ -16,15 +16,13 @@
  */
 package toniarts.openkeeper.world.control;
 
-import com.jme3.material.Material;
-import com.jme3.math.ColorRGBA;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
-import com.jme3.scene.Geometry;
-import com.jme3.scene.Node;
-import com.jme3.scene.SceneGraphVisitor;
-import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
+import java.awt.Point;
+import java.util.ArrayList;
+import java.util.List;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  *
@@ -33,77 +31,44 @@ import com.jme3.scene.control.AbstractControl;
 
 
 public class FlashTileControl extends AbstractControl {
-
-    private float time;
     private float tick = 0;
+    public final float FLASH_PERIOD = 0.5f;
     private boolean flashed = false;
-    private boolean unlimited = false;
-    private final ColorRGBA color = new ColorRGBA(0.3f, 0, 0, 1);
-    public final float PERIOD = 0.5f;
+    private WorldState worldState;
+    private final List<Point> points = new ArrayList<>();
 
     public FlashTileControl() {
     }
 
-    public FlashTileControl(int time) {
-        this.time = time;
-        if (this.time == 0) {
-            unlimited = true;
-        }
+    public FlashTileControl(final WorldState worldState) {
+        this.worldState = worldState;
     }
 
-    @Override
-    public void setSpatial(Spatial spatial) {
-        if (spatial == null) {
-            enabled = false;
+    public boolean attach(List<Point> points, boolean  enabled) {
+        if (enabled) {
+            return this.points.addAll(points);
+        } else {
+            worldState.getMapLoader().flashTile(false, points);
+            return this.points.removeAll(points);
         }
-        super.setSpatial(spatial);
     }
 
     @Override
     protected void controlUpdate(float tpf) {
-        if (!enabled) {
+        if (!enabled || points.isEmpty()) {
             return;
         }
 
-        if (tick >= PERIOD) {
-            tick -= PERIOD;
+        if (tick > FLASH_PERIOD) {
+            tick -= FLASH_PERIOD;
             flashed = !flashed;
-            setColorToGeometries((Node) spatial, flashed);
-        }
-
-        if (time < 0) {
-            if (flashed) {
-                setColorToGeometries((Node) spatial, false);
-            }
-            spatial.removeControl(this);
-            return;
+            worldState.getMapLoader().flashTile(flashed, points);
         }
 
         tick += tpf;
-        if (!unlimited) {
-            time -= tpf;
-        }
     }
 
     @Override
     protected void controlRender(RenderManager rm, ViewPort vp) {
-    }
-
-    private void setColorToGeometries(final Node node, final boolean flashed) {
-        if (node == null) {
-            return;
-        }
-
-        node.depthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spatial) {
-                if (spatial instanceof Geometry) {
-
-                    Material material = ((Geometry) spatial).getMaterial();
-                    material.setColor("Ambient", color);
-                    material.setBoolean("UseMaterialColors", flashed);
-                }
-            }
-        });
     }
 }

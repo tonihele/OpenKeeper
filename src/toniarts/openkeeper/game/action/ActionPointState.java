@@ -23,6 +23,7 @@ import java.util.HashMap;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  *
@@ -56,6 +57,7 @@ public class ActionPointState extends AbstractAppState {
             if (thing instanceof Thing.ActionPoint) {
                 Thing.ActionPoint temp = (Thing.ActionPoint) thing;
                 ActionPoint ap = new ActionPoint(temp);
+                ap.setParent(this);
                 if (temp.getTriggerId() != 0) {
                     ap.addControl(new ActionPointTriggerControl(this.stateManager, temp.getTriggerId()));
                 }
@@ -75,6 +77,10 @@ public class ActionPointState extends AbstractAppState {
         }
 
         super.update(tpf);
+    }
+
+    public WorldState getWorldState() {
+        return stateManager.getState(WorldState.class);
     }
 
     public ActionPoint getActionPoint(int id) {
