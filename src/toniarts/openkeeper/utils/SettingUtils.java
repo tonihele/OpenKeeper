@@ -21,37 +21,52 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 
 public class SettingUtils {
+
     private static final Logger LOGGER = Logger.getLogger(SettingUtils.class.getName());
     private final static String SETTINGS_FILE = "openkeeper.properties";
-    private final static AppSettings APP_SETTINGS = new AppSettings(false);
-    
-    public static AppSettings getSettings() {
-        if (APP_SETTINGS.isEmpty()) {
-            loadSettings();
-        }
-        return APP_SETTINGS;
+    private final AppSettings settings;
+    private final static SettingUtils instance;
+
+    static {
+        instance = new SettingUtils(new AppSettings(false));
     }
-    
-    public static void loadSettings() {
+
+    private SettingUtils(AppSettings settings) {
+        this.settings = settings;
+        loadSettings();
+    }
+
+    public static SettingUtils getInstance() {
+        return instance;
+    }
+
+    public AppSettings getSettings() {
+        return settings;
+    }
+
+    private void loadSettings() {
+
         // Init the application settings which contain just the conversion & folder data
         File settingsFile = new File(SETTINGS_FILE);
         if (settingsFile.exists()) {
-            try {
-                APP_SETTINGS.load(new FileInputStream(settingsFile));
+            try (InputStream is = new FileInputStream(settingsFile)) {
+                settings.load(is);
             } catch (IOException ex) {
                 LOGGER.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
             }
         }
     }
-    
-    public static void saveSettings() {
-        try {
-            getSettings().save(new FileOutputStream(new File(SETTINGS_FILE)));
+
+    public void saveSettings() {
+        try (OutputStream os = new FileOutputStream(new File(SETTINGS_FILE))) {
+            settings.save(os);
         } catch (IOException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.WARNING, "Settings file failed to save!", ex);
         }

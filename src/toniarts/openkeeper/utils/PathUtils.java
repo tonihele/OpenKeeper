@@ -20,6 +20,7 @@ import java.io.File;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 
 public class PathUtils {
+
     public static final String DKII_DATA_FOLDER = "Data";
     public static final String DKII_SOUND_FOLDER = "Sound";
     public static final String DKII_SFX_FOLDER = "sfx";
@@ -30,24 +31,25 @@ public class PathUtils {
     public static final String DKII_MAPS_FOLDER = "maps";
     private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
     private final static String TEST_FILE = AssetsConverter.MAPS_FOLDER.concat("FrontEnd3DLevel.kwd");
-    
+
     /**
      * Get the folder of the original Dungeon Keeper 2 installation
+     *
      * @return Dungeon Keeper 2 folder
      */
     public static String getDKIIFolder() {
-        return SettingUtils.getSettings().getString(DKII_FOLDER_KEY);
+        return SettingUtils.getInstance().getSettings().getString(DKII_FOLDER_KEY);
     }
 
     /**
      * Set the folder of the dk2 installation in the settings
-     * 
-     * @param dkIIFolder 
+     *
+     * @param dkIIFolder
      */
     public static void setDKIIFolder(String dkIIFolder) {
-        SettingUtils.getSettings().putString(DKII_FOLDER_KEY, dkIIFolder);
+        SettingUtils.getInstance().getSettings().putString(DKII_FOLDER_KEY, dkIIFolder);
     }
-    
+
     /**
      * Checks the DK 2 folder validity
      *
@@ -64,10 +66,10 @@ public class PathUtils {
         // Better luck next time
         return false;
     }
-    
+
     /**
      * Adds a file separator to the folder path if it doesn't end with one
-     * 
+     *
      * @param folderPath path to the folder
      * @return folder with file separator at the end
      */

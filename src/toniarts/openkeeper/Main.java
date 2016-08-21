@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Queue;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -86,17 +87,9 @@ public class Main extends SimpleApplication {
     private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
-    private static HashMap<String, String> params;
+    private static Map<String, String> params;
     private static boolean debug;
     private NiftyJmeDisplay nifty;
-    private static final Settings userSettings;
-    static {
-            userSettings = Settings.getInstance(new AppSettings(true));
-
-            // Assing some app level settings
-            userSettings.getAppSettings().setTitle(TITLE);
-            userSettings.getAppSettings().setIcons(getApplicationIcons());
-    }
 
     private Main() {
         super(new StatsAppState(), new DebugKeysAppState());
@@ -197,7 +190,7 @@ public class Main extends SimpleApplication {
             DKConverter frame = new DKConverter(getDkIIFolder(), assetManager) {
                 @Override
                 protected void continueOk() {
-                    AssetsConverter.setConversionSettings(app.getSettings());
+                    AssetsConverter.setConversionSettings(Main.getSettings());
                     conversionOk = true;
                 }
             };
@@ -209,7 +202,7 @@ public class Main extends SimpleApplication {
         // If everything is ok, we might need to save the setup
         boolean result = folderOk && conversionOk;
         if (result && saveSetup) {
-            SettingUtils.saveSettings();
+            SettingUtils.getInstance().saveSettings();
         }
 
         return result;
@@ -222,7 +215,7 @@ public class Main extends SimpleApplication {
         new File(SCREENSHOTS_FOLDER).mkdirs();
 
         // Init the user settings (which in JME are app settings)
-        app.settings = getUserSettings().getAppSettings();
+        app.settings = Settings.getInstance().getAppSettings();
     }
 
     /**
@@ -231,7 +224,7 @@ public class Main extends SimpleApplication {
      * @return the user settings
      */
     public static Settings getUserSettings() {
-        return userSettings;
+        return Settings.getInstance();
     }
 
     /**
@@ -242,7 +235,7 @@ public class Main extends SimpleApplication {
      * @return application settings
      */
     public static AppSettings getSettings() {
-        return SettingUtils.getSettings();
+        return SettingUtils.getInstance().getSettings();
     }
 
     /**
@@ -351,8 +344,8 @@ public class Main extends SimpleApplication {
 
                     // Recording video
                     if (params.containsKey("record")) {
-                        float quality = getUserSettings().getSettingFloat(Settings.Setting.RECORDER_QUALITY);
-                        int frameRate = getUserSettings().getSettingInteger(Settings.Setting.RECORDER_FPS);
+                        float quality = Settings.getInstance().getSettingFloat(Settings.Setting.RECORDER_QUALITY);
+                        int frameRate = Settings.getInstance().getSettingInteger(Settings.Setting.RECORDER_FPS);
                         getSettings().setFrameRate(frameRate);
                         VideoRecorderAppState recorder = new VideoRecorderAppState(quality, frameRate);
                         String folder = params.get("record");
@@ -443,7 +436,7 @@ public class Main extends SimpleApplication {
             public void assetRequested(AssetKey key) {
                 if (key.getExtension().equals("png") || key.getExtension().equals("jpg") || key.getExtension().equals("dds")) {
                     TextureKey tkey = (TextureKey) key;
-                    tkey.setAnisotropy(getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
+                    tkey.setAnisotropy(Settings.getInstance().getSettingInteger(Settings.Setting.ANISOTROPY));
                 }
             }
 
@@ -487,14 +480,14 @@ public class Main extends SimpleApplication {
     @Override
     public void restart() {
         try {
-            settings = getUserSettings().getAppSettings();
+            settings = Settings.getInstance().getAppSettings();
             super.restart();
 
             // FIXME: This should go to handle error
             try {
 
                 // Continue to save the settings
-                getUserSettings().save();
+                Settings.getInstance().save();
             } catch (IOException ex) {
                 logger.log(Level.WARNING, "Can not save the settings!", ex);
             }
@@ -515,12 +508,12 @@ public class Main extends SimpleApplication {
         viewPort.clearProcessors();
 
         // Add SSAO
-        if (getUserSettings().getSettingBoolean(Settings.Setting.SSAO)) {
+        if (Settings.getInstance().getSettingBoolean(Settings.Setting.SSAO)) {
             FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
-            SSAOFilter ssaoFilter = new SSAOFilter(getUserSettings().getSettingFloat(Settings.Setting.SSAO_SAMPLE_RADIUS),
-                    getUserSettings().getSettingFloat(Settings.Setting.SSAO_INTENSITY),
-                    getUserSettings().getSettingFloat(Settings.Setting.SSAO_SCALE),
-                    getUserSettings().getSettingFloat(Settings.Setting.SSAO_BIAS));
+            SSAOFilter ssaoFilter = new SSAOFilter(Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_SAMPLE_RADIUS),
+                    Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_INTENSITY),
+                    Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_SCALE),
+                    Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_BIAS));
             fpp.addFilter(ssaoFilter);
             viewPort.addProcessor(fpp);
         }
