@@ -440,7 +440,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             }
 
             // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
-            worldState.getGameState().getPlayer(playerId).getStatsControl().creaturedSlapped(creature);
+            worldState.getGameState().getPlayer(playerId).getStatsControl().creatureSlapped(creature);
 
             return true;
         }
@@ -841,6 +841,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
         // Remove from view
         getSpatial().removeFromParent();
+
+        // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
+        worldState.getGameState().getPlayer(playerId).getStatsControl().creaturePickedUp(creature);
+
         return this;
     }
 
@@ -872,6 +876,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         worldState.getThingLoader().attachCreature(getSpatial());
         setEnabled(true);
         stateMachine.changeState(CreatureState.IDLE);
+
+        // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
+        worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
     }
 
 }

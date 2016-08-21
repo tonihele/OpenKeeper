@@ -170,11 +170,29 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_ENEMY_BREACHED:
                 return false;
             case PLAYER_CREATURE_PICKED_UP:
-                return false;
-            case PLAYER_CREATURE_DROPPED:
-                return false;
-            case PLAYER_CREATURE_SLAPPED:
                 PlayerStatsControl psc = getPlayer().getStatsControl();
+                creatureId = trigger.getUserData("creatureId", short.class);
+
+                if (creatureId == 0) {
+                    // Any creature
+                    return psc.hasPickedUp();
+                } else {
+                    // Certain creature
+                    return psc.hasPickedUp(stateManager.getState(GameState.class).getLevelData().getCreature(creatureId));
+                }
+            case PLAYER_CREATURE_DROPPED:
+                psc = getPlayer().getStatsControl();
+                creatureId = trigger.getUserData("creatureId", short.class);
+
+                if (creatureId == 0) {
+                    // Any creature
+                    return psc.hasDropped();
+                } else {
+                    // Certain creature
+                    return psc.hasDropped(stateManager.getState(GameState.class).getLevelData().getCreature(creatureId));
+                }
+            case PLAYER_CREATURE_SLAPPED:
+                psc = getPlayer().getStatsControl();
                 creatureId = trigger.getUserData("creatureId", short.class);
 
                 if (creatureId == 0) {
