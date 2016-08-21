@@ -40,12 +40,16 @@ public class PlayerStatsControl {
     }
 
     public void creatureSlapped(Creature creature) {
-        Integer numberOfSlaps = slapsMap.get(creature);
-        if (numberOfSlaps == null) {
-            numberOfSlaps = 0;
+        increaseMapCount(creature, slapsMap);
+    }
+
+    private void increaseMapCount(Creature creature, Map<Creature, Integer> map) {
+        Integer count = map.get(creature);
+        if (count == null) {
+            count = 0;
         }
-        numberOfSlaps++;
-        slapsMap.put(creature, numberOfSlaps);
+        count++;
+        map.put(creature, count);
     }
 
     public boolean hasPickedUp() {
@@ -57,12 +61,7 @@ public class PlayerStatsControl {
     }
 
     public void creaturePickedUp(Creature creature) {
-        Integer numberOfPickUps = pickUpsMap.get(creature);
-        if (numberOfPickUps == null) {
-            numberOfPickUps = 0;
-        }
-        numberOfPickUps++;
-        pickUpsMap.put(creature, numberOfPickUps);
+        increaseMapCount(creature, pickUpsMap);
     }
 
     public boolean hasDropped() {
@@ -74,12 +73,7 @@ public class PlayerStatsControl {
     }
 
     public void creatureDropped(Creature creature) {
-        Integer numberOfDrops = dropsMap.get(creature);
-        if (numberOfDrops == null) {
-            numberOfDrops = 0;
-        }
-        numberOfDrops++;
-        dropsMap.put(creature, numberOfDrops);
+        increaseMapCount(creature, dropsMap);
     }
 
 }
