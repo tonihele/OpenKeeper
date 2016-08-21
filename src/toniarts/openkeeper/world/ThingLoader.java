@@ -222,7 +222,12 @@ public class ThingLoader {
         return creatureControl;
     }
 
-    private void attachCreature(Spatial creature) {
+    /**
+     * Attachs a creature back to the creatures node
+     *
+     * @param creature the creature spatial
+     */
+    public void attachCreature(Spatial creature) {
         nodeCreatures.attachChild(creature);
     }
 
