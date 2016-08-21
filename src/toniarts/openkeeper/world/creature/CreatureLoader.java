@@ -275,8 +275,9 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
      *
      * @param spatial the creature root
      * @param anim wanted animation
+     * @param assetManager the AssetManager
      */
-    static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager) {
+    public static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager) {
 
         Node root = (Node) spatial;
 

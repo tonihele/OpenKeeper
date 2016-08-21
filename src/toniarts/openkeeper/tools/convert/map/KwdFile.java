@@ -1180,7 +1180,7 @@ public final class KwdFile {
             creature.setAnimHappyResource(readArtResource(file));
             creature.setAnimAngryResource(readArtResource(file));
             creature.setAnimStunnedPoseResource(readArtResource(file));
-            creature.setAnimSwingResource(readArtResource(file));
+            creature.setAnimInHandResource(readArtResource(file));
             creature.setAnimSleepResource(readArtResource(file));
             creature.setAnimEatResource(readArtResource(file));
             creature.setAnimResearchResource(readArtResource(file));

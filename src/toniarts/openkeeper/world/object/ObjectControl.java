@@ -22,6 +22,10 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -37,16 +41,18 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     private final WorldState worldState;
     private final toniarts.openkeeper.tools.convert.map.Object object;
     private final String tooltip;
+    private short ownerId;
 
     // Owners
     private RoomObjectControl roomObjectControl;
     private CreatureControl creature;
 
-    public ObjectControl(int ownerId, toniarts.openkeeper.tools.convert.map.Object object, WorldState worldState) {
+    public ObjectControl(short ownerId, toniarts.openkeeper.tools.convert.map.Object object, WorldState worldState) {
         super();
 
         this.worldState = worldState;
         this.object = object;
+        this.ownerId = ownerId;
 
         // Strings
         ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
@@ -110,7 +116,7 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     }
 
     @Override
-    public boolean pickUp(short playerId) {
+    public IInteractiveControl pickUp(short playerId) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -122,6 +128,26 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     @Override
     public void onHover() {
 
+    }
+
+    @Override
+    public CursorFactory.CursorType getInHandCursor() {
+        return CursorFactory.CursorType.HOLD_THING;
+    }
+
+    @Override
+    public ArtResource getInHandMesh() {
+        return object.getInHandMeshResource();
+    }
+
+    @Override
+    public DroppableStatus getDroppableStatus(TileData tile) {
+        return (tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
+    }
+
+    @Override
+    public void drop(TileData tile) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }

@@ -46,9 +46,12 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.task.AbstractTask;
+import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.gui.CursorFactory.CursorType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Thing.DeadBody;
 import toniarts.openkeeper.tools.convert.map.Thing.GoodCreature;
@@ -193,7 +196,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         }
 
         // Update attributes
-        updateAttributes(tpf);
+        if (stateMachine.getCurrentState() != null && stateMachine.getCurrentState() == CreatureState.PICKED_UP) {
+            updateAttributes(tpf);
+        }
 
         // Set the time in state
         if (stateMachine.getCurrentState() != null) {
@@ -274,6 +279,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     boolean isStopAnimation() {
         // FIXME: not very elegant to check this way
+        if (!enabled) {
+            return false;
+        }
         switch (playingAnimationType) {
             case IDLE: {
                 return (stateMachine.getCurrentState() != CreatureState.IDLE || steeringBehavior != null);
@@ -432,7 +440,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             }
 
             // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
-            worldState.getGameState().getPlayer(playerId).getStatsControl().creaturedSlapped(creature);
+            worldState.getGameState().getPlayer(playerId).getStatsControl().creatureSlapped(creature);
 
             return true;
         }
@@ -823,13 +831,54 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     @Override
-    public boolean pickUp(short playerId) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public IInteractiveControl pickUp(short playerId) {
+
+        // Stop everything
+        stateMachine.changeState(CreatureState.PICKED_UP);
+        unassingCurrentTask();
+        steeringBehavior = null;
+        setEnabled(false);
+
+        // Remove from view
+        getSpatial().removeFromParent();
+
+        // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
+        worldState.getGameState().getPlayer(playerId).getStatsControl().creaturePickedUp(creature);
+
+        return this;
     }
 
     @Override
     public boolean interact(short playerId) {
         return slap(playerId);
+    }
+
+    @Override
+    public CursorType getInHandCursor() {
+        return CursorFactory.CursorType.HOLD_THING;
+    }
+
+    @Override
+    public ArtResource getInHandMesh() {
+        return creature.getAnimInHandResource();
+    }
+
+    @Override
+    public DroppableStatus getDroppableStatus(TileData tile) {
+        return (tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
+    }
+
+    @Override
+    public void drop(TileData tile) {
+
+        // TODO: actual dropping & being stunned, & evict (Imp to DHeart & creature to portal)
+        CreatureLoader.setPosition(spatial, new Vector2f(tile.getX(), tile.getY()));
+        worldState.getThingLoader().attachCreature(getSpatial());
+        setEnabled(true);
+        stateMachine.changeState(CreatureState.IDLE);
+
+        // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
+        worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
     }
 
 }
