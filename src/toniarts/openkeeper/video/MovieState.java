@@ -68,8 +68,8 @@ public abstract class MovieState extends AbstractAppState {
         inputManager.addListener(actionListener, KEY_SKIP);
 
         // Create the canvas
-        int width = ((Main) app).getUserSettings().getAppSettings().getWidth();
-        int height = ((Main) app).getUserSettings().getAppSettings().getHeight();
+        int width = Main.getUserSettings().getAppSettings().getWidth();
+        int height = Main.getUserSettings().getAppSettings().getHeight();
         boolean squareScreen = ((0f + width) / height) < 1.6f;
         movieMaterial = new MovieMaterial(app, !squareScreen);
         movieMaterial.setLetterboxColor(ColorRGBA.Black);
@@ -92,7 +92,7 @@ public abstract class MovieState extends AbstractAppState {
         };
         player.play();
     }
-    private ActionListener actionListener = new ActionListener() {
+    private final ActionListener actionListener = new ActionListener() {
         @Override
         public void onAction(String name, boolean pressed, float tpf) {
 

@@ -41,7 +41,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
     private final int width;
     private final int height;
     private final int frameIndex;
-    private int[] dequantizationTable = new int[64];
+    private final int[] dequantizationTable = new int[64];
     private final static short scanTable[] = { // zigzagDirect
         0, 1, 8, 16, 9, 2, 3, 10,
         17, 24, 32, 25, 18, 11, 4, 5,
@@ -135,7 +135,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         {84, 83, 0, 0}, {219, 216, 0, 0}, {221, 217, 0, 0}, {86, 85, 0, 0}, {88, 87, 0, 0}, {222, 220, 0, 0},
         {90, 89, 0, 0}, {92, 91, 0, 0}, {225, 223, 0, 0}, {94, 93, 0, 0}, {96, 95, 0, 0}
     };
-    private int[] lastDc = {0, 0, 0};
+    private final int[] lastDc = {0, 0, 0};
     private final int[] linesize;
     private final int codedWidth;
     private final int codedHeight;
