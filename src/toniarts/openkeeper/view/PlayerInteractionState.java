@@ -40,6 +40,7 @@ import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import de.lessvoid.nifty.controls.Label;
 import java.awt.Point;
@@ -316,6 +317,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
                     if (interactiveControl != null && !keeperHand.isFull() && interactiveControl.isPickable(player.getPlayerId())) {
                         keeperHand.push(interactiveControl.pickUp(player.getPlayerId()));
+                        setupItemInHand(interactiveControl);
                         setCursor();
                     } else {
 
@@ -360,8 +362,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     if (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE) {
 
                         // Drop & update cursor
-                        itemInHand = null;
+                        removeItemInHand();
                         keeperHand.pop().drop(tile);
+                        if (!keeperHand.isEmpty()) {
+                            setupItemInHand(keeperHand.peek());
+                        }
                         setCursor();
                     }
                 } else if (Main.isDebug()) {
@@ -591,7 +596,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     }
 
     protected void setCursor() {
-        removeItemInHand();
+        keeperHandNode.setCullHint(Spatial.CullHint.Always);
         if (Main.getUserSettings().getSettingBoolean(Settings.Setting.USE_CURSORS)) {
             if (isOnGui || isInteractable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
@@ -599,23 +604,29 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE_TAGGING, assetManager));
             } else if (isTaggable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE, assetManager));
-            } else if (!keeperHand.isEmpty()) {
+            } else if (itemInHand != null) {
 
                 // Keeper hand item
-                itemInHand = keeperHand.peek();
                 inputManager.setMouseCursor(CursorFactory.getCursor(itemInHand.getInHandCursor(), assetManager));
-                setupItemInHand();
+                keeperHandNode.setCullHint(Spatial.CullHint.Never);
             } else {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.IDLE, assetManager));
             }
-        } else if (!keeperHand.isEmpty()) {
-            itemInHand = keeperHand.peek();
-            setupItemInHand();
+        } else if (itemInHand != null) {
+            keeperHandNode.setCullHint(Spatial.CullHint.Never);
         }
     }
 
-    private void setupItemInHand() {
-        if (itemInHand != null && itemInHand.getInHandMesh() != null) {
+    private void setupItemInHand(IInteractiveControl interactiveControl) {
+
+        // Remove the old one
+        if (itemInHand != null) {
+            removeItemInHand();
+        }
+
+        // Set the item
+        itemInHand = interactiveControl;
+        if (itemInHand.getInHandMesh() != null) {
 
             // Attach to GUI node and play the animation
             itemInHand.getSpatial().setLocalTranslation(0, 0, 0);
