@@ -44,7 +44,6 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
-
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.ICreatureEntrance;
@@ -284,7 +283,6 @@ public class TriggerControl extends Control {
             case SET_OBJECTIVE:
                 break;
             case FLASH_ACTION_POINT:
-                //WorldState world = stateManager.getState(WorldState.class);
                 ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
                 time = trigger.getUserData("value", int.class);
                 enable = trigger.getUserData("available", short.class) != 0;
@@ -307,7 +305,7 @@ public class TriggerControl extends Control {
                 Point pos = new Point(trigger.getUserData("posX", int.class), trigger.getUserData("posY", int.class));
                 short terrainId = trigger.getUserData("terrainId", short.class);
                 playerId = trigger.getUserData("playerId", short.class);
-                stateManager.getState(WorldState.class).alterTerrain(pos, terrainId, playerId);
+                stateManager.getState(WorldState.class).alterTerrain(pos, terrainId, playerId, true);
                 break;
 
             case PLAY_SPEECH:

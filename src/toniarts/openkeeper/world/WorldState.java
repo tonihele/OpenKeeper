@@ -138,7 +138,7 @@ public abstract class WorldState extends AbstractAppState {
         thingsNode = thingLoader.loadAll(creatureTriggerState);
         worldNode.attachChild(thingsNode);
 
-        flashTileControl = new FlashTileControl(this);
+        flashTileControl = new FlashTileControl(this, (Main) gameState.getApplication());
 
         // Player money
         initPlayerMoney();
@@ -477,7 +477,7 @@ public abstract class WorldState extends AbstractAppState {
         keeper.getGoldControl().addGold(value);
     }
 
-    public void alterTerrain(Point pos, short terrainId, short playerId) {
+    public void alterTerrain(Point pos, short terrainId, short playerId, boolean enqueue) {
         TileData tile = getMapData().getTile(pos.x, pos.y);
         if (tile == null) {
             return;
@@ -488,10 +488,35 @@ public abstract class WorldState extends AbstractAppState {
         if (playerId != 0) {
             tile.setPlayerId(playerId);
         }
+
         // See if room walls are allowed and does this touch any rooms
         updateRoomWalls(tile);
+
         // update one
-        mapLoader.updateTiles(mapLoader.getSurroundingTiles(pos, true));
+        updateTiles(enqueue, mapLoader.getSurroundingTiles(pos, true));
+    }
+
+    /**
+     * Update map tiles, on the scene graph
+     *
+     * @param enqueue if {@code false} this is executed in the current thread,
+     * otherwise it is enqueued to the update loop
+     * @param points the map points to update
+     */
+    protected void updateTiles(boolean enqueue, Point... points) {
+
+        // Enqueue if app is set
+        if (enqueue) {
+
+            app.enqueue(() -> {
+
+                mapLoader.updateTiles(points);
+
+                return null;
+            });
+        } else {
+            mapLoader.updateTiles(points);
+        }
     }
 
     /**

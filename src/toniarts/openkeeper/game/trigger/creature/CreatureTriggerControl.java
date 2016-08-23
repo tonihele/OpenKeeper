@@ -131,7 +131,12 @@ public class CreatureTriggerControl extends TriggerControl {
             }
             case SHOW_HEALTH_FLOWER: {
                 if (creature != null) {
-                    creature.showUnitFlower(trigger.getUserData("value", Integer.class));
+                    stateManager.getApplication().enqueue(() -> {
+
+                        creature.showUnitFlower(trigger.getUserData("value", Integer.class));
+
+                        return null;
+                    });
                 }
                 break;
             }

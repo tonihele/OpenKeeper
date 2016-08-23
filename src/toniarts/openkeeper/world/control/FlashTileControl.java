@@ -22,33 +22,40 @@ import com.jme3.scene.control.AbstractControl;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.world.WorldState;
 
 /**
  *
  * @author ArchDemon
  */
-
-
 public class FlashTileControl extends AbstractControl {
+
     private float tick = 0;
     public final float FLASH_PERIOD = 0.5f;
     private boolean flashed = false;
     private WorldState worldState;
     private final List<Point> points = new ArrayList<>();
+    private Main app;
 
     public FlashTileControl() {
     }
 
-    public FlashTileControl(final WorldState worldState) {
+    public FlashTileControl(final WorldState worldState, final Main app) {
         this.worldState = worldState;
+        this.app = app;
     }
 
-    public boolean attach(List<Point> points, boolean  enabled) {
+    public boolean attach(List<Point> points, boolean enabled) {
         if (enabled) {
             return this.points.addAll(points);
         } else {
-            worldState.getMapLoader().flashTile(false, points);
+            app.enqueue(() -> {
+
+                worldState.getMapLoader().flashTile(false, points);
+
+                return null;
+            });
             return this.points.removeAll(points);
         }
     }
