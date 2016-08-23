@@ -483,7 +483,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                         experience += experiencePerSecond;
                     }
                 }
-                if (experience >= experienceToNextLevel) { // Probably multiply the value per level?
+                if (experience >= experienceToNextLevel) {
                     experience -= experienceToNextLevel;
                     level++;
                     setAttributesByLevel();
