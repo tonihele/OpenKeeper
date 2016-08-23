@@ -224,7 +224,11 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                         }
                     } else {
                         Keeper player = getPlayer((short) availability.getPlayerId());
-                        setAvailability(player, availability);
+
+                        // Not all the players are participating...
+                        if (player != null) {
+                            setAvailability(player, availability);
+                        }
                     }
                 }
             }
