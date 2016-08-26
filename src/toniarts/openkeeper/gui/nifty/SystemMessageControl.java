@@ -35,13 +35,13 @@ public class SystemMessageControl extends AbstractController {
     private Nifty nifty;
     private Element element;
     private boolean unread = true;
-    private String textId = "";
+    private String text = "";
     private Object object = null;
     private final Long createdAt = System.currentTimeMillis();
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Parameters parameter) {
-        this.textId = parameter.get("text");
+        this.text = parameter.get("text");
         this.element = element;
         this.nifty = nifty;
     }
@@ -76,7 +76,7 @@ public class SystemMessageControl extends AbstractController {
         Element infoBox = this.nifty.getScreen("hud").findElementById("infoBox");
         if (infoBox != null) {
             infoBox.setVisible(true);
-            infoBox.findNiftyControl("messageText", Label.class).setText(this.textId);
+            infoBox.findNiftyControl("messageText", Label.class).setText(this.text);
             // update layout otherwise the scrollbar isn't correct
             infoBox.layoutElements();
         }
