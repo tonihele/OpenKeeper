@@ -216,4 +216,56 @@
         </panel>
     </controlDefinition>
 
+    <controlDefinition name="message">
+        <panel id="#messageBox" childLayout="vertical">
+            <panel id="#messageRowTop" childLayout="horizontal">
+                <image filename="Textures/GUI/Windows/text_box-tl.png" width="16px" height="16px"visibleToMouse="false" />
+                <image filename="Textures/GUI/Windows/text_box-t.png" width="*" height="16px" imageMode="repeat:0,0,16,16" visibleToMouse="false" />
+                <image filename="Textures/GUI/Windows/text_box-tr.png" width="16px" height="16px" visibleToMouse="false" />
+            </panel>
+            <panel id="#messageRowCenter" childLayout="horizontal" height="*">
+                <image filename="Textures/GUI/Windows/text_box-l.png" width="16px" height="100%" visibleToMouse="false" imageMode="repeat:0,0,16,16" />
+                <panel width="*" height="*" backgroundImage="Textures/GUI/Windows/text_box-m.png" imageMode="repeat:0,0,16,16" childLayout="vertical">
+                    <control id="#messageScroll" name="scrollPanel" horizontal="false" height="*" stepSizeY="20" paddingBottom="10px">
+                        <control id="messageText" width="98%" name="label" textHAlign="left" style="text" wrap="true" text="$text" />
+                    </control>
+                    <panel id="buttonPanel" childLayout="horizontal" valign="bottom" height="35px">
+                        <image id="dismissButton" filename="Textures/GUI/Tabs/Messages/mt-exit-00.png" visibleToMouse="true" marginLeft="20px">
+                            <effect>
+                                <onHover name="changeImage" active="Textures/GUI/Tabs/Messages/mt-exit-01.png" inactive="Textures/GUI/Tabs/Messages/mt-exit-00.png" />
+                                <onClick name="changeImage" active="Textures/GUI/Tabs/Messages/mt-exit-02.png" inactive="Textures/GUI/Tabs/Messages/mt-exit-00.png" />
+                            </effect>
+                        </image>
+                        <image id="okayButton" filename="Textures/GUI/Tabs/Messages/mt-tick-00.png" visibleToMouse="true" marginLeft="30px">
+                            <effect>
+                                <onHover name="changeImage" active="Textures/GUI/Tabs/Messages/mt-tick-01.png" inactive="Textures/GUI/Tabs/Messages/mt-tick-00.png" />
+                                <onClick name="changeImage" active="Textures/GUI/Tabs/Messages/mt-tick-02.png" inactive="Textures/GUI/Tabs/Messages/mt-tick-00.png" />
+                            </effect>
+                        </image>
+                        <image id="findButton" filename="Textures/GUI/Tabs/Messages/mt-goto-00.png" visibleToMouse="true" marginLeft="30px">
+                            <effect>
+                                <onHover name="changeImage" active="Textures/GUI/Tabs/Messages/mt-goto-01.png" inactive="Textures/GUI/Tabs/Messages/mt-goto-00.png" />
+                                <onClick name="changeImage" active="Textures/GUI/Tabs/Messages/mt-goto-02.png" inactive="Textures/GUI/Tabs/Messages/mt-goto-00.png" />
+                            </effect>
+                        </image>
+                    </panel>
+                </panel>
+                <image filename="Textures/GUI/Windows/text_box-r.png" width="16px" height="100%" visibleToMouse="false" imageMode="repeat:0,0,16,16" />
+            </panel>
+            <panel id="#messageRowBottom" childLayout="horizontal">
+                <image filename="Textures/GUI/Windows/text_box-bl.png" width="16px" height="16px" visibleToMouse="false" />
+                <image filename="Textures/GUI/Windows/text_box-b.png" width="*" height="16px" imageMode="repeat:0,0,16,16" visibleToMouse="false" />
+                <image filename="Textures/GUI/Windows/text_box-br.png" width="16px" height="16px" visibleToMouse="false" />
+            </panel>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition style="nifty-image-style" name="messageButton">
+        <image filename="Textures/GUI/Tabs/Messages/mt-goto-00.png" marginLeft="30px" visibleToMouse="true">
+            <effect>
+                <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-goto-01.png" />
+                <onClick name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-goto-02.png" />
+            </effect>
+        </image>
+    </controlDefinition>
 </nifty-controls>
