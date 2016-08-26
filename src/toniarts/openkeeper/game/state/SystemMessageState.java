@@ -122,23 +122,7 @@ public class SystemMessageState extends AbstractPauseAwareState {
             }
         }
     }
-    
-    /**
-     * Used to sync the effect on active messages.
-     * Otherwise all messages pulsate differently, which looks odd.
-     */
-    public void syncActiveEffects() {
-        Element systemMessages = nifty.getScreen("hud").findElementById("systemMessages");
-        if (systemMessages != null) {
-            for(Element child : systemMessages.getChildren()) {
-                SystemMessageControl control = child.getControl(SystemMessageControl.class);
-                if (control != null && control.isUnread()) {
-                    child.startEffect(EffectEventId.onActive);
-                }
-            }
-        }
-    }
-    
+
     @Override
     public boolean isPauseable() {
         return true;

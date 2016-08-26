@@ -44,6 +44,8 @@ public class SystemMessageControl extends AbstractController {
         this.text = parameter.get("text");
         this.element = element;
         this.nifty = nifty;
+        // sync effects on adding messages
+        syncActiveEffects();
     }
 
     @Override
