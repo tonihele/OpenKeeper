@@ -81,7 +81,7 @@
             </panel>
             <!--Empty center-->
             <panel childLayout="absolute-inside" height="*" width="100%" id="middle">
-                <control x="45%" y="50%" name="message" id="infoBox" width="450px" height="250px" valign="bottom" paddingRight="20px" paddingBottom="20px" visible="false"/>
+                <control x="45%" y="50%" name="message" width="450px" height="250px" valign="bottom" paddingRight="20px" paddingBottom="20px" visible="false"/>
             </panel>
             <!--The bottom panel-->
             <panel height="220px" width="100%" align="left" valign="bottom" childLayout="overlay">

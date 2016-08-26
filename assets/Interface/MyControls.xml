@@ -216,7 +216,7 @@
         </panel>
     </controlDefinition>
 
-    <controlDefinition name="message">
+    <controlDefinition name="message" id="infoBox">
         <panel id="#messageBox" childLayout="vertical">
             <panel id="#messageRowTop" childLayout="horizontal">
                 <image filename="Textures/GUI/Windows/text_box-tl.png" width="16px" height="16px"visibleToMouse="false" />
@@ -240,6 +240,7 @@
                             <effect>
                                 <onHover name="changeImage" active="Textures/GUI/Tabs/Messages/mt-tick-01.png" inactive="Textures/GUI/Tabs/Messages/mt-tick-00.png" />
                                 <onClick name="changeImage" active="Textures/GUI/Tabs/Messages/mt-tick-02.png" inactive="Textures/GUI/Tabs/Messages/mt-tick-00.png" />
+                                <onClick name="hide" targetElement="infoBox" />
                             </effect>
                         </image>
                         <image id="findButton" filename="Textures/GUI/Tabs/Messages/mt-goto-00.png" visibleToMouse="true" marginLeft="30px">
