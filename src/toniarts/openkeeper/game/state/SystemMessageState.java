@@ -23,6 +23,7 @@ import de.lessvoid.nifty.builder.HoverEffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
+import de.lessvoid.nifty.screen.Screen;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.nifty.SystemMessageControl;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -33,7 +34,9 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 public class SystemMessageState extends AbstractPauseAwareState {
     private final float lifeTime = 60000f;
     private final Nifty nifty;
-    private Main app = null;
+    private final Main app;
+    private final Screen hud;
+    private final Element systemMessagesQueue;
 
     public enum MessageType {
         INFO,
@@ -44,14 +47,12 @@ public class SystemMessageState extends AbstractPauseAwareState {
         CREATURE
     };
 
-    SystemMessageState(Nifty nifty, boolean enabled) {
-        this.nifty = nifty;
-        this.setEnabled(enabled);
-    }
-
     SystemMessageState(Main app, boolean enabled) {
         this.nifty = app.getNifty().getNifty();
         this.app = app;
+        this.hud = nifty.getScreen("hud");
+        this.systemMessagesQueue = this.hud.findElementById("systemMessages");
+
         this.setEnabled(enabled);
     }
     
@@ -104,17 +105,14 @@ public class SystemMessageState extends AbstractPauseAwareState {
             set("text", text);
             controller(SystemMessageControl.class.getName());
             interactOnClick("showMessage()");
-        }}.build(nifty, nifty.getScreen("hud"), nifty.getScreen("hud").findElementById("systemMessages"));
+        }}.build(nifty, this.hud, systemMessagesQueue);
         image.show();
-        
-        syncActiveEffects();
     }
     
     @Override
     public void update(float tpf) {
-        Element systemMessages = nifty.getScreen("hud").findElementById("systemMessages");
-        if (systemMessages != null) {
-            for(Element child : systemMessages.getChildren()) {
+        if (systemMessagesQueue != null) {
+            for(Element child : systemMessagesQueue.getChildren()) {
                 SystemMessageControl control = child.getControl(SystemMessageControl.class);
                 if (control != null && System.currentTimeMillis() - control.getCreatedAt() > lifeTime) {
                     child.markForRemoval();
