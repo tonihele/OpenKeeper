@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.state;
 
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.HoverEffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
@@ -32,7 +33,6 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 public class SystemMessageState extends AbstractPauseAwareState {
     private final float lifeTime = 60000f;
     private final Nifty nifty;
-    private int counter = 0;
     private Main app = null;
 
     public enum MessageType {
@@ -81,7 +81,7 @@ public class SystemMessageState extends AbstractPauseAwareState {
         final String hoverIcon = ConversionUtils.getCanonicalAssetKey(icon.replace("$index", "01"));
         final String activeIcon = ConversionUtils.getCanonicalAssetKey(icon.replace("$index", "02"));
         
-        Element image = new ImageBuilder("sysmessage.id" + counter++){{
+        Element image = new ImageBuilder("sysmessage-" + NiftyIdCreator.generate()){{
             filename(normalIcon);
             //marginLeft("4px");
             visibleToMouse(true);
