@@ -72,7 +72,7 @@ public class SystemMessageControl extends AbstractController {
      * Show a message in an info box
      */
     public void showMessage() {
-        this.setRead(this.unread);
+        this.setRead(true);
         Element infoBox = this.nifty.getScreen("hud").findElementById("infoBox");
         if (infoBox != null) {
             infoBox.setVisible(true);
