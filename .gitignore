@@ -38,3 +38,6 @@ local.properties
 
 *.dylib
 /build/
+
+# gradle stuff #
+/private/
