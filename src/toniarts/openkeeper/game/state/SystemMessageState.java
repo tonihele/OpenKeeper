@@ -44,11 +44,14 @@ public class SystemMessageState extends AbstractPauseAwareState {
         CREATURE
     };
 
-    SystemMessageState(Main app, boolean enabled) {
+    public SystemMessageState(Main app, boolean enabled) {
         this.nifty = app.getNifty().getNifty();
         this.app = app;
         this.hud = nifty.getScreen("hud");
         this.systemMessagesQueue = this.hud.findElementById("systemMessages");
+
+        // can be removed if system messages are correctly detached after quiting the game (like going back to main menu)
+        this.removeAllMessages();
 
         this.setEnabled(enabled);
     }
@@ -103,5 +106,22 @@ public class SystemMessageState extends AbstractPauseAwareState {
     @Override
     public boolean isPauseable() {
         return true;
+    }
+
+    /**
+     * Removes all existing messages from the queue
+     */
+    public void removeAllMessages() {
+        if (systemMessagesQueue != null && systemMessagesQueue.getChildrenCount() > 0) {
+            systemMessagesQueue.getChildren().forEach((child)->{
+                child.markForRemoval();
+            });
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        super.cleanup();
+        this.removeAllMessages();
     }
 }
