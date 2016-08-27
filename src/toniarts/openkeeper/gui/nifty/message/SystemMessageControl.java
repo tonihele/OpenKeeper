@@ -86,13 +86,6 @@ public class SystemMessageControl extends AbstractController {
         this.element.markForRemoval();
     }
 
-    @NiftyEventSubscriber(pattern="sysmessage.*")
-    public void onClickedSecondaryMouse(String id, NiftyMouseSecondaryClickedEvent event) {
-        if (id.equals(this.element.getId())) {
-            this.dismissMessage();
-        }
-    }
-
     /**
      * Used to sync the effect on active messages.
      * Otherwise all messages pulsate differently, which looks odd.

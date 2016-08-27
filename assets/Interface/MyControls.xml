@@ -260,7 +260,7 @@
                 <onActive name="imageOverlayPulsate" filename="$activeImage" post="true"/>
                 <onShow name="move" mode="in" direction="right" length="1000" startDelay="0"/>
             </effect>
-            <interact onClick="showMessage()" />
+            <interact onPrimaryClick="showMessage()" onSecondaryRelease="dismissMessage()"/>
         </image>
     </controlDefinition>
 </nifty-controls>
