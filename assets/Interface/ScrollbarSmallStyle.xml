@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-styles xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+    <!-- ++++++++++++++ -->
+    <!-- vertical small -->
+    <!-- ++++++++++++++ -->
+    <style id="nifty-vertical-scrollbar#panel">
+        <attributes childLayout="vertical" width="20px" align="center" focusable="false"/>
+    </style>
+    <style id="nifty-vertical-scrollbar#up">
+        <attributes filename="Textures/GUI/Scroll Bars/v-up_arrow.png" width="16px" height="16px" />
+        <effect>
+            <onClick name="focus" targetElement="#parent"/>
+            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
+            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
+        </effect>
+    </style>
+    <style id="nifty-vertical-scrollbar#down">
+        <attributes filename="Textures/GUI/Scroll Bars/v-down_arrow.png" width="16px" height="16px"/>
+        <effect>
+            <onClick name="focus" targetElement="#parent"/>
+            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150" />
+            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150" />
+        </effect>
+    </style>
+    <style id="nifty-vertical-scrollbar#background">
+        <attributes filename="Textures/GUI/Scroll Bars/v-scroll_bar_bg.png" padding="1px,4px,1px,5px" width="16px" height="*" 
+                    childLayout="absolute-inside" imageMode="repeat:0,0,16,16" />
+        <effect>
+            <onClick name="focus" targetElement="#parent"/>
+            <onHover name="fade" start="#ff" end="#af" post="true" />
+        </effect>
+    </style>
+    <style id="nifty-vertical-scrollbar#position">
+        <attributes filename="Textures/GUI/Scroll Bars/v-scroll_bar.png" x="0px" y="0px" width="16px" height="64px" />
+        <effect>
+            <onClick name="focus" targetElement="#parent#parent"/>
+            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150" />
+            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150" />
+        </effect>
+    </style>
+
+    <!-- ++++++++++ -->
+    <!-- horizontal -->
+    <!-- ++++++++++ -->
+    <style id="nifty-horizontal-scrollbar#panel">
+        <attributes childLayout="horizontal" height="16px" align="center" focusable="true" />
+    </style>
+    <style id="nifty-horizontal-scrollbar#left">
+        <attributes filename="Textures/GUI/Scroll Bars/H-left_arrow.png" valign="center" width="16px" height="16px" />
+        <effect>
+            <onClick name="focus" targetElement="#parent"/>
+            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
+            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
+        </effect>
+    </style>
+    <style id="nifty-horizontal-scrollbar#right">
+        <attributes filename="Textures/GUI/Scroll Bars/h-right_arrow.png" valign="center" width="16px" height="16px" />
+        <effect>
+            <onClick name="focus" targetElement="#parent"/>
+            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
+            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
+        </effect>
+    </style>
+    <style id="nifty-horizontal-scrollbar#background">
+        <attributes filename="Textures/GUI/Scroll Bars/h-scroll_bar_bg.png" padding="4px,1px,5px,1px" width="*" height="16px" 
+                    childLayout="absolute-inside" imageMode="repeat:0,0,16,16"/>
+        <effect>
+            <onClick name="focus" targetElement="#parent"/>
+            <onHover name="fade" start="#ff" end="#af" post="true" />
+        </effect>
+    </style>
+    <style id="nifty-horizontal-scrollbar#position">
+        <attributes filename="Textures/GUI/Scroll Bars/h-scroll_bar.png" x="0px" y="0px" width="64px" height="16px" />
+        <effect>
+            <onClick name="focus" targetElement="#parent#parent"/>
+            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
+            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
+        </effect>
+    </style>
+</nifty-styles>
