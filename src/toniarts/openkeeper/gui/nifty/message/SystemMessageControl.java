@@ -19,7 +19,6 @@ package toniarts.openkeeper.gui.nifty.message;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.controls.AbstractController;
-import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
@@ -122,5 +121,12 @@ public class SystemMessageControl extends AbstractController {
      */
     public boolean isUnread() {
         return this.unread;
+    }
+
+    /**
+     * @return text of the system message
+     */
+    public String getText() {
+        return this.text;
     }
 }

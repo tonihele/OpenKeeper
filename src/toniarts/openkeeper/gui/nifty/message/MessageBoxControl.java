@@ -64,7 +64,9 @@ public class MessageBoxControl extends AbstractController {
     }
 
     public void dismissMessage() {
-        this.systemMessage.dismissMessage();
+        if (this.systemMessage != null) {
+            this.systemMessage.dismissMessage();
+        }
         this.hide();
     }
     
@@ -89,11 +91,22 @@ public class MessageBoxControl extends AbstractController {
         this.show();
     }
     
+    /**
+     * Shows a message box with text
+     * 
+     * @param text 
+     */
     public void showMessage(final String text) {
         this.showMessageBox(text);
         this.addButton(ButtonType.TICK, "closeMessage()");
     }
 
+    /**
+     * Shows a removeable system message
+     * 
+     * @param systemMessage The control of the system message
+     * @param text 
+     */
     public void showSystemMessage(final SystemMessageControl systemMessage, final String text) {
         this.systemMessage = systemMessage;
         
@@ -102,12 +115,21 @@ public class MessageBoxControl extends AbstractController {
         this.addButton(ButtonType.TICK, "closeMessage()");
     }
 
+    /**
+     * TODO
+     * @param systemMessage
+     * @param text 
+     */
     public void showFocusMessage(final SystemMessageControl systemMessage, final String text) {
         this.showSystemMessage(systemMessage, text);
 
         this.addButton(ButtonType.GOTO, "focusElement()");
     }
 
+    /**
+     * Sets the text of the message box
+     * @param text 
+     */
     public void setText(final String text) {
         this.element.findNiftyControl("messageText", Label.class).setText(text);
         // update layout otherwise the scrollbar isn't correct

@@ -216,7 +216,7 @@
         </panel>
     </controlDefinition>
 
-    <controlDefinition name="message" id="messageBox" controller="toniarts.openkeeper.gui.nifty.message.MessageBoxControl">
+    <controlDefinition name="messageBox" id="messageBox" controller="toniarts.openkeeper.gui.nifty.message.MessageBoxControl">
         <panel id="#messageBoxPanel" childLayout="vertical">
             <panel id="#messageRowTop" childLayout="horizontal">
                 <image filename="Textures/GUI/Windows/text_box-tl.png" width="16px" height="16px"visibleToMouse="false" />
@@ -250,6 +250,17 @@
                 <onClick name="imageOverlay" filename="$activeImage" post="true" />
             </effect>
             <interact onClick="$click" />
+        </image>
+    </controlDefinition>
+
+    <controlDefinition name="systemMessage" controller="toniarts.openkeeper.gui.nifty.message.SystemMessageControl" visible="false">
+        <image filename="$image" visibleToMouse="true">
+            <effect>
+                <onHover name="imageOverlay" filename="$hoverImage" post="true"/>
+                <onActive name="imageOverlayPulsate" filename="$activeImage" post="true"/>
+                <onShow name="move" mode="in" direction="right" length="1000" startDelay="0"/>
+            </effect>
+            <interact onClick="showMessage()" />
         </image>
     </controlDefinition>
 </nifty-controls>

@@ -18,9 +18,7 @@ package toniarts.openkeeper.game.state;
 
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyIdCreator;
-import de.lessvoid.nifty.builder.EffectBuilder;
-import de.lessvoid.nifty.builder.HoverEffectBuilder;
-import de.lessvoid.nifty.builder.ImageBuilder;
+import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import toniarts.openkeeper.Main;
@@ -81,31 +79,13 @@ public class SystemMessageState extends AbstractPauseAwareState {
         final String hoverIcon = ConversionUtils.getCanonicalAssetKey(icon.replace("$index", "01"));
         final String activeIcon = ConversionUtils.getCanonicalAssetKey(icon.replace("$index", "02"));
         
-        Element image = new ImageBuilder("sysmessage-" + NiftyIdCreator.generate()){{
-            filename(normalIcon);
-            //marginLeft("4px");
-            visibleToMouse(true);
-            visible(false);
-            onHoverEffect(new HoverEffectBuilder("imageOverlay"){{
-                // using filename leads to an NPE, no idea why...
-                getAttributes().setAttribute("filename", hoverIcon);
-                post(true);
-            }});
-            onActiveEffect(new EffectBuilder("imageOverlayPulsate"){{
-                getAttributes().setAttribute("filename", activeIcon);
-                post(true);
-            }});
-            onShowEffect(new EffectBuilder("move"){{
-                getAttributes().setAttribute("mode", "in");
-                getAttributes().setAttribute("direction", "right");
-                length(1000);
-                startDelay(0);
-            }});
+        Element systemMessage = new ControlBuilder("sysmessage-" + NiftyIdCreator.generate(), "systemMessage"){{
+            parameter("image", normalIcon);
+            parameter("hoverImage", hoverIcon);
+            parameter("activeImage", activeIcon);
             set("text", text);
-            controller(SystemMessageControl.class.getName());
-            interactOnClick("showMessage()");
         }}.build(nifty, this.hud, systemMessagesQueue);
-        image.show();
+        systemMessage.show();
     }
     
     @Override
