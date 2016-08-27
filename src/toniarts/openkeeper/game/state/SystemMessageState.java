@@ -21,11 +21,10 @@ import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.HoverEffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
-import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.gui.nifty.SystemMessageControl;
+import toniarts.openkeeper.gui.nifty.message.SystemMessageControl;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 /**
  *

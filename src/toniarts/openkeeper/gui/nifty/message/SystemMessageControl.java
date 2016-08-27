@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.gui.nifty;
+package toniarts.openkeeper.gui.nifty.message;
 
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
@@ -38,12 +38,14 @@ public class SystemMessageControl extends AbstractController {
     private String text = "";
     private Object object = null;
     private final Long createdAt = System.currentTimeMillis();
+    private Screen hud;
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Parameters parameter) {
         this.text = parameter.get("text");
         this.element = element;
         this.nifty = nifty;
+        this.hud = this.nifty.getScreen("hud");
         // sync effects on adding messages
         syncActiveEffects();
     }
@@ -75,13 +77,7 @@ public class SystemMessageControl extends AbstractController {
      */
     public void showMessage() {
         this.setRead(true);
-        Element infoBox = this.nifty.getScreen("hud").findElementById("infoBox");
-        if (infoBox != null) {
-            infoBox.setVisible(true);
-            infoBox.findNiftyControl("messageText", Label.class).setText(this.text);
-            // update layout otherwise the scrollbar isn't correct
-            infoBox.layoutElements();
-        }
+        hud.findControl("messageBox", MessageBoxControl.class).showSystemMessage(this, text);
     }
 
     /**
