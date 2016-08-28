@@ -43,6 +43,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import de.lessvoid.nifty.controls.Label;
+import de.lessvoid.nifty.elements.Element;
 import java.awt.Point;
 import java.util.Arrays;
 import java.util.List;
@@ -95,7 +96,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public Vector2f mousePosition = Vector2f.ZERO;
     private InteractionState interactionState = InteractionState.NONE;
     private int itemId;
-    private final Rectangle guiConstraint;
+    private final Element view;
     private boolean isOnGui = false;
     private boolean isTaggable = false;
     private boolean isTagging = false;
@@ -108,9 +109,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private static final List<String> SLAP_SOUNDS = Arrays.asList(new String[]{"/Global/Slap_1.mp2", "/Global/slap_2.mp2", "/Global/Slap_3.mp2", "/Global/Slap_4.mp2"});
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
-    public PlayerInteractionState(Player player, GameState gameState, Rectangle guiConstraint, Label tooltip) {
+    public PlayerInteractionState(Player player, GameState gameState, Element view, Label tooltip) {
         this.player = player;
-        this.guiConstraint = guiConstraint;
+        this.view = view;
         this.tooltip = tooltip;
 
         // Init the keeper hand
@@ -295,6 +296,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     @Override
     public void onMouseButtonEvent(MouseButtonEvent evt) {
+        if (isOnGui) {
+            if (setStateFlags()) {
+                setCursor();
+            }
+            return;
+        }
+
         if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
 
             if (interactionState == InteractionState.SPELL && itemId == 2) { // possession
@@ -461,11 +469,18 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     }
 
     private boolean isCursorOnGUI() {
-        // if mouse not in rectangle guiConstraint => true
-        return mousePosition.x <= guiConstraint.x
-                || mousePosition.x >= guiConstraint.x + guiConstraint.width
-                || app.getContext().getSettings().getHeight() - mousePosition.y <= guiConstraint.y
-                || app.getContext().getSettings().getHeight() - mousePosition.y >= guiConstraint.y + guiConstraint.height;
+        int height = app.getContext().getSettings().getHeight();
+
+        if (view.isVisible() && view.isMouseInsideElement((int)mousePosition.x, height - (int)mousePosition.y)) {
+            for (Element e : view.getChildren()) {
+                if (e.isVisible() && e.isMouseInsideElement((int)mousePosition.x, height - (int)mousePosition.y)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return true;
     }
 
     /**

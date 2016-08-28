@@ -227,7 +227,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 tooltip = hud.findNiftyControl("tooltip", Label.class);
             }
 
-            interactionState = new PlayerInteractionState(player, gameState, guiConstraint, tooltip) {
+            interactionState = new PlayerInteractionState(player, gameState, hud.findElementById("middle"), tooltip) {
                 @Override
                 protected void onInteractionStateChange(InteractionState interactionState, int id) {
                     PlayerState.this.updateSelectedItem(interactionState, id);
