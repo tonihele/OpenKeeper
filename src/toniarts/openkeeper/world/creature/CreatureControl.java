@@ -196,7 +196,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         }
 
         // Update attributes
-        if (stateMachine.getCurrentState() != null && stateMachine.getCurrentState() == CreatureState.PICKED_UP) {
+        if (stateMachine.getCurrentState() != null && stateMachine.getCurrentState() != CreatureState.PICKED_UP) {
             updateAttributes(tpf);
         }
 
