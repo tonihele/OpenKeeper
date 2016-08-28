@@ -156,16 +156,23 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
      */
     public final void show(float period) {
 
-        // Reset counter and create the graphics
-        timeVisible = 0;
-        targetTimeVisible = period;
-        updateRequired = true;
-        unitSpatial.attachChild(getFlower());
+        if (isEnabled() && targetTimeVisible - timeVisible < period) {
 
-        // Enable
-        setEnabled(true);
+            // If already showing, just extend the time
+            targetTimeVisible = timeVisible + period;
+        } else {
 
-        onShow();
+            // Reset counter and create the graphics
+            timeVisible = 0;
+            targetTimeVisible = period;
+            updateRequired = true;
+            unitSpatial.attachChild(getFlower());
+
+            // Enable
+            setEnabled(true);
+
+            onShow();
+        }
     }
 
     /**
@@ -224,7 +231,7 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
     public void setSpatial(Spatial spatial) {
 
         // Create the spatial
-       unitSpatial = (Node) spatial;
+        unitSpatial = (Node) spatial;
         show();
     }
 
@@ -282,7 +289,7 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
      * Creates a quad, just that this one is centered on x-axis and on y-axis
      * lifted up by the unit height
      *
-     * @param width  width
+     * @param width width
      * @param height height
      * @return the mesh
      */
