@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.player.PlayerCameraRotateControl;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
+import toniarts.openkeeper.game.state.SystemMessageState;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -311,7 +312,7 @@ public class TriggerControl extends Control {
             case PLAY_SPEECH:
                 int speechId = trigger.getUserData("speechId", int.class);
                 stateManager.getState(SoundState.class).attachSpeech(speechId);
-
+                stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
                 int pathId = trigger.getUserData("pathId", int.class);
                 // text show when Cinematic camera by pathId
                 boolean introduction = trigger.getUserData("introduction", short.class) != 0;

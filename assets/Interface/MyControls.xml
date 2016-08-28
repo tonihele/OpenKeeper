@@ -216,4 +216,51 @@
         </panel>
     </controlDefinition>
 
+    <controlDefinition name="messageBox" id="messageBox" controller="toniarts.openkeeper.gui.nifty.message.MessageBoxControl">
+        <panel id="#messageBoxPanel" childLayout="vertical">
+            <panel id="#messageRowTop" childLayout="horizontal">
+                <image filename="Textures/GUI/Windows/text_box-tl.png" width="16px" height="16px"visibleToMouse="false" />
+                <image filename="Textures/GUI/Windows/text_box-t.png" width="*" height="16px" imageMode="repeat:0,0,16,16" visibleToMouse="false" />
+                <image filename="Textures/GUI/Windows/text_box-tr.png" width="16px" height="16px" visibleToMouse="false" />
+            </panel>
+            <panel id="#messageRowCenter" childLayout="horizontal" height="*">
+                <image filename="Textures/GUI/Windows/text_box-l.png" width="16px" height="100%" visibleToMouse="false" imageMode="repeat:0,0,16,16" />
+                <panel width="*" height="*" backgroundImage="Textures/GUI/Windows/text_box-m.png" imageMode="repeat:0,0,16,16" childLayout="vertical">
+                    <control id="#messageScroll" name="scrollPanel" horizontal="false" height="*" stepSizeY="20" paddingBottom="10px">
+                        <control id="messageText" width="98%" name="label" textHAlign="left" style="text" wrap="true" text="$text" />
+                    </control>
+                    <panel id="buttonPanel" childLayout="horizontal" valign="bottom" height="35px">
+                        <!-- the buttons to click are inserted here -->
+                    </panel>
+                </panel>
+                <image filename="Textures/GUI/Windows/text_box-r.png" width="16px" height="100%" visibleToMouse="false" imageMode="repeat:0,0,16,16" />
+            </panel>
+            <panel id="#messageRowBottom" childLayout="horizontal">
+                <image filename="Textures/GUI/Windows/text_box-bl.png" width="16px" height="16px" visibleToMouse="false" />
+                <image filename="Textures/GUI/Windows/text_box-b.png" width="*" height="16px" imageMode="repeat:0,0,16,16" visibleToMouse="false" />
+                <image filename="Textures/GUI/Windows/text_box-br.png" width="16px" height="16px" visibleToMouse="false" />
+            </panel>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition style="nifty-image-style" name="messageButton">
+        <image filename="$image" visibleToMouse="true" marginLeft="30px">
+            <effect>
+                <onHover name="imageOverlay" filename="$hoverImage" post="true" />
+                <onClick name="imageOverlay" filename="$activeImage" post="true" />
+            </effect>
+            <interact onClick="$click" />
+        </image>
+    </controlDefinition>
+
+    <controlDefinition name="systemMessage" controller="toniarts.openkeeper.gui.nifty.message.SystemMessageControl" visible="false">
+        <image filename="$image" visibleToMouse="true">
+            <effect>
+                <onHover name="imageOverlay" filename="$hoverImage" post="true"/>
+                <onActive name="imageOverlayPulsate" filename="$activeImage" post="true"/>
+                <onShow name="move" mode="in" direction="right" length="1000" startDelay="0"/>
+            </effect>
+            <interact onPrimaryClick="showMessage()" onSecondaryRelease="dismissMessage()"/>
+        </image>
+    </controlDefinition>
 </nifty-controls>

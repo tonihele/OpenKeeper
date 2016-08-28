@@ -439,7 +439,7 @@
             </panel>
 
             <control id="moviePanel" name="scrollPanel" align="center" valign="center"
-                     horizontal="false" height="*" width="80%">
+                     horizontal="false" height="*" width="80%" stepSizeY="30">
                 <panel id="movieList" childLayout="vertical">
                     <!-- placeholder for movies -->
                 </panel>
