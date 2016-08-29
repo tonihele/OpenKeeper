@@ -19,17 +19,18 @@ package toniarts.openkeeper.gui;
 import com.jme3.asset.AssetManager;
 import com.jme3.cursors.plugins.JmeCursor;
 import com.jme3.texture.Image;
+import com.jme3.texture.Image.Format;
 import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
-import java.util.regex.Matcher;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 public class Cursor extends JmeCursor {
 
-    public int delay = 30;
+    public final int delay = 30;
 
     /**
      * Generates a static cursor
@@ -58,7 +59,7 @@ public class Cursor extends JmeCursor {
         }
 
 
-        Texture tex = assetManager.loadTexture(AssetsConverter.MOUSE_CURSORS_FOLDER.concat(File.separator).concat(Filename).replaceAll(Matcher.quoteReplacement(File.separator), "/"));
+        Texture tex = assetManager.loadTexture(ConversionUtils.convertFileSeparators(AssetsConverter.MOUSE_CURSORS_FOLDER.concat(File.separator).concat(Filename)));
         Image img = tex.getImage();
         // width must be a multiple of 16, otherwise the cursor gets distorted
         int width = img.getWidth() % 16 == 0 ? img.getWidth() : (img.getWidth() - img.getWidth() % 16) + 16;
@@ -74,8 +75,7 @@ public class Cursor extends JmeCursor {
                 for (int x = 0; x < width; x++) {
                     int argb = 0;
                     if (x < img.getWidth() && y < heightFrame) {
-                        int abgr = data.getInt();
-                        argb = ((abgr & 255) << 24) | (abgr >> 8);
+                        argb = getARGB(img.getFormat(), data);
                     }
 
                     image.put(argb);
@@ -100,5 +100,28 @@ public class Cursor extends JmeCursor {
         this.setxHotSpot(hotspotx);
         this.setyHotSpot(height - hotspoty);
         this.setImagesData(image);
+    }
+
+    private int getARGB(Format format, ByteBuffer data) {
+	int result = 0;
+
+	switch (format) {
+            case BGR8:
+                result = 0xFF000000 | (data.get() & 0xFF) | ((data.get() & 0xFF) << 8) | ((data.get() & 0xFF) << 16);
+                if (result == 0xFF00FF00) { // green only
+                    result = 0; // transparent
+                }
+                break;
+
+            case ABGR8:
+                int abgr = data.getInt();
+                result = ((abgr & 255) << 24) | (abgr >> 8);
+                break;
+
+            default:
+                throw new RuntimeException("Unsupported file format " + format.toString());
+        }
+
+	return result;
     }
 }

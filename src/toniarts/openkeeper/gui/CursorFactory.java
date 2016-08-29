@@ -40,9 +40,8 @@ public final class CursorFactory {
         DROP_GOLD,
         DROP_THING,
         PICKAXE_TAG,
-        // We are having issues because of the file format
-        // SPELL_POSSESS,
-        // NO_SPELL_POSSESS,
+        SPELL_POSSESS,
+        NO_SPELL_POSSESS,
         SPELL_CAST;
     }
     private static volatile HashMap<CursorType, JmeCursor> cursors;
@@ -70,9 +69,9 @@ public final class CursorFactory {
         //
         // Animated cursors
         //
-        cursors.put(CursorType.IDLE, new Cursor(assetManager, "Point.png", 6, 4, 41));
+        cursors.put(CursorType.IDLE, new Cursor(assetManager, "Point.png", 14, 32, 41));
         cursors.put(CursorType.SPELL_CAST, new Cursor(assetManager, "SpellCast.png", 5, 65, 12));
-        //cursors.put(CursorType.SPELL_POSSESS, new Cursor(assetManager, "SpellPossess.png", 2, 2, 6));
+        cursors.put(CursorType.SPELL_POSSESS, new Cursor(assetManager, "SpellPossess.png", 2, 2, 6));
         cursors.put(CursorType.DROP_GOLD, new Cursor(assetManager, "DropGold.png", 10, 40, 16));
         cursors.put(CursorType.DROP_THING, new Cursor(assetManager, "DropThing.png", 5, 40, 14));
         cursors.put(CursorType.SLAP, new Cursor(assetManager, "Slap.png", 5, 40, 15));
@@ -87,6 +86,6 @@ public final class CursorFactory {
         cursors.put(CursorType.HOLD_SPELL, new Cursor(assetManager, "SpellHold.png", 30, 50));
         cursors.put(CursorType.HOLD_GOLD, new Cursor(assetManager, "HoldGold.png", 5, 5));
         cursors.put(CursorType.HOLD_THING, new Cursor(assetManager, "HoldThing.png", 5, 40));
-        //cursors.put(CursorType.NO_SPELL_POSSESS, new Cursor(assetManager, "SpellPossessNoGo.png", 32, 32));
+        cursors.put(CursorType.NO_SPELL_POSSESS, new Cursor(assetManager, "SpellPossessNoGo.png", 32, 32));
     }
 }
