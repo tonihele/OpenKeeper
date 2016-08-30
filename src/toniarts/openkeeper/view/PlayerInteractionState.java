@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.CheatState;
@@ -403,11 +404,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public void onKeyEvent(KeyInputEvent evt) {
         // FIXME use CTRL + ALT + C to activate cheats!
         // TODO Disable in multi player!
-        if (evt.isPressed() && evt.getKeyCode() == KeyInput.KEY_F12) {
-            CheatState cheat = stateManager.getState(CheatState.class);
+        int key = Main.getUserSettings().getSettingInteger(Settings.Setting.CONSOLE);
+        if (evt.isPressed() && evt.getKeyCode() == key) {
+            stateManager.getState(ConsoleState.class).setEnabled(true);
+            /*CheatState cheat = stateManager.getState(CheatState.class);
             if (!cheat.isEnabled()) {
                 cheat.setEnabled(true);
-            }
+            }*/
         }
     }
 
