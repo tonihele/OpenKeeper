@@ -4,6 +4,7 @@
     <useStyles filename="Interface/ScrollbarSmallStyle.xml" />
     <useStyles filename="Interface/ScrollpanelStyle.xml" />
     <useStyles filename="Interface/CustomTabStyle.xml" />
+    <useStyles filename="Interface/HintStyle.xml" />
     <useControls filename="nifty-default-controls.xml" />
     <useControls filename="Interface/MyControls.xml" />
     <useControls filename="Interface/CustomTabControl.xml" />
@@ -149,11 +150,16 @@
                         <panel width="100%" height="100%" childLayout="horizontal" paddingLeft="280px">
                             <panel childLayout="horizontal" height="64px">
                                 <!-- Show/Hide Panel -->
-                                <image valign="center" filename="Textures/GUI/Icons/i-mise.png" height="64px" width="64px" filter="true" />
+                                <image valign="center" filename="Textures/GUI/Icons/i-mise.png" height="64px" width="64px" filter="true" visibleToMouse="true">
+                                    <effect>
+                                        <onHover name="hint" hintText="${menu.2161}" hintDelay="200" />
+                                    </effect>
+                                </image>
                                 <!-- Objective -->
-                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-objective-00.png">
+                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-objective-00.png" visibleToMouse="true">
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-objective-01.png" post="true"/>
+                                        <onHover name="hint" hintText="${menu.2163}" hintDelay="200" />
                                     </effect>
                                 </image>
                             </panel>
@@ -173,7 +179,7 @@
                         <control name="customTabGroup" height="100%" width="100%" valign="top" id="tabs-hud">
 
                             <control name="customTab" id="tab-creature" image="Textures/GUI/Tabs/t-creatures.png"
-                                     active="Textures/GUI/Icons/selected-creature.png">
+                                     active="Textures/GUI/Icons/selected-creature.png" hintText="${menu.2153}">
                                 <panel childLayout="horizontal" align="left">
                                      <!--The worker amount & status-->
                                     <control name="workerAmount"  />
@@ -189,21 +195,21 @@
                             </control>
 
                             <control name="customTab" id="tab-room" image="Textures/GUI/Tabs/t-rooms.png"
-                                     active="Textures/GUI/Icons/selected-room.png">
+                                     active="Textures/GUI/Icons/selected-room.png" hintText="${menu.2155}">
                                 <panel childLayout="vertical" align="left">
                                     <panel childLayout="horizontal" padding="3px,3px,0" id="tab-room-content" />
                                 </panel>
                             </control>
 
                             <control name="customTab" id="tab-spell" image="Textures/GUI/Tabs/t-spells.png"
-                                     active="Textures/GUI/Icons/selected-spell.png">
+                                     active="Textures/GUI/Icons/selected-spell.png" hintText="${menu.2157}">
                                 <panel childLayout="vertical" align="left">
                                     <panel childLayout="horizontal" padding="3px,3px,0" id="tab-spell-content" />
                                 </panel>
                             </control>
 
                             <control name="customTab" id="tab-workshop" image="Textures/GUI/Tabs/t-workshop.png"
-                                     active="Textures/GUI/Icons/selected-workshop.png">
+                                     active="Textures/GUI/Icons/selected-workshop.png" hintText="${menu.2159}">
                                 <panel childLayout="vertical" align="left">
                                     <panel childLayout="horizontal" padding="3px,3px,0" id="tab-door-content" />
                                     <panel childLayout="horizontal" padding="3px,3px,3px" id="tab-trap-content" />

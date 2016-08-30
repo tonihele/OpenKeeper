@@ -21,6 +21,9 @@
             <image id="#selector" valign="center" filename="$active" />
             <interact onClick="onClick()" />
             <text id="#text" style="#text" text="" />
+            <effect>
+                <onHover name="hint" hintText="$hintText" hintDelay="200" />
+            </effect>
         </image>
     </controlDefinition>
 </nifty-controls>
