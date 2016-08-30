@@ -263,4 +263,14 @@
             <interact onPrimaryClick="showMessage()" onSecondaryRelease="dismissMessage()"/>
         </image>
     </controlDefinition>
+    
+    <controlDefinition name="nifty-default-hint" style="openkeeper-hint">
+        <panel childLayout="horizontal">
+            <image filename="Textures/GUI/Windows/text_box-00.png" imageMode="resize:6,2,2,10,6,2,2,5,6,2,2,10" />
+            <panel style="#panel">
+                <text id="#hint-text" style="#hint-text" text="$hintText"/>
+            </panel>
+            <image filename="Textures/GUI/Windows/text_box-02.png" imageMode="resize:6,6,4,10,6,6,4,5,6,6,4,10" />
+        </panel>
+    </controlDefinition>
 </nifty-controls>
