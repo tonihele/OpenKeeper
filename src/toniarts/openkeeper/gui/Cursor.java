@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 public class Cursor extends JmeCursor {
 
-    public final int delay = 30;
+    public static final int DELAY = 30;
 
     /**
      * Generates a static cursor
@@ -57,7 +57,6 @@ public class Cursor extends JmeCursor {
         if (frames < 1) {
             throw new IllegalArgumentException("The cursor needs at least a framecount of 1.");
         }
-
 
         Texture tex = assetManager.loadTexture(ConversionUtils.convertFileSeparators(AssetsConverter.MOUSE_CURSORS_FOLDER.concat(File.separator).concat(Filename)));
         Image img = tex.getImage();
@@ -88,7 +87,7 @@ public class Cursor extends JmeCursor {
             // Delays
             IntBuffer delays = BufferUtils.createIntBuffer(frames);
             for (int i = 0; i < frames; i++) {
-                delays.put(delay);
+                delays.put(DELAY);
             }
 
             this.setImagesDelay((IntBuffer) delays.rewind());
@@ -103,9 +102,9 @@ public class Cursor extends JmeCursor {
     }
 
     private int getARGB(Format format, ByteBuffer data) {
-	int result = 0;
+        int result = 0;
 
-	switch (format) {
+        switch (format) {
             case BGR8:
                 result = 0xFF000000 | (data.get() & 0xFF) | ((data.get() & 0xFF) << 8) | ((data.get() & 0xFF) << 16);
                 if (result == 0xFF00FF00) { // green only
@@ -122,6 +121,6 @@ public class Cursor extends JmeCursor {
                 throw new RuntimeException("Unsupported file format " + format.toString());
         }
 
-	return result;
+        return result;
     }
 }
