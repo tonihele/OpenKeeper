@@ -62,6 +62,8 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.console.ConsoleState;
+import toniarts.openkeeper.game.console.GameConsole;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
@@ -193,6 +195,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 nifty.getScreen(HUD_SCREEN_ID).findElementById("optionsMenu").setVisible(paused);
             }
 
+            appStates.add(new ConsoleState());
             // Create app states
             Player player = gameState.getLevelData().getPlayer(playerId); // Keeper 1
 

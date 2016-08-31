@@ -226,6 +226,15 @@
                 </panel>
             </panel>
         </layer>
+        <!-- console layer-->
+        <layer childLayout="vertical">
+            <control id="console" name="nifty-console" lines="25" visible="false">
+                <effect>
+                    <onShow name="move" neverStopRendering="true" length="200" mode="in" direction="top" />
+                    <onHide name="move" length="200" mode="out" direction="top" />
+                </effect>
+            </control>
+        </layer>
 
         <layer id="optionsMenu" childLayout="vertical" visible="false">
             <panel height="72px" width="100%" align="left" valign="top" childLayout="center" />

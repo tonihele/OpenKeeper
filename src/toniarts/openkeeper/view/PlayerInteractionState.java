@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.CheatState;
@@ -421,6 +422,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             if (!cheat.isEnabled()) {
                 cheat.setEnabled(true);
             }
+        } else if (evt.isPressed() && evt.getKeyCode() == ConsoleState.KEY && Main.isDebug()) {
+            stateManager.getState(ConsoleState.class).setEnabled(true);
         }
     }
 
