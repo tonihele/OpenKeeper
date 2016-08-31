@@ -404,13 +404,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public void onKeyEvent(KeyInputEvent evt) {
         // FIXME use CTRL + ALT + C to activate cheats!
         // TODO Disable in multi player!
-        int key = Main.getUserSettings().getSettingInteger(Settings.Setting.CONSOLE);
-        if (evt.isPressed() && evt.getKeyCode() == key) {
-            stateManager.getState(ConsoleState.class).setEnabled(true);
-            /*CheatState cheat = stateManager.getState(CheatState.class);
+        if (evt.isPressed() && evt.getKeyCode() == KeyInput.KEY_F12) {
+            CheatState cheat = stateManager.getState(CheatState.class);
             if (!cheat.isEnabled()) {
                 cheat.setEnabled(true);
-            }*/
+            }
+        } else if (evt.isPressed() && evt.getKeyCode() == ConsoleState.KEY && Main.isDebug()) {
+            stateManager.getState(ConsoleState.class).setEnabled(true);
         }
     }
 

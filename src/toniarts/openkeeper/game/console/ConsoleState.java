@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.console;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.input.KeyInput;
 import de.lessvoid.nifty.controls.Console;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
@@ -31,6 +32,8 @@ public class ConsoleState extends AbstractPauseAwareState {
     private Main app;
     private GameConsole console;
     private ConsoleInputListener inputListener;
+
+    public final static int KEY = KeyInput.KEY_F11;
 
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
@@ -57,7 +60,7 @@ public class ConsoleState extends AbstractPauseAwareState {
             app.getStateManager().getState(PlayerInteractionState.class).setEnabled(!enabled);
             console.setVisible(enabled);
         }
-        
+
         if (enabled) {
             app.getInputManager().addRawInputListener(inputListener);
         } else {
@@ -73,6 +76,4 @@ public class ConsoleState extends AbstractPauseAwareState {
     public boolean isPauseable() {
         return false;
     }
-
-    
 }

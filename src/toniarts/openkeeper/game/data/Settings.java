@@ -151,7 +151,6 @@ public class Settings {
         // Other Controls
         SCROLL_SPEED(Float.class, 1.0f, SettingCategory.MISCELLANEOUS, 1468),
         GAME_SPEED(Float.class, 1.0f, SettingCategory.MISCELLANEOUS, 1469),
-        CONSOLE(Integer.class, KeyInput.KEY_F12, SettingCategory.MISCELLANEOUS),
         // Screen recorder
         RECORDER_QUALITY(Float.class, 0.8f, SettingCategory.MISCELLANEOUS),
         RECORDER_FPS(Integer.class, 60, SettingCategory.MISCELLANEOUS),

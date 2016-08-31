@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.console;
 
 import com.jme3.app.state.AppState;
-import com.jme3.input.KeyInput;
 import com.jme3.input.RawInputListener;
 import com.jme3.input.event.JoyAxisEvent;
 import com.jme3.input.event.JoyButtonEvent;
@@ -25,8 +24,6 @@ import com.jme3.input.event.KeyInputEvent;
 import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
-import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.data.Settings;
 
 /**
  *
@@ -34,11 +31,9 @@ import toniarts.openkeeper.game.data.Settings;
  */
 public class ConsoleInputListener implements RawInputListener {
     private final AppState app;
-    private final int inputKey;
 
     public ConsoleInputListener(AppState app) {
         this.app = app;
-        inputKey = Main.getUserSettings().getSettingInteger(Settings.Setting.CONSOLE);
     }
 
     @Override
@@ -67,7 +62,7 @@ public class ConsoleInputListener implements RawInputListener {
 
     @Override
     public void onKeyEvent(KeyInputEvent evt) {
-        if (evt.isPressed() && evt.getKeyCode() == inputKey) {
+        if (evt.isPressed() && evt.getKeyCode() == ConsoleState.KEY) {
             app.setEnabled(false);
         }
     }

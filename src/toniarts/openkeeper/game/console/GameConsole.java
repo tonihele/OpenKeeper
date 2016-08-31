@@ -33,17 +33,17 @@ public class GameConsole {
         initialize(nifty);
     }
 
+    // TODO add normal commands if needed
     private void initialize(Nifty nifty) {
-        // create the console commands class and attach it to the console
         ConsoleCommands consoleCommands = new ConsoleCommands(nifty, console);
-
+        /*
         ConsoleCommands.ConsoleCommand simpleCommand = new SimpleCommand();
         consoleCommands.registerCommand("simple", simpleCommand);
 
         ConsoleCommands.ConsoleCommand showCommand = new ShowCommand();
         consoleCommands.registerCommand("show", showCommand);
+        */
 
-        // finally enable command completion
         consoleCommands.enableCommandCompletion(true);
     }
 
@@ -66,7 +66,7 @@ public class GameConsole {
     public class SimpleCommand implements ConsoleCommands.ConsoleCommand {
         @Override
         public void execute(final String[] args) {
-            System.out.println(args[0]); // this is always the command (in this case 'simple')
+            System.out.println(args[0]);
             if (args.length > 1) {
                 for (String a : args) {
                     System.out.println(a);
