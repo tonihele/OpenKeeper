@@ -27,6 +27,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 import static toniarts.openkeeper.world.MapLoader.loadAsset;
+import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  * TODO: not completed
@@ -35,8 +36,8 @@ import static toniarts.openkeeper.world.MapLoader.loadAsset;
  */
 public class Prison extends DoubleQuad {
 
-    public Prison(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    public Prison(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, direction, objectLoader);
     }
 
     @Override

@@ -27,13 +27,14 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.utils.FullMoon;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Level.LevelType;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.FullMoon;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
 /**
@@ -45,8 +46,8 @@ import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
  */
 public class HeroGateFrontEnd extends GenericRoom {
 
-    public HeroGateFrontEnd(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    public HeroGateFrontEnd(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, direction, objectLoader);
     }
 
     /**
@@ -153,7 +154,7 @@ public class HeroGateFrontEnd extends GenericRoom {
                     quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
                     root.attachChild(loadObject("3dfe_beams", assetManager, start, p, true).rotate(quat).move(0, 0.4f, 0.1f));
                     // TODO: Add a point/spot light here
-                    
+
                     // Banners
                     root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
                     root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
@@ -210,8 +211,7 @@ public class HeroGateFrontEnd extends GenericRoom {
                         }
                     }   // Secret levels
                     for (int x = 1; x < 6; x++) {
-                        if (x == 5 && !FullMoon.isFullMoon())
-                        {
+                        if (x == 5 && !FullMoon.isFullMoon()) {
                             // don't show full moon level
                             continue;
                         }
@@ -237,11 +237,6 @@ public class HeroGateFrontEnd extends GenericRoom {
 
     @Override
     public Spatial getWallSpatial(Point start, WallSection.WallDirection direction) {
-        return null;
-    }
-
-    @Override
-    protected BatchNode constructWall() {
         return null;
     }
 }

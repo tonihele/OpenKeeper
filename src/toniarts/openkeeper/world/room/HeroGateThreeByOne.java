@@ -22,20 +22,19 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.room.WallSection.WallDirection;
 import toniarts.openkeeper.tools.convert.map.Thing.Room.Direction;
+import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.object.ObjectLoader;
+import toniarts.openkeeper.world.room.WallSection.WallDirection;
 
 /**
  *
  * @author ArchDemon
  */
-
 public class HeroGateThreeByOne extends GenericRoom {
 
-    public HeroGateThreeByOne(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    public HeroGateThreeByOne(AssetManager assetManager, RoomInstance roomInstance, Direction direction, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, direction, objectLoader);
     }
 
     @Override

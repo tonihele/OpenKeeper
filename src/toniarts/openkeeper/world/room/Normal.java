@@ -32,6 +32,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.WallSection.WallDirection;
 
 /**
@@ -41,21 +42,12 @@ import toniarts.openkeeper.world.room.WallSection.WallDirection;
  */
 public class Normal extends GenericRoom {
 
-    protected boolean[][] map;
-    protected Point start;
-
-    public Normal(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
-    }
-
-    protected void setupCoordinates() {
-        map = roomInstance.getCoordinatesAsMatrix();
-        start = roomInstance.getMatrixStartPoint();
+    public Normal(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, direction, objectLoader);
     }
 
     @Override
     public Spatial construct() {
-        setupCoordinates();
         super.construct();
 
         // Pillars
@@ -359,10 +351,5 @@ public class Normal extends GenericRoom {
      */
     protected boolean useBigFloorTile(int x, int y) {
         return true;
-    }
-
-    @Override
-    protected BatchNode constructWall() {
-        return null;
     }
 }

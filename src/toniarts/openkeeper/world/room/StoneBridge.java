@@ -27,6 +27,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 import static toniarts.openkeeper.world.MapLoader.loadAsset;
+import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  *
@@ -34,8 +35,8 @@ import static toniarts.openkeeper.world.MapLoader.loadAsset;
  */
 public class StoneBridge extends Quad {
 
-    public StoneBridge(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    public StoneBridge(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, direction, objectLoader);
     }
 
     @Override

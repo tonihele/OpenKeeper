@@ -34,6 +34,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
 /**
@@ -49,6 +50,26 @@ public abstract class GenericRoom {
 
     };
 
+    /**
+     * How the objects are laid out, there is always a 1 tile margin from the
+     * sides. I don't know where this information really is, so I hardcoded it.
+     */
+    public enum RoomObjectLayout {
+
+        /**
+         * Allow side-to-side, every tile
+         */
+        ALLOW_NEIGHBOUR,
+        /**
+         * Allow a neighbouring object diagonally
+         */
+        ALLOW_DIAGONAL_NEIGHBOUR_ONLY,
+        /**
+         * No touching!
+         */
+        ISOLATED;
+    }
+
     protected final AssetManager assetManager;
     protected final RoomInstance roomInstance;
     protected final Thing.Room.Direction direction;
@@ -60,13 +81,17 @@ public abstract class GenericRoom {
     private ObjectType defaultObjectType;
     private final Map<ObjectType, RoomObjectControl> objectControls = new HashMap<>();
     private boolean destroyed = false;
+    protected boolean[][] map;
+    protected Point start;
+    protected final ObjectLoader objectLoader;
 
     public GenericRoom(AssetManager assetManager, EffectManagerState effectManager,
-            RoomInstance roomInstance, Thing.Room.Direction direction) {
+            RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
         this.assetManager = assetManager;
         this.roomInstance = roomInstance;
         this.direction = direction;
         this.effectManager = effectManager;
+        this.objectLoader = objectLoader;
 
         // Strings
         ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
@@ -76,11 +101,17 @@ public abstract class GenericRoom {
         }
     }
 
-    public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        this(assetManager, null, roomInstance, direction);
+    public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
+        this(assetManager, null, roomInstance, direction, objectLoader);
+    }
+
+    protected void setupCoordinates() {
+        map = roomInstance.getCoordinatesAsMatrix();
+        start = roomInstance.getMatrixStartPoint();
     }
 
     public Spatial construct() {
+        setupCoordinates();
 
         // Add the floor
         getRootNode().detachAllChildren();
@@ -92,12 +123,21 @@ public abstract class GenericRoom {
             getRootNode().attachChild(floorNode);
         }
 
+        // Custom wall
         BatchNode wallNode = constructWall();
         if (wallNode != null) {
             wallNode.setName("Wall");
             wallNode.setShadowMode(getWallShadowMode());
             wallNode.batch();
             getRootNode().attachChild(wallNode);
+        }
+
+        // The objects on the floor
+        Node objectsNode = constructObjects();
+        if (objectsNode != null) {
+            objectsNode.setName("Objects");
+            objectsNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+            getRootNode().attachChild(objectsNode);
         }
         return getRootNode();
     }
@@ -121,6 +161,87 @@ public abstract class GenericRoom {
      */
     protected BatchNode constructWall() {
         return null;
+    }
+
+    /**
+     * Construct room objects
+     *
+     * @return node with all the room objects
+     */
+    protected Node constructObjects() {
+
+        // Floor objects 0-2
+        Room room = roomInstance.getRoom();
+        int index = -1;
+        Node objects = new Node();
+        if (room.getObjects().get(0) > 0 || room.getObjects().get(1) > 0 || room.getObjects().get(2) > 0) {
+
+            // Object map
+            boolean[][] objectMap = new boolean[map.length][map[0].length];
+
+            for (int x = 0; x < map.length; x++) {
+                for (int y = 0; y < map[x].length; y++) {
+
+                    // Skip non-room tiles
+                    if (!map[x][y]) {
+                        continue;
+                    }
+
+                    // See neighbouring tiles
+                    boolean N = hasSameTile(map, x, y - 1);
+                    boolean NE = hasSameTile(map, x + 1, y - 1);
+                    boolean E = hasSameTile(map, x + 1, y);
+                    boolean SE = hasSameTile(map, x + 1, y + 1);
+                    boolean S = hasSameTile(map, x, y + 1);
+                    boolean SW = hasSameTile(map, x - 1, y + 1);
+                    boolean W = hasSameTile(map, x - 1, y);
+                    boolean NW = hasSameTile(map, x - 1, y - 1);
+
+                    if (N && NE && E && SE && S && SW && W && NW) {
+
+                        // Building options
+                        N = hasSameTile(objectMap, x, y - 1);
+                        NE = hasSameTile(objectMap, x + 1, y - 1);
+                        E = hasSameTile(objectMap, x + 1, y);
+                        SE = hasSameTile(objectMap, x + 1, y + 1);
+                        S = hasSameTile(objectMap, x, y + 1);
+                        SW = hasSameTile(objectMap, x - 1, y + 1);
+                        W = hasSameTile(objectMap, x - 1, y);
+                        NW = hasSameTile(objectMap, x - 1, y - 1);
+                        if (getRoomObjectLayout() == RoomObjectLayout.ALLOW_DIAGONAL_NEIGHBOUR_ONLY && (N || E || S || W)) {
+                            continue;
+                        }
+                        if (getRoomObjectLayout() == RoomObjectLayout.ISOLATED && (N || E || S || W || NE || SE || SW || NW)) {
+                            continue;
+                        }
+                        do {
+                            if (index > 1) {
+                                index = -1;
+                            }
+                            index++;
+                        } while (room.getObjects().get(index) == 0);
+
+                        // Add object
+                        objectMap[x][y] = true;
+                        objects.attachChild(objectLoader.load(assetManager, start.x + x, start.y + y, 0, 0, 0, room.getObjects().get(index), roomInstance.getOwnerId()));
+                    }
+                }
+            }
+        }
+        return objects;
+    }
+
+    protected boolean hasSameTile(boolean[][] map, int x, int y) {
+
+        // Check for out of bounds
+        if (x < 0 || x >= map.length || y < 0 || y >= map[x].length) {
+            return false;
+        }
+        return map[x][y];
+    }
+
+    protected RoomObjectLayout getRoomObjectLayout() {
+        return RoomObjectLayout.ALLOW_NEIGHBOUR;
     }
 
     protected RenderQueue.ShadowMode getFloorShadowMode() {

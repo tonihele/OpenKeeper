@@ -24,6 +24,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  *
@@ -31,8 +32,8 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class DoubleQuad extends GenericRoom {
 
-    public DoubleQuad(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    public DoubleQuad(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, direction, objectLoader);
     }
 
     @Override
@@ -85,8 +86,4 @@ public class DoubleQuad extends GenericRoom {
         return root;
     }
 
-    @Override
-    protected BatchNode constructWall() {
-        return null;
-    }
 }

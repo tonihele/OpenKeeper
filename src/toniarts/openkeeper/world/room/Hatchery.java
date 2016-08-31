@@ -19,32 +19,21 @@ package toniarts.openkeeper.world.room;
 import com.jme3.asset.AssetManager;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.object.ObjectLoader;
-import toniarts.openkeeper.world.room.control.RoomGoldControl;
 
 /**
- * The Treasury
+ * The hatchery
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class Treasury extends Normal {
+public class Hatchery extends Normal {
 
-    public Treasury(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
+    public Hatchery(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
         super(assetManager, roomInstance, direction, objectLoader);
-
-        addObjectControl(new RoomGoldControl(this) {
-
-            @Override
-            protected int getObjectsPerTile() {
-                return Treasury.this.getGoldPerTile();
-            }
-
-            @Override
-            protected int getNumberOfAccessibleTiles() {
-                return roomInstance.getCoordinates().size();
-            }
-        });
     }
 
-    protected abstract int getGoldPerTile();
+    @Override
+    protected RoomObjectLayout getRoomObjectLayout() {
+        return RoomObjectLayout.ISOLATED;
+    }
 
 }
