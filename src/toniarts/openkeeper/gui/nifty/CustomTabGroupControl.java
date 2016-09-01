@@ -321,7 +321,8 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
             newButtonTemplate.getAttributes().set("id", buildTabButtonName(tabIndex));
             newButtonTemplate.getAttributes().set("image", ((CustomTabControl) tab).getImage());
             newButtonTemplate.getAttributes().set("active", ((CustomTabControl) tab).getImageActive());
-            newButtonTemplate.getAttributes().set("hintText", ((CustomTabControl) tab).getHintText());
+            newButtonTemplate.getAttributes().set("hintText", ((CustomTabControl) tab).getHint());
+            newButtonTemplate.getAttributes().set("tooltip", ((CustomTabControl) tab).getTooltip());
             button = nifty.createElementFromType(screen, tabButtonPanel, newButtonTemplate);
         }
         String buttonId = button.getId();

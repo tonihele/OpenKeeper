@@ -153,6 +153,7 @@
                                 <image valign="center" filename="Textures/GUI/Icons/i-mise.png" height="64px" width="64px" filter="true" visibleToMouse="true">
                                     <effect>
                                         <onHover name="hint" hintText="${menu.2161}" hintDelay="200" />
+                                        <onHover name="simpleHint" hintText="${menu.2162}" targetElement="tooltip" />
                                     </effect>
                                 </image>
                                 <!-- Objective -->
@@ -160,6 +161,7 @@
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-objective-01.png" post="true"/>
                                         <onHover name="hint" hintText="${menu.2163}" hintDelay="200" />
+                                        <onHover name="simpleHint" hintText="${menu.2164}" targetElement="tooltip" />
                                     </effect>
                                 </image>
                             </panel>
@@ -179,7 +181,7 @@
                         <control name="customTabGroup" height="100%" width="100%" valign="top" id="tabs-hud">
 
                             <control name="customTab" id="tab-creature" image="Textures/GUI/Tabs/t-creatures.png"
-                                     active="Textures/GUI/Icons/selected-creature.png" hintText="${menu.2153}">
+                                     active="Textures/GUI/Icons/selected-creature.png" hintText="${menu.2153}" tooltip="${menu.2154}">
                                 <panel childLayout="horizontal" align="left">
                                      <!--The worker amount & status-->
                                     <control name="workerAmount"  />
@@ -195,21 +197,21 @@
                             </control>
 
                             <control name="customTab" id="tab-room" image="Textures/GUI/Tabs/t-rooms.png"
-                                     active="Textures/GUI/Icons/selected-room.png" hintText="${menu.2155}">
+                                     active="Textures/GUI/Icons/selected-room.png" hintText="${menu.2155}" tooltip="${menu.2156}">
                                 <panel childLayout="vertical" align="left">
                                     <panel childLayout="horizontal" padding="3px,3px,0" id="tab-room-content" />
                                 </panel>
                             </control>
 
                             <control name="customTab" id="tab-spell" image="Textures/GUI/Tabs/t-spells.png"
-                                     active="Textures/GUI/Icons/selected-spell.png" hintText="${menu.2157}">
+                                     active="Textures/GUI/Icons/selected-spell.png" hintText="${menu.2157}" tooltip="${menu.2158}">
                                 <panel childLayout="vertical" align="left">
                                     <panel childLayout="horizontal" padding="3px,3px,0" id="tab-spell-content" />
                                 </panel>
                             </control>
 
                             <control name="customTab" id="tab-workshop" image="Textures/GUI/Tabs/t-workshop.png"
-                                     active="Textures/GUI/Icons/selected-workshop.png" hintText="${menu.2159}">
+                                     active="Textures/GUI/Icons/selected-workshop.png" hintText="${menu.2159}" tooltip="${menu.2160}">
                                 <panel childLayout="vertical" align="left">
                                     <panel childLayout="horizontal" padding="3px,3px,0" id="tab-door-content" />
                                     <panel childLayout="horizontal" padding="3px,3px,3px" id="tab-trap-content" />
