@@ -523,7 +523,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     }
 
     private boolean isInteractable() {
-
+        if (isOnGui) {
+            return false;
+        }        
+        
         // TODO: Now just creature control, but all interaction objects
         IInteractiveControl controller = getInteractiveObjectOnCursor();
         Vector2f v = null;
