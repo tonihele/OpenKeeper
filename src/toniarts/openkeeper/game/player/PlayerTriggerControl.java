@@ -66,7 +66,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 short creatureId = trigger.getUserData("creatureId", short.class);
                 boolean isValue = trigger.getUserData("flag", short.class) == 1;
 
-                target = getCreaturesCount(0, creatureId);
+                target = getCreaturesCount(playerId, creatureId);
 
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
@@ -88,7 +88,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 short roomId = trigger.getUserData("roomId", short.class);
                 isValue = trigger.getUserData("flag", short.class) == 1;
 
-                target = getRoomSlabsCount(0, roomId);
+                target = getRoomSlabsCount(playerId, roomId);
 
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
@@ -102,7 +102,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 roomId = trigger.getUserData("roomId", short.class);
                 isValue = trigger.getUserData("flag", short.class) == 1;
 
-                target = getRoomCount(0, roomId);
+                target = getRoomCount(playerId, roomId);
 
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
