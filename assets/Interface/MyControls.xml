@@ -274,4 +274,16 @@
             <image filename="Textures/GUI/Windows/text_box-02.png" imageMode="resize:6,6,4,10,6,6,4,5,6,6,4,10" />
         </panel>
     </controlDefinition>
+
+    <controlDefinition name="guiIcon" >
+        <image id="$id" filename="$image" valign="center" marginRight="3px">
+            <effect>
+                <onHover name="imageOverlay" filename="$hoverImage" post="true"/>
+                <onHover name="hint" hintText="$hint" hintDelay="200" />
+                <onHover name="simpleHint" hintText="$tooltip" targetElement="tooltip" />
+                <onCustom name="imageOverlay" filename="$activeImage" customKey="select" post="true" neverStopRendering="true" />
+            </effect>
+            <interact onClick="$click" />
+        </image>
+    </controlDefinition>
 </nifty-controls>
