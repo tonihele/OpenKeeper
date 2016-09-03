@@ -34,31 +34,64 @@
     <!--The worker amount & status-->
     <controlDefinition style="nifty-panel-style" name="workerAmount" controller="de.lessvoid.nifty.controls.DefaultController">
         <panel marginLeft="3px" valign="center" childLayout="horizontal" id="tab-workers" visible="true">
-            <image filename="Textures/GUI/Tabs/t-cp-imp.png" valign="center" />
+            <image filename="Textures/GUI/Tabs/t-cp-imp.png" valign="center" childLayout="vertical" padding="6px" width="32px" height="128px">
+                <panel id="#totalImps" height="25%" width="100%" visibleToMouse="true">
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2308}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2309}" targetElement="tooltip" />
+                    </effect>
+                </panel>
+                <panel id="#idleImps" height="25%" width="100%" visibleToMouse="true">
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2310}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2311}" targetElement="tooltip" />
+                    </effect>
+                </panel>
+                <panel id="#busyImps" height="25%" width="100%" visibleToMouse="true">
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2312}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2313}" targetElement="tooltip" />
+                    </effect>
+                </panel>
+                <panel id="#combatImps" height="25%" width="100%" visibleToMouse="true">
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2314}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2315}" targetElement="tooltip" />
+                    </effect>
+                </panel>
+            </image>
             <image filename="Textures/GUI/Creatures/Evil/imp-bg.png" valign="center" childLayout="vertical"
                    padding="6px,6px,6px,0px" width="64px" height="128px">
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#amount" height="25%" width="100%">
                     <interact onSecondaryClick="zoomToImp(null)" />
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                        <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
                     </effect>
                 </control>
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#idle" height="25%" width="100%">
                     <interact onSecondaryClick="zoomToImp(IDLE)" />
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                        <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
                     </effect>
                 </control>
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#busy" height="25%" width="100%">
                     <interact onSecondaryClick="zoomToImp(BUSY)" />
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                        <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
                     </effect>
                 </control>
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#fighting" height="25%" width="100%">
                     <interact onSecondaryClick="zoomToImp(FIGHTING)" />
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                        <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
                     </effect>
                 </control>
             </image>
@@ -66,15 +99,31 @@
                    childLayout="vertical" padding="6px" width="32px" height="128px">
                 <panel id="#total" height="25%" width="100%" backgroundImage="Textures/GUI/Tabs/t-cp-hilight.png"><!-- need button with custom style -->
                     <interact onClick="workersAmount(total)" />
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2316}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2317}" targetElement="tooltip" />
+                    </effect>
                 </panel>
                 <panel id="#jobs" height="25%" width="100%" >
                     <interact onClick="workersAmount(jobs)" />
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2318}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2319}" targetElement="tooltip" />
+                    </effect>
                 </panel>
                 <panel id="#combat" height="25%" width="100%" >
                     <interact onClick="workersAmount(combat)" />
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2320}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2321}" targetElement="tooltip" />
+                    </effect>
                 </panel>
                 <panel id="#moods" height="25%" width="100%" >
                     <interact onClick="workersAmount(moods)" />
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2322}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2323}" targetElement="tooltip" />
+                    </effect>
                 </panel>
             </image>
         </panel>
