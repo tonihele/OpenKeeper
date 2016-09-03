@@ -319,44 +319,42 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     // TODO disable selection box
                     setInteractionState(InteractionState.NONE, 0);
                 }
-            } else {
-                if (evt.isPressed()) {
+            } else if (evt.isPressed()) {
 
-                    // Creature/object pickup
-                    IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
-                    if (interactiveControl != null && !keeperHand.isFull() && interactiveControl.isPickable(player.getPlayerId())) {
-                        keeperHand.push(interactiveControl.pickUp(player.getPlayerId()));
-                        setupItemInHand(interactiveControl);
-                        setCursor();
-                    } else {
+                // Creature/object pickup
+                IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
+                if (interactiveControl != null && !keeperHand.isFull() && interactiveControl.isPickable(player.getPlayerId())) {
+                    keeperHand.push(interactiveControl.pickUp(player.getPlayerId()));
+                    setupItemInHand(interactiveControl);
+                    setCursor();
+                } else {
 
-                        // Selection stuff
-                        if (!startSet) {
-                            handler.getSelectionArea().setStart(handler.getRoundedMousePos());
-                        }
-                        startSet = true;
-
-                        // I suppose we are tagging
-                        if (isTaggable) {
-                            isTagging = true;
-                            setCursor();
-
-                            // The tagging sound is positional and played against the cursor change, not the action itself
-                            Vector2f pos = handler.getRoundedMousePos();
-                            getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, "/Global/dk1tag.mp2");
-                        }
+                    // Selection stuff
+                    if (!startSet) {
+                        handler.getSelectionArea().setStart(handler.getRoundedMousePos());
                     }
+                    startSet = true;
 
-                } else if (evt.isReleased()) {
-                    startSet = false;
-                    handler.userSubmit(null);
-                    handler.getSelectionArea().setStart(handler.getRoundedMousePos());
-                    handler.updateSelectionBox();
-                    handler.setNoSelectedArea();
-                    if (isTagging) {
-                        isTagging = false;
+                    // I suppose we are tagging
+                    if (isTaggable) {
+                        isTagging = true;
                         setCursor();
+
+                        // The tagging sound is positional and played against the cursor change, not the action itself
+                        Vector2f pos = handler.getRoundedMousePos();
+                        getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, "/Global/dk1tag.mp2");
                     }
+                }
+
+            } else if (evt.isReleased()) {
+                startSet = false;
+                handler.userSubmit(null);
+                handler.getSelectionArea().setStart(handler.getRoundedMousePos());
+                handler.updateSelectionBox();
+                handler.setNoSelectedArea();
+                if (isTagging) {
+                    isTagging = false;
+                    setCursor();
                 }
             }
         } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
@@ -415,16 +413,28 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     @Override
     public void onKeyEvent(KeyInputEvent evt) {
-        // FIXME use CTRL + ALT + C to activate cheats!
-        // TODO Disable in multi player!
-        if (evt.isPressed() && evt.getKeyCode() == KeyInput.KEY_F12) {
-            CheatState cheat = stateManager.getState(CheatState.class);
-            if (!cheat.isEnabled()) {
-                cheat.setEnabled(true);
+        if (evt.isPressed()) {
+            if (evt.getKeyCode() == KeyInput.KEY_F12) {
+                // FIXME use CTRL + ALT + C to activate cheats!
+                // TODO Disable in multi player!
+                CheatState cheat = stateManager.getState(CheatState.class);
+                if (!cheat.isEnabled()) {
+                    cheat.setEnabled(true);
+                }
+            } else if (evt.getKeyCode() == ConsoleState.KEY && Main.isDebug()) {
+                stateManager.getState(ConsoleState.class).setEnabled(true);
+            } else if (evt.getKeyCode() == (Integer) Settings.Setting.TOGGLE_PLAYER_INFORMATION.getDefaultValue()) {
+                Element stats = view.findElementById("statistics");
+                if (stats != null) {
+                    if (stats.isVisible()) {
+                        stats.hide();
+                    } else {
+                        stats.show();
+                    }
+                }
             }
-        } else if (evt.isPressed() && evt.getKeyCode() == ConsoleState.KEY && Main.isDebug()) {
-            stateManager.getState(ConsoleState.class).setEnabled(true);
         }
+
     }
 
     @Override
@@ -474,9 +484,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private boolean isCursorOnGUI() {
         int height = app.getContext().getSettings().getHeight();
 
-        if (view.isVisible() && view.isMouseInsideElement((int)mousePosition.x, height - (int)mousePosition.y)) {
+        if (view.isVisible() && view.isMouseInsideElement((int) mousePosition.x, height - (int) mousePosition.y)) {
             for (Element e : view.getChildren()) {
-                if (e.isVisible() && e.isMouseInsideElement((int)mousePosition.x, height - (int)mousePosition.y)) {
+                if (e.isVisible() && e.isMouseInsideElement((int) mousePosition.x, height - (int) mousePosition.y)) {
                     return true;
                 }
             }
@@ -525,8 +535,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private boolean isInteractable() {
         if (isOnGui) {
             return false;
-        }        
-        
+        }
+
         // TODO: Now just creature control, but all interaction objects
         IInteractiveControl controller = getInteractiveObjectOnCursor();
         Vector2f v = null;

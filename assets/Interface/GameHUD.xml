@@ -96,8 +96,48 @@
                     <panel width="64px" align="left" valign="center" />
                 </panel>
             </panel>
-            <!--Empty center-->
+            <!-- center -->
             <panel childLayout="absolute-inside" height="*" width="100%" id="middle">
+                <panel id="statistics" x="5%" y="5%" height="90%" width="90%" align="left" valign="top" childLayout="vertical" visible="false">
+                    <panel childLayout="horizontal" height="80px" padding="10px">
+                        <panel width="*" />
+                        <control width="8%" name="guiIconNoClick" id="killStat" image="Textures/GUI/Icons/Info/Kills.png" hint="${menu.1518}" />
+                        <control width="8%" name="guiIconNoClick" id="deathStat" image="Textures/GUI/Icons/Info/Deaths.png" hint="${menu.1519}" />
+                        <control width="8%" name="guiIconNoClick" id="valueStat" image="Textures/GUI/Icons/Info/Value.png" hint="${menu.1520}" />
+                        <control width="8%" name="guiIconNoClick" id="manaStat" image="Textures/GUI/Icons/Info/Mana.png" hint="${menu.1521}" />
+                        <control width="8%" name="guiIconNoClick" id="creatureStat" image="Textures/GUI/Icons/Info/Creatures_Num.png" hint="${menu.1522}" />
+                        <control width="8%" name="guiIconNoClick" id="impStat" image="Textures/GUI/Creatures/Evil/imp.png" hint="${menu.1523}" />
+                        <control width="8%" name="guiIconNoClick" id="trapStat" image="Textures/GUI/Icons/Info/Traps.png" hint="${menu.1524}" />
+                        <control width="8%" name="guiIconNoClick" id="trainingStat" image="Textures/GUI/Rooms/training.png" hint="${menu.1525}" />
+                        <control width="8%" name="guiIconNoClick" id="researchStat" image="Textures/GUI/Rooms/dark_library.png" hint="${menu.1526}" />
+                        <control width="8%" name="guiIconNoClick" id="happinessStat" image="Textures/GUI/Icons/Info/Happiness.png" hint="${menu.1527}" />
+                        <control width="8%" name="guiIconNoClick" id="mapPercStat" image="Textures/GUI/Icons/Info/Map_Percent.png" hint="${menu.1528}" />                        
+                    </panel>
+                    <panel backgroundColor="#0008" height="*" childLayout="vertical">
+                        <panel id="playerStatistics" childLayout="vertical" height="*">
+                            <!-- player list -->
+<!--                            <control name="statisticEntry"
+                                     player="Player"
+                                     kill="0"
+                                     death="0"
+                                     value="3K"
+                                     mana="200K"
+                                     creature="0"
+                                     imp="4"
+                                     trap="0"
+                                     training="1"
+                                     research="0"
+                                     happiness="100"
+                                     mapPercent="0" />-->
+                        </panel>
+                        <control name="iconText" icon="Textures/GUI/Options/i-accept.png" text="${menu.142}" click="">
+                            <effect>
+                                <onClick name="hide" targetElement="statistics" />
+                            </effect>
+                        </control>
+                    </panel>
+                    
+                </panel>
                 <control x="45%" y="50%" name="messageBox" width="450px" height="250px" valign="bottom" paddingRight="20px" paddingBottom="20px" visible="false"/>
             </panel>
             <!--The bottom panel-->
