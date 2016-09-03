@@ -37,17 +37,25 @@
 
                 <panel width="100%" childLayout="horizontal">
                     <panel width="256px" align="left" valign="center" childLayout="overlay">
-                        <panel childLayout="horizontal" align="left" valign="center">
+                        <panel childLayout="horizontal" align="left" valign="center" visibleToMouse="true">
                             <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-00.png" />
                             <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-01.png" />
+                            <effect>
+                                <onHover name="hint" hintText="${menu.2133}" hintDelay="200" />
+                                <onHover name="simpleHint" hintText="${menu.2134}" targetElement="tooltip" />
+                            </effect>
                         </panel>
                         <panel childLayout="horizontal" valign="center">
-                            <panel backgroundImage="Textures/GUI/Windows/heart-hp.png" childLayout="center" valign="center">
+                            <panel backgroundImage="Textures/GUI/Windows/heart-hp.png" childLayout="center" valign="center" visibleToMouse="true">
                                 <image filename="Textures/GUI/Windows/heart-bg.png" align="left" valign="center">
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Windows/heart-alarm.png" post="true" neverStopRendering="true" />
                                     </effect>
                                 </image>
+                                <effect>
+                                    <onHover name="hint" hintText="${menu.2139}" hintDelay="200" />
+                                    <onHover name="simpleHint" hintText="${menu.2140}" targetElement="tooltip" />
+                                </effect>
                             </panel>
                             <panel childLayout="vertical" valign="center" padding="0px,14px,0px,10px">
                                 <control name="label" id="mana" color="#27d067" style="text" width="100%" text="0" textHAlign="right" valign="center" />
@@ -60,13 +68,21 @@
                     </panel>
                     <panel width="16px" />
                     <panel width="256px" align="left" valign="center" childLayout="overlay">
-                        <panel childLayout="horizontal" align="left" valign="center">
+                        <panel childLayout="horizontal" align="left" valign="center" visibleToMouse="true">
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-00.png" />
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" />
+                            <effect>
+                                <onHover name="hint" hintText="${menu.2141}" hintDelay="200" />
+                                <onHover name="simpleHint" hintText="${menu.2142}" targetElement="tooltip" />
+                            </effect>
                         </panel>
                         <panel childLayout="horizontal" valign="center">
-                            <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center">
+                            <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center" visibleToMouse="true">
                                 <image filename="Textures/GUI/Windows/payday-BG.png" align="left" valign="center" />
+                                <effect>
+                                    <onHover name="hint" hintText="${menu.2143}" hintDelay="200" />
+                                    <onHover name="simpleHint" hintText="${menu.2144}" targetElement="tooltip" />
+                                </effect>
                             </panel>
                             <panel childLayout="center" valign="center" align="center" padding="0px,14px,0px,36px">
                                 <control name="label" id="gold" color="#D3B000" text="0" style="text" width="100%" textHAlign="right" valign="center" />
@@ -109,10 +125,13 @@
                         </panel>
                         <panel valign="center" backgroundImage="Textures/GUI/Map/map.png" childLayout="absolute-inside"
                                imageMode="resize:0,112,0,0,0,112,0,110,0,112,0,0" filter="true">
-                            <panel x="0" y="0" width="64px" height="64px">
+                            <!-- Query pointer -->
+                            <panel x="0" y="0" width="64px" height="64px" visibleToMouse="true">
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-00.png" post="true"/>
                                     <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-00.png" post="true"/>
+                                    <onHover name="hint" hintText="${menu.1803}" hintDelay="200" />
+                                    <onHover name="simpleHint" hintText="${menu.1804}" targetElement="tooltip" />
                                 </effect>
                             </panel>
 
@@ -122,6 +141,8 @@
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-01.png" post="true" />
                                         <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-01.png" post="true" neverStopRendering="true" />
+                                        <onHover name="hint" hintText="${menu.1805}" hintDelay="200" />
+                                        <onHover name="simpleHint" hintText="${menu.1806}" targetElement="tooltip" />
                                     </effect>
                                     <interact onClick="select(sell,0)" />
                                 </panel>
@@ -131,15 +152,19 @@
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-02.png" post="true"/>
                                     <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-02.png" post="true" />
+                                    <onHover name="hint" hintText="${menu.1801}" hintDelay="200" />
+                                    <onHover name="simpleHint" hintText="${menu.1802}" targetElement="tooltip" />
                                 </effect>
                                 <interact onClick="pauseMenu()"/>
                             </panel>
-
-                            <panel x="100%" y="100%" width="64px" height="64px">
+                            <!-- mag magnifier -->
+                            <panel x="100%" y="100%" width="64px" height="64px" visibleToMouse="true">
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-03.png" post="true" />
                                     <!-- original game have no next effect -->
                                     <onClick name="imageOverlay" filename="Textures/GUI/Map/mapbf-03.png" post="true" />
+                                    <onHover name="hint" hintText="${menu.1799}" hintDelay="200" />
+                                    <onHover name="simpleHint" hintText="${menu.1800}" targetElement="tooltip" />
                                 </effect>
                             </panel>
                         </panel>
