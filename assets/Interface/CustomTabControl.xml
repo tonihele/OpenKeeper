@@ -24,6 +24,7 @@
             <effect>
                 <onHover name="hint" hintText="$hintText" hintDelay="200" />
                 <onHover name="simpleHint" hintText="$tooltip" targetElement="tooltip" />
+                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
             </effect>
         </image>
     </controlDefinition>

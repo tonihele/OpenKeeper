@@ -39,24 +39,28 @@
                     <effect>
                         <onHover name="hint" hintText="${menu.2308}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2309}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </panel>
                 <panel id="#idleImps" height="25%" width="100%" visibleToMouse="true">
                     <effect>
                         <onHover name="hint" hintText="${menu.2310}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2311}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </panel>
                 <panel id="#busyImps" height="25%" width="100%" visibleToMouse="true">
                     <effect>
                         <onHover name="hint" hintText="${menu.2312}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2313}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </panel>
                 <panel id="#combatImps" height="25%" width="100%" visibleToMouse="true">
                     <effect>
                         <onHover name="hint" hintText="${menu.2314}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2315}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </panel>
             </image>
@@ -68,6 +72,7 @@
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
                         <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </control>
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#idle" height="25%" width="100%">
@@ -76,6 +81,7 @@
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
                         <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </control>
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#busy" height="25%" width="100%">
@@ -84,6 +90,7 @@
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
                         <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </control>
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#fighting" height="25%" width="100%">
@@ -92,6 +99,7 @@
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
                         <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </control>
             </image>
@@ -102,6 +110,7 @@
                     <effect>
                         <onHover name="hint" hintText="${menu.2316}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2317}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </panel>
                 <panel id="#jobs" height="25%" width="100%" >
@@ -109,6 +118,7 @@
                     <effect>
                         <onHover name="hint" hintText="${menu.2318}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2319}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </panel>
                 <panel id="#combat" height="25%" width="100%" >
@@ -116,6 +126,7 @@
                     <effect>
                         <onHover name="hint" hintText="${menu.2320}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2321}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </panel>
                 <panel id="#moods" height="25%" width="100%" >
@@ -123,6 +134,7 @@
                     <effect>
                         <onHover name="hint" hintText="${menu.2322}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2323}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </panel>
             </image>
@@ -307,6 +319,7 @@
             <effect>
                 <onHover name="imageOverlay" filename="$hoverImage" post="true"/>
                 <onHover name="simpleHint" hintText="$text" targetElement="tooltip" />
+                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                 <onActive name="imageOverlayPulsate" filename="$activeImage" post="true"/>
                 <onShow name="move" mode="in" direction="right" length="1000" startDelay="0"/>
             </effect>
@@ -330,6 +343,7 @@
                 <onHover name="imageOverlay" filename="$hoverImage" post="true"/>
                 <onHover name="hint" hintText="$hint" hintDelay="200" />
                 <onHover name="simpleHint" hintText="$tooltip" targetElement="tooltip" />
+                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                 <onCustom name="imageOverlay" filename="$activeImage" customKey="select" post="true" neverStopRendering="true" />
             </effect>
             <interact onClick="$click" />

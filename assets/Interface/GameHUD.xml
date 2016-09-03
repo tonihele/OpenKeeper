@@ -9,7 +9,7 @@
     <useControls filename="Interface/MyControls.xml" />
     <useControls filename="Interface/CustomTabControl.xml" />
     <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
-     <style id="textManaChange">
+    <style id="textManaChange">
         <attributes font="Interface/Fonts/Ingame10.fnt" />
     </style>
     <style id="textSmall">
@@ -43,6 +43,7 @@
                             <effect>
                                 <onHover name="hint" hintText="${menu.2133}" hintDelay="200" />
                                 <onHover name="simpleHint" hintText="${menu.2134}" targetElement="tooltip" />
+                                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                             </effect>
                         </panel>
                         <panel childLayout="horizontal" valign="center">
@@ -55,6 +56,7 @@
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2139}" hintDelay="200" />
                                     <onHover name="simpleHint" hintText="${menu.2140}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
                             <panel childLayout="vertical" valign="center" padding="0px,14px,0px,10px">
@@ -74,6 +76,7 @@
                             <effect>
                                 <onHover name="hint" hintText="${menu.2141}" hintDelay="200" />
                                 <onHover name="simpleHint" hintText="${menu.2142}" targetElement="tooltip" />
+                                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                             </effect>
                         </panel>
                         <panel childLayout="horizontal" valign="center">
@@ -82,6 +85,7 @@
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2143}" hintDelay="200" />
                                     <onHover name="simpleHint" hintText="${menu.2144}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
                             <panel childLayout="center" valign="center" align="center" padding="0px,14px,0px,36px">
@@ -111,24 +115,24 @@
                         <control width="8%" name="guiIconNoClick" id="trainingStat" image="Textures/GUI/Rooms/training.png" hint="${menu.1525}" />
                         <control width="8%" name="guiIconNoClick" id="researchStat" image="Textures/GUI/Rooms/dark_library.png" hint="${menu.1526}" />
                         <control width="8%" name="guiIconNoClick" id="happinessStat" image="Textures/GUI/Icons/Info/Happiness.png" hint="${menu.1527}" />
-                        <control width="8%" name="guiIconNoClick" id="mapPercStat" image="Textures/GUI/Icons/Info/Map_Percent.png" hint="${menu.1528}" />                        
+                        <control width="8%" name="guiIconNoClick" id="mapPercStat" image="Textures/GUI/Icons/Info/Map_Percent.png" hint="${menu.1528}" />
                     </panel>
                     <panel backgroundColor="#0008" height="*" childLayout="vertical">
                         <panel id="playerStatistics" childLayout="vertical" height="*">
                             <!-- player list -->
-<!--                            <control name="statisticEntry"
-                                     player="Player"
-                                     kill="0"
-                                     death="0"
-                                     value="3K"
-                                     mana="200K"
-                                     creature="0"
-                                     imp="4"
-                                     trap="0"
-                                     training="1"
-                                     research="0"
-                                     happiness="100"
-                                     mapPercent="0" />-->
+                            <!--                            <control name="statisticEntry"
+                            player="Player"
+                            kill="0"
+                            death="0"
+                            value="3K"
+                            mana="200K"
+                            creature="0"
+                            imp="4"
+                            trap="0"
+                            training="1"
+                            research="0"
+                            happiness="100"
+                            mapPercent="0" />-->
                         </panel>
                         <control name="iconText" icon="Textures/GUI/Options/i-accept.png" text="${menu.142}" click="">
                             <effect>
@@ -136,7 +140,7 @@
                             </effect>
                         </control>
                     </panel>
-                    
+
                 </panel>
                 <control x="45%" y="50%" name="messageBox" width="450px" height="250px" valign="bottom" paddingRight="20px" paddingBottom="20px" visible="false"/>
             </panel>
@@ -156,7 +160,7 @@
                                imageMode="repeat:0,0,64,64" />
                     </panel>
                 </panel>
-                 <!-- second bottom layer -->
+                <!-- second bottom layer -->
                 <panel childLayout="horizontal" width="100%" align="left" valign="top">
                     <!--The map-->
                     <panel height="100%" width="230px" valign="top" childLayout="center" padding="0px,6px,6px,6px">
@@ -172,6 +176,7 @@
                                     <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-00.png" post="true"/>
                                     <onHover name="hint" hintText="${menu.1803}" hintDelay="200" />
                                     <onHover name="simpleHint" hintText="${menu.1804}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
 
@@ -183,6 +188,7 @@
                                         <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-01.png" post="true" neverStopRendering="true" />
                                         <onHover name="hint" hintText="${menu.1805}" hintDelay="200" />
                                         <onHover name="simpleHint" hintText="${menu.1806}" targetElement="tooltip" />
+                                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                     </effect>
                                     <interact onClick="select(sell,0)" />
                                 </panel>
@@ -194,6 +200,7 @@
                                     <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-02.png" post="true" />
                                     <onHover name="hint" hintText="${menu.1801}" hintDelay="200" />
                                     <onHover name="simpleHint" hintText="${menu.1802}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
                                 <interact onClick="pauseMenu()"/>
                             </panel>
@@ -205,6 +212,7 @@
                                     <onClick name="imageOverlay" filename="Textures/GUI/Map/mapbf-03.png" post="true" />
                                     <onHover name="hint" hintText="${menu.1799}" hintDelay="200" />
                                     <onHover name="simpleHint" hintText="${menu.1800}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
                         </panel>
@@ -219,6 +227,7 @@
                                     <effect>
                                         <onHover name="hint" hintText="${menu.2161}" hintDelay="200" />
                                         <onHover name="simpleHint" hintText="${menu.2162}" targetElement="tooltip" />
+                                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                     </effect>
                                 </image>
                                 <!-- Objective -->
@@ -227,6 +236,7 @@
                                         <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-objective-01.png" post="true"/>
                                         <onHover name="hint" hintText="${menu.2163}" hintDelay="200" />
                                         <onHover name="simpleHint" hintText="${menu.2164}" targetElement="tooltip" />
+                                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                     </effect>
                                 </image>
                             </panel>
@@ -248,7 +258,7 @@
                             <control name="customTab" id="tab-creature" image="Textures/GUI/Tabs/t-creatures.png"
                                      active="Textures/GUI/Icons/selected-creature.png" hintText="${menu.2153}" tooltip="${menu.2154}">
                                 <panel childLayout="horizontal" align="left">
-                                     <!--The worker amount & status-->
+                                    <!--The worker amount & status-->
                                     <control name="workerAmount"  />
                                     <!--The tab contents scroll-->
                                     <control name="tabScroll" />
