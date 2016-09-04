@@ -34,31 +34,72 @@
     <!--The worker amount & status-->
     <controlDefinition style="nifty-panel-style" name="workerAmount" controller="de.lessvoid.nifty.controls.DefaultController">
         <panel marginLeft="3px" valign="center" childLayout="horizontal" id="tab-workers" visible="true">
-            <image filename="Textures/GUI/Tabs/t-cp-imp.png" valign="center" />
+            <image filename="Textures/GUI/Tabs/t-cp-imp.png" valign="center" childLayout="vertical" padding="6px" width="32px" height="128px">
+                <panel id="#totalImps" height="25%" width="100%" visibleToMouse="true">
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2308}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2309}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                    </effect>
+                </panel>
+                <panel id="#idleImps" height="25%" width="100%" visibleToMouse="true">
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2310}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2311}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                    </effect>
+                </panel>
+                <panel id="#busyImps" height="25%" width="100%" visibleToMouse="true">
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2312}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2313}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                    </effect>
+                </panel>
+                <panel id="#combatImps" height="25%" width="100%" visibleToMouse="true">
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2314}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2315}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                    </effect>
+                </panel>
+            </image>
             <image filename="Textures/GUI/Creatures/Evil/imp-bg.png" valign="center" childLayout="vertical"
                    padding="6px,6px,6px,0px" width="64px" height="128px">
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#amount" height="25%" width="100%">
                     <interact onSecondaryClick="zoomToImp(null)" />
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                        <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </control>
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#idle" height="25%" width="100%">
                     <interact onSecondaryClick="zoomToImp(IDLE)" />
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                        <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </control>
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#busy" height="25%" width="100%">
                     <interact onSecondaryClick="zoomToImp(BUSY)" />
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                        <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </control>
                 <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#fighting" height="25%" width="100%">
                     <interact onSecondaryClick="zoomToImp(FIGHTING)" />
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                        <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </control>
             </image>
@@ -66,15 +107,35 @@
                    childLayout="vertical" padding="6px" width="32px" height="128px">
                 <panel id="#total" height="25%" width="100%" backgroundImage="Textures/GUI/Tabs/t-cp-hilight.png"><!-- need button with custom style -->
                     <interact onClick="workersAmount(total)" />
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2316}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2317}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                    </effect>
                 </panel>
                 <panel id="#jobs" height="25%" width="100%" >
                     <interact onClick="workersAmount(jobs)" />
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2318}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2319}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                    </effect>
                 </panel>
                 <panel id="#combat" height="25%" width="100%" >
                     <interact onClick="workersAmount(combat)" />
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2320}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2321}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                    </effect>
                 </panel>
                 <panel id="#moods" height="25%" width="100%" >
                     <interact onClick="workersAmount(moods)" />
+                    <effect>
+                        <onHover name="hint" hintText="${menu.2322}" hintDelay="200" />
+                        <onHover name="simpleHint" hintText="${menu.2323}" targetElement="tooltip" />
+                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                    </effect>
                 </panel>
             </image>
         </panel>
@@ -106,7 +167,7 @@
         </panel>
     </controlDefinition>
 
-     <!--Players creature -->
+    <!--Players creature -->
     <controlDefinition style="nifty-panel-style" name="creature" controller="de.lessvoid.nifty.controls.DefaultController">
         <panel marginLeft="3px" valign="center" childLayout="center" visibleToMouse="true">
             <image filename="$filename" valign="center" ></image>
@@ -257,10 +318,58 @@
         <image filename="$image" visibleToMouse="true">
             <effect>
                 <onHover name="imageOverlay" filename="$hoverImage" post="true"/>
+                <onHover name="simpleHint" hintText="$text" targetElement="tooltip" />
+                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                 <onActive name="imageOverlayPulsate" filename="$activeImage" post="true"/>
                 <onShow name="move" mode="in" direction="right" length="1000" startDelay="0"/>
             </effect>
             <interact onPrimaryClick="showMessage()" onSecondaryRelease="dismissMessage()"/>
         </image>
+    </controlDefinition>
+
+    <controlDefinition name="nifty-default-hint" style="openkeeper-hint">
+        <panel childLayout="horizontal">
+            <image filename="Textures/GUI/Windows/text_box-00.png" imageMode="resize:6,2,2,10,6,2,2,5,6,2,2,10" />
+            <panel style="#panel">
+                <text id="#hint-text" style="#hint-text" text="$hintText"/>
+            </panel>
+            <image filename="Textures/GUI/Windows/text_box-02.png" imageMode="resize:6,6,4,10,6,6,4,5,6,6,4,10" />
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="guiIcon" >
+        <image id="$id" filename="$image" valign="center" marginRight="3px">
+            <effect>
+                <onHover name="imageOverlay" filename="$hoverImage" post="true"/>
+                <onHover name="hint" hintText="$hint" hintDelay="200" />
+                <onHover name="simpleHint" hintText="$tooltip" targetElement="tooltip" />
+                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                <onCustom name="imageOverlay" filename="$activeImage" customKey="select" post="true" neverStopRendering="true" />
+            </effect>
+            <interact onClick="$click" />
+        </image>
+    </controlDefinition>
+
+    <controlDefinition name="guiIconNoClick" >
+        <panel childLayout="center">
+            <control name="guiIcon" image="$image" hoverImage="Textures/GUI/Icons/hilight.png" hint="$hint" tooltip="" click="" />
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="statisticEntry" >
+        <panel childLayout="horizontal" marginLeft="10px">
+            <text style="text" text="$player" textHAlign="left"  width="*" />
+            <text style="text" text="$kill" textHAlign="left"  width="8%" />
+            <text style="text" text="$death" textHAlign="left"  width="8%" />
+            <text style="text" text="$value" textHAlign="left"  width="8%" />
+            <text style="text" text="$mana" textHAlign="left"  width="8%" />
+            <text style="text" text="$creature" textHAlign="left"  width="8%" />
+            <text style="text" text="$imp" textHAlign="left"  width="8%" />
+            <text style="text" text="$trap" textHAlign="left"  width="8%" />
+            <text style="text" text="$training" textHAlign="left"  width="8%" />
+            <text style="text" text="$research" textHAlign="left"  width="8%" />
+            <text style="text" text="$happiness" textHAlign="left"  width="8%" />
+            <text style="text" text="$mapPercent" textHAlign="left"  width="8%" />
+        </panel>
     </controlDefinition>
 </nifty-controls>

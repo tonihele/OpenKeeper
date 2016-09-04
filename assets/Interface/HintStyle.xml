@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-styles xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+
+    <style id="openkeeper-hint">
+        <effect>
+            <onShow name="fade" length="150" start="#0" end="#d" inherit="true" neverStopRendering="true"/>
+            <onCustom name="fade" length="150" start="#d" end="#0" inherit="true" neverStopRendering="true"/>
+            <onActive name="followMouse" offsetX="80" offsetY="30" />
+        </effect>
+    </style>
+    
+    <style id="openkeeper-hint#panel">
+        <attributes childLayout="center" paddingBottom="2px" backgroundImage="Textures/GUI/Windows/text_box-01.png" imageMode="resize:4,4,4,10,4,4,4,2,4,4,4,10" />
+    </style>
+
+    <style id="openkeeper-hint#hint-text" base="textSmall">
+        <attributes align="left" valign="center" textHAlign="left" color="#111f"/>
+    </style>
+</nifty-styles>

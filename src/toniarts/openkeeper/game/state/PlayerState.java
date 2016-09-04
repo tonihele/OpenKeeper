@@ -33,7 +33,6 @@ import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.NiftyMethodInvoker;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.builder.EffectBuilder;
-import de.lessvoid.nifty.builder.HoverEffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.controls.TabSelectedEvent;
@@ -74,6 +73,7 @@ import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell;
 import toniarts.openkeeper.tools.convert.map.Door;
@@ -773,110 +773,50 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         element.getElementInteraction().getSecondary().setOnClickMethod(new NiftyMethodInvoker(nifty, "zoomToCreature(" + creature.getCreatureId() + ")", this));
     }
 
-    private ImageBuilder createRoomIcon(final Room room) {
-        return new ImageBuilder() {
-            {
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat(room.getGuiIcon().getName()).concat(".png")));
-                valignCenter();
-                marginRight("3px");
-                interactOnClick("select(room, " + room.getRoomId() + ")");
-                id("room_" + room.getRoomId());
-                onHoverEffect(new HoverEffectBuilder("imageOverlay") {
-                    {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat("GUI/Icons/frame.png")));
-                        post(true);
-                    }
-                });
-                onCustomEffect(new EffectBuilder("imageOverlay") {
-                    {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(File.separator).concat("GUI/Icons/selected-room.png")));
-                        effectParameter("customKey", "select");
-                        post(true);
-                        neverStopRendering(true);
-                    }
-                });
-            }
-        };
+    private ControlBuilder createRoomIcon(final Room room) {
+        String name = Utils.getMainTextResourceBundle().getString(Integer.toString(room.getNameStringId()));
+        final String hint = Utils.getMainTextResourceBundle().getString("1783")
+                            .replace("%1", name)
+                            .replace("%2", room.getCost() + "");
+        return createIcon(room.getRoomId(), "room", room.getGuiIcon(), room.getGeneralDescriptionStringId(), hint.replace("%21", room.getCost() + ""));
     }
 
-    private ImageBuilder createSpellIcon(final KeeperSpell spell) {
-        return new ImageBuilder() {
-            {
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + spell.getGuiIcon().getName() + ".png"));
-                valignCenter();
-                marginRight("3px");
-                interactOnClick("select(spell, " + spell.getKeeperSpellId() + ")");
-                id("spell_" + spell.getKeeperSpellId());
-                onHoverEffect(new HoverEffectBuilder("imageOverlay") {
-                    {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/frame.png"));
-                        post(true);
-                    }
-                });
-                onCustomEffect(new EffectBuilder("imageOverlay") {
-                    {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-spell.png"));
-                        effectParameter("customKey", "select");
-                        post(true);
-                        neverStopRendering(true);
-                    }
-                });
-            }
-        };
+    private ControlBuilder createSpellIcon(final KeeperSpell spell) {
+        String name = Utils.getMainTextResourceBundle().getString(Integer.toString(spell.getNameStringId()));
+        final String hint = Utils.getMainTextResourceBundle().getString("1785")
+                            .replace("%1", name)
+                            .replace("%2", spell.getManaCost() + "")
+                            .replace("%3", "1"); // TODO use real spell level
+        return createIcon(spell.getKeeperSpellId(), "spell", spell.getGuiIcon(), spell.getGeneralDescriptionStringId(), hint);
     }
 
-    private ImageBuilder createDoorIcon(final Door door) {
-        return new ImageBuilder() {
-            {
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + door.getGuiIcon().getName() + ".png"));
-                valignCenter();
-                marginRight("3px");
-                interactOnClick("select(door, " + door.getDoorId() + ")");
-                id("door_" + door.getDoorId());
-                onHoverEffect(new HoverEffectBuilder("imageOverlay") {
-                    {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/frame.png"));
-                        post(true);
-                    }
-                });
-                onCustomEffect(new EffectBuilder("imageOverlay") {
-                    {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-door.png"));
-                        effectParameter("customKey", "select");
-                        post(true);
-                        neverStopRendering(true);
-                    }
-                });
-            }
-        };
+    private ControlBuilder createDoorIcon(final Door door) {
+        String name = Utils.getMainTextResourceBundle().getString(Integer.toString(door.getNameStringId()));
+        final String hint = Utils.getMainTextResourceBundle().getString("1783")
+                            .replace("%1", name)
+                            .replace("%2", door.getGoldCost() + "");
+        return createIcon(door.getDoorId(), "door", door.getGuiIcon(), door.getGeneralDescriptionStringId(), hint);
     }
 
-    private ImageBuilder createTrapIcon(final Trap trap) {
-        return new ImageBuilder() {
-            {
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + trap.getGuiIcon().getName() + ".png"));
-                valignCenter();
-                marginRight("3px");
-                interactOnClick("select(trap, " + trap.getTrapId() + ")");
-                id("trap_" + trap.getTrapId());
-                onHoverEffect(new HoverEffectBuilder("imageOverlay") {
-                    {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/frame.png"));
-                        post(true);
-                    }
-                });
-                onCustomEffect(new EffectBuilder("imageOverlay") {
-                    {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-trap.png"));
-                        effectParameter("customKey", "select");
-                        post(true);
-                        neverStopRendering(true);
-                    }
-                });
-            }
-        };
+    private ControlBuilder createTrapIcon(final Trap trap) {
+        String name = Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getNameStringId()));
+        final String hint = Utils.getMainTextResourceBundle().getString("1784")
+                            .replace("%1", name)
+                            .replace("%2", trap.getManaCost() + "");
+        return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""));
     }
 
+    public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint) {
+        return new ControlBuilder(type + "_" + id, "guiIcon"){{
+            parameter("image", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon.getName() + ".png"));
+            parameter("click", "select(" + type + ", " + id + ")");
+            parameter("tooltip", "${menu." + generalDescriptionId + "}");
+            parameter("hint", hint);
+            parameter("hoverImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/frame.png"));
+            parameter("activeImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"));
+        }};
+    }
+    
     @Override
     public void onEndScreen() {
     }

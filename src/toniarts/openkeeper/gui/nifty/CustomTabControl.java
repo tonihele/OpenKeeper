@@ -46,6 +46,8 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
      */
     private String tabImage;
     private String tabImageActive;
+    private String hint;
+    private String tooltip;
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element elmnt, Parameters prmtrs) {
@@ -60,9 +62,19 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
             setImage(image);
         }
 
-        String imageActiver = prmtrs.get("active");
-        if (imageActiver != null) {
-            setImageActive(imageActiver);
+        String imageActive = prmtrs.get("active");
+        if (imageActive != null) {
+            setImageActive(imageActive);
+        }
+        
+        String hintText = prmtrs.get("hintText");
+        if (hintText != null) {
+            setHint(hintText);
+        }
+        
+        String tooltipText = prmtrs.get("tooltip");
+        if (tooltipText != null) {
+            setTooltip(tooltipText);
         }
     }
 
@@ -136,4 +148,19 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
         parentGroup = (CustomTabGroupControl) tabGroup;
     }
 
+    public void setHint(final String hintText) {
+        this.hint = hintText;
+    }
+
+    public String getHint() {
+        return this.hint;
+    }
+    
+    public void setTooltip(final String tooltip) {
+        this.tooltip = tooltip;
+    }
+    
+    public String getTooltip() {
+        return this.tooltip;
+    }
 }
