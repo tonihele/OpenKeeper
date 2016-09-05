@@ -121,7 +121,7 @@ public abstract class WorldState extends AbstractAppState {
 
         // Create the actual map
         thingLoader = new ThingLoader(this, kwdFile, assetManager);
-        this.mapLoader = new MapLoader(assetManager, kwdFile, effectManager, this) {
+        this.mapLoader = new MapLoader(assetManager, kwdFile, effectManager, this, thingLoader.getObjectLoader()) {
             @Override
             protected void updateProgress(int progress, int max) {
                 WorldState.this.updateProgress(progress, max);

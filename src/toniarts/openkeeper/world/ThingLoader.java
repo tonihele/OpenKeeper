@@ -302,7 +302,7 @@ public class ThingLoader {
      *
      * @return the object loader
      */
-    public ObjectLoader getObjectLoader() {
+    protected ObjectLoader getObjectLoader() {
         return objectLoader;
     }
 

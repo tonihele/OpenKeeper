@@ -18,7 +18,6 @@ package toniarts.openkeeper.tools.modelviewer;
 
 import com.jme3.animation.AnimChannel;
 import com.jme3.animation.AnimControl;
-import com.jme3.animation.LoopMode;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.input.KeyInput;
@@ -56,7 +55,11 @@ import de.lessvoid.nifty.spi.render.RenderFont;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -64,7 +67,6 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
-import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -75,6 +77,7 @@ import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TerrainLoader;
 import toniarts.openkeeper.world.creature.CreatureLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  * Simple model viewer
@@ -85,7 +88,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     public enum Types {
 
-        MODELS("Models"), TERRAIN("Terrain"), /*OBJECTS("Objects"),*/ MAPS("Maps"),EFFECTS("Effects");
+        MODELS("Models"), TERRAIN("Terrain"), /*OBJECTS("Objects"),*/ MAPS("Maps"), EFFECTS("Effects");
         private final String name;
 
         private Types(String name) {
@@ -119,7 +122,6 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private static final String KEY_MAPPING_TOGGLE_WIREFRAME = "toggle wireframe";
     private static final String KEY_MAPPING_TOGGLE_ROTATION = "toggle rotation";
     private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
-
 
     private EffectManagerState effectManagerState;
 
@@ -382,7 +384,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         KwdFile kwfFile = getKwdFile();
         Map<Integer, Effect> effects = kwfFile.getEffects();
         final ArrayList<String> items = new ArrayList<>();
-        for(Map.Entry entry : effects.entrySet() ) {
+        for (Map.Entry entry : effects.entrySet()) {
             final Effect effect = (Effect) entry.getValue();
             items.add(effect.getName());
         }
@@ -415,7 +417,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     // Load the selected map
                     String file = ((String) selection.get(0)).concat(".kwd").replaceAll(Matcher.quoteReplacement(File.separator), "/");
                     KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(file)));
-                    Node spat = (Node) new MapLoader(this.getAssetManager(), kwd, new EffectManagerState(kwd, this.getAssetManager()), null) {
+                    Node spat = (Node) new MapLoader(this.getAssetManager(), kwd, new EffectManagerState(kwd, this.getAssetManager()), null, new ObjectLoader(kwdFile, null)) {
                         @Override
                         protected void updateProgress(int progress, int max) {
                             // Do nothing
@@ -437,7 +439,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     effectManagerState.setEnabled(true);
                     // Load the selected effect
                     final int selectedIndex = event.getSelectionIndices().get(0) + 1;
-                    effectManagerState.loadSingleEffect(spat, new Vector3f(10, 25, 30)  ,selectedIndex, true);
+                    effectManagerState.loadSingleEffect(spat, new Vector3f(10, 25, 30), selectedIndex, true);
                     setupModel(spat, false);
                     break;
                 }
@@ -515,7 +517,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         toggleShowNormals();
 
         // Animate!
-        if(!spat.getChildren().isEmpty()) {
+        if (!spat.getChildren().isEmpty()) {
             final Spatial spatial = spat.getChild(0);
             AnimControl animControl = (AnimControl) spatial.getControl(AnimControl.class);
             if (animControl != null) {
