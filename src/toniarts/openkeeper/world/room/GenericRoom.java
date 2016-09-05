@@ -30,7 +30,6 @@ import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -72,7 +71,6 @@ public abstract class GenericRoom {
 
     protected final AssetManager assetManager;
     protected final RoomInstance roomInstance;
-    protected final Thing.Room.Direction direction;
     private final static int[] wallIndexes = new int[]{7, 8};
     private Node root;
     private final String tooltip;
@@ -86,10 +84,9 @@ public abstract class GenericRoom {
     protected final ObjectLoader objectLoader;
 
     public GenericRoom(AssetManager assetManager, EffectManagerState effectManager,
-            RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
+            RoomInstance roomInstance, ObjectLoader objectLoader) {
         this.assetManager = assetManager;
         this.roomInstance = roomInstance;
-        this.direction = direction;
         this.effectManager = effectManager;
         this.objectLoader = objectLoader;
 
@@ -101,8 +98,8 @@ public abstract class GenericRoom {
         }
     }
 
-    public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
-        this(assetManager, null, roomInstance, direction, objectLoader);
+    public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
+        this(assetManager, null, roomInstance, objectLoader);
     }
 
     protected void setupCoordinates() {

@@ -22,7 +22,6 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
@@ -33,8 +32,8 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  */
 public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
 
-    public ThreeByThree(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
-        super(assetManager, roomInstance, direction, objectLoader);
+    public ThreeByThree(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, objectLoader);
     }
 
     @Override

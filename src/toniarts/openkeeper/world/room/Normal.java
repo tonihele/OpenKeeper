@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -42,8 +41,8 @@ import toniarts.openkeeper.world.room.WallSection.WallDirection;
  */
 public class Normal extends GenericRoom {
 
-    public Normal(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
-        super(assetManager, roomInstance, direction, objectLoader);
+    public Normal(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, objectLoader);
     }
 
     @Override

@@ -19,7 +19,6 @@ package toniarts.openkeeper.world.room;
 import com.jme3.asset.AssetManager;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
@@ -29,8 +28,8 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  */
 public class Casino extends Normal {
 
-    public Casino(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
-        super(assetManager, roomInstance, direction, objectLoader);
+    public Casino(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, objectLoader);
     }
 
     @Override

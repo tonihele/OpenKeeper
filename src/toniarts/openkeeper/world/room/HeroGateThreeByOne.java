@@ -33,8 +33,8 @@ import toniarts.openkeeper.world.room.WallSection.WallDirection;
  */
 public class HeroGateThreeByOne extends GenericRoom {
 
-    public HeroGateThreeByOne(AssetManager assetManager, RoomInstance roomInstance, Direction direction, ObjectLoader objectLoader) {
-        super(assetManager, roomInstance, direction, objectLoader);
+    public HeroGateThreeByOne(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, objectLoader);
     }
 
     @Override
@@ -45,14 +45,14 @@ public class HeroGateThreeByOne extends GenericRoom {
         // Contruct the tiles
         int j = 0;
         for (Point p : roomInstance.getCoordinates()) {
-            int piece = (direction == Direction.WEST || direction == Direction.SOUTH) ? j + 3 : 5 - j;
+            int piece = (roomInstance.getDirection() == Direction.WEST || roomInstance.getDirection() == Direction.SOUTH) ? j + 3 : 5 - j;
             Spatial tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
             j++;
             resetAndMoveSpatial(tile, center, new Point(center.x + p.x, center.y + p.y));
             root.attachChild(tile);
 
             // Set the transform and scale to our scale and 0 the transform
-            switch (direction) {
+            switch (roomInstance.getDirection()) {
                 case NORTH:
                     tile.rotate(0, -FastMath.HALF_PI, 0);
                     break;

@@ -31,7 +31,6 @@ import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Level.LevelType;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.FullMoon;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -46,8 +45,8 @@ import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
  */
 public class HeroGateFrontEnd extends GenericRoom {
 
-    public HeroGateFrontEnd(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction, ObjectLoader objectLoader) {
-        super(assetManager, roomInstance, direction, objectLoader);
+    public HeroGateFrontEnd(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, objectLoader);
     }
 
     /**

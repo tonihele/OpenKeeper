@@ -49,6 +49,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -112,6 +113,14 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         generatePages(terrain);
         roomsNode = new Node("Rooms");
         terrain.attachChild(roomsNode);
+
+        // Go through the fixed rooms and construct them
+        for (Thing thing : kwdFile.getThings()) {
+            if (thing instanceof Thing.Room) {
+                Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
+                handleRoom(p, kwdFile.getRoomByTerrain(mapData.getTile(p).getTerrain().getTerrainId()), (Thing.Room) thing);
+            }
+        }
 
         // Go through the map
         int tilesCount = mapData.getWidth() * object.getMap().getHeight();
@@ -352,7 +361,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private Spatial getRoomWall(TileData tile, WallDirection direction) {
         Point p = tile.getLocation();
         Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
-        RoomInstance roomInstance = handleRoom(p, room);
+        RoomInstance roomInstance = handleRoom(p, room, null);
         GenericRoom gr = roomActuals.get(roomInstance);
         return gr.getWallSpatial(p, direction);
     }
@@ -485,7 +494,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
             // Construct the actual room
             Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-            handleRoom(p, room);
+            handleRoom(p, room, null);
 
             // Swap the terrain if this is a bridge
             terrain = kwdFile.getTerrainBridge(tile.getFlag(), room);
@@ -539,13 +548,13 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
     }
 
-    private RoomInstance handleRoom(Point p, Room room) {
+    private RoomInstance handleRoom(Point p, Room room, Thing.Room thing) {
         if (roomCoordinates.containsKey(p)) {
             RoomInstance roomInstance = roomCoordinates.get(p);
             return roomInstance;
         }
 
-        RoomInstance roomInstance = new RoomInstance(room, mapData);
+        RoomInstance roomInstance = new RoomInstance(room, mapData, (thing != null ? thing.getDirection() : null));
         findRoom(p, roomInstance);
         findRoomWallSections(roomInstance);
         rooms.add(roomInstance);
@@ -808,7 +817,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param roomInstance the room instance
      */
     private Spatial handleRoom(RoomInstance roomInstance) {
-        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, effectManager, kwdFile, worldState, objectLoader);
+        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, effectManager, worldState, objectLoader);
         roomActuals.put(roomInstance, room);
         updateRoomWalls(roomInstance);
         return room.construct();
