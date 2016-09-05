@@ -559,6 +559,15 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         findRoomWallSections(roomInstance);
         rooms.add(roomInstance);
 
+        // Put the thing attributes in
+        if (thing != null) {
+            for (Point roomPoint : roomInstance.getCoordinates()) {
+                TileData tile = mapData.getTile(roomPoint);
+                tile.setPlayerId(thing.getPlayerId());
+                tile.setHealth((int) (tile.getTerrain().getMaxHealth() * (thing.getInitialHealth() / 100f)));
+            }
+        }
+
         Spatial roomNode = handleRoom(roomInstance);
         roomsNode.attachChild(roomNode);
 
