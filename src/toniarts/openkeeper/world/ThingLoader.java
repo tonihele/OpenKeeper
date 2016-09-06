@@ -295,4 +295,15 @@ public class ThingLoader {
         creatureListeners.put(playerId, listeners);
     }
 
+    /**
+     * Typically you should add objects through add object so that they are
+     * added to the global list, but for rooms etc. you can use the object
+     * loader directly
+     *
+     * @return the object loader
+     */
+    protected ObjectLoader getObjectLoader() {
+        return objectLoader;
+    }
+
 }

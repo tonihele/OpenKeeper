@@ -157,6 +157,15 @@ public final class TileData extends Tile {
         return gold;
     }
 
+    /**
+     * Set tile health, only internal usage
+     *
+     * @param health the health points to set
+     */
+    protected void setHealth(int health) {
+        this.health = health;
+    }
+
     public String getTooltip() {
         return bundle.getString(Integer.toString(getTerrain().getTooltipStringId()))
                 .replaceAll("%37", Integer.toString(getHealthPercent()))

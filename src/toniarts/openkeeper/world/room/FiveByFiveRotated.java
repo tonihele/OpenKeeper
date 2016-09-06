@@ -26,9 +26,9 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.PlugControl;
 import toniarts.openkeeper.world.room.control.RoomGoldControl;
 
@@ -44,8 +44,8 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
     private boolean created = false;
 
     public FiveByFiveRotated(AssetManager assetManager, EffectManagerState effectManager,
-            RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, effectManager, roomInstance, direction);
+            RoomInstance roomInstance, ObjectLoader objectLoader) {
+        super(assetManager, effectManager, roomInstance, objectLoader);
         addObjectControl(new RoomGoldControl(this) {
 
             @Override
@@ -191,7 +191,9 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
                     }
 
                     for (Integer id : roomInstance.getRoom().getEffects()) {
-                        effectManager.load(root, new Vector3f(p.x - start.x, -MapLoader.TILE_HEIGHT, p.y - start.y), id, true);
+                        if (id > 0) {
+                            effectManager.load(root, new Vector3f(p.x - start.x, -MapLoader.TILE_HEIGHT, p.y - start.y), id, true);
+                        }
                     }
 
                     root.attachChild(tile.move(0, MapLoader.TILE_HEIGHT / 4, 0));
@@ -318,11 +320,6 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
         // The center 3x3 is not accessible
         Point roomPoint = roomInstance.worldCoordinateToLocalCoordinate(x, y);
         return ((roomPoint.x == 0 || roomPoint.x == 4) || (roomPoint.y == 0 || roomPoint.y == 4));
-    }
-
-    @Override
-    protected BatchNode constructWall() {
-        return null;
     }
 
     @Override

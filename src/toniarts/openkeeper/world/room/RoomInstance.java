@@ -20,6 +20,7 @@ import java.awt.Point;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.EntityInstance;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
@@ -33,10 +34,16 @@ public class RoomInstance extends EntityInstance<Room> {
 
     private List<WallSection> wallSections;
     private final MapData mapData;
+    private final Thing.Room.Direction direction;
 
     public RoomInstance(Room room, MapData mapData) {
+        this(room, mapData, null);
+    }
+
+    public RoomInstance(Room room, MapData mapData, Thing.Room.Direction direction) {
         super(room);
         this.mapData = mapData;
+        this.direction = direction;
     }
 
     public Room getRoom() {
@@ -83,6 +90,15 @@ public class RoomInstance extends EntityInstance<Room> {
             maxHealth += tile.getTerrain().getMaxHealth();
         }
         return (int) (health / (float) maxHealth * 100.0);
+    }
+
+    /**
+     * Get the room instance direction. Some fixed rooms may have this.
+     *
+     * @return room direction
+     */
+    public Thing.Room.Direction getDirection() {
+        return direction;
     }
 
 }

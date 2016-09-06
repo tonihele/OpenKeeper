@@ -22,20 +22,19 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.room.WallSection.WallDirection;
 import toniarts.openkeeper.tools.convert.map.Thing.Room.Direction;
+import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.object.ObjectLoader;
+import toniarts.openkeeper.world.room.WallSection.WallDirection;
 
 /**
  *
  * @author ArchDemon
  */
-
 public class HeroGateThreeByOne extends GenericRoom {
 
-    public HeroGateThreeByOne(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    public HeroGateThreeByOne(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, objectLoader);
     }
 
     @Override
@@ -46,14 +45,14 @@ public class HeroGateThreeByOne extends GenericRoom {
         // Contruct the tiles
         int j = 0;
         for (Point p : roomInstance.getCoordinates()) {
-            int piece = (direction == Direction.WEST || direction == Direction.SOUTH) ? j + 3 : 5 - j;
+            int piece = (roomInstance.getDirection() == Direction.WEST || roomInstance.getDirection() == Direction.SOUTH) ? j + 3 : 5 - j;
             Spatial tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
             j++;
             resetAndMoveSpatial(tile, center, new Point(center.x + p.x, center.y + p.y));
             root.attachChild(tile);
 
             // Set the transform and scale to our scale and 0 the transform
-            switch (direction) {
+            switch (roomInstance.getDirection()) {
                 case NORTH:
                     tile.rotate(0, -FastMath.HALF_PI, 0);
                     break;

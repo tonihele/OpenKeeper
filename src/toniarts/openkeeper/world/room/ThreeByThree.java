@@ -22,8 +22,8 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  * Portal is the only one I think
@@ -32,8 +32,8 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
 
-    public ThreeByThree(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    public ThreeByThree(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, objectLoader);
     }
 
     @Override
@@ -64,11 +64,6 @@ public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
         // The center tile is not accessible
         Point roomPoint = roomInstance.worldCoordinateToLocalCoordinate(x, y);
         return !(roomPoint.x == 1 && roomPoint.y == 1);
-    }
-
-    @Override
-    protected BatchNode constructWall() {
-        return null;
     }
 
     @Override

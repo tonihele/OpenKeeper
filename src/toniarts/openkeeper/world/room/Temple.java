@@ -23,11 +23,11 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
 import static toniarts.openkeeper.world.MapLoader.TILE_HEIGHT;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 import static toniarts.openkeeper.world.MapLoader.loadAsset;
+import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  *
@@ -35,8 +35,8 @@ import static toniarts.openkeeper.world.MapLoader.loadAsset;
  */
 public class Temple extends DoubleQuad {
 
-    public Temple(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    public Temple(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, objectLoader);
     }
 
     @Override
@@ -163,7 +163,6 @@ public class Temple extends DoubleQuad {
                     // Load the piece
                     try {
                         Spatial part = loadAsset(assetManager, modelName + pieceNumber + ".j3o", false);
-
 
                         resetAndMoveSpatial(part, start, p);
                         if (yAngle != 0) {

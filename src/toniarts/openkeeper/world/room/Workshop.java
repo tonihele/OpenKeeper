@@ -24,8 +24,8 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.EnumSet;
-import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  * The workshop
@@ -36,8 +36,8 @@ public class Workshop extends Normal {
 
     private boolean[][] bigTiles;
 
-    public Workshop(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    public Workshop(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, objectLoader);
     }
 
     @Override
@@ -122,4 +122,10 @@ public class Workshop extends Normal {
         node.attachChild(part);
         return part;
     }
+
+    @Override
+    protected RoomObjectLayout getRoomObjectLayout() {
+        return RoomObjectLayout.ALLOW_DIAGONAL_NEIGHBOUR_ONLY;
+    }
+
 }

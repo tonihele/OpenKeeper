@@ -17,7 +17,7 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
-import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  * The training room
@@ -26,8 +26,8 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public class TrainingRoom extends Normal {
 
-    public TrainingRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    public TrainingRoom(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
+        super(assetManager, roomInstance, objectLoader);
     }
 
     @Override

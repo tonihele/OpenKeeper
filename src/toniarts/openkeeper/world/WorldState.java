@@ -120,7 +120,8 @@ public abstract class WorldState extends AbstractAppState {
         bulletAppState = new BulletAppState();
 
         // Create the actual map
-        this.mapLoader = new MapLoader(assetManager, kwdFile, effectManager, this) {
+        thingLoader = new ThingLoader(this, kwdFile, assetManager);
+        this.mapLoader = new MapLoader(assetManager, kwdFile, effectManager, this, thingLoader.getObjectLoader()) {
             @Override
             protected void updateProgress(int progress, int max) {
                 WorldState.this.updateProgress(progress, max);
@@ -134,7 +135,6 @@ public abstract class WorldState extends AbstractAppState {
         heuristic = new MapDistance();
 
         // Things
-        thingLoader = new ThingLoader(this, kwdFile, assetManager);
         thingsNode = thingLoader.loadAll(creatureTriggerState);
         worldNode.attachChild(thingsNode);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 OpenKeeper
+ * Copyright (C) 2014-2016 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,29 +17,22 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
- * The casino
+ * The hatchery
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Casino extends Normal {
+public class Hatchery extends Normal {
 
-    public Casino(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
+    public Hatchery(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
         super(assetManager, roomInstance, objectLoader);
     }
 
     @Override
-    protected String getPillarResource() {
-        return ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/Casino_Pillar.j3o");
-    }
-
-    @Override
     protected RoomObjectLayout getRoomObjectLayout() {
-        return RoomObjectLayout.ALLOW_DIAGONAL_NEIGHBOUR_ONLY;
+        return RoomObjectLayout.ISOLATED;
     }
 
 }
