@@ -52,7 +52,7 @@ public class ObjectTriggerControl extends AbstractThingTriggerControl<ObjectCont
 
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
-            case OBJECT:
+            case OBJECT_CLAIMED:
                 return false;
             default:
                 logger.warning("Target Type not supported");
@@ -63,7 +63,7 @@ public class ObjectTriggerControl extends AbstractThingTriggerControl<ObjectCont
 //        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
 //            result = compare(target, comparisonType, (int) trigger.getUserData("value"));
 //        }
-//        
+//
 //        return result;
     }
 }
