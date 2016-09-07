@@ -62,7 +62,6 @@ import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.console.ConsoleState;
-import toniarts.openkeeper.game.console.GameConsole;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
@@ -112,10 +111,10 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private Nifty nifty;
 
     private boolean paused = false;
-    private boolean backgroundSet = false;
     public static final String HUD_SCREEN_ID = "hud";
     public static final String POSSESSION_SCREEN_ID = "possession";
     public static final String CINEMATIC_SCREEN_ID = "cinematic";
+    public static final String SCREEN_EMPTY_ID = "empty";
     private List<AbstractPauseAwareState> appStates = new ArrayList<>();
     private List<AbstractPauseAwareState> storedAppStates;
     private PlayerInteractionState interactionState;
@@ -195,7 +194,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                 nifty.getScreen(HUD_SCREEN_ID).findElementById("optionsMenu").setVisible(paused);
             }
 
-            appStates.add(new ConsoleState());
+            stateManager.attach(new ConsoleState());
             // Create app states
             Player player = gameState.getLevelData().getPlayer(playerId); // Keeper 1
 
@@ -268,10 +267,11 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             for (AbstractAppState state : appStates) {
                 stateManager.detach(state);
             }
+            stateManager.detach(stateManager.getState(ConsoleState.class));
 
             appStates.clear();
             if (nifty != null) {
-                nifty.gotoScreen("empty");
+                nifty.gotoScreen(SCREEN_EMPTY_ID);
             }
         }
     }
@@ -357,6 +357,35 @@ public class PlayerState extends AbstractAppState implements ScreenController {
         nifty = app.getNifty().getNifty();
 
         Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+
+        // Stretch the background image (height-wise) on the background image panel
+        try {
+            BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey("Textures/GUI/Windows/Panel-BG.png")).openStream());
+
+            // Scale the backgroung image to the panel height, keeping the aspect ratio
+            Element panel = nifty.getCurrentScreen().findElementById("bottomBackgroundPanel");
+            BufferedImage newImage = new BufferedImage(panel.getHeight() * img.getWidth() / img.getHeight(), panel.getHeight(), img.getType());
+            Graphics2D g = newImage.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g.drawImage(img, 0, 0, newImage.getWidth(), newImage.getHeight(), 0, 0, img.getWidth(), img.getHeight(), null);
+            g.dispose();
+
+            // Convert the new image to a texture, and add a dummy cached entry to the asset manager
+            AWTLoader loader = new AWTLoader();
+            Texture tex = new Texture2D(loader.load(newImage, false));
+            ((DesktopAssetManager) assetManager).addToCache(new TextureKey("HUDBackground", false), tex);
+
+            // Add the scaled one
+            NiftyImage niftyImage = nifty.createImage("HUDBackground", true);
+            String resizeString = "repeat:0,0," + newImage.getWidth() + "," + newImage.getHeight();
+            String areaProviderProperty = ImageModeHelper.getAreaProviderProperty(resizeString);
+            String renderStrategyProperty = ImageModeHelper.getRenderStrategyProperty(resizeString);
+            niftyImage.setImageMode(ImageModeFactory.getSharedInstance().createImageMode(areaProviderProperty, renderStrategyProperty));
+            ImageRenderer renderer = panel.getRenderer(ImageRenderer.class);
+            renderer.setImage(niftyImage);
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Failed to open the background image!", ex);
+        }
 
         PlayerManaControl manaControl = getPlayer().getManaControl();
         if (manaControl != null) {
@@ -490,40 +519,6 @@ public class PlayerState extends AbstractAppState implements ScreenController {
                     // Init the HUD items
                     initHud = false;
                     initHudItems();
-                }
-
-                if (!backgroundSet) {
-
-                    // Stretch the background image (height-wise) on the background image panel
-                    try {
-                        BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey("Textures/GUI/Windows/Panel-BG.png")).openStream());
-
-                        // Scale the backgroung image to the panel height, keeping the aspect ratio
-                        Element panel = nifty.getCurrentScreen().findElementById("bottomBackgroundPanel");
-                        BufferedImage newImage = new BufferedImage(panel.getHeight() * img.getWidth() / img.getHeight(), panel.getHeight(), img.getType());
-                        Graphics2D g = newImage.createGraphics();
-                        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-                        g.drawImage(img, 0, 0, newImage.getWidth(), newImage.getHeight(), 0, 0, img.getWidth(), img.getHeight(), null);
-                        g.dispose();
-
-                        // Convert the new image to a texture, and add a dummy cached entry to the asset manager
-                        AWTLoader loader = new AWTLoader();
-                        Texture tex = new Texture2D(loader.load(newImage, false));
-                        ((DesktopAssetManager) assetManager).addToCache(new TextureKey("HUDBackground", false), tex);
-
-                        // Add the scaled one
-                        NiftyImage niftyImage = nifty.createImage("HUDBackground", true);
-                        String resizeString = "repeat:0,0," + newImage.getWidth() + "," + newImage.getHeight();
-                        String areaProviderProperty = ImageModeHelper.getAreaProviderProperty(resizeString);
-                        String renderStrategyProperty = ImageModeHelper.getRenderStrategyProperty(resizeString);
-                        niftyImage.setImageMode(ImageModeFactory.getSharedInstance().createImageMode(areaProviderProperty, renderStrategyProperty));
-                        ImageRenderer renderer = panel.getRenderer(ImageRenderer.class);
-                        renderer.setImage(niftyImage);
-
-                        backgroundSet = true;
-                    } catch (IOException ex) {
-                        logger.log(Level.SEVERE, "Failed to open the background image!", ex);
-                    }
                 }
 
                 break;
@@ -816,7 +811,7 @@ public class PlayerState extends AbstractAppState implements ScreenController {
             parameter("activeImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"));
         }};
     }
-    
+
     @Override
     public void onEndScreen() {
     }
@@ -998,30 +993,21 @@ public class PlayerState extends AbstractAppState implements ScreenController {
     private void updateSelectedItem(InteractionState state, int id) {
 
         for (InteractionState interaction : InteractionState.values()) {
-            Element content = nifty.getCurrentScreen().findElementById("tab-" + interaction.toString().toLowerCase() + "-content");
-            if (content == null) {
+            Element content = nifty.getScreen(HUD_SCREEN_ID).findElementById("tab-" + interaction.toString().toLowerCase() + "-content");
+            if (content == null || !content.isVisible()) {
                 continue;
             }
 
             for (Element e : content.getChildren()) {
-                boolean visible = e.isVisible();
-                if (!visible) { // FIXME: do not remove this. Nifty hack
-                    e.show();
-                }
                 e.stopEffect(EffectEventId.onCustom);
-                if (!visible) { // FIXME: do not remove this. Nifty hack
-                    e.hide();
-                }
             }
         }
 
         String itemId = state.toString().toLowerCase() + "_" + id;
-        Element item = nifty.getCurrentScreen().findElementById(itemId);
-        if (item == null) {
-            System.err.println(itemId + " not found"); // FIXME remove this line after debug
-            return;
+        Element item = nifty.getScreen(HUD_SCREEN_ID).findElementById(itemId);
+        if (item != null) {
+            item.startEffect(EffectEventId.onCustom, null, "select");
         }
-        item.startEffect(EffectEventId.onCustom, null, "select");
     }
 
     public void action(String action) {

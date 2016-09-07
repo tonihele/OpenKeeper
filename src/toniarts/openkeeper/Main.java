@@ -374,14 +374,13 @@ public class Main extends SimpleApplication {
 
                     // Initialize persistent app states
                     MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager);
-                    mainMenuState.setEnabled(false);
                     PlayerState playerState = new PlayerState(Keeper.KEEPER1_ID, false);
 
                     stateManager.attach(mainMenuState);
                     stateManager.attach(playerState);
 
                     // Eventually we are going to use Nifty, the XML files take some time to parse
-                    niftyDisplay.getNifty().registerScreenController(mainMenuState, playerState);
+                    niftyDisplay.getNifty().registerScreenController(playerState);
                     for (String xml : guiXMLs) {
                         niftyDisplay.getNifty().addXml(xml);
                     }

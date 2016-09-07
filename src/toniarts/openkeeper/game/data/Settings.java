@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -62,6 +63,7 @@ public class Settings {
     public enum Setting implements ISetting {
 
         // Campaign
+// Campaign
         LEVEL_NUMBER(Integer.class, 0, SettingCategory.CAMPAIGN),
         LEVEL_ATTEMPTS(Integer.class, 0, SettingCategory.CAMPAIGN),
         LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN),
@@ -163,7 +165,8 @@ public class Settings {
         // Multiplayer settings
         PLAYER_NAME(String.class, System.getProperty("user.name"), SettingCategory.MISCELLANEOUS),
         GAME_NAME(String.class, "My OpenKeeper game", SettingCategory.MISCELLANEOUS),
-        LAST_CONNECTION(String.class, "127.0.0.1", SettingCategory.MISCELLANEOUS);
+        MULTIPLAYER_LAST_IP(String.class, "127.0.0.1", SettingCategory.MISCELLANEOUS),
+        MULTIPLAYER_LAST_PORT(Integer.class, 7575, SettingCategory.MISCELLANEOUS);
 
         private Setting(Class clazz, Integer specialKey, Object defValue, SettingCategory category, Integer resourceKey) {
             this.clazz = clazz;
@@ -237,6 +240,9 @@ public class Settings {
     private final static int MAX_FPS = 90;
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(Main.TITLE).concat(File.separator);
     private final static String USER_SETTINGS_FILE = USER_HOME_FOLDER.concat("openkeeper.properties");
+    public final static List<String> opengl = new ArrayList<>(Arrays.asList(new String[]{AppSettings.LWJGL_OPENGL2, AppSettings.LWJGL_OPENGL3}));
+    public final static List<Integer> samples = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
+    public final static List<Integer> anisotrophies = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
     private static final Logger logger = Logger.getLogger(Settings.class.getName());
 
     static {

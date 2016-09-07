@@ -18,10 +18,12 @@ package toniarts.openkeeper.game.data;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 public class Level {
@@ -72,4 +74,34 @@ public class Level {
         return kwdFile;
     }
 
+    /**
+     * Get the selected level title
+     *
+     * @return level title
+     */
+    public String getTitle() {
+        ResourceBundle dict = getResourceBundle();
+        StringBuilder sb = new StringBuilder();
+        String name = dict.getString("0");
+        if (!name.equals("")) {
+            sb.append("\"");
+            sb.append(name);
+            sb.append("\" - ");
+        }
+        sb.append(dict.getString("1"));
+        return sb.toString();
+    }
+
+    /**
+     * Gets the selected level briefing resource bundle
+     *
+     * @return the resource bundle
+     */
+    public ResourceBundle getResourceBundle() {
+        GameLevel gameLevel = getKwdFile().getGameLevel();
+        if (gameLevel.getTextTableId().getLevelBriefingDictFile() != null) {
+            return Main.getResourceBundle("Interface/Texts/".concat(gameLevel.getTextTableId().getLevelBriefingDictFile()));
+        }
+        return null;
+    }
 }

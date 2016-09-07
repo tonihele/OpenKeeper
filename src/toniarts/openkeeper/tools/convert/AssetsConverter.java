@@ -884,6 +884,7 @@ public abstract class AssetsConverter {
     public static void genererateMapThumbnail(KwdFile kwd, String destination) throws IOException {
 
         // Create the thumbnail & save it
+        // TODO maybe image size in Settings ???
         BufferedImage thumbnail = MapThumbnailGenerator.generateMap(kwd, 144, 144, false);
         ImageIO.write(thumbnail, "png", new File(destination + ConversionUtils.stripFileName(kwd.getGameLevel().getName()) + ".png"));
     }
