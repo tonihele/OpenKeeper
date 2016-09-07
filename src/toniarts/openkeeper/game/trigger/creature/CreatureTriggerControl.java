@@ -19,8 +19,8 @@ package toniarts.openkeeper.game.trigger.creature;
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
-import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
@@ -30,9 +30,8 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  *
  * @author ArchDemon
  */
-public class CreatureTriggerControl extends TriggerControl {
+public class CreatureTriggerControl extends AbstractThingTriggerControl<CreatureControl> {
 
-    private CreatureControl creature;
     private static final Logger logger = Logger.getLogger(CreatureTriggerControl.class.getName());
 
     public CreatureTriggerControl() { // empty serialization constructor
@@ -56,10 +55,10 @@ public class CreatureTriggerControl extends TriggerControl {
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case CREATURE_CREATED:
-                return creature != null;
+                return instanceControl != null;
             case CREATURE_KILLED:
-                if (creature != null && creature.getStateMachine().getCurrentState() != null) {
-                    return creature.getStateMachine().getCurrentState().equals(CreatureState.DEAD);
+                if (instanceControl != null && instanceControl.getStateMachine().getCurrentState() != null) {
+                    return instanceControl.getStateMachine().getCurrentState().equals(CreatureState.DEAD);
                 }
                 return false;
             case CREATURE_SLAPPED:
@@ -87,8 +86,8 @@ public class CreatureTriggerControl extends TriggerControl {
             case CREATURE_DYING:
                 return false;
             case CREATURE_HEALTH:
-                if (creature != null) {
-                    target = ((float) creature.getHealth() / creature.getMaxHealth()) * 100; // Percentage
+                if (instanceControl != null) {
+                    target = ((float) instanceControl.getHealth() / instanceControl.getMaxHealth()) * 100; // Percentage
                     break;
                 }
                 return false;
@@ -130,10 +129,10 @@ public class CreatureTriggerControl extends TriggerControl {
                 break;
             }
             case SHOW_HEALTH_FLOWER: {
-                if (creature != null) {
+                if (instanceControl != null) {
                     stateManager.getApplication().enqueue(() -> {
 
-                        creature.showUnitFlower(trigger.getUserData("value", Integer.class));
+                        instanceControl.showUnitFlower(trigger.getUserData("value", Integer.class));
 
                         return null;
                     });
@@ -159,12 +158,4 @@ public class CreatureTriggerControl extends TriggerControl {
         }
     }
 
-    /**
-     * Add the actual creature instance to this trigger control
-     *
-     * @param creatureInstance the creature instance
-     */
-    protected void addCreature(CreatureControl creatureInstance) {
-        creature = creatureInstance;
-    }
 }

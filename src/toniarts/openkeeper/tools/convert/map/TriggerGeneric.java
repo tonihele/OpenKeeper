@@ -74,6 +74,7 @@ public class TriggerGeneric extends Trigger {
         CREATURE_LEAVES(14), // Event, This creature is
         CREATURE_STUNNED(15), // Event, This creature is
         CREATURE_DYING(16), // Event, This creature is
+        OBJECT(18), // Event, This Object is
         PLAYER_CREATURES(19), // Player
         PLAYER_HAPPY_CREATURES(20), // Player
         PLAYER_ANGRY_CREATURES(21), // Player
@@ -173,7 +174,6 @@ public class TriggerGeneric extends Trigger {
     private ComparisonType targetValueComparison; // Target comparison type
     private int targetValue; // Target value
     private TargetType target;
-
 
     public TriggerGeneric(KwdFile kwdFile) {
         super(kwdFile);

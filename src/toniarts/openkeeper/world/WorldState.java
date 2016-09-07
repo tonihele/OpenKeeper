@@ -53,7 +53,6 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.task.TaskManager;
-import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -106,7 +105,7 @@ public abstract class WorldState extends AbstractAppState {
 
     private static final Logger logger = Logger.getLogger(WorldState.class.getName());
 
-    public WorldState(final KwdFile kwdFile, final AssetManager assetManager, GameState gameState, CreatureTriggerState creatureTriggerState) {
+    public WorldState(final KwdFile kwdFile, final AssetManager assetManager, GameState gameState) {
         this.kwdFile = kwdFile;
         this.gameState = gameState;
 
@@ -135,7 +134,7 @@ public abstract class WorldState extends AbstractAppState {
         heuristic = new MapDistance();
 
         // Things
-        thingsNode = thingLoader.loadAll(creatureTriggerState);
+        thingsNode = thingLoader.loadAll(gameState.getCreatureTriggerState(), gameState.getObjectTriggerState());
         worldNode.attachChild(thingsNode);
 
         flashTileControl = new FlashTileControl(this, (Main) gameState.getApplication());

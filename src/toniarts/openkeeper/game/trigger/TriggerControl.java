@@ -35,7 +35,6 @@ import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.game.state.SystemMessageState;
-import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -275,7 +274,7 @@ public class TriggerControl extends Control {
 
                     // Also add to the creature trigger control
                     if (creature.getTriggerId() != 0) {
-                        stateManager.getState(CreatureTriggerState.class).addCreature(creature.getTriggerId(), creatureInstance);
+                        stateManager.getState(GameState.class).getCreatureTriggerState().addThing(creature.getTriggerId(), creatureInstance);
                     }
                 }
                 party.setCreated(true);

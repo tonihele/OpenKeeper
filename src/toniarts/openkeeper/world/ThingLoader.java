@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
+import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -118,9 +119,10 @@ public class ThingLoader {
      *
      * @param creatureTriggerState the creature trigger state to assign the
      * created creatures to triggers
+     * @param objectTriggerState
      * @return the things node
      */
-    public Node loadAll(CreatureTriggerState creatureTriggerState) {
+    public Node loadAll(CreatureTriggerState creatureTriggerState, ObjectTriggerState objectTriggerState) {
 
         //Create a root
         for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
@@ -138,15 +140,20 @@ public class ThingLoader {
                         triggerId = ((Thing.KeeperCreature) obj).getTriggerId();
                     }
                     if (triggerId != 0) {
-                        creatureTriggerState.addCreature(triggerId, creatureControl);
+                        creatureTriggerState.addThing(triggerId, creatureControl);
                     }
                 } else if (obj instanceof Thing.Object) {
 
                     Thing.Object objectThing = (Thing.Object) obj;
                     Spatial object = objectLoader.load(assetManager, objectThing);
-                    objects.add(object.getControl(ObjectControl.class));
+                    ObjectControl objectControl = object.getControl(ObjectControl.class);
+                    objects.add(objectControl);
                     nodeObjects.attachChild(object);
 
+                    // Trigger
+                    if (objectThing.getTriggerId() != 0) {
+                        objectTriggerState.addThing(objectThing.getTriggerId(), objectControl);
+                    }
                 }
             } catch (Exception ex) {
                 logger.log(Level.WARNING, "Could not load Thing.", ex);

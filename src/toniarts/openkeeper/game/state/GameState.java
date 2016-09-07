@@ -44,6 +44,7 @@ import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
+import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -71,6 +72,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     private GameLogicThread gameLogicThread;
     private TriggerControl triggerControl = null;
+    private CreatureTriggerState creatureTriggerState;
+    private ObjectTriggerState objectTriggerState;
     private final Map<Short, Integer> flags = new HashMap<>(LEVEL_FLAG_MAX_COUNT);
     // TODO What timer class we should take ?
     private final Map<Byte, GameTimer> timers = new HashMap<>(LEVEL_TIMER_MAX_COUNT);
@@ -133,12 +136,16 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     setupPlayers();
 
                     GameState.this.stateManager.attach(new ActionPointState(false));
-                    CreatureTriggerState creatureTriggerState = new CreatureTriggerState(false);
-                    GameState.this.stateManager.attach(creatureTriggerState);
+
+                    // Triggers
+                    creatureTriggerState = new CreatureTriggerState(true);
+                    creatureTriggerState.initialize(stateManager, app);
+                    objectTriggerState = new ObjectTriggerState(true);
+                    objectTriggerState.initialize(stateManager, app);
                     setProgress(0.20f);
 
                     // Create the actual level
-                    WorldState worldState = new WorldState(kwdFile, assetManager, GameState.this, creatureTriggerState) {
+                    WorldState worldState = new WorldState(kwdFile, assetManager, GameState.this) {
                         @Override
                         protected void updateProgress(int progress, int max) {
                             setProgress(0.2f + ((float) progress / max * 0.6f));
@@ -253,7 +260,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
                 // Enable player state
                 GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);
-                GameState.this.stateManager.getState(CreatureTriggerState.class).setEnabled(true);
                 GameState.this.stateManager.getState(ActionPointState.class).setEnabled(true);
                 GameState.this.stateManager.getState(PartyState.class).setEnabled(true);
                 GameState.this.stateManager.getState(SoundState.class).setEnabled(true);
@@ -296,7 +302,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         stateManager.detach(stateManager.getState(WorldState.class));
         stateManager.detach(stateManager.getState(ActionPointState.class));
         stateManager.detach(stateManager.getState(PartyState.class));
-        stateManager.detach(stateManager.getState(CreatureTriggerState.class));
         stateManager.detach(stateManager.getState(SoundState.class));
     }
 
@@ -336,6 +341,14 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
         if (triggerControl != null) {
             triggerControl.update(tpf);
+        }
+
+        if (creatureTriggerState != null) {
+            creatureTriggerState.update(tpf);
+        }
+
+        if (objectTriggerState != null) {
+            objectTriggerState.update(tpf);
         }
 
         for (Keeper player : players.values()) {
@@ -435,6 +448,14 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     public void setLevelScore(int levelScore) {
         this.levelScore = levelScore;
+    }
+
+    public CreatureTriggerState getCreatureTriggerState() {
+        return creatureTriggerState;
+    }
+
+    public ObjectTriggerState getObjectTriggerState() {
+        return objectTriggerState;
     }
 
 }

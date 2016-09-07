@@ -16,13 +16,12 @@
  */
 package toniarts.openkeeper.game.trigger.creature;
 
-import com.jme3.app.Application;
-import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
+import toniarts.openkeeper.game.trigger.AbstractThingTriggerState;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
@@ -31,29 +30,19 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureTriggerState extends AbstractAppState {
-
-    private AppStateManager stateManager;
-    private Main app;
-    private Map<Integer, CreatureTriggerControl> creatureTriggers = null;
+public class CreatureTriggerState extends AbstractThingTriggerState<CreatureControl> {
 
     public CreatureTriggerState() {
     }
 
     public CreatureTriggerState(boolean enabled) {
-        super.setEnabled(false);
+        super(enabled);
     }
 
     @Override
-    public void initialize(AppStateManager stateManager, Application app) {
-        super.initialize(stateManager, app);
-
-        this.stateManager = stateManager;
-        this.app = (Main) app;
-
-        // Get all the map creature triggers
-        creatureTriggers = new HashMap<>();
-        for (Thing thing : this.stateManager.getState(GameState.class).getLevelData().getThings()) {
+    protected Map<Integer, AbstractThingTriggerControl<CreatureControl>> initTriggers(List<Thing> things, AppStateManager stateManager) {
+        Map<Integer, AbstractThingTriggerControl<CreatureControl>> creatureTriggers = new HashMap<>();
+        for (Thing thing : things) {
             if (thing instanceof Thing.GoodCreature) {
                 Thing.GoodCreature creature = (Thing.GoodCreature) thing;
                 if (creature.getTriggerId() != 0) {
@@ -78,29 +67,7 @@ public class CreatureTriggerState extends AbstractAppState {
                 }
             }
         }
+        return creatureTriggers;
     }
 
-    @Override
-    public void update(float tpf) {
-        if (!isEnabled() || !isInitialized()) {
-            return;
-        }
-
-        // Update creature triggers
-        for (CreatureTriggerControl creatureTrigger : creatureTriggers.values()) {
-            creatureTrigger.update(tpf);
-        }
-
-        super.update(tpf);
-    }
-
-    /**
-     * Add a creature instance to a creature trigger
-     *
-     * @param triggerId the trigger ID
-     * @param creatureInstance the creature instance
-     */
-    public void addCreature(int triggerId, CreatureControl creatureInstance) {
-        creatureTriggers.get(triggerId).addCreature(creatureInstance);
-    }
 }
