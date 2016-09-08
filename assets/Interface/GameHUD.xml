@@ -24,7 +24,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- HUD -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="hud" controller="toniarts.openkeeper.game.state.PlayerState">
+    <screen id="hud" controller="toniarts.openkeeper.game.state.PlayerScreenController">
 
         <layer childLayout="vertical">
             <!--The upper panel-->
@@ -142,6 +142,25 @@
                     </panel>
 
                 </panel>
+
+                <panel childLayout="vertical" id="optionsMenu" backgroundColor="#0008" height="100%" width="100%" paddingLeft="10px">
+                    <panel width="100%" align="left" valign="top" childLayout="vertical">
+                        <control name="label" id="#title" style="textNormal" text="${menu.94}" />
+                    </panel>
+
+                    <!--Two columns of options-->
+                    <panel width="100%" align="left" valign="top" childLayout="horizontal" padding="5px">
+                        <panel id="#columnOne" width="50%" align="left" valign="top" childLayout="vertical" padding="5px" />
+                        <panel id="#columnTwo" width="50%" align="left" valign="top" childLayout="vertical" padding="5px" />
+                    </panel>
+
+                    <!--Menu navigation-->
+                    <panel width="100%" align="left" valign="bottom" childLayout="horizontal" padding="5px">
+                        <panel id="#navigationColumnOne" width="50%" align="left" valign="bottom" childLayout="vertical" padding="5px" />
+                        <panel id="#navigationColumnTwo" width="50%" align="left" valign="bottom" childLayout="vertical" padding="5px" />
+                    </panel>
+                </panel>
+
                 <control x="45%" y="50%" name="messageBox" width="450px" height="250px" valign="bottom" paddingRight="20px" paddingBottom="20px" visible="false"/>
             </panel>
             <!--The bottom panel-->
@@ -319,34 +338,9 @@
             </control>
         </layer>
 
-        <layer id="optionsMenu" childLayout="vertical" visible="false">
-            <panel height="72px" width="100%" align="left" valign="top" childLayout="center" />
-
-            <panel backgroundColor="#0008" height="*" width="100%" align="left" valign="top" childLayout="vertical" visibleToMouse="true" paddingLeft="3px">
-                <panel width="100%" align="left" valign="top" childLayout="vertical">
-                    <control name="label" id="optionsMenuTitle" style="textNormal" text="${menu.94}" />
-                </panel>
-
-                <!--Two columns of options-->
-                <panel width="100%" align="left" valign="top" childLayout="horizontal">
-                    <panel id="optionsColumnOne" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px" />
-                    <panel id="optionsColumnTwo" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px" />
-                </panel>
-
-                <!--Menu navigation-->
-                <panel width="100%" align="left" valign="bottom" childLayout="horizontal" paddingBottom="10px" paddingLeft="3px">
-                    <panel id="optionsNavigationColumnOne" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px" />
-                    <panel id="optionsNavigationColumnTwo" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px" />
-                </panel>
-            </panel>
-
-            <!--The bottom panel-->
-            <panel height="212px" width="100%" align="left" valign="bottom" childLayout="center" />
-        </layer>
-
     </screen>
 
-    <screen id="cinematic" controller="toniarts.openkeeper.game.state.PlayerState">
+    <screen id="cinematic" controller="toniarts.openkeeper.game.state.PlayerScreenController">
 
         <layer childLayout="vertical">
             <!--The upper panel-->
@@ -363,7 +357,7 @@
 
     </screen>
 
-    <screen id="possession" controller="toniarts.openkeeper.game.state.PlayerState">
+    <screen id="possession" controller="toniarts.openkeeper.game.state.PlayerScreenController">
         <!-- creature filter -->
         <layer childLayout="overlay">
             <panel childLayout="overlay" width="100%" height="100%" id="creature-filter" />

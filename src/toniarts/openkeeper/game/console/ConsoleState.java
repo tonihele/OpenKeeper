@@ -22,6 +22,7 @@ import com.jme3.input.KeyInput;
 import de.lessvoid.nifty.controls.Console;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
+import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.view.PlayerInteractionState;
 
 /**
@@ -39,7 +40,7 @@ public class ConsoleState extends AbstractPauseAwareState {
     public void initialize(AppStateManager stateManager, Application app) {
         super.initialize(stateManager, app);
         this.app = (Main) app;
-        console = new GameConsole(this.app.getNifty().getNifty());
+        console = new GameConsole(stateManager.getState(PlayerState.class).getScreen().getConsole());
         inputListener = new ConsoleInputListener(this);
         setEnabled(false);
     }

@@ -87,13 +87,14 @@ public class MainMenuState extends AbstractAppState {
     private KwdFile kwdFile;
     protected final MainMenuInteraction listener;
     private Vector3f startLocation;
-    private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
-    public static HiScores hiscores = HiScores.load();
     protected MapSelector mapSelector;
     protected final List<Keeper> skirmishPlayers = new ArrayList<>(4);
 
     private NetworkServer server = null;
     protected NetworkClient client = null;
+
+    public static HiScores hiscores = HiScores.load();
+    private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
 
     /**
      * (c) Construct a MainMenuState, you should only have one of these. Disable
@@ -217,7 +218,7 @@ public class MainMenuState extends AbstractAppState {
                 rootNode.attachChild(menuNode);
 
                 // Start screen, do this here since another state may have just changed to empty screen -> have to do it like this, delayed
-                MainMenuState.this.app.getNifty().getNifty().gotoScreen("start");
+                MainMenuState.this.screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
                 return null;
             }
         });

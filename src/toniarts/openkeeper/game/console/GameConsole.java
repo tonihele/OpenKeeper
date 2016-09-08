@@ -16,10 +16,8 @@
  */
 package toniarts.openkeeper.game.console;
 
-import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.Console;
 import de.lessvoid.nifty.controls.ConsoleCommands;
-import static toniarts.openkeeper.game.state.PlayerState.HUD_SCREEN_ID;
 
 /**
  *
@@ -28,14 +26,14 @@ import static toniarts.openkeeper.game.state.PlayerState.HUD_SCREEN_ID;
 public class GameConsole {
     private final Console console;
 
-    public GameConsole(Nifty nifty) {
-        this.console = nifty.getScreen(HUD_SCREEN_ID).findNiftyControl("console", Console.class);
-        initialize(nifty);
+    public GameConsole(Console console) {
+        this.console = console;
+        initialize();
     }
 
     // TODO add normal commands if needed
-    private void initialize(Nifty nifty) {
-        ConsoleCommands consoleCommands = new ConsoleCommands(nifty, console);
+    private void initialize() {
+        ConsoleCommands consoleCommands = new ConsoleCommands(console.getElement().getNifty(), console);
         /*
         ConsoleCommands.ConsoleCommand simpleCommand = new SimpleCommand();
         consoleCommands.registerCommand("simple", simpleCommand);

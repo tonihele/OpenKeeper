@@ -65,6 +65,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public class MainMenuScreenController implements IMainMenuScreenController {
     public final static String SCREEN_EMPTY_ID = "empty";
+    public final static String SCREEN_START_ID = "start";
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -312,8 +313,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     @Override
     public void onStartScreen() {
-        bind(nifty, nifty.getCurrentScreen());
-        switch (nifty.getCurrentScreen().getScreenId()) {
+        setScreen(nifty.getCurrentScreen());
+
+        switch (screen.getScreenId()) {
             case "singlePlayer":
                 state.mapSelector.reset();
                 state.initSkirmishPlayers();
@@ -470,6 +472,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         }
     }
 
+    private void setScreen(Screen screen) {
+        this.screen = screen;
+    }
 
     @NiftyEventSubscriber(id = "resolution")
     public void onResolutionChanged(final String id, final DropDownSelectionChangedEvent<MyDisplayMode> event) {
@@ -549,7 +554,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         }
 
         for (Element oldElement : movies.getChildren()) {
-            nifty.removeElement(screen, oldElement);
+            oldElement.markForRemoval();
         }
 
         int index = 0;

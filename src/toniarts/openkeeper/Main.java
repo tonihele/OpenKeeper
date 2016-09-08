@@ -380,7 +380,6 @@ public class Main extends SimpleApplication {
                     stateManager.attach(playerState);
 
                     // Eventually we are going to use Nifty, the XML files take some time to parse
-                    niftyDisplay.getNifty().registerScreenController(playerState);
                     for (String xml : guiXMLs) {
                         niftyDisplay.getNifty().addXml(xml);
                     }

@@ -230,13 +230,13 @@
     <controlDefinition style="nifty-panel-style"
                        name="iconText"
                        controller="toniarts.openkeeper.gui.nifty.icontext.IconTextControl">
-        <panel align="left" valign="center" childLayout="horizontal" paddingTop="6px" paddingBottom="6px" visibleToMouse="true">
-            <image visibleToMouse="false" id="#image" marginRight="6px" align="right" valign="center" filename="$icon">
+        <panel align="left" valign="center" childLayout="horizontal" margin="6px" visibleToMouse="true">
+            <image id="#image" marginRight="6px" align="right" valign="center" filename="$icon">
                 <effect>
                     <onCustom customKey="hover" name="imageOverlay" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" />
                 </effect>
             </image>
-            <text id="#text" style="textNormal" text="$text" visibleToMouse="false">
+            <text id="#text" style="textNormal" text="$text">
                 <effect>
                     <onCustom customKey="hover" name="textColor" color="#fff" neverStopRendering="true" />
                 </effect>
@@ -278,28 +278,27 @@
     </controlDefinition>
 
     <controlDefinition name="messageBox" id="messageBox" controller="toniarts.openkeeper.gui.nifty.message.MessageBoxControl">
-        <panel id="#messageBoxPanel" childLayout="vertical">
-            <panel id="#messageRowTop" childLayout="horizontal">
-                <image filename="Textures/GUI/Windows/text_box-tl.png" width="16px" height="16px"visibleToMouse="false" />
-                <image filename="Textures/GUI/Windows/text_box-t.png" width="*" height="16px" imageMode="repeat:0,0,16,16" visibleToMouse="false" />
-                <image filename="Textures/GUI/Windows/text_box-tr.png" width="16px" height="16px" visibleToMouse="false" />
+        <panel childLayout="vertical">
+            <panel childLayout="horizontal">
+                <image filename="Textures/GUI/Windows/text_box-tl.png" width="16px" height="16px" />
+                <image filename="Textures/GUI/Windows/text_box-t.png" width="*" height="16px" imageMode="repeat:0,0,16,16" />
+                <image filename="Textures/GUI/Windows/text_box-tr.png" width="16px" height="16px" />
             </panel>
             <panel id="#messageRowCenter" childLayout="horizontal" height="*">
-                <image filename="Textures/GUI/Windows/text_box-l.png" width="16px" height="100%" visibleToMouse="false" imageMode="repeat:0,0,16,16" />
+                <image filename="Textures/GUI/Windows/text_box-l.png" width="16px" height="100%" imageMode="repeat:0,0,16,16" />
                 <panel width="*" height="*" backgroundImage="Textures/GUI/Windows/text_box-m.png" imageMode="repeat:0,0,16,16" childLayout="vertical">
-                    <control id="#messageScroll" name="scrollPanel" horizontal="false" height="*" stepSizeY="20" paddingBottom="10px">
+                    <control name="scrollPanel" horizontal="false" height="*" stepSizeY="20" paddingBottom="10px">
                         <control id="messageText" width="98%" name="label" textHAlign="left" style="text" wrap="true" text="$text" />
                     </control>
-                    <panel id="buttonPanel" childLayout="horizontal" valign="bottom" height="35px">
-                        <!-- the buttons to click are inserted here -->
-                    </panel>
+                    <!-- the buttons to click are inserted here -->
+                    <panel id="#buttonPanel" childLayout="horizontal" valign="bottom" height="35px" />
                 </panel>
-                <image filename="Textures/GUI/Windows/text_box-r.png" width="16px" height="100%" visibleToMouse="false" imageMode="repeat:0,0,16,16" />
+                <image filename="Textures/GUI/Windows/text_box-r.png" width="16px" height="100%" imageMode="repeat:0,0,16,16" />
             </panel>
-            <panel id="#messageRowBottom" childLayout="horizontal">
-                <image filename="Textures/GUI/Windows/text_box-bl.png" width="16px" height="16px" visibleToMouse="false" />
-                <image filename="Textures/GUI/Windows/text_box-b.png" width="*" height="16px" imageMode="repeat:0,0,16,16" visibleToMouse="false" />
-                <image filename="Textures/GUI/Windows/text_box-br.png" width="16px" height="16px" visibleToMouse="false" />
+            <panel childLayout="horizontal">
+                <image filename="Textures/GUI/Windows/text_box-bl.png" width="16px" height="16px" />
+                <image filename="Textures/GUI/Windows/text_box-b.png" width="*" height="16px" imageMode="repeat:0,0,16,16" />
+                <image filename="Textures/GUI/Windows/text_box-br.png" width="16px" height="16px" />
             </panel>
         </panel>
     </controlDefinition>
