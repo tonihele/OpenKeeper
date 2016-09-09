@@ -34,7 +34,6 @@ public class SystemMessageControl extends AbstractController {
     private Element element;
     private boolean unread = true;
     private String text = "";
-    private Object object = null;
     private final Long createdAt = System.currentTimeMillis();
     private Screen hud;
 

@@ -131,9 +131,9 @@ public class MainMenuState extends AbstractAppState {
         menuNode = new Node("Main menu");
         menuNode.attachChild(new MapLoader(assetManager, kwdFile, new EffectManagerState(kwdFile, assetManager), null, new ObjectLoader(kwdFile, null)) {
             @Override
-            protected void updateProgress(int progress, int max) {
+            protected void updateProgress(float progress) {
                 if (loadingScreen != null) {
-                    loadingScreen.setProgress(0.25f + ((float) progress / max * 0.75f));
+                    loadingScreen.setProgress(0.25f + progress * 0.75f);
                 }
             }
         }.load(assetManager, kwdFile));
@@ -286,7 +286,7 @@ public class MainMenuState extends AbstractAppState {
         }
 
         try {
-            server = new NetworkServer(game, Integer.valueOf(port));
+            server = new NetworkServer(game, port);
             server.start();
             logger.info("Server created");
         } catch (IOException ex) {
@@ -450,7 +450,7 @@ public class MainMenuState extends AbstractAppState {
         app.restart();
     }
 
-    public void quitGame() {
+    public void quitToOS() {
         app.stop();
     }
 

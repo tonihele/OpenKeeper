@@ -147,8 +147,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     // Create the actual level
                     WorldState worldState = new WorldState(kwdFile, assetManager, GameState.this) {
                         @Override
-                        protected void updateProgress(int progress, int max) {
-                            setProgress(0.2f + ((float) progress / max * 0.6f));
+                        protected void updateProgress(float progress) {
+                            setProgress(0.2f + progress * 0.6f);
                         }
                     };
 

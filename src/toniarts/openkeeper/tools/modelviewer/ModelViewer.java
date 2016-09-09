@@ -419,7 +419,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(file)));
                     Node spat = (Node) new MapLoader(this.getAssetManager(), kwd, new EffectManagerState(kwd, this.getAssetManager()), null, new ObjectLoader(kwdFile, null)) {
                         @Override
-                        protected void updateProgress(int progress, int max) {
+                        protected void updateProgress(float progress) {
                             // Do nothing
                         }
                     }.load(this.getAssetManager(), kwd);

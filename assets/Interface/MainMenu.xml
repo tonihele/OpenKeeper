@@ -139,7 +139,7 @@
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control name="cancelButton" click="goToScreen(start)" />
-                <control name="okButton" click="quitGame()" />
+                <control name="okButton" click="quitToOS()" />
             </panel>
         </layer>
     </screen>

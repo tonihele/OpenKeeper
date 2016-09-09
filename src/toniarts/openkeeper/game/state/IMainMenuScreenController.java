@@ -71,7 +71,7 @@ public interface IMainMenuScreenController extends ScreenController {
     public void restartCredits();
 
     //// screen id="quitGame" ////
-    public void quitGame();
+    public void quitToOS();
 
     //// screen id="start" and ... ////
     /**

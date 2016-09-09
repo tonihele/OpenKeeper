@@ -158,8 +158,8 @@ public class PlayerState extends AbstractAppState {
 
             interactionState = new PlayerInteractionState(player, gameState, screen.getGuiConstraint(), screen.getTooltip()) {
                 @Override
-                protected void onInteractionStateChange(InteractionState interactionState, int id) {
-                    PlayerState.this.screen.updateSelectedItem(interactionState, id);
+                protected void onInteractionStateChange(InteractionState interactionState) {
+                    PlayerState.this.screen.updateSelectedItem(interactionState);
                 }
 
                 @Override
@@ -349,5 +349,9 @@ public class PlayerState extends AbstractAppState {
 
     protected Creature getPossessionCreature() {
         return possessionState.getTargetCreature();
+    }
+    
+    protected InteractionState getInteractionState() {
+        return interactionState.getInteractionState();
     }
 }

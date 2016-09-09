@@ -125,7 +125,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
             camera.setLimit(getCameraMapLimit());
             loadCameraStartLocation();
         }
-        settings = this.app.getUserSettings();
+        settings = Main.getUserSettings();
         // The controls
         registerInput();
     }

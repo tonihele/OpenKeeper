@@ -178,7 +178,7 @@ public class Main extends SimpleApplication {
         }
 
         // If the folder is ok, check the conversion
-        if (folderOk && (AssetsConverter.conversionNeeded(app.getSettings()))) {
+        if (folderOk && (AssetsConverter.conversionNeeded(Main.getSettings()))) {
             logger.info("Need to convert the assets!");
             saveSetup = true;
 
@@ -255,16 +255,10 @@ public class Main extends SimpleApplication {
                     break;
                 }
             }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+                | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
-        //</editor-fold>
     }
 
     /**

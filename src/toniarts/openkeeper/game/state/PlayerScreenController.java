@@ -110,7 +110,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void select(String iState, String id) {
-        state.interactionState.setInteractionState(PlayerInteractionState.InteractionState.valueOf(iState.toUpperCase()), Integer.valueOf(id));
+        state.interactionState.setInteractionState(PlayerInteractionState.InteractionState.Type.valueOf(iState.toUpperCase()), Integer.valueOf(id));
     }
 
     @Override
@@ -342,7 +342,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     @NiftyEventSubscriber(id = "tabs-hud")
     public void onTabChange(String id, TabSelectedEvent event) {
-        // TODO: maybe change selected item state when tab change
+        updateSelectedItem(state.getInteractionState());
     }
 
     protected void initHud(String resource) {
@@ -639,9 +639,9 @@ public class PlayerScreenController implements IPlayerScreenController {
         return name;
     }
 
-    protected void updateSelectedItem(PlayerInteractionState.InteractionState state, int id) {
+    protected void updateSelectedItem(PlayerInteractionState.InteractionState state) {
 
-        for (PlayerInteractionState.InteractionState interaction : PlayerInteractionState.InteractionState.values()) {
+        for (PlayerInteractionState.InteractionState.Type interaction : PlayerInteractionState.InteractionState.Type.values()) {
             Element content = nifty.getScreen(HUD_SCREEN_ID).findElementById("tab-" + interaction.toString().toLowerCase() + "-content");
             if (content == null || !content.isVisible()) {
                 continue;
@@ -652,7 +652,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             }
         }
 
-        String itemId = state.toString().toLowerCase() + "_" + id;
+        String itemId = state.toString().toLowerCase() + "_" + state.getItemId();
         Element item = nifty.getScreen(HUD_SCREEN_ID).findElementById(itemId);
         if (item != null) {
             item.startEffect(EffectEventId.onCustom, null, "select");

@@ -20,7 +20,6 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.collision.CollisionResults;
-import com.jme3.font.Rectangle;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
@@ -56,13 +55,14 @@ import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.CheatState;
 import static toniarts.openkeeper.game.state.CheatState.CheatType.MONEY;
 import toniarts.openkeeper.game.state.GameState;
-import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
+import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.world.TileData;
@@ -82,10 +82,7 @@ import toniarts.openkeeper.world.room.RoomInstance;
 // TODO: States, now only selection
 public abstract class PlayerInteractionState extends AbstractPauseAwareState implements RawInputListener {
 
-    public enum InteractionState {
 
-        NONE, ROOM, SELL, SPELL, TRAP, DOOR, STUFF_IN_HAND
-    }
     private Main app;
     private GameState gameState;
     private AssetManager assetManager;
@@ -95,8 +92,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private SelectionHandler handler;
     private boolean startSet = false;
     public Vector2f mousePosition = Vector2f.ZERO;
-    private InteractionState interactionState = InteractionState.NONE;
-    private int itemId;
+    private InteractionState interactionState = new InteractionState();
+
     private final Element view;
     private boolean isOnGui = false;
     private boolean isTaggable = false;
@@ -149,7 +146,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
                     // Selling is always visible, and the only thing you can do
                     // When building, you can even tag taggables
-                    switch (interactionState) {
+                    switch (interactionState.getType()) {
                         case NONE: {
                             return (isTaggable || itemInHand != null);
                         }
@@ -177,14 +174,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 } else {
                     pos = handler.getRoundedMousePos();
                 }
-                if (interactionState == InteractionState.NONE && itemInHand != null) {
+                if (interactionState.getType() == Type.NONE && itemInHand != null) {
                     TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
                     IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile);
                     return (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE ? SelectionColorIndicator.BLUE : SelectionColorIndicator.RED);
                 }
-                if (interactionState == InteractionState.SELL) {
+                if (interactionState.getType() == Type.SELL) {
                     return SelectionColorIndicator.RED;
-                } else if (interactionState == InteractionState.ROOM && !isTaggable && !getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(itemId))) {
+                } else if (interactionState.getType() == Type.ROOM && !isTaggable && !getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(interactionState.getItemId()))) {
                     return SelectionColorIndicator.RED;
                 }
                 return SelectionColorIndicator.BLUE;
@@ -193,14 +190,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             @Override
             public void userSubmit(SelectionArea area) {
 
-                if (PlayerInteractionState.this.interactionState == InteractionState.NONE || (PlayerInteractionState.this.interactionState == InteractionState.ROOM && getWorldHandler().isTaggable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y))) {
+                if (interactionState.getType() == Type.NONE 
+                        || (interactionState.getType() == Type.ROOM 
+                        && getWorldHandler().isTaggable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y))) {
 
                     // Determine if this is a select/deselect by the starting tile's status
                     boolean select = !getWorldHandler().isSelected((int) Math.max(0, selectionArea.getActualStartingCoordinates().x), (int) Math.max(0, selectionArea.getActualStartingCoordinates().y));
                     getWorldHandler().selectTiles(selectionArea, select, player.getPlayerId());
-                } else if (PlayerInteractionState.this.interactionState == InteractionState.ROOM && getWorldHandler().isBuildable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y, player, gameState.getLevelData().getRoomById(itemId))) {
-                    getWorldHandler().build(selectionArea, player, gameState.getLevelData().getRoomById(itemId));
-                } else if (PlayerInteractionState.this.interactionState == InteractionState.SELL) {
+                } else if (interactionState.getType() == Type.ROOM && getWorldHandler().isBuildable((int) selectionArea.getActualStartingCoordinates().x,
+                        (int) selectionArea.getActualStartingCoordinates().y, player, gameState.getLevelData().getRoomById(interactionState.getItemId()))) {
+                    getWorldHandler().build(selectionArea, player, gameState.getLevelData().getRoomById(interactionState.getItemId()));
+                } else if (interactionState.getType() == Type.SELL) {
                     getWorldHandler().sell(selectionArea, player);
                 }
             }
@@ -306,7 +306,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
         if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
 
-            if (interactionState == InteractionState.SPELL && itemId == 2) { // possession
+            if (interactionState.getType() == Type.SPELL && interactionState.getItemId() == 2) { // possession
                 if (evt.isReleased()) {
                     // TODO make normal selection, not first keeper creature
                     for (Thing t : gameState.getLevelData().getThings()) {
@@ -317,7 +317,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     }
                     // Reset the state
                     // TODO disable selection box
-                    setInteractionState(InteractionState.NONE, 0);
+                    setInteractionState(Type.NONE, 0);
                 }
             } else if (evt.isPressed()) {
 
@@ -360,7 +360,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
 
             Vector2f pos = handler.getRoundedMousePos();
-            if (interactionState == InteractionState.NONE) {
+            if (interactionState.getType() == Type.NONE) {
 
                 // Drop
                 if (itemInHand != null) {
@@ -394,7 +394,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             }
 
             // Reset the state
-            setInteractionState(InteractionState.NONE, 0);
+            setInteractionState(Type.NONE, 0);
             if (setStateFlags()) {
                 setCursor();
             }
@@ -445,22 +445,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         return stateManager.getState(WorldState.class);
     }
 
-    private PlayerState getPlayerState() {
-        return stateManager.getState(PlayerState.class);
-    }
-
     /**
      * Set the interaction state for the keeper
      *
-     * @param interactionState state
+     * @param type interaction type
      * @param id object id, i.e. build state requires the room id
      */
-    public void setInteractionState(InteractionState interactionState, int id) {
-        this.interactionState = interactionState;
-        this.itemId = id;
+    public void setInteractionState(Type type, int id) {
+        interactionState.setState(type, id);
 
         // Call the update
-        onInteractionStateChange(interactionState, id);
+        onInteractionStateChange(interactionState);
     }
 
     /**
@@ -470,15 +465,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
      */
     public InteractionState getInteractionState() {
         return interactionState;
-    }
-
-    /**
-     * Get the current interaction state item id
-     *
-     * @return current interaction state item id
-     */
-    public int getInteractionStateItemId() {
-        return itemId;
     }
 
     private boolean isCursorOnGUI() {
@@ -615,7 +601,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     private boolean isTaggable() {
         Vector2f pos = handler.getRoundedMousePos();
-        return (interactionState == InteractionState.ROOM || interactionState == InteractionState.NONE) && isOnView && getWorldHandler().isTaggable((int) pos.x, (int) pos.y);
+        return (interactionState.getType() == Type.ROOM
+                || interactionState.getType() == Type.NONE) 
+                && isOnView && getWorldHandler().isTaggable((int) pos.x, (int) pos.y);
     }
 
     private boolean isOnView() {
@@ -682,7 +670,50 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
      * @param interactionState new state
      * @param id new id
      */
-    protected abstract void onInteractionStateChange(InteractionState interactionState, int id);
+    protected abstract void onInteractionStateChange(InteractionState interactionState);
 
     protected abstract void onPossession(Thing.KeeperCreature creature);
+    
+    public static class InteractionState {
+
+        public enum Type {
+            NONE, ROOM, SELL, SPELL, TRAP, DOOR, STUFF_IN_HAND
+        }
+
+        private int itemId = 0;
+        private Type type = Type.NONE;
+
+        public InteractionState() {
+            itemId = 0;
+            type = Type.NONE;
+        }
+
+        public InteractionState(Type type, int itemId) {
+            this.type = type;
+            this.itemId = itemId;
+        }
+
+        public InteractionState(Type type) {
+            this(type, 0);
+        }
+
+        protected void setState(Type type, int itemId) {
+            this.type = type;
+            this.itemId = itemId;
+
+            //PlayerInteractionState.this.onInteractionStateChange(this);
+        }
+
+        protected void setState(Type type) {
+            setState(type, 0);
+        }
+
+        public Type getType() {
+            return type;
+        }
+
+        public int getItemId() {
+            return itemId;
+        }
+    }
 }

@@ -289,8 +289,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     }
 
     @Override
-    public void quitGame() {
-        state.quitGame();
+    public void quitToOS() {
+        state.quitToOS();
     }
 
     @Override
