@@ -99,7 +99,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     public MainMenuScreenController(MainMenuState state) {
         this.state = state;
-        nifty = state.app.getNifty().getNifty();
+        nifty = state.app.getNifty();
         screen = nifty.getCurrentScreen();
 
         // Set some Nifty stuff

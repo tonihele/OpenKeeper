@@ -284,11 +284,11 @@
                 <image filename="Textures/GUI/Windows/text_box-t.png" width="*" height="16px" imageMode="repeat:0,0,16,16" />
                 <image filename="Textures/GUI/Windows/text_box-tr.png" width="16px" height="16px" />
             </panel>
-            <panel id="#messageRowCenter" childLayout="horizontal" height="*">
+            <panel childLayout="horizontal" height="*">
                 <image filename="Textures/GUI/Windows/text_box-l.png" width="16px" height="100%" imageMode="repeat:0,0,16,16" />
                 <panel width="*" height="*" backgroundImage="Textures/GUI/Windows/text_box-m.png" imageMode="repeat:0,0,16,16" childLayout="vertical">
                     <control name="scrollPanel" horizontal="false" height="*" stepSizeY="20" paddingBottom="10px">
-                        <control id="messageText" width="98%" name="label" textHAlign="left" style="text" wrap="true" text="$text" />
+                        <control id="#messageText" width="98%" name="label" textHAlign="left" style="text" wrap="true" text="$text" />
                     </control>
                     <!-- the buttons to click are inserted here -->
                     <panel id="#buttonPanel" childLayout="horizontal" valign="bottom" height="35px" />

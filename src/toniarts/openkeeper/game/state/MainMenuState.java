@@ -156,7 +156,7 @@ public class MainMenuState extends AbstractAppState {
         //viewPort = this.app.getViewPort();
 
         screen = new MainMenuScreenController(this);
-        this.app.getNifty().getNifty().registerScreenController(screen);
+        this.app.getNifty().registerScreenController(screen);
     }
 
     /**

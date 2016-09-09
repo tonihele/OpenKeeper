@@ -65,7 +65,7 @@ public class PlayerState extends AbstractAppState {
     private List<AbstractPauseAwareState> storedAppStates;
     protected PlayerInteractionState interactionState;
     private PossessionInteractionState possessionState;
-    private PlayerCameraState cameraState;
+    protected PlayerCameraState cameraState;
     private PossessionCameraState possessionCameraState;
 
     private boolean transitionEnd = true;
@@ -91,7 +91,7 @@ public class PlayerState extends AbstractAppState {
         this.stateManager = stateManager;
 
         screen = new PlayerScreenController(this);
-        this.app.getNifty().getNifty().registerScreenController(screen);
+        this.app.getNifty().registerScreenController(screen);
     }
 
     @Override
@@ -183,7 +183,8 @@ public class PlayerState extends AbstractAppState {
             };
             appStates.add(interactionState);
             appStates.add(cameraState);
-
+            // FIXME add to appStates or directly to stateManager
+            appStates.add(new SystemMessageState(screen.getMessages()));
             // Load the state
             for (AbstractAppState state : appStates) {
                 stateManager.attach(state);
@@ -339,16 +340,6 @@ public class PlayerState extends AbstractAppState {
     public void zoomToCreature(String creatureId) {
         GameState gs = stateManager.getState(GameState.class);
         CreatureControl creature = getCreatureControl().getNextCreature(gs.getLevelData().getCreature(Short.parseShort(creatureId)));
-        cameraState.setCameraLookAt(creature.getSpatial());
-    }
-
-    public void zoomToImp(String state) {
-        CreatureControl creature;
-        if ("null".equals(state)) {
-            creature = getCreatureControl().getNextImp();
-        } else {
-            creature = getCreatureControl().getNextImp(PlayerCreatureControl.CreatureUIState.valueOf(state));
-        }
         cameraState.setCameraLookAt(creature.getSpatial());
     }
 

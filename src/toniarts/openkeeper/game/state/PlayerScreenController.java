@@ -57,6 +57,7 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.game.player.PlayerRoomControl;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
@@ -103,7 +104,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     public PlayerScreenController(PlayerState state) {
         this.state = state;
-        this.nifty = state.app.getNifty().getNifty();
+        this.nifty = state.app.getNifty();
         this.screen = nifty.getCurrentScreen();
     }
 
@@ -133,7 +134,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void pauseMenuNavigate(String menu, String backMenu, String confirmationTitle, String confirmMethod) {
-                Element optionsMenu = nifty.getCurrentScreen().findElementById("optionsMenu");
+                Element optionsMenu = nifty.getScreen(HUD_SCREEN_ID).findElementById("optionsMenu");
         Label optionsMenuTitle = optionsMenu.findNiftyControl("#title", Label.class);
         Element optionsColumnOne = optionsMenu.findElementById("#columnOne");
         for (Element element : optionsColumnOne.getChildren()) {
@@ -189,7 +190,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                     {
                         style("textNormal");
                     }
-                }.build(nifty, nifty.getCurrentScreen(), optionsColumnOne);
+                }.build(nifty, nifty.getScreen(HUD_SCREEN_ID), optionsColumnOne);
 
                 items.add(new GameMenu("i-accept", "${menu.21}", confirmMethod, optionsColumnOne));
                 items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
@@ -205,7 +206,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             new IconTextBuilder("menu-" + NiftyIdCreator.generate(), String.format("Textures/GUI/Options/%s.png", item.id), item.title, item.action) {
                 {
                 }
-            }.build(nifty, nifty.getCurrentScreen(), item.parent);
+            }.build(nifty, nifty.getScreen(HUD_SCREEN_ID), item.parent);
         }
 
         // Fix layout
@@ -216,6 +217,17 @@ public class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void zoomToCreature(String creatureId) {
         state.zoomToCreature(creatureId);
+    }
+
+    @Override
+    public void zoomToImp(String uiState) {
+        CreatureControl creature;
+        if ("null".equals(uiState)) {
+            creature = state.getCreatureControl().getNextImp();
+        } else {
+            creature = state.getCreatureControl().getNextImp(PlayerCreatureControl.CreatureUIState.valueOf(uiState));
+        }
+        state.cameraState.setCameraLookAt(creature.getSpatial());
     }
 
     @Override
