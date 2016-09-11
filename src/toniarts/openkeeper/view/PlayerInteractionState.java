@@ -55,11 +55,14 @@ import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.CheatState;
 import static toniarts.openkeeper.game.state.CheatState.CheatType.MONEY;
 import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.state.PlayerScreenController;
+import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
@@ -82,7 +85,6 @@ import toniarts.openkeeper.world.room.RoomInstance;
 // TODO: States, now only selection
 public abstract class PlayerInteractionState extends AbstractPauseAwareState implements RawInputListener {
 
-
     private Main app;
     private GameState gameState;
     private AssetManager assetManager;
@@ -94,31 +96,18 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public Vector2f mousePosition = Vector2f.ZERO;
     private InteractionState interactionState = new InteractionState();
 
-    private final Element view;
+    private Element view;
     private boolean isOnGui = false;
     private boolean isTaggable = false;
     private boolean isTagging = false;
     private boolean isOnView = false;
     private boolean isInteractable = false;
-    private final Label tooltip;
-    private final KeeperHandQueue keeperHand;
-    private IInteractiveControl itemInHand;
-    private final Node keeperHandNode = new Node("Keeper hand");
-    private static final List<String> SLAP_SOUNDS = Arrays.asList(new String[]{"/Global/Slap_1.mp2", "/Global/slap_2.mp2", "/Global/Slap_3.mp2", "/Global/Slap_4.mp2"});
+    private Label tooltip;
+    private KeeperHand keeperHand;
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
     public PlayerInteractionState(Player player, GameState gameState, Element view, Label tooltip) {
         this.player = player;
-        this.view = view;
-        this.tooltip = tooltip;
-
-        // Init the keeper hand
-        keeperHandNode.setLocalScale(500);
-        Quaternion rotation = new Quaternion();
-        rotation.fromAngleAxis(-FastMath.PI / 4, new Vector3f(-1, 1, 0));
-        keeperHandNode.setLocalRotation(rotation);
-        keeperHandNode.addLight(new AmbientLight(ColorRGBA.White));
-        keeperHand = new KeeperHandQueue((int) gameState.getLevelVariable(Variable.MiscVariable.MiscType.MAX_NUMBER_OF_THINGS_IN_HAND));
     }
 
     @Override
@@ -130,7 +119,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         inputManager = this.app.getInputManager();
         gameState = this.stateManager.getState(GameState.class);
 
-        this.app.getGuiNode().attachChild(keeperHandNode);
+        PlayerScreenController psc = this.stateManager.getState(PlayerState.class).getScreen();
+        this.view = psc.getGuiConstraint();
+        this.tooltip = psc.getTooltip();
+        // Init the keeper hand
+        keeperHand = new KeeperHand(assetManager, (int) gameState.getLevelVariable(MiscType.MAX_NUMBER_OF_THINGS_IN_HAND));
+        this.app.getGuiNode().attachChild(keeperHand.getNode());
 
         // Init handler
         handler = new SelectionHandler(this.app, this) {
@@ -148,7 +142,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                     // When building, you can even tag taggables
                     switch (interactionState.getType()) {
                         case NONE: {
-                            return (isTaggable || itemInHand != null);
+                            return (isTaggable || keeperHand.getItem() != null);
                         }
                         case ROOM: {
                             return isOnView;
@@ -174,7 +168,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 } else {
                     pos = handler.getRoundedMousePos();
                 }
-                if (interactionState.getType() == Type.NONE && itemInHand != null) {
+                if (interactionState.getType() == Type.NONE && keeperHand.getItem() != null) {
                     TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
                     IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile);
                     return (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE ? SelectionColorIndicator.BLUE : SelectionColorIndicator.RED);
@@ -190,8 +184,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             @Override
             public void userSubmit(SelectionArea area) {
 
-                if (interactionState.getType() == Type.NONE 
-                        || (interactionState.getType() == Type.ROOM 
+                if (interactionState.getType() == Type.NONE
+                        || (interactionState.getType() == Type.ROOM
                         && getWorldHandler().isTaggable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y))) {
 
                     // Determine if this is a select/deselect by the starting tile's status
@@ -243,7 +237,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     @Override
     public void cleanup() {
-        app.getGuiNode().detachChild(keeperHandNode);
+        app.getGuiNode().detachChild(keeperHand.getNode());
         app.getInputManager().removeRawInputListener(this);
         handler.cleanup();
         CheatState cheatState = this.stateManager.getState(CheatState.class);
@@ -292,7 +286,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         }
 
         // Move the picked up item
-        keeperHandNode.setLocalTranslation(evt.getX(), evt.getY(), 0);
+        keeperHand.setPosition(evt.getX(), evt.getY());
     }
 
     @Override
@@ -325,7 +319,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
                 if (interactiveControl != null && !keeperHand.isFull() && interactiveControl.isPickable(player.getPlayerId())) {
                     keeperHand.push(interactiveControl.pickUp(player.getPlayerId()));
-                    setupItemInHand(interactiveControl);
                     setCursor();
                 } else {
 
@@ -363,17 +356,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             if (interactionState.getType() == Type.NONE) {
 
                 // Drop
-                if (itemInHand != null) {
+                if (keeperHand.getItem() != null) {
                     TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
                     IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile);
                     if (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE) {
 
                         // Drop & update cursor
-                        removeItemInHand();
                         keeperHand.pop().drop(tile);
-                        if (!keeperHand.isEmpty()) {
-                            setupItemInHand(keeperHand.peek());
-                        }
                         setCursor();
                     }
                 } else if (Main.isDebug()) {
@@ -387,7 +376,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 } else {
                     IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
                     if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
-                        getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, Utils.getRandomItem(SLAP_SOUNDS));
+                        getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, KeeperHand.getSlapSound());
                         interactiveControl.interact(player.getPlayerId());
                     }
                 }
@@ -602,7 +591,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private boolean isTaggable() {
         Vector2f pos = handler.getRoundedMousePos();
         return (interactionState.getType() == Type.ROOM
-                || interactionState.getType() == Type.NONE) 
+                || interactionState.getType() == Type.NONE)
                 && isOnView && getWorldHandler().isTaggable((int) pos.x, (int) pos.y);
     }
 
@@ -615,7 +604,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     }
 
     protected void setCursor() {
-        keeperHandNode.setCullHint(Spatial.CullHint.Always);
+        keeperHand.setVisible(false);
         if (Main.getUserSettings().getSettingBoolean(Settings.Setting.USE_CURSORS)) {
             if (isOnGui || isInteractable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
@@ -623,44 +612,16 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE_TAGGING, assetManager));
             } else if (isTaggable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE, assetManager));
-            } else if (itemInHand != null) {
+            } else if (keeperHand.getItem() != null) {
 
                 // Keeper hand item
-                inputManager.setMouseCursor(CursorFactory.getCursor(itemInHand.getInHandCursor(), assetManager));
-                keeperHandNode.setCullHint(Spatial.CullHint.Never);
+                inputManager.setMouseCursor(CursorFactory.getCursor(keeperHand.getItem().getInHandCursor(), assetManager));
+                keeperHand.setVisible(true);
             } else {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.IDLE, assetManager));
             }
-        } else if (itemInHand != null) {
-            keeperHandNode.setCullHint(Spatial.CullHint.Never);
-        }
-    }
-
-    private void setupItemInHand(IInteractiveControl interactiveControl) {
-
-        // Remove the old one
-        if (itemInHand != null) {
-            removeItemInHand();
-        }
-
-        // Set the item
-        itemInHand = interactiveControl;
-        if (itemInHand.getInHandMesh() != null) {
-
-            // Attach to GUI node and play the animation
-            itemInHand.getSpatial().setLocalTranslation(0, 0, 0);
-            itemInHand.getSpatial().setLocalRotation(Matrix3f.ZERO);
-            keeperHandNode.attachChild(itemInHand.getSpatial());
-            CreatureLoader.playAnimation(itemInHand.getSpatial(), itemInHand.getInHandMesh(), assetManager);
-        }
-    }
-
-    private void removeItemInHand() {
-        if (itemInHand != null && itemInHand.getInHandMesh() != null) {
-
-            // Remove from GUI node
-            itemInHand.getSpatial().removeFromParent();
-            itemInHand = null;
+        } else if (keeperHand.getItem() != null) {
+            keeperHand.setVisible(true);
         }
     }
 
@@ -668,12 +629,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
      * A callback for changing the interaction state
      *
      * @param interactionState new state
-     * @param id new id
      */
     protected abstract void onInteractionStateChange(InteractionState interactionState);
 
     protected abstract void onPossession(Thing.KeeperCreature creature);
-    
+
     public static class InteractionState {
 
         public enum Type {

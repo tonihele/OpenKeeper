@@ -862,6 +862,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public ArtResource getInHandMesh() {
         return creature.getAnimInHandResource();
     }
+    
+    @Override
+    public ArtResource getInHandIcon() {
+        return creature.getIcon1Resource();
+    }
 
     @Override
     public DroppableStatus getDroppableStatus(TileData tile) {

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view;
 
+import javax.annotation.Nonnull;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 
 /**
@@ -30,7 +31,6 @@ import toniarts.openkeeper.world.control.IInteractiveControl;
 public class KeeperHandQueue {
 
     private final IInteractiveControl[] stack;
-    private int top = 0;
     private int count = 0;
 
     /**
@@ -50,22 +50,15 @@ public class KeeperHandQueue {
      * @throws NullPointerException this queue doesn't accept {@code null}
      * elements
      */
-    public void push(IInteractiveControl object) throws IllegalStateException, NullPointerException {
+    public void push(@Nonnull IInteractiveControl object) throws IllegalStateException {
 
         // Don't allow to push if full
         if (isFull()) {
             throw new IllegalStateException("Queue is already full!");
         }
-        if (object == null) {
-            throw new NullPointerException("Element can't be null!");
-        }
 
         // Advance counters & set the object
-        if (top == stack.length) {
-            top = 0;
-        }
-        stack[top] = object;
-        top++;
+        stack[count] = object;
         count++;
     }
 
@@ -81,14 +74,9 @@ public class KeeperHandQueue {
             return null;
         }
 
-        if (top - 1 < 0) {
-            top = stack.length;
-        }
-        top--;
-
         // Get the object and clear the reference
-        IInteractiveControl object = stack[top];
-        stack[top] = null;
+        IInteractiveControl object = stack[count - 1];
+        stack[count - 1] = null;
         count--;
         return object;
     }
@@ -99,7 +87,17 @@ public class KeeperHandQueue {
      * @return the last inserted object, or {@code null} if the queue is empty
      */
     public IInteractiveControl peek() {
-        return stack[top - 1 < 0 ? stack.length - 1 : top - 1];
+        return peek(0);
+    }
+
+    /**
+     * Gets the inserted object by id from top but doesn't remove it from the queue
+     *
+     * @param i index of object from the top
+     * @return the inserted object by id from top, or {@code null} if the queue is not long
+     */
+    public IInteractiveControl peek(final int i) {
+        return count - 1 - i < 0 ? null : stack[count - 1 - i];
     }
 
     /**
@@ -117,7 +115,7 @@ public class KeeperHandQueue {
      * @return {@code true} if the queue is full
      */
     public boolean isFull() {
-        return (count == stack.length - 1);
+        return (count == stack.length);
     }
 
     /**
