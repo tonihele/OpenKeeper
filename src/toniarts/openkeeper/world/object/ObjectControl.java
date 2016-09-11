@@ -141,6 +141,11 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     }
 
     @Override
+    public ArtResource getInHandIcon() {
+        return object.getGuiIconResource();
+    }
+
+    @Override
     public DroppableStatus getDroppableStatus(TileData tile) {
         return (tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
     }

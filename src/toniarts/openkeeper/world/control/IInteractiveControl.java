@@ -88,6 +88,13 @@ public interface IInteractiveControl extends Control {
      * @return the in hand mesh/animation
      */
     public ArtResource getInHandMesh();
+    
+    /**
+     * Get in hand icon, when the keeper dangles the control in hand
+     *
+     * @return the in hand icon
+     */
+    public ArtResource getInHandIcon();
 
     /**
      * Get the control spatial
