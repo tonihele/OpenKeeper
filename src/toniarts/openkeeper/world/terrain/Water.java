@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -141,14 +142,18 @@ public class Water {
 
         // Create new mesh
         Mesh mesh = new Mesh();
-        List<Vector3f> vertices = new ArrayList<>();
-        List<Vector2f> textureCoordinates = new ArrayList<>();
-        List<Integer> indexes = new ArrayList<>();
-        List<Vector3f> normals = new ArrayList<>();
+        int tiles = 0;
+        for (EntityInstance<Terrain> entityInstance : entityInstances) {
+            tiles += entityInstance.getCoordinates().size();
+        }
+        List<Vector3f> vertices = new ArrayList<>(tiles * 4);
+        List<Vector2f> textureCoordinates = new ArrayList<>(tiles * 4);
+        List<Integer> indexes = new ArrayList<>(tiles * 6);
+        List<Vector3f> normals = new ArrayList<>(tiles * 4);
 
         // Handle each river/lake separately
         for (EntityInstance<Terrain> entityInstance : entityInstances) {
-            HashMap<Vector3f, Integer> verticeHash = new HashMap<>(entityInstance.getCoordinates().size());
+            Map<Vector3f, Integer> verticeHash = new HashMap<>(entityInstance.getCoordinates().size());
             for (Point tile : entityInstance.getCoordinates()) {
 
                 // For each tile, create a quad, in a way
@@ -172,6 +177,7 @@ public class Water {
                 indexes.addAll(Arrays.asList(vertice3Index, vertice4Index, vertice2Index, vertice2Index, vertice1Index, vertice3Index));
             }
         }
+
         // Assign the mesh data
         mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices.toArray(new Vector3f[vertices.size()])));
         mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(textureCoordinates.toArray(new Vector2f[textureCoordinates.size()])));
@@ -195,7 +201,7 @@ public class Water {
      * needed
      * @return index of the given vertice
      */
-    private static int addVertice(final HashMap<Vector3f, Integer> verticeHash, final Vector3f vertice, final List<Vector3f> vertices, final Vector2f textureCoord, final List<Vector2f> textureCoordinates, final List<Vector3f> normals, final boolean shareVertices) {
+    private static int addVertice(final Map<Vector3f, Integer> verticeHash, final Vector3f vertice, final List<Vector3f> vertices, final Vector2f textureCoord, final List<Vector2f> textureCoordinates, final List<Vector3f> normals, final boolean shareVertices) {
         if (!shareVertices || (shareVertices && !verticeHash.containsKey(vertice))) {
             vertices.add(vertice);
             verticeHash.put(vertice, vertices.size() - 1);
