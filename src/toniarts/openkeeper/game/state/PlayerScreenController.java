@@ -652,7 +652,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             }
         }
 
-        String itemId = state.toString().toLowerCase() + "_" + state.getItemId();
+        String itemId = state.getType().toString().toLowerCase() + "_" + state.getItemId();
         Element item = nifty.getScreen(HUD_SCREEN_ID).findElementById(itemId);
         if (item != null) {
             item.startEffect(EffectEventId.onCustom, null, "select");
