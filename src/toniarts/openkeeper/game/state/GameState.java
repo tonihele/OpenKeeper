@@ -147,8 +147,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     // Create the actual level
                     WorldState worldState = new WorldState(kwdFile, assetManager, GameState.this) {
                         @Override
-                        protected void updateProgress(int progress, int max) {
-                            setProgress(0.2f + ((float) progress / max * 0.6f));
+                        protected void updateProgress(float progress) {
+                            setProgress(0.2f + progress * 0.6f);
                         }
                     };
 
@@ -159,8 +159,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     GameState.this.stateManager.attach(worldState);
 
                     GameState.this.stateManager.attach(new SoundState(false));
-
-                    GameState.this.stateManager.attach(new SystemMessageState(app, false));
                     setProgress(0.60f);
 
                     GameState.this.stateManager.attach(new PartyState(false));
@@ -263,7 +261,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 GameState.this.stateManager.getState(ActionPointState.class).setEnabled(true);
                 GameState.this.stateManager.getState(PartyState.class).setEnabled(true);
                 GameState.this.stateManager.getState(SoundState.class).setEnabled(true);
-                GameState.this.stateManager.getState(SystemMessageState.class).setEnabled(true);
 
                 // Set initialized
                 GameState.this.initialized = true;

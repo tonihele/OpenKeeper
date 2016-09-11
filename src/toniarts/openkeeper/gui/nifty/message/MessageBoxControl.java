@@ -24,6 +24,7 @@ import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
+import static toniarts.openkeeper.game.state.PlayerScreenController.HUD_SCREEN_ID;
 
 /**
  *
@@ -45,9 +46,9 @@ public class MessageBoxControl extends AbstractController {
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Parameters parameter) {
         this.nifty = nifty;
-        this.hud = nifty.getScreen("hud");
+        this.hud = nifty.getScreen(HUD_SCREEN_ID);
         this.element = element;
-        this.buttonPanel = element.findElementById("buttonPanel");
+        this.buttonPanel = element.findElementById("#buttonPanel");
     }
 
     @Override
@@ -69,7 +70,7 @@ public class MessageBoxControl extends AbstractController {
         }
         this.hide();
     }
-    
+
     public void closeMessage() {
         this.hide();
     }
@@ -90,11 +91,11 @@ public class MessageBoxControl extends AbstractController {
 
         this.show();
     }
-    
+
     /**
      * Shows a message box with text
-     * 
-     * @param text 
+     *
+     * @param text
      */
     public void showMessage(final String text) {
         this.showMessageBox(text);
@@ -103,13 +104,13 @@ public class MessageBoxControl extends AbstractController {
 
     /**
      * Shows a removeable system message
-     * 
+     *
      * @param systemMessage The control of the system message
-     * @param text 
+     * @param text
      */
     public void showSystemMessage(final SystemMessageControl systemMessage, final String text) {
         this.systemMessage = systemMessage;
-        
+
         this.showMessageBox(text);
         this.addButton(ButtonType.EXIT, "dismissMessage()");
         this.addButton(ButtonType.TICK, "closeMessage()");
@@ -118,7 +119,7 @@ public class MessageBoxControl extends AbstractController {
     /**
      * TODO
      * @param systemMessage
-     * @param text 
+     * @param text
      */
     public void showFocusMessage(final SystemMessageControl systemMessage, final String text) {
         this.showSystemMessage(systemMessage, text);
@@ -128,10 +129,10 @@ public class MessageBoxControl extends AbstractController {
 
     /**
      * Sets the text of the message box
-     * @param text 
+     * @param text
      */
     public void setText(final String text) {
-        this.element.findNiftyControl("messageText", Label.class).setText(text);
+        this.element.findNiftyControl("#messageText", Label.class).setText(text);
         // update layout otherwise the scrollbar isn't correct
         this.element.layoutElements();
     }

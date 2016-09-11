@@ -125,7 +125,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
             camera.setLimit(getCameraMapLimit());
             loadCameraStartLocation();
         }
-        settings = this.app.getUserSettings();
+        settings = Main.getUserSettings();
         // The controls
         registerInput();
     }
@@ -223,7 +223,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
                 PlayerCameraState.this.cameraRestore();
             }
         });
-        // GuiEvent ce = new GuiEvent(app.getNifty().getNifty(), PlayerState.CINEMATIC_SCREEN_ID);
+        // GuiEvent ce = new GuiEvent(app.getNifty(), PlayerState.CINEMATIC_SCREEN_ID);
         // c.addCinematicEvent(0, ce);
         // SoundEvent se = new SoundEvent(sweepFile);
         // c.addCinematicEvent(0, se);

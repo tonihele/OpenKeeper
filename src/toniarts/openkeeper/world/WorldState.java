@@ -117,13 +117,14 @@ public abstract class WorldState extends AbstractAppState {
 
         // Create physics state
         bulletAppState = new BulletAppState();
+        bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
 
         // Create the actual map
         thingLoader = new ThingLoader(this, kwdFile, assetManager);
         this.mapLoader = new MapLoader(assetManager, kwdFile, effectManager, this, thingLoader.getObjectLoader()) {
             @Override
-            protected void updateProgress(int progress, int max) {
-                WorldState.this.updateProgress(progress, max);
+            protected void updateProgress(float progress) {
+                WorldState.this.updateProgress(progress);
             }
         };
         worldNode.attachChild(mapLoader.load(assetManager, kwdFile));
@@ -277,10 +278,9 @@ public abstract class WorldState extends AbstractAppState {
     /**
      * If you want to monitor the map loading progress, use this method
      *
-     * @param progress current progress
-     * @param max max progress
+     * @param progress current progress from 0.0 to 1.0
      */
-    protected abstract void updateProgress(int progress, int max);
+    protected abstract void updateProgress(final float progress);
 
     /**
      * If you want to get notified about tile changes

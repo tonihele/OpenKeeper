@@ -47,14 +47,14 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- empty screen -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="empty" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="empty" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer />
     </screen>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- start screen -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="start" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="start" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel height="20%" childLayout="center" valign="center" align="center">
                 <image filename="Textures/Logo.png" align="center" />
@@ -99,7 +99,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- single player game -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="singlePlayer" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="singlePlayer" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel height="14%" childLayout="center" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.71}" align="center" />
@@ -129,7 +129,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- quit game -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="quitGame" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="quitGame" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel height="14%" childLayout="center" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.28}" align="center" />
@@ -139,7 +139,7 @@
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control name="cancelButton" click="goToScreen(start)" />
-                <control name="okButton" click="quitGame()" />
+                <control name="okButton" click="quitToOS()" />
             </panel>
         </layer>
     </screen>
@@ -147,7 +147,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Campaign map, level selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="selectCampaignLevel" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="selectCampaignLevel" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel height="*" />
             <panel childLayout="horizontal" align="right" valign="bottom">
@@ -159,7 +159,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Campaign level briefing -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="campaign" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="campaign" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" align="center" valign="center" height="14%">
                 <text style="menuTitleText" text="${menu.1476}" align="center" />
@@ -219,7 +219,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Options, main selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="optionsMain" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="optionsMain" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.94}" align="center" />
@@ -248,7 +248,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Graphic options -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="optionsGraphics" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="optionsGraphics" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.96}" align="center" />
@@ -305,7 +305,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Sound Options -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="optionsSound" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="optionsSound" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.95}" align="center" />
@@ -325,7 +325,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Control Options -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="optionsControl" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="optionsControl" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.98}" align="center" />
@@ -379,7 +379,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Extras -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="extras" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="extras" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.73}" align="center" />
@@ -415,7 +415,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Top players -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="hiscores" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="hiscores" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.2802}" align="center"/>
@@ -432,7 +432,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- View Movies -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="movies" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="movies" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.93}" />
@@ -453,7 +453,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Movie still locked message -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="cutsceneLocked" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="cutsceneLocked" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel height="14%" />
 
@@ -470,13 +470,13 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Credits -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="credits" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="credits" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.372}" />
             </panel>
             <panel childClip="true" align="center" valign="center" childLayout="vertical" height="*" visibleToMouse="false">
-                <control name="creditsPanel" width="80%"/>
+                <control name="creditsPanel" width="80%" action="restartCredits()" />
             </panel>
             <panel childLayout="center" align="right" valign="bottom">
                 <control name="okButton" click="doTransition(266,extras,261)" />
@@ -487,7 +487,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Multi player game -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="multiplayer" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="multiplayer" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
            <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.149}" />
@@ -511,7 +511,7 @@
         </layer>
     </screen>
 
-    <screen id="multiplayerLocal" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="multiplayerLocal" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
            <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.168}" />
@@ -568,7 +568,7 @@
         </layer>
     </screen>
 
-    <screen id="multiplayerWatch" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="multiplayerWatch" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
            <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.2729}" />
@@ -579,11 +579,11 @@
                     <panel align="center" childLayout="horizontal" >
                         <!-- TODO Need normal server connection -->
                         <text style="menuTitleText" text="Name" />
-                        <control name="textfield" id="playerName" text="ArchDemon" maxLength="20" />
+                        <control name="textfield" id="playerName" text="" maxLength="20" />
                     </panel>
                     <panel align="center" childLayout="horizontal">
                         <text style="menuTitleText" text="Address" />
-                        <control name="textfield" id="hostAddress" text="192.168.0.100" maxLength="20" />
+                        <control name="textfield" id="hostAddress" text="" maxLength="20" />
                     </panel>
                     <panel align="right" childLayout="horizontal">
                         <text style="menuText" text="Connect">
@@ -599,7 +599,7 @@
         </layer>
     </screen>
 
-    <screen id="multiplayerCreate" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="multiplayerCreate" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
            <panel childLayout="center" height="14%" align="center" valign="center">
                 <control name="label" style="menuTitleText" id="multiplayerTitle" text="" />
@@ -687,7 +687,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- MPD -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="myPetDungeon" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="myPetDungeon" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.1675}" />
@@ -726,7 +726,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Skirmish (& also MP with changes) level selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="skirmish" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="skirmish" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.141}" />
@@ -800,7 +800,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Map selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="skirmishMapSelect" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="skirmishMapSelect" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.2800}" />

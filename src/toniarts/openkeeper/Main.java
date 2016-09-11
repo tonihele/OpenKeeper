@@ -34,6 +34,7 @@ import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.renderer.RenderManager;
 import com.jme3.system.AppSettings;
 import com.jme3.system.JmeSystem;
+import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.render.batch.BatchRenderConfiguration;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -89,7 +90,7 @@ public class Main extends SimpleApplication {
     private static final Logger logger = Logger.getLogger(Main.class.getName());
     private static Map<String, String> params;
     private static boolean debug;
-    private NiftyJmeDisplay nifty;
+    private NiftyJmeDisplay niftyDisplay;
 
     private Main() {
         super(new StatsAppState(), new DebugKeysAppState());
@@ -177,7 +178,7 @@ public class Main extends SimpleApplication {
         }
 
         // If the folder is ok, check the conversion
-        if (folderOk && (AssetsConverter.conversionNeeded(app.getSettings()))) {
+        if (folderOk && (AssetsConverter.conversionNeeded(Main.getSettings()))) {
             logger.info("Need to convert the assets!");
             saveSetup = true;
 
@@ -254,16 +255,10 @@ public class Main extends SimpleApplication {
                     break;
                 }
             }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+                | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
-        //</editor-fold>
     }
 
     /**
@@ -360,13 +355,13 @@ public class Main extends SimpleApplication {
                     }
 
                     // Nifty
-                    NiftyJmeDisplay niftyDisplay = getNifty();
+                    Nifty nifty = getNifty();
 
                     // Validate the XML, great for debuging purposes
                     List<String> guiXMLs = Arrays.asList("Interface/MainMenu.xml", "Interface/GameHUD.xml");
                     for (String xml : guiXMLs) {
                         try {
-//                            niftyDisplay.getNifty().validateXml(xml); <-- Amazingly buggy?
+//                            nifty.validateXml(xml); <-- Amazingly buggy?
                         } catch (Exception e) {
                             throw new RuntimeException("GUI file " + xml + " failed to validate!", e);
                         }
@@ -374,16 +369,14 @@ public class Main extends SimpleApplication {
 
                     // Initialize persistent app states
                     MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager);
-                    mainMenuState.setEnabled(false);
                     PlayerState playerState = new PlayerState(Keeper.KEEPER1_ID, false);
 
                     stateManager.attach(mainMenuState);
                     stateManager.attach(playerState);
 
                     // Eventually we are going to use Nifty, the XML files take some time to parse
-                    niftyDisplay.getNifty().registerScreenController(mainMenuState, playerState);
                     for (String xml : guiXMLs) {
-                        niftyDisplay.getNifty().addXml(xml);
+                        nifty.addXml(xml);
                     }
 
                     // It is all a clever ruge, we don't actually load much here
@@ -605,8 +598,8 @@ public class Main extends SimpleApplication {
      *
      * @return the Nifty instance
      */
-    public NiftyJmeDisplay getNifty() {
-        if (nifty == null) {
+    private NiftyJmeDisplay getNiftyDisplay() {
+        if (niftyDisplay == null) {
 
             // Batching
             BatchRenderConfiguration config = new BatchRenderConfiguration();
@@ -617,18 +610,22 @@ public class Main extends SimpleApplication {
             config.useHighQualityTextures = true;
 
             // Init Nifty
-            nifty = NiftyJmeDisplay.newNiftyJmeDisplay(assetManager,
+            niftyDisplay = NiftyJmeDisplay.newNiftyJmeDisplay(assetManager,
                     inputManager,
                     getAudioRenderer(),
                     getGuiViewPort(), config);
 
             // Unfortunate Nifty hack, see https://github.com/nifty-gui/nifty-gui/issues/414
-            nifty.getNifty().setLocale(Locale.ROOT);
+            niftyDisplay.getNifty().setLocale(Locale.ROOT);
 
             // Attach the nifty display to the gui view port as a processor
-            getGuiViewPort().addProcessor(nifty);
+            getGuiViewPort().addProcessor(niftyDisplay);
         }
-        return nifty;
+        return niftyDisplay;
+    }
+
+    public Nifty getNifty() {
+        return getNiftyDisplay().getNifty();
     }
 
     @Override

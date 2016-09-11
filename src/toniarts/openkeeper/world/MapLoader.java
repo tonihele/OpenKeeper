@@ -135,7 +135,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 }
 
                 // Update progress
-                updateProgress(y * object.getMap().getWidth() + x + 1, tilesCount);
+                updateProgress((float)(y * object.getMap().getWidth() + x + 1) / tilesCount);
             }
         }
 
@@ -1114,9 +1114,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     /**
      * If you want to monitor the map loading progress, use this method
      *
-     * @param progress current progress
-     * @param max max progress
+     * @param progress current progress from 0.0 to 1.0
      */
-    protected abstract void updateProgress(final int progress, final int max);
+    protected abstract void updateProgress(final float progress);
 
 }

@@ -17,14 +17,13 @@
 package toniarts.openkeeper.gui.nifty.message;
 
 import de.lessvoid.nifty.Nifty;
-import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.controls.AbstractController;
 import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
-import de.lessvoid.nifty.elements.events.NiftyMouseSecondaryClickedEvent;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
+import static toniarts.openkeeper.game.state.PlayerScreenController.HUD_SCREEN_ID;
 
 /**
  *
@@ -35,7 +34,6 @@ public class SystemMessageControl extends AbstractController {
     private Element element;
     private boolean unread = true;
     private String text = "";
-    private Object object = null;
     private final Long createdAt = System.currentTimeMillis();
     private Screen hud;
 
@@ -44,7 +42,7 @@ public class SystemMessageControl extends AbstractController {
         this.text = parameter.get("text");
         this.element = element;
         this.nifty = nifty;
-        this.hud = this.nifty.getScreen("hud");
+        this.hud = this.nifty.getScreen(HUD_SCREEN_ID);
         // sync effects on adding messages
         syncActiveEffects();
     }
@@ -60,7 +58,7 @@ public class SystemMessageControl extends AbstractController {
 
     /**
      * Set the message as read
-     * @param read 
+     * @param read
      */
     public void setRead(boolean read) {
         this.unread = !read;
@@ -91,13 +89,10 @@ public class SystemMessageControl extends AbstractController {
      * Otherwise all messages pulsate differently, which looks odd.
      */
     public void syncActiveEffects() {
-        Element systemMessages = nifty.getScreen("hud").findElementById("systemMessages");
-        if (systemMessages != null) {
-            for(Element child : systemMessages.getChildren()) {
-                SystemMessageControl control = child.getControl(SystemMessageControl.class);
-                if (control != null && control.unread) {
-                    child.startEffect(EffectEventId.onActive);
-                }
+        for(Element child : element.getParent().getChildren()) {
+            SystemMessageControl control = child.getControl(SystemMessageControl.class);
+            if (control != null && control.unread) {
+                child.startEffect(EffectEventId.onActive);
             }
         }
     }
