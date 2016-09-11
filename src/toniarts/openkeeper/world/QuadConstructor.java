@@ -31,12 +31,12 @@ import static toniarts.openkeeper.world.MapLoader.loadAsset;
  *
  * @author ArchDemon
  */
-
 public class QuadConstructor extends TileConstructor {
 
     public QuadConstructor(KwdFile kwdFile) {
         super(kwdFile);
     }
+
     /**
      * Constructs a quad tile type (2x2 pieces forms one tile), i.e. claimed top
      * and floor
@@ -52,15 +52,6 @@ public class QuadConstructor extends TileConstructor {
     @Override
     public Spatial construct(MapData mapData, int x, int y, final Terrain terrain, final AssetManager assetManager, String modelName) {
 
-        switch (modelName) {
-            case "CLAIMED TOP":
-                modelName = "Claimed Top";
-                break;
-            case "CLAIMED FLOOR":
-                modelName = "Claimed Floor";
-                break;
-        }
-
         // If ownable, playerId is first. With fixed Hero Lair
         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && terrain.getTerrainId() != 35) {
             TileData tile = mapData.getTile(x, y);
@@ -69,6 +60,7 @@ public class QuadConstructor extends TileConstructor {
 
         // It needs to be parsed together from tiles
         boolean solid = isSolidTile(mapData, x, y);
+
         // Figure out which peace by seeing the neighbours
         // This is slightly different with the top
         boolean N = hasSameTile(mapData, x, y - 1, terrain) || (solid && isSolidTile(mapData, x, y - 1));

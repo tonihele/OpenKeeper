@@ -2837,6 +2837,15 @@ public final class KwdFile {
     }
 
     /**
+     * Get list of different creatures
+     *
+     * @return list of creatures
+     */
+    public Collection<Creature> getCreatureList() {
+        return creatures.values();
+    }
+
+    /**
      * Get the player with the specified ID
      *
      * @param id the id of player

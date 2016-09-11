@@ -37,13 +37,22 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.RescaleOp;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import toniarts.openkeeper.Main;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 
 /**
  * Collection of asset related common functions
@@ -52,6 +61,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
  */
 public class AssetUtils {
 
+    private static boolean preWarmedAssets = false;
     private final static AssetCache assetCache = new SimpleAssetCache();
     private final static AssetCache weakAssetCache = new WeakRefAssetCache();
     private final static Map<String, Boolean> textureMapCache = new HashMap<>();
@@ -266,6 +276,151 @@ public class AssetUtils {
             // A regular texture
             TextureKey key = new TextureKey(ConversionUtils.getCanonicalAssetKey("Textures/" + resource.getName() + ".png"), false);
             return assetManager.loadTexture(key);
+        }
+    }
+
+    /**
+     * Preloads all assets, to memory and to the GPU. May take some time, but
+     * everything works smoothly after. Enqueues the actual GPU loading to the
+     * main render loop.
+     *
+     * @param kwdFile the KWD file to scan for the loadable assets
+     * @param assetManager the asset manager
+     * @param app the app
+     */
+    public static void prewarmAssets(KwdFile kwdFile, AssetManager assetManager, Main app) {
+        if (!preWarmedAssets) {
+            try {
+
+                // Objects
+                prewarmArtResources(new ArrayList<>(kwdFile.getObjectList()), assetManager, app);
+
+                // Creatures
+                prewarmArtResources(new ArrayList<>(kwdFile.getCreatureList()), assetManager, app);
+
+                // Doors
+                prewarmArtResources(kwdFile.getDoors(), assetManager, app);
+
+                // Traps
+                prewarmArtResources(kwdFile.getTraps(), assetManager, app);
+
+                // Terrain
+                prewarmArtResources(new ArrayList<>(kwdFile.getTerrainList()), assetManager, app);
+
+                // Rooms
+                prewarmArtResources(kwdFile.getRooms(), assetManager, app);
+            } catch (Exception e) {
+                Logger.getLogger(AssetUtils.class.getName()).log(Level.SEVERE, "Failed to prewarm assets!", e);
+            } finally {
+                preWarmedAssets = true;
+            }
+        }
+    }
+
+    private static void prewarmArtResources(List<?> objects, AssetManager assetManager, Main app) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, Exception {
+
+        // Get the fields that house a possible ArtResource
+        Class clazz = objects.get(0).getClass();
+        Method[] methods = clazz.getMethods();
+        List<Method> methodsToScan = new ArrayList<>();
+        for (Method method : methods) {
+            if (method.getReturnType().equals(ArtResource.class)) {
+                methodsToScan.add(method);
+            }
+        }
+
+        // Scan every object
+        List<Spatial> models = new ArrayList<>(methodsToScan.size() * objects.size());
+        if (!methodsToScan.isEmpty()) {
+            for (Object obj : objects) {
+                for (Method method : methodsToScan) {
+                    ArtResource artResource = (ArtResource) method.invoke(obj, (Object[]) null);
+                    if (artResource != null && artResource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.PRELOAD)) {
+
+                        try {
+
+                            // TODO: if possible, we should have here a general loadAsset(ArtResource) stuff
+                            if (artResource.getSettings().getType() == ArtResource.Type.MESH || artResource.getSettings().getType() == ArtResource.Type.ANIMATING_MESH || artResource.getSettings().getType() == ArtResource.Type.MESH_COLLECTION || artResource.getSettings().getType() == ArtResource.Type.PROCEDURAL_MESH) {
+                                models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + ".j3o", false));
+                            } else if (artResource.getSettings().getType() == ArtResource.Type.TERRAIN_MESH && obj instanceof Terrain) {
+
+                                // With terrains, we need to see the contruction type
+                                Terrain terrain = (Terrain) obj;
+                                if (method.getName().startsWith("getTaggedTopResource") || method.getName().startsWith("getSideResource")) {
+                                    models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + ".j3o", false));
+                                } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
+                                    for (int i = 0; i < 5; i++) {
+                                        if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                                            for (int y = 0; y < 7; y++) {
+                                                models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + y + "_" + i + ".j3o", false));
+                                            }
+                                        } else {
+                                            models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + i + ".j3o", false));
+                                        }
+                                    }
+                                } // TODO: No water... it is done in Water.java, need to tweak somehow
+                                else if (!terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)) {
+                                    models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + ".j3o", false));
+                                }
+                            } else if (artResource.getSettings().getType() == ArtResource.Type.TERRAIN_MESH && obj instanceof Room) {
+
+                                // With terrains, we need to see the contruction type
+                                Room room = (Room) obj;
+                                int count = 0;
+                                int start = 0;
+                                switch (room.getTileConstruction()) {
+                                    case NORMAL: {
+                                        count = 10;
+                                        break;
+                                    }
+                                    case QUAD: {
+                                        count = 4;
+                                        break;
+                                    }
+                                    case DOUBLE_QUAD: {
+                                        count = 15; // Hmm not perfect, see Prison
+                                        break;
+                                    }
+                                    case _3_BY_3_ROTATED:
+                                    case _3_BY_3: {
+                                        count = 9;
+                                        break;
+                                    }
+                                    case HERO_GATE_2_BY_2:
+                                    case _5_BY_5_ROTATED: {
+                                        count = 4;
+                                        break;
+                                    }
+                                    case HERO_GATE_FRONT_END: {
+                                        count = 17;
+                                        start = 1;
+                                        break;
+                                    }
+                                }
+                                for (int i = start; i < count; i++) {
+                                    models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + i + ".j3o", false));
+                                }
+                            }
+
+                        } catch (Exception e) {
+                            throw new Exception("Failed to load " + artResource + " on object " + obj + "!", e);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Enque the warming up, we need GL context
+        if (!models.isEmpty()) {
+            logger.log(Level.INFO, "Prewarming {0} objects!", models.size());
+            app.enqueue(() -> {
+
+                for (Spatial spatial : models) {
+                    app.getRenderManager().preloadScene(spatial);
+                }
+
+                return null;
+            });
         }
     }
 

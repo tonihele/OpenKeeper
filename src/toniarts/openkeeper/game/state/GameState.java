@@ -50,6 +50,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 import toniarts.openkeeper.world.WorldState;
 
@@ -130,6 +131,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     } else {
                         kwdFile.load();
                     }
+                    AssetUtils.prewarmAssets(kwdFile, assetManager, app);
                     setProgress(0.1f);
 
                     // The players

@@ -255,8 +255,7 @@ public class Main extends SimpleApplication {
                     break;
                 }
             }
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-                | javax.swing.UnsupportedLookAndFeelException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
     }
@@ -368,7 +367,7 @@ public class Main extends SimpleApplication {
                     }
 
                     // Initialize persistent app states
-                    MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager);
+                    MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager, Main.this);
                     PlayerState playerState = new PlayerState(Keeper.KEEPER1_ID, false);
 
                     stateManager.attach(mainMenuState);

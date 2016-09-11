@@ -59,6 +59,7 @@ import static toniarts.openkeeper.tools.convert.AssetsConverter.MAP_THUMBNAILS_F
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.world.MapLoader;
@@ -100,16 +101,17 @@ public class MainMenuState extends AbstractAppState {
      * (c) Construct a MainMenuState, you should only have one of these. Disable
      * when not in use.
      *
-     * @param enabled whether to load the menu scene now, or later when needed (has
-     * its own loading screen here)
+     * @param enabled whether to load the menu scene now, or later when needed
+     * (has its own loading screen here)
      * @param assetManager asset manager for loading the screen
+     * @param app the main application
      */
-    public MainMenuState(final boolean enabled, final AssetManager assetManager) {
+    public MainMenuState(final boolean enabled, final AssetManager assetManager, final Main app) {
         listener = new MainMenuInteraction(this);
         super.setEnabled(enabled);
 
         if (enabled) {
-            loadMenuScene(null, assetManager);
+            loadMenuScene(null, assetManager, app);
         }
     }
 
@@ -119,13 +121,14 @@ public class MainMenuState extends AbstractAppState {
      * @param loadingScreen optional loading screen
      * @param assetManager asset manager
      */
-    private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager) {
+    private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager, final Main app) {
 
         // Load the 3D Front end
         kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER.concat("FrontEnd3DLevel.kwd"))));
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }
+        AssetUtils.prewarmAssets(kwdFile, assetManager, app);
 
         // Attach the 3D Front end
         menuNode = new Node("Main menu");
@@ -250,7 +253,7 @@ public class MainMenuState extends AbstractAppState {
                 SingleBarLoadingState loader = new SingleBarLoadingState() {
                     @Override
                     public Void onLoad() {
-                        loadMenuScene(this, MainMenuState.this.assetManager);
+                        loadMenuScene(this, MainMenuState.this.assetManager, MainMenuState.this.app);
                         return null;
                     }
 
@@ -416,7 +419,8 @@ public class MainMenuState extends AbstractAppState {
      *
      * @param transition name of the transition (without file extension)
      * @param screen the screen name
-     * @param transitionStatic set start static location of camera after transition
+     * @param transitionStatic set start static location of camera after
+     * transition
      */
     protected void doTransitionAndGoToScreen(final String transition, final String screen, final String transitionStatic) {
 
@@ -512,8 +516,8 @@ public class MainMenuState extends AbstractAppState {
     }
 
     /**
-     * See if the map thumbnail exist, otherwise create one
-     * TODO maybe move to KwdFile class ???
+     * See if the map thumbnail exist, otherwise create one TODO maybe move to
+     * KwdFile class ???
      *
      * @param map
      * @return path to map thumbnail file
