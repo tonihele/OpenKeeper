@@ -47,7 +47,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.CustomLevel;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
@@ -57,6 +59,7 @@ import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
@@ -64,6 +67,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  * @author ArchDemon
  */
 public class MainMenuScreenController implements IMainMenuScreenController {
+
     public final static String SCREEN_EMPTY_ID = "empty";
     public final static String SCREEN_START_ID = "start";
 
@@ -71,7 +75,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     private Nifty nifty;
     private Screen screen;
     private static final List<Cutscene> CUTSCENES = new ArrayList<>();
-    //private static final Logger logger = Logger.getLogger(MainMenuScreenController.class.getName());
+    private static final Logger logger = Logger.getLogger(MainMenuScreenController.class.getName());
 
     static {
         CUTSCENES.add(new Cutscene("Intro", "INTRO", "${menu.77}"));
@@ -111,7 +115,6 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         nifty.addResourceBundle("mpd4", Main.getResourceBundle("Interface/Texts/LEVELMPD4_BRIEFING"));
         nifty.addResourceBundle("mpd5", Main.getResourceBundle("Interface/Texts/LEVELMPD5_BRIEFING"));
         nifty.addResourceBundle("mpd6", Main.getResourceBundle("Interface/Texts/LEVELMPD6_BRIEFING"));
-        nifty.addResourceBundle("mpd7", Main.getResourceBundle("Interface/Texts/LEVELMPD7_BRIEFING"));
     }
 
     @Override
@@ -123,7 +126,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     @Override
     public void selectMPDLevel(String number) {
         state.selectedLevel = new Level(Level.LevelType.MPD, Integer.parseInt(number), null);
-        goToScreen("campaign");
+        goToScreen("briefing");
     }
 
     @Override
@@ -266,7 +269,10 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     @Override
     public void cancelLevelSelect() {
-        if (state.selectedLevel.getType().equals(Level.LevelType.MPD)) {
+        if (state.selectedLevel.getKwdFile().getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MY_PET_DUNGEON_LEVEL)) {
+            // go to the custom selection, needs to be checked before because of mpd7
+            goToScreen("myPetDungeonMapSelect");
+        } else if (state.selectedLevel instanceof Level && ((Level) state.selectedLevel).getType().equals(Level.LevelType.MPD)) {
             goToScreen("myPetDungeon");
         } else {
             doTransition("254", "selectCampaignLevel", null);
@@ -324,53 +330,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             case "selectCampaignLevel":
                 state.inputManager.addRawInputListener(state.listener);
                 break;
-            case "campaign":
-
-                // Set the dynamic values
-                Label levelTitle = screen.findNiftyControl("levelTitle", Label.class);
-                levelTitle.setText(state.selectedLevel.getTitle());
-
-                // In the level data there are the text IDs for these, but they don't make sense
-                Label mainObjective = screen.findNiftyControl("mainObjective", Label.class);
-                ResourceBundle briefingBundle = state.selectedLevel.getResourceBundle();
-                mainObjective.setText(briefingBundle.getString("2"));
-                Element mainObjectiveImage = screen.findElementById("mainObjectiveImage");
-                NiftyImage img = nifty.createImage("Textures/Obj_Shots/" + state.selectedLevel.getFullName() + "-0.png", false);
-                mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
-                mainObjectiveImage.setWidth(img.getWidth());
-                mainObjectiveImage.setHeight(img.getHeight());
-                String subText1 = briefingBundle.getString("3");
-                String subText2 = briefingBundle.getString("4");
-                String subText3 = briefingBundle.getString("5");
-                Element subObjectivePanel = screen.findElementById("subObjectivePanel");
-
-                subObjectivePanel.hide();
-                if (!(subText1.isEmpty() && subText2.isEmpty() && subText3.isEmpty())) {
-                    // We have subobjectives
-                    subObjectivePanel.show();
-                    setupSubObjectiveLabel("subObjective1", subText1);
-                    setupSubObjectiveLabel("subObjective2", subText2);
-                    Label subObjective = setupSubObjectiveLabel("subObjective3", subText3);
-                    // Fix the layout
-                    subObjective.getElement().getParent().layoutElements();
-                    Element subObjectiveImage = screen.findElementById("subObjectiveImage");
-                    subObjectiveImage.hide();
-
-                    if (state.selectedLevel.getType().equals(Level.LevelType.Level)) {
-                        subObjectiveImage.show();
-                        img = nifty.createImage("Textures/Obj_Shots/" + state.selectedLevel.getFullName() + "-1.png", false);
-                        subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
-                        subObjectiveImage.setWidth(img.getWidth());
-                        subObjectiveImage.setHeight(img.getHeight());
-
-                        // Play some tunes!!
-                        state.levelBriefing = new AudioNode(state.assetManager, ConversionUtils.getCanonicalAssetKey("Sounds/speech_mentor/lev" + String.format("%02d", state.selectedLevel.getLevel()) + "001.mp2"), AudioData.DataType.Buffer);
-                        state.levelBriefing.setLooping(false);
-                        state.levelBriefing.setDirectional(false);
-                        state.levelBriefing.setPositional(false);
-                        state.levelBriefing.play();
-                    }
-                }
+            case "briefing":
+                showBriefing();
                 break;
             case "hiscores":
                 generateHiscoreList();
@@ -452,7 +413,15 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
             case "skirmishMapSelect": {
                 // Populate the maps
-                populateMapSelection();
+                populateMapSelection(true);
+                break;
+            }
+
+            case "myPetDungeonMapSelect": {
+                // Populate the maps
+                state.mapSelector.setMPD(true);
+                populateMapSelection(false);
+                break;
             }
         }
     }
@@ -463,7 +432,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             case "selectCampaignLevel":
                 state.inputManager.removeRawInputListener(state.listener);
                 break;
-            case "campaign":
+            case "briefing":
                 state.clearLevelBriefingNarration();
                 break;
             case "multiplayerCreate":
@@ -511,8 +480,18 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         }
 
         KwdFile map = state.mapSelector.getMaps().get(event.getSelectionIndices().get(0));
-        // The map title
-        populateSelectedMap(map);
+        if (state.mapSelector.isMPD()) {
+            // on mpd we show the briefing
+            if (map.getGameLevel().getName().equalsIgnoreCase("mpd7")) {
+                selectMPDLevel(String.valueOf(7));
+            } else {
+                state.selectedLevel = new CustomLevel(map);
+                goToScreen("briefing");
+            }
+        } else {
+            // The map title
+            populateSelectedMap(map);
+        }
     }
 
     private void generateHiscoreList() {
@@ -737,7 +716,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     /**
      * Populate the map selection with given maps
      */
-    private void populateMapSelection() {
+    private void populateMapSelection(final boolean selectMap) {
         ListBox<TableRow> listBox = screen.findNiftyControl("mapsTable", ListBox.class);
         int i = 0;
         listBox.clear();
@@ -746,7 +725,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     String.valueOf(kwd.getGameLevel().getPlayerCount()),
                     String.format("%s x %s", kwd.getMap().getWidth(), kwd.getMap().getHeight())));
 
-            if (kwd.equals(state.mapSelector.getMap())) {
+            if (selectMap && kwd.equals(state.mapSelector.getMap())) {
                 listBox.selectItemByIndex(i);
             }
             i++;
@@ -754,6 +733,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     }
 
     public static class Cutscene {
+
         protected String image;
         protected String click;
         protected String moviename;
@@ -765,12 +745,84 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         }
 
         /**
-         * TODO get real viewable
-         * Stub for checking if a cutscene is unlocked
+         * TODO get real viewable Stub for checking if a cutscene is unlocked
+         *
          * @return
          */
         public boolean isViewable() {
             return true;
+        }
+    }
+
+    private void showBriefing() {
+        // Set the dynamic values
+        ResourceBundle briefingBundle = state.selectedLevel.getResourceBundle();
+        Label levelTitle = screen.findNiftyControl("levelTitle", Label.class);
+        // In the level data there are the text IDs for these, but they don't make sense
+        Label mainObjective = screen.findNiftyControl("mainObjective", Label.class);
+        Element mainObjectiveImage = screen.findElementById("mainObjectiveImage");
+        Element mainObjectivePanel = screen.findElementById("mainObjectivePanel");
+        Element subObjectivePanel = screen.findElementById("subObjectivePanel");
+        String objectiveImage = String.format("Textures/Obj_Shots/%s-$index.png", state.selectedLevel.getFullName());
+        NiftyImage img = null;
+
+        if (briefingBundle == null) {
+            levelTitle.setText("No Briefing available");
+            mainObjectivePanel.hide();
+            subObjectivePanel.hide();
+            return;
+        }
+
+        mainObjectivePanel.show();
+        levelTitle.setText(briefingBundle.getString("0"));
+        mainObjective.setText(briefingBundle.getString("2"));
+
+        try {
+            img = nifty.createImage(objectiveImage.replace("$index", "0"), false);
+            mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
+            mainObjectiveImage.setWidth(img.getWidth());
+            mainObjectiveImage.setHeight(img.getHeight());
+            mainObjectiveImage.show();
+        } catch (Exception e) {
+            logger.warning("Can't find image " + objectiveImage.replace("$index", "1"));
+            mainObjectiveImage.hide();
+        }
+
+        String subText1 = briefingBundle.getString("3");
+        String subText2 = briefingBundle.getString("4");
+        String subText3 = briefingBundle.getString("5");
+
+        subObjectivePanel.hide();
+        if (!(subText1.isEmpty() && subText2.isEmpty() && subText3.isEmpty())) {
+            // We have subobjectives
+            subObjectivePanel.show();
+            setupSubObjectiveLabel("subObjective1", subText1);
+            setupSubObjectiveLabel("subObjective2", subText2);
+            Label subObjective = setupSubObjectiveLabel("subObjective3", subText3);
+            // Fix the layout
+            subObjective.getElement().getParent().layoutElements();
+            Element subObjectiveImage = screen.findElementById("subObjectiveImage");
+            subObjectiveImage.hide();
+
+            if (state.selectedLevel instanceof Level && ((Level) state.selectedLevel).getType().equals(Level.LevelType.Level)) {
+                try {
+                    img = nifty.createImage(objectiveImage.replace("$index", "1"), false);
+                    subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
+                    subObjectiveImage.setWidth(img.getWidth());
+                    subObjectiveImage.setHeight(img.getHeight());
+                    subObjectiveImage.show();
+                } catch (Exception e) {
+                    logger.warning("Can't find image " + objectiveImage.replace("$index", "1"));
+                    subObjectiveImage.hide();
+                }
+
+                // Play some tunes!!
+                state.levelBriefing = new AudioNode(state.assetManager, ConversionUtils.getCanonicalAssetKey("Sounds/speech_mentor/lev" + String.format("%02d", ((Level) state.selectedLevel).getLevel()) + "001.mp2"), AudioData.DataType.Buffer);
+                state.levelBriefing.setLooping(false);
+                state.levelBriefing.setDirectional(false);
+                state.levelBriefing.setPositional(false);
+                state.levelBriefing.play();
+            }
         }
     }
 }
