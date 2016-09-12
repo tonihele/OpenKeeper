@@ -61,7 +61,8 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
  */
 public class AssetUtils {
 
-    private static boolean preWarmedAssets = false;
+    private static volatile boolean preWarmedAssets = false;
+    private final static Object assetLock = new Object();
     private final static AssetCache assetCache = new SimpleAssetCache();
     private final static AssetCache weakAssetCache = new WeakRefAssetCache();
     private final static Map<String, Boolean> textureMapCache = new HashMap<>();
@@ -290,29 +291,33 @@ public class AssetUtils {
      */
     public static void prewarmAssets(KwdFile kwdFile, AssetManager assetManager, Main app) {
         if (!preWarmedAssets) {
-            try {
+            synchronized (assetLock) {
+                if (!preWarmedAssets) {
+                    try {
 
-                // Objects
-                prewarmArtResources(new ArrayList<>(kwdFile.getObjectList()), assetManager, app);
+                        // Objects
+                        prewarmArtResources(new ArrayList<>(kwdFile.getObjectList()), assetManager, app);
 
-                // Creatures
-                prewarmArtResources(new ArrayList<>(kwdFile.getCreatureList()), assetManager, app);
+                        // Creatures
+                        prewarmArtResources(new ArrayList<>(kwdFile.getCreatureList()), assetManager, app);
 
-                // Doors
-                prewarmArtResources(kwdFile.getDoors(), assetManager, app);
+                        // Doors
+                        prewarmArtResources(kwdFile.getDoors(), assetManager, app);
 
-                // Traps
-                prewarmArtResources(kwdFile.getTraps(), assetManager, app);
+                        // Traps
+                        prewarmArtResources(kwdFile.getTraps(), assetManager, app);
 
-                // Terrain
-                prewarmArtResources(new ArrayList<>(kwdFile.getTerrainList()), assetManager, app);
+                        // Terrain
+                        prewarmArtResources(new ArrayList<>(kwdFile.getTerrainList()), assetManager, app);
 
-                // Rooms
-                prewarmArtResources(kwdFile.getRooms(), assetManager, app);
-            } catch (Exception e) {
-                Logger.getLogger(AssetUtils.class.getName()).log(Level.SEVERE, "Failed to prewarm assets!", e);
-            } finally {
-                preWarmedAssets = true;
+                        // Rooms
+                        prewarmArtResources(kwdFile.getRooms(), assetManager, app);
+                    } catch (Exception e) {
+                        Logger.getLogger(AssetUtils.class.getName()).log(Level.SEVERE, "Failed to prewarm assets!", e);
+                    } finally {
+                        preWarmedAssets = true;
+                    }
+                }
             }
         }
     }
