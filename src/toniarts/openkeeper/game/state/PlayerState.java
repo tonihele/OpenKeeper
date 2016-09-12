@@ -35,7 +35,6 @@ import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.view.PlayerCameraState;
@@ -61,7 +60,7 @@ public class PlayerState extends AbstractAppState {
 
     private boolean paused = false;
 
-    private List<AbstractPauseAwareState> appStates = new ArrayList<>();
+    private final List<AbstractPauseAwareState> appStates = new ArrayList<>();
     private List<AbstractPauseAwareState> storedAppStates;
     protected PlayerInteractionState interactionState;
     private PossessionInteractionState possessionState;
@@ -130,18 +129,16 @@ public class PlayerState extends AbstractAppState {
             // Create app states
             Player player = gameState.getLevelData().getPlayer(playerId);
 
-            possessionState = new PossessionInteractionState(true) {
-
+            possessionCameraState = new PossessionCameraState(false);
+            possessionState = new PossessionInteractionState(false) {
                 @Override
                 protected void onExit() {
-                    super.onExit();
-                    // Detach states
-                    for (AbstractAppState state : storedAppStates) {
-                        stateManager.detach(state);
-                    }
-
-                    // Load the state
+                    // Enable states
                     for (AbstractAppState state : appStates) {
+                        if (state instanceof PossessionInteractionState
+                                || state instanceof PossessionCameraState) {
+                            continue;
+                        }
                         state.setEnabled(true);
                     }
 
@@ -153,36 +150,35 @@ public class PlayerState extends AbstractAppState {
                     PlayerState.this.screen.updatePossessionSelectedItem(action);
                 }
             };
+            appStates.add(possessionCameraState);
+            appStates.add(possessionState);
 
             cameraState = new PlayerCameraState(player);
-
-            interactionState = new PlayerInteractionState(player, gameState, screen.getGuiConstraint(), screen.getTooltip()) {
+            interactionState = new PlayerInteractionState(player) {
                 @Override
                 protected void onInteractionStateChange(InteractionState interactionState) {
                     PlayerState.this.screen.updateSelectedItem(interactionState);
                 }
 
                 @Override
-                protected void onPossession(Thing.KeeperCreature creature) {
-                    // Detach states
+                protected void onPossession(CreatureControl creature) {
+                    // Disable states
                     for (AbstractAppState state : appStates) {
+                        if (state instanceof PossessionInteractionState
+                                || state instanceof PossessionCameraState) {
+                            continue;
+                        }
                         state.setEnabled(false);
                     }
-                    storedAppStates = new ArrayList<>();
-                    storedAppStates.add(possessionState);
-                    // TODO not Thing.KeeperCreature need wrapper around KeeperCreature
+                    // Enable state
                     possessionState.setTarget(creature);
-                    possessionCameraState = new PossessionCameraState(creature, gameState.getLevelData());
-                    storedAppStates.add(possessionCameraState);
-                    // Load the state
-                    for (AbstractAppState state : storedAppStates) {
-                        stateManager.attach(state);
-                    }
+                    possessionState.setEnabled(true);
+
                     screen.goToScreen(PlayerScreenController.POSSESSION_SCREEN_ID);
                 }
             };
-            appStates.add(interactionState);
             appStates.add(cameraState);
+            appStates.add(interactionState);
             // FIXME add to appStates or directly to stateManager
             appStates.add(new SystemMessageState(screen.getMessages()));
             // Load the state
@@ -348,9 +344,9 @@ public class PlayerState extends AbstractAppState {
     }
 
     protected Creature getPossessionCreature() {
-        return possessionState.getTargetCreature();
+        return possessionState.getTarget().getCreature();
     }
-    
+
     protected InteractionState getInteractionState() {
         return interactionState.getInteractionState();
     }

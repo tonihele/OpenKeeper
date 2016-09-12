@@ -30,22 +30,14 @@ import com.jme3.input.event.KeyInputEvent;
 import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
-import com.jme3.light.AmbientLight;
-import com.jme3.math.ColorRGBA;
-import com.jme3.math.FastMath;
-import com.jme3.math.Matrix3f;
-import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
-import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import java.awt.Point;
-import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -60,10 +52,7 @@ import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
-import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.selection.SelectionArea;
@@ -71,7 +60,8 @@ import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
-import toniarts.openkeeper.world.creature.CreatureLoader;
+import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.object.HighlightControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
@@ -84,6 +74,7 @@ import toniarts.openkeeper.world.room.RoomInstance;
  */
 // TODO: States, now only selection
 public abstract class PlayerInteractionState extends AbstractPauseAwareState implements RawInputListener {
+    private static final int SPELL_POSSESSION_ID = 2;
 
     private Main app;
     private GameState gameState;
@@ -102,11 +93,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private boolean isTagging = false;
     private boolean isOnView = false;
     private boolean isInteractable = false;
+    IInteractiveControl interactiveControl;
     private Label tooltip;
     private KeeperHand keeperHand;
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
-    public PlayerInteractionState(Player player, GameState gameState, Element view, Label tooltip) {
+    public PlayerInteractionState(Player player) {
         this.player = player;
     }
 
@@ -303,20 +295,21 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             if (interactionState.getType() == Type.SPELL && interactionState.getItemId() == 2) { // possession
                 if (evt.isReleased()) {
                     // TODO make normal selection, not first keeper creature
-                    for (Thing t : gameState.getLevelData().getThings()) {
-                        if (t instanceof Thing.KeeperCreature) {
-                            onPossession((Thing.KeeperCreature) t);
-                            break;
+                    if (interactiveControl != null && interactionState.getItemId() == SPELL_POSSESSION_ID
+                            && interactiveControl.isPickable(player.getPlayerId())) {
+                        CreatureControl cc = interactiveControl.getSpatial().getControl(CreatureControl.class);
+                        if (cc != null) {
+                            onPossession(cc);
+                            // Reset the state
+                            // TODO disable selection box
+                            setInteractionState(Type.NONE, 0);
                         }
                     }
-                    // Reset the state
-                    // TODO disable selection box
-                    setInteractionState(Type.NONE, 0);
                 }
             } else if (evt.isPressed()) {
 
                 // Creature/object pickup
-                IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
+                interactiveControl = getInteractiveObjectOnCursor();
                 if (interactiveControl != null && !keeperHand.isFull() && interactiveControl.isPickable(player.getPlayerId())) {
                     keeperHand.push(interactiveControl.pickUp(player.getPlayerId()));
                     setCursor();
@@ -374,7 +367,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                         getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
                     }
                 } else {
-                    IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
+                    interactiveControl = getInteractiveObjectOnCursor();
                     if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
                         getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, KeeperHand.getSlapSound());
                         interactiveControl.interact(player.getPlayerId());
@@ -513,13 +506,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         }
 
         // TODO: Now just creature control, but all interaction objects
-        IInteractiveControl controller = getInteractiveObjectOnCursor();
+        interactiveControl = getInteractiveObjectOnCursor();
         Vector2f v = null;
-        if (controller != null) {
+        if (interactiveControl != null) {
 
             // Maybe a kinda hack, but set the tooltip here
-            tooltip.setText(controller.getTooltip(player.getPlayerId()));
-            controller.onHover();
+            tooltip.setText(interactiveControl.getTooltip(player.getPlayerId()));
+            interactiveControl.onHover();
         } else {
 
             // Tile tooltip then
@@ -542,8 +535,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         if (Main.isDebug()) {
             StringBuilder sb = new StringBuilder();
             Point p;
-            if (controller != null) {
-                p = getWorldHandler().getTileCoordinates(((AbstractControl) controller).getSpatial().getWorldTranslation());
+            if (interactiveControl != null) {
+                p = getWorldHandler().getTileCoordinates(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation());
             } else {
                 p = new Point((int) v.x, (int) v.y);
             }
@@ -556,7 +549,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             tooltip.setText(sb.toString());
         }
 
-        return (controller != null);
+        return (interactiveControl != null);
     }
 
     private IInteractiveControl getInteractiveObjectOnCursor() {
@@ -577,12 +570,20 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         getWorldHandler().getThingsNode().collideWith(ray, results);
 
         // See the results so we see what is going on
+        Node object;
         for (int i = 0; i < results.size(); i++) {
 
             // TODO: Now just creature control, but all interaction objects
-            IInteractiveControl controller = results.getCollision(i).getGeometry().getParent().getParent().getControl(IInteractiveControl.class);
-            if (controller != null) {
-                return controller;
+            object = results.getCollision(i).getGeometry().getParent().getParent();
+            interactiveControl = object.getControl(IInteractiveControl.class);
+            if (interactiveControl != null) {
+                HighlightControl hc = object.getControl(HighlightControl.class);
+                if (hc != null) {
+                    hc.activate();
+                } else {
+                    object.addControl(new HighlightControl());
+                }
+                return interactiveControl;
             }
         }
         return null;
@@ -632,7 +633,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
      */
     protected abstract void onInteractionStateChange(InteractionState interactionState);
 
-    protected abstract void onPossession(Thing.KeeperCreature creature);
+    protected abstract void onPossession(CreatureControl creature);
 
     public static class InteractionState {
 
