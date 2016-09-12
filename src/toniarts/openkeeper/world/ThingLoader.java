@@ -244,11 +244,12 @@ public class ThingLoader {
      * @param p the point to add
      * @param playerId the player id, the owner
      * @param initialAmount the amount of gold
+     * @param maxAmount the max gold amount
      * @return the gold object
      */
-    public GoldObjectControl addRoomGold(Point p, short playerId, int initialAmount) {
+    public GoldObjectControl addRoomGold(Point p, short playerId, int initialAmount, int maxAmount) {
         // TODO: the room gold object id..
-        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, initialAmount, 0, (short) 3, playerId);
+        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, initialAmount, 0, (short) 3, playerId, maxAmount);
         GoldObjectControl control = object.getControl(GoldObjectControl.class);
         objects.add(control);
         nodeObjects.attachChild(object);
@@ -264,7 +265,7 @@ public class ThingLoader {
      * @return the object contol
      */
     public ObjectControl addObject(Point p, short objectId, short playerId) {
-        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, 0, 0, objectId, playerId);
+        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, 0, 0, objectId, playerId, 0);
         ObjectControl control = object.getControl(ObjectControl.class);
         objects.add(control);
         nodeObjects.attachChild(object);

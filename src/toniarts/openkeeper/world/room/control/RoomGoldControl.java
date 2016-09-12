@@ -71,7 +71,7 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
 
             // Add the visuals
             if (goldPile == null) {
-                GoldObjectControl object = thingLoader.addRoomGold(p, parent.getRoomInstance().getOwnerId(), goldToStore);
+                GoldObjectControl object = thingLoader.addRoomGold(p, parent.getRoomInstance().getOwnerId(), goldToStore, getObjectsPerTile());
                 goldPile = object;
                 objects.put(p, goldPile);
                 object.setRoomObjectControl(this);

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.world.object;
 
+import com.jme3.math.FastMath;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
@@ -38,8 +39,8 @@ import toniarts.openkeeper.world.room.control.RoomObjectControl;
  */
 public class ObjectControl extends AbstractControl implements IInteractiveControl {
 
-    private final WorldState worldState;
-    private final toniarts.openkeeper.tools.convert.map.Object object;
+    protected final WorldState worldState;
+    protected final toniarts.openkeeper.tools.convert.map.Object object;
     private final String tooltip;
     private short ownerId;
 
@@ -103,6 +104,25 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
 
     public void setRoomObjectControl(RoomObjectControl roomObjectControl) {
         this.roomObjectControl = roomObjectControl;
+    }
+
+    protected ArtResource getResource() {
+        if (isAdditionalResources()) {
+            int resourceIndex = FastMath.nextRandomInt(0, getResourceCount() - 1);
+            if (resourceIndex == object.getAdditionalResources().size()) {
+                return object.getMeshResource();
+            }
+            return object.getAdditionalResources().get(resourceIndex);
+        }
+        return object.getMeshResource();
+    }
+
+    protected boolean isAdditionalResources() {
+        return !object.getAdditionalResources().isEmpty();
+    }
+
+    protected int getResourceCount() {
+        return object.getAdditionalResources().size() + 1;
     }
 
     @Override

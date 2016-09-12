@@ -16,8 +16,13 @@
  */
 package toniarts.openkeeper.world.object;
 
+import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Object;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.WorldState;
 
 /**
@@ -27,11 +32,14 @@ import toniarts.openkeeper.world.WorldState;
 public class GoldObjectControl extends ObjectControl {
 
     private int gold = 0;
+    private int maxGold;
+    private int currentResourceIndex = 0;
 
-    public GoldObjectControl(short ownerId, Object object, WorldState worldState, int initialGoldAmount) {
+    public GoldObjectControl(short ownerId, Object object, WorldState worldState, int initialGoldAmount, int maxGold) {
         super(ownerId, object, worldState);
 
         this.gold = initialGoldAmount;
+        this.maxGold = maxGold;
     }
 
     public int getGold() {
@@ -40,6 +48,44 @@ public class GoldObjectControl extends ObjectControl {
 
     public void setGold(int gold) {
         this.gold = gold;
+        refreshResource();
+    }
+
+    public void setMaxGold(int maxGold) {
+        this.maxGold = maxGold;
+        refreshResource();
+    }
+
+    public int getMaxGold() {
+        return maxGold;
+    }
+
+    @Override
+    protected ArtResource getResource() {
+        if (isAdditionalResources()) {
+
+            // For gold it is the amount of gold
+            currentResourceIndex = getResourceIndex();
+            if (currentResourceIndex == object.getAdditionalResources().size()) {
+                return object.getMeshResource();
+            }
+            return object.getAdditionalResources().get(currentResourceIndex);
+        }
+        return object.getMeshResource();
+    }
+
+    private int getResourceIndex() {
+        return (int) Math.ceil((gold / (float) maxGold) * 100 / (100f / getResourceCount())) - 1;
+    }
+
+    private void refreshResource() {
+        if (isAdditionalResources() && currentResourceIndex != getResourceIndex()) {
+            Node nodeObject = (Node) AssetUtils.loadModel(worldState.getAssetManager(), AssetsConverter.MODELS_FOLDER + "/" + getResource().getName() + ".j3o", false);
+            ((Node) getSpatial()).detachAllChildren();
+            for (Spatial spat : nodeObject.getChildren()) {
+                ((Node) getSpatial()).attachChild(spat);
+            }
+        }
     }
 
     @Override

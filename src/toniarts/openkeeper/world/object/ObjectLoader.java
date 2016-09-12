@@ -48,10 +48,14 @@ public class ObjectLoader implements ILoader<Thing.Object> {
 
     @Override
     public Spatial load(AssetManager assetManager, Thing.Object object) {
-        return load(assetManager, object.getPosX(), object.getPosY(), object.getKeeperSpellId(), object.getMoneyAmount(), object.getTriggerId(), object.getObjectId(), object.getPlayerId());
+        return load(assetManager, object.getPosX(), object.getPosY(), object.getKeeperSpellId(), object.getMoneyAmount(), object.getTriggerId(), object.getObjectId(), object.getPlayerId(), 0);
     }
 
-    public Spatial load(AssetManager assetManager, int posX, int posY, int keeperSpellId, int moneyAmount, int triggerId, short objectId, short playerId) {
+    public Spatial load(AssetManager assetManager, int posX, int posY, short objectId, short playerId) {
+        return load(assetManager, posX, posY, 0, 0, 0, objectId, playerId, 0);
+    }
+
+    public Spatial load(AssetManager assetManager, int posX, int posY, int keeperSpellId, int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
         toniarts.openkeeper.tools.convert.map.Object obj = kwdFile.getObject(objectId);
         KeeperSpell keeperSpell = null;
         if (keeperSpellId > 0) {
@@ -59,8 +63,8 @@ public class ObjectLoader implements ILoader<Thing.Object> {
         }
 
         // Load
-        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + obj.getMeshResource().getName() + ".j3o", false);
-        ObjectControl objectControl = getControl(playerId, obj, moneyAmount);
+        ObjectControl objectControl = getControl(playerId, obj, moneyAmount, maxMoney);
+        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + objectControl.getResource().getName() + ".j3o", false);
         nodeObject.addControl(objectControl);
 
         // Move to the center of the tile
@@ -72,9 +76,9 @@ public class ObjectLoader implements ILoader<Thing.Object> {
         return nodeObject;
     }
 
-    private ObjectControl getControl(short playerId, Object obj, int moneyAmount) {
+    private ObjectControl getControl(short playerId, Object obj, int moneyAmount, int maxMoney) {
         if (obj.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_GOLD)) {
-            return new GoldObjectControl(playerId, obj, worldState, moneyAmount);
+            return new GoldObjectControl(playerId, obj, worldState, moneyAmount, maxMoney);
         }
         return new ObjectControl(playerId, obj, worldState);
     }
