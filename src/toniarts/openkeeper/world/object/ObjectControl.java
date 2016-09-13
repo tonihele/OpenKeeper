@@ -146,7 +146,17 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
 
     @Override
     public IInteractiveControl pickUp(short playerId) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        setEnabled(false);
+
+        // If we are a part of room, we need to detach
+        if (roomObjectControl != null) {
+            roomObjectControl.removeItem(this);
+        }
+
+        // Remove from view
+        getSpatial().removeFromParent();
+
+        return this;
     }
 
     @Override
