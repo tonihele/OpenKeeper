@@ -46,7 +46,6 @@ import java.awt.GraphicsEnvironment;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.CustomMPDLevel;
@@ -717,7 +716,13 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         int i = 0;
         listBox.clear();
         for (KwdFile kwd : state.mapSelector.getMaps()) {
-            listBox.addItem(new TableRow(i, kwd.getGameLevel().getName(),
+
+            String name = kwd.getGameLevel().getName();
+            if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MY_PET_DUNGEON_LEVEL)) {
+                // the resource tables in all the other levels are completely wrong, so we just use it for custom mpd maps
+                name = kwd.getGameLevel().getLevelName().isEmpty() ? kwd.getGameLevel().getName() : kwd.getGameLevel().getLevelName();
+            }
+            listBox.addItem(new TableRow(i, name,
                     String.valueOf(kwd.getGameLevel().getPlayerCount()),
                     String.format("%s x %s", kwd.getMap().getWidth(), kwd.getMap().getHeight())));
 
@@ -758,10 +763,11 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         Element mainObjectiveImage = screen.findElementById("mainObjectiveImage");
         Element mainObjectivePanel = screen.findElementById("mainObjectivePanel");
         Element subObjectivePanel = screen.findElementById("subObjectivePanel");
-        String objectiveImage = String.format("Textures/Obj_Shots/%s-$index.png", state.selectedLevel.getFullName());
+        String objectiveImage = String.format("Textures/Obj_Shots/%s-$index.png", state.selectedLevel.getFileName());
         NiftyImage img = null;
+        GameLevel gameLevel = state.selectedLevel.getKwdFile().getGameLevel();
 
-        if (state.selectedLevel.getResourceBundle() == null) {
+        if (!gameLevel.hasBriefing()) {
             levelTitle.setText("No Briefing available");
             mainObjectivePanel.hide();
             subObjectivePanel.hide();
@@ -769,8 +775,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         }
 
         mainObjectivePanel.show();
-        levelTitle.setText(state.selectedLevel.getTitle());
-        mainObjective.setText(state.selectedLevel.getMainObjective());
+        levelTitle.setText(gameLevel.getTitle());
+        mainObjective.setText(gameLevel.getMainObjective());
 
         try {
             img = nifty.createImage(objectiveImage.replace("$index", "0"), false);
@@ -783,9 +789,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.hide();
         }
 
-        String subText1 = state.selectedLevel.getSubObjective1();
-        String subText2 = state.selectedLevel.getSubObjective2();
-        String subText3 = state.selectedLevel.getSubObjective3();
+        String subText1 = gameLevel.getSubObjective1();
+        String subText2 = gameLevel.getSubObjective2();
+        String subText3 = gameLevel.getSubObjective3();
 
         subObjectivePanel.hide();
         if (!(subText1.isEmpty() && subText2.isEmpty() && subText3.isEmpty())) {

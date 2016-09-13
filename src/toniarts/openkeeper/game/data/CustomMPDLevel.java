@@ -31,7 +31,7 @@ public class CustomMPDLevel extends GeneralLevel {
     }
 
     @Override
-    public String getFullName() {
+    public String getFileName() {
         return kwdFile.getGameLevel().getName();
     }
 

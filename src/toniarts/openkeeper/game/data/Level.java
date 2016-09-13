@@ -56,7 +56,7 @@ public class Level extends GeneralLevel {
     }
 
     @Override
-    public String getFullName() {
+    public String getFileName() {
         return String.format("%s%s%s", getType(), getLevel() > 0 ? getLevel() : "", getVariation());
     }
 
@@ -66,7 +66,7 @@ public class Level extends GeneralLevel {
             try {
                 // Load the actual level info
                 kwdFile = new KwdFile(Main.getDkIIFolder(),
-                        new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), AssetsConverter.MAPS_FOLDER + getFullName() + ".kwd")), false);
+                        new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), AssetsConverter.MAPS_FOLDER + getFileName() + ".kwd")), false);
             } catch (IOException ex) {
                 logger.log(java.util.logging.Level.SEVERE, "Failed to load the level file!", ex);
             }
