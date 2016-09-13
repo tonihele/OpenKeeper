@@ -73,6 +73,9 @@ public class ObjectLoader implements ILoader<Thing.Object> {
                 0 * MapLoader.TILE_HEIGHT,
                 posY * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
 
+        // Orientation
+        nodeObject.setLocalRotation(nodeObject.getLocalRotation().fromAngles(0, -objectControl.getOrientation(), 0));
+
         return nodeObject;
     }
 

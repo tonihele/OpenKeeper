@@ -45,7 +45,7 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     private short ownerId;
 
     // Owners
-    private RoomObjectControl roomObjectControl;
+    protected RoomObjectControl roomObjectControl;
     private CreatureControl creature;
 
     public ObjectControl(short ownerId, toniarts.openkeeper.tools.convert.map.Object object, WorldState worldState) {
@@ -117,6 +117,15 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
         return object.getMeshResource();
     }
 
+    public int getOrientation() {
+        if (object.getMaxAngle() == 0) {
+            return 0;
+        }
+
+        // Take a random angle
+        return FastMath.nextRandomInt(0, object.getMaxAngle());
+    }
+
     protected boolean isAdditionalResources() {
         return !object.getAdditionalResources().isEmpty();
     }
@@ -167,7 +176,10 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
 
     @Override
     public DroppableStatus getDroppableStatus(TileData tile) {
-        return (tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
+        return !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && (object.getFlags().contains(toniarts.openkeeper.tools.convert.map.Object.ObjectFlag.CAN_BE_DROPPED_ON_ANY_LAND)
+                || ((tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE))))
+                        ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
     }
 
     @Override
