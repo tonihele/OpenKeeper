@@ -49,7 +49,7 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.data.CustomLevel;
+import toniarts.openkeeper.game.data.CustomMPDLevel;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
@@ -269,7 +269,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     @Override
     public void cancelLevelSelect() {
-        if (state.selectedLevel.getKwdFile().getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MY_PET_DUNGEON_LEVEL)) {
+        if (state.selectedLevel instanceof CustomMPDLevel) {
             // go to the custom selection, needs to be checked before because of mpd7
             goToScreen("myPetDungeonMapSelect");
         } else if (state.selectedLevel instanceof Level && ((Level) state.selectedLevel).getType().equals(Level.LevelType.MPD)) {
@@ -482,12 +482,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         KwdFile map = state.mapSelector.getMaps().get(event.getSelectionIndices().get(0));
         if (state.mapSelector.isMPD()) {
             // on mpd we show the briefing
-            if (map.getGameLevel().getName().equalsIgnoreCase("mpd7")) {
-                selectMPDLevel(String.valueOf(7));
-            } else {
-                state.selectedLevel = new CustomLevel(map);
-                goToScreen("briefing");
-            }
+            state.selectedLevel = new CustomMPDLevel(map);
+            goToScreen("briefing");
         } else {
             // The map title
             populateSelectedMap(map);
@@ -756,7 +752,6 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     private void showBriefing() {
         // Set the dynamic values
-        ResourceBundle briefingBundle = state.selectedLevel.getResourceBundle();
         Label levelTitle = screen.findNiftyControl("levelTitle", Label.class);
         // In the level data there are the text IDs for these, but they don't make sense
         Label mainObjective = screen.findNiftyControl("mainObjective", Label.class);
@@ -766,7 +761,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         String objectiveImage = String.format("Textures/Obj_Shots/%s-$index.png", state.selectedLevel.getFullName());
         NiftyImage img = null;
 
-        if (briefingBundle == null) {
+        if (state.selectedLevel.getResourceBundle() == null) {
             levelTitle.setText("No Briefing available");
             mainObjectivePanel.hide();
             subObjectivePanel.hide();
@@ -774,8 +769,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         }
 
         mainObjectivePanel.show();
-        levelTitle.setText(briefingBundle.getString("0"));
-        mainObjective.setText(briefingBundle.getString("2"));
+        levelTitle.setText(state.selectedLevel.getTitle());
+        mainObjective.setText(state.selectedLevel.getMainObjective());
 
         try {
             img = nifty.createImage(objectiveImage.replace("$index", "0"), false);
@@ -788,9 +783,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.hide();
         }
 
-        String subText1 = briefingBundle.getString("3");
-        String subText2 = briefingBundle.getString("4");
-        String subText3 = briefingBundle.getString("5");
+        String subText1 = state.selectedLevel.getSubObjective1();
+        String subText2 = state.selectedLevel.getSubObjective2();
+        String subText3 = state.selectedLevel.getSubObjective3();
 
         subObjectivePanel.hide();
         if (!(subText1.isEmpty() && subText2.isEmpty() && subText3.isEmpty())) {

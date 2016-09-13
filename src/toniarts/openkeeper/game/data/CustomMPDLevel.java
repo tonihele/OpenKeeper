@@ -22,11 +22,11 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author ufdada
  */
-public class CustomLevel extends GeneralLevel {
+public class CustomMPDLevel extends GeneralLevel {
 
     private final KwdFile kwdFile;
 
-    public CustomLevel(final KwdFile kwdFile) {
+    public CustomMPDLevel(final KwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 
