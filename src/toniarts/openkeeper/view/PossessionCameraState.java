@@ -40,7 +40,8 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  *
  * @author ArchDemon
  */
-public class PossessionCameraState  extends AbstractPauseAwareState implements ActionListener, AnalogListener {
+public class PossessionCameraState extends AbstractPauseAwareState implements ActionListener, AnalogListener {
+
     private Main app;
     private InputManager inputManager;
 
@@ -62,7 +63,7 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
     private static final String SPECIAL_KEY_ALT = "SPECIAL_KEY_ALT";
     private static final String SPECIAL_KEY_SHIFT = "SPECIAL_KEY_SHIFT";
 
-    private static String[] mappings = new String[]{
+    private static final String[] mappings = new String[]{
         // view
         CAMERA_VIEW_LEFT,
         CAMERA_VIEW_UP,
@@ -85,12 +86,10 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
         // group
         Settings.Setting.POSSESSED_SELECT_GROUP.name(),
         Settings.Setting.POSSESSED_REMOVE_FROM_GROUP.name(),
-
-        Settings.Setting.POSSESSED_PICK_LOCK_OR_DISARM.name(),
-        // special
-        //SPECIAL_KEY_CONTROL,
-        //SPECIAL_KEY_ALT,
-        //SPECIAL_KEY_SHIFT,
+        Settings.Setting.POSSESSED_PICK_LOCK_OR_DISARM.name(), // special
+    //SPECIAL_KEY_CONTROL,
+    //SPECIAL_KEY_ALT,
+    //SPECIAL_KEY_SHIFT,
     };
 
     private static final Logger logger = Logger.getLogger(PossessionCameraState.class.getName());
@@ -162,7 +161,6 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
         //inputManager.addMapping(SPECIAL_KEY_ALT, new KeyTrigger(KeyInput.KEY_LMENU), new KeyTrigger(KeyInput.KEY_RMENU));
         //inputManager.addMapping(SPECIAL_KEY_CONTROL, new KeyTrigger(KeyInput.KEY_LCONTROL), new KeyTrigger(KeyInput.KEY_RCONTROL));
         //inputManager.addMapping(SPECIAL_KEY_SHIFT, new KeyTrigger(KeyInput.KEY_LSHIFT), new KeyTrigger(KeyInput.KEY_RSHIFT));
-
         inputManager.addListener(this, mappings);
     }
 
@@ -199,7 +197,7 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
         }
 
         if (name.equals(CAMERA_VIEW_LEFT)) {
-             camera.rotate(value, true);
+            camera.rotate(value, true);
         } else if (name.equals(CAMERA_VIEW_RIGHT)) {
             camera.rotate(-value, true);
         } else if (name.equals(CAMERA_VIEW_UP)) {

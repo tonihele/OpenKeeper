@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.view;
 
-import static com.badlogic.gdx.graphics.profiling.GLProfiler.isEnabled;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
@@ -30,9 +29,12 @@ import com.jme3.scene.control.AbstractControl;
  *
  * @author ArchDemon
  */
-public abstract class PossessionCameraControl  extends AbstractControl {
+public abstract class PossessionCameraControl extends AbstractControl {
 
-    public static enum Direction { ENTRANCE, EXIT };
+    public static enum Direction {
+
+        ENTRANCE, EXIT
+    };
     private static final float SPEED = 0.5f;
 
     private final Camera camera;
