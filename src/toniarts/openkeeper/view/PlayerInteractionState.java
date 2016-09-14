@@ -520,6 +520,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     private boolean isInteractable() {
         if (isOnGui) {
+            setInteractiveControl(null);
             return false;
         }
 
