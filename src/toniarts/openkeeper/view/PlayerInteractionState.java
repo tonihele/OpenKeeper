@@ -74,7 +74,9 @@ import toniarts.openkeeper.world.room.RoomInstance;
  */
 // TODO: States, now only selection
 public abstract class PlayerInteractionState extends AbstractPauseAwareState implements RawInputListener {
+
     private static final int SPELL_POSSESSION_ID = 2;
+    private static final float CURSOR_UPDATE_INTERVAL = 0.25f;
 
     private Main app;
     private GameState gameState;
@@ -86,6 +88,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private boolean startSet = false;
     public Vector2f mousePosition = Vector2f.ZERO;
     private InteractionState interactionState = new InteractionState();
+    private float timeFromLastUpdate = CURSOR_UPDATE_INTERVAL;
 
     private Element view;
     private boolean isOnGui = false;
@@ -241,6 +244,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     }
 
     @Override
+    public void update(float tpf) {
+        timeFromLastUpdate += tpf;
+
+        // Update the cursor, the camera might have moved, a creature might have slipped by us... etc.
+        if (timeFromLastUpdate > CURSOR_UPDATE_INTERVAL) {
+            MouseMotionEvent mme = new MouseMotionEvent((int) mousePosition.x, (int) mousePosition.y, 0, 0, 0, 0);
+            onMouseMotionEvent(mme);
+        }
+    }
+
+    @Override
     public boolean isPauseable() {
         return true;
     }
@@ -263,6 +277,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     @Override
     public void onMouseMotionEvent(MouseMotionEvent evt) {
+        timeFromLastUpdate = 0;
         mousePosition.set(evt.getX(), evt.getY());
         Vector2f pos = handler.getRoundedMousePos();
         if (setStateFlags()) {
@@ -283,6 +298,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     @Override
     public void onMouseButtonEvent(MouseButtonEvent evt) {
+        timeFromLastUpdate = 0;
         if (isOnGui) {
             if (setStateFlags()) {
                 setCursor();
@@ -505,7 +521,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             return false;
         }
 
-        // TODO: Now just creature control, but all interaction objects
         interactiveControl = getInteractiveObjectOnCursor();
         Vector2f v = null;
         if (interactiveControl != null) {
@@ -638,6 +653,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     public static class InteractionState {
 
         public enum Type {
+
             NONE, ROOM, SELL, SPELL, TRAP, DOOR, STUFF_IN_HAND
         }
 
