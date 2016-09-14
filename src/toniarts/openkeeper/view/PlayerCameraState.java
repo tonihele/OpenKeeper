@@ -32,6 +32,7 @@ import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Spatial;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.Cinematic;
@@ -63,7 +64,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     private Camera storedCamera;
     private final Player player;
 
-    private ArrayList<Integer> keys = new ArrayList<>();
+    private final List<Integer> keys = new ArrayList<>();
 
     // Extra keys
     private static final float ZOOM_MOUSE = 0.08f;
@@ -76,7 +77,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     private static final String SPECIAL_KEY_ALT = "SPECIAL_KEY_ALT";
     private static final String SPECIAL_KEY_SHIFT = "SPECIAL_KEY_SHIFT";
     // User set keys
-    private static String[] mappings = new String[]{
+    private static final String[] mappings = new String[]{
         Settings.Setting.CAMERA_DOWN.name(),
         Settings.Setting.CAMERA_LEFT.name(),
         Settings.Setting.CAMERA_RIGHT.name(),
@@ -128,15 +129,15 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
 
         if (enabled) {
             /*
-            if (storedCamera != null) {
-                Camera cam = app.getCamera();
-                cam.setLocation(storedCamera.getLocation().clone());
-                cam.setRotation(storedCamera.getRotation().clone());
-                //cam.setAxes(storedCamera.getLeft(), storedCamera.getUp(), storedCamera.getDirection());
-                //camera.setHeight(storedCamera.getLocation().y);
-                camera.setLookAt(cam.getLocation());
-                //cameraRestore();
-            }*/
+             if (storedCamera != null) {
+             Camera cam = app.getCamera();
+             cam.setLocation(storedCamera.getLocation().clone());
+             cam.setRotation(storedCamera.getRotation().clone());
+             //cam.setAxes(storedCamera.getLeft(), storedCamera.getUp(), storedCamera.getDirection());
+             //camera.setHeight(storedCamera.getLocation().y);
+             camera.setLookAt(cam.getLocation());
+             //cameraRestore();
+             }*/
             // The controls
             registerInput();
         } else {
