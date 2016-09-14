@@ -88,7 +88,7 @@ public interface IInteractiveControl extends Control {
      * @return the in hand mesh/animation
      */
     public ArtResource getInHandMesh();
-    
+
     /**
      * Get in hand icon, when the keeper dangles the control in hand
      *
@@ -129,8 +129,18 @@ public interface IInteractiveControl extends Control {
     public boolean interact(short playerId);
 
     /**
-     * When the control is hovered upon
+     * When the control is hovered upon. TODO: playerId
      */
     public void onHover();
+
+    /**
+     * When the control is hovered upon. The hovering starts. TODO: playerId
+     */
+    public void onHoverStart();
+
+    /**
+     * When the control is no longer hovered on. TODO: playerId
+     */
+    public void onHoverEnd();
 
 }

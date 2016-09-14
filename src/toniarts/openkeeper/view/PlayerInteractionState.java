@@ -61,7 +61,6 @@ import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.object.HighlightControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
@@ -328,7 +327,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             } else if (evt.isPressed()) {
 
                 // Creature/object pickup
-                interactiveControl = getInteractiveObjectOnCursor();
+                getInteractiveObjectOnCursor();
                 if (interactiveControl != null && !keeperHand.isFull() && interactiveControl.isPickable(player.getPlayerId())) {
                     keeperHand.push(interactiveControl.pickUp(player.getPlayerId()));
                     setCursor();
@@ -386,7 +385,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
                         getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
                     }
                 } else {
-                    interactiveControl = getInteractiveObjectOnCursor();
+                    getInteractiveObjectOnCursor();
                     if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
                         getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, KeeperHand.getSlapSound());
                         interactiveControl.interact(player.getPlayerId());
@@ -524,7 +523,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             return false;
         }
 
-        interactiveControl = getInteractiveObjectOnCursor();
+        getInteractiveObjectOnCursor();
         Vector2f v = null;
         if (interactiveControl != null) {
 
@@ -570,7 +569,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         return (interactiveControl != null);
     }
 
-    private IInteractiveControl getInteractiveObjectOnCursor() {
+    private void getInteractiveObjectOnCursor() {
 
         // See if we hit a creature/object
         CollisionResults results = new CollisionResults();
@@ -593,18 +592,23 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
             // TODO: Now just creature control, but all interaction objects
             object = results.getCollision(i).getGeometry().getParent().getParent();
-            interactiveControl = object.getControl(IInteractiveControl.class);
-            if (interactiveControl != null) {
-                HighlightControl hc = object.getControl(HighlightControl.class);
-                if (hc != null) {
-                    hc.activate();
-                } else {
-                    object.addControl(new HighlightControl());
-                }
-                return interactiveControl;
+            IInteractiveControl control = object.getControl(IInteractiveControl.class);
+            if (control != null) {
+                setInteractiveControl(control);
+                return;
             }
         }
-        return null;
+        setInteractiveControl(null);
+    }
+
+    private void setInteractiveControl(IInteractiveControl interactiveControl) {
+        if (this.interactiveControl != null) {
+            this.interactiveControl.onHoverEnd();
+        }
+        this.interactiveControl = interactiveControl;
+        if (this.interactiveControl != null) {
+            this.interactiveControl.onHoverStart();
+        }
     }
 
     private boolean isTaggable() {

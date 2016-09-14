@@ -19,7 +19,6 @@ package toniarts.openkeeper.world.object;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
-import com.jme3.scene.control.AbstractControl;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -36,7 +35,7 @@ import toniarts.openkeeper.world.room.control.RoomObjectControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectControl extends AbstractControl implements IInteractiveControl {
+public class ObjectControl extends HighlightControl implements IInteractiveControl {
 
     private final WorldState worldState;
     private final toniarts.openkeeper.tools.convert.map.Object object;
@@ -128,6 +127,16 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     @Override
     public void onHover() {
 
+    }
+
+    @Override
+    public void onHoverStart() {
+        super.onHoverStart();
+    }
+
+    @Override
+    public void onHoverEnd() {
+        super.onHoverEnd();
     }
 
     @Override

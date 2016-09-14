@@ -17,73 +17,53 @@
 package toniarts.openkeeper.world.object;
 
 import com.jme3.material.Material;
-import com.jme3.renderer.RenderManager;
-import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import java.util.logging.Logger;
 import static toniarts.openkeeper.world.MapLoader.COLOR_FLASH;
+import toniarts.openkeeper.world.control.IInteractiveControl;
 
 /**
  *
  * @author ArchDemon
  */
-public class HighlightControl extends AbstractControl {
-    //private static final float TIME_MAX = 0.1f;
-    //private float time = TIME_MAX;
-    private boolean active = true;
+public abstract class HighlightControl extends AbstractControl implements IInteractiveControl {
+
+    private boolean active = false;
+
     private static final Logger logger = Logger.getLogger(HighlightControl.class.getName());
 
     @Override
-    public void setSpatial(Spatial spatial) {
-        super.setSpatial(spatial);
-
-        if (spatial != null) {
-            setHighlight(true);
-        }
+    public void onHoverStart() {
+        setHighlight(true);
     }
 
     @Override
-    protected void controlUpdate(float tpf) {
-        if (!isEnabled()) {
-            return;
-        }
-
-        if (!active) {
-            setHighlight(false);
-            spatial.removeControl(HighlightControl.class);
-        }
-
-        active = false;
-    }
-
-    @Override
-    protected void controlRender(RenderManager rm, ViewPort vp) {
-        // nothing to render, maybe
-    }
-
-    public void activate() {
-        active = true;
+    public void onHoverEnd() {
+        setHighlight(false);
     }
 
     private void setHighlight(final boolean enabled) {
-        spatial.depthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spatial) {
-                if (!(spatial instanceof Geometry)) {
-                    return;
-                }
+        if (active != enabled) {
+            active = enabled;
+            spatial.depthFirstTraversal(new SceneGraphVisitor() {
+                @Override
+                public void visit(Spatial spatial) {
+                    if (!(spatial instanceof Geometry)) {
+                        return;
+                    }
 
-                try {
-                    Material material = ((Geometry) spatial).getMaterial();
-                    material.setColor("Ambient", COLOR_FLASH);
-                    material.setBoolean("UseMaterialColors", enabled);
-                } catch (Exception e) {
-                    logger.warning(e.toString());
+                    try {
+                        Material material = ((Geometry) spatial).getMaterial();
+                        material.setColor("Ambient", COLOR_FLASH);
+                        material.setBoolean("UseMaterialColors", enabled);
+                    } catch (Exception e) {
+                        logger.warning(e.toString());
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 }
