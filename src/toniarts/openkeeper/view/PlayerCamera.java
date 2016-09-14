@@ -46,9 +46,9 @@ public class PlayerCamera {
     }
 
     /**
-     * Load the initial main menu camera position
+     * Load the initial camera position and direction
      */
-    private void initialize() {
+    public final void initialize() {
         // FIXME maybe another default angles
         Quaternion q = new Quaternion().fromAngles(FastMath.PI * (0.5f - presets.getAnglePitch() / 1024f),
                 FastMath.PI * (0.75f + presets.getAngleYaw() / 1024f),
@@ -199,6 +199,10 @@ public class PlayerCamera {
 
     public float getHeight() {
         return cam.getLocation().y;
+    }
+
+    public void setHeight(float height) {
+        cam.getLocation().addLocal(0, height, 0);
     }
 
     public Vector2f getLimit() {
