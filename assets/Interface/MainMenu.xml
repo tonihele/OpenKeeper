@@ -33,7 +33,7 @@
         <attributes font="Interface/Fonts/Frontend36.fnt" color="#ff5f00" />
     </style>
 
-     <style id="menuSubTitleText">
+    <style id="menuSubTitleText">
         <attributes font="Interface/Fonts/Frontend20.fnt" color="#ffdd33" />
     </style>
 
@@ -159,7 +159,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Campaign level briefing -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="campaign" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
+    <screen id="briefing" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" align="center" valign="center" height="14%">
                 <text style="menuTitleText" text="${menu.1476}" align="center" />
@@ -171,7 +171,7 @@
 
             <panel height="26px" />
             <!--Main objectives-->
-            <panel childLayout="horizontal" width="100%" align="center" valign="center">
+            <panel childLayout="horizontal" id="mainObjectivePanel" width="100%" align="center" valign="center">
                 <panel childLayout="center" width="160px" align="center" valign="center">
                     <image align="center" valign="top" id="mainObjectiveImage" width="144px" />
                 </panel>
@@ -196,7 +196,7 @@
                     <panel childLayout="vertical" width="100%" backgroundColor="#f508" >
                         <text align="left" margin="0,8px" id="subObjectivesTitle" style="menuSubTitleText" text="${menu.1409}" />
                     </panel>
-                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="8px">
+                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="4px">
                         <control name="label" style="menuTextSmall" id="subObjective1"  margin="0,8px"
                                  textHAlign="left" wrap="true" />
                         <control name="label" style="menuTextSmall" id="subObjective2"  margin="0,8px"
@@ -489,7 +489,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="multiplayer" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
-           <panel childLayout="center" height="14%" align="center" valign="center">
+            <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.149}" />
             </panel>
 
@@ -513,7 +513,7 @@
 
     <screen id="multiplayerLocal" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
-           <panel childLayout="center" height="14%" align="center" valign="center">
+            <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.168}" />
             </panel>
 
@@ -570,7 +570,7 @@
 
     <screen id="multiplayerWatch" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
-           <panel childLayout="center" height="14%" align="center" valign="center">
+            <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.2729}" />
             </panel>
 
@@ -601,7 +601,7 @@
 
     <screen id="multiplayerCreate" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
-           <panel childLayout="center" height="14%" align="center" valign="center">
+            <panel childLayout="center" height="14%" align="center" valign="center">
                 <control name="label" style="menuTitleText" id="multiplayerTitle" text="" />
             </panel>
 
@@ -685,7 +685,7 @@
     </screen>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <!-- MPD -->
+    <!-- MPD Main -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="myPetDungeon" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
@@ -712,12 +712,42 @@
                 <text style="menuText" text="${mpd6.0}" align="center">
                     <interact onClick="selectMPDLevel(6)" />
                 </text>
-                <!-- TODO -->
-                <text id="mpdOther" style="menuText" text="${menu.1618}" align="center"/>
+                <text id="mpdOther" style="menuText" text="${menu.1618}" align="center">
+                    <interact onClick="goToScreen(myPetDungeonMapSelect)" />
+                </text>
             </panel>
 
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control name="cancelButton" click="doTransition(263,start,274)" />
+                <text style="menuText" text="" width="48px" margin="5px" />
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- MPD Map Selection -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="myPetDungeonMapSelect" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
+        <layer childLayout="vertical">
+            <panel childLayout="center" height="14%" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.1675}" />
+            </panel>
+
+            <panel id="mpdPanel" width="95%" childLayout="horizontal" align="center" valign="center">
+                <panel id="mapsPanel" childLayout="vertical" align="center" valign="top">
+                    <control id="mapsTable" name="table" vertical="on" displayItems="15"
+                             selection="Single" forceSelection="false" colCount="3"
+                             col0="${menu.1544};50;java.lang.String;#32050c30"
+                             col1="${menu.2960};25;java.lang.String;#32050c30"
+                             col2="${menu.1545};25;java.lang.String;#00752430"
+                    />
+                </panel>
+            </panel>
+
+            <panel height="*" />
+
+            <panel childLayout="horizontal" align="right" valign="bottom">
+                <control name="cancelButton" click="goToScreen(myPetDungeon)" />
                 <text style="menuText" text="" width="48px" margin="5px" />
             </panel>
         </layer>

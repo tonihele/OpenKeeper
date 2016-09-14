@@ -30,13 +30,17 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * Class isolate map selection
+ *
  * @author ArchDemon
  */
 public class MapSelector {
+
     private List<KwdFile> skirmishMaps;
     private List<KwdFile> multiplayerMaps;
+    private List<KwdFile> mpdMaps;
     private KwdFile map;
     private boolean skirmish;
+    private boolean mpd;
 
     public MapSelector() {
         reset();
@@ -52,6 +56,7 @@ public class MapSelector {
         // Read them
         multiplayerMaps = new ArrayList<>(files.length);
         skirmishMaps = new ArrayList<>(files.length);
+        mpdMaps = new ArrayList<>(files.length);
         for (File file : files) {
             KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
             if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)) {
@@ -59,6 +64,9 @@ public class MapSelector {
             }
             if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
                 multiplayerMaps.add(kwd);
+            }
+            if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MY_PET_DUNGEON_LEVEL)) {
+                mpdMaps.add(kwd);
             }
         }
 
@@ -71,11 +79,12 @@ public class MapSelector {
         };
         Collections.sort(skirmishMaps, c);
         Collections.sort(multiplayerMaps, c);
+        Collections.sort(mpdMaps, c);
     }
 
     public void random() {
         KwdFile current;
-        List<KwdFile> maps = skirmish ?  skirmishMaps : multiplayerMaps;
+        List<KwdFile> maps = skirmish ? skirmishMaps : multiplayerMaps;
 
         if (maps.isEmpty()) {
             current = null;
@@ -93,6 +102,7 @@ public class MapSelector {
     public final void reset() {
         map = null;
         skirmish = false;
+        mpd = false;
     }
 
     public KwdFile getMap() {
@@ -105,6 +115,8 @@ public class MapSelector {
     public void selectMap(int index) {
         if (skirmish) {
             map = skirmishMaps.get(index);
+        } else if (mpd) {
+            map = mpdMaps.get(index);
         } else {
             map = multiplayerMaps.get(index);
         }
@@ -113,6 +125,8 @@ public class MapSelector {
     public List<KwdFile> getMaps() {
         if (skirmish) {
             return skirmishMaps;
+        } else if (mpd) {
+            return mpdMaps;
         } else {
             return multiplayerMaps;
         }
@@ -122,11 +136,23 @@ public class MapSelector {
         return skirmish;
     }
 
+    public boolean isMPD() {
+        return mpd;
+    }
+
     public void setSkirmish(boolean skirmish) {
         if (this.skirmish != skirmish) {
             map = null;
         }
 
         this.skirmish = skirmish;
+    }
+
+    public void setMPD(boolean mpd) {
+        if (this.mpd != mpd) {
+            map = null;
+        }
+
+        this.mpd = mpd;
     }
 }
