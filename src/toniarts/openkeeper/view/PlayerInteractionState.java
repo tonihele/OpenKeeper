@@ -96,7 +96,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     private boolean isTagging = false;
     private boolean isOnView = false;
     private boolean isInteractable = false;
-    IInteractiveControl interactiveControl;
+    private IInteractiveControl interactiveControl;
     private Label tooltip;
     private KeeperHand keeperHand;
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
@@ -249,8 +249,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
         // Update the cursor, the camera might have moved, a creature might have slipped by us... etc.
         if (timeFromLastUpdate > CURSOR_UPDATE_INTERVAL) {
-            MouseMotionEvent mme = new MouseMotionEvent((int) mousePosition.x, (int) mousePosition.y, 0, 0, 0, 0);
-            onMouseMotionEvent(mme);
+            handleMouseMoved();
         }
     }
 
@@ -277,8 +276,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
 
     @Override
     public void onMouseMotionEvent(MouseMotionEvent evt) {
-        timeFromLastUpdate = 0;
         mousePosition.set(evt.getX(), evt.getY());
+        handleMouseMoved();
+    }
+
+    private void handleMouseMoved() {
+        timeFromLastUpdate = 0;
         Vector2f pos = handler.getRoundedMousePos();
         if (setStateFlags()) {
             setCursor();
@@ -293,7 +296,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         }
 
         // Move the picked up item
-        keeperHand.setPosition(evt.getX(), evt.getY());
+        keeperHand.setPosition(mousePosition.x, mousePosition.y);
     }
 
     @Override

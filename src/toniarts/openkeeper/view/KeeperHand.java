@@ -41,10 +41,11 @@ import toniarts.openkeeper.world.creature.CreatureLoader;
 
 /**
  * TODO I think we need to move cursor here
- * 
+ *
  * @author ArchDemon
  */
 public class KeeperHand {
+
     private static final List<String> SLAP_SOUNDS = Arrays.asList(new String[]{"/Global/Slap_1.mp2",
         "/Global/slap_2.mp2", "/Global/Slap_3.mp2", "/Global/Slap_4.mp2"});
     private static final String MORE_CREATURES = "GUI/Creatures/more_creatures";
@@ -67,14 +68,14 @@ public class KeeperHand {
 
         node = new Node("Keeper hand");
 
-        queueNode = new Node("queue");
+        queueNode = new Node("Queue");
         queueNode.setLocalScale(500);
         Quaternion rotation = new Quaternion();
         rotation.fromAngleAxis(-FastMath.QUARTER_PI, new Vector3f(-1, 1, 0));
         queueNode.setLocalRotation(rotation);
         queueNode.addLight(new AmbientLight(ColorRGBA.White));
 
-        cursor = new Node("cursor");
+        cursor = new Node("Cursor");
         cursor.setLocalTranslation(75, 0, 0);
 
         node.attachChild(queueNode);
@@ -142,11 +143,9 @@ public class KeeperHand {
 
     public void setVisible(boolean visible) {
         node.setCullHint(visible ? CullHint.Never : CullHint.Always);
-        //queueNode.setCullHint(visible ? CullHint.Never : CullHint.Always);
-        //cursor.setCullHint(visible ? CullHint.Never : CullHint.Always);
     }
 
-    public void setPosition(int x, int y) {
+    public void setPosition(float x, float y) {
         node.setLocalTranslation(x, y, 0);
     }
 
@@ -160,6 +159,7 @@ public class KeeperHand {
         // Set the item
         item = interactiveControl;
         if (item.getInHandMesh() != null) {
+
             // Attach to GUI queueNode and play the animation
             item.getSpatial().setLocalTranslation(0, 0, 0);
             item.getSpatial().setLocalRotation(Matrix3f.ZERO);
@@ -170,6 +170,7 @@ public class KeeperHand {
 
     private void removeItem() {
         if (item != null && item.getInHandMesh() != null) {
+
             // Remove from GUI queueNode
             item.getSpatial().removeFromParent();
             item = null;
@@ -210,7 +211,7 @@ public class KeeperHand {
 
     private void moveIcons() {
         for (int i = 0; i < cursor.getQuantity(); i++) {
-            Spatial child  = cursor.getChild(i);
+            Spatial child = cursor.getChild(i);
             int y = i / CURSOR_ITEMS_INLINE;
             if (y == CURSOR_ITEMS_LINES) {
                 y = CURSOR_ITEMS_LINES - 1;
