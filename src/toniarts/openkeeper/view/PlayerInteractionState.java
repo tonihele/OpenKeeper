@@ -603,6 +603,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     }
 
     private void setInteractiveControl(IInteractiveControl interactiveControl) {
+
+        // If it is the same, don't do anything
+        if (interactiveControl != null && interactiveControl.equals(this.interactiveControl)) {
+            return;
+        }
+
+        // Changed
         if (this.interactiveControl != null) {
             this.interactiveControl.onHoverEnd();
         }
