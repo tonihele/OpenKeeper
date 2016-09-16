@@ -80,6 +80,9 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
                 // Adjust the gold sum
                 goldPile.setGold(pointStoredGold);
             }
+
+            // Add gold to player
+            parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().addGold(goldToStore);
         }
         return sum;
     }
@@ -101,6 +104,14 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
         removeAllObjects();
 
         // TODO: Create some loose gold
+    }
+
+    @Override
+    public void removeItem(GoldObjectControl object) {
+        super.removeItem(object);
+
+        // Substract the gold from the player
+        parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(object.getGold());
     }
 
 }

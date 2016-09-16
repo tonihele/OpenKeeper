@@ -23,15 +23,23 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
 /**
+ * Handles gold type objects in the game world
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class GoldObjectControl extends ObjectControl {
 
     private int gold = 0;
+
+    /**
+     * Max gold doesn't really tell anything, it is used to display the
+     * different stages of gold piles. In rooms it is the max, but the outside
+     * rooms the piles can be way over this
+     */
     private int maxGold;
     private int currentResourceIndex = 0;
 
@@ -66,7 +74,7 @@ public class GoldObjectControl extends ObjectControl {
 
             // For gold it is the amount of gold
             currentResourceIndex = getResourceIndex();
-            if (currentResourceIndex == object.getAdditionalResources().size()) {
+            if (currentResourceIndex >= object.getAdditionalResources().size()) {
                 return object.getMeshResource();
             }
             return object.getAdditionalResources().get(currentResourceIndex);
@@ -91,6 +99,13 @@ public class GoldObjectControl extends ObjectControl {
     @Override
     public CursorFactory.CursorType getInHandCursor() {
         return CursorFactory.CursorType.HOLD_GOLD;
+    }
+
+    @Override
+    public void drop(TileData tile) {
+
+        // Gold drop is a bit difficult subject, let WorldState handle it
+        worldState.dropGold(this, tile);
     }
 
 }

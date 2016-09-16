@@ -17,6 +17,7 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
+import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
@@ -26,8 +27,8 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  */
 public class TrainingRoom extends Normal {
 
-    public TrainingRoom(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
-        super(assetManager, roomInstance, objectLoader);
+    public TrainingRoom(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState) {
+        super(assetManager, roomInstance, objectLoader, worldState);
     }
 
     @Override

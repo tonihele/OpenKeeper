@@ -17,6 +17,7 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
+import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.RoomGoldControl;
 
@@ -27,8 +28,8 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
  */
 public abstract class Treasury extends Normal {
 
-    public Treasury(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
-        super(assetManager, roomInstance, objectLoader);
+    public Treasury(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState) {
+        super(assetManager, roomInstance, objectLoader, worldState);
 
         addObjectControl(new RoomGoldControl(this) {
 

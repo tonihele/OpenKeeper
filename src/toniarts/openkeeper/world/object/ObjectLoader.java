@@ -25,6 +25,7 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
@@ -48,7 +49,7 @@ public class ObjectLoader implements ILoader<Thing.Object> {
 
     @Override
     public Spatial load(AssetManager assetManager, Thing.Object object) {
-        return load(assetManager, object.getPosX(), object.getPosY(), object.getKeeperSpellId(), object.getMoneyAmount(), object.getTriggerId(), object.getObjectId(), object.getPlayerId(), 0);
+        return load(assetManager, object.getPosX(), object.getPosY(), object.getKeeperSpellId(), object.getMoneyAmount(), object.getTriggerId(), object.getObjectId(), object.getPlayerId(), (int) worldState.getGameState().getLevelVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY));
     }
 
     public Spatial load(AssetManager assetManager, int posX, int posY, short objectId, short playerId) {

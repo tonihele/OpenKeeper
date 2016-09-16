@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.CreatureLoader;
 import toniarts.openkeeper.world.listener.CreatureListener;
@@ -57,8 +58,20 @@ public class ThingLoader {
     private final Node root;
     private final Node nodeCreatures;
     private final Node nodeObjects;
+    private final int maxLooseGoldPerPile;
+
+    /**
+     * List of creatures in the world
+     */
     private final Set<CreatureControl> creatures = new LinkedHashSet<>();
-    private final List<ObjectControl> objects = new ArrayList<>();
+
+    /**
+     * List of freeform objects in the world, not room property etc.<br>
+     * TODO: should we have these based on location, or owner, owner since
+     * pickuppable objects should be scanned only by the owner (a.k.a. whose
+     * tile they are on)
+     */
+    private final Set<ObjectControl> objects = new LinkedHashSet<>();
     private Map<Short, List<CreatureListener>> creatureListeners;
 
     private static final Logger logger = Logger.getLogger(ThingLoader.class.getName());
@@ -67,6 +80,7 @@ public class ThingLoader {
         this.worldState = worldHandler;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+        maxLooseGoldPerPile = (int) worldHandler.getGameState().getLevelVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY);
         creatureLoader = new CreatureLoader(kwdFile, worldState) {
 
             @Override
@@ -239,7 +253,7 @@ public class ThingLoader {
     }
 
     /**
-     * Add room type gold
+     * Add room type gold, does not add the object to the object registry
      *
      * @param p the point to add
      * @param playerId the player id, the owner
@@ -251,13 +265,29 @@ public class ThingLoader {
         // TODO: the room gold object id..
         Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, initialAmount, 0, (short) 3, playerId, maxAmount);
         GoldObjectControl control = object.getControl(GoldObjectControl.class);
+        nodeObjects.attachChild(object);
+        return control;
+    }
+
+    /**
+     * Add loose type gold
+     *
+     * @param p the point to add
+     * @param playerId the player id, the owner
+     * @param initialAmount the amount of gold
+     * @return the gold object
+     */
+    public GoldObjectControl addLooseGold(Point p, short playerId, int initialAmount) {
+        // TODO: the gold object id..
+        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, initialAmount, 0, (short) 1, playerId, maxLooseGoldPerPile);
+        GoldObjectControl control = object.getControl(GoldObjectControl.class);
         objects.add(control);
         nodeObjects.attachChild(object);
         return control;
     }
 
     /**
-     * Add an object
+     * Add an object, does not add the object to the object registry
      *
      * @param p the point to add
      * @param objectId the object id
@@ -267,7 +297,6 @@ public class ThingLoader {
     public ObjectControl addObject(Point p, short objectId, short playerId) {
         Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, 0, 0, objectId, playerId, 0);
         ObjectControl control = object.getControl(ObjectControl.class);
-        objects.add(control);
         nodeObjects.attachChild(object);
         return control;
     }
@@ -281,7 +310,7 @@ public class ThingLoader {
     }
 
     public List<ObjectControl> getObjects() {
-        return objects;
+        return new ArrayList<>(objects);
     }
 
     /**

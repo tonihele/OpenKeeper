@@ -26,6 +26,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.world.MapLoader;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 import static toniarts.openkeeper.world.MapLoader.loadAsset;
+import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
@@ -35,8 +36,8 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  */
 public class CombatPit extends DoubleQuad {
 
-    public CombatPit(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
-        super(assetManager, roomInstance, objectLoader);
+    public CombatPit(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState) {
+        super(assetManager, roomInstance, objectLoader, worldState);
     }
 
     @Override

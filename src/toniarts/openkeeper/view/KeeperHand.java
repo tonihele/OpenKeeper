@@ -41,10 +41,11 @@ import toniarts.openkeeper.world.creature.CreatureLoader;
 
 /**
  * TODO I think we need to move cursor here
- * 
+ *
  * @author ArchDemon
  */
 public class KeeperHand {
+
     private static final List<String> SLAP_SOUNDS = Arrays.asList(new String[]{"/Global/Slap_1.mp2",
         "/Global/slap_2.mp2", "/Global/Slap_3.mp2", "/Global/Slap_4.mp2"});
     private static final String MORE_CREATURES = "GUI/Creatures/more_creatures";
@@ -160,6 +161,7 @@ public class KeeperHand {
         // Set the item
         item = interactiveControl;
         if (item.getInHandMesh() != null) {
+
             // Attach to GUI queueNode and play the animation
             item.getSpatial().setLocalTranslation(0, 0, 0);
             item.getSpatial().setLocalRotation(Matrix3f.ZERO);
@@ -170,10 +172,11 @@ public class KeeperHand {
 
     private void removeItem() {
         if (item != null && item.getInHandMesh() != null) {
+
             // Remove from GUI queueNode
             item.getSpatial().removeFromParent();
-            item = null;
         }
+        item = null;
     }
 
     private void removeIcon() {
@@ -210,7 +213,7 @@ public class KeeperHand {
 
     private void moveIcons() {
         for (int i = 0; i < cursor.getQuantity(); i++) {
-            Spatial child  = cursor.getChild(i);
+            Spatial child = cursor.getChild(i);
             int y = i / CURSOR_ITEMS_INLINE;
             if (y == CURSOR_ITEMS_LINES) {
                 y = CURSOR_ITEMS_LINES - 1;

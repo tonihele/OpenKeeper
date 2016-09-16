@@ -74,6 +74,8 @@ import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.listener.RoomListener;
 import toniarts.openkeeper.world.listener.TileChangeListener;
+import toniarts.openkeeper.world.object.GoldObjectControl;
+import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 import toniarts.openkeeper.world.room.control.RoomGoldControl;
@@ -1208,7 +1210,7 @@ public abstract class WorldState extends AbstractAppState {
      * @param sum the gold sum
      * @return returns a sum of gold that could not be added to player's gold
      */
-    final public int addGold(short playerId, int sum) {
+    public int addGold(short playerId, int sum) {
         return addGold(playerId, null, sum);
     }
 
@@ -1222,7 +1224,6 @@ public abstract class WorldState extends AbstractAppState {
      * @return returns a sum of gold that could not be added to player's gold
      */
     public int addGold(short playerId, Point p, int sum) {
-        int originalSum = sum;
 
         // Gold to specified point/room
         if (p != null) {
@@ -1234,11 +1235,7 @@ public abstract class WorldState extends AbstractAppState {
                 if (room.canStoreGold()) {
                     RoomGoldControl control = room.getObjectControl(GenericRoom.ObjectType.GOLD);
                     sum = control.addItem(sum, p, thingLoader, null);
-                } else {
-                    // TODO: generate loose gold
                 }
-            } else {
-                // TODO: generate loose gold
             }
         } else {
 
@@ -1254,8 +1251,6 @@ public abstract class WorldState extends AbstractAppState {
             }
         }
 
-        // Add to the player
-        addPlayerGold(playerId, originalSum - sum);
         return sum;
     }
 
@@ -1348,6 +1343,40 @@ public abstract class WorldState extends AbstractAppState {
             for (RoomListener listener : roomListeners.get(playerId)) {
                 listener.onSold(room);
             }
+        }
+    }
+
+    public EffectManagerState getEffectManager() {
+        return effectManager;
+    }
+
+    /**
+     * Drop a gold object to tile
+     *
+     * @param gold the gold to drop
+     * @param tile the tile to drop on
+     */
+    public void dropGold(GoldObjectControl gold, TileData tile) {
+
+        // In the original game:
+        // Floor: If the drop point is quite accurately on top of another pile of gold -> fuse the gold together. Otherwise create another pile, even to the same tile.
+        // Room: Add to the room, but any excess gold IS added to the floor tile of the room as loose gold. This loose gold is then automatically transfered to the room when there is room with a small delay.
+        int goldLeft = addGold(gold.getOwnerId(), tile.getLocation(), gold.getGold());
+        if (goldLeft > 0) {
+
+            // TODO: accurate dropping coordinates, now just merge when in same tile
+            for (ObjectControl obj : thingLoader.getObjects()) {
+                if (obj instanceof GoldObjectControl && tile.equals(getMapData().getTile(obj.getObjectCoordinates()))) {
+
+                    // Merge
+                    GoldObjectControl goc = (GoldObjectControl) obj;
+                    goc.setGold(goc.getGold() + gold.getGold());
+                    return;
+                }
+            }
+
+            // Create a gold pile
+            thingLoader.addLooseGold(tile.getLocation(), gold.getOwnerId(), goldLeft);
         }
     }
 

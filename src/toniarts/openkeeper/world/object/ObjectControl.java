@@ -21,6 +21,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
+import java.awt.Point;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -151,6 +152,10 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
         // If we are a part of room, we need to detach
         if (roomObjectControl != null) {
             roomObjectControl.removeItem(this);
+        } else {
+
+            // We are part of the world
+            worldState.getThingLoader().onObjectRemoved(this);
         }
 
         // Remove from view
@@ -195,6 +200,19 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     @Override
     public void drop(TileData tile) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    public short getOwnerId() {
+        return ownerId;
+    }
+
+    /**
+     * Get the object coordinates, in tile coordinates
+     *
+     * @return the tile coordinates
+     */
+    public Point getObjectCoordinates() {
+        return worldState.getTileCoordinates(getSpatial().getWorldTranslation());
     }
 
 }
