@@ -23,9 +23,10 @@ package toniarts.openkeeper.tools.convert.sound;
  */
 class BankMapFileEntry {
 
-    private long unknown1;
-    private int unknown2;
-    private short unknown3[]; // 3
+    private long unknown1; // 0xFFFFFFFF in all files. resets to 0
+    private int unknown2; // 6746904, 6746032, 6746020, 6683824
+    private int unknown3;
+    private short unknown4;
 
     public long getUnknown1() {
         return unknown1;
@@ -43,11 +44,19 @@ class BankMapFileEntry {
         this.unknown2 = unknown2;
     }
 
-    public short[] getUnknown3() {
+    public int getUnknown3() {
         return unknown3;
     }
 
-    protected void setUnknown3(short[] unknown3) {
+    protected void setUnknown3(int unknown3) {
         this.unknown3 = unknown3;
+    }
+
+    public short getUnknown4() {
+        return unknown4;
+    }
+
+    public void setUnknown4(short unknown4) {
+        this.unknown4 = unknown4;
     }
 }

@@ -529,7 +529,7 @@ public final class KwdFile {
             player.setStartingCameraX(ConversionUtils.readUnsignedShort(file));
             player.setStartingCameraY(ConversionUtils.readUnsignedShort(file));
 
-            player.setName(ConversionUtils.bytesToString(file, 32).trim());
+            player.setName(ConversionUtils.readString(file, 32).trim());
 
             // Add to the hash by the player ID
             players.put(player.getPlayerId(), player);
@@ -560,7 +560,7 @@ public final class KwdFile {
             long offset = file.getFilePointer();
             Terrain terrain = new Terrain();
 
-            terrain.setName(ConversionUtils.bytesToString(file, 32).trim());
+            terrain.setName(ConversionUtils.readString(file, 32).trim());
             terrain.setCompleteResource(readArtResource(file));
             terrain.setSideResource(readArtResource(file));
             terrain.setTopResource(readArtResource(file));
@@ -606,11 +606,11 @@ public final class KwdFile {
             terrain.setTerrainLight(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte()));
             terrain.setTextureFrames((short) file.readUnsignedByte());
 
-            terrain.setSoundCategory(ConversionUtils.bytesToString(file, 32).trim());
+            terrain.setSoundCategory(ConversionUtils.readString(file, 32).trim());
             terrain.setMaxHealth(ConversionUtils.readUnsignedShort(file));
             terrain.setAmbientLight(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte()));
 
-            terrain.setSoundCategoryFirstPerson(ConversionUtils.bytesToString(file, 32).trim());
+            terrain.setSoundCategoryFirstPerson(ConversionUtils.readString(file, 32).trim());
             terrain.setUnk224(ConversionUtils.readUnsignedInteger(file));
 
             // Add to the hash by the terrain ID
@@ -640,7 +640,7 @@ public final class KwdFile {
         ArtResource artResource = new ArtResource();
 
         // Read the data
-        artResource.setName(ConversionUtils.bytesToString(file, 64).trim());
+        artResource.setName(ConversionUtils.readString(file, 64).trim());
         long flags = ConversionUtils.readUnsignedIntegerAsLong(file);
         byte[] bytes = new byte[12];
         file.read(bytes); // Depends on the type how these are interpreted?
@@ -668,35 +668,35 @@ public final class KwdFile {
             case 2:
             case 3: { // Images of different type
                 resourceType = artResource.new Image();
-                ((Image) resourceType).setWidth(ConversionUtils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)) / ConversionUtils.FLOAT);
-                ((Image) resourceType).setHeight(ConversionUtils.readUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)) / ConversionUtils.FLOAT);
-                ((Image) resourceType).setFrames(ConversionUtils.readUnsignedShort(Arrays.copyOfRange(bytes, 8, 10)));
+                ((Image) resourceType).setWidth(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)) / ConversionUtils.FLOAT);
+                ((Image) resourceType).setHeight(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)) / ConversionUtils.FLOAT);
+                ((Image) resourceType).setFrames(ConversionUtils.toUnsignedShort(Arrays.copyOfRange(bytes, 8, 10)));
                 break;
             }
             case 4: {
                 resourceType = artResource.new TerrainResource();
-                ((TerrainResource) resourceType).setX00(ConversionUtils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
-                ((TerrainResource) resourceType).setX04(ConversionUtils.readUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)));
+                ((TerrainResource) resourceType).setX00(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
+                ((TerrainResource) resourceType).setX04(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)));
                 ((TerrainResource) resourceType).setFrames(ConversionUtils.toUnsignedByte(bytes[8]));
                 break;
             }
             case 5: {
                 resourceType = artResource.new Mesh();
-                ((Mesh) resourceType).setScale(ConversionUtils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)) / ConversionUtils.FLOAT);
-                ((Mesh) resourceType).setFrames(ConversionUtils.readUnsignedShort(Arrays.copyOfRange(bytes, 4, 6)));
+                ((Mesh) resourceType).setScale(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)) / ConversionUtils.FLOAT);
+                ((Mesh) resourceType).setFrames(ConversionUtils.toUnsignedShort(Arrays.copyOfRange(bytes, 4, 6)));
                 break;
             }
             case 6: {
                 resourceType = artResource.new Animation();
-                ((Animation) resourceType).setFrames(ConversionUtils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
-                ((Animation) resourceType).setFps(ConversionUtils.readUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)));
-                ((Animation) resourceType).setStartDist(ConversionUtils.readUnsignedShort(Arrays.copyOfRange(bytes, 8, 10)));
-                ((Animation) resourceType).setEndDist(ConversionUtils.readUnsignedShort(Arrays.copyOfRange(bytes, 10, 12)));
+                ((Animation) resourceType).setFrames(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
+                ((Animation) resourceType).setFps(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)));
+                ((Animation) resourceType).setStartDist(ConversionUtils.toUnsignedShort(Arrays.copyOfRange(bytes, 8, 10)));
+                ((Animation) resourceType).setEndDist(ConversionUtils.toUnsignedShort(Arrays.copyOfRange(bytes, 10, 12)));
                 break;
             }
             case 7: {
                 resourceType = artResource.new Proc();
-                ((Proc) resourceType).setId(ConversionUtils.readUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
+                ((Proc) resourceType).setId(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
                 break;
 
             }
@@ -768,7 +768,7 @@ public final class KwdFile {
             long offset = file.getFilePointer();
             Door door = new Door();
 
-            door.setName(ConversionUtils.bytesToString(file, 32).trim());
+            door.setName(ConversionUtils.readString(file, 32).trim());
             door.setMesh(readArtResource(file));
             door.setGuiIcon(readArtResource(file));
             door.setEditorIcon(readArtResource(file));
@@ -806,7 +806,7 @@ public final class KwdFile {
             door.setManufCrateObjectId((short) file.readUnsignedByte());
             door.setKeyObjectId((short) file.readUnsignedByte());
 
-            door.setSoundGategory(ConversionUtils.bytesToString(file, 32).trim());
+            door.setSoundGategory(ConversionUtils.readString(file, 32).trim());
 
             doors.put(door.getDoorId(), door);
 
@@ -836,7 +836,7 @@ public final class KwdFile {
             long offset = file.getFilePointer();
             Trap trap = new Trap();
 
-            trap.setName(ConversionUtils.bytesToString(file, 32).trim());
+            trap.setName(ConversionUtils.readString(file, 32).trim());
             trap.setMeshResource(readArtResource(file));
             trap.setGuiIcon(readArtResource(file));
             trap.setEditorIcon(readArtResource(file));
@@ -881,7 +881,7 @@ public final class KwdFile {
             trap.setShotTypeId((short) file.readUnsignedByte());
             trap.setManufCrateObjectId((short) file.readUnsignedByte());
 
-            trap.setSoundCategory(ConversionUtils.bytesToString(file, 32).trim());
+            trap.setSoundCategory(ConversionUtils.readString(file, 32).trim());
             trap.setMaterial(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Material.class));
             trap.setOrderInEditor((short) file.readUnsignedByte());
             trap.setShotOffset(new Vector3f(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT,
@@ -920,7 +920,7 @@ public final class KwdFile {
             long offset = file.getFilePointer();
             Room room = new Room();
 
-            room.setName(ConversionUtils.bytesToString(file, 32).trim());
+            room.setName(ConversionUtils.readString(file, 32).trim());
             room.setGuiIcon(readArtResource(file));
             room.setEditorIcon(readArtResource(file));
             room.setCompleteResource(readArtResource(file));
@@ -961,7 +961,7 @@ public final class KwdFile {
             }
             room.setObjects(roomObjects);
 
-            room.setSoundCategory(ConversionUtils.bytesToString(file, 32).trim());
+            room.setSoundCategory(ConversionUtils.readString(file, 32).trim());
             room.setOrderInEditor((short) file.readUnsignedByte());
             room.setX3c3((short) file.readUnsignedByte());
             room.setUnknown10(ConversionUtils.readUnsignedShort(file));
@@ -999,15 +999,15 @@ public final class KwdFile {
         }
 
         //Property data
-        String name = ConversionUtils.bytesToStringUtf16(data, 64).trim();
+        String name = ConversionUtils.readStringUtf16(data, 64).trim();
         if (name != null && !name.isEmpty() && name.toLowerCase().endsWith(".kwd")) {
             name = name.substring(0, name.length() - 4);
         }
         gameLevel.setName(name);
-        gameLevel.setDescription(ConversionUtils.bytesToStringUtf16(data, 1024).trim());
-        gameLevel.setAuthor(ConversionUtils.bytesToStringUtf16(data, 64).trim());
-        gameLevel.setEmail(ConversionUtils.bytesToStringUtf16(data, 64).trim());
-        gameLevel.setInformation(ConversionUtils.bytesToStringUtf16(data, 1024).trim());
+        gameLevel.setDescription(ConversionUtils.readStringUtf16(data, 1024).trim());
+        gameLevel.setAuthor(ConversionUtils.readStringUtf16(data, 64).trim());
+        gameLevel.setEmail(ConversionUtils.readStringUtf16(data, 64).trim());
+        gameLevel.setInformation(ConversionUtils.readStringUtf16(data, 1024).trim());
 
         gameLevel.setTriggerId(ConversionUtils.readUnsignedShort(data));
         gameLevel.setTicksPerSec(ConversionUtils.readUnsignedShort(data));
@@ -1018,7 +1018,7 @@ public final class KwdFile {
         gameLevel.setX01184(x01184);
         List<String> messages = new ArrayList<>(); // I don't know if we need the index, level 19 & 3 has messages, but they are rare
         for (int x = 0; x < 512; x++) {
-            String message = ConversionUtils.bytesToStringUtf16(data, 20).trim();
+            String message = ConversionUtils.readStringUtf16(data, 20).trim();
             if (!message.isEmpty()) {
                 messages.add(message);
             }
@@ -1026,7 +1026,7 @@ public final class KwdFile {
         gameLevel.setMessages(messages);
 
         gameLevel.setLvlFlags(ConversionUtils.parseFlagValue(ConversionUtils.readUnsignedShort(data), LevFlag.class));
-        gameLevel.setSpeechStr(ConversionUtils.bytesToString(data, 32).trim());
+        gameLevel.setSpeechStr(ConversionUtils.readString(data, 32).trim());
         gameLevel.setTalismanPieces((short) data.readUnsignedByte());
         List<LevelReward> rewardPrev = new ArrayList<>(4);
         for (int x = 0; x < 4; x++) {
@@ -1076,7 +1076,7 @@ public final class KwdFile {
         }
         gameLevel.setIntroductionOverrideTextIds(introductionOverrideTextIds);
 
-        gameLevel.setTerrainPath(ConversionUtils.bytesToString(data, 32).trim());
+        gameLevel.setTerrainPath(ConversionUtils.readString(data, 32).trim());
         gameLevel.setOneShotHornyLev((short) data.readUnsignedByte());
         gameLevel.setPlayerCount((short) data.readUnsignedByte());
         gameLevel.setX06405((short) data.readUnsignedByte());
@@ -1087,11 +1087,11 @@ public final class KwdFile {
         gameLevel.setSpeechPostlvlLost(ConversionUtils.readUnsignedShort(data));
         gameLevel.setSpeechPostlvlNews(ConversionUtils.readUnsignedShort(data));
         gameLevel.setSpeechPrelvlGenr(ConversionUtils.readUnsignedShort(data));
-        gameLevel.setHeroName(ConversionUtils.bytesToStringUtf16(data, 32).trim());
+        gameLevel.setHeroName(ConversionUtils.readStringUtf16(data, 32).trim());
 
         // Paths and the unknown array
-        //header.setCheckTwo(ConversionUtils.readUnsignedInteger(data));
-        //header.setUnknownCount(ConversionUtils.readUnsignedInteger(data));
+        //header.setCheckTwo(ConversionUtils.toUnsignedInteger(data));
+        //header.setUnknownCount(ConversionUtils.toUnsignedInteger(data));
         // or
         data.skipBytes(8);
         List<FilePath> paths = new ArrayList<>(header.getItemCount());
@@ -1099,7 +1099,7 @@ public final class KwdFile {
             FilePath filePath = new FilePath();
             filePath.setId(ConversionUtils.parseEnum(ConversionUtils.readUnsignedInteger(data), MapDataTypeEnum.class));
             filePath.setUnknown2(ConversionUtils.readInteger(data));
-            String path = ConversionUtils.bytesToString(data, 64).trim();
+            String path = ConversionUtils.readString(data, 64).trim();
 
             // Tweak the paths
             // Paths are relative to the base path, may or may not have an extension (assume kwd if none found)
@@ -1161,7 +1161,7 @@ public final class KwdFile {
             long offset = file.getFilePointer();
             Creature creature = new Creature();
 
-            creature.setName(ConversionUtils.bytesToString(file, 32).trim());
+            creature.setName(ConversionUtils.readString(file, 32).trim());
             // 39 ArtResources (with IMPs these are not 100% same)
             byte[] bytes = new byte[84];
             file.read(bytes);
@@ -1224,7 +1224,7 @@ public final class KwdFile {
             creature.setAngerStringIdHatred(ConversionUtils.readUnsignedShort(file));
             creature.setAngerStringIdTorture(ConversionUtils.readUnsignedShort(file));
 
-            creature.setTranslationSoundGategory(ConversionUtils.bytesToString(file, 32).trim());
+            creature.setTranslationSoundGategory(ConversionUtils.readString(file, 32).trim());
             creature.setShuffleSpeed(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
             creature.setCloneCreatureId((short) file.readUnsignedByte());
             creature.setFirstPersonGammaEffect(ConversionUtils.parseEnum(file.readUnsignedByte(), Creature.GammaEffect.class));
@@ -1377,7 +1377,7 @@ public final class KwdFile {
             creature.setDeathFallDirection(ConversionUtils.parseEnum(file.readUnsignedByte(), Creature.DeathFallDirection.class));
             creature.setUnk3f2((short) file.readUnsignedByte());
 
-            creature.setSoundGategory(ConversionUtils.bytesToString(file, 32).trim());
+            creature.setSoundGategory(ConversionUtils.readString(file, 32).trim());
             creature.setMaterial(ConversionUtils.parseEnum(file.readUnsignedByte(), Material.class));
             creature.setFirstPersonFilterResource(readArtResource(file));
             creature.setUnkfcb(ConversionUtils.readUnsignedShort(file));
@@ -1519,7 +1519,7 @@ public final class KwdFile {
             long offset = file.getFilePointer();
             Object object = new Object();
 
-            object.setName(ConversionUtils.bytesToString(file, 32).trim());
+            object.setName(ConversionUtils.readString(file, 32).trim());
             object.setMeshResource(readArtResource(file));
             object.setGuiIconResource(readArtResource(file));
             object.setInHandIconResource(readArtResource(file));
@@ -1560,7 +1560,7 @@ public final class KwdFile {
             object.setRoomCapacity((short) file.readUnsignedByte());
             object.setPickUpPriority((short) file.readUnsignedByte());
 
-            object.setSoundCategory(ConversionUtils.bytesToString(file, 32).trim());
+            object.setSoundCategory(ConversionUtils.readString(file, 32).trim());
 
             // Add to the hash by the object ID
             objects.put(object.getObjectId(), object);
@@ -1591,7 +1591,7 @@ public final class KwdFile {
             long offset = file.getFilePointer();
             CreatureSpell creatureSpell = new CreatureSpell();
 
-            creatureSpell.setName(ConversionUtils.bytesToString(file, 32).trim());
+            creatureSpell.setName(ConversionUtils.readString(file, 32).trim());
             creatureSpell.setEditorIcon(readArtResource(file));
             creatureSpell.setGuiIcon(readArtResource(file));
             creatureSpell.setShotData1(ConversionUtils.readUnsignedInteger(file));
@@ -1650,7 +1650,7 @@ public final class KwdFile {
             long offset = file.getFilePointer();
             EffectElement effectElement = new EffectElement();
 
-            effectElement.setName(ConversionUtils.bytesToString(file, 32).trim());
+            effectElement.setName(ConversionUtils.readString(file, 32).trim());
             effectElement.setArtResource(readArtResource(file));
             effectElement.setMass(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
             effectElement.setAirFriction(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.DOUBLE);
@@ -1705,7 +1705,7 @@ public final class KwdFile {
             long offset = file.getFilePointer();
             Effect effect = new Effect();
 
-            effect.setName(ConversionUtils.bytesToString(file, 32).trim());
+            effect.setName(ConversionUtils.readString(file, 32).trim());
             effect.setArtResource(readArtResource(file));
             effect.setLight(readLight(file));
             effect.setMass(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT);
@@ -1781,7 +1781,7 @@ public final class KwdFile {
             long offset = file.getFilePointer();
             KeeperSpell keeperSpell = new KeeperSpell();
 
-            keeperSpell.setName(ConversionUtils.bytesToString(file, 32).trim());
+            keeperSpell.setName(ConversionUtils.readString(file, 32).trim());
             keeperSpell.setGuiIcon(readArtResource(file));
             keeperSpell.setEditorIcon(readArtResource(file));
             keeperSpell.setXc8(ConversionUtils.readInteger(file));
@@ -1803,7 +1803,7 @@ public final class KwdFile {
             keeperSpell.setCastRule(ConversionUtils.parseEnum((short) file.readUnsignedByte(), KeeperSpell.CastRule.class));
             keeperSpell.setShotTypeId((short) file.readUnsignedByte());
 
-            keeperSpell.setSoundGategory(ConversionUtils.bytesToString(file, 32).trim());
+            keeperSpell.setSoundGategory(ConversionUtils.readString(file, 32).trim());
             keeperSpell.setBonusRTime(ConversionUtils.readUnsignedShort(file));
             keeperSpell.setBonusShotTypeId((short) file.readUnsignedByte());
             keeperSpell.setBonusShotData1(ConversionUtils.readInteger(file));
@@ -1811,7 +1811,7 @@ public final class KwdFile {
             keeperSpell.setManaCost(ConversionUtils.readInteger(file));
             keeperSpell.setBonusIcon(readArtResource(file));
 
-            keeperSpell.setSoundGategoryGui(ConversionUtils.bytesToString(file, 32).trim());
+            keeperSpell.setSoundGategoryGui(ConversionUtils.readString(file, 32).trim());
             keeperSpell.setHandAnimId(ConversionUtils.parseEnum((short) file.readUnsignedByte(), KeeperSpell.HandAnimId.class));
             keeperSpell.setNoGoHandAnimId(ConversionUtils.parseEnum((short) file.readUnsignedByte(), KeeperSpell.HandAnimId.class));
 
@@ -1913,7 +1913,7 @@ public final class KwdFile {
                     ((ActionPoint) thing).setId((short) file.readUnsignedByte());
                     ((ActionPoint) thing).setNextWaypointId((short) file.readUnsignedByte());
 
-                    ((ActionPoint) thing).setName(ConversionUtils.bytesToString(file, 32).trim());
+                    ((ActionPoint) thing).setName(ConversionUtils.readString(file, 32).trim());
                     break;
                 }
                 case 198: {
@@ -1978,7 +1978,7 @@ public final class KwdFile {
                     // HeroParty
                     thing = new HeroParty();
 
-                    ((HeroParty) thing).setName(ConversionUtils.bytesToString(file, 32).trim());
+                    ((HeroParty) thing).setName(ConversionUtils.readString(file, 32).trim());
                     ((HeroParty) thing).setTriggerId(ConversionUtils.readUnsignedShort(file));
                     ((HeroParty) thing).setId((short) file.readUnsignedByte());
                     ((HeroParty) thing).setX23(ConversionUtils.readInteger(file));
@@ -2136,7 +2136,7 @@ public final class KwdFile {
             // One shot is 239 bytes
             Shot shot = new Shot();
 
-            shot.setName(ConversionUtils.bytesToString(file, 32).trim());
+            shot.setName(ConversionUtils.readString(file, 32).trim());
             shot.setMeshResource(readArtResource(file));
             shot.setLight(readLight(file));
             shot.setAirFriction(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.DOUBLE);
@@ -2168,7 +2168,7 @@ public final class KwdFile {
             shot.setProcessType(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Shot.ProcessType.class));
             shot.setAttackCategory(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Shot.AttackCategory.class));
 
-            shot.setSoundCategory(ConversionUtils.bytesToString(file, 32).trim());
+            shot.setSoundCategory(ConversionUtils.readString(file, 32).trim());
             shot.setThreat(ConversionUtils.readUnsignedShort(file));
             shot.setBurnDuration(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
 
@@ -2503,7 +2503,7 @@ public final class KwdFile {
                         case DISPLAY_SLAB_OWNER:
                             // FIXME Show wrong values in editor
                             trigger.setUserData("available", file.readUnsignedByte());  // 0 = Off, !0 = On
-                            //((TriggerAction) trigger).setActionTargetValue1(ConversionUtils.readUnsignedInteger(file)); // limit 4 bytes
+                            //((TriggerAction) trigger).setActionTargetValue1(ConversionUtils.toUnsignedInteger(file)); // limit 4 bytes
                             // 1635984
                             ConversionUtils.checkNull(file, 7); // file.skipBytes(7);
                             break;

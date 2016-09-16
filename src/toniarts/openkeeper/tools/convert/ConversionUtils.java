@@ -78,7 +78,7 @@ public class ConversionUtils {
     public static int readUnsignedInteger(RandomAccessFile file) throws IOException {
         byte[] unsignedInt = new byte[4];
         file.read(unsignedInt);
-        return readUnsignedInteger(unsignedInt);
+        return toUnsignedInteger(unsignedInt);
     }
 
     /**
@@ -89,8 +89,8 @@ public class ConversionUtils {
      * @return JAVA native int
      * @see #readUnsignedIntegerAsLong(java.io.RandomAccessFile)
      */
-    public static int readUnsignedInteger(byte[] unsignedInt) {
-        int result = readInteger(unsignedInt);
+    public static int toUnsignedInteger(byte[] unsignedInt) {
+        int result = toInteger(unsignedInt);
         if (result < 0) {
 
             // Yes, this should be long, however, in our purpose this might be sufficient as int
@@ -110,7 +110,7 @@ public class ConversionUtils {
     public static int readInteger(RandomAccessFile file) throws IOException {
         byte[] signedInt = new byte[4];
         file.read(signedInt);
-        return readInteger(signedInt);
+        return toInteger(signedInt);
     }
 
     /**
@@ -120,7 +120,7 @@ public class ConversionUtils {
      * @param signedInt the byte array
      * @return JAVA native int
      */
-    public static int readInteger(byte[] signedInt) {
+    public static int toInteger(byte[] signedInt) {
         ByteBuffer buffer = ByteBuffer.wrap(signedInt);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         return buffer.getInt();
@@ -137,7 +137,7 @@ public class ConversionUtils {
     public static int readUnsignedShort(RandomAccessFile file) throws IOException {
         byte[] unsignedShort = new byte[2];
         file.read(unsignedShort);
-        return readUnsignedShort(unsignedShort);
+        return toUnsignedShort(unsignedShort);
     }
 
     /**
@@ -147,8 +147,8 @@ public class ConversionUtils {
      * @param unsignedShort the byte array
      * @return JAVA native int
      */
-    public static int readUnsignedShort(byte[] unsignedShort) {
-        return readShort(unsignedShort) & 0xFFFF;
+    public static int toUnsignedShort(byte[] unsignedShort) {
+        return toShort(unsignedShort) & 0xFFFF;
     }
 
     /**
@@ -162,7 +162,7 @@ public class ConversionUtils {
     public static short readShort(RandomAccessFile file) throws IOException {
         byte[] signedShort = new byte[2];
         file.read(signedShort);
-        return readShort(signedShort);
+        return toShort(signedShort);
     }
 
     /**
@@ -172,7 +172,7 @@ public class ConversionUtils {
      * @param signedShort the byte array
      * @return JAVA native short
      */
-    public static short readShort(byte[] signedShort) {
+    public static short toShort(byte[] signedShort) {
         ByteBuffer buffer = ByteBuffer.wrap(signedShort);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         return buffer.getShort();
@@ -188,7 +188,7 @@ public class ConversionUtils {
     public static float readFloat(RandomAccessFile file) throws IOException {
         byte[] f = new byte[4];
         file.read(f);
-        return readFloat(f);
+        return toFloat(f);
     }
 
     /**
@@ -198,7 +198,7 @@ public class ConversionUtils {
      * @param f the byte array
      * @return JAVA native float
      */
-    public static float readFloat(byte[] f) {
+    public static float toFloat(byte[] f) {
         ByteBuffer buffer = ByteBuffer.wrap(f);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         return buffer.getFloat();
@@ -208,10 +208,10 @@ public class ConversionUtils {
      * Converts a byte array to a JAVA String
      *
      * @param bytes the bytearray to convert
-     * @see #bytesToString(java.io.RandomAccessFile, int)
+     * @see #readString(java.io.RandomAccessFile, int)
      * @return fresh String
      */
-    public static String bytesToString(byte[] bytes) {
+    public static String toString(byte[] bytes) {
         return new String(bytes, Charset.forName("US-ASCII"));
     }
 
@@ -220,14 +220,14 @@ public class ConversionUtils {
      *
      * @param file the file
      * @param length string length
-     * @see #bytesToString(byte[])
+     * @see #toString(byte[])
      * @return fresh String
      * @throws IOException the reading may fail
      */
-    public static String bytesToString(RandomAccessFile file, int length) throws IOException {
+    public static String readString(RandomAccessFile file, int length) throws IOException {
         byte[] bytes = new byte[length];
         file.read(bytes);
-        return bytesToString(bytes);
+        return toString(bytes);
     }
 
     /**
@@ -235,14 +235,14 @@ public class ConversionUtils {
      *
      * @param file the file
      * @param length string length
-     * @see #bytesToStringUtf16(byte[])
+     * @see #toStringUtf16(byte[])
      * @return fresh String
      * @throws IOException the reading may fail
      */
-    public static String bytesToStringUtf16(RandomAccessFile file, int length) throws IOException {
+    public static String readStringUtf16(RandomAccessFile file, int length) throws IOException {
         byte[] bytes = new byte[length * 2];
         file.read(bytes);
-        return bytesToStringUtf16(bytes);
+        return toStringUtf16(bytes);
     }
 
     /**
@@ -252,7 +252,7 @@ public class ConversionUtils {
      * @param bytes the bytearray to convert
      * @return fresh String
      */
-    public static String bytesToStringUtf16(byte[] bytes) {
+    public static String toStringUtf16(byte[] bytes) {
         return new String(bytes, Charset.forName("UTF_16LE"));
     }
 
@@ -279,7 +279,7 @@ public class ConversionUtils {
             result.add(bytes[i + 1]);
         }
 
-        return ConversionUtils.bytesToStringUtf16(toByteArray(result));
+        return ConversionUtils.toStringUtf16(toByteArray(result));
     }
 
     /**
@@ -360,9 +360,32 @@ public class ConversionUtils {
                     break;
                 }
             } while (true);
-            strings.add(ConversionUtils.bytesToString(toByteArray(bytes)));
+            strings.add(ConversionUtils.toString(toByteArray(bytes)));
         }
         return strings;
+    }
+
+    /**
+     * Reads string of varying length (ASCII NULL terminated) from the file
+     *
+     * @param rawKmf rawKmf the file to read from
+     * @param length bytes to reed from file
+     * @return string read from the file
+     * @throws java.io.IOException
+     */
+    public static String readVaryingLengthString(RandomAccessFile rawKmf, int length) throws IOException {
+        byte[] bytes = new byte[length];
+        rawKmf.read(bytes);
+        List<Byte> string = new ArrayList();
+        // A bit tricky, read until 0 byte
+        for (byte b : bytes) {
+            if (b == 0) {
+                break;
+            }
+            string.add(b);
+        }
+
+        return ConversionUtils.toString(toByteArray(string));
     }
 
     /**

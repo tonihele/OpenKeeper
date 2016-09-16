@@ -44,46 +44,52 @@ public class SdtFileEntry {
         }
     }
 
-    private int indexSize;
-    private int size;
-    private int samplingRate; // 22050
-    private short unknown2; // 16
+    private int headerSize; // dataSize of header data include this field (exclude data field)
+    private int dataSize;
+    private int sampleRate; // 22050
+    private short bitsPerSample; // 16 bits
     private SoundType type; // 36 on mp2 (64kbit/s mono), 37 on mp2 (112kbit/s stereo), 2 on wav, 0 on blanks
-    private int unknown3;
+    private int unknown3; // 0 in all files. Compression, byteRate, blockAlign
     private int nSamples;
-    private int unknown4;
-    private long dataOffset;
+    private int unknown4; // 0 in all files. DataStart, LoopOffset, LoopLength
 
-    public int getIndexSize() {
-        return indexSize;
+    private long dataOffset; // not contains in file structure
+
+    public int getHeaderSize() {
+        return headerSize;
     }
 
-    protected void setIndexSize(int indexSize) {
-        this.indexSize = indexSize;
+    protected void setHeaderSize(int headerSize) {
+        this.headerSize = headerSize;
     }
 
-    public int getSize() {
-        return size;
+    public int getDataSize() {
+        return dataSize;
     }
 
-    protected void setSize(int size) {
-        this.size = size;
+    protected void setDataSize(int size) {
+        this.dataSize = size;
     }
 
-    public int getSamplingRate() {
-        return samplingRate;
+    public int getSampleRate() {
+        return sampleRate;
     }
 
-    protected void setSamplingRate(int samplingRate) {
-        this.samplingRate = samplingRate;
+    protected void setSampleRate(int sampleRate) {
+        this.sampleRate = sampleRate;
     }
 
-    public short getUnknown2() {
-        return unknown2;
+    /**
+     * Resolution of sound data in bits
+     *
+     * @return
+     */
+    public short getBitsPerSample() {
+        return bitsPerSample;
     }
 
-    protected void setUnknown2(short unknown2) {
-        this.unknown2 = unknown2;
+    protected void setBitsPerSample(short bitsPerSample) {
+        this.bitsPerSample = bitsPerSample;
     }
 
     public SoundType getType() {
