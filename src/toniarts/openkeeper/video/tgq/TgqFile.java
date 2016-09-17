@@ -123,7 +123,7 @@ public abstract class TgqFile implements AutoCloseable {
         int frameSize = ConversionUtils.readInteger(file);
 
         // See what kind of frame we are dealing with here
-        switch (ConversionUtils.bytesToString(bytes)) {
+        switch (ConversionUtils.toString(bytes)) {
             case SHEN_TAG:
             case SCHl_TAG: {
 
@@ -182,7 +182,7 @@ public abstract class TgqFile implements AutoCloseable {
                 break;
             }
             default: {
-                logger.log(Level.WARNING, "Unkown tag {0}!", ConversionUtils.bytesToString(bytes));
+                logger.log(Level.WARNING, "Unkown tag {0}!", ConversionUtils.toString(bytes));
                 break;
             }
         }
@@ -222,8 +222,8 @@ public abstract class TgqFile implements AutoCloseable {
         // Support only PT patch
         byte[] bytes = new byte[2];
         file.read(bytes);
-        if (!PT_PATCH_TAG.equals(ConversionUtils.bytesToString(bytes))) {
-            throw new RuntimeException(PT_PATCH_TAG + " was expected in audio header! But " + ConversionUtils.bytesToString(bytes) + " found!");
+        if (!PT_PATCH_TAG.equals(ConversionUtils.toString(bytes))) {
+            throw new RuntimeException(PT_PATCH_TAG + " was expected in audio header! But " + ConversionUtils.toString(bytes) + " found!");
         }
         audioHeader = new EAAudioHeader();
 

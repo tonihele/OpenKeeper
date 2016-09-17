@@ -25,8 +25,11 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import toniarts.openkeeper.tools.convert.sound.BankMapFile;
+import toniarts.openkeeper.tools.convert.sound.SFFile;
 
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
+import toniarts.openkeeper.tools.convert.sound.SfxMapFile;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
@@ -34,7 +37,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SdtExtractor {
+public class SoundExtractor {
 
     private static String dkIIFolder;
 
@@ -59,13 +62,28 @@ public class SdtExtractor {
         //Find all the sound files
         final List<File> sdtFiles = new ArrayList<>();
         File dataDir = new File(soundFolder);
+        //Find all the bank.map files
+        final List<File> bankMapFiles = new ArrayList<>();
+        //Find all the bank.map files
+        final List<File> sfxMapFiles = new ArrayList<>();
+        //Find all the bank.map files
+        final List<File> sf2Files = new ArrayList<>();
         Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 
                 //Get all the SDT files
-                if (attrs.isRegularFile() && file.getFileName().toString().toLowerCase().endsWith(".sdt")) {
-                    sdtFiles.add(file.toFile());
+                if (attrs.isRegularFile()) {
+                    String filename = file.getFileName().toString().toLowerCase();
+                    if (filename.endsWith(".sdt")){
+                        sdtFiles.add(file.toFile());
+                    } else if (filename.endsWith(".sf2")) {
+                        sf2Files.add(file.toFile());
+                    } else if (filename.endsWith("bank.map")) {
+                        bankMapFiles.add(file.toFile());
+                    } else if (filename.endsWith("sfx.map")) {
+                        sfxMapFiles.add(file.toFile());
+                    }
                 }
 
                 //Always continue
@@ -73,6 +91,22 @@ public class SdtExtractor {
             }
         });
 
+        // TODO unpack files
+        //Just open up the bank map files for fun
+        for (File file : bankMapFiles) {
+            BankMapFile bankMap = new BankMapFile(file);
+            //System.out.println(bankMap);
+        }
+        //Just open up the sfx map files for fun
+        for (File file : sfxMapFiles) {
+            SfxMapFile sfxMap = new SfxMapFile(file);
+            //System.out.println(sfxMap);
+        }
+        //Just open up the sf2 map files for fun
+        for (File file : sf2Files) {
+            SFFile sf2File = new SFFile(file);
+            //System.out.println(sf2File);
+        }
         //Extract the sounds
         for (File file : sdtFiles) {
             SdtFile sdt = new SdtFile(file);

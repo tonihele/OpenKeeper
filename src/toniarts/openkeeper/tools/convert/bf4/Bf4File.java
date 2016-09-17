@@ -78,7 +78,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
             // Check the header
             byte[] header = new byte[4];
             rawBf4.read(header);
-            if (!BF4_HEADER_IDENTIFIER.equals(ConversionUtils.bytesToString(header))) {
+            if (!BF4_HEADER_IDENTIFIER.equals(ConversionUtils.toString(header))) {
                 throw new RuntimeException("Header should be " + BF4_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
             maxWidth = ConversionUtils.toUnsignedByte(rawBf4.readByte()); // This is know to be bogus value
@@ -118,7 +118,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
     private Bf4Entry readFontEntry(RandomAccessFile rawBf4) throws IOException {
         Bf4Entry entry = new Bf4Entry();
         
-        entry.setCharacter(ConversionUtils.bytesToStringUtf16(rawBf4, 1).charAt(0));
+        entry.setCharacter(ConversionUtils.readStringUtf16(rawBf4, 1).charAt(0));
         entry.setUnknown1(ConversionUtils.readUnsignedShort(rawBf4));
         entry.setDataSize(ConversionUtils.readInteger(rawBf4));
         entry.setTotalSize(ConversionUtils.readUnsignedInteger(rawBf4));

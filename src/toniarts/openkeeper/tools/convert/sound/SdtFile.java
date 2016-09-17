@@ -40,7 +40,10 @@ import toniarts.openkeeper.utils.PathUtils;
 public class SdtFile {
 
     private final File file;
-    private final HashMap<String, SdtFileEntry> sdtFileEntries;
+    private final int count;
+    private final int headerSize;
+    private final int[] entriesOffsets; // seems like pointer to next item in file
+    private final HashMap<String, SdtFileEntry> entries;
 
     /**
      * Constructs a new Sdt file reader<br>
@@ -55,30 +58,23 @@ public class SdtFile {
         try (RandomAccessFile rawSdt = new RandomAccessFile(file, "r")) {
 
             //Header
-            int files = ConversionUtils.readUnsignedInteger(rawSdt);
-
+            count = ConversionUtils.readUnsignedInteger(rawSdt);
             //Read the files
-            int offset = ConversionUtils.readUnsignedInteger(rawSdt);
-            rawSdt.seek(offset);
-            sdtFileEntries = new HashMap<>(files);
-            for (int i = 0; i < files; i++) {
+            headerSize = ConversionUtils.readUnsignedInteger(rawSdt);
+            entriesOffsets = new int[(headerSize - (int) rawSdt.getFilePointer()) / 4];
+            for (int i = 0; i < entriesOffsets.length; i++) {
+                entriesOffsets[i] = ConversionUtils.readUnsignedInteger(rawSdt);
+            }
+            //rawSdt.seek(headerSize);
+            entries = new HashMap<>(count);
+            for (int i = 0; i < count; i++) {
 
-                //Entries have 40 byte header
-                //ISize: integer;
-                //Size: integer;
-                //Filename: array[0..15] of char;
-                //SamplingRate: ushort;
-                //Unknown2: byte;
-                //type: byte;
-                //Unknown3: integer;
-                //nSamples: integer;
-                //Unknown4: integer;
                 SdtFileEntry entry = new SdtFileEntry();
-                entry.setIndexSize(ConversionUtils.readUnsignedInteger(rawSdt));
-                entry.setSize(ConversionUtils.readUnsignedInteger(rawSdt));
-                String filename = ConversionUtils.convertFileSeparators(ConversionUtils.bytesToString(rawSdt, 16).trim());
-                entry.setSamplingRate(ConversionUtils.readUnsignedShort(rawSdt));
-                entry.setUnknown2(ConversionUtils.toUnsignedByte(rawSdt.readByte()));
+                entry.setHeaderSize(ConversionUtils.readUnsignedInteger(rawSdt));
+                entry.setDataSize(ConversionUtils.readUnsignedInteger(rawSdt));
+                String filename = ConversionUtils.convertFileSeparators(ConversionUtils.readString(rawSdt, 16).trim());
+                entry.setSampleRate(ConversionUtils.readUnsignedShort(rawSdt));
+                entry.setBitsPerSample(ConversionUtils.toUnsignedByte(rawSdt.readByte()));
                 entry.setType(ConversionUtils.parseEnum(ConversionUtils.toUnsignedByte(rawSdt.readByte()), SdtFileEntry.SoundType.class));
                 entry.setUnknown3(ConversionUtils.readUnsignedInteger(rawSdt));
                 entry.setnSamples(ConversionUtils.readUnsignedInteger(rawSdt));
@@ -86,17 +82,17 @@ public class SdtFile {
                 entry.setDataOffset(rawSdt.getFilePointer());
 
                 //Skip entries of size 0, there seems to be these BLANKs
-                if (entry.getSize() == 0) {
+                if (entry.getDataSize() == 0) {
                     continue;
                 }
 
                 //Fix file extension
                 filename = fixFileExtension(filename);
 
-                sdtFileEntries.put(filename, entry);
+                entries.put(filename, entry);
 
                 //Skip to next one (or to end of file)
-                rawSdt.skipBytes(entry.getSize());
+                rawSdt.skipBytes(entry.getDataSize());
             }
         } catch (IOException e) {
 
@@ -115,7 +111,7 @@ public class SdtFile {
         //Open the WAD for extraction
         try (RandomAccessFile rawSdt = new RandomAccessFile(file, "r")) {
 
-            for (String fileName : sdtFileEntries.keySet()) {
+            for (String fileName : entries.keySet()) {
                 extractFileData(fileName, destination, rawSdt);
             }
         } catch (Exception e) {
@@ -159,19 +155,21 @@ public class SdtFile {
         ByteArrayOutputStream result = null;
 
         //Get the file
-        SdtFileEntry fileEntry = sdtFileEntries.get(fileName);
+        SdtFileEntry fileEntry = entries.get(fileName);
         if (fileEntry == null) {
             throw new RuntimeException("File " + fileName + " not found from the SDT archive!");
         }
 
         try {
+            result = new ByteArrayOutputStream();
 
+            if (fileEntry.getType() == SdtFileEntry.SoundType.WAV) {
+                addWavHeader(result, fileEntry);
+            }
             //Seek to the file we want and read it
             rawSdt.seek(fileEntry.getDataOffset());
-            byte[] bytes = new byte[fileEntry.getSize()];
+            byte[] bytes = new byte[fileEntry.getDataSize()];
             rawSdt.read(bytes);
-
-            result = new ByteArrayOutputStream();
             result.write(bytes);
 
         } catch (Exception e) {
@@ -215,13 +213,45 @@ public class SdtFile {
         return filename;
     }
 
+    private byte[] getBytes(int value, int size) {
+        byte[] result = new byte[size];
+
+        for (int i = 0; i < result.length; i++) {
+            result[i] = (byte)((value >> (i * Byte.SIZE)) & 0xFF);
+        }
+
+        return result;
+    }
+
+    private void addWavHeader(ByteArrayOutputStream stream, SdtFileEntry entry) throws IOException {
+
+        short numChannels = 1; // 1 = Mono, 2 = Stereo
+        short audioFormat = 1; // 1 = PCM
+        int chunkSize = 44 - 8 + entry.getDataSize(); //chunkSize
+        int subchunkFmtSize = 16; // subchunk1Size. For format PCM
+
+        stream.write("RIFF".getBytes()); // chunkId
+        stream.write(getBytes(chunkSize, 4));
+        stream.write("WAVE".getBytes()); // format
+        stream.write("fmt ".getBytes()); // subchunk1Id
+        stream.write(getBytes(subchunkFmtSize, 4));
+        stream.write(getBytes(audioFormat, 2));
+        stream.write(getBytes(numChannels, 2));
+        stream.write(getBytes(entry.getSampleRate(), 4)); // sampleRate
+        stream.write(getBytes(entry.getSampleRate() * numChannels * entry.getBitsPerSample() / 8, 4)); // byteRate
+        stream.write(getBytes(numChannels * entry.getBitsPerSample() / 8, 2)); // blockAlign
+        stream.write(getBytes(entry.getBitsPerSample(), 2)); // bitsPerSample
+        stream.write("data".getBytes()); // subchunk2Id
+        stream.write(getBytes(entry.getDataSize(), 4)); // subchunk2Size
+    }
+
     /**
      * Get list of different objects
      *
      * @return list of objects
      */
     public List<String> getFileNamesList() {
-        return Arrays.asList(sdtFileEntries.keySet().toArray(new String[sdtFileEntries.size()]));
+        return Arrays.asList(entries.keySet().toArray(new String[entries.size()]));
     }
 
     @Override
