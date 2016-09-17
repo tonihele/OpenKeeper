@@ -2467,7 +2467,7 @@ public final class KwdFile {
                         case SET_SYSTEM_MESSAGES:
                         case SET_TIMER_SPEECH:
                         case SET_WIDESCREEN_MODE:
-                        case SET_SPEED:  // 0 = Walk, !0 = Run
+                        case ALTER_SPEED:  // 0 = Walk, !0 = Run
                         case SET_FIGHT_FLAG: // 0 = Don`t Fight, !0 = Fight
                         case SET_PORTAL_STATUS: // 0 = Closed, !0 = Open
                             trigger.setUserData("available", (short) file.readUnsignedByte());  // 0 = Off, !0 = On
@@ -2528,7 +2528,7 @@ public final class KwdFile {
                             trigger.setUserData("pathId", ConversionUtils.readUnsignedShort(file)); // pathId
                             break;
 
-                        case DISPLAY_TEXT_MESSAGE:
+                        case DISPLAY_TEXT_STRING:
                             trigger.setUserData("textId", ConversionUtils.readUnsignedInteger(file)); // textId, limit 32767
                             // FIXME Maybe Zoom to AP X
                             ConversionUtils.checkNull(file, 4); // file.skipBytes(4);

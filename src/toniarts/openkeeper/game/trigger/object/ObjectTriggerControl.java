@@ -42,12 +42,8 @@ public class ObjectTriggerControl extends AbstractThingTriggerControl<ObjectCont
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = super.isActive(trigger);
-        if (checked) {
-            return result;
-        }
+        boolean result = false;
 
-        result = false;
         float target = 0;
 
         TriggerGeneric.TargetType targetType = trigger.getType();
@@ -55,8 +51,7 @@ public class ObjectTriggerControl extends AbstractThingTriggerControl<ObjectCont
             case OBJECT_CLAIMED:
                 return false;
             default:
-                logger.warning("Target Type not supported");
-                return false;
+                return super.isActive(trigger);
         }
 
 //        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();

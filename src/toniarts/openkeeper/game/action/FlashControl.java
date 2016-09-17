@@ -47,9 +47,6 @@ public class FlashControl extends Control {
 
     @Override
     protected void updateControl(float tpf) {
-        if (!enabled) {
-            return;
-        }
 
         if (time < 0) {
             ((ActionPoint) parent).getParent().getWorldState().flashTile(false, points);

@@ -42,12 +42,8 @@ public class PartyTriggerControl extends TriggerControl {
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = super.isActive(trigger);
-        if (checked) {
-            return result;
-        }
+        boolean result = false;
 
-        result = false;
         float target = 0;
         int value = 0;
         Party party = (Party) parent;
@@ -72,8 +68,7 @@ public class PartyTriggerControl extends TriggerControl {
                 break;
 
             default:
-                logger.warning("Target Type not supported");
-                return false;
+                return super.isActive(trigger);
         }
 
         TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();

@@ -51,12 +51,8 @@ public class PlayerTriggerControl extends TriggerControl {
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = super.isActive(trigger);
-        if (checked) {
-            return result;
-        }
+        boolean result = false;
 
-        result = false;
         int target = 0;
         int value = 0;
 
@@ -219,8 +215,7 @@ public class PlayerTriggerControl extends TriggerControl {
             case GUI_BUTTON_PRESSED:
                 return false;
             default:
-                logger.warning("Target Type not supported");
-                return false;
+                return super.isActive(trigger);
         }
 
         TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
