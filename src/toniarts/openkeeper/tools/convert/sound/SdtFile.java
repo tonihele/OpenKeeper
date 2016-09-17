@@ -25,13 +25,16 @@ import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Stores the SDT file structure and contains the methods to handle the SDT
  * archive<br>
- * SDT files contain the Dungeon Keeper II sounds as MP2 files<br>
+ * SDT files contain the Dungeon Keeper II sounds as MP2 and WAV files<br>
  * The file is LITTLE ENDIAN I might say<br>
  * The file structure definition is extracted from Dragon UnPACKer
  *
@@ -39,11 +42,13 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class SdtFile {
 
+    private static final Pattern fileExtensionPattern = Pattern.compile("([^\\s]+(\\.(?i)(mp2|wav))$)");
+
     private final File file;
     private final int count;
     private final int headerSize;
     private final int[] entriesOffsets; // seems like pointer to next item in file
-    private final HashMap<String, SdtFileEntry> entries;
+    private final Map<String, SdtFileEntry> entries;
 
     /**
      * Constructs a new Sdt file reader<br>
@@ -59,13 +64,14 @@ public class SdtFile {
 
             //Header
             count = ConversionUtils.readUnsignedInteger(rawSdt);
+
             //Read the files
             headerSize = ConversionUtils.readUnsignedInteger(rawSdt);
             entriesOffsets = new int[(headerSize - (int) rawSdt.getFilePointer()) / 4];
             for (int i = 0; i < entriesOffsets.length; i++) {
                 entriesOffsets[i] = ConversionUtils.readUnsignedInteger(rawSdt);
             }
-            //rawSdt.seek(headerSize);
+
             entries = new HashMap<>(count);
             for (int i = 0; i < count; i++) {
 
@@ -87,7 +93,7 @@ public class SdtFile {
                 }
 
                 //Fix file extension
-                filename = fixFileExtension(filename);
+                filename = fixFileExtension(entry, filename);
 
                 entries.put(filename, entry);
 
@@ -166,6 +172,7 @@ public class SdtFile {
             if (fileEntry.getType() == SdtFileEntry.SoundType.WAV) {
                 addWavHeader(result, fileEntry);
             }
+
             //Seek to the file we want and read it
             rawSdt.seek(fileEntry.getDataOffset());
             byte[] bytes = new byte[fileEntry.getDataSize()];
@@ -183,30 +190,26 @@ public class SdtFile {
 
     /**
      * Fix the file extensions, since the 16 char limit, it seems that there are
-     * broken extensions<br>
-     * And WAV extensions, don't change these, however I was unable to play them
-     * anyhow
+     * broken extensions
      *
+     * @param entry the SDT entry
      * @param filename the file name to fix
      * @return fixed file name
      */
-    private String fixFileExtension(String filename) {
-        if (!filename.toLowerCase().endsWith(".mp2")) {
-            if (filename.contains(".")) {
+    private String fixFileExtension(SdtFileEntry entry, String filename) {
+        Matcher m = fileExtensionPattern.matcher(filename.toLowerCase());
+        if (!m.find()) {
+            int index = filename.lastIndexOf(".");
+            if (index > -1) {
 
-                //Partial extension found
-                if (filename.toLowerCase().contains(".w")) {
+                // Strip the partial extension
+                filename = filename.substring(0, index);
+            }
 
-                    //It is supposed to be a WAV?
-                    filename = filename.substring(0, filename.indexOf(".")) + ".wav";
-                } else {
-
-                    //Replace with MP2
-                    filename = filename.substring(0, filename.indexOf(".")) + ".mp2";
-                }
+            // Add the extension
+            if (entry.getType() == SdtFileEntry.SoundType.WAV) {
+                filename += ".wav";
             } else {
-
-                //No extension, make it a MP2
                 filename += ".mp2";
             }
         }
@@ -217,7 +220,7 @@ public class SdtFile {
         byte[] result = new byte[size];
 
         for (int i = 0; i < result.length; i++) {
-            result[i] = (byte)((value >> (i * Byte.SIZE)) & 0xFF);
+            result[i] = (byte) ((value >> (i * Byte.SIZE)) & 0xFF);
         }
 
         return result;
