@@ -140,7 +140,7 @@ public class ThingLoader {
                         triggerId = ((Thing.KeeperCreature) obj).getTriggerId();
                     }
                     if (triggerId != 0) {
-                        creatureTriggerState.addThing(triggerId, creatureControl);
+                        creatureTriggerState.setThing(triggerId, creatureControl);
                     }
                 } else if (obj instanceof Thing.Object) {
 
@@ -152,7 +152,7 @@ public class ThingLoader {
 
                     // Trigger
                     if (objectThing.getTriggerId() != 0) {
-                        objectTriggerState.addThing(objectThing.getTriggerId(), objectControl);
+                        objectTriggerState.setThing(objectThing.getTriggerId(), objectControl);
                     }
                 }
             } catch (Exception ex) {

@@ -143,4 +143,5 @@ public interface IInteractiveControl extends Control {
      */
     public void onHoverEnd();
 
+    public short getOwnerId();
 }

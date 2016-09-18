@@ -22,6 +22,8 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -44,12 +46,8 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = super.isActive(trigger);
-        if (checked) {
-            return result;
-        }
+        boolean result = false;
 
-        result = false;
         float target = 0;
 
         TriggerGeneric.TargetType targetType = trigger.getType();
@@ -104,8 +102,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
             case CREATURE_PICKED_UP:
                 return false;
             default:
-                logger.warning("Target Type not supported");
-                return false;
+                return super.isActive(trigger);
         }
 
         TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
@@ -122,13 +119,13 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
 
         // Some triggers are bound to the creature itself
         switch (type) {
-            case ATTACH_PORTAL_GEM: {
+            case ATTACH_PORTAL_GEM:
                 break;
-            }
-            case MAKE_HUNGRY: {
+
+            case MAKE_HUNGRY:
                 break;
-            }
-            case SHOW_HEALTH_FLOWER: {
+
+            case SHOW_HEALTH_FLOWER:
                 if (instanceControl != null) {
                     stateManager.getApplication().enqueue(() -> {
 
@@ -138,23 +135,40 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
                     });
                 }
                 break;
-            }
-            // TODO: Undiscovered
-//            case ALTER_SPEED: {
-//                break;
-//            }
-            case REMOVE_FROM_MAP: {
+
+            case ALTER_SPEED:
+                boolean available = trigger.getUserData("available", short.class) != 0; // 0 = Walk, !0 = Run
                 break;
-            }
-            case SET_FIGHT_FLAG: {
+
+            case REMOVE_FROM_MAP:
                 break;
-            }
-            case ZOOM_TO: {
+
+            case SET_FIGHT_FLAG:
+                available = trigger.getUserData("available", short.class) != 0; // 0 = Don`t Fight, !0 = Fight
                 break;
-            }
-            default: {
+
+            case ZOOM_TO:
+                break;
+
+            case SET_OBJECTIVE: // Creature part. Only for Good player
+                // TODO this
+                short playerId = trigger.getUserData("playerId", short.class);
+                Creature.JobType jobType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Creature.JobType.class);
+                int apId = trigger.getUserData("actionPointId", int.class);
+                break;
+
+            case MAKE_OBJECTIVE: // Game part
+                // TODO this
+                short targetId = trigger.getUserData("targetId", short.class);
+                if (targetId == 0) {
+                    super.makeObjectiveOff();
+                }
+                //0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert;
+                break;
+
+            default:
                 super.doAction(trigger);
-            }
+
         }
     }
 

@@ -530,6 +530,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return experienceToNextLevel;
     }
 
+    @Override
     public short getOwnerId() {
         return ownerId;
     }
