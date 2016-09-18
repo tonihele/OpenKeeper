@@ -77,7 +77,8 @@ public class Keeper {
     public void initialize(final AppStateManager stateManager, final Application app) {
         int triggerId = player.getTriggerId();
         if (triggerId != 0) {
-            triggerControl = new PlayerTriggerControl(stateManager, triggerId, id);
+            triggerControl = new PlayerTriggerControl(stateManager, triggerId);
+            triggerControl.setPlayer(id);
         }
 
         // Don't create mana control for neutral nor good player

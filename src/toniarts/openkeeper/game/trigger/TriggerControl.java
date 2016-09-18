@@ -19,22 +19,16 @@ package toniarts.openkeeper.game.trigger;
 import com.jme3.app.state.AppStateManager;
 import java.awt.Point;
 import java.util.EnumSet;
-import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.action.ActionPointState;
-import toniarts.openkeeper.game.action.FlashControl;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.player.PlayerCameraControl;
-import toniarts.openkeeper.game.player.PlayerCameraRotateControl;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
-import toniarts.openkeeper.game.state.SoundState;
-import toniarts.openkeeper.game.state.SystemMessageState;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -46,8 +40,6 @@ import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.GenericRoom;
-import toniarts.openkeeper.world.room.ICreatureEntrance;
 
 /**
  *
@@ -196,14 +188,6 @@ public class TriggerControl extends Control {
                         trigger.getUserData("posY", int.class) - 1);
                 break;
 
-            case DISPLAY_OBJECTIVE:
-                // TODO this
-                int objectiveId = trigger.getUserData("objectiveId", int.class); // limit 32767
-                short apId = trigger.getUserData("actionPointId", short.class);
-                // if != 0 => Zoom To AP = this
-                zoomToAP(apId);
-                break;
-
             case MAKE:
                 TriggerAction.MakeType flag = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
                         TriggerAction.MakeType.class);
@@ -257,24 +241,6 @@ public class TriggerControl extends Control {
                 }
                 break;
 
-            case FLASH_BUTTON:
-                PlayerState player = stateManager.getState(PlayerState.class);
-                TriggerAction.MakeType buttonType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
-                        TriggerAction.MakeType.class);
-                targetId = trigger.getUserData("targetId", short.class);
-                available = trigger.getUserData("available", short.class) != 0;
-                int time = trigger.getUserData("value", int.class);
-                player.flashButton(targetId, buttonType, available, time);
-                break;
-
-            case WIN_GAME:
-                stateManager.getState(GameState.class).setEnd(true);
-                break;
-
-            case LOSE_GAME:
-                stateManager.getState(GameState.class).setEnd(false);
-                break;
-
             case CREATE_HERO_PARTY:
                 Party party = getParty(trigger.getUserData("partyId", short.class));
                 party.setType(ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Party.Type.class));
@@ -289,37 +255,10 @@ public class TriggerControl extends Control {
 
                     // Also add to the creature trigger control
                     if (creature.getTriggerId() != 0) {
-                        stateManager.getState(GameState.class).getCreatureTriggerState().addThing(creature.getTriggerId(), creatureInstance);
+                        stateManager.getState(GameState.class).getCreatureTriggerState().setThing(creature.getTriggerId(), creatureInstance);
                     }
                 }
                 party.setCreated(true);
-                break;
-
-            case SET_OBJECTIVE:
-                // TODO this
-                // FIXME maybe creature action
-                playerId = trigger.getUserData("playerId", short.class);
-                Creature.JobType jobType = ConversionUtils.parseEnum(trigger.getUserData("type", int.class), Creature.JobType.class);
-                value = trigger.getUserData("value", int.class); // FIXME unknown value
-                break;
-
-            case FLASH_ACTION_POINT:
-                ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-                time = trigger.getUserData("value", int.class);
-                available = trigger.getUserData("available", short.class) != 0;
-                if (available && time != 0) {
-                    ap.addControl(new FlashControl(time));
-                } else if (!available) {
-                    ap.removeControl(FlashControl.class);
-                }
-                ap.getParent().getWorldState().flashTile(available, ap.getPoints());
-                break;
-
-            case REVEAL_ACTION_POINT:
-                // TODO this
-                // remove fog of war from tiles in action point
-                // or
-                // add fog of war to tiles in action point
                 break;
 
             case SET_ALLIANCE:
@@ -337,85 +276,10 @@ public class TriggerControl extends Control {
                 stateManager.getState(WorldState.class).alterTerrain(p, terrainId, playerId, true);
                 break;
 
-            case PLAY_SPEECH:
-                int speechId = trigger.getUserData("speechId", int.class);
-                stateManager.getState(SoundState.class).attachSpeech(speechId);
-                stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
-                int pathId = trigger.getUserData("pathId", int.class);
-                // text show when Cinematic camera by pathId
-                boolean introduction = trigger.getUserData("introduction", short.class) != 0;
-                if (trigger.getUserData("text", short.class) == 0) {
-                    stateManager.getState(PlayerState.class).setText(speechId, introduction, pathId);
-                }
-                break;
-
-            case DISPLAY_TEXT_STRING:
-                int textId = trigger.getUserData("textId", int.class);
-                // TODO display text message
-                break;
-
-            case ZOOM_TO_ACTION_POINT:
-                apId = trigger.getUserData("targetId", short.class);
-                zoomToAP(apId);
-                break;
-
-            case ROTATE_AROUND_ACTION_POINT:
-                ap = getActionPoint(trigger.getUserData("targetId", short.class));
-                boolean isRelative = trigger.getUserData("available", short.class) == 0;
-                int angle = trigger.getUserData("angle", int.class);
-                time = trigger.getUserData("time", int.class);
-
-                PlayerCameraState pcs = stateManager.getState(PlayerCameraState.class);
-                ap.addControl(new PlayerCameraRotateControl(pcs.getCamera(), isRelative, angle, time));
-                break;
-
-            case GENERATE_CREATURE:
-                creatureId = trigger.getUserData("creatureId", short.class);
-                level = trigger.getUserData("level", short.class);
-                keeper = getPlayer((short) 0);
-
-                // Get first spawn point of the player (this flag is only for the players)
-                Set<GenericRoom> rooms = keeper.getRoomControl().getTypes().get(stateManager.getState(GameState.class).getLevelData().getPortal());
-                if (rooms == null || rooms.isEmpty()) {
-                    logger.warning("Generate creature triggered but no entrances found!");
-                    break;
-                }
-                p = ((ICreatureEntrance) rooms.iterator().next()).getEntranceCoordinate();
-                CreatureSpawnLogicState.spawnCreature(creatureId, keeper.getId(), level,
-                        stateManager.getState(GameState.class).getApplication(),
-                        stateManager.getState(WorldState.class).getThingLoader(), p, true);
-                break;
-
-            case FOLLOW_CAMERA_PATH:
-                // TODO disable control
-                //GameState.setEnabled(false);
-                pcs = stateManager.getState(PlayerCameraState.class);
-                ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-                pcs.doTransition(trigger.getUserData("pathId", short.class), ap);
-                break;
-
             case COLLAPSE_HERO_GATE:
                 // TODO this
                 p = new Point(trigger.getUserData("posX", int.class) - 1,
                         trigger.getUserData("posY", int.class) - 1);
-                break;
-
-            case SET_PORTAL_STATUS:
-                available = trigger.getUserData("available", short.class) != 0;
-                getPlayer((short) 0).getRoomControl().setPortalsOpen(available);
-                break;
-
-            case SET_WIDESCREEN_MODE:
-                PlayerState ps = stateManager.getState(PlayerState.class);
-                available = trigger.getUserData("available", short.class) != 0;
-                ps.setWideScreen(available);
-                break;
-
-            case MAKE_OBJECTIVE:
-                // TODO this
-                // FIXME maybe player action
-                targetId = trigger.getUserData("targetId", short.class);
-                //0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert;
                 break;
 
             case SET_CREATURE_MOODS:
@@ -426,16 +290,6 @@ public class TriggerControl extends Control {
             case SET_SYSTEM_MESSAGES:
                 // TODO this
                 available = trigger.getUserData("available", short.class) != 0;
-                break;
-
-            case DISPLAY_SLAB_OWNER:
-                // TODO this
-                available = trigger.getUserData("available", short.class) != 0;
-                break;
-
-            case DISPLAY_NEXT_ROOM_TYPE:
-                // TODO this
-                targetId = trigger.getUserData("targetId", short.class); // 0 = Off or roomId
                 break;
 
             case CHANGE_ROOM_OWNER:

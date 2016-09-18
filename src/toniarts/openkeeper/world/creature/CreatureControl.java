@@ -46,6 +46,7 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.task.AbstractTask;
+import toniarts.openkeeper.game.trigger.IThingTriggerControl;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.CursorFactory.CursorType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -73,7 +74,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener {
+public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener, IThingTriggerControl {
 
     public enum AnimationType {
 
@@ -530,6 +531,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return experienceToNextLevel;
     }
 
+    @Override
     public short getOwnerId() {
         return ownerId;
     }

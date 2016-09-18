@@ -22,6 +22,8 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -146,6 +148,22 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
                 break;
 
             case ZOOM_TO:
+                break;
+
+            case SET_OBJECTIVE: // Creature part. Only for Good player
+                // TODO this
+                short playerId = trigger.getUserData("playerId", short.class);
+                Creature.JobType jobType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Creature.JobType.class);
+                int apId = trigger.getUserData("actionPointId", int.class);
+                break;
+
+            case MAKE_OBJECTIVE: // Game part
+                // TODO this
+                short targetId = trigger.getUserData("targetId", short.class);
+                if (targetId == 0) {
+                    super.makeObjectiveOff();
+                }
+                //0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert;
                 break;
 
             default:

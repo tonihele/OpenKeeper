@@ -2606,7 +2606,7 @@ public final class KwdFile {
                             trigger.setUserData("playerId", (short) file.readUnsignedByte());
                             trigger.setUserData("type", (short) file.readUnsignedByte()); // Creature.JobType
                             ConversionUtils.checkNull(file, 2); // file.skipBytes(2);
-                            trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file)); // FIXME unknown value
+                            trigger.setUserData("actionPointId", ConversionUtils.readUnsignedInteger(file)); // for type = SEND_TO_ACTION_POINT
                             break;
 
                         case CREATE_HERO_PARTY:

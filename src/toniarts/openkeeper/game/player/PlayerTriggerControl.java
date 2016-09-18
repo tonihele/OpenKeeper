@@ -17,13 +17,28 @@
 package toniarts.openkeeper.game.player;
 
 import com.jme3.app.state.AppStateManager;
+import java.awt.Point;
+import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.action.ActionPoint;
+import toniarts.openkeeper.game.action.FlashControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.game.state.SoundState;
+import toniarts.openkeeper.game.state.SystemMessageState;
+import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
+import toniarts.openkeeper.view.PlayerCameraState;
+import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.world.room.ICreatureEntrance;
 
 /**
  *
@@ -42,10 +57,12 @@ public class PlayerTriggerControl extends TriggerControl {
         super();
     }
 
-    public PlayerTriggerControl(final AppStateManager stateManager, int triggerId, short playerId) {
+    public PlayerTriggerControl(final AppStateManager stateManager, int triggerId) {
         super(stateManager, triggerId);
-
         this.playerState = this.stateManager.getState(PlayerState.class);
+    }
+
+    public void setPlayer(short playerId) {
         this.playerId = playerId;
     }
 
@@ -80,6 +97,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
             case PLAYER_KILLS_CREATURES:
                 return false;
+
             case PLAYER_ROOM_SLABS:
                 short roomId = trigger.getUserData("roomId", short.class);
                 isValue = trigger.getUserData("flag", short.class) == 1;
@@ -116,6 +134,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
             case PLAYER_KEEPER_SPELL:
                 return false;
+
             case PLAYER_GOLD:
                 isValue = trigger.getUserData("flag", short.class) == 1;
 
@@ -165,6 +184,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
             case PLAYER_ENEMY_BREACHED:
                 return false;
+
             case PLAYER_CREATURE_PICKED_UP:
                 PlayerStatsControl psc = getPlayer().getStatsControl();
                 creatureId = trigger.getUserData("creatureId", short.class);
@@ -176,6 +196,7 @@ public class PlayerTriggerControl extends TriggerControl {
                     // Certain creature
                     return psc.hasPickedUp(stateManager.getState(GameState.class).getLevelData().getCreature(creatureId));
                 }
+
             case PLAYER_CREATURE_DROPPED:
                 psc = getPlayer().getStatsControl();
                 creatureId = trigger.getUserData("creatureId", short.class);
@@ -187,6 +208,7 @@ public class PlayerTriggerControl extends TriggerControl {
                     // Certain creature
                     return psc.hasDropped(stateManager.getState(GameState.class).getLevelData().getCreature(creatureId));
                 }
+
             case PLAYER_CREATURE_SLAPPED:
                 psc = getPlayer().getStatsControl();
                 creatureId = trigger.getUserData("creatureId", short.class);
@@ -209,6 +231,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
             case PLAYER_CREATURES_DYING:
                 return false;
+
             case GUI_TRANSITION_ENDS:
                 return playerState.isTransitionEnd();
 
@@ -224,6 +247,175 @@ public class PlayerTriggerControl extends TriggerControl {
         }
 
         return result;
+    }
+
+    @Override
+    protected void doAction(TriggerActionData trigger) {
+
+        TriggerAction.ActionType type = trigger.getType();
+        switch (type) {
+            case WIN_GAME: // Game part. only for keeper x
+                if (playerId == playerState.getPlayerId()) {
+                    stateManager.getState(GameState.class).setEnd(true);
+                }
+                break;
+
+            case LOSE_GAME: // Game part. only for keeper x
+                if (playerId == playerState.getPlayerId()) {
+                    stateManager.getState(GameState.class).setEnd(false);
+                }
+                break;
+
+            case GENERATE_CREATURE: // Creature part. Only for keeper x
+                short creatureId = trigger.getUserData("creatureId", short.class);
+                short level = trigger.getUserData("level", short.class);
+                Keeper keeper = getPlayer();
+
+                // Get first spawn point of the player (this flag is only for the players)
+                Set<GenericRoom> rooms = keeper.getRoomControl().getTypes().get(stateManager.getState(GameState.class).getLevelData().getPortal());
+                if (rooms == null || rooms.isEmpty()) {
+                    logger.warning("Generate creature triggered but no entrances found!");
+                    break;
+                }
+                Point p = ((ICreatureEntrance) rooms.iterator().next()).getEntranceCoordinate();
+                CreatureSpawnLogicState.spawnCreature(creatureId, keeper.getId(), level,
+                        stateManager.getState(GameState.class).getApplication(),
+                        stateManager.getState(WorldState.class).getThingLoader(), p, true);
+                break;
+
+            case SET_PORTAL_STATUS: // Creature part. Only for keeper x
+                boolean available = trigger.getUserData("available", short.class) != 0;
+                getPlayer().getRoomControl().setPortalsOpen(available);
+                break;
+
+            case FLASH_BUTTON: // gui part. Only for keeper x
+                if (playerId == playerState.getPlayerId()) {
+                    TriggerAction.MakeType buttonType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
+                            TriggerAction.MakeType.class);
+                    short targetId = trigger.getUserData("targetId", short.class);
+                    available = trigger.getUserData("available", short.class) != 0;
+                    int time = trigger.getUserData("value", int.class);
+                    playerState.flashButton(targetId, buttonType, available, time);
+                }
+                break;
+
+            case FOLLOW_CAMERA_PATH: // gui part. Only for keeper x
+                if (playerId == playerState.getPlayerId()) {
+                    // TODO disable control
+                    //GameState.setEnabled(false);
+                    PlayerCameraState pcs = stateManager.getState(PlayerCameraState.class);
+                    ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
+                    pcs.doTransition(trigger.getUserData("pathId", short.class), ap);
+                }
+                break;
+
+            case MAKE_OBJECTIVE: // Game part
+                short targetId = trigger.getUserData("targetId", short.class);
+                if (targetId == 0) { // 0 = Off
+                    makeObjectiveOff();
+                } else {
+                    logger.log(Level.WARNING, "Unsupported MAKE_OBJECTIVE target {0}", targetId);
+                }
+                break;
+
+            case FLASH_ACTION_POINT: // AP part
+                if (playerId == playerState.getPlayerId()) {
+                    ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
+                    int time = trigger.getUserData("value", int.class);
+                    available = trigger.getUserData("available", short.class) != 0;
+                    if (available && time != 0) {
+                        ap.addControl(new FlashControl(time));
+                    } else if (!available) {
+                        ap.removeControl(FlashControl.class);
+                    }
+                    ap.getParent().getWorldState().flashTile(available, ap.getPoints());
+                }
+                break;
+
+            case REVEAL_ACTION_POINT: // AP part
+                if (playerId == playerState.getPlayerId()) {
+                    // TODO this
+                    // remove fog of war from tiles in action point
+                    // or
+                    // add fog of war to tiles in action point
+                }
+                break;
+
+            case ZOOM_TO_ACTION_POINT: // AP part
+                if (playerId == playerState.getPlayerId()) {
+                    short apId = trigger.getUserData("targetId", short.class);
+                    zoomToAP(apId);
+                }
+                break;
+
+            case ROTATE_AROUND_ACTION_POINT: // AP part
+                if (playerId == playerState.getPlayerId()) {
+                    ActionPoint ap = getActionPoint(trigger.getUserData("targetId", short.class));
+                    boolean isRelative = trigger.getUserData("available", short.class) == 0;
+                    int angle = trigger.getUserData("angle", int.class);
+                    int time = trigger.getUserData("time", int.class);
+
+                    PlayerCameraState pcs = stateManager.getState(PlayerCameraState.class);
+                    ap.addControl(new PlayerCameraRotateControl(pcs.getCamera(), isRelative, angle, time));
+                }
+                break;
+
+            case DISPLAY_OBJECTIVE: // Info part
+                if (playerId == playerState.getPlayerId()) {
+                    // TODO this
+                    int objectiveId = trigger.getUserData("objectiveId", int.class); // limit 32767
+                    short apId = trigger.getUserData("actionPointId", short.class);
+                    // if != 0 => Zoom To AP = this
+                    zoomToAP(apId);
+                }
+                break;
+
+            case PLAY_SPEECH: // Info part
+                if (playerId == playerState.getPlayerId()) {
+                    int speechId = trigger.getUserData("speechId", int.class);
+                    stateManager.getState(SoundState.class).attachSpeech(speechId);
+                    stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
+                    int pathId = trigger.getUserData("pathId", int.class);
+                    // text show when Cinematic camera by pathId
+                    boolean introduction = trigger.getUserData("introduction", short.class) != 0;
+                    if (trigger.getUserData("text", short.class) == 0) {
+                        playerState.setText(speechId, introduction, pathId);
+                    }
+                }
+                break;
+
+            case DISPLAY_TEXT_STRING: // Info part
+                if (playerId == playerState.getPlayerId()) {
+                    int textId = trigger.getUserData("textId", int.class);
+                    // TODO display text message
+                }
+                break;
+
+            case SET_WIDESCREEN_MODE: // Info part
+                if (playerId == playerState.getPlayerId()) {
+                    available = trigger.getUserData("available", short.class) != 0;
+                    playerState.setWideScreen(available);
+                }
+                break;
+
+            case DISPLAY_SLAB_OWNER: // Info part
+                if (playerId == playerState.getPlayerId()) {
+                    // TODO this
+                    available = trigger.getUserData("available", short.class) != 0;
+                }
+                break;
+
+            case DISPLAY_NEXT_ROOM_TYPE: // Info part
+                if (playerId == playerState.getPlayerId()) {
+                    // TODO this
+                    targetId = trigger.getUserData("targetId", short.class); // 0 = Off or roomId
+                }
+                break;
+
+            default:
+                super.doAction(trigger);
+                break;
+        }
     }
 
     private Keeper getPlayer() {
@@ -267,5 +459,9 @@ public class PlayerTriggerControl extends TriggerControl {
         }
 
         return result;
+    }
+
+    protected void makeObjectiveOff() {
+        //TODO this
     }
 }
