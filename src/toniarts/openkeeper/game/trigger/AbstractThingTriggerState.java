@@ -24,6 +24,7 @@ import java.util.Map;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.control.IInteractiveControl;
 
 /**
  * A state for handling thing triggers
@@ -31,7 +32,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  * @param <T> the
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractThingTriggerState<T extends IThingTriggerControl> extends AbstractAppState {
+public abstract class AbstractThingTriggerState<T extends IInteractiveControl> extends AbstractAppState {
 
     private AppStateManager stateManager;
     private Main app;

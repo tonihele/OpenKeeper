@@ -21,7 +21,6 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.trigger.IThingTriggerControl;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -36,7 +35,7 @@ import toniarts.openkeeper.world.room.control.RoomObjectControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectControl extends HighlightControl implements IInteractiveControl, IThingTriggerControl {
+public class ObjectControl extends HighlightControl implements IInteractiveControl {
 
     private final WorldState worldState;
     private final toniarts.openkeeper.tools.convert.map.Object object;
