@@ -42,8 +42,7 @@ public class BankMapFile {
     private final int unknown2; // 0, 32769, 0xFFFFFFFF // not used
     //
     private final File file;
-    private final BankMapFileEntry[] bankMapFileEntries;
-    private final String[] soundArchiveEntries;
+    private final BankMapFileEntry[] entries;
 
     /**
      * Reads the *Bank.map file structure
@@ -70,11 +69,11 @@ public class BankMapFile {
 
             unknown1 = ConversionUtils.readUnsignedInteger(rawMap);
             unknown2 = ConversionUtils.readUnsignedInteger(rawMap);
-            int entries = ConversionUtils.readUnsignedInteger(rawMap);
+            int count = ConversionUtils.readUnsignedInteger(rawMap);
 
             //Read the entries
-            bankMapFileEntries = new BankMapFileEntry[entries];
-            for (int i = 0; i < bankMapFileEntries.length; i++) {
+            entries = new BankMapFileEntry[count];
+            for (int i = 0; i < entries.length; i++) {
 
                 //Entries are 11 bytes of size
                 BankMapFileEntry entry = new BankMapFileEntry();
@@ -83,19 +82,15 @@ public class BankMapFile {
                 entry.setUnknown3(ConversionUtils.readUnsignedShort(rawMap));
                 entry.setUnknown4((short) rawMap.readUnsignedByte());
 
-                bankMapFileEntries[i] = entry;
+                entries[i] = entry;
             }
 
             // After the entries there are names (that point to the SDT archives it seems)
             // It seems the amount is the same as entries
-            soundArchiveEntries = new String[entries];
-            for (int i = 0; i < soundArchiveEntries.length; i++) {
-
+            for (BankMapFileEntry entry : entries) {
                 // 4 bytes = length of the name (including the null terminator)
                 int length = ConversionUtils.readUnsignedInteger(rawMap);
-                byte[] bytes = new byte[length];
-                rawMap.read(bytes);
-                soundArchiveEntries[i] = ConversionUtils.toString(bytes).trim();
+                entry.setArchive(ConversionUtils.readString(rawMap, length).trim());
             }
 
         } catch (IOException e) {

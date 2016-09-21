@@ -42,11 +42,13 @@ public class SfxMapFile {
     private final File file;
     private SfxMapEntry[] entries;
 
-    private class SfxMapEntry { // 24 bytes
+    private class SfxMapEntry {
 
-        final static byte SIZE = 24;
-        protected int quantity;
-        protected byte[] unknown = new byte[8];
+        protected final static byte SIZE = 24; // 24 bytes
+
+        protected int unknown_1;
+        protected int unknown_2;
+        protected int unknown_3;
         protected float minDistance; // sounds are at full volume if closer than this
         protected float maxDistance; // sounds are muted if further away than this
         protected float scale; // relative amount to adjust rolloff
@@ -60,32 +62,34 @@ public class SfxMapFile {
         }
     }
 
-    private class SfxMapEEntry { // 20 bytes
+    private class SfxMapEEntry {
 
-        final static byte SIZE = 20;
-        protected int unknown;
-        protected int quantity;
-        protected byte[] unknowns = new byte[12];
+        protected final static byte SIZE = 20; // 20 bytes
+        /**
+         * global index of this entry. Seems like User Tag in QSound
+         */
+        protected int index;
+        protected int unknown_1;
+        protected int unknown_2;
+        protected int unknown_3;
         protected SfxMapEEEntry[] entries;
 
         @Override
         public String toString() {
-            return "\n\t\tSfxMapEEntry{" + "entries=" + Arrays.toString(entries) + "}\n\t\t";
+            return "\n\t\tSfxMapEEntry{" + "index=" + index
+                    + ", entries=" + Arrays.toString(entries) + "}\n\t\t";
         }
     }
 
-    private class SfxMapEEEntry { // 42 bytes
+    private class SfxMapEEEntry {
 
-        final static byte SIZE = 42;
-        final static byte SIZE_ADDITIONAL = 8;
-        protected int quantity;
-        protected int shift;  // if shift need some magic
+        protected final static byte SIZE = 42; // 42 bytes
+
         protected int end_pointer_position; // I think not needed
         protected byte[] unknown = new byte[26];
         protected int data_pointer_next; // I think not needed
         protected SfxMapEEEEntry[] entries;
-        // data_pointer_next + shift * 8 = file_pointer_position of next SfxMapEntry
-        protected SfxMapData[] data; // why ?????????
+        protected SfxMapData[] data;
 
         @Override
         public String toString() {
@@ -94,22 +98,32 @@ public class SfxMapFile {
         }
     }
 
-    private class SfxMapEEEEntry { // 16 bytes
+    private class SfxMapEEEEntry {
 
-        final static byte SIZE = 16;
+        protected final static byte SIZE = 16; // 16 bytes
+        /**
+         * 1-based entry id in *.SDT file
+         */
         protected int index;
-        protected byte[] unknown = new byte[8];
-        // if (edi_2) { need some magic; }
-        protected int edi_2;
+        protected int unknown_1;
+        protected int unknown_2;
+        /**
+         * 1-based archive id in *BANK.map file
+         * if (archiveId) { need some magic; }
+         */
+        protected int archiveId;
 
         @Override
         public String toString() {
             return "\n\t\t\t\tSfxMapEEEEntry{" + "index=" + index
-                    + ", edi_2=" + edi_2 + "}\n\t\t\t\t";
+                    + ", edi_2=" + archiveId + "}\n\t\t\t\t";
         }
     }
 
-    private class SfxMapData { // 8 bytes
+    private class SfxMapData {
+
+        protected final static byte SIZE = 8; // 8 bytes
+
         protected int index;
         protected byte[] unknown2 = new byte[4];
 
@@ -140,62 +154,75 @@ public class SfxMapFile {
 
             unknown_1 = ConversionUtils.readInteger(rawMap);
             unknown_2 = ConversionUtils.readInteger(rawMap);
-            int quantity = ConversionUtils.readUnsignedInteger(rawMap);
+            int count = ConversionUtils.readUnsignedInteger(rawMap);
 
-            entries = new SfxMapEntry[quantity];
+            entries = new SfxMapEntry[count];
             for (int i = 0; i < entries.length; i++) {
                 SfxMapEntry entry = new SfxMapEntry();
-                entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
-                rawMap.read(entry.unknown);
+                count = ConversionUtils.readUnsignedInteger(rawMap);
+                entry.entries = new SfxMapEEntry[count];
+                entry.unknown_1 = ConversionUtils.readUnsignedInteger(rawMap);
+                entry.unknown_2 = ConversionUtils.readUnsignedShort(rawMap);
+                entry.unknown_3 = ConversionUtils.readUnsignedShort(rawMap);
                 entry.minDistance = ConversionUtils.readFloat(rawMap);
                 entry.maxDistance = ConversionUtils.readFloat(rawMap);
                 entry.scale = ConversionUtils.readFloat(rawMap);
-                entry.entries = new SfxMapEEntry[entry.quantity];
+
                 entries[i] = entry;
             }
 
             for (SfxMapEntry entrie : entries) {
-                for (int j = 0; j < entrie.entries.length; j++) {
+                for (int i = 0; i < entrie.entries.length; i++) {
                     SfxMapEEntry entry = new SfxMapEEntry();
-                    entry.unknown = ConversionUtils.readInteger(rawMap);  // readUnsignedInteger
-                    entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
-                    rawMap.read(entry.unknowns);
-                    entry.entries = new SfxMapEEEntry[entry.quantity];
-                    entrie.entries[j] = entry;
+                    entry.index = ConversionUtils.readUnsignedInteger(rawMap);
+                    count = ConversionUtils.readUnsignedInteger(rawMap);
+                    entry.entries = new SfxMapEEEntry[count];
+                    entry.unknown_1 = ConversionUtils.readUnsignedInteger(rawMap);
+                    entry.unknown_2 = ConversionUtils.readUnsignedInteger(rawMap);
+                    entry.unknown_3 = ConversionUtils.readUnsignedInteger(rawMap);
+                    entrie.entries[i] = entry;
                 }
             }
 
             for (SfxMapEntry entrie : entries) {
                 for (SfxMapEEntry eEntrie : entrie.entries) {
 
-                    for (int k = 0; k < eEntrie.entries.length; k++) {
+                    for (int i = 0; i < eEntrie.entries.length; i++) {
                         SfxMapEEEntry entry = new SfxMapEEEntry();
-                        entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
-                        entry.shift = ConversionUtils.readInteger(rawMap); // readUnsignedInteger
+
+                        count = ConversionUtils.readUnsignedInteger(rawMap);
+                        entry.entries = new SfxMapEEEEntry[count];
+
+                        count = ConversionUtils.readUnsignedInteger(rawMap);
+                        if (count != 0) {
+                            entry.data = new SfxMapData[count];
+                        }
+
                         entry.end_pointer_position = ConversionUtils.readInteger(rawMap);
                         rawMap.read(entry.unknown);
                         entry.data_pointer_next = ConversionUtils.readInteger(rawMap); // readUnsignedInteger
-                        entry.entries = new SfxMapEEEEntry[entry.quantity];
-                        eEntrie.entries[k] = entry;
+
+                        eEntrie.entries[i] = entry;
                     }
 
                     for (SfxMapEEEntry eeEntrie : eEntrie.entries) {
-                        for (int n = 0; n < eeEntrie.entries.length; n++) {
+                        for (int i = 0; i < eeEntrie.entries.length; i++) {
                             SfxMapEEEEntry entry = new SfxMapEEEEntry();
                             entry.index = ConversionUtils.readUnsignedInteger(rawMap);
-                            rawMap.read(entry.unknown);
-                            entry.edi_2 = ConversionUtils.readUnsignedInteger(rawMap);
-                            eeEntrie.entries[n] = entry;
+                            entry.unknown_1 = ConversionUtils.readUnsignedInteger(rawMap);
+                            entry.unknown_2 = ConversionUtils.readUnsignedInteger(rawMap);
+                            entry.archiveId = ConversionUtils.readUnsignedInteger(rawMap);
+
+                            eeEntrie.entries[i] = entry;
                         }
 
-                        if (eeEntrie.shift != 0) {
-                            eeEntrie.data = new SfxMapData[eeEntrie.shift];
-                            for (int l = 0; l < eeEntrie.data.length; l++) {
+                        if (eeEntrie.data != null) {
+                            for (int j = 0; j < eeEntrie.data.length; j++) {
                                 SfxMapData data = new SfxMapData();
                                 data.index = ConversionUtils.readUnsignedInteger(rawMap);
                                 rawMap.read(data.unknown2);
 
-                                eeEntrie.data[l] = data;
+                                eeEntrie.data[j] = data;
                             }
                         }
                     }
