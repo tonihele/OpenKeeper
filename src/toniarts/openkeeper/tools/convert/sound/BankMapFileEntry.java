@@ -27,6 +27,7 @@ class BankMapFileEntry {
     private int unknown2; // 6746904, 6746032, 6746020, 6683824
     private int unknown3;
     private short unknown4;
+    private String archive;
 
     public long getUnknown1() {
         return unknown1;
@@ -58,5 +59,13 @@ class BankMapFileEntry {
 
     public void setUnknown4(short unknown4) {
         this.unknown4 = unknown4;
+    }
+
+    public String getArchive() {
+        return archive;
+    }
+
+    public void setArchive(String archive) {
+        this.archive = archive;
     }
 }

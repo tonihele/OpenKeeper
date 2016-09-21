@@ -46,6 +46,7 @@ public class SdtFileEntry {
 
     private int headerSize; // dataSize of header data include this field (exclude data field)
     private int dataSize;
+    private String name;
     private int sampleRate; // 22050
     private short bitsPerSample; // 16 bits
     private SoundType type; // 36 on mp2 (64kbit/s mono), 37 on mp2 (112kbit/s stereo), 2 on wav, 0 on blanks
@@ -69,6 +70,14 @@ public class SdtFileEntry {
 
     protected void setDataSize(int size) {
         this.dataSize = size;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public int getSampleRate() {
