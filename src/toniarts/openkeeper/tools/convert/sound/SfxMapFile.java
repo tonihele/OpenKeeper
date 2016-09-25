@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  */
 public class SfxMapFile {
 
-    private final static int HEADER_ID[] = new int[] {
+    private final static int HEADER_ID[] = new int[]{
         0xE9612C00, // dword_674038
         0x11D231D0, // dword_67403C
         0xB00009B4, // dword_674040
@@ -42,17 +42,17 @@ public class SfxMapFile {
     private final File file;
     private SfxMapEntry[] entries;
 
-    private class SfxMapEntry {
+    public class SfxMapEntry {
 
         protected final static byte SIZE = 24; // 24 bytes
 
-        protected int unknown_1;
-        protected int unknown_2;
-        protected int unknown_3;
-        protected float minDistance; // sounds are at full volume if closer than this
-        protected float maxDistance; // sounds are muted if further away than this
-        protected float scale; // relative amount to adjust rolloff
-        protected SfxMapEEntry[] entries;
+        public int unknown_1;
+        public int unknown_2;
+        public int unknown_3;
+        public float minDistance; // sounds are at full volume if closer than this
+        public float maxDistance; // sounds are muted if further away than this
+        public float scale; // relative amount to adjust rolloff
+        public SfxMapEEntry[] entries;
 
         @Override
         public String toString() {
@@ -62,17 +62,17 @@ public class SfxMapFile {
         }
     }
 
-    private class SfxMapEEntry {
+    public class SfxMapEEntry {
 
         protected final static byte SIZE = 20; // 20 bytes
         /**
          * global index of this entry. Seems like User Tag in QSound
          */
-        protected int index;
-        protected int unknown_1;
-        protected int unknown_2;
-        protected int unknown_3;
-        protected SfxMapEEEntry[] entries;
+        public int index;
+        public int unknown_1;
+        public int unknown_2;
+        public int unknown_3;
+        public SfxMapEEEntry[] entries;
 
         @Override
         public String toString() {
@@ -81,15 +81,15 @@ public class SfxMapFile {
         }
     }
 
-    private class SfxMapEEEntry {
+    public class SfxMapEEEntry {
 
         protected final static byte SIZE = 42; // 42 bytes
 
-        protected int end_pointer_position; // I think not needed
-        protected byte[] unknown = new byte[26];
-        protected int data_pointer_next; // I think not needed
-        protected SfxMapEEEEntry[] entries;
-        protected SfxMapData[] data;
+        public int end_pointer_position; // I think not needed
+        public byte[] unknown = new byte[26];
+        public int data_pointer_next; // I think not needed
+        public SfxMapEEEEntry[] entries;
+        public SfxMapData[] data;
 
         @Override
         public String toString() {
@@ -98,20 +98,20 @@ public class SfxMapFile {
         }
     }
 
-    private class SfxMapEEEEntry {
+    public class SfxMapEEEEntry {
 
         protected final static byte SIZE = 16; // 16 bytes
         /**
          * 1-based entry id in *.SDT file
          */
-        protected int index;
-        protected int unknown_1;
-        protected int unknown_2;
+        public int index;
+        public int unknown_1;
+        public int unknown_2;
         /**
-         * 1-based archive id in *BANK.map file
-         * if (archiveId) { need some magic; }
+         * 1-based archive id in *BANK.map file if (archiveId) { need some
+         * magic; }
          */
-        protected int archiveId;
+        public int archiveId;
 
         @Override
         public String toString() {
@@ -120,11 +120,11 @@ public class SfxMapFile {
         }
     }
 
-    private class SfxMapData {
+    public class SfxMapData {
 
         protected final static byte SIZE = 8; // 8 bytes
 
-        protected int index;
+        public int index;
         protected byte[] unknown2 = new byte[4];
 
         @Override
@@ -140,7 +140,7 @@ public class SfxMapFile {
         //Read the file
         try (RandomAccessFile rawMap = new RandomAccessFile(file, "r")) {
             //Header
-            int[] check = new int[] {
+            int[] check = new int[]{
                 ConversionUtils.readInteger(rawMap),
                 ConversionUtils.readInteger(rawMap),
                 ConversionUtils.readInteger(rawMap),
@@ -235,6 +235,10 @@ public class SfxMapFile {
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the file " + file + "!", e);
         }
+    }
+
+    public SfxMapEntry[] getEntries() {
+        return entries;
     }
 
     @Override

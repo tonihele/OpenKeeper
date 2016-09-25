@@ -34,6 +34,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
+import toniarts.openkeeper.world.room.control.RoomAudioControl;
 import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
 /**
@@ -136,6 +137,10 @@ public abstract class GenericRoom {
             objectsNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
             getRootNode().attachChild(objectsNode);
         }
+
+        // Add the audio control
+        getRootNode().addControl(new RoomAudioControl(roomInstance.getRoom(), assetManager));
+
         return getRootNode();
     }
 

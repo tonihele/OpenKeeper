@@ -48,6 +48,7 @@ public class SdtFile {
     private final int count;
     private final int[] entriesOffsets;
     private final Map<String, SdtFileEntry> entries;
+    private final Map<Integer, SdtFileEntry> indexedEntries;
 
     /**
      * Constructs a new Sdt file reader<br>
@@ -71,6 +72,7 @@ public class SdtFile {
             }
 
             entries = new HashMap<>(count);
+            indexedEntries = new HashMap<>(count);
             for (int i = 0; i < count; i++) {
 
                 SdtFileEntry entry = new SdtFileEntry();
@@ -96,6 +98,7 @@ public class SdtFile {
                         ConversionUtils.convertFileSeparators(entry.getName()));
 
                 entries.put(filename, entry);
+                indexedEntries.put(i, entry);
 
                 //Skip to next one (or to end of file)
                 rawSdt.skipBytes(entry.getDataSize());
@@ -196,7 +199,7 @@ public class SdtFile {
      * @param filename the file name to fix
      * @return fixed file name
      */
-    private String fixFileExtension(SdtFileEntry entry, String filename) {
+    public static String fixFileExtension(SdtFileEntry entry, String filename) {
         Matcher m = fileExtensionPattern.matcher(filename.toLowerCase());
         if (!m.find()) {
             int index = filename.lastIndexOf(".");
@@ -255,6 +258,10 @@ public class SdtFile {
      */
     public List<String> getFileNamesList() {
         return Arrays.asList(entries.keySet().toArray(new String[entries.size()]));
+    }
+
+    public SdtFileEntry getEntry(int index) {
+        return indexedEntries.get(index);
     }
 
     @Override

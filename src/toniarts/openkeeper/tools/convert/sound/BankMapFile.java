@@ -19,6 +19,8 @@ package toniarts.openkeeper.tools.convert.sound;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.List;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
@@ -31,7 +33,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  */
 public class BankMapFile {
 
-    private final static int HEADER_ID[] = new int[] {
+    private final static int HEADER_ID[] = new int[]{
         0xE9612C01, // dword_674048
         0x11D231D0, // dword_67404C
         0xA00009B4, // dword_674050
@@ -42,7 +44,7 @@ public class BankMapFile {
     private final int unknown2; // 0, 32769, 0xFFFFFFFF // not used
     //
     private final File file;
-    private final BankMapFileEntry[] entries;
+    private final List<BankMapFileEntry> entries;
 
     /**
      * Reads the *Bank.map file structure
@@ -55,7 +57,7 @@ public class BankMapFile {
         //Read the file
         try (RandomAccessFile rawMap = new RandomAccessFile(file, "r")) {
             //Header
-            int[] check = new int[] {
+            int[] check = new int[]{
                 ConversionUtils.readInteger(rawMap),
                 ConversionUtils.readInteger(rawMap),
                 ConversionUtils.readInteger(rawMap),
@@ -72,8 +74,8 @@ public class BankMapFile {
             int count = ConversionUtils.readUnsignedInteger(rawMap);
 
             //Read the entries
-            entries = new BankMapFileEntry[count];
-            for (int i = 0; i < entries.length; i++) {
+            entries = new ArrayList<>(count);
+            for (int i = 0; i < count; i++) {
 
                 //Entries are 11 bytes of size
                 BankMapFileEntry entry = new BankMapFileEntry();
@@ -82,7 +84,7 @@ public class BankMapFile {
                 entry.setUnknown3(ConversionUtils.readUnsignedShort(rawMap));
                 entry.setUnknown4((short) rawMap.readUnsignedByte());
 
-                entries[i] = entry;
+                entries.add(entry);
             }
 
             // After the entries there are names (that point to the SDT archives it seems)
@@ -104,4 +106,9 @@ public class BankMapFile {
     public String toString() {
         return file.getName();
     }
+
+    public List<BankMapFileEntry> getEntries() {
+        return entries;
+    }
+
 }

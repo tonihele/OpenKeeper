@@ -21,7 +21,7 @@ package toniarts.openkeeper.tools.convert.sound;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-class BankMapFileEntry {
+public class BankMapFileEntry {
 
     private long unknown1; // 0xFFFFFFFF in all files. resets to 0
     private int unknown2; // 6746904, 6746032, 6746020, 6683824
@@ -57,7 +57,7 @@ class BankMapFileEntry {
         return unknown4;
     }
 
-    public void setUnknown4(short unknown4) {
+    protected void setUnknown4(short unknown4) {
         this.unknown4 = unknown4;
     }
 
@@ -65,7 +65,7 @@ class BankMapFileEntry {
         return archive;
     }
 
-    public void setArchive(String archive) {
+    protected void setArchive(String archive) {
         this.archive = archive;
     }
 }
