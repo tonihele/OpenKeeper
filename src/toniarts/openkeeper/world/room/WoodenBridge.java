@@ -27,6 +27,7 @@ import toniarts.openkeeper.world.MapLoader;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 import static toniarts.openkeeper.world.MapLoader.loadAsset;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
@@ -35,8 +36,8 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  */
 public class WoodenBridge extends Quad {
 
-    public WoodenBridge(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState) {
-        super(assetManager, roomInstance, objectLoader, worldState);
+    public WoodenBridge(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
+        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
     }
 
     @Override

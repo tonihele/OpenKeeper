@@ -20,6 +20,7 @@ import com.jme3.asset.AssetManager;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
@@ -29,8 +30,8 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  */
 public class Graveyard extends Normal {
 
-    public Graveyard(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState) {
-        super(assetManager, roomInstance, objectLoader, worldState);
+    public Graveyard(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
+        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
     }
 
     @Override

@@ -86,10 +86,10 @@ public abstract class GenericRoom {
     protected final ObjectLoader objectLoader;
 
     public GenericRoom(AssetManager assetManager,
-            RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState) {
+            RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         this.assetManager = assetManager;
         this.roomInstance = roomInstance;
-        this.effectManager = worldState.getEffectManager();
+        this.effectManager = effectManager;
         this.objectLoader = objectLoader;
         this.worldState = worldState;
 

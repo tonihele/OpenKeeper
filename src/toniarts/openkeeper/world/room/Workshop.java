@@ -26,6 +26,7 @@ import java.awt.Point;
 import java.util.EnumSet;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
@@ -37,8 +38,8 @@ public class Workshop extends Normal {
 
     private boolean[][] bigTiles;
 
-    public Workshop(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState) {
-        super(assetManager, roomInstance, objectLoader, worldState);
+    public Workshop(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
+        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
     }
 
     @Override
