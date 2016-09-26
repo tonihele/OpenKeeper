@@ -530,6 +530,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return experienceToNextLevel;
     }
 
+    @Override
     public short getOwnerId() {
         return ownerId;
     }
@@ -862,7 +863,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public ArtResource getInHandMesh() {
         return creature.getAnimInHandResource();
     }
-    
+
     @Override
     public ArtResource getInHandIcon() {
         return creature.getIcon1Resource();

@@ -27,33 +27,26 @@ import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
+import java.awt.Point;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.FunnyCameraContol;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  *
  * @author ArchDemon
  */
+public class PossessionCameraState extends AbstractPauseAwareState implements ActionListener, AnalogListener {
 
-public class PossessionCameraState  extends AbstractPauseAwareState implements ActionListener, AnalogListener {
     private Main app;
-    //private final GameState gameState;
-    //private Node rootNode;
-    //private AssetManager assetManager;
-    //private AppStateManager stateManager;
     private InputManager inputManager;
-    //private ViewPort viewPort;
-    private final Thing.KeeperCreature target;
-    private final Creature creature;
 
-    //private boolean actionIsPressed = false;
-    //private boolean cancelIsPressed = false;
-    //private boolean startSet = false;
+    private CreatureControl target;
+    private Creature creature;
     public Vector2f mousePosition = Vector2f.ZERO;
 
     private PossessionCamera camera;
@@ -70,7 +63,7 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
     private static final String SPECIAL_KEY_ALT = "SPECIAL_KEY_ALT";
     private static final String SPECIAL_KEY_SHIFT = "SPECIAL_KEY_SHIFT";
 
-    private static String[] mappings = new String[]{
+    private static final String[] mappings = new String[]{
         // view
         CAMERA_VIEW_LEFT,
         CAMERA_VIEW_UP,
@@ -93,45 +86,55 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
         // group
         Settings.Setting.POSSESSED_SELECT_GROUP.name(),
         Settings.Setting.POSSESSED_REMOVE_FROM_GROUP.name(),
-
-        Settings.Setting.POSSESSED_PICK_LOCK_OR_DISARM.name(),
-        // special
-        //SPECIAL_KEY_CONTROL,
-        //SPECIAL_KEY_ALT,
-        //SPECIAL_KEY_SHIFT,
+        Settings.Setting.POSSESSED_PICK_LOCK_OR_DISARM.name(), // special
+    //SPECIAL_KEY_CONTROL,
+    //SPECIAL_KEY_ALT,
+    //SPECIAL_KEY_SHIFT,
     };
 
     private static final Logger logger = Logger.getLogger(PossessionCameraState.class.getName());
 
-    public PossessionCameraState(Thing.KeeperCreature target, KwdFile kwd) {
-        this.target = target;
-        this.creature = kwd.getCreature(this.target.getCreatureId());
+    public PossessionCameraState(boolean enabled) {
+        super.setEnabled(enabled);
     }
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
-        this.app = (Main) app;
-        //rootNode = this.app.getRootNode();
-        //assetManager = this.app.getAssetManager();
-        //this.stateManager = this.app.getStateManager();
-        inputManager = this.app.getInputManager();
-        //viewPort = this.app.getViewPort();
 
-        // The camera
-        if (camera == null) {
+        this.app = (Main) app;
+        inputManager = this.app.getInputManager();
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+
+        if (enabled) {
+            // The camera
             camera = new PossessionCamera(app.getCamera(), creature.getSpeed(), creature.getFirstPersonOscillateScale());
+            loadCameraStartLocation();
+
+            FunnyCameraContol fcc = new FunnyCameraContol(app.getCamera(), target.getSpatial());
+            fcc.setLookAtOffset(new Vector3f(0, creature.getEyeHeight(), 0));
+            fcc.setHeight(creature.getHeight());
+            fcc.setDistance(1.5f);
+
+            // The controls
+            registerInput();
+        } else {
+            unregisterInput();
+            target.getSpatial().removeControl(FunnyCameraContol.class);
+            target = null;
         }
-        loadCameraStartLocation();
-        // The controls
-        registerInput();
     }
 
     /**
      * Load the initial camera position
      */
     private void loadCameraStartLocation() {
-        Vector3f startLocation = new Vector3f(target.getPosX(), target.getPosZ(), target.getPosY());
+        Point p = target.getCreatureCoordinates();
+        Vector3f startLocation = new Vector3f(p.x, target.getHeight(), p.y);
         Camera cam = app.getCamera();
         cam.setLocation(startLocation.addLocal(0, creature.getEyeHeight(), 0));
         //cam.setFrustumPerspective(45, cam.getWidth() / cam.getHeight(), 0.1f, creature.getDistanceCanSee() * 10);
@@ -158,7 +161,6 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
         //inputManager.addMapping(SPECIAL_KEY_ALT, new KeyTrigger(KeyInput.KEY_LMENU), new KeyTrigger(KeyInput.KEY_RMENU));
         //inputManager.addMapping(SPECIAL_KEY_CONTROL, new KeyTrigger(KeyInput.KEY_LCONTROL), new KeyTrigger(KeyInput.KEY_RCONTROL));
         //inputManager.addMapping(SPECIAL_KEY_SHIFT, new KeyTrigger(KeyInput.KEY_LSHIFT), new KeyTrigger(KeyInput.KEY_RSHIFT));
-
         inputManager.addListener(this, mappings);
     }
 
@@ -195,7 +197,7 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
         }
 
         if (name.equals(CAMERA_VIEW_LEFT)) {
-             camera.rotate(value, true);
+            camera.rotate(value, true);
         } else if (name.equals(CAMERA_VIEW_RIGHT)) {
             camera.rotate(-value, true);
         } else if (name.equals(CAMERA_VIEW_UP)) {
@@ -238,4 +240,8 @@ public class PossessionCameraState  extends AbstractPauseAwareState implements A
         app.getListener().setRotation(app.getCamera().getRotation());
     }
 
+    public void setTarget(CreatureControl target) {
+        this.target = target;
+        creature = this.target.getCreature();
+    }
 }

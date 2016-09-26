@@ -24,6 +24,7 @@ import java.util.Map;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.control.IInteractiveControl;
 
 /**
  * A state for handling thing triggers
@@ -31,7 +32,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  * @param <T> the
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractThingTriggerState<T> extends AbstractAppState {
+public abstract class AbstractThingTriggerState<T extends IInteractiveControl> extends AbstractAppState {
 
     private AppStateManager stateManager;
     private Main app;
@@ -79,12 +80,12 @@ public abstract class AbstractThingTriggerState<T> extends AbstractAppState {
     }
 
     /**
-     * Add a thing instance to a thing trigger
+     * Set a thing instance to a thing trigger
      *
      * @param triggerId the trigger ID
      * @param instanceControl the thing instance
      */
-    public void addThing(int triggerId, T instanceControl) {
-        thingTriggers.get(triggerId).addThing(instanceControl);
+    public void setThing(int triggerId, T instanceControl) {
+        thingTriggers.get(triggerId).setThing(instanceControl);
     }
 }

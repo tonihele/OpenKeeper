@@ -18,6 +18,8 @@ package toniarts.openkeeper.game.trigger;
 
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.player.PlayerTriggerControl;
+import toniarts.openkeeper.world.control.IInteractiveControl;
 
 /**
  * A base trigger control for Things, they seem to be very similar
@@ -25,7 +27,7 @@ import java.util.logging.Logger;
  * @param <T> the thing control type
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractThingTriggerControl<T> extends TriggerControl {
+public abstract class AbstractThingTriggerControl<T extends IInteractiveControl> extends PlayerTriggerControl {
 
     protected T instanceControl;
     private static final Logger logger = Logger.getLogger(AbstractThingTriggerControl.class.getName());
@@ -39,11 +41,12 @@ public abstract class AbstractThingTriggerControl<T> extends TriggerControl {
     }
 
     /**
-     * Add the actual thing instance to this trigger control
+     * Set the actual thing instance to this trigger control
      *
      * @param thingInstance the thing instance
      */
-    protected void addThing(T thingInstance) {
+    protected void setThing(T thingInstance) {
         instanceControl = thingInstance;
+        super.setPlayer(instanceControl.getOwnerId());
     }
 }

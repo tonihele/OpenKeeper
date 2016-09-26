@@ -18,15 +18,16 @@ package toniarts.openkeeper.game.data;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 
-public class Level {
+public class Level extends GeneralLevel {
+
+    private KwdFile kwdFile;
+    private static final Logger logger = Logger.getLogger(Level.class.getName());
 
     public enum LevelType {
 
@@ -35,8 +36,6 @@ public class Level {
     private final LevelType type;
     private final int level;
     private final String variation;
-    private KwdFile kwdFile = null;
-    private static final Logger logger = Logger.getLogger(Level.class.getName());
 
     public Level(LevelType type, int level, String variation) {
         this.type = type;
@@ -56,52 +55,22 @@ public class Level {
         return variation != null ? variation : "";
     }
 
-    public String getFullName() {
-        return getType().toString() + (getLevel() > 0 ? getLevel() : "") + getVariation();
+    @Override
+    public String getFileName() {
+        return String.format("%s%s%s", getType(), getLevel() > 0 ? getLevel() : "", getVariation());
     }
 
+    @Override
     public KwdFile getKwdFile() {
         if (kwdFile == null) {
             try {
-
                 // Load the actual level info
                 kwdFile = new KwdFile(Main.getDkIIFolder(),
-                        new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), AssetsConverter.MAPS_FOLDER + String.format("%s%s%s", getType(), getLevel(), getVariation()) + ".kwd")), false);
+                        new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), AssetsConverter.MAPS_FOLDER + getFileName() + ".kwd")), false);
             } catch (IOException ex) {
                 logger.log(java.util.logging.Level.SEVERE, "Failed to load the level file!", ex);
             }
         }
         return kwdFile;
-    }
-
-    /**
-     * Get the selected level title
-     *
-     * @return level title
-     */
-    public String getTitle() {
-        ResourceBundle dict = getResourceBundle();
-        StringBuilder sb = new StringBuilder();
-        String name = dict.getString("0");
-        if (!name.equals("")) {
-            sb.append("\"");
-            sb.append(name);
-            sb.append("\" - ");
-        }
-        sb.append(dict.getString("1"));
-        return sb.toString();
-    }
-
-    /**
-     * Gets the selected level briefing resource bundle
-     *
-     * @return the resource bundle
-     */
-    public ResourceBundle getResourceBundle() {
-        GameLevel gameLevel = getKwdFile().getGameLevel();
-        if (gameLevel.getTextTableId().getLevelBriefingDictFile() != null) {
-            return Main.getResourceBundle("Interface/Texts/".concat(gameLevel.getTextTableId().getLevelBriefingDictFile()));
-        }
-        return null;
     }
 }

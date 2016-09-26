@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
@@ -28,83 +29,108 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  */
 public class SfxMapFile {
 
-    final static int dword_674038 = 0xE9612C00;
-    final static int dword_67403C = 0x11D231D0;
-    final static int dword_674040 = 0xB00009B4;
-    final static int dword_674044 = 0x03F293C9;
-    private final File file;
-    private SfxMapHeader header;
-    private SfxMapHeaderEntries[] entries;
+    private final static int HEADER_ID[] = new int[] {
+        0xE9612C00, // dword_674038
+        0x11D231D0, // dword_67403C
+        0xB00009B4, // dword_674040
+        0x03F293C9 // dword_674044
+    };
+    // Header
+    private final int unknown_1; // not used
+    private final int unknown_2; // not used
 
-    private class SfxMapHeader { // 20 bytes + 8 bytes
+    private final File file;
+    private SfxMapEntry[] entries;
+
+    private class SfxMapEntry {
+
+        protected final static byte SIZE = 24; // 24 bytes
 
         protected int unknown_1;
         protected int unknown_2;
-        protected int quantity;
+        protected int unknown_3;
+        protected float minDistance; // sounds are at full volume if closer than this
+        protected float maxDistance; // sounds are muted if further away than this
+        protected float scale; // relative amount to adjust rolloff
+        protected SfxMapEEntry[] entries;
 
         @Override
         public String toString() {
-            return "SfxMapHeader{" + "quantity=" + quantity + '}';
+            return "\n\tSfxMapEntry{" + "minDistance=" + minDistance
+                    + ", maxDistance=" + maxDistance + ", scale=" + scale
+                    + ", entries=" + Arrays.toString(entries) + "}\n\t";
         }
     }
 
-    private class SfxMapHeaderEntries { // 24 bytes
+    private class SfxMapEEntry {
 
-        final static byte SIZE = 24;
-        protected int quantity;
-        protected byte[] unknown = new byte[20];
-        protected SfxMapHeaderEntryHeader[] entries;
+        protected final static byte SIZE = 20; // 20 bytes
+        /**
+         * global index of this entry. Seems like User Tag in QSound
+         */
+        protected int index;
+        protected int unknown_1;
+        protected int unknown_2;
+        protected int unknown_3;
+        protected SfxMapEEEntry[] entries;
 
         @Override
         public String toString() {
-            return "SfxMapHeaderEntries{" + "quantity=" + quantity + ", entries=" + entries + '}';
+            return "\n\t\tSfxMapEEntry{" + "index=" + index
+                    + ", entries=" + Arrays.toString(entries) + "}\n\t\t";
         }
     }
 
-    private class SfxMapHeaderEntryHeader { // 20 bytes
+    private class SfxMapEEEntry {
 
-        final static byte SIZE = 20;
-        protected int unknown;
-        protected int quantity;
-        protected byte[] unknowns = new byte[12];
-        protected SfxMapHeaderEntry[] entries;
+        protected final static byte SIZE = 42; // 42 bytes
 
-        @Override
-        public String toString() {
-            return "SfxMapHeaderEntryHeader{" + "quantity=" + quantity + ", entries=" + entries + '}';
-        }
-    }
-
-    private class SfxMapHeaderEntry { // 42 bytes
-
-        final static byte SIZE = 42;
-        final static byte SIZE_ADDITIONAL = 8;
-        protected int quantity;
-        protected int shift;  // if shift need some magic
         protected int end_pointer_position; // I think not needed
         protected byte[] unknown = new byte[26];
         protected int data_pointer_next; // I think not needed
-        protected SfxMapEntry[] entries;
-        // data_pointer_next + shift * 8 = file_pointer_position of next SfxMapEntry
-        protected byte[] additionalData; // why ?????????
+        protected SfxMapEEEEntry[] entries;
+        protected SfxMapData[] data;
 
         @Override
         public String toString() {
-            return "SfxMapHeaderEntry{" + "quantity=" + quantity + ", shift=" + shift + ", entries=" + entries + '}';
+            return "\n\t\t\tSfxMapEEEntry{" + "entries=" + Arrays.toString(entries)
+                    + ", data=" + Arrays.toString(data) + "}\n\t\t\t";
         }
     }
 
-    private class SfxMapEntry { // 16 bytes
+    private class SfxMapEEEEntry {
 
-        final static byte SIZE = 16;
-        protected int quantity;
-        protected byte[] unknown = new byte[8];
-        // if (edi_2) { need some magic; }
-        protected int edi_2;
+        protected final static byte SIZE = 16; // 16 bytes
+        /**
+         * 1-based entry id in *.SDT file
+         */
+        protected int index;
+        protected int unknown_1;
+        protected int unknown_2;
+        /**
+         * 1-based archive id in *BANK.map file
+         * if (archiveId) { need some magic; }
+         */
+        protected int archiveId;
 
         @Override
         public String toString() {
-            return "SfxMapEntry{" + "quantity=" + quantity + ", edi_2=" + edi_2 + '}';
+            return "\n\t\t\t\tSfxMapEEEEntry{" + "index=" + index
+                    + ", edi_2=" + archiveId + "}\n\t\t\t\t";
+        }
+    }
+
+    private class SfxMapData {
+
+        protected final static byte SIZE = 8; // 8 bytes
+
+        protected int index;
+        protected byte[] unknown2 = new byte[4];
+
+        @Override
+        public String toString() {
+            return "\n\t\t\t\tSfxMapData{" + "index=" + index
+                    + ", unknown2=" + Arrays.toString(unknown2) + '}';
         }
     }
 
@@ -114,114 +140,106 @@ public class SfxMapFile {
         //Read the file
         try (RandomAccessFile rawMap = new RandomAccessFile(file, "r")) {
             //Header
-            header = new SfxMapHeader();
-
-            int[] check = new int[4];
-            check[0] = ConversionUtils.readInteger(rawMap);
-            check[1] = ConversionUtils.readInteger(rawMap);
-            check[2] = ConversionUtils.readInteger(rawMap);
-            check[3] = ConversionUtils.readInteger(rawMap);
-
-            if (check[0] != dword_674038 || check[1] != dword_67403C
-                    || check[2] != dword_674040 || check[3] != dword_674044) {
-                throw new RuntimeException("The file header is not valid");
+            int[] check = new int[] {
+                ConversionUtils.readInteger(rawMap),
+                ConversionUtils.readInteger(rawMap),
+                ConversionUtils.readInteger(rawMap),
+                ConversionUtils.readInteger(rawMap)
+            };
+            for (int i = 0; i < HEADER_ID.length; i++) {
+                if (check[i] != HEADER_ID[i]) {
+                    throw new RuntimeException(file.getName() + ": The file header is not valid");
+                }
             }
 
-            header.unknown_1 = ConversionUtils.readInteger(rawMap);
-            if (header.unknown_1 != 0) {
-                System.out.println("Header unknown_1 != 0. Value = " + header.unknown_1);
-            }
-            header.unknown_2 = ConversionUtils.readInteger(rawMap);
-            if (header.unknown_2 != 0) {
-                System.out.println("Header unknown_2 != 0. Value = " + header.unknown_2);
-            }
-            header.quantity = ConversionUtils.readUnsignedInteger(rawMap);
+            unknown_1 = ConversionUtils.readInteger(rawMap);
+            unknown_2 = ConversionUtils.readInteger(rawMap);
+            int count = ConversionUtils.readUnsignedInteger(rawMap);
 
-            entries = new SfxMapHeaderEntries[header.quantity];
+            entries = new SfxMapEntry[count];
             for (int i = 0; i < entries.length; i++) {
-                SfxMapHeaderEntries entry = new SfxMapHeaderEntries();
-                entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
-                rawMap.read(entry.unknown);
-                entry.entries = new SfxMapHeaderEntryHeader[entry.quantity];
+                SfxMapEntry entry = new SfxMapEntry();
+                count = ConversionUtils.readUnsignedInteger(rawMap);
+                entry.entries = new SfxMapEEntry[count];
+                entry.unknown_1 = ConversionUtils.readUnsignedInteger(rawMap);
+                entry.unknown_2 = ConversionUtils.readUnsignedShort(rawMap);
+                entry.unknown_3 = ConversionUtils.readUnsignedShort(rawMap);
+                entry.minDistance = ConversionUtils.readFloat(rawMap);
+                entry.maxDistance = ConversionUtils.readFloat(rawMap);
+                entry.scale = ConversionUtils.readFloat(rawMap);
+
                 entries[i] = entry;
             }
 
-            for (int i = 0; i < entries.length; i++) {
-                for (int j = 0; j < entries[i].entries.length; j++) {
-                    SfxMapHeaderEntryHeader entry = new SfxMapHeaderEntryHeader();
-                    entry.unknown = ConversionUtils.readInteger(rawMap);  // readUnsignedInteger
-                    entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
-                    rawMap.read(entry.unknowns);
-
-                    entry.entries = new SfxMapHeaderEntry[entry.quantity];
-                    entries[i].entries[j] = entry;
+            for (SfxMapEntry entrie : entries) {
+                for (int i = 0; i < entrie.entries.length; i++) {
+                    SfxMapEEntry entry = new SfxMapEEntry();
+                    entry.index = ConversionUtils.readUnsignedInteger(rawMap);
+                    count = ConversionUtils.readUnsignedInteger(rawMap);
+                    entry.entries = new SfxMapEEEntry[count];
+                    entry.unknown_1 = ConversionUtils.readUnsignedInteger(rawMap);
+                    entry.unknown_2 = ConversionUtils.readUnsignedInteger(rawMap);
+                    entry.unknown_3 = ConversionUtils.readUnsignedInteger(rawMap);
+                    entrie.entries[i] = entry;
                 }
             }
 
-            for (int i = 0; i < entries.length; i++) {
-                for (int j = 0; j < entries[i].entries.length; j++) {
-                    for (int k = 0; k < entries[i].entries[j].entries.length; k++) {
+            for (SfxMapEntry entrie : entries) {
+                for (SfxMapEEntry eEntrie : entrie.entries) {
 
-                        SfxMapHeaderEntry entry = new SfxMapHeaderEntry();
-                        entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
-                        entry.shift = ConversionUtils.readInteger(rawMap); // readUnsignedInteger
+                    for (int i = 0; i < eEntrie.entries.length; i++) {
+                        SfxMapEEEntry entry = new SfxMapEEEntry();
+
+                        count = ConversionUtils.readUnsignedInteger(rawMap);
+                        entry.entries = new SfxMapEEEEntry[count];
+
+                        count = ConversionUtils.readUnsignedInteger(rawMap);
+                        if (count != 0) {
+                            entry.data = new SfxMapData[count];
+                        }
+
                         entry.end_pointer_position = ConversionUtils.readInteger(rawMap);
                         rawMap.read(entry.unknown);
                         entry.data_pointer_next = ConversionUtils.readInteger(rawMap); // readUnsignedInteger
-                        entry.entries = new SfxMapEntry[entry.quantity];
 
-                        entries[i].entries[j].entries[k] = entry;
+                        eEntrie.entries[i] = entry;
                     }
 
-                    for (int k = 0; k < entries[i].entries[j].entries.length; k++) {
-                        for (int n = 0; n < entries[i].entries[j].entries[k].entries.length; n++) {
-                            SfxMapEntry entry = new SfxMapEntry();
-                            entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
-                            rawMap.read(entry.unknown);
-                            entry.edi_2 = ConversionUtils.readUnsignedInteger(rawMap);
+                    for (SfxMapEEEntry eeEntrie : eEntrie.entries) {
+                        for (int i = 0; i < eeEntrie.entries.length; i++) {
+                            SfxMapEEEEntry entry = new SfxMapEEEEntry();
+                            entry.index = ConversionUtils.readUnsignedInteger(rawMap);
+                            entry.unknown_1 = ConversionUtils.readUnsignedInteger(rawMap);
+                            entry.unknown_2 = ConversionUtils.readUnsignedInteger(rawMap);
+                            entry.archiveId = ConversionUtils.readUnsignedInteger(rawMap);
 
-                            entries[i].entries[j].entries[k].entries[n] = entry;
+                            eeEntrie.entries[i] = entry;
                         }
-                        int shift = entries[i].entries[j].entries[k].shift;
-                        if (shift != 0) {
-                            entries[i].entries[j].entries[k].additionalData = new byte[SfxMapHeaderEntry.SIZE_ADDITIONAL * shift];
-                            rawMap.read(entries[i].entries[j].entries[k].additionalData);
+
+                        if (eeEntrie.data != null) {
+                            for (int j = 0; j < eeEntrie.data.length; j++) {
+                                SfxMapData data = new SfxMapData();
+                                data.index = ConversionUtils.readUnsignedInteger(rawMap);
+                                rawMap.read(data.unknown2);
+
+                                eeEntrie.data[j] = data;
+                            }
                         }
                     }
                 }
             }
-            /*for (int i = 0; i < entries.length; i++) {
-             for (int j = 0; j < entries[i].entries.length; j++) {
-             for (int k = 0; k < entries[i].entries[j].entries.length; k++) {
-             for (int n = 0; n < entries[i].entries[j].entries[k].entries.length; n++) {
 
-             SfxMapEntry entry = new SfxMapEntry();
-             entry.quantity = ConversionUtils.readUnsignedInteger(rawMap);
-             rawMap.read(entry.unknown);
-             entry.edi_2 = ConversionUtils.readUnsignedInteger(rawMap);
-
-             entries[i].entries[j].entries[k].entries[n] = entry;
-             }
-             int shift = entries[i].entries[j].entries[k].shift;
-             if (shift != 0 ) {
-             entries[i].entries[j].entries[k].additionalData = new byte[SfxMapHeaderEntry.SIZE_ADDITIONAL * shift];
-             rawMap.read(entries[i].entries[j].entries[k].additionalData);
-             }
-             }
-             }
-             }*/
             if (rawMap.getFilePointer() != rawMap.length()) {
                 throw new RuntimeException("Error parse data");
             }
-
         } catch (IOException e) {
-            //Fug
             throw new RuntimeException("Failed to open the file " + file + "!", e);
         }
     }
 
     @Override
     public String toString() {
-        return "SfxMapFile{" + "file=" + file.getName() + ", quantity=" + header.quantity + ", entries=" + entries + '}';
+        return "SfxMapFile{" + "file=" + file.getName()
+                + ", entries=" + Arrays.toString(entries) + "\n}";
     }
 }

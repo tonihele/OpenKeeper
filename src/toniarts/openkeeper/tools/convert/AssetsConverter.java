@@ -94,7 +94,7 @@ public abstract class AssetsConverter {
         TEXTURES(4),
         MODELS(5),
         MOUSE_CURSORS(3),
-        MUSIC_AND_SOUNDS(2),
+        MUSIC_AND_SOUNDS(3),
         INTERFACE_TEXTS(2),
         PATHS(4),
         HI_SCORES(2),

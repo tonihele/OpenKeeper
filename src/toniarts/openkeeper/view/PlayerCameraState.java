@@ -18,7 +18,6 @@ package toniarts.openkeeper.view;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
-import com.jme3.asset.AssetManager;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.input.InputManager;
@@ -31,10 +30,9 @@ import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
-import com.jme3.renderer.ViewPort;
-import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.Cinematic;
@@ -59,18 +57,15 @@ import toniarts.openkeeper.world.WorldState;
 public class PlayerCameraState extends AbstractPauseAwareState implements ActionListener, AnalogListener {
 
     private Main app;
-    private Node rootNode;
-    private AssetManager assetManager;
     private AppStateManager stateManager;
     private InputManager inputManager;
-    private ViewPort viewPort;
+
     private PlayerCamera camera;
     private Camera storedCamera;
     private final Player player;
 
-    private ArrayList<Integer> keys = new ArrayList<>();
-    private Settings settings;
-    private static final Logger logger = Logger.getLogger(PlayerCameraState.class.getName());
+    private final List<Integer> keys = new ArrayList<>();
+
     // Extra keys
     private static final float ZOOM_MOUSE = 0.08f;
     private static final float ZOOM_SPEED = 10f;
@@ -82,7 +77,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     private static final String SPECIAL_KEY_ALT = "SPECIAL_KEY_ALT";
     private static final String SPECIAL_KEY_SHIFT = "SPECIAL_KEY_SHIFT";
     // User set keys
-    private static String[] mappings = new String[]{
+    private static final String[] mappings = new String[]{
         Settings.Setting.CAMERA_DOWN.name(),
         Settings.Setting.CAMERA_LEFT.name(),
         Settings.Setting.CAMERA_RIGHT.name(),
@@ -105,6 +100,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         SPECIAL_KEY_ALT,
         SPECIAL_KEY_SHIFT,};
 
+    private static final Logger logger = Logger.getLogger(PlayerCameraState.class.getName());
+
     public PlayerCameraState(Player player) {
         this.player = player;
     }
@@ -113,21 +110,17 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
         this.app = (Main) app;
-        rootNode = this.app.getRootNode();
-        assetManager = this.app.getAssetManager();
         this.stateManager = this.app.getStateManager();
         inputManager = this.app.getInputManager();
-        viewPort = this.app.getViewPort();
 
         // The camera
-        if (camera == null) {
-            camera = new PlayerCamera(app.getCamera(), getCameraPresets());
-            camera.setLimit(getCameraMapLimit());
-            loadCameraStartLocation();
+        camera = new PlayerCamera(app.getCamera(), getCameraPresets());
+        camera.setLimit(getCameraMapLimit());
+        loadCameraStartLocation();
+        // Add listener
+        if (isEnabled()) {
+            setEnabled(true);
         }
-        settings = Main.getUserSettings();
-        // The controls
-        registerInput();
     }
 
     @Override
@@ -135,11 +128,21 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         super.setEnabled(enabled);
 
         if (enabled) {
-            Camera cam = app.getCamera();
-            cam.setAxes(storedCamera.getLeft(), storedCamera.getUp(), storedCamera.getDirection());
-            cam.setLocation(new Vector3f(cam.getLocation().x, storedCamera.getLocation().y, cam.getLocation().z));
+            /*
+             if (storedCamera != null) {
+             Camera cam = app.getCamera();
+             cam.setLocation(storedCamera.getLocation().clone());
+             cam.setRotation(storedCamera.getRotation().clone());
+             //cam.setAxes(storedCamera.getLeft(), storedCamera.getUp(), storedCamera.getDirection());
+             //camera.setHeight(storedCamera.getLocation().y);
+             camera.setLookAt(cam.getLocation());
+             //cameraRestore();
+             }*/
+            // The controls
+            registerInput();
         } else {
             cameraStore();
+            unregisterInput();
         }
     }
 
@@ -170,7 +173,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
      * Load the initial main menu camera position
      */
     private void loadCameraStartLocation() {
-        Vector3f location = MapLoader.getCameraPositionOnMapPoint(player.getStartingCameraX(), player.getStartingCameraY());
+        Vector3f location = MapLoader.getCameraPositionOnMapPoint(player.getStartingCameraX(),
+                player.getStartingCameraY());
         camera.setLookAt(location);
     }
 
@@ -249,7 +253,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     }
 
     private void addKeyMapping(Setting s) {
-        inputManager.addMapping(s.name(), new KeyTrigger(settings.getSettingInteger(s)));
+        inputManager.addMapping(s.name(), new KeyTrigger(Main.getUserSettings().getSettingInteger(s)));
     }
 
     private void registerInput() {
@@ -353,8 +357,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
 
         if (name.equals(CAMERA_MOUSE_ZOOM_IN) || isCombinationPressed(name, Setting.CAMERA_ZOOM_IN)) {
             if (name.equals(CAMERA_MOUSE_ZOOM_IN)) {
-                value = settings.getSettingFloat(Setting.MOUSE_SENSITIVITY) * ZOOM_MOUSE;
-                if (settings.getSettingBoolean(Setting.MOUSE_INVERT)) {
+                value = Main.getUserSettings().getSettingFloat(Setting.MOUSE_SENSITIVITY) * ZOOM_MOUSE;
+                if (Main.getUserSettings().getSettingBoolean(Setting.MOUSE_INVERT)) {
                     value = -value;
                 }
             }
@@ -362,8 +366,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
 
         } else if (name.equals(CAMERA_MOUSE_ZOOM_OUT) || isCombinationPressed(name, Setting.CAMERA_ZOOM_OUT)) {
             if (name.equals(CAMERA_MOUSE_ZOOM_OUT)) {
-                value = settings.getSettingFloat(Setting.MOUSE_SENSITIVITY) * ZOOM_MOUSE;
-                if (settings.getSettingBoolean(Setting.MOUSE_INVERT)) {
+                value = Main.getUserSettings().getSettingFloat(Setting.MOUSE_SENSITIVITY) * ZOOM_MOUSE;
+                if (Main.getUserSettings().getSettingBoolean(Setting.MOUSE_INVERT)) {
                     value = -value;
                 }
             }

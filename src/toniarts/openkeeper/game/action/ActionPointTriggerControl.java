@@ -19,7 +19,6 @@ package toniarts.openkeeper.game.action;
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
@@ -27,13 +26,10 @@ import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
-
 /**
  *
  * @author ArchDemon
  */
-
-
 public class ActionPointTriggerControl extends TriggerControl {
 
     private static final Logger logger = Logger.getLogger(ActionPointTriggerControl.class.getName());
@@ -48,10 +44,7 @@ public class ActionPointTriggerControl extends TriggerControl {
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = super.isActive(trigger);
-        if (checked) {
-            return result;
-        }
+        boolean result = false;
 
         int target = 0;
         int value = 0;
@@ -169,8 +162,7 @@ public class ActionPointTriggerControl extends TriggerControl {
                 return true;
 
             default:
-                logger.warning("Target Type not supported");
-                return false;
+                return super.isActive(trigger);
         }
 
         TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();

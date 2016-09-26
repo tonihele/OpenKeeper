@@ -16,9 +16,14 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ResourceBundle;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 
@@ -272,6 +277,10 @@ public class GameLevel {
     //
     protected List<FilePath> paths;
     protected int unknown[];
+
+    //
+    protected final static String TEXT_DIR = "Interface/Texts/";
+    private ResourceBundle resourceBundle;
 
     public String getName() {
         return name;
@@ -610,6 +619,94 @@ public class GameLevel {
             }
         }
         return null;
+    }
+
+    /**
+     * Reads the resource bundle from disc and stores it
+     *
+     * @return the resource bundle
+     */
+    private ResourceBundle readResourceBundle() {
+        if (this.getName().equalsIgnoreCase("mpd7")) {
+            // it was hardcoded in dk2 too
+            return Main.getResourceBundle(TEXT_DIR.concat("LEVELMPD7_BRIEFING"));
+        } else if (this.getTextTableId() != null && this.getTextTableId() != GameLevel.TextTable.NONE && this.getTextTableId().getLevelBriefingDictFile() != null) {
+            return Main.getResourceBundle(TEXT_DIR.concat(this.getTextTableId().getLevelBriefingDictFile()));
+        } else {
+            final String briefing = this.getName().concat("_BRIEFING");
+            try {
+                return Main.getResourceBundle(TEXT_DIR.concat(briefing));
+            } catch (Exception e) {
+                // stack is already thrown by getResourceBundle
+            }
+        }
+        // return empty resource bundle otherwise
+        return new ResourceBundle() {
+            @Override
+            protected java.lang.Object handleGetObject(String string) {
+                return "";
+            }
+
+            @Override
+            public Enumeration<String> getKeys() {
+                return Collections.enumeration(new HashMap().keySet());
+            }
+        };
+    }
+
+    /**
+     * Get the selected level title (value 0 and value 1 combined)
+     *
+     * @return level title
+     */
+    public String getTitle() {
+        ResourceBundle dict = getResourceBundle();
+        StringBuilder sb = new StringBuilder();
+        String levelName = dict.getString("0");
+        if (!levelName.isEmpty()) {
+            // is empty on secret levels
+            sb.append("\"");
+            sb.append(levelName);
+            sb.append("\" - ");
+        }
+        sb.append(dict.getString("1"));
+        return sb.toString();
+    }
+
+    public String getLevelName() {
+        return getResourceBundle().getString("0");
+    }
+
+    public String getMainObjective() {
+        return getResourceBundle().getString("2");
+    }
+
+    public String getSubObjective1() {
+        return getResourceBundle().getString("3");
+    }
+
+    public String getSubObjective2() {
+        return getResourceBundle().getString("4");
+    }
+
+    public String getSubObjective3() {
+        return getResourceBundle().getString("5");
+    }
+
+    /**
+     * Gets the selected level briefing resource bundle
+     *
+     * @return the resource bundle
+     */
+    public ResourceBundle getResourceBundle() {
+        if (resourceBundle == null) {
+            this.resourceBundle = readResourceBundle();
+        }
+        return this.resourceBundle;
+    }
+
+    public boolean hasBriefing() {
+        return this.getResourceBundle().keySet().size() != 0;
     }
 
     @Override

@@ -68,14 +68,14 @@ public class KeeperHand {
 
         node = new Node("Keeper hand");
 
-        queueNode = new Node("queue");
+        queueNode = new Node("Queue");
         queueNode.setLocalScale(500);
         Quaternion rotation = new Quaternion();
         rotation.fromAngleAxis(-FastMath.QUARTER_PI, new Vector3f(-1, 1, 0));
         queueNode.setLocalRotation(rotation);
         queueNode.addLight(new AmbientLight(ColorRGBA.White));
 
-        cursor = new Node("cursor");
+        cursor = new Node("Cursor");
         cursor.setLocalTranslation(75, 0, 0);
 
         node.attachChild(queueNode);
@@ -143,11 +143,9 @@ public class KeeperHand {
 
     public void setVisible(boolean visible) {
         node.setCullHint(visible ? CullHint.Never : CullHint.Always);
-        //queueNode.setCullHint(visible ? CullHint.Never : CullHint.Always);
-        //cursor.setCullHint(visible ? CullHint.Never : CullHint.Always);
     }
 
-    public void setPosition(int x, int y) {
+    public void setPosition(float x, float y) {
         node.setLocalTranslation(x, y, 0);
     }
 

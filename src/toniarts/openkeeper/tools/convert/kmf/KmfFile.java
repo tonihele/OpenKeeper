@@ -109,7 +109,7 @@ public class KmfFile {
                 if (rawKmf.read(buf) == -1) {
                     break; // EOF
                 }
-                temp = ConversionUtils.bytesToString(buf);
+                temp = ConversionUtils.toString(buf);
                 if (KMF_MESH.equals(temp)) {
                     meshes.add(parseMesh(rawKmf));
                 } else {
@@ -586,7 +586,7 @@ public class KmfFile {
     private void checkHeader(RandomAccessFile rawKmf, String expectedHeader) throws RuntimeException, IOException {
         byte[] buf = new byte[4];
         rawKmf.read(buf);
-        String extractedHeader = ConversionUtils.bytesToString(buf);
+        String extractedHeader = ConversionUtils.toString(buf);
         if (!expectedHeader.equals(extractedHeader)) {
             throw new RuntimeException("Header should be " + expectedHeader + " and it was " + extractedHeader + "! Cancelling!");
         }

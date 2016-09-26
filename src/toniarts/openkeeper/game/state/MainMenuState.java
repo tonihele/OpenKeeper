@@ -44,9 +44,9 @@ import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
+import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.network.NetworkClient;
@@ -82,7 +82,7 @@ public class MainMenuState extends AbstractAppState {
     //private ViewPort viewPort;
     private MainMenuScreenController screen;
     protected Node menuNode;
-    protected Level selectedLevel;
+    protected GeneralLevel selectedLevel;
     protected AudioNode levelBriefing;
 
     private KwdFile kwdFile;
@@ -465,7 +465,7 @@ public class MainMenuState extends AbstractAppState {
      */
     protected void selectCampaignLevel(FrontEndLevelControl selectedLevel) {
         this.selectedLevel = selectedLevel.getLevel();
-        screen.doTransition("253", "campaign", null);
+        screen.doTransition("253", "briefing", null);
     }
 
     /**

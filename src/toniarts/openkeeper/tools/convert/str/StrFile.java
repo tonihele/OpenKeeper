@@ -81,7 +81,7 @@ public class StrFile {
             // Check the header
             byte[] header = new byte[4];
             rawStr.read(header);
-            if (!STR_HEADER_IDENTIFIER.equals(ConversionUtils.bytesToString(header))) {
+            if (!STR_HEADER_IDENTIFIER.equals(ConversionUtils.toString(header))) {
                 throw new RuntimeException("Header should be " + STR_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
 
@@ -145,7 +145,7 @@ public class StrFile {
             // Check the header
             byte[] header = new byte[4];
             rawCodepage.read(header);
-            if (!CODEPAGE_HEADER_IDENTIFIER.equals(ConversionUtils.bytesToString(header))) {
+            if (!CODEPAGE_HEADER_IDENTIFIER.equals(ConversionUtils.toString(header))) {
                 throw new RuntimeException("Header should be " + CODEPAGE_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
             rawCodepage.skipBytes(2); // Don't know what is here

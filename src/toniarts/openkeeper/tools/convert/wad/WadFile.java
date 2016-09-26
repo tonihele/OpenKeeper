@@ -62,7 +62,7 @@ public class WadFile {
             //Check the header
             byte[] header = new byte[4];
             rawWad.read(header);
-            if (!WAD_HEADER_IDENTIFIER.equals(ConversionUtils.bytesToString(header))) {
+            if (!WAD_HEADER_IDENTIFIER.equals(ConversionUtils.toString(header))) {
                 throw new RuntimeException("Header should be " + WAD_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
 
@@ -119,7 +119,7 @@ public class WadFile {
             int offset = 0;
             wadFileEntries = new LinkedHashMap<>(files);
             for (WadFileEntry entry : entries) {
-                String name = ConversionUtils.bytesToString(Arrays.copyOfRange(nameArray, offset, offset + entry.getNameSize())).trim();
+                String name = ConversionUtils.toString(Arrays.copyOfRange(nameArray, offset, offset + entry.getNameSize())).trim();
                 wadFileEntries.put(ConversionUtils.convertFileSeparators(name), entry);
                 offset += entry.getNameSize();
             }

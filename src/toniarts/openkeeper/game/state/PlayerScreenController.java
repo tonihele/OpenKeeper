@@ -99,6 +99,7 @@ public class PlayerScreenController implements IPlayerScreenController {
     private Label tooltip;
     private boolean initHud = false;
     private String cinematicText;
+    private PossessionInteractionState.Action possessionAction = PossessionInteractionState.Action.MELEE;
 
     private static final Logger logger = Logger.getLogger(PlayerScreenController.class.getName());
 
@@ -119,14 +120,14 @@ public class PlayerScreenController implements IPlayerScreenController {
         // Pause state
         state.setPaused(paused);
         // Set the menuButton
-        Element menuButton = nifty.getCurrentScreen().findElementById("menuButton");
+        Element menuButton = nifty.getScreen(HUD_SCREEN_ID).findElementById("menuButton");
         if (paused) {
             menuButton.startEffect(EffectEventId.onCustom, null, "select");
         } else {
             menuButton.stopEffect(EffectEventId.onCustom);
         }
 
-        nifty.getCurrentScreen().findElementById("optionsMenu").setVisible(paused);
+        nifty.getScreen(HUD_SCREEN_ID).findElementById("optionsMenu").setVisible(paused);
         if (paused) {
             pauseMenuNavigate(PauseMenuState.MAIN.name(), null, null, null);
         }
@@ -134,7 +135,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void pauseMenuNavigate(String menu, String backMenu, String confirmationTitle, String confirmMethod) {
-                Element optionsMenu = nifty.getScreen(HUD_SCREEN_ID).findElementById("optionsMenu");
+        Element optionsMenu = nifty.getScreen(HUD_SCREEN_ID).findElementById("optionsMenu");
         Label optionsMenuTitle = optionsMenu.findNiftyControl("#title", Label.class);
         Element optionsColumnOne = optionsMenu.findElementById("#columnOne");
         for (Element element : optionsColumnOne.getChildren()) {
@@ -325,7 +326,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                         createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
                     }
                 }
-
+                updatePossessionSelectedItem(possessionAction);
                 break;
 
             case CINEMATIC_SCREEN_ID:
@@ -405,8 +406,15 @@ public class PlayerScreenController implements IPlayerScreenController {
         nifty.gotoScreen(screen);
     }
 
+    /**
+     * FIXME not applied when enter possession twice
+     * Focus active Action element on GUI
+     *
+     * @param action
+     */
     protected void updatePossessionSelectedItem(PossessionInteractionState.Action action) {
-        Element element = nifty.getCurrentScreen().findElementById("creature-" + action.toString().toLowerCase());
+        possessionAction = action;
+        Element element = nifty.getScreen(POSSESSION_SCREEN_ID).findElementById("creature-" + possessionAction.toString().toLowerCase());
         if (element != null) {
             element.setFocus();
         }

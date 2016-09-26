@@ -38,7 +38,7 @@ import toniarts.openkeeper.world.room.control.RoomObjectControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectControl extends AbstractControl implements IInteractiveControl {
+public class ObjectControl extends HighlightControl implements IInteractiveControl {
 
     protected final WorldState worldState;
     protected final toniarts.openkeeper.tools.convert.map.Object object;
@@ -172,6 +172,16 @@ public class ObjectControl extends AbstractControl implements IInteractiveContro
     @Override
     public void onHover() {
 
+    }
+
+    @Override
+    public void onHoverStart() {
+        super.onHoverStart();
+    }
+
+    @Override
+    public void onHoverEnd() {
+        super.onHoverEnd();
     }
 
     @Override

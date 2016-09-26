@@ -27,7 +27,7 @@ import java.io.IOException;
  */
 public abstract class Control implements IControl {
 
-    protected boolean enabled = true;
+    private boolean enabled = true;
     protected IContainer parent;
 
     /**

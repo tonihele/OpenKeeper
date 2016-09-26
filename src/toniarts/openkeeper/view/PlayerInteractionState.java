@@ -30,22 +30,14 @@ import com.jme3.input.event.KeyInputEvent;
 import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
-import com.jme3.light.AmbientLight;
-import com.jme3.math.ColorRGBA;
-import com.jme3.math.FastMath;
-import com.jme3.math.Matrix3f;
-import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
-import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import java.awt.Point;
-import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -60,10 +52,7 @@ import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
-import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.selection.SelectionArea;
@@ -71,7 +60,7 @@ import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
-import toniarts.openkeeper.world.creature.CreatureLoader;
+import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
@@ -83,31 +72,40 @@ import toniarts.openkeeper.world.room.RoomInstance;
  * @author ArchDemon
  */
 // TODO: States, now only selection
-public abstract class PlayerInteractionState extends AbstractPauseAwareState implements RawInputListener {
+public abstract class PlayerInteractionState extends AbstractPauseAwareState {
+
+    private static final int SPELL_POSSESSION_ID = 2;
+    private static final float CURSOR_UPDATE_INTERVAL = 0.25f;
 
     private Main app;
     private GameState gameState;
     private AssetManager assetManager;
     private AppStateManager stateManager;
     private InputManager inputManager;
-    private final Player player;
-    private SelectionHandler handler;
-    private boolean startSet = false;
-    public Vector2f mousePosition = Vector2f.ZERO;
-    private InteractionState interactionState = new InteractionState();
 
+    private final Player player;
+    private SelectionHandler selectionHandler;
+    private Vector2f mousePosition = Vector2f.ZERO;
+    private InteractionState interactionState = new InteractionState();
+    private float timeFromLastUpdate = CURSOR_UPDATE_INTERVAL;
     private Element view;
+
     private boolean isOnGui = false;
     private boolean isTaggable = false;
-    private boolean isTagging = false;
-    private boolean isOnView = false;
+    private boolean isOnMap = false;
     private boolean isInteractable = false;
+
+    private RawInputListener inputListener;
+    private IInteractiveControl interactiveControl;
     private Label tooltip;
     private KeeperHand keeperHand;
+
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
-    public PlayerInteractionState(Player player, GameState gameState, Element view, Label tooltip) {
+    public PlayerInteractionState(Player player) {
         this.player = player;
+
+        initializeInput();
     }
 
     @Override
@@ -127,76 +125,49 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         this.app.getGuiNode().attachChild(keeperHand.getNode());
 
         // Init handler
-        handler = new SelectionHandler(this.app, this) {
+        selectionHandler = new SelectionHandler(this.app) {
             @Override
-            protected boolean isOnView() {
-                return isOnView;
-            }
-
-            @Override
-            protected boolean isVisible() {
-
-                if (!startSet && !Main.isDebug()) {
-
-                    // Selling is always visible, and the only thing you can do
-                    // When building, you can even tag taggables
-                    switch (interactionState.getType()) {
-                        case NONE: {
-                            return (isTaggable || keeperHand.getItem() != null);
-                        }
-                        case ROOM: {
-                            return isOnView;
-                        }
-                        case SELL: {
-                            return isOnView;
-                        }
-                        case SPELL: {
-                            return false;
-                        }
-                        default:
-                            return false;
-                    }
+            public boolean isVisible() {
+                if (isTaggable || selectionHandler.isActive()) {
+                    return true;
                 }
-                return true;
+
+                if (!isOnMap) {
+                    return false;
+                }
+
+                switch (interactionState.getType()) {
+                    case NONE:
+                        return (keeperHand.getItem() != null);
+                    case SELL:
+                    case ROOM:
+                    case DOOR:
+                    case TRAP:
+                        return true;
+                }
+
+                return false;
             }
 
             @Override
-            protected SelectionHandler.SelectionColorIndicator getSelectionColorIndicator() {
+            protected SelectionHandler.ColorIndicator getColorIndicator() {
                 Vector2f pos;
-                if (startSet) {
-                    pos = handler.getSelectionArea().getActualStartingCoordinates();
+                if (selectionHandler.isActive()) {
+                    pos = selectionHandler.getSelectionArea().getRealStart();
                 } else {
-                    pos = handler.getRoundedMousePos();
+                    pos = selectionHandler.getPointedTilePosition();
                 }
                 if (interactionState.getType() == Type.NONE && keeperHand.getItem() != null) {
                     TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
                     IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile);
-                    return (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE ? SelectionColorIndicator.BLUE : SelectionColorIndicator.RED);
+                    return (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
                 }
                 if (interactionState.getType() == Type.SELL) {
-                    return SelectionColorIndicator.RED;
+                    return ColorIndicator.RED;
                 } else if (interactionState.getType() == Type.ROOM && !isTaggable && !getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(interactionState.getItemId()))) {
-                    return SelectionColorIndicator.RED;
+                    return ColorIndicator.RED;
                 }
-                return SelectionColorIndicator.BLUE;
-            }
-
-            @Override
-            public void userSubmit(SelectionArea area) {
-
-                if (interactionState.getType() == Type.NONE
-                        || (interactionState.getType() == Type.ROOM
-                        && getWorldHandler().isTaggable((int) selectionArea.getActualStartingCoordinates().x, (int) selectionArea.getActualStartingCoordinates().y))) {
-
-                    // Determine if this is a select/deselect by the starting tile's status
-                    boolean select = !getWorldHandler().isSelected((int) Math.max(0, selectionArea.getActualStartingCoordinates().x), (int) Math.max(0, selectionArea.getActualStartingCoordinates().y));
-                    getWorldHandler().selectTiles(selectionArea, select, player.getPlayerId());
-                } else if (interactionState.getType() == Type.ROOM && getWorldHandler().isBuildable((int) selectionArea.getActualStartingCoordinates().x,
-                        (int) selectionArea.getActualStartingCoordinates().y, player, gameState.getLevelData().getRoomById(interactionState.getItemId()))) {
-                    getWorldHandler().build(selectionArea, player, gameState.getLevelData().getRoomById(interactionState.getItemId()));
-                } else if (interactionState.getType() == Type.SELL) {
-                    getWorldHandler().sell(selectionArea, player);
-                }
+                return ColorIndicator.BLUE;
             }
         };
 
@@ -229,17 +200,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         super.setEnabled(enabled);
 
         if (enabled) {
-            app.getInputManager().addRawInputListener(this);
+            app.getInputManager().addRawInputListener(inputListener);
         } else {
-            app.getInputManager().removeRawInputListener(this);
+            app.getInputManager().removeRawInputListener(inputListener);
         }
     }
 
     @Override
     public void cleanup() {
         app.getGuiNode().detachChild(keeperHand.getNode());
-        app.getInputManager().removeRawInputListener(this);
-        handler.cleanup();
+        app.getInputManager().removeRawInputListener(inputListener);
+        selectionHandler.cleanup();
         CheatState cheatState = this.stateManager.getState(CheatState.class);
         if (cheatState != null) {
             this.stateManager.detach(cheatState);
@@ -249,185 +220,32 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
     }
 
     @Override
-    public boolean isPauseable() {
-        return true;
-    }
+    public void update(float tpf) {
+        super.update(tpf);
 
-    @Override
-    public void beginInput() {
-    }
-
-    @Override
-    public void endInput() {
-    }
-
-    @Override
-    public void onJoyAxisEvent(JoyAxisEvent evt) {
-    }
-
-    @Override
-    public void onJoyButtonEvent(JoyButtonEvent evt) {
-    }
-
-    @Override
-    public void onMouseMotionEvent(MouseMotionEvent evt) {
-        mousePosition.set(evt.getX(), evt.getY());
-        Vector2f pos = handler.getRoundedMousePos();
-        if (setStateFlags()) {
-            setCursor();
-        }
-        if (startSet) {
-            handler.getSelectionArea().setEnd(pos);
-            handler.updateSelectionBox();
-        } else {
-            handler.getSelectionArea().setStart(pos);
-            handler.getSelectionArea().setEnd(pos);
-            handler.updateSelectionBox();
-        }
-
-        // Move the picked up item
-        keeperHand.setPosition(evt.getX(), evt.getY());
-    }
-
-    @Override
-    public void onMouseButtonEvent(MouseButtonEvent evt) {
-        if (isOnGui) {
-            if (setStateFlags()) {
-                setCursor();
-            }
+        if (!isInitialized() || !isEnabled()) {
             return;
         }
 
-        if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
+        selectionHandler.update(mousePosition);
+        if (isOnMap && !isOnGui && !isTaggable) {
+            updateInteractiveObjectOnCursor();
+        }
 
-            if (interactionState.getType() == Type.SPELL && interactionState.getItemId() == 2) { // possession
-                if (evt.isReleased()) {
-                    // TODO make normal selection, not first keeper creature
-                    for (Thing t : gameState.getLevelData().getThings()) {
-                        if (t instanceof Thing.KeeperCreature) {
-                            onPossession((Thing.KeeperCreature) t);
-                            break;
-                        }
-                    }
-                    // Reset the state
-                    // TODO disable selection box
-                    setInteractionState(Type.NONE, 0);
-                }
-            } else if (evt.isPressed()) {
+        updateStateFlags();
 
-                // Creature/object pickup
-                IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
-                if (interactiveControl != null && !keeperHand.isFull() && interactiveControl.isPickable(player.getPlayerId())) {
-                    keeperHand.push(interactiveControl.pickUp(player.getPlayerId()));
-                    setCursor();
-                } else {
-
-                    // Selection stuff
-                    if (!startSet) {
-                        handler.getSelectionArea().setStart(handler.getRoundedMousePos());
-                    }
-                    startSet = true;
-
-                    // I suppose we are tagging
-                    if (isTaggable) {
-                        isTagging = true;
-                        setCursor();
-
-                        // The tagging sound is positional and played against the cursor change, not the action itself
-                        Vector2f pos = handler.getRoundedMousePos();
-                        getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, "/Global/dk1tag.mp2");
-                    }
-                }
-
-            } else if (evt.isReleased()) {
-                startSet = false;
-                handler.userSubmit(null);
-                handler.getSelectionArea().setStart(handler.getRoundedMousePos());
-                handler.updateSelectionBox();
-                handler.setNoSelectedArea();
-                if (isTagging) {
-                    isTagging = false;
-                    setCursor();
-                }
-            }
-        } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
-
-            Vector2f pos = handler.getRoundedMousePos();
-            if (interactionState.getType() == Type.NONE) {
-
-                // Drop
-                if (keeperHand.getItem() != null) {
-                    TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
-                    IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile);
-                    if (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE) {
-
-                        // Drop & update cursor
-                        keeperHand.pop().drop(tile);
-                        setCursor();
-                    }
-                } else if (Main.isDebug()) {
-                    // taggable -> "dig"
-                    if (getWorldHandler().isTaggable((int) pos.x, (int) pos.y)) {
-                        getWorldHandler().digTile((int) pos.x, (int) pos.y);
-                    } // ownable -> "claim"
-                    else if (getWorldHandler().isClaimable((int) pos.x, (int) pos.y, player.getPlayerId())) {
-                        getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
-                    }
-                } else {
-                    IInteractiveControl interactiveControl = getInteractiveObjectOnCursor();
-                    if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
-                        getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, KeeperHand.getSlapSound());
-                        interactiveControl.interact(player.getPlayerId());
-                    }
-                }
-            }
-
-            // Reset the state
-            setInteractionState(Type.NONE, 0);
-            if (setStateFlags()) {
-                setCursor();
-            }
-
-            startSet = false;
-            handler.getSelectionArea().setStart(pos);
-            handler.updateSelectionBox();
-
-        } else if (evt.getButtonIndex() == MouseInput.BUTTON_MIDDLE && evt.isReleased()) {
-            Vector2f pos = handler.getRoundedMousePos();
-            if (Main.isDebug()) {
-                getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
-            }
+        timeFromLastUpdate += tpf;
+        // Update the cursor, the camera might have moved, a creature might have slipped by us... etc.
+        if (timeFromLastUpdate > CURSOR_UPDATE_INTERVAL) {
+            //updateCursor();
+            //updateStateFlags();
+            timeFromLastUpdate = 0;
         }
     }
 
     @Override
-    public void onKeyEvent(KeyInputEvent evt) {
-        if (evt.isPressed()) {
-            if (evt.getKeyCode() == KeyInput.KEY_F12) {
-                // FIXME use CTRL + ALT + C to activate cheats!
-                // TODO Disable in multi player!
-                CheatState cheat = stateManager.getState(CheatState.class);
-                if (!cheat.isEnabled()) {
-                    cheat.setEnabled(true);
-                }
-            } else if (evt.getKeyCode() == ConsoleState.KEY && Main.isDebug()) {
-                stateManager.getState(ConsoleState.class).setEnabled(true);
-            } else if (evt.getKeyCode() == (Integer) Settings.Setting.TOGGLE_PLAYER_INFORMATION.getDefaultValue()) {
-                Element stats = view.findElementById("statistics");
-                if (stats != null) {
-                    if (stats.isVisible()) {
-                        stats.hide();
-                    } else {
-                        stats.show();
-                    }
-                }
-            }
-        }
-
-    }
-
-    @Override
-    public void onTouchEvent(TouchEvent evt) {
+    public boolean isPauseable() {
+        return true;
     }
 
     private WorldState getWorldHandler() {
@@ -478,52 +296,54 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
      * @return has the state being changed
      *
      */
-    private boolean setStateFlags() {
+    private void updateStateFlags() {
         boolean changed = false;
-        boolean value = isCursorOnGUI();
-        if (!changed && isOnGui != value) {
-            changed = true;
-        }
-        isOnGui = value;
 
-        value = isOnView();
-        if (!changed && isOnView != value) {
+        boolean value = isCursorOnGUI();
+        if (isOnGui != value) {
+            isOnGui = value;
             changed = true;
         }
-        isOnView = value;
+
+        value = isOnMap();
+        if (isOnMap != value) {
+            isOnMap = value;
+            changed = true;
+        }
 
         value = isTaggable();
-        if (!changed && isTaggable != value) {
+        if (isTaggable != value) {
+            isTaggable = value;
             changed = true;
         }
-        isTaggable = value;
 
         value = isInteractable();
-        if (!changed && isInteractable != value) {
+        if (isInteractable != value) {
+            isInteractable = value;
             changed = true;
         }
-        isInteractable = value;
 
-        return changed;
+        if (changed) {
+            updateCursor();
+        }
     }
 
     private boolean isInteractable() {
-        if (isOnGui) {
+        if (isOnGui || !isOnMap || isTaggable) {
+            setInteractiveControl(null);
             return false;
         }
 
-        // TODO: Now just creature control, but all interaction objects
-        IInteractiveControl controller = getInteractiveObjectOnCursor();
         Vector2f v = null;
-        if (controller != null) {
+        if (interactiveControl != null) {
 
             // Maybe a kinda hack, but set the tooltip here
-            tooltip.setText(controller.getTooltip(player.getPlayerId()));
-            controller.onHover();
+            tooltip.setText(interactiveControl.getTooltip(player.getPlayerId()));
+            interactiveControl.onHover();
         } else {
 
             // Tile tooltip then
-            v = handler.getRoundedMousePos();
+            v = selectionHandler.getPointedTilePosition();
             TileData tile = getWorldHandler().getMapData().getTile((int) v.x, (int) v.y);
             if (tile != null) {
                 if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
@@ -542,8 +362,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         if (Main.isDebug()) {
             StringBuilder sb = new StringBuilder();
             Point p;
-            if (controller != null) {
-                p = getWorldHandler().getTileCoordinates(((AbstractControl) controller).getSpatial().getWorldTranslation());
+            if (interactiveControl != null) {
+                p = getWorldHandler().getTileCoordinates(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation());
             } else {
                 p = new Point((int) v.x, (int) v.y);
             }
@@ -556,10 +376,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
             tooltip.setText(sb.toString());
         }
 
-        return (controller != null);
+        return (interactiveControl != null);
     }
 
-    private IInteractiveControl getInteractiveObjectOnCursor() {
+    private void updateInteractiveObjectOnCursor() {
 
         // See if we hit a creature/object
         CollisionResults results = new CollisionResults();
@@ -577,38 +397,62 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         getWorldHandler().getThingsNode().collideWith(ray, results);
 
         // See the results so we see what is going on
+        Node object;
         for (int i = 0; i < results.size(); i++) {
 
             // TODO: Now just creature control, but all interaction objects
-            IInteractiveControl controller = results.getCollision(i).getGeometry().getParent().getParent().getControl(IInteractiveControl.class);
-            if (controller != null) {
-                return controller;
+            object = results.getCollision(i).getGeometry().getParent().getParent();
+            IInteractiveControl control = object.getControl(IInteractiveControl.class);
+            if (control != null) {
+                setInteractiveControl(control);
+                return;
             }
         }
-        return null;
+        setInteractiveControl(null);
+    }
+
+    private void setInteractiveControl(IInteractiveControl interactiveControl) {
+
+        // If it is the same, don't do anything
+        if (interactiveControl != null && interactiveControl.equals(this.interactiveControl)) {
+            return;
+        }
+
+        // Changed
+        if (this.interactiveControl != null) {
+            this.interactiveControl.onHoverEnd();
+        }
+        this.interactiveControl = interactiveControl;
+        if (this.interactiveControl != null) {
+            this.interactiveControl.onHoverStart();
+        }
     }
 
     private boolean isTaggable() {
-        Vector2f pos = handler.getRoundedMousePos();
+        if (isOnGui || !isOnMap) {
+            return false;
+        }
+        Vector2f pos = selectionHandler.getPointedTilePosition();
         return (interactionState.getType() == Type.ROOM
                 || interactionState.getType() == Type.NONE)
-                && isOnView && getWorldHandler().isTaggable((int) pos.x, (int) pos.y);
+                && isOnMap && getWorldHandler().isTaggable((int) pos.x, (int) pos.y);
     }
 
-    private boolean isOnView() {
+    private boolean isOnMap() {
         if (isOnGui) {
             return false;
         }
-        Vector2f pos = handler.getRoundedMousePos();
-        return (pos.x >= 0 && pos.x < gameState.getLevelData().getMap().getWidth() && pos.y >= 0 && pos.y < gameState.getLevelData().getMap().getHeight());
+        Vector2f pos = selectionHandler.getPointedTilePosition();
+        return (pos.x >= 0 && pos.x < gameState.getLevelData().getMap().getWidth()
+                && pos.y >= 0 && pos.y < gameState.getLevelData().getMap().getHeight());
     }
 
-    protected void setCursor() {
+    protected void updateCursor() {
         keeperHand.setVisible(false);
         if (Main.getUserSettings().getSettingBoolean(Settings.Setting.USE_CURSORS)) {
-            if (isOnGui || isInteractable) {
+            if (isOnGui || isInteractable || interactionState.getType() == Type.SPELL) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
-            } else if (isTagging) {
+            } else if (selectionHandler.isActive() && isTaggable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE_TAGGING, assetManager));
             } else if (isTaggable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE, assetManager));
@@ -625,6 +469,171 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
         }
     }
 
+    private void initializeInput() {
+        inputListener = new RawInputListener() {
+            @Override
+            public void beginInput() {
+            }
+
+            @Override
+            public void endInput() {
+            }
+
+            @Override
+            public void onJoyAxisEvent(JoyAxisEvent evt) {
+            }
+
+            @Override
+            public void onJoyButtonEvent(JoyButtonEvent evt) {
+            }
+
+            @Override
+            public void onMouseMotionEvent(MouseMotionEvent evt) {
+                mousePosition.set(evt.getX(), evt.getY());
+                keeperHand.setPosition(evt.getX(), evt.getY());
+            }
+
+            @Override
+            public void onMouseButtonEvent(MouseButtonEvent evt) {
+                timeFromLastUpdate = 0;
+                if (isOnGui || !isOnMap) {
+                    return;
+                }
+
+                if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
+
+                    if (evt.isPressed()) {
+                        if (interactionState.getType() == Type.SPELL) {
+                            //TODO correct interactiveControl.isPickable
+                            if (interactiveControl != null && interactionState.getItemId() == SPELL_POSSESSION_ID
+                                    && interactiveControl.isPickable(player.getPlayerId())) {
+                                CreatureControl cc = interactiveControl.getSpatial().getControl(CreatureControl.class);
+                                if (cc != null) {
+                                    onPossession(cc);
+                                    // Reset the state
+                                    // TODO disable selection box
+                                    setInteractionState(Type.NONE, 0);
+                                }
+                            }
+                        } else if (interactionState.getType() == Type.TRAP) {
+                            //TODO put trap
+                        } else if (interactionState.getType() == Type.DOOR) {
+                            //TODO put door
+                        } else if (interactionState.getType() == Type.NONE
+                                && interactiveControl != null && !keeperHand.isFull()
+                                && interactiveControl.isPickable(player.getPlayerId())) {
+                            keeperHand.push(interactiveControl.pickUp(player.getPlayerId()));
+                            updateCursor();
+                        } else {
+
+                            // Selection stuff
+                            if (selectionHandler.isVisible()) {
+                                selectionHandler.setActive(true);
+                            }
+
+                            // I suppose we are tagging
+                            if (isTaggable) {
+                                updateCursor();
+                                // The tagging sound is positional and played against the cursor change, not the action itself
+                                Vector2f pos = selectionHandler.getPointedTilePosition();
+                                getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, "/Global/dk1tag.mp2");
+                            }
+                        }
+
+                    } else if (evt.isReleased() && selectionHandler.isActive()) {
+                        SelectionArea selectionArea = selectionHandler.getSelectionArea();
+                        if (interactionState.getType() == Type.NONE
+                                || (interactionState.getType() == Type.ROOM
+                                && getWorldHandler().isTaggable((int) selectionArea.getRealStart().x, (int) selectionArea.getRealStart().y))) {
+
+                            // Determine if this is a select/deselect by the starting tile's status
+                            boolean select = !getWorldHandler().isSelected((int) Math.max(0, selectionArea.getRealStart().x), (int) Math.max(0, selectionArea.getRealStart().y));
+                            getWorldHandler().selectTiles(selectionArea, select, player.getPlayerId());
+                        } else if (interactionState.getType() == Type.ROOM && getWorldHandler().isBuildable((int) selectionArea.getRealStart().x,
+                                (int) selectionArea.getRealStart().y, player, gameState.getLevelData().getRoomById(interactionState.getItemId()))) {
+                            getWorldHandler().build(selectionArea, player, gameState.getLevelData().getRoomById(interactionState.getItemId()));
+                        } else if (interactionState.getType() == Type.SELL) {
+                            getWorldHandler().sell(selectionArea, player);
+                        }
+
+                        selectionHandler.setActive(false);
+                        updateCursor();
+                    }
+                } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
+
+                    Vector2f pos = selectionHandler.getPointedTilePosition();
+                    if (interactionState.getType() == Type.NONE) {
+
+                        // Drop
+                        if (keeperHand.getItem() != null) {
+                            TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
+                            IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile);
+                            if (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE) {
+
+                                // Drop & update cursor
+                                keeperHand.pop().drop(tile);
+                                updateCursor();
+                            }
+                        } else if (Main.isDebug()) {
+                            // taggable -> "dig"
+                            if (getWorldHandler().isTaggable((int) pos.x, (int) pos.y)) {
+                                getWorldHandler().digTile((int) pos.x, (int) pos.y);
+                            } // ownable -> "claim"
+                            else if (getWorldHandler().isClaimable((int) pos.x, (int) pos.y, player.getPlayerId())) {
+                                getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
+                            }
+                        } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
+                            getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, KeeperHand.getSlapSound());
+                            interactiveControl.interact(player.getPlayerId());
+                        }
+                    }
+
+                    // Reset the state
+                    setInteractionState(Type.NONE, 0);
+                    updateCursor();
+
+                    selectionHandler.setActive(false);
+
+                } else if (evt.getButtonIndex() == MouseInput.BUTTON_MIDDLE && evt.isReleased()) {
+                    Vector2f pos = selectionHandler.getPointedTilePosition();
+                    if (Main.isDebug()) {
+                        getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
+                    }
+                }
+            }
+
+            @Override
+            public void onKeyEvent(KeyInputEvent evt) {
+                if (evt.isPressed()) {
+                    if (evt.getKeyCode() == KeyInput.KEY_F12) {
+                        // FIXME use CTRL + ALT + C to activate cheats!
+                        // TODO Disable in multi player!
+                        CheatState cheat = stateManager.getState(CheatState.class);
+                        if (!cheat.isEnabled()) {
+                            cheat.setEnabled(true);
+                        }
+                    } else if (evt.getKeyCode() == ConsoleState.KEY && Main.isDebug()) {
+                        stateManager.getState(ConsoleState.class).setEnabled(true);
+                    } else if (evt.getKeyCode() == (Integer) Settings.Setting.TOGGLE_PLAYER_INFORMATION.getDefaultValue()) {
+                        Element stats = view.findElementById("statistics");
+                        if (stats != null) {
+                            if (stats.isVisible()) {
+                                stats.hide();
+                            } else {
+                                stats.show();
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            @Override
+            public void onTouchEvent(TouchEvent evt) {
+            }
+        };
+    }
+
     /**
      * A callback for changing the interaction state
      *
@@ -632,11 +641,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState imp
      */
     protected abstract void onInteractionStateChange(InteractionState interactionState);
 
-    protected abstract void onPossession(Thing.KeeperCreature creature);
+    protected abstract void onPossession(CreatureControl creature);
 
     public static class InteractionState {
 
         public enum Type {
+
             NONE, ROOM, SELL, SPELL, TRAP, DOOR, STUFF_IN_HAND
         }
 
