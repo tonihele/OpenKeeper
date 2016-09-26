@@ -20,7 +20,6 @@ import com.jme3.math.FastMath;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
-import com.jme3.scene.control.AbstractControl;
 import java.awt.Point;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
@@ -212,6 +211,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
+    @Override
     public short getOwnerId() {
         return ownerId;
     }
