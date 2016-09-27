@@ -291,25 +291,21 @@
                             </control>
 
                             <control name="customTab" id="tab-room" image="Textures/GUI/Tabs/t-rooms.png"
-                                     active="Textures/GUI/Icons/selected-room.png" hintText="${menu.2155}" tooltip="${menu.2156}">
-                                <panel childLayout="vertical" align="left">
-                                    <panel childLayout="horizontal" padding="3px,3px,0" id="tab-room-content" />
-                                </panel>
+                                     active="Textures/GUI/Icons/selected-room.png"
+                                     hintText="${menu.2155}" tooltip="${menu.2156}">
+                                <control name="flowLayout" id="tab-room-content" rows="2" padding="6px" />
                             </control>
 
                             <control name="customTab" id="tab-spell" image="Textures/GUI/Tabs/t-spells.png"
-                                     active="Textures/GUI/Icons/selected-spell.png" hintText="${menu.2157}" tooltip="${menu.2158}">
-                                <panel childLayout="vertical" align="left">
-                                    <panel childLayout="horizontal" padding="3px,3px,0" id="tab-spell-content" />
-                                </panel>
+                                     active="Textures/GUI/Icons/selected-spell.png"
+                                     hintText="${menu.2157}" tooltip="${menu.2158}">
+                                <control name="flowLayout" id="tab-spell-content" rows="2" padding="6px" />
                             </control>
 
                             <control name="customTab" id="tab-workshop" image="Textures/GUI/Tabs/t-workshop.png"
-                                     active="Textures/GUI/Icons/selected-workshop.png" hintText="${menu.2159}" tooltip="${menu.2160}">
-                                <panel childLayout="vertical" align="left">
-                                    <panel childLayout="horizontal" padding="3px,3px,0" id="tab-door-content" />
-                                    <panel childLayout="horizontal" padding="3px,3px,3px" id="tab-trap-content" />
-                                </panel>
+                                     active="Textures/GUI/Icons/selected-workshop.png"
+                                     hintText="${menu.2159}" tooltip="${menu.2160}">
+                                <control name="flowLayout" id="tab-workshop-content" rows="2" padding="6px" />
                             </control>
                         </control>
 
