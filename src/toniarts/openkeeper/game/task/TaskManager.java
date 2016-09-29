@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.Vector3f;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collections;

@@ -66,38 +66,57 @@ public class MapIndexedGraph implements IndexedGraph<TileData> {
 
         // The connections depend on the creature type
         // No diagonal movement
-        Array<Connection<TileData>> connections = new Array<>(4);
-        addIfValidCoordinate(tile, tile.getX(), tile.getY() - 1, connections); // North
-        addIfValidCoordinate(tile, tile.getX() + 1, tile.getY(), connections); // East
-        addIfValidCoordinate(tile, tile.getX(), tile.getY() + 1, connections); // South
-        addIfValidCoordinate(tile, tile.getX() - 1, tile.getY(), connections); // West
+        Array<Connection<TileData>> connections = new Array<>(8);
+        boolean valids[] = new boolean[4];
+
+        valids[0] = addIfValidCoordinate(tile, tile.getX(), tile.getY() - 1, connections); // North
+        valids[1] = addIfValidCoordinate(tile, tile.getX() + 1, tile.getY(), connections); // East
+        valids[2] = addIfValidCoordinate(tile, tile.getX(), tile.getY() + 1, connections); // South
+        valids[3] = addIfValidCoordinate(tile, tile.getX() - 1, tile.getY(), connections); // West
+
+        if (valids[0] && valids[1]) { // North-East
+            addIfValidCoordinate(tile, tile.getX() + 1, tile.getY() - 1, connections);
+        }
+        if (valids[0] && valids[3]) { // North-West
+            addIfValidCoordinate(tile, tile.getX() - 1, tile.getY() - 1, connections);
+        }
+        if (valids[2] && valids[1]) { // South-East
+            addIfValidCoordinate(tile, tile.getX() + 1, tile.getY() + 1, connections);
+        }
+        if (valids[2] && valids[3]) { // South-West
+            addIfValidCoordinate(tile, tile.getX() - 1, tile.getY() + 1, connections);
+        }
 
         return connections;
     }
 
-    private void addIfValidCoordinate(final TileData startTile, final int x, final int y, final Array<Connection<TileData>> connections) {
+    private boolean addIfValidCoordinate(final TileData startTile, final int x, final int y, final Array<Connection<TileData>> connections) {
 
         // Valid coordinate
         TileData tile = worldState.getMapData().getTile(x, y);
-        if (tile != null) {
-            Terrain terrain = tile.getTerrain();
-            if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+        if (tile == null) {
+            return false;
+        }
+        Terrain terrain = tile.getTerrain();
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            return false;
+        }
 
-                // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
-                if (creature != null) {
+        // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
+        if (creature != null) {
 
-                    if (!worldState.isAccessible(tile, creature)) {
-                        return;
-                    }
+            if (!worldState.isAccessible(tile, creature)) {
+                return false;
+            }
 
-                    if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
-                        connections.add(new DefaultConnection<>(startTile, tile)); // No cost
-                        return;
-                    }
-                }
-                connections.add(new MapConnection(startTile, tile));
+            if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
+                connections.add(new DefaultConnection<>(startTile, tile)); // No cost
+                return true;
             }
         }
+        connections.add(new MapConnection(startTile, tile));
+        return true;
+
     }
 
 }

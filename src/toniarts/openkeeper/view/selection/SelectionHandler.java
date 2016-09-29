@@ -10,8 +10,10 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial.CullHint;
 import com.jme3.scene.debug.WireBox;
+import java.awt.Point;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  * Class that contains the SelectionLogic of the Selection-Helper-Box in the
@@ -48,7 +50,7 @@ public abstract class SelectionHandler {
     private boolean active = false;
     private Vector2f mousePosition = Vector2f.ZERO;
     private Vector3f cameraPosition = Vector3f.NAN;
-    private Vector2f pointedTilePosition = Vector2f.ZERO;
+    private Point pointedTilePosition = new Point(0, 0);
 
     public SelectionHandler(Main app) {
         this.app = app;
@@ -72,11 +74,8 @@ public abstract class SelectionHandler {
         Vector3f dir = cam.getWorldCoordinates(this.mousePosition, 1f).subtractLocal(tmp).normalizeLocal();
         dir.multLocal((MapLoader.TILE_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
 
-        pointedTilePosition = new Vector2f(Math.round(dir.getX() + appScaled / 2),
-                Math.round(dir.getZ() + appScaled / 2));
-        pointedTilePosition.multLocal(appScaled);
-
-        setPos(pointedTilePosition);
+        pointedTilePosition = WorldState.getTileCoordinates(dir);
+        setPos(new Vector2f(pointedTilePosition.x, pointedTilePosition.y));
 
         return true;
     }
@@ -86,7 +85,7 @@ public abstract class SelectionHandler {
      *
      * @return 2D rounded mouse position in tile plane
      */
-    public Vector2f getPointedTilePosition() {
+    public Point getPointedTilePosition() {
         return pointedTilePosition;
     }
 

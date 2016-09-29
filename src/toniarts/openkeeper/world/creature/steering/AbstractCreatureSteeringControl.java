@@ -23,6 +23,7 @@ import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.Vector2;
 import com.jme3.app.Application;
 import com.jme3.bounding.BoundingBox;
+import com.jme3.math.FastMath;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -37,23 +38,27 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
 
     protected final Creature creature;
     protected SteeringBehavior<Vector2> steeringBehavior;
-    private static final SteeringAcceleration<Vector2> steeringOutput = new SteeringAcceleration<>(new Vector2());
+    private final SteeringAcceleration<Vector2> steeringOutput = new SteeringAcceleration<>(new Vector2());
     private final Vector2 position = new Vector2();
     private float orientation = 0;
     private final Vector2 linearVelocity = new Vector2();
     private float angularVelocity;
     private boolean tagged;
-    private boolean independentFacing = false;
-    private float maxLinearSpeed = 1;
-    private float maxLinearAcceleration = 2;
-    private float maxAngularSpeed = 0.1f;
-    private float maxAngularAcceleration = 0.1f;
+
+    private float maxLinearSpeed = 1f;
+    private float maxLinearAcceleration = 8f;
+    private float maxAngularSpeed = FastMath.RAD_TO_DEG * FastMath.QUARTER_PI / 2;
+    private float maxAngularAcceleration = FastMath.RAD_TO_DEG * FastMath.QUARTER_PI;
+    private float speedThreshold = 0.1f;
     private volatile boolean applySteering = false;
+    // FIXME: dirty hack. Roll back changes and see what happens :-(
+    private volatile boolean stopMoving = false;
 
     public AbstractCreatureSteeringControl(Creature creature) {
         this.creature = creature;
 
         maxLinearSpeed = creature.getSpeed();
+        maxLinearSpeed = maxLinearSpeed * 10;
     }
 
     @Override
@@ -81,14 +86,6 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
 
             // Calculate steering acceleration
             steeringBehavior.calculateSteering(steeringOutput);
-
-            /*
-             * Here you might want to add a motor control layer filtering steering accelerations.
-             *
-             * For instance, a car in a driving game has physical constraints on its movement: it cannot turn while stationary; the
-             * faster it moves, the slower it can turn (without going into a skid); it can brake much more quickly than it can
-             * accelerate; and it only moves in the direction it is facing (ignoring power slides).
-             */
             // Apply steering acceleration
             applySteering(steeringOutput, tpf);
             applySteering = true;
@@ -105,19 +102,27 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
         // TODO: Call function?
         if (steering.isZero()) {
             steeringBehavior = null;
+            stopMoving = false;
+            return;
         }
 
         // Update orientation and angular velocity
-        if (independentFacing) {
-            setOrientation(getOrientation() + (angularVelocity * tpf));
-            angularVelocity += steering.angular * tpf;
+        if (!stopMoving) {
+            position.add(linearVelocity.x * tpf, linearVelocity.y * tpf);
+            linearVelocity.mulAdd(steering.linear, tpf).limit(maxLinearSpeed);
+
+            float newOrientation = vectorToAngle(linearVelocity);
+            // this is superfluous if independentFacing is always true
+            angularVelocity = (newOrientation - getOrientation()) * tpf;
+            setOrientation(newOrientation);
         } else {
-            // If we haven't got any velocity, then we can do nothing.
-            if (!linearVelocity.isZero(getZeroLinearSpeedThreshold())) {
-                float newOrientation = vectorToAngle(linearVelocity);
-                angularVelocity = (newOrientation - getOrientation()) * tpf; // this is superfluous if independentFacing is always true
-                setOrientation(newOrientation);
-            }
+            // Update orientation and angular velocity
+            orientation += angularVelocity * tpf;
+            angularVelocity += steering.angular * tpf;
+        }
+
+        if (steering.angular != 0 && steering.linear.isZero(speedThreshold)) {
+            stopMoving = true;
         }
     }
 
@@ -223,20 +228,12 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
 
     @Override
     public float getZeroLinearSpeedThreshold() {
-        return 0.001f;
+        return speedThreshold;
     }
 
     @Override
     public void setZeroLinearSpeedThreshold(float value) {
         throw new UnsupportedOperationException();
-    }
-
-    public boolean isIndependentFacing() {
-        return independentFacing;
-    }
-
-    public void setIndependentFacing(boolean independentFacing) {
-        this.independentFacing = independentFacing;
     }
 
     public SteeringBehavior<Vector2> getSteeringBehavior() {

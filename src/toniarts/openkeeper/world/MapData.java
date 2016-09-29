@@ -17,6 +17,8 @@
 package toniarts.openkeeper.world;
 
 import java.awt.Point;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
@@ -55,7 +57,10 @@ public final class MapData {
         return height;
     }
 
-    protected void setTile(int x, int y, TileData tile) {
+    protected void setTile(int x, int y, @Nonnull TileData tile) {
+        if (x < 0 || y < 0 || x >= width || y >= height) {
+            return;
+        }
         this.tiles[x][y] = tile;
     }
 
@@ -66,6 +71,7 @@ public final class MapData {
      * @param y y coordinate
      * @return the tile data
      */
+    @Nullable
     public TileData getTile(int x, int y) {
         if (x < 0 || y < 0 || x >= width || y >= height) {
             return null;
@@ -73,6 +79,7 @@ public final class MapData {
         return this.tiles[x][y];
     }
 
+    @Nullable
     public TileData getTile(Point p) {
         return getTile(p.x, p.y);
     }

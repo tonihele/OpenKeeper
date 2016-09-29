@@ -168,7 +168,7 @@ public final class TileData extends Tile {
 
     public String getTooltip() {
         return bundle.getString(Integer.toString(getTerrain().getTooltipStringId()))
-                .replaceAll("%37", Integer.toString(getHealthPercent()))
+                .replaceAll("%37%", Integer.toString(getHealthPercent()))
                 .replaceAll("%66", Integer.toString(terrain.getManaGain()))
                 .replaceAll("%67", Integer.toString(gold));
     }

@@ -75,6 +75,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final static int FLOOR_INDEX = 0;
     private final static int WALL_INDEX = 1;
     private final static int TOP_INDEX = 2;
+    private final static int TERRAIN_INDEX = 0;
     private List<Node> pages;
     private final KwdFile kwdFile;
     private Node map;
@@ -173,7 +174,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         // Reconstruct all tiles in the area
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
-        Node terrainNode = (Node) map.getChild(0);
+        Node terrainNode = (Node) map.getChild(TERRAIN_INDEX);
         for (Point point : points) {
             TileData tile = mapData.getTile(point);
             // Reconstruct and mark for patching
@@ -199,7 +200,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             }
 
             // Reconstruct
-            handleTile(tile, (Node) map.getChild(0));
+            handleTile(tile, (Node) map.getChild(TERRAIN_INDEX));
         }
 
         // Batch
@@ -699,6 +700,15 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         int tileX = p.x - ((int) Math.floor(p.x / (float) PAGE_SQUARE_SIZE)) * PAGE_SQUARE_SIZE;
         int tileY = p.y - ((int) Math.floor(p.y / (float) PAGE_SQUARE_SIZE)) * PAGE_SQUARE_SIZE;
         return tileY * PAGE_SQUARE_SIZE + tileX;
+    }
+    
+    /**
+     * Test collision detector
+     * @param p Tile coordinates
+     * @return tile wall node
+     */
+    public Node getTileWall(Point p) {
+        return getTileNode(p, (Node)((BatchNode) map.getChild(TERRAIN_INDEX)).getChild(WALL_INDEX));
     }
 
     /**

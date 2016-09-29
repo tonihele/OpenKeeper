@@ -806,12 +806,13 @@ public abstract class WorldState extends AbstractAppState {
     /**
      * Get a random tile, that is not a starting tile
      *
-     * @param start starting coordinates
+     * @param target target coordinates
      * @param radius radius, in tiles
      * @param creature
      * @return a random tile if one is found
      */
-    public Point findRandomAccessibleTile(Point start, int radius, Creature creature) {
+    public Point findRandomAccessibleTile(Vector3f target, int radius, Creature creature) {
+        Point start = getTileCoordinates(target);
         List<Point> tiles = new ArrayList<>(radius * radius - 1);
         for (int y = start.y - radius / 2; y < start.y + radius / 2; y++) {
             for (int x = start.x - radius / 2; x < start.x + radius / 2; x++) {
@@ -838,15 +839,20 @@ public abstract class WorldState extends AbstractAppState {
     /**
      * FIXME: This can NOT be. Just for quick easy testing.
      *
-     * @param start start point
+     * @param target target position
      * @param end end point
      * @param creature the creature to find path for
      * @return output path, null if path not found
      */
+    public GraphPath<TileData> findPath(Vector3f target, Point end, Creature creature) {
+        Point start = getTileCoordinates(target);
+        return findPath(start, end, creature);
+    }
+    
     public GraphPath<TileData> findPath(Point start, Point end, Creature creature) {
         pathFindingMap.setCreature(creature);
         GraphPath<TileData> outPath = new DefaultGraphPath<>();
-        if (pathFinder.searchNodePath(getMapData().getTile(start.x, start.y), getMapData().getTile(end.x, end.y), heuristic, outPath)) {
+        if (pathFinder.searchNodePath(getMapData().getTile(start), getMapData().getTile(end), heuristic, outPath)) {
             return outPath;
         }
         return null;
@@ -858,8 +864,8 @@ public abstract class WorldState extends AbstractAppState {
      * @param location position
      * @return tile coordinates
      */
-    public Point getTileCoordinates(Vector3f location) {
-        return new Point((int) Math.floor(location.x + 0.5f), (int) Math.floor(location.z + 0.5f));
+    public static Point getTileCoordinates(Vector3f location) {
+        return new Point((int) Math.floor(location.x + 1), (int) Math.floor(location.z + 1));
     }
 
     /**
@@ -871,25 +877,26 @@ public abstract class WorldState extends AbstractAppState {
      */
     public boolean isAccessible(TileData tile, Creature creature) {
         Terrain terrain = tile.getTerrain();
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-
-            // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-
-                // Get room obstacles
-                RoomInstance roomInstance = getMapLoader().getRoomCoordinates().get(new Point(tile.getX(), tile.getY()));
-                GenericRoom room = getMapLoader().getRoomActuals().get(roomInstance);
-                return room.isTileAccessible(tile.getX(), tile.getY());
-            } else if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
-                return true;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
-                return false;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
-                return false;
-            }
-            return true;
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            return false;
         }
-        return false;
+
+        // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+
+            // Get room obstacles
+            RoomInstance roomInstance = getMapLoader().getRoomCoordinates().get(new Point(tile.getX(), tile.getY()));
+            GenericRoom room = getMapLoader().getRoomActuals().get(roomInstance);
+            return room.isTileAccessible(tile.getX(), tile.getY());
+        } else if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
+            return true;
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
+            return false;
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -901,11 +908,13 @@ public abstract class WorldState extends AbstractAppState {
         for (Segment<Vector2> segment : linePath.getSegments()) {
 
             Line line = new Line(new Vector3f(segment.getBegin().x, 0.25f, segment.getBegin().y), new Vector3f(segment.getEnd().x, 0.25f, segment.getEnd().y));
-            Geometry geometry = new Geometry("Bullet", line);
+
             Material orange = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
             orange.setColor("Color", ColorRGBA.Red);
             orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
             orange.getAdditionalRenderState().setLineWidth(2);
+
+            Geometry geometry = new Geometry("Bullet", line);
             geometry.setCullHint(Spatial.CullHint.Never);
             geometry.setMaterial(orange);
             getWorld().attachChild(geometry);
@@ -1351,4 +1360,11 @@ public abstract class WorldState extends AbstractAppState {
         }
     }
 
+    /**
+     * @deprecated used for debugging some stuff
+     * @return Application
+     */
+    public Main getApp() {
+        return app;
+    }
 }

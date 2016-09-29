@@ -23,6 +23,7 @@ import com.badlogic.gdx.ai.steer.behaviors.Cohesion;
 import com.badlogic.gdx.ai.steer.behaviors.FollowPath;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance;
+import com.badlogic.gdx.ai.steer.behaviors.ReachOrientation;
 import com.badlogic.gdx.ai.steer.behaviors.Wander;
 import com.badlogic.gdx.ai.steer.proximities.InfiniteProximity;
 import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
@@ -46,6 +47,9 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.task.AbstractTask;
+import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
+import toniarts.openkeeper.game.task.worker.DigTileTask;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.CursorFactory.CursorType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -64,6 +68,7 @@ import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
+import toniarts.openkeeper.world.creature.steering.TargetLocation;
 import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
@@ -222,7 +227,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public void wander() {
 
         // Set wandering
-        PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+        PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.001f);
         RaycastCollisionDetector<Vector2> raycastCollisionDetector = new CreatureRayCastCollisionDetector(worldState);
         RaycastObstacleAvoidance<Vector2> raycastObstacleAvoidanceSB = new RaycastObstacleAvoidance<>(this, new SingleRayConfiguration<>(this, 1.5f),
                 raycastCollisionDetector, 0.5f);
@@ -239,23 +244,28 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void navigateToRandomPoint() {
-        Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, creature);
-        if (p != null) {
-            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, creature);
+        Point p = worldState.findRandomAccessibleTile(getSpatial().getWorldTranslation(), 10, creature);
+        if (p == null) {
+            return;
+        }
+        GraphPath<TileData> outPath = worldState.findPath(getSpatial().getWorldTranslation(), p, creature);
 
-            if (outPath != null && outPath.getCount() > 1) {
+        if (outPath != null && outPath.getCount() > 1) {
 
-                // Debug
-//                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
-                PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
-                FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(pathToArray(outPath), true), 2);
-                followPath.setDecelerationRadius(1f);
-                followPath.setArrivalTolerance(0.2f);
-                prioritySteering.add(followPath);
+            // Debug
+//            if (Main.isDebug()) {
+//                worldState.getApp().enqueue(() -> {
+//                    worldState.drawPath(getWaypoints(outPath));
+//                });
+//            }
+            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+            FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(getWaypoints(outPath), true), 2);
+            followPath.setDecelerationRadius(0.3f);
+            followPath.setArrivalTolerance(0.2f);
+            prioritySteering.add(followPath);
 
-                prioritySteering.setEnabled(!isAnimationPlaying());
-                setSteeringBehavior(prioritySteering);
-            }
+            prioritySteering.setEnabled(!isAnimationPlaying());
+            setSteeringBehavior(prioritySteering);
         }
     }
 
@@ -335,7 +345,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     void onAnimationCycleDone() {
 
-        if (isStopped() && stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid()) {
+        if (isStopped() && stateMachine.getCurrentState() == CreatureState.WORK
+                && playingAnimationType == AnimationType.WORK && isAssignedTaskValid()) {
 
             // Different work based reactions
             assignedTask.executeTask(this);
@@ -380,7 +391,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         }
     }
 
-    private Array<Vector2> pathToArray(GraphPath<TileData> outPath) {
+    private Array<Vector2> getWaypoints(GraphPath<TileData> outPath) {
         Array<Vector2> path = new Array<>(outPath.getCount());
         for (TileData tile : outPath) {
             path.add(new Vector2(tile.getX() - 0.5f, tile.getY() - 0.5f));
@@ -538,22 +549,42 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public void navigateToAssignedTask() {
 
         Vector2f loc = assignedTask.getTarget(this);
-        if (loc != null) {
-            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), creature);
+        if (loc == null) {
+            return;
+        }
 
-            if (outPath != null && outPath.getCount() > 1) {
+        GraphPath<TileData> outPath = worldState.findPath(getSpatial().getWorldTranslation(), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), creature);
+        PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.001f);
 
-                // Debug
-//                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
-                PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
-                FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(pathToArray(outPath), true), 2);
-                followPath.setDecelerationRadius(1f);
-                followPath.setArrivalTolerance(0.2f);
-                prioritySteering.add(followPath);
+        if (outPath != null && outPath.getCount() > 1) {
 
-                prioritySteering.setEnabled(!isAnimationPlaying());
-                setSteeringBehavior(prioritySteering);
-            }
+            // Debug
+//            if (Main.isDebug()) {
+//                worldState.getApp().enqueue(() -> {
+//                    worldState.drawPath(waypoints);
+//                });
+//            }
+
+            FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(getWaypoints(outPath), true), 2);
+            followPath.setDecelerationRadius(0.3f);
+            followPath.setArrivalTolerance(0.2f);
+            prioritySteering.add(followPath);
+
+            prioritySteering.setEnabled(!isAnimationPlaying());
+            setSteeringBehavior(prioritySteering);
+        }
+
+        // FIXME: need attribute to task that`s tell need creature facing or not
+        if (assignedTask instanceof DigTileTask || assignedTask instanceof ClaimWallTileTask) {
+            Point target = ((AbstractTileTask)assignedTask).getTaskLocation();
+            ReachOrientation orient = new ReachOrientation(this, new TargetLocation(new Vector2(target.x - 0.5f, target.y - 0.5f), new Vector2(loc.x - 0.5f, loc.y - 0.5f)));
+            orient.setDecelerationRadius(1.5f);
+            orient.setTimeToTarget(0.1f);
+            orient.setAlignTolerance(FastMath.QUARTER_PI / 7);
+            prioritySteering.add(orient);
+
+            prioritySteering.setEnabled(!isAnimationPlaying());
+            setSteeringBehavior(prioritySteering);
         }
     }
 
@@ -578,7 +609,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public boolean isAtAssignedTaskTarget() {
         // FIXME: not like this, universal solution
-        return (assignedTask != null && assignedTask.getTarget(this) != null && steeringBehavior == null && isNear(assignedTask.getTarget(this)));
+        return (assignedTask != null && assignedTask.getTarget(this) != null
+                && steeringBehavior == null && isNear(assignedTask.getTarget(this)));
     }
 
     public boolean isAssignedTaskValid() {
@@ -623,7 +655,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return the tile coordinates
      */
     public Point getCreatureCoordinates() {
-        return worldState.getTileCoordinates(getSpatial().getWorldTranslation());
+        return WorldState.getTileCoordinates(getSpatial().getWorldTranslation());
     }
 
     /**
@@ -752,7 +784,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public boolean followTarget(CreatureControl target) {
         if (target != null) {
             followTarget = target;
-            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.001f);
 
             // Create proximity
             Array<CreatureControl> creatures;
@@ -823,7 +855,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     @Override
     public boolean isPickable(short playerId) {
-        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP) && !stateMachine.isInState(CreatureState.DEAD);
+        return playerId == ownerId
+                && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP)
+                && !stateMachine.isInState(CreatureState.DEAD);
     }
 
     @Override
