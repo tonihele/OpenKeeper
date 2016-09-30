@@ -40,6 +40,7 @@ public class CustomScroll implements Controller {
     private Element back;
     private Element forward;
 
+    private int stepSize = 0;
     private boolean enable = true;
     private boolean visible = true;
 
@@ -79,13 +80,21 @@ public class CustomScroll implements Controller {
     }
 
     public void back() {
-        // FIXME not worked
-        content.setConstraintX(SizeValue.px(content.getConstraintX().getValueAsInt(1.f) - 64));
+        int cX = content.getConstraintX().getValueAsInt(1.f);
+
+        if (cX + content.getConstraintWidth().getValueAsInt(1.f) > content.getWidth()) {
+            content.setConstraintX(SizeValue.px(cX - stepSize));
+            content.getParent().layoutElements();
+        }
     }
 
     public void forward() {
-        // FIXME not worked
-        content.setConstraintX(SizeValue.px(content.getConstraintX().getValueAsInt(1.f) + 64));
+        int cX = content.getConstraintX().getValueAsInt(1.f);
+
+        if (cX < 0) {
+            content.setConstraintX(SizeValue.px(cX + stepSize));
+            content.getParent().layoutElements();
+        }
     }
 
     public Element addElement(ControlBuilder controlBuilder) {
@@ -93,7 +102,12 @@ public class CustomScroll implements Controller {
         if (content.getConstraintWidth().getValueAsInt(1.f) > content.getWidth()) {
             setEnable(true);
         }
-        content.layoutElements();
+        content.getParent().layoutElements();
+
+        if (stepSize == 0) {
+            stepSize = el.getWidth();
+        }
+
         return el;
     }
 
@@ -101,6 +115,7 @@ public class CustomScroll implements Controller {
         for (Element child : content.getChildren()) {
             child.markForRemoval();
         }
+        stepSize = 0;
     }
 
     public void setEnable(boolean enable) {

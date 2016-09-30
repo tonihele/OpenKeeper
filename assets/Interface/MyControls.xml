@@ -337,7 +337,7 @@
     </controlDefinition>
 
     <controlDefinition name="guiIcon">
-        <image id="$id" filename="$image" valign="center" marginLeft="3px">
+        <image id="$id" filename="$image" valign="center">
             <effect>
                 <onHover name="imageOverlay" filename="$hoverImage" post="true"/>
                 <onHover name="hint" hintText="$hint" hintDelay="200" />
@@ -385,7 +385,9 @@
                 </effect>
                 <interact onClick="back()" />
             </image>
-            <panel id="#content" childLayout="horizontal" valign="center" width="*" height="*"/>
+            <panel childLayout="absolute" childClip="true">
+                <panel x="0" y="50%" id="#content" childLayout="horizontal" valign="center" width="*" height="*"/>
+            </panel>
             <image id="#forward" filename="Textures/GUI/Pages/page_forward.png" valign="center">
                 <effect>
                     <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true"/>
