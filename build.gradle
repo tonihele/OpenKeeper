@@ -11,13 +11,11 @@ ext {
 repositories {
     mavenLocal()
     mavenCentral()
+    jcenter()
     maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
     maven { url "https://oss.sonatype.org/content/repositories/releases/" }
-    maven { url 'http://jcenter.bintray.com' }
-    // maven { url 'http://updates.jmonkeyengine.org/maven' }
     maven { url "https://jitpack.io" }
     maven { url "http://nifty-gui.sourceforge.net/nifty-maven-repo" }
-    maven { url "http://jcenter.bintray.com/com/simsilica" }
 }
 
 // NetBeans will automatically add "run" and "debug" tasks relying on the
