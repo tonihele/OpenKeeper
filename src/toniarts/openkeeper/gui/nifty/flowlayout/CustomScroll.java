@@ -82,7 +82,7 @@ public class CustomScroll implements Controller {
     public void back() {
         int cX = content.getConstraintX().getValueAsInt(1.f);
 
-        if (cX + content.getConstraintWidth().getValueAsInt(1.f) > content.getWidth()) {
+        if (cX + content.getWidth() > content.getParent().getWidth()) {
             content.setConstraintX(SizeValue.px(cX - stepSize));
             content.getParent().layoutElements();
         }
@@ -99,7 +99,7 @@ public class CustomScroll implements Controller {
 
     public Element addElement(ControlBuilder controlBuilder) {
         Element el = controlBuilder.build(nifty, screen, content);
-        if (content.getConstraintWidth().getValueAsInt(1.f) > content.getWidth()) {
+        if (!enable && content.getWidth() > content.getParent().getWidth()) {
             setEnable(true);
         }
         content.getParent().layoutElements();

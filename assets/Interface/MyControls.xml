@@ -385,8 +385,8 @@
                 </effect>
                 <interact onClick="back()" />
             </image>
-            <panel childLayout="absolute" childClip="true">
-                <panel x="0" y="50%" id="#content" childLayout="horizontal" valign="center" width="*" height="*"/>
+            <panel childLayout="absolute" childClip="true" width="*" height="*">
+                <panel x="0" y="50%" id="#content" childLayout="horizontal" valign="center" height="*"/>
             </panel>
             <image id="#forward" filename="Textures/GUI/Pages/page_forward.png" valign="center">
                 <effect>
