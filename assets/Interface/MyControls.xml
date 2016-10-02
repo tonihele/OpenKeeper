@@ -336,8 +336,8 @@
         </panel>
     </controlDefinition>
 
-    <controlDefinition name="guiIcon" >
-        <image id="$id" filename="$image" valign="center" marginRight="3px">
+    <controlDefinition name="guiIcon">
+        <image id="$id" filename="$image" valign="center">
             <effect>
                 <onHover name="imageOverlay" filename="$hoverImage" post="true"/>
                 <onHover name="hint" hintText="$hint" hintDelay="200" />
@@ -355,20 +355,46 @@
         </panel>
     </controlDefinition>
 
-    <controlDefinition name="statisticEntry" >
+    <controlDefinition name="statisticEntry">
         <panel childLayout="horizontal" marginLeft="10px">
-            <text style="text" text="$player" textHAlign="left"  width="*" />
-            <text style="text" text="$kill" textHAlign="left"  width="8%" />
-            <text style="text" text="$death" textHAlign="left"  width="8%" />
-            <text style="text" text="$value" textHAlign="left"  width="8%" />
-            <text style="text" text="$mana" textHAlign="left"  width="8%" />
-            <text style="text" text="$creature" textHAlign="left"  width="8%" />
-            <text style="text" text="$imp" textHAlign="left"  width="8%" />
-            <text style="text" text="$trap" textHAlign="left"  width="8%" />
-            <text style="text" text="$training" textHAlign="left"  width="8%" />
-            <text style="text" text="$research" textHAlign="left"  width="8%" />
-            <text style="text" text="$happiness" textHAlign="left"  width="8%" />
-            <text style="text" text="$mapPercent" textHAlign="left"  width="8%" />
+            <text style="text" text="$player" textHAlign="left" width="*" />
+            <text style="text" text="$kill" textHAlign="left" width="8%" />
+            <text style="text" text="$death" textHAlign="left" width="8%" />
+            <text style="text" text="$value" textHAlign="left" width="8%" />
+            <text style="text" text="$mana" textHAlign="left" width="8%" />
+            <text style="text" text="$creature" textHAlign="left" width="8%" />
+            <text style="text" text="$imp" textHAlign="left" width="8%" />
+            <text style="text" text="$trap" textHAlign="left" width="8%" />
+            <text style="text" text="$training" textHAlign="left" width="8%" />
+            <text style="text" text="$research" textHAlign="left" width="8%" />
+            <text style="text" text="$happiness" textHAlign="left" width="8%" />
+            <text style="text" text="$mapPercent" textHAlign="left" width="8%" />
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="flowLayout" controller="toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl">
+        <panel childLayout="vertical" valign="center" width="*" height="*" />
+    </controlDefinition>
+
+    <controlDefinition name="customScroll" controller="toniarts.openkeeper.gui.nifty.flowlayout.CustomScroll">
+        <panel childLayout="horizontal">
+            <image id="#back" filename="Textures/GUI/Pages/page_back.png" valign="center">
+                <effect>
+                    <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Hilight.png" post="true"/>
+                    <onClick name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Selected.png" post="true" neverStopRendering="true" />
+                </effect>
+                <interact onClick="back()" />
+            </image>
+            <panel childLayout="absolute" childClip="true" width="*" height="*">
+                <panel x="0" y="50%" id="#content" childLayout="horizontal" valign="center" height="*"/>
+            </panel>
+            <image id="#forward" filename="Textures/GUI/Pages/page_forward.png" valign="center">
+                <effect>
+                    <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true"/>
+                    <onClick name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Selected.png" post="true" neverStopRendering="true" />
+                </effect>
+                <interact onClick="forward()" />
+            </image>
         </panel>
     </controlDefinition>
 </nifty-controls>

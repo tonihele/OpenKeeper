@@ -61,6 +61,7 @@ import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.game.player.PlayerRoomControl;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
+import toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -96,6 +97,7 @@ public class PlayerScreenController implements IPlayerScreenController {
     private Nifty nifty;
     private Screen screen;
 
+    private Element selectedButton;
     private Label tooltip;
     private boolean initHud = false;
     private String cinematicText;
@@ -517,22 +519,20 @@ public class PlayerScreenController implements IPlayerScreenController {
         });
         populateRoomTab();
 
-        Element contentPanel = hud.findElementById("tab-spell-content");
-        removeAllChildElements(contentPanel);
+        FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
+
+        contentPanel.removeAll();
         for (final KeeperSpell spell : state.getAvailableKeeperSpells()) {
-            createSpellIcon(spell).build(nifty, hud, contentPanel);
+            contentPanel.addElement(createSpellIcon(spell));
         }
 
-        contentPanel = hud.findElementById("tab-door-content");
-        removeAllChildElements(contentPanel);
+        contentPanel = hud.findElementById("tab-workshop-content").getControl(FlowLayoutControl.class);
+        contentPanel.removeAll();
         for (final Door door : state.getAvailableDoors()) {
-            createDoorIcon(door).build(nifty, hud, contentPanel);
+            contentPanel.addElement(createDoorIcon(door));
         }
-
-        contentPanel = hud.findElementById("tab-trap-content");
-        removeAllChildElements(contentPanel);
         for (final Trap trap : state.getAvailableTraps()) {
-            createTrapIcon(trap).build(nifty, hud, contentPanel);
+            contentPanel.addElement(createTrapIcon(trap));
         }
     }
 
@@ -541,10 +541,10 @@ public class PlayerScreenController implements IPlayerScreenController {
      */
     public void populateRoomTab() {
         Screen hud = nifty.getScreen(HUD_SCREEN_ID);
-        Element contentPanel = hud.findElementById("tab-room-content");
-        removeAllChildElements(contentPanel);
+        FlowLayoutControl contentPanel = hud.findElementById("tab-room-content").getControl(FlowLayoutControl.class);
+        contentPanel.removeAll();
         for (final Room room : state.getAvailableRoomsToBuild()) {
-            createRoomIcon(room).build(nifty, hud, contentPanel);
+            contentPanel.addElement(createRoomIcon(room));
         }
     }
 
@@ -648,22 +648,14 @@ public class PlayerScreenController implements IPlayerScreenController {
     }
 
     protected void updateSelectedItem(PlayerInteractionState.InteractionState state) {
-
-        for (PlayerInteractionState.InteractionState.Type interaction : PlayerInteractionState.InteractionState.Type.values()) {
-            Element content = nifty.getScreen(HUD_SCREEN_ID).findElementById("tab-" + interaction.toString().toLowerCase() + "-content");
-            if (content == null || !content.isVisible()) {
-                continue;
-            }
-
-            for (Element e : content.getChildren()) {
-                e.stopEffect(EffectEventId.onCustom);
-            }
+        if (selectedButton != null) {
+            selectedButton.stopEffect(EffectEventId.onCustom);
         }
 
         String itemId = state.getType().toString().toLowerCase() + "_" + state.getItemId();
-        Element item = nifty.getScreen(HUD_SCREEN_ID).findElementById(itemId);
-        if (item != null) {
-            item.startEffect(EffectEventId.onCustom, null, "select");
+        selectedButton = nifty.getScreen(HUD_SCREEN_ID).findElementById(itemId);
+        if (selectedButton != null) {
+            selectedButton.startEffect(EffectEventId.onCustom, null, "select");
         }
     }
 
