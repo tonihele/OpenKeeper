@@ -58,7 +58,7 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
         this.creature = creature;
 
         maxLinearSpeed = creature.getSpeed();
-        maxLinearSpeed = maxLinearSpeed * 10;
+        maxLinearAcceleration = maxLinearSpeed * 10;
     }
 
     @Override
@@ -93,11 +93,6 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
     }
 
     protected void applySteering(SteeringAcceleration<Vector2> steering, float tpf) {
-
-        // Update position and linear velocity. Velocity is trimmed to maximum speed
-        position.add(linearVelocity.x * tpf, linearVelocity.y * tpf);
-        linearVelocity.mulAdd(steering.linear, tpf).limit(getMaxLinearSpeed());
-
         // We are done
         // TODO: Call function?
         if (steering.isZero()) {
