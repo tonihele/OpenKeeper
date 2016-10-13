@@ -16,7 +16,9 @@
  */
 package toniarts.openkeeper.world.effect;
 
+import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
+import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
@@ -25,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  * An app state to manage ALL the effects in the world. Mainly their lifetime.
@@ -37,12 +40,20 @@ public class EffectManagerState extends AbstractAppState {
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
     private final List<VisualEffect> activeEffects = new ArrayList<>();
+    private AppStateManager stateManager;
     private static final Logger logger = Logger.getLogger(EffectManagerState.class.getName());
 
     public EffectManagerState(KwdFile kwdFile, AssetManager assetManager) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
     }
+
+    @Override
+    public void initialize(AppStateManager stateManager, Application app) {
+        super.initialize(stateManager, app);
+        this.stateManager = stateManager;
+    }
+    
 
     @Override
     public void update(float tpf) {
@@ -99,5 +110,8 @@ public class EffectManagerState extends AbstractAppState {
         VisualEffect visualEffect = new VisualEffect(kwdFile, assetManager, this, node, location, kwdFile.getEffect(effectId), infinite);
         activeEffects.add(visualEffect);
     }
-
+    
+    public WorldState getWorldState() {
+        return stateManager.getState(WorldState.class);
+    }
 }

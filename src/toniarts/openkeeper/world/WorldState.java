@@ -902,7 +902,7 @@ public abstract class WorldState extends AbstractAppState {
      * @param location position
      * @return tile coordinates
      */
-    public Point getTileCoordinates(Vector3f location) {
+    public static Point getTileCoordinates(Vector3f location) {
         return new Point((int) Math.floor(location.x + 0.5f), (int) Math.floor(location.z + 0.5f));
     }
 
