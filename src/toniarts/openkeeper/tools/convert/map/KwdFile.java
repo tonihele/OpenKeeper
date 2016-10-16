@@ -1077,17 +1077,19 @@ public final class KwdFile {
         gameLevel.setIntroductionOverrideTextIds(introductionOverrideTextIds);
 
         gameLevel.setTerrainPath(ConversionUtils.readString(data, 32).trim());
-        gameLevel.setOneShotHornyLev((short) data.readUnsignedByte());
-        gameLevel.setPlayerCount((short) data.readUnsignedByte());
-        gameLevel.setX06405((short) data.readUnsignedByte());
-        gameLevel.setX06406((short) data.readUnsignedByte());
-        gameLevel.setSpeechHornyId(ConversionUtils.readUnsignedShort(data));
-        gameLevel.setSpeechPrelvlId(ConversionUtils.readUnsignedShort(data));
-        gameLevel.setSpeechPostlvlWin(ConversionUtils.readUnsignedShort(data));
-        gameLevel.setSpeechPostlvlLost(ConversionUtils.readUnsignedShort(data));
-        gameLevel.setSpeechPostlvlNews(ConversionUtils.readUnsignedShort(data));
-        gameLevel.setSpeechPrelvlGenr(ConversionUtils.readUnsignedShort(data));
-        gameLevel.setHeroName(ConversionUtils.readStringUtf16(data, 32).trim());
+        if (header.dataSize > 25603) { // Some very old files are smaller, namely the FrontEnd3DLevel map in some version
+            gameLevel.setOneShotHornyLev((short) data.readUnsignedByte());
+            gameLevel.setPlayerCount((short) data.readUnsignedByte());
+            gameLevel.setX06405((short) data.readUnsignedByte());
+            gameLevel.setX06406((short) data.readUnsignedByte());
+            gameLevel.setSpeechHornyId(ConversionUtils.readUnsignedShort(data));
+            gameLevel.setSpeechPrelvlId(ConversionUtils.readUnsignedShort(data));
+            gameLevel.setSpeechPostlvlWin(ConversionUtils.readUnsignedShort(data));
+            gameLevel.setSpeechPostlvlLost(ConversionUtils.readUnsignedShort(data));
+            gameLevel.setSpeechPostlvlNews(ConversionUtils.readUnsignedShort(data));
+            gameLevel.setSpeechPrelvlGenr(ConversionUtils.readUnsignedShort(data));
+            gameLevel.setHeroName(ConversionUtils.readStringUtf16(data, 32).trim());
+        }
 
         // Paths and the unknown array
         //header.setCheckTwo(ConversionUtils.toUnsignedInteger(data));
@@ -3150,10 +3152,10 @@ public final class KwdFile {
         //     unsigned int size;
         //     union {
         //         struct {
-        //             uint16_t w08;
-        //             uint16_t w0a;
+        //             uint16_t w08; <- width
+        //             uint16_t w0a; <- height
         //         } level;
-        //         unsigned int dw08;
+        //         unsigned int dw08; <- version?
         //     };
         //     unsigned int x0c[7];
         // };
