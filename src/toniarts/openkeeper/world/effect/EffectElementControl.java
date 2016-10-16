@@ -59,10 +59,10 @@ public abstract class EffectElementControl extends AbstractControl {
         velocity = calculateVelocity(effect);
         //height = FastMath.nextRandomInt(effect.getLowerHeightLimit(), effect.getUpperHeightLimit());
 
-        if (effect.getFlags().contains(EffectElement.EffectElementFlag.SHRINKS)) {
+        if (effect.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
             scale = new FloatLimit(effect.getMaxScale());
             scaleRatio = (effect.getMaxScale() - effect.getMinScale()) / hp;
-        } else if (effect.getFlags().contains(EffectElement.EffectElementFlag.EXPANDS)) {
+        } else if (effect.getFlags().contains(EffectElement.EffectElementFlag.EXPAND)) {
             scale = new FloatLimit(effect.getMinScale());
             scaleRatio = (effect.getMaxScale() - effect.getMinScale()) / hp;
         } else {
@@ -86,10 +86,10 @@ public abstract class EffectElementControl extends AbstractControl {
             return;
         }
 
-        if (effect.getFlags().contains(EffectElement.EffectElementFlag.SHRINKS)) {
+        if (effect.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
             scale.sub(scaleRatio);
             spatial.setLocalScale(scale.getValue());
-        } else if (effect.getFlags().contains(EffectElement.EffectElementFlag.EXPANDS)) {
+        } else if (effect.getFlags().contains(EffectElement.EffectElementFlag.EXPAND)) {
             scale.add(scaleRatio);
             spatial.setLocalScale(scale.getValue());
         }
@@ -121,7 +121,7 @@ public abstract class EffectElementControl extends AbstractControl {
         hpCurrent-= tpf;
         if (hpCurrent <= 0) {
             onDie(spatial.getLocalTranslation());
-            spatial.removeFromParent();            
+            spatial.removeFromParent();
             spatial.removeControl(this);
         }
     }

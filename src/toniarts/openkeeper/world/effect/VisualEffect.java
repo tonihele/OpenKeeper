@@ -228,7 +228,7 @@ public class VisualEffect {
 
             Color color = element.getColor();
             float alpha = 1f;
-            if (element.getFlags().contains(EffectElement.EffectElementFlag.FADES)) {
+            if (element.getFlags().contains(EffectElement.EffectElementFlag.FADE)) {
                 alpha -= element.getFadePercentage() / 100;
             }
 
@@ -239,7 +239,7 @@ public class VisualEffect {
             emitter.getParticleInfluencer().setInitialVelocity(velocity);
             //
             float scaleRatio = element.getScaleRatio() == 0 ? 1 : element.getScaleRatio();
-            if (element.getFlags().contains(EffectElement.EffectElementFlag.SHRINKS)) {
+            if (element.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
                 emitter.setEndSize(element.getMaxScale() * scaleRatio);
                 emitter.setStartSize(element.getMinScale() * scaleRatio);
             } else {
@@ -287,7 +287,7 @@ public class VisualEffect {
                         VisualEffect.this.addEffectElement(element.getHitWaterElementId(), location);
                     } else if (element.getHitSolidElementId() != 0 ) {
                         // && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                        if (element.getFlags().contains(EffectElement.EffectElementFlag.DIES_WHEN_HIT_SOLID)) {
+                        if (element.getFlags().contains(EffectElement.EffectElementFlag.DIE_WHEN_HIT_SOLID)) {
                             onDeath(location);
                         } else {
                             VisualEffect.this.addEffectElement(element.getHitSolidElementId(), location);

@@ -468,6 +468,10 @@ public class Effect implements Comparable<Effect>, IEffect {
         this.generateRandomness = generateRandomness;
     }
 
+    /**
+     * Allways 0
+     * @return
+     */
     public int getMisc2() {
         return misc2;
     }
@@ -476,6 +480,10 @@ public class Effect implements Comparable<Effect>, IEffect {
         this.misc2 = misc2;
     }
 
+    /**
+     * Allways 0
+     * @return
+     */
     public int getMisc3() {
         return misc3;
     }
@@ -500,6 +508,10 @@ public class Effect implements Comparable<Effect>, IEffect {
         this.elementsPerTurn = elementsPerTurn;
     }
 
+    /**
+     * Allways 0
+     * @return
+     */
     public int getUnknown3() {
         return unknown3;
     }

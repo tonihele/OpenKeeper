@@ -33,10 +33,10 @@ public class EffectElement implements Comparable<EffectElement>, IEffect {
      */
     public enum EffectElementFlag implements IFlagEnum {
 
-        DIES_WHEN_HIT_SOLID(0x0001),
-        SHRINKS(0x0002),
-        EXPANDS(0x0004),
-        FADES(0x0008),
+        DIE_WHEN_HIT_SOLID(0x0001),
+        SHRINK(0x0002),
+        EXPAND(0x0004),
+        FADE(0x0008),
         DIRECTIONAL_FRICTION(0x0010),
         CAN_BE_DISTURBED(0x0020),
         ROTATE_TO_MOVEMENT_DIRECTION(0x0040),
