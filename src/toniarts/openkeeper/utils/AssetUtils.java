@@ -27,6 +27,7 @@ import com.jme3.asset.cache.SimpleAssetCache;
 import com.jme3.asset.cache.WeakRefAssetCache;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
+import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
@@ -427,6 +428,33 @@ public class AssetUtils {
                 return null;
             });
         }
+    }
+
+    /**
+     * Sets model highlight with selected color. Technically sets the material's
+     * ambient color to one of your choosings
+     *
+     * @param spatial the spatial which to highlight
+     * @param highlightColor the highlight color
+     * @param enabled turn the effect on/off
+     */
+    public static void setModelHighlight(Spatial spatial, ColorRGBA highlightColor, boolean enabled) {
+        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (!(spatial instanceof Geometry)) {
+                    return;
+                }
+
+                try {
+                    Material material = ((Geometry) spatial).getMaterial();
+                    material.setColor("Ambient", highlightColor);
+                    material.setBoolean("UseMaterialColors", enabled);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Failed to set material color!", e);
+                }
+            }
+        });
     }
 
 }

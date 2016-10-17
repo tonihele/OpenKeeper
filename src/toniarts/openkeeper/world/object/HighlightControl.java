@@ -16,12 +16,9 @@
  */
 package toniarts.openkeeper.world.object;
 
-import com.jme3.material.Material;
-import com.jme3.scene.Geometry;
-import com.jme3.scene.SceneGraphVisitor;
-import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import java.util.logging.Logger;
+import toniarts.openkeeper.utils.AssetUtils;
 import static toniarts.openkeeper.world.MapLoader.COLOR_FLASH;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 
@@ -48,22 +45,7 @@ public abstract class HighlightControl extends AbstractControl implements IInter
     private void setHighlight(final boolean enabled) {
         if (active != enabled) {
             active = enabled;
-            spatial.depthFirstTraversal(new SceneGraphVisitor() {
-                @Override
-                public void visit(Spatial spatial) {
-                    if (!(spatial instanceof Geometry)) {
-                        return;
-                    }
-
-                    try {
-                        Material material = ((Geometry) spatial).getMaterial();
-                        material.setColor("Ambient", COLOR_FLASH);
-                        material.setBoolean("UseMaterialColors", enabled);
-                    } catch (Exception e) {
-                        logger.warning(e.toString());
-                    }
-                }
-            });
+            AssetUtils.setModelHighlight(spatial, COLOR_FLASH, enabled);
         }
     }
 }
