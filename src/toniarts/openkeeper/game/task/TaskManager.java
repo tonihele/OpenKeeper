@@ -227,9 +227,10 @@ public class TaskManager {
         Point currentPosition = creature.getCreatureCoordinates();
 
         // Get all the rooms of the given type
+        List<GenericRoom> rooms = worldState.getMapLoader().getRoomsByFunction(objectType, creature.getOwnerId());
         Map<Integer, GenericRoom> distancesToRooms = new TreeMap<>();
-        for (GenericRoom room : worldState.getMapLoader().getRoomActuals().values()) {
-            if (room.getRoomInstance().getOwnerId() == creature.getOwnerId() && room.hasObjectControl(objectType) && !room.isFullCapacity()) {
+        for (GenericRoom room : rooms) {
+            if (!room.isFullCapacity()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[room.getRoomInstance().getCoordinates().size()])), room
                 );
             }

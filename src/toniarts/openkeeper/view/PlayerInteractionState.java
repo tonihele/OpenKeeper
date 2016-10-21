@@ -522,8 +522,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         } else if (interactionState.getType() == Type.NONE
                                 && interactiveControl != null && !keeperHand.isFull()
                                 && interactiveControl.isPickable(player.getPlayerId())) {
-                            keeperHand.push(interactiveControl.pickUp(player.getPlayerId()));
-                            updateCursor();
+                            pickupObject(interactiveControl);
                         } else {
 
                             // Selection stuff
@@ -631,7 +630,27 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             @Override
             public void onTouchEvent(TouchEvent evt) {
             }
+
         };
+    }
+
+    /**
+     * Picks up an object, places it in Keeper's hand
+     *
+     * @param object the object to pickup
+     */
+    public void pickupObject(IInteractiveControl object) {
+        keeperHand.push(object.pickUp(player.getPlayerId()));
+        updateCursor();
+    }
+
+    /**
+     * Checks if the Keeper hand is full
+     *
+     * @return is keeper hand full
+     */
+    public boolean isKeeperHandFull() {
+        return keeperHand.isFull();
     }
 
     /**

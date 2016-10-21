@@ -94,7 +94,7 @@ public class GoldObjectControl extends ObjectControl {
     }
 
     private int getResourceIndex() {
-        return (int) Math.ceil((gold / (float) maxGold) * 100 / (100f / getResourceCount())) - 1;
+        return Math.max((int) Math.ceil((gold / (float) maxGold) * 100 / (100f / getResourceCount())) - 1, 0);
     }
 
     private void refreshResource() {

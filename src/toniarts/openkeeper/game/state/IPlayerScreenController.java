@@ -22,22 +22,32 @@ import de.lessvoid.nifty.screen.ScreenController;
  *
  * @author ArchDemon
  */
-public interface IPlayerScreenController  extends ScreenController {
+public interface IPlayerScreenController extends ScreenController {
+
     /**
      * Select active item on HUD
      *
      * @param iState name of InteractionState#Type
-     * @see toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type
+     * @see
+     * toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type
      * @param id id of selected item
      */
     public void select(String iState, String id);
+
     public void pauseMenu();
+
     public void pauseMenuNavigate(String menu, String backMenu,
             String confirmationTitle, String confirmMethod);
 
     public void zoomToCreature(String creatureId);
+
     // TODO move method to own controller or in parameter
+
     public void zoomToImp(String state);
+
+    public void grabGold();
+
     public void quitToMainMenu();
+
     public void quitToOS();
 }

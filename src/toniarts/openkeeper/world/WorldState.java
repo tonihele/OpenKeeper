@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -1397,6 +1398,43 @@ public abstract class WorldState extends AbstractAppState {
             // Create a gold pile
             thingLoader.addLooseGold(tile.getLocation(), coordinates, gold.getOwnerId(), goldLeft);
         }
+    }
+
+    /**
+     * Substract gold from player
+     *
+     * @param amount the amount to try to substract
+     * @param playerId the player id
+     * @return amount of money that could not be substracted from the player
+     */
+    public int substractGoldFromPlayer(int amount, short playerId) {
+
+        // See if the player has any gold even
+        Keeper keeper = gameState.getPlayer(playerId);
+        if (keeper.getGoldControl().getGold() == 0) {
+            return amount;
+        }
+
+        // The gold is subtracted evenly from all treasuries
+        List<GenericRoom> playersTreasuries = getMapLoader().getRoomsByFunction(GenericRoom.ObjectType.GOLD, playerId);
+        while (amount > 0 && !playersTreasuries.isEmpty()) {
+            Iterator<GenericRoom> iter = playersTreasuries.iterator();
+            int goldToRemove = (int) Math.ceil((float) amount / playersTreasuries.size());
+            while (iter.hasNext()) {
+                GenericRoom room = iter.next();
+                RoomGoldControl control = room.getObjectControl(GenericRoom.ObjectType.GOLD);
+                goldToRemove = Math.min(amount, goldToRemove); // Rounding...
+                amount -= goldToRemove - control.removeGold(goldToRemove);
+                if (control.getCurrentCapacity() == 0) {
+                    iter.remove();
+                }
+                if (amount == 0) {
+                    break;
+                }
+            }
+        }
+
+        return amount;
     }
 
 }

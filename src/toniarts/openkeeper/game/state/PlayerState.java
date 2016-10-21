@@ -20,6 +20,7 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -42,7 +43,9 @@ import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PossessionCameraState;
 import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.object.GoldObjectControl;
 
 /**
  * The player state! GUI, camera, etc. Player interactions
@@ -61,7 +64,6 @@ public class PlayerState extends AbstractAppState {
     private boolean paused = false;
 
     private final List<AbstractPauseAwareState> appStates = new ArrayList<>();
-    private List<AbstractPauseAwareState> storedAppStates;
     protected PlayerInteractionState interactionState;
     private PossessionInteractionState possessionState;
     protected PlayerCameraState cameraState;
@@ -349,5 +351,17 @@ public class PlayerState extends AbstractAppState {
 
     protected InteractionState getInteractionState() {
         return interactionState.getInteractionState();
+    }
+
+    protected void grabGold(int amount) {
+        if (!interactionState.isKeeperHandFull()) {
+            WorldState ws = stateManager.getState(WorldState.class);
+            int left = ws.substractGoldFromPlayer(amount, playerId);
+            int goldSubstracted = amount - left;
+
+            // FIXME: questionable way of creating gold
+            GoldObjectControl goc = ws.getThingLoader().addRoomGold(new Point(0, 0), playerId, goldSubstracted, goldSubstracted);
+            interactionState.pickupObject(goc);
+        }
     }
 }

@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -135,7 +136,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 }
 
                 // Update progress
-                updateProgress((float)(y * object.getMap().getWidth() + x + 1) / tilesCount);
+                updateProgress((float) (y * object.getMap().getWidth() + x + 1) / tilesCount);
             }
         }
 
@@ -1109,6 +1110,26 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      */
     public Map<RoomInstance, GenericRoom> getRoomActuals() {
         return roomActuals;
+    }
+
+    /**
+     * Get rooms by function.<br> FIXME: Should the player have ready lists?
+     *
+     * @param objectType the function
+     * @param playerId the player id, can be null
+     * @return list of rooms that match the criteria
+     */
+    public List<GenericRoom> getRoomsByFunction(GenericRoom.ObjectType objectType, Short playerId) {
+        List<GenericRoom> roomsList = new ArrayList<>();
+        for (Entry<RoomInstance, GenericRoom> entry : roomActuals.entrySet()) {
+            if (playerId != null && entry.getKey().getOwnerId() != playerId) {
+                continue;
+            }
+            if (entry.getValue().hasObjectControl(objectType)) {
+                roomsList.add(entry.getValue());
+            }
+        }
+        return roomsList;
     }
 
     /**
