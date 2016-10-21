@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.world.object;
 
+import com.jme3.math.Vector2f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -25,6 +26,7 @@ import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.control.IInteractiveControl;
 
 /**
  * Handles gold type objects in the game world
@@ -113,10 +115,10 @@ public class GoldObjectControl extends ObjectControl {
     }
 
     @Override
-    public void drop(TileData tile) {
+    public void drop(TileData tile, Vector2f coordinates, IInteractiveControl control) {
 
         // Gold drop is a bit difficult subject, let WorldState handle it
-        worldState.dropGold(this, tile);
+        worldState.dropGold(this, tile, coordinates, control);
         this.tile = tile;
     }
 

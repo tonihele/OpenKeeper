@@ -571,7 +571,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                             if (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE) {
 
                                 // Drop & update cursor
-                                keeperHand.pop().drop(tile);
+                                keeperHand.pop().drop(tile, selectionHandler.getPointedPositionInTile(), interactiveControl);
                                 updateCursor();
                             }
                         } else if (Main.isDebug()) {

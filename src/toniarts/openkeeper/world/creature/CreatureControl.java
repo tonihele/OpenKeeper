@@ -875,7 +875,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     @Override
-    public void drop(TileData tile) {
+    public void drop(TileData tile, Vector2f coordinates, IInteractiveControl control) {
 
         // TODO: actual dropping & being stunned, & evict (Imp to DHeart & creature to portal)
         CreatureLoader.setPosition(spatial, new Vector2f(tile.getX(), tile.getY()));

@@ -273,13 +273,14 @@ public class ThingLoader {
      * Add loose type gold
      *
      * @param p the point to add
+     * @param coordinates coordinated inside the tile
      * @param playerId the player id, the owner
      * @param initialAmount the amount of gold
      * @return the gold object
      */
-    public GoldObjectControl addLooseGold(Point p, short playerId, int initialAmount) {
+    public GoldObjectControl addLooseGold(Point p, Vector2f coordinates, short playerId, int initialAmount) {
         // TODO: the gold object id..
-        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, initialAmount, 0, (short) 1, playerId, maxLooseGoldPerPile);
+        Spatial object = objectLoader.load(assetManager, worldState.getMapData().getTile(p), p.x - coordinates.x, p.y - coordinates.y, 0, initialAmount, 0, (short) 1, playerId, maxLooseGoldPerPile);
         GoldObjectControl control = object.getControl(GoldObjectControl.class);
         objects.add(control);
         nodeObjects.attachChild(object);

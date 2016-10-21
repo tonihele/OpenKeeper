@@ -219,7 +219,7 @@ public abstract class GenericRoom {
 
                         // Add object
                         objectMap[x][y] = true;
-                        objects.attachChild(objectLoader.load(assetManager, start.x + x, start.y + y, 0, 0, 0, room.getObjects().get(index), roomInstance.getOwnerId(), 0));
+                        objects.attachChild(objectLoader.load(assetManager, start.x + x, start.y + y, room.getObjects().get(index), roomInstance.getOwnerId()));
                     }
                 }
             }

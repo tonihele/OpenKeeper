@@ -31,6 +31,7 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
@@ -65,6 +66,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.world.control.FlashTileControl;
+import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.CreatureLoader;
 import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
@@ -1355,28 +1357,29 @@ public abstract class WorldState extends AbstractAppState {
      *
      * @param gold the gold to drop
      * @param tile the tile to drop on
+     * @param coordinates coordinates inside the tile
+     * @param control control that this gold was dropped on
      */
-    public void dropGold(GoldObjectControl gold, TileData tile) {
+    public void dropGold(GoldObjectControl gold, TileData tile, Vector2f coordinates, IInteractiveControl control) {
 
         // In the original game:
         // Floor: If the drop point is quite accurately on top of another pile of gold -> fuse the gold together. Otherwise create another pile, even to the same tile.
         // Room: Add to the room, but any excess gold IS added to the floor tile of the room as loose gold. This loose gold is then automatically transfered to the room when there is room with a small delay.
+        // Merge to another loose gold
+        if (control != null && control instanceof GoldObjectControl && ((GoldObjectControl) control).getState() == ObjectControl.ObjectState.NORMAL) {
+
+            // Merge
+            GoldObjectControl goc = (GoldObjectControl) control;
+            goc.setGold(goc.getGold() + gold.getGold());
+            return;
+        }
+
+        // Add to room
         int goldLeft = addGold(gold.getOwnerId(), tile.getLocation(), gold.getGold());
         if (goldLeft > 0) {
 
-            // TODO: accurate dropping coordinates, now just merge when in same tile
-            for (ObjectControl obj : thingLoader.getObjects()) {
-                if (obj instanceof GoldObjectControl && tile.equals(getMapData().getTile(obj.getObjectCoordinates()))) {
-
-                    // Merge
-                    GoldObjectControl goc = (GoldObjectControl) obj;
-                    goc.setGold(goc.getGold() + gold.getGold());
-                    return;
-                }
-            }
-
             // Create a gold pile
-            thingLoader.addLooseGold(tile.getLocation(), gold.getOwnerId(), goldLeft);
+            thingLoader.addLooseGold(tile.getLocation(), coordinates, gold.getOwnerId(), goldLeft);
         }
     }
 

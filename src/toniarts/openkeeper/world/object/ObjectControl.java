@@ -17,6 +17,7 @@
 package toniarts.openkeeper.world.object;
 
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
@@ -223,7 +224,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
     }
 
     @Override
-    public void drop(TileData tile) {
+    public void drop(TileData tile, Vector2f coordinates, IInteractiveControl control) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 

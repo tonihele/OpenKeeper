@@ -46,9 +46,11 @@ public abstract class SelectionHandler {
     /* The selected Area */
     private final SelectionArea selectionArea;
     private boolean active = false;
-    private Vector2f mousePosition = Vector2f.ZERO;
-    private Vector3f cameraPosition = Vector3f.NAN;
-    private Vector2f pointedTilePosition = Vector2f.ZERO;
+    private final Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
+    private final Vector3f cameraPosition = new Vector3f(Vector3f.NAN);
+    private final Vector2f pointedTilePosition = new Vector2f(Vector2f.ZERO); // Could be just point...
+    private final Vector2f pointedPosition = new Vector2f(Vector2f.ZERO);
+    private final Vector2f pointedPositionInTile = new Vector2f(Vector2f.ZERO);
 
     public SelectionHandler(Main app) {
         this.app = app;
@@ -65,20 +67,39 @@ public abstract class SelectionHandler {
             return false;
         }
 
-        cameraPosition = pos.clone();
-        this.mousePosition = mousePosition.clone();
+        cameraPosition.set(pos);
+        this.mousePosition.set(mousePosition);
 
         Vector3f tmp = cam.getWorldCoordinates(this.mousePosition, 0f).clone();
         Vector3f dir = cam.getWorldCoordinates(this.mousePosition, 1f).subtractLocal(tmp).normalizeLocal();
         dir.multLocal((MapLoader.TILE_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
 
-        pointedTilePosition = new Vector2f(Math.round(dir.getX() + appScaled / 2),
-                Math.round(dir.getZ() + appScaled / 2));
-        pointedTilePosition.multLocal(appScaled);
+        pointedPosition.set(dir.getX() + appScaled / 2, dir.getZ() + appScaled / 2);
+        pointedPosition.multLocal(appScaled);
+        pointedTilePosition.set(Math.round(pointedPosition.x), Math.round(pointedPosition.y));
+        pointedPositionInTile.set(Math.min(appScaled - (pointedPosition.x + appScaled / 2 - pointedTilePosition.x), 1), Math.min(appScaled - (pointedPosition.y + appScaled / 2 - pointedTilePosition.y), 1));
 
         setPos(pointedTilePosition);
 
         return true;
+    }
+
+    /**
+     * Get the actual pointed location
+     *
+     * @return the actual pointed location in 2D space
+     */
+    public Vector2f getActualPointedPosition() {
+        return pointedPosition;
+    }
+
+    /**
+     * Get the ~actual pointed location INSIDE the tile, always inside the tile
+     *
+     * @return the pointed location in tile 2D space
+     */
+    public Vector2f getPointedPositionInTile() {
+        return pointedPositionInTile;
     }
 
     /**
