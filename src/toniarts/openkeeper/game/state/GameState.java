@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.game.logic.GameLogicThread;
 import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.game.logic.MovementThread;
+import toniarts.openkeeper.game.logic.RoomGoldFixer;
 import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
@@ -190,7 +191,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                             return new Thread(r, "GameLogicAndMovementThread");
                         }
                     });
-                    gameLogicThread = new GameLogicThread(GameState.this.app, 1.0f / kwdFile.getGameLevel().getTicksPerSec(), GameState.this, new CreatureLogicState(worldState.getThingLoader()), new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this));
+                    gameLogicThread = new GameLogicThread(GameState.this.app, 1.0f / kwdFile.getGameLevel().getTicksPerSec(), GameState.this, new CreatureLogicState(worldState.getThingLoader()), new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this), new RoomGoldFixer(worldState));
                     exec.scheduleAtFixedRate(gameLogicThread, 0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
                     exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()), 0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
 

@@ -267,8 +267,12 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
         return state;
     }
 
-    public void setState(ObjectState state) {
+    protected void setState(ObjectState state) {
         this.state = state;
+    }
+
+    public TileData getTile() {
+        return tile;
     }
 
 }
