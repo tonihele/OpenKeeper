@@ -225,7 +225,16 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
 
     @Override
     public void drop(TileData tile, Vector2f coordinates, IInteractiveControl control) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        if (control != null && control instanceof CreatureControl && control.getOwnerId() == getOwnerId()) {
+            if (((CreatureControl) control).giveObject(this)) {
+                return;
+            }
+        }
+
+        // Drop the item to the world state
+        this.tile = tile;
+        state = ObjectState.NORMAL;
+        worldState.dropObject(this, tile, coordinates, control);
     }
 
     @Override

@@ -1353,6 +1353,22 @@ public abstract class WorldState extends AbstractAppState {
     }
 
     /**
+     * Drop object to the world
+     *
+     * @param object the object to drop
+     * @param tile the tile to drop on
+     * @param coordinates coordinates inside the tile
+     * @param control control that this object was dropped on
+     */
+    public void dropObject(ObjectControl object, TileData tile, Vector2f coordinates, IInteractiveControl control) {
+        if (object instanceof GoldObjectControl) {
+            dropGold((GoldObjectControl) object, tile, coordinates, control);
+        } else {
+            throw new UnsupportedOperationException("Dropping " + object.getClass() + " not supported yet.");
+        }
+    }
+
+    /**
      * Drop a gold object to tile
      *
      * @param gold the gold to drop
@@ -1360,7 +1376,7 @@ public abstract class WorldState extends AbstractAppState {
      * @param coordinates coordinates inside the tile
      * @param control control that this gold was dropped on
      */
-    public void dropGold(GoldObjectControl gold, TileData tile, Vector2f coordinates, IInteractiveControl control) {
+    private void dropGold(GoldObjectControl gold, TileData tile, Vector2f coordinates, IInteractiveControl control) {
 
         // In the original game:
         // Floor: If the drop point is quite accurately on top of another pile of gold -> fuse the gold together. Otherwise create another pile, even to the same tile.

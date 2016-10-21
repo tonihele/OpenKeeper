@@ -65,6 +65,7 @@ import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
 import toniarts.openkeeper.world.listener.CreatureListener;
+import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
@@ -885,6 +886,24 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
         // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
         worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
+    }
+
+    /**
+     * Give an object to the creature
+     *
+     * @param obj the object to give
+     * @return true if the creature accepts the object
+     */
+    public boolean giveObject(ObjectControl obj) {
+        if (obj instanceof GoldObjectControl) {
+
+            // Gold we gladly accept
+            gold += ((GoldObjectControl) obj).getGold();
+            return true;
+        }
+
+        // TODO: chickens etc..??
+        return false;
     }
 
 }
