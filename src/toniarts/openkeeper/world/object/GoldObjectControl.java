@@ -42,12 +42,23 @@ public class GoldObjectControl extends ObjectControl {
      */
     private int maxGold;
     private int currentResourceIndex = 0;
+    private final String tooltipLooseGold;
+    private final String tooltipGold;
 
-    public GoldObjectControl(short ownerId, Object object, WorldState worldState, int initialGoldAmount, int maxGold) {
-        super(ownerId, object, worldState);
+    public GoldObjectControl(TileData tile, Object object, WorldState worldState, int initialGoldAmount, int maxGold) {
+        super(tile, object, worldState);
 
         this.gold = initialGoldAmount;
         this.maxGold = maxGold;
+
+        // Tooltips
+        tooltipLooseGold = bundle.getString("2544");
+        tooltipGold = bundle.getString("2543");
+    }
+
+    @Override
+    public String getTooltip(short playerId) {
+        return (getState() == ObjectState.STORED_IN_ROOM ? tooltipGold : tooltipLooseGold).replace("%73", Integer.toString(gold));
     }
 
     public int getGold() {
@@ -106,6 +117,7 @@ public class GoldObjectControl extends ObjectControl {
 
         // Gold drop is a bit difficult subject, let WorldState handle it
         worldState.dropGold(this, tile);
+        this.tile = tile;
     }
 
 }

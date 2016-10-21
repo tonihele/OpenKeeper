@@ -29,6 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
 /**
@@ -64,7 +65,7 @@ public class ObjectLoader implements ILoader<Thing.Object> {
         }
 
         // Load
-        ObjectControl objectControl = getControl(playerId, obj, moneyAmount, maxMoney);
+        ObjectControl objectControl = getControl(worldState.getMapData().getTile(posY, posY), obj, moneyAmount, maxMoney);
         Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + objectControl.getResource().getName() + ".j3o", false);
         nodeObject.addControl(objectControl);
 
@@ -80,10 +81,10 @@ public class ObjectLoader implements ILoader<Thing.Object> {
         return nodeObject;
     }
 
-    private ObjectControl getControl(short playerId, Object obj, int moneyAmount, int maxMoney) {
+    private ObjectControl getControl(TileData tile, Object obj, int moneyAmount, int maxMoney) {
         if (obj.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_GOLD)) {
-            return new GoldObjectControl(playerId, obj, worldState, moneyAmount, maxMoney);
+            return new GoldObjectControl(tile, obj, worldState, moneyAmount, maxMoney);
         }
-        return new ObjectControl(playerId, obj, worldState);
+        return new ObjectControl(tile, obj, worldState);
     }
 }

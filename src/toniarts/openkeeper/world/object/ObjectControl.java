@@ -39,24 +39,32 @@ import toniarts.openkeeper.world.room.control.RoomObjectControl;
  */
 public class ObjectControl extends HighlightControl implements IInteractiveControl {
 
+    public enum ObjectState {
+
+        NORMAL, PICKED_UP, OWNED_BY_CREATURE, STORED_IN_ROOM;
+    }
+
     protected final WorldState worldState;
     protected final toniarts.openkeeper.tools.convert.map.Object object;
     private final String tooltip;
-    private short ownerId;
+    protected TileData tile;
+    private ObjectState state = ObjectState.NORMAL;
 
     // Owners
     protected RoomObjectControl roomObjectControl;
     private CreatureControl creature;
+    protected short pickedUpBy;
+    protected final ResourceBundle bundle;
 
-    public ObjectControl(short ownerId, toniarts.openkeeper.tools.convert.map.Object object, WorldState worldState) {
+    public ObjectControl(TileData tile, toniarts.openkeeper.tools.convert.map.Object object, WorldState worldState) {
         super();
 
         this.worldState = worldState;
         this.object = object;
-        this.ownerId = ownerId;
+        this.tile = tile;
 
         // Strings
-        ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
+        bundle = Main.getResourceBundle("Interface/Texts/Text");
         tooltip = bundle.getString(Integer.toString(object.getTooltipStringId()));
     }
 
@@ -100,10 +108,16 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
 
     public void setCreature(CreatureControl creature) {
         this.creature = creature;
+        if (creature != null) {
+            setState(ObjectState.OWNED_BY_CREATURE);
+        }
     }
 
     public void setRoomObjectControl(RoomObjectControl roomObjectControl) {
         this.roomObjectControl = roomObjectControl;
+        if (roomObjectControl != null) {
+            setState(ObjectState.STORED_IN_ROOM);
+        }
     }
 
     protected ArtResource getResource() {
@@ -147,6 +161,8 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
     @Override
     public IInteractiveControl pickUp(short playerId) {
         setEnabled(false);
+        pickedUpBy = playerId;
+        setState(ObjectState.PICKED_UP);
 
         // If we are a part of room, we need to detach
         if (roomObjectControl != null) {
@@ -202,7 +218,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
     public DroppableStatus getDroppableStatus(TileData tile) {
         return !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)
                 && (object.getFlags().contains(toniarts.openkeeper.tools.convert.map.Object.ObjectFlag.CAN_BE_DROPPED_ON_ANY_LAND)
-                || ((tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE))))
+                || ((tile.getPlayerId() == getOwnerId() && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE))))
                         ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
     }
 
@@ -213,7 +229,19 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
 
     @Override
     public short getOwnerId() {
-        return ownerId;
+        switch (state) {
+            case STORED_IN_ROOM:
+            case NORMAL: {
+                return tile.getPlayerId();
+            }
+            case OWNED_BY_CREATURE: {
+                return creature.getOwnerId();
+            }
+            case PICKED_UP: {
+                return pickedUpBy;
+            }
+        }
+        return 0;
     }
 
     /**
@@ -223,6 +251,14 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
      */
     public Point getObjectCoordinates() {
         return worldState.getTileCoordinates(getSpatial().getWorldTranslation());
+    }
+
+    public ObjectState getState() {
+        return state;
+    }
+
+    public void setState(ObjectState state) {
+        this.state = state;
     }
 
 }
