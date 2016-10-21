@@ -59,6 +59,7 @@ import toniarts.openkeeper.tools.convert.map.Thing.KeeperCreature;
 import toniarts.openkeeper.tools.convert.map.Thing.NeutralCreature;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
@@ -615,7 +616,34 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void dropGold() {
-//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        if (gold > 0) {
+
+            // See if there is any gold at our feet to merge to
+            // FIXME: What would be the best way...
+            final int goldToSet = gold;
+            for (ObjectControl objectControl : worldState.getThingLoader().getObjects()) {
+                if (objectControl instanceof GoldObjectControl && objectControl.getState() == ObjectControl.ObjectState.NORMAL) {
+
+                    // See distance
+                    if (getSpatial().getWorldBound().collideWith(objectControl.getSpatial().getWorldBound()) > 0) {
+                        GoldObjectControl goldObjectControl = (GoldObjectControl) objectControl;
+                        worldState.getGameState().getApplication().enqueue(() -> {
+                            goldObjectControl.setGold(goldObjectControl.getGold() + goldToSet);
+                        });
+                        gold = 0;
+                        return;
+                    }
+                }
+            }
+
+            // No merging, just add loose gold
+            worldState.getGameState().getApplication().enqueue(() -> {
+
+                // FIXME: Better coordinates
+                worldState.getThingLoader().addLooseGold(getCreatureCoordinates(), new Vector2f(MapLoader.TILE_WIDTH / 2, MapLoader.TILE_WIDTH / 2), ownerId, goldToSet);
+            });
+            gold = 0;
+        }
     }
 
     /**
