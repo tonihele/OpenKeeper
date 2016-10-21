@@ -107,6 +107,7 @@ public abstract class WorldState extends AbstractAppState {
     private Map<Short, List<RoomListener>> roomListeners;
     private final GameState gameState;
     private final FlashTileControl flashTileControl;
+    public final Object goldLock = new Object();
 
     private static final Logger logger = Logger.getLogger(WorldState.class.getName());
 
@@ -694,10 +695,31 @@ public abstract class WorldState extends AbstractAppState {
         mapLoader.updateTiles(updatableTiles.toArray(new Point[updatableTiles.size()]));
 
         // New room, calculate gold capacity
+        RoomInstance instance = mapLoader.getRoomCoordinates().get(instancePlots.get(0));
         if (adjacentInstances.isEmpty()) {
-            RoomInstance instance = mapLoader.getRoomCoordinates().get(instancePlots.get(0));
             addGoldCapacityToPlayer(instance);
             notifyOnBuild(instance.getOwnerId(), mapLoader.getRoomActuals().get(instance));
+        }
+
+        // Add any loose gold to the building
+        attachLooseGoldToRoom(mapLoader.getRoomActuals().get(instance), instance);
+    }
+
+    private void attachLooseGoldToRoom(GenericRoom genericRoom, RoomInstance instance) {
+        if (genericRoom.canStoreGold()) {
+            synchronized (goldLock) {
+                for (ObjectControl objectControl : thingLoader.getObjects()) {
+                    if (objectControl instanceof GoldObjectControl && instance.hasCoordinate(objectControl.getTile().getLocation())) {
+                        GoldObjectControl gold = (GoldObjectControl) objectControl;
+                        int goldLeft = genericRoom.getObjectControl(GenericRoom.ObjectType.GOLD).addItem(gold.getGold(), gold.getTile().getLocation(), thingLoader, null);
+                        if (goldLeft == 0) {
+                            gold.removeObject();
+                        } else {
+                            gold.setGold(goldLeft);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -783,8 +805,8 @@ public abstract class WorldState extends AbstractAppState {
             RoomInstance instance = mapLoader.getRoomCoordinates().get(p);
             if (instance != null && !newInstances.contains(instance)) {
                 newInstances.add(instance);
-                // TODO: The loose gold should be added to the room if the room can hold gold
                 addGoldCapacityToPlayer(instance);
+                attachLooseGoldToRoom(mapLoader.getRoomActuals().get(instance), instance);
             }
         }
     }
@@ -1259,11 +1281,7 @@ public abstract class WorldState extends AbstractAppState {
 
     private void removeRoomInstances(RoomInstance... instances) {
         for (RoomInstance instance : instances) {
-            substractGoldCapacityFromPlayer(instance);
             notifyOnSold(instance.getOwnerId(), mapLoader.getRoomActuals().get(instance));
-
-            // TODO: The gold stored should turn into a loose gold
-            // Not only gold but all items that the rooms can hold
         }
         mapLoader.removeRoomInstances(instances);
     }

@@ -16,9 +16,12 @@
  */
 package toniarts.openkeeper.world.room.control;
 
+import com.jme3.math.Vector2f;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
+import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.GoldObjectControl;
@@ -100,11 +103,18 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
 
     @Override
     public void destroy() {
+        List<Entry<Point, GoldObjectControl>> storedGoldList = new ArrayList<>(objects.entrySet());
 
         // Delete all gold
         removeAllObjects();
 
-        // TODO: Create some loose gold
+        // Create the loose gold
+        if (!storedGoldList.isEmpty()) {
+            ThingLoader thingLoader = parent.getWorldState().getThingLoader();
+            for (Entry<Point, GoldObjectControl> entry : storedGoldList) {
+                thingLoader.addLooseGold(entry.getKey(), new Vector2f(MapLoader.TILE_WIDTH / 2, MapLoader.TILE_WIDTH / 2), parent.getRoomInstance().getOwnerId(), entry.getValue().getGold());
+            }
+        }
     }
 
     @Override

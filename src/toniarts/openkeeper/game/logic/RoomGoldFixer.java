@@ -42,28 +42,30 @@ public class RoomGoldFixer extends AbstractAppState implements IGameLogicUpdatea
     public void processTick(float tpf, Application app) {
 
         // FIXME: Not all players can hold gold, like neutral or good players, they can have unclaimed treasuries and the original does not really merge the gold there
-        for (ObjectControl objectControl : worldState.getThingLoader().getObjects()) {
-            if (objectControl instanceof GoldObjectControl && objectControl.getState() == ObjectControl.ObjectState.NORMAL) {
+        synchronized (worldState.goldLock) {
+            for (ObjectControl objectControl : worldState.getThingLoader().getObjects()) {
+                if (objectControl instanceof GoldObjectControl && objectControl.getState() == ObjectControl.ObjectState.NORMAL) {
 
-                // See if there is a room
-                RoomInstance roomInstance = worldState.getMapLoader().getRoomCoordinates().get(objectControl.getTile().getLocation());
-                if (roomInstance != null) {
-                    GenericRoom room = worldState.getMapLoader().getRoomActuals().get(roomInstance);
-                    if (room.hasObjectControl(GenericRoom.ObjectType.GOLD) && !room.isFullCapacity()) {
+                    // See if there is a room
+                    RoomInstance roomInstance = worldState.getMapLoader().getRoomCoordinates().get(objectControl.getTile().getLocation());
+                    if (roomInstance != null) {
+                        GenericRoom room = worldState.getMapLoader().getRoomActuals().get(roomInstance);
+                        if (room.hasObjectControl(GenericRoom.ObjectType.GOLD) && !room.isFullCapacity()) {
 
-                        app.enqueue(() -> {
+                            app.enqueue(() -> {
 
-                            // Give the gold
-                            GoldObjectControl gold = (GoldObjectControl) objectControl;
-                            int goldLeft = room.getObjectControl(GenericRoom.ObjectType.GOLD).addItem(gold.getGold(), gold.getTile().getLocation(), worldState.getThingLoader(), null);
-                            if (goldLeft == 0) {
-                                gold.removeObject();
-                            } else {
-                                gold.setGold(goldLeft);
-                            }
-                        });
+                                // Give the gold
+                                GoldObjectControl gold = (GoldObjectControl) objectControl;
+                                int goldLeft = room.getObjectControl(GenericRoom.ObjectType.GOLD).addItem(gold.getGold(), gold.getTile().getLocation(), worldState.getThingLoader(), null);
+                                if (goldLeft == 0) {
+                                    gold.removeObject();
+                                } else {
+                                    gold.setGold(goldLeft);
+                                }
+                            });
 
-                        return; // One at the time, with proper sync etc. we can change this
+                            return; // One at the time, with proper sync etc. we can change this
+                        }
                     }
                 }
             }
