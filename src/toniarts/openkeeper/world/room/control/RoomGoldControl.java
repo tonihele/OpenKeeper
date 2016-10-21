@@ -112,6 +112,7 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
 
         // Substract the gold from the player
         parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(object.getGold());
+        storedGold -= object.getGold();
     }
 
 }
