@@ -97,7 +97,7 @@ public abstract class GenericRoom {
         ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
         tooltip = bundle.getString(Integer.toString(roomInstance.getRoom().getTooltipStringId()));
         if (notOwnedTooltip == null) {
-            notOwnedTooltip = bundle.getString(Integer.toString(2471));
+            notOwnedTooltip = bundle.getString("2471");
         }
     }
 
