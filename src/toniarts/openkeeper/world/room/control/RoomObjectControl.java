@@ -109,6 +109,7 @@ public abstract class RoomObjectControl<T extends ObjectControl> {
      * @param object the object
      */
     public void removeItem(T object) {
+        object.setRoomObjectControl(null);
         objects.values().remove(object);
     }
 

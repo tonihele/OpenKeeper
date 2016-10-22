@@ -32,6 +32,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.RoomObjectControl;
@@ -71,6 +72,7 @@ public abstract class GenericRoom {
 
     protected final AssetManager assetManager;
     protected final RoomInstance roomInstance;
+    protected final WorldState worldState;
     private final static int[] wallIndexes = new int[]{7, 8};
     private Node root;
     private final String tooltip;
@@ -83,23 +85,20 @@ public abstract class GenericRoom {
     protected Point start;
     protected final ObjectLoader objectLoader;
 
-    public GenericRoom(AssetManager assetManager, EffectManagerState effectManager,
-            RoomInstance roomInstance, ObjectLoader objectLoader) {
+    public GenericRoom(AssetManager assetManager,
+            RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         this.assetManager = assetManager;
         this.roomInstance = roomInstance;
         this.effectManager = effectManager;
         this.objectLoader = objectLoader;
+        this.worldState = worldState;
 
         // Strings
         ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
         tooltip = bundle.getString(Integer.toString(roomInstance.getRoom().getTooltipStringId()));
         if (notOwnedTooltip == null) {
-            notOwnedTooltip = bundle.getString(Integer.toString(2471));
+            notOwnedTooltip = bundle.getString("2471");
         }
-    }
-
-    public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
-        this(assetManager, null, roomInstance, objectLoader);
     }
 
     protected void setupCoordinates() {
@@ -220,7 +219,7 @@ public abstract class GenericRoom {
 
                         // Add object
                         objectMap[x][y] = true;
-                        objects.attachChild(objectLoader.load(assetManager, start.x + x, start.y + y, 0, 0, 0, room.getObjects().get(index), roomInstance.getOwnerId()));
+                        objects.attachChild(objectLoader.load(assetManager, start.x + x, start.y + y, room.getObjects().get(index), roomInstance.getOwnerId()));
                     }
                 }
             }
@@ -518,6 +517,10 @@ public abstract class GenericRoom {
      */
     public boolean isDungeonHeart() {
         return false;
+    }
+
+    public WorldState getWorldState() {
+        return worldState;
     }
 
 }

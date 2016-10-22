@@ -85,6 +85,7 @@ import toniarts.openkeeper.world.listener.CreatureListener;
 public class PlayerScreenController implements IPlayerScreenController {
 
     private enum PauseMenuState {
+
         MAIN, QUIT, CONFIRMATION;
     }
 
@@ -218,6 +219,11 @@ public class PlayerScreenController implements IPlayerScreenController {
     }
 
     @Override
+    public void grabGold() {
+        state.grabGold(100);
+    }
+
+    @Override
     public void zoomToCreature(String creatureId) {
         state.zoomToCreature(creatureId);
     }
@@ -342,7 +348,6 @@ public class PlayerScreenController implements IPlayerScreenController {
     public void onEndScreen() {
     }
 
-
     @NiftyEventSubscriber(id = "tabs-hud")
     public void onTabChange(String id, TabSelectedEvent event) {
         updateSelectedItem(state.getInteractionState());
@@ -409,8 +414,8 @@ public class PlayerScreenController implements IPlayerScreenController {
     }
 
     /**
-     * FIXME not applied when enter possession twice
-     * Focus active Action element on GUI
+     * FIXME not applied when enter possession twice Focus active Action element
+     * on GUI
      *
      * @param action
      */
@@ -742,45 +747,47 @@ public class PlayerScreenController implements IPlayerScreenController {
     private ControlBuilder createRoomIcon(final Room room) {
         String name = Utils.getMainTextResourceBundle().getString(Integer.toString(room.getNameStringId()));
         final String hint = Utils.getMainTextResourceBundle().getString("1783")
-                            .replace("%1", name)
-                            .replace("%2", room.getCost() + "");
+                .replace("%1", name)
+                .replace("%2", room.getCost() + "");
         return createIcon(room.getRoomId(), "room", room.getGuiIcon(), room.getGeneralDescriptionStringId(), hint.replace("%21", room.getCost() + ""));
     }
 
     private ControlBuilder createSpellIcon(final KeeperSpell spell) {
         String name = Utils.getMainTextResourceBundle().getString(Integer.toString(spell.getNameStringId()));
         final String hint = Utils.getMainTextResourceBundle().getString("1785")
-                            .replace("%1", name)
-                            .replace("%2", spell.getManaCost() + "")
-                            .replace("%3", "1"); // TODO use real spell level
+                .replace("%1", name)
+                .replace("%2", spell.getManaCost() + "")
+                .replace("%3", "1"); // TODO use real spell level
         return createIcon(spell.getKeeperSpellId(), "spell", spell.getGuiIcon(), spell.getGeneralDescriptionStringId(), hint);
     }
 
     private ControlBuilder createDoorIcon(final Door door) {
         String name = Utils.getMainTextResourceBundle().getString(Integer.toString(door.getNameStringId()));
         final String hint = Utils.getMainTextResourceBundle().getString("1783")
-                            .replace("%1", name)
-                            .replace("%2", door.getGoldCost() + "");
+                .replace("%1", name)
+                .replace("%2", door.getGoldCost() + "");
         return createIcon(door.getDoorId(), "door", door.getGuiIcon(), door.getGeneralDescriptionStringId(), hint);
     }
 
     private ControlBuilder createTrapIcon(final Trap trap) {
         String name = Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getNameStringId()));
         final String hint = Utils.getMainTextResourceBundle().getString("1784")
-                            .replace("%1", name)
-                            .replace("%2", trap.getManaCost() + "");
+                .replace("%1", name)
+                .replace("%2", trap.getManaCost() + "");
         return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""));
     }
 
     public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint) {
-        return new ControlBuilder(type + "_" + id, "guiIcon"){{
-            parameter("image", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon.getName() + ".png"));
-            parameter("click", "select(" + type + ", " + id + ")");
-            parameter("tooltip", "${menu." + generalDescriptionId + "}");
-            parameter("hint", hint);
-            parameter("hoverImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/frame.png"));
-            parameter("activeImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"));
-        }};
+        return new ControlBuilder(type + "_" + id, "guiIcon") {
+            {
+                parameter("image", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon.getName() + ".png"));
+                parameter("click", "select(" + type + ", " + id + ")");
+                parameter("tooltip", "${menu." + generalDescriptionId + "}");
+                parameter("hint", hint);
+                parameter("hoverImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/frame.png"));
+                parameter("activeImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"));
+            }
+        };
     }
 
     private class GameMenu {

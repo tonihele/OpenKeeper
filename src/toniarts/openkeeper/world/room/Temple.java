@@ -27,6 +27,8 @@ import toniarts.openkeeper.world.MapLoader;
 import static toniarts.openkeeper.world.MapLoader.TILE_HEIGHT;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 import static toniarts.openkeeper.world.MapLoader.loadAsset;
+import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
@@ -35,8 +37,8 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  */
 public class Temple extends DoubleQuad {
 
-    public Temple(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
-        super(assetManager, roomInstance, objectLoader);
+    public Temple(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
+        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
     }
 
     @Override

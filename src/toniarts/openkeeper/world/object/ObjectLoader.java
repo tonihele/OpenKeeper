@@ -25,9 +25,11 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
 /**
@@ -48,10 +50,18 @@ public class ObjectLoader implements ILoader<Thing.Object> {
 
     @Override
     public Spatial load(AssetManager assetManager, Thing.Object object) {
-        return load(assetManager, object.getPosX(), object.getPosY(), object.getKeeperSpellId(), object.getMoneyAmount(), object.getTriggerId(), object.getObjectId(), object.getPlayerId());
+        return load(assetManager, worldState.getMapData().getTile(object.getPosX(), object.getPosY()), object.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f, object.getPosY() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f, object.getKeeperSpellId(), object.getMoneyAmount(), object.getTriggerId(), object.getObjectId(), object.getPlayerId(), (int) worldState.getGameState().getLevelVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY));
     }
 
-    public Spatial load(AssetManager assetManager, int posX, int posY, int keeperSpellId, int moneyAmount, int triggerId, short objectId, short playerId) {
+    public Spatial load(AssetManager assetManager, int posX, int posY, short objectId, short playerId) {
+        return load(assetManager, worldState.getMapData().getTile(posX, posY), posX * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f, posY * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f, 0, 0, 0, objectId, playerId, 0);
+    }
+
+    public Spatial load(AssetManager assetManager, int posX, int posY, int keeperSpellId, int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
+        return load(assetManager, worldState.getMapData().getTile(posX, posY), posX * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f, posY * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f, keeperSpellId, moneyAmount, triggerId, objectId, playerId, maxMoney);
+    }
+
+    public Spatial load(AssetManager assetManager, TileData tile, float posX, float posY, int keeperSpellId, int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
         toniarts.openkeeper.tools.convert.map.Object obj = kwdFile.getObject(objectId);
         KeeperSpell keeperSpell = null;
         if (keeperSpellId > 0) {
@@ -59,23 +69,26 @@ public class ObjectLoader implements ILoader<Thing.Object> {
         }
 
         // Load
-        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + obj.getMeshResource().getName() + ".j3o", false);
-        ObjectControl objectControl = getControl(playerId, obj, moneyAmount);
+        ObjectControl objectControl = getControl(tile, obj, moneyAmount, maxMoney);
+        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + objectControl.getResource().getName() + ".j3o", false);
         nodeObject.addControl(objectControl);
 
         // Move to the center of the tile
         nodeObject.setLocalTranslation(
-                posX * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
+                posX,
                 0 * MapLoader.TILE_HEIGHT,
-                posY * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
+                posY);
+
+        // Orientation
+        nodeObject.setLocalRotation(nodeObject.getLocalRotation().fromAngles(0, -objectControl.getOrientation(), 0));
 
         return nodeObject;
     }
 
-    private ObjectControl getControl(short playerId, Object obj, int moneyAmount) {
+    private ObjectControl getControl(TileData tile, Object obj, int moneyAmount, int maxMoney) {
         if (obj.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_GOLD)) {
-            return new GoldObjectControl(playerId, obj, worldState, moneyAmount);
+            return new GoldObjectControl(tile, obj, worldState, moneyAmount, maxMoney);
         }
-        return new ObjectControl(playerId, obj, worldState);
+        return new ObjectControl(tile, obj, worldState);
     }
 }

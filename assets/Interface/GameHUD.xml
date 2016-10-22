@@ -78,6 +78,7 @@
                                 <onHover name="simpleHint" hintText="${menu.2142}" targetElement="tooltip" />
                                 <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                             </effect>
+                            <interact onClick="grabGold()"/>
                         </panel>
                         <panel childLayout="horizontal" valign="center">
                             <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center" visibleToMouse="true">

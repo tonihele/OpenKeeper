@@ -35,9 +35,11 @@ import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.CreatureLoader;
 import toniarts.openkeeper.world.listener.CreatureListener;
+import toniarts.openkeeper.world.listener.ObjectListener;
 import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -57,9 +59,22 @@ public class ThingLoader {
     private final Node root;
     private final Node nodeCreatures;
     private final Node nodeObjects;
+    private final int maxLooseGoldPerPile;
+
+    /**
+     * List of creatures in the world
+     */
     private final Set<CreatureControl> creatures = new LinkedHashSet<>();
-    private final List<ObjectControl> objects = new ArrayList<>();
+
+    /**
+     * List of freeform objects in the world, not room property etc.<br>
+     * TODO: should we have these based on location, or owner, owner since
+     * pickuppable objects should be scanned only by the owner (a.k.a. whose
+     * tile they are on)
+     */
+    private final Set<ObjectControl> objects = new LinkedHashSet<>();
     private Map<Short, List<CreatureListener>> creatureListeners;
+    private List<ObjectListener> objectListeners;
 
     private static final Logger logger = Logger.getLogger(ThingLoader.class.getName());
 
@@ -67,6 +82,7 @@ public class ThingLoader {
         this.worldState = worldHandler;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+        maxLooseGoldPerPile = (int) worldHandler.getGameState().getLevelVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY);
         creatureLoader = new CreatureLoader(kwdFile, worldState) {
 
             @Override
@@ -154,6 +170,8 @@ public class ThingLoader {
                     if (objectThing.getTriggerId() != 0) {
                         objectTriggerState.setThing(objectThing.getTriggerId(), objectControl);
                     }
+
+                    notifyOnObjectAdded(objectControl);
                 }
             } catch (Exception ex) {
                 logger.log(Level.WARNING, "Could not load Thing.", ex);
@@ -239,24 +257,43 @@ public class ThingLoader {
     }
 
     /**
-     * Add room type gold
+     * Add room type gold, does not add the object to the object registry
      *
      * @param p the point to add
      * @param playerId the player id, the owner
      * @param initialAmount the amount of gold
+     * @param maxAmount the max gold amount
      * @return the gold object
      */
-    public GoldObjectControl addRoomGold(Point p, short playerId, int initialAmount) {
+    public GoldObjectControl addRoomGold(Point p, short playerId, int initialAmount, int maxAmount) {
         // TODO: the room gold object id..
-        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, initialAmount, 0, (short) 3, playerId);
+        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, initialAmount, 0, (short) 3, playerId, maxAmount);
         GoldObjectControl control = object.getControl(GoldObjectControl.class);
-        objects.add(control);
         nodeObjects.attachChild(object);
         return control;
     }
 
     /**
-     * Add an object
+     * Add loose type gold
+     *
+     * @param p the point to add
+     * @param coordinates coordinated inside the tile
+     * @param playerId the player id, the owner
+     * @param initialAmount the amount of gold
+     * @return the gold object
+     */
+    public GoldObjectControl addLooseGold(Point p, Vector2f coordinates, short playerId, int initialAmount) {
+        // TODO: the gold object id..
+        Spatial object = objectLoader.load(assetManager, worldState.getMapData().getTile(p), p.x - coordinates.x, p.y - coordinates.y, 0, initialAmount, 0, (short) 1, playerId, maxLooseGoldPerPile);
+        GoldObjectControl control = object.getControl(GoldObjectControl.class);
+        objects.add(control);
+        nodeObjects.attachChild(object);
+        notifyOnObjectAdded(control);
+        return control;
+    }
+
+    /**
+     * Add an object, does not add the object to the object registry
      *
      * @param p the point to add
      * @param objectId the object id
@@ -264,15 +301,19 @@ public class ThingLoader {
      * @return the object contol
      */
     public ObjectControl addObject(Point p, short objectId, short playerId) {
-        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, 0, 0, objectId, playerId);
+        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, 0, 0, objectId, playerId, 0);
         ObjectControl control = object.getControl(ObjectControl.class);
-        objects.add(control);
         nodeObjects.attachChild(object);
         return control;
     }
 
     public void onObjectRemoved(ObjectControl object) {
         objects.remove(object);
+        if (objectListeners != null) {
+            for (ObjectListener listener : objectListeners) {
+                listener.onRemoved(object);
+            }
+        }
     }
 
     public List<CreatureControl> getCreatures() {
@@ -280,7 +321,7 @@ public class ThingLoader {
     }
 
     public List<ObjectControl> getObjects() {
-        return objects;
+        return new ArrayList<>(objects);
     }
 
     /**
@@ -303,6 +344,20 @@ public class ThingLoader {
     }
 
     /**
+     * If you want to get notified about the object changes
+     *
+     * listener to
+     *
+     * @param listener the listener
+     */
+    public void addListener(ObjectListener listener) {
+        if (objectListeners == null) {
+            objectListeners = new ArrayList<>();
+        }
+        objectListeners.add(listener);
+    }
+
+    /**
      * Typically you should add objects through add object so that they are
      * added to the global list, but for rooms etc. you can use the object
      * loader directly
@@ -311,6 +366,14 @@ public class ThingLoader {
      */
     protected ObjectLoader getObjectLoader() {
         return objectLoader;
+    }
+
+    private void notifyOnObjectAdded(ObjectControl object) {
+        if (objectListeners != null) {
+            for (ObjectListener listener : objectListeners) {
+                listener.onAdded(object);
+            }
+        }
     }
 
 }

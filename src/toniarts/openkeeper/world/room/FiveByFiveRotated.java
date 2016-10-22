@@ -27,6 +27,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.PlugControl;
@@ -43,9 +44,9 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
     private boolean destroyed = false;
     private boolean created = false;
 
-    public FiveByFiveRotated(AssetManager assetManager, EffectManagerState effectManager,
-            RoomInstance roomInstance, ObjectLoader objectLoader) {
-        super(assetManager, effectManager, roomInstance, objectLoader);
+    public FiveByFiveRotated(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
+        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
+
         addObjectControl(new RoomGoldControl(this) {
 
             @Override

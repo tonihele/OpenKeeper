@@ -24,6 +24,8 @@ import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.Thing.Room.Direction;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.WallSection.WallDirection;
 
@@ -33,8 +35,8 @@ import toniarts.openkeeper.world.room.WallSection.WallDirection;
  */
 public class HeroGateThreeByOne extends GenericRoom {
 
-    public HeroGateThreeByOne(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
-        super(assetManager, roomInstance, objectLoader);
+    public HeroGateThreeByOne(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
+        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
     }
 
     @Override

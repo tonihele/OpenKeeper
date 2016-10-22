@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 OpenKeeper
+ * Copyright (C) 2014-2016 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,26 +14,19 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.world.room;
+package toniarts.openkeeper.world.listener;
 
-import com.jme3.asset.AssetManager;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.effect.EffectManagerState;
-import toniarts.openkeeper.world.object.ObjectLoader;
+import toniarts.openkeeper.world.object.ObjectControl;
 
 /**
- * The training room
+ * Listen for object changes
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TrainingRoom extends Normal {
+public interface ObjectListener {
 
-    public TrainingRoom(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
-        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
-    }
+    void onAdded(ObjectControl objectControl);
 
-    @Override
-    protected boolean hasPillars() {
-        return false;
-    }
+    void onRemoved(ObjectControl objectControl);
+
 }

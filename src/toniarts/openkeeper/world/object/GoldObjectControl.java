@@ -16,11 +16,19 @@
  */
 package toniarts.openkeeper.world.object;
 
+import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Object;
+import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
+ * Handles gold type objects in the game world
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -28,10 +36,30 @@ public class GoldObjectControl extends ObjectControl {
 
     private int gold = 0;
 
-    public GoldObjectControl(short ownerId, Object object, WorldState worldState, int initialGoldAmount) {
-        super(ownerId, object, worldState);
+    /**
+     * Max gold doesn't really tell anything, it is used to display the
+     * different stages of gold piles. In rooms it is the max, but the outside
+     * rooms the piles can be way over this
+     */
+    private int maxGold;
+    private int currentResourceIndex = 0;
+    private final String tooltipLooseGold;
+    private final String tooltipGold;
+
+    public GoldObjectControl(TileData tile, Object object, WorldState worldState, int initialGoldAmount, int maxGold) {
+        super(tile, object, worldState);
 
         this.gold = initialGoldAmount;
+        this.maxGold = maxGold;
+
+        // Tooltips
+        tooltipLooseGold = bundle.getString("2544");
+        tooltipGold = bundle.getString("2543");
+    }
+
+    @Override
+    public String getTooltip(short playerId) {
+        return (getState() == ObjectState.STORED_IN_ROOM ? tooltipGold : tooltipLooseGold).replace("%73", Integer.toString(gold));
     }
 
     public int getGold() {
@@ -40,11 +68,57 @@ public class GoldObjectControl extends ObjectControl {
 
     public void setGold(int gold) {
         this.gold = gold;
+        refreshResource();
+    }
+
+    public void setMaxGold(int maxGold) {
+        this.maxGold = maxGold;
+        refreshResource();
+    }
+
+    public int getMaxGold() {
+        return maxGold;
+    }
+
+    @Override
+    protected ArtResource getResource() {
+        if (isAdditionalResources()) {
+
+            // For gold it is the amount of gold
+            currentResourceIndex = getResourceIndex();
+            if (currentResourceIndex >= object.getAdditionalResources().size()) {
+                return object.getMeshResource();
+            }
+            return object.getAdditionalResources().get(currentResourceIndex);
+        }
+        return object.getMeshResource();
+    }
+
+    private int getResourceIndex() {
+        return Math.max((int) Math.ceil((gold / (float) maxGold) * 100 / (100f / getResourceCount())) - 1, 0);
+    }
+
+    private void refreshResource() {
+        if (isAdditionalResources() && currentResourceIndex != getResourceIndex()) {
+            Node nodeObject = (Node) AssetUtils.loadModel(worldState.getAssetManager(), AssetsConverter.MODELS_FOLDER + "/" + getResource().getName() + ".j3o", false);
+            ((Node) getSpatial()).detachAllChildren();
+            for (Spatial spat : nodeObject.getChildren()) {
+                ((Node) getSpatial()).attachChild(spat);
+            }
+        }
     }
 
     @Override
     public CursorFactory.CursorType getInHandCursor() {
         return CursorFactory.CursorType.HOLD_GOLD;
+    }
+
+    @Override
+    public void creaturePicksUp(CreatureControl creature) {
+        super.creaturePicksUp(creature);
+
+        // Gold just melts
+        removeObject();
     }
 
 }

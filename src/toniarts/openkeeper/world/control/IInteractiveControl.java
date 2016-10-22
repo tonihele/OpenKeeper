@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.world.control;
 
+import com.jme3.math.Vector2f;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.Control;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -116,8 +117,12 @@ public interface IInteractiveControl extends Control {
      * Drop the control on the tile
      *
      * @param tile tile to drop to
+     * @param coordinates real world coordinates inside
+     * @param control if there is already an
+     * {@link toniarts.openkeeper.world.control.IInteractiveControl} at the
+     * position
      */
-    public void drop(TileData tile);
+    public void drop(TileData tile, Vector2f coordinates, IInteractiveControl control);
 
     /**
      * Interact with the control. Typically alternative mouse button pressed

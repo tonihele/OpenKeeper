@@ -16,13 +16,17 @@
  */
 package toniarts.openkeeper.world.object;
 
+import com.jme3.math.FastMath;
+import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
+import java.awt.Point;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
@@ -37,24 +41,32 @@ import toniarts.openkeeper.world.room.control.RoomObjectControl;
  */
 public class ObjectControl extends HighlightControl implements IInteractiveControl {
 
-    private final WorldState worldState;
-    private final toniarts.openkeeper.tools.convert.map.Object object;
+    public enum ObjectState {
+
+        NORMAL, PICKED_UP, OWNED_BY_CREATURE, STORED_IN_ROOM;
+    }
+
+    protected final WorldState worldState;
+    protected final toniarts.openkeeper.tools.convert.map.Object object;
     private final String tooltip;
-    private short ownerId;
+    protected TileData tile;
+    private ObjectState state = ObjectState.NORMAL;
 
     // Owners
-    private RoomObjectControl roomObjectControl;
+    protected RoomObjectControl roomObjectControl;
     private CreatureControl creature;
+    protected short pickedUpBy;
+    protected final ResourceBundle bundle;
 
-    public ObjectControl(short ownerId, toniarts.openkeeper.tools.convert.map.Object object, WorldState worldState) {
+    public ObjectControl(TileData tile, toniarts.openkeeper.tools.convert.map.Object object, WorldState worldState) {
         super();
 
         this.worldState = worldState;
         this.object = object;
-        this.ownerId = ownerId;
+        this.tile = tile;
 
         // Strings
-        ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
+        bundle = Main.getResourceBundle("Interface/Texts/Text");
         tooltip = bundle.getString(Integer.toString(object.getTooltipStringId()));
     }
 
@@ -98,10 +110,44 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
 
     public void setCreature(CreatureControl creature) {
         this.creature = creature;
+        if (creature != null) {
+            setState(ObjectState.OWNED_BY_CREATURE);
+        }
     }
 
     public void setRoomObjectControl(RoomObjectControl roomObjectControl) {
         this.roomObjectControl = roomObjectControl;
+        if (roomObjectControl != null) {
+            setState(ObjectState.STORED_IN_ROOM);
+        }
+    }
+
+    protected ArtResource getResource() {
+        if (isAdditionalResources()) {
+            int resourceIndex = FastMath.nextRandomInt(0, getResourceCount() - 1);
+            if (resourceIndex == object.getAdditionalResources().size()) {
+                return object.getMeshResource();
+            }
+            return object.getAdditionalResources().get(resourceIndex);
+        }
+        return object.getMeshResource();
+    }
+
+    public int getOrientation() {
+        if (object.getMaxAngle() == 0) {
+            return 0;
+        }
+
+        // Take a random angle
+        return FastMath.nextRandomInt(0, object.getMaxAngle());
+    }
+
+    protected boolean isAdditionalResources() {
+        return !object.getAdditionalResources().isEmpty();
+    }
+
+    protected int getResourceCount() {
+        return object.getAdditionalResources().size() + 1;
     }
 
     @Override
@@ -116,7 +162,23 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
 
     @Override
     public IInteractiveControl pickUp(short playerId) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        setEnabled(false);
+        pickedUpBy = playerId;
+        setState(ObjectState.PICKED_UP);
+
+        // If we are a part of room, we need to detach
+        if (roomObjectControl != null) {
+            roomObjectControl.removeItem(this);
+        } else {
+
+            // We are part of the world
+            worldState.getThingLoader().onObjectRemoved(this);
+        }
+
+        // Remove from view
+        getSpatial().removeFromParent();
+
+        return this;
     }
 
     @Override
@@ -156,16 +218,79 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
 
     @Override
     public DroppableStatus getDroppableStatus(TileData tile) {
-        return (tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
+        return !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && (object.getFlags().contains(toniarts.openkeeper.tools.convert.map.Object.ObjectFlag.CAN_BE_DROPPED_ON_ANY_LAND)
+                || ((tile.getPlayerId() == getOwnerId() && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE))))
+                        ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
     }
 
     @Override
-    public void drop(TileData tile) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void drop(TileData tile, Vector2f coordinates, IInteractiveControl control) {
+        if (control != null && control instanceof CreatureControl && control.getOwnerId() == getOwnerId()) {
+            if (((CreatureControl) control).giveObject(this)) {
+                return;
+            }
+        }
+
+        // Drop the item to the world state
+        this.tile = tile;
+        state = ObjectState.NORMAL;
+        worldState.dropObject(this, tile, coordinates, control);
     }
 
     @Override
     public short getOwnerId() {
-        return ownerId;
+        switch (state) {
+            case STORED_IN_ROOM:
+            case NORMAL: {
+                return tile.getPlayerId();
+            }
+            case OWNED_BY_CREATURE: {
+                return creature.getOwnerId();
+            }
+            case PICKED_UP: {
+                return pickedUpBy;
+            }
+        }
+        return 0;
     }
+
+    /**
+     * Get the object coordinates, in tile coordinates
+     *
+     * @return the tile coordinates
+     */
+    public Point getObjectCoordinates() {
+        return worldState.getTileCoordinates(getSpatial().getWorldTranslation());
+    }
+
+    public ObjectState getState() {
+        return state;
+    }
+
+    protected void setState(ObjectState state) {
+        this.state = state;
+    }
+
+    public TileData getTile() {
+        return tile;
+    }
+
+    public Object getObject() {
+        return object;
+    }
+
+    public boolean isPickableByPlayerCreature(short playerId) {
+        return state == ObjectState.NORMAL; // Hmm, also some ownership stuff?
+    }
+
+    public void creaturePicksUp(CreatureControl creature) {
+        state = ObjectState.OWNED_BY_CREATURE;
+        this.creature = creature;
+        roomObjectControl = null;
+
+        // Attach the object to the creature
+        creature.giveObject(this);
+    }
+
 }

@@ -173,8 +173,8 @@ public class KeeperHand {
 
             // Remove from GUI queueNode
             item.getSpatial().removeFromParent();
-            item = null;
         }
+        item = null;
     }
 
     private void removeIcon() {

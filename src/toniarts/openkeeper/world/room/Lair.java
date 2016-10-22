@@ -17,6 +17,8 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
+import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.RoomLairControl;
 
@@ -27,8 +29,9 @@ import toniarts.openkeeper.world.room.control.RoomLairControl;
  */
 public class Lair extends Normal {
 
-    public Lair(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader) {
-        super(assetManager, roomInstance, objectLoader);
+    public Lair(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
+        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
+
         addObjectControl(new RoomLairControl(this) {
 
             @Override
