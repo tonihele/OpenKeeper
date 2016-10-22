@@ -631,16 +631,25 @@ public abstract class WorldState extends AbstractAppState {
                     continue;
                 }
 
-                // Build
-                TileData tile = getMapData().getTile(x, y);
-                tile.setPlayerId(player.getPlayerId());
-                tile.setTerrainId(room.getTerrainId());
-
                 Point p = new Point(x, y);
                 instancePlots.add(p);
                 buildPlots.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, false)));
                 updatableTiles.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, true)));
             }
+        }
+
+        // See that can we afford the building
+        int cost = instancePlots.size() * room.getCost();
+        if (instancePlots.size() * room.getCost() > gameState.getPlayer(player.getPlayerId()).getGoldControl().getGold()) {
+            return;
+        }
+        substractGoldFromPlayer(cost, player.getPlayerId());
+
+        // Build
+        for (Point p : instancePlots) {
+            TileData tile = getMapData().getTile(p);
+            tile.setPlayerId(player.getPlayerId());
+            tile.setTerrainId(room.getTerrainId());
         }
 
         // See if we hit any of the adjacent rooms
@@ -761,7 +770,8 @@ public abstract class WorldState extends AbstractAppState {
                 }
 
                 // Sell
-                TileData tile = getMapData().getTile(x, y);
+                Point p = new Point(x, y);
+                TileData tile = getMapData().getTile(p);
                 if (tile == null) {
                     continue;
                 }
@@ -779,10 +789,17 @@ public abstract class WorldState extends AbstractAppState {
                             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                         }
                     }
+
+                    // Give money back
+                    int goldLeft = addGold(player.getPlayerId(), room.getCost() / 2);
+                    if (goldLeft > 0) {
+
+                        // Add loose gold to this tile
+                        getThingLoader().addLooseGold(p, new Vector2f(MapLoader.TILE_WIDTH / 2, MapLoader.TILE_WIDTH / 2), player.getPlayerId(), goldLeft);
+                    }
                 }
 
                 // Get the instance
-                Point p = new Point(x, y);
                 soldInstances.add(mapLoader.getRoomCoordinates().get(p));
                 updatableTiles.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, true)));
             }
