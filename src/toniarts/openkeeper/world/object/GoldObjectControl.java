@@ -25,6 +25,7 @@ import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Handles gold type objects in the game world
@@ -110,6 +111,14 @@ public class GoldObjectControl extends ObjectControl {
     @Override
     public CursorFactory.CursorType getInHandCursor() {
         return CursorFactory.CursorType.HOLD_GOLD;
+    }
+
+    @Override
+    public void creaturePicksUp(CreatureControl creature) {
+        super.creaturePicksUp(creature);
+
+        // Gold just melts
+        removeObject();
     }
 
 }

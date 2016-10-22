@@ -26,6 +26,7 @@ import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
@@ -273,6 +274,23 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
 
     public TileData getTile() {
         return tile;
+    }
+
+    public Object getObject() {
+        return object;
+    }
+
+    public boolean isPickableByPlayerCreature(short playerId) {
+        return state == ObjectState.NORMAL; // Hmm, also some ownership stuff?
+    }
+
+    public void creaturePicksUp(CreatureControl creature) {
+        state = ObjectState.OWNED_BY_CREATURE;
+        this.creature = creature;
+        roomObjectControl = null;
+
+        // Attach the object to the creature
+        creature.giveObject(this);
     }
 
 }

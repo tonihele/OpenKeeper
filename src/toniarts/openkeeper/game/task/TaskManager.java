@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.task.worker.ClaimRoomTask;
 import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
+import toniarts.openkeeper.game.task.worker.FetchObjectTask;
 import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
@@ -46,7 +47,9 @@ import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.listener.ObjectListener;
 import toniarts.openkeeper.world.listener.TileChangeListener;
+import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
@@ -82,6 +85,24 @@ public class TaskManager {
                 scanTerrainTasks(mapData, x, y, true, true);
             }
         });
+
+        // Get notified by object tasks
+        this.worldState.getThingLoader().addListener(new ObjectListener() {
+
+            @Override
+            public void onAdded(ObjectControl objectControl) {
+                for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+                    entry.getValue().add(getObjectTask(objectControl, entry.getKey()));
+                }
+            }
+
+            @Override
+            public void onRemoved(ObjectControl objectControl) {
+                for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+                    entry.getValue().remove(getObjectTask(objectControl, entry.getKey()));
+                }
+            }
+        });
     }
 
     private void scanInitialTasks() {
@@ -89,6 +110,13 @@ public class TaskManager {
         for (int y = 0; y < mapData.getHeight(); y++) {
             for (int x = 0; x < mapData.getWidth(); x++) {
                 scanTerrainTasks(mapData, x, y, false, false);
+            }
+        }
+
+        // Object tasks
+        for (ObjectControl objectControl : worldState.getThingLoader().getObjects()) {
+            for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+                entry.getValue().add(getObjectTask(objectControl, entry.getKey()));
             }
         }
     }
@@ -328,6 +356,10 @@ public class TaskManager {
             }
         }
         return false;
+    }
+
+    private AbstractTask getObjectTask(ObjectControl objectControl, short playerId) {
+        return new FetchObjectTask(worldState, objectControl, playerId);
     }
 
 }
