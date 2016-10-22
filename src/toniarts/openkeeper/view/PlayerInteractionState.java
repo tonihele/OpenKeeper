@@ -184,8 +184,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         }
 
                         // See the gold amount
-//                        if (playerMoney < buildablePlots * room.getCost()) {
-                        if (buildablePlots > 3) {
+                        if (playerMoney < buildablePlots * room.getCost()) {
                             return false;
                         }
                     }
