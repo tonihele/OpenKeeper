@@ -16,16 +16,10 @@
  */
 package toniarts.openkeeper.world.effect;
 
-import com.jme3.effect.Particle;
-import com.jme3.light.Light;
-import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
-import com.jme3.renderer.RenderManager;
-import com.jme3.renderer.ViewPort;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import com.jme3.util.TempVars;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.EffectElement;
 
@@ -40,7 +34,7 @@ public abstract class SpatialEmitter extends Node {
     //private EmitterShape shape = DEFAULT_SHAPE;
 
     private Spatial spatial;
-    private Particle[] particles;
+
     private float lowLife = 3f;
     private float highLife = 7f;
 
@@ -53,10 +47,9 @@ public abstract class SpatialEmitter extends Node {
     //variable that helps with computations
     private EffectElement effectElement;
     private Effect effect;
-    private transient Vector3f temp = new Vector3f();
 
-    public SpatialEmitter(String name, EffectElement effectElement, Effect effect) {
-        super(name);
+    public SpatialEmitter(EffectElement effectElement, Effect effect) {
+        super(effectElement.getName());
         this.effectElement = effectElement;
         this.effect = effect;
         this.setShadowMode(RenderQueue.ShadowMode.Off);
@@ -132,27 +125,6 @@ public abstract class SpatialEmitter extends Node {
         this.initialVelocity = initialVelocity;
     }
 
-    private void emitParticle(int idx, Vector3f min, Vector3f max) {
-        Particle p = particles[idx];
-
-        p.startlife = lowLife + FastMath.nextRandomFloat() * (highLife - lowLife);
-        p.life = p.startlife;
-
-        p.size = startSize;
-        //shape.getRandomPoint(p.position);
-        p.velocity.set(initialVelocity);
-
-        if (rotateSpeed != 0) {
-            p.rotateSpeed = rotateSpeed * (0.2f + (FastMath.nextRandomFloat() * 2f - 1f) * .8f);
-        }
-
-        temp.set(p.position).addLocal(p.size, p.size, p.size);
-        max.maxLocal(temp);
-        temp.set(p.position).subtractLocal(p.size, p.size, p.size);
-        min.minLocal(temp);
-
-    }
-
     public void emitAllParticles() {
         for (int i = 0; i < effect.getElementsPerTurn(); i++) {
             Spatial s = spatial.clone();
@@ -184,60 +156,11 @@ public abstract class SpatialEmitter extends Node {
         }
     }
 
-    private void killParticle(int index) {
-        this.getChild(index).removeFromParent();
-    }
-
-    private void updateParticle(Particle p, float tpf, Vector3f min, Vector3f max){
-        // applying gravity
-        p.velocity.y -= gravity * tpf;
-        temp.set(p.velocity).multLocal(tpf);
-        p.position.addLocal(temp);
-
-        // affecting color, size and angle
-        float b = (p.startlife - p.life) / p.startlife;
-        p.size = FastMath.interpolateLinear(b, startSize, endSize);
-        p.angle += p.rotateSpeed * tpf;
-
-        // Computing bounding volume
-        temp.set(p.position).addLocal(p.size, p.size, p.size);
-        max.maxLocal(temp);
-        temp.set(p.position).subtractLocal(p.size, p.size, p.size);
-        min.minLocal(temp);
-    }
-
-    private void updateParticleState(float tpf) {
-        // Force world transform to update
-        this.getWorldTransform();
-
-        TempVars vars = TempVars.get();
-
-        Vector3f min = vars.vect1.set(Vector3f.POSITIVE_INFINITY);
-        Vector3f max = vars.vect2.set(Vector3f.NEGATIVE_INFINITY);
-
-        for (int i = 0; i < particles.length; ++i) {
-            Particle p = particles[i];
-            if (p.life == 0) { // particle is dead
-//                assert i <= firstUnUsed;
-                continue;
-            }
-
-            p.life -= tpf;
-            if (p.life <= 0) {
-                this.killParticle(i);
-                continue;
-            }
-
-            updateParticle(p, tpf, min, max);
-        }
-
-        this.setBoundRefresh();
-
-        vars.release();
-    }
-
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+        for (Spatial s : this.getChildren()) {
+            s.getControl(EffectElementControl.class).setEnabled(enabled);
+        }
     }
 
     public boolean isEnabled() {

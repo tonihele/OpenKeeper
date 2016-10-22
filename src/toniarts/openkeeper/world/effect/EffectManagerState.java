@@ -53,7 +53,7 @@ public class EffectManagerState extends AbstractAppState {
         super.initialize(stateManager, app);
         this.stateManager = stateManager;
     }
-    
+
 
     @Override
     public void update(float tpf) {
@@ -80,7 +80,7 @@ public class EffectManagerState extends AbstractAppState {
     public void loadSingleEffect(Node node, Vector3f location, int effectId, boolean infinite) {
 
         // Load the effect
-        VisualEffect visualEffect = new VisualEffect(kwdFile, assetManager, this, node, location, kwdFile.getEffect(effectId), infinite);
+        VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite);
         clearActiveEffects();
         activeEffects.add(visualEffect);
     }
@@ -107,11 +107,19 @@ public class EffectManagerState extends AbstractAppState {
     public void load(Node node, Vector3f location, int effectId, boolean infinite) {
 
         // Load the effect
-        VisualEffect visualEffect = new VisualEffect(kwdFile, assetManager, this, node, location, kwdFile.getEffect(effectId), infinite);
+        VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite);
         activeEffects.add(visualEffect);
     }
-    
+
     public WorldState getWorldState() {
         return stateManager.getState(WorldState.class);
+    }
+
+    public AssetManager getAssetManger() {
+        return assetManager;
+    }
+
+    public KwdFile getKwdFile() {
+        return kwdFile;
     }
 }

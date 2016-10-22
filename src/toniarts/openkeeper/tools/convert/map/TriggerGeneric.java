@@ -220,8 +220,8 @@ public class TriggerGeneric extends Trigger {
 
         result += " " + getUserData("value");
 
-        if (userData != null) {
-            for (java.util.Map.Entry<String, Number> entry : userData.entrySet()) {
+        if (data != null) {
+            for (java.util.Map.Entry<String, Number> entry : data.entrySet()) {
                 String key = entry.getKey();
                 Number value = entry.getValue();
 

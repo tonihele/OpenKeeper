@@ -18,6 +18,7 @@ package toniarts.openkeeper.tools.convert.map;
 
 import java.awt.Color;
 import java.util.EnumSet;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.world.effect.IEffect;
 
@@ -118,6 +119,7 @@ public class EffectElement implements Comparable<EffectElement>, IEffect {
     }
 
     @Override
+    @Nullable
     public ArtResource getArtResource() {
         return artResource;
     }

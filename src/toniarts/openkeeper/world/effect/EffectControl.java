@@ -59,13 +59,13 @@ public abstract class EffectControl extends AbstractControl {
         height = FastMath.nextRandomInt(effect.getLowerHeightLimit(), effect.getUpperHeightLimit());
 
         if (effect.getFlags().contains(Effect.EffectFlag.SHRINK)) {
-            scale = new FloatLimit(effect.getMaxScale());
+            scale = new FloatLimit(effect.getMaxScale(), effect.getMaxScale(), effect.getMinScale());
             scaleRatio = (effect.getMaxScale() - effect.getMinScale()) / hp;
         } else if (effect.getFlags().contains(Effect.EffectFlag.EXPAND)) {
-            scale = new FloatLimit(effect.getMinScale());
+            scale = new FloatLimit(effect.getMinScale(), effect.getMaxScale(), effect.getMinScale());
             scaleRatio = (effect.getMaxScale() - effect.getMinScale()) / hp;
         } else if (effect.getFlags().contains(Effect.EffectFlag.EXPAND_THEN_SHRINK)) {
-            scale  = new FloatLimit(effect.getMinScale());
+            scale  = new FloatLimit(effect.getMinScale(), effect.getMaxScale(), effect.getMinScale());
             scaleRatio = (effect.getMaxScale() - effect.getMinScale()) * 2 / hp;
         } else {
             scale = new FloatLimit(effect.getMinScale() + FastMath.nextRandomFloat() * (effect.getMaxScale() - effect.getMinScale()));
@@ -73,33 +73,32 @@ public abstract class EffectControl extends AbstractControl {
         }
     }
 
-//    public static Vector3f calculateVelocity(IEffect speed) {
-
-//
-//        float xzAngle = FastMath.nextRandomFloat() * FastMath.TWO_PI;
-//        float xzSpeed = speed.getMinSpeedXy()+ FastMath.nextRandomFloat() * (speed.getMaxSpeedXy() - speed.getMinSpeedXy());
-//        Vector3f vel = new Vector3f(-(float) Math.sin(xzAngle), 0, (float) Math.cos(xzAngle)).multLocal(xzSpeed);
-//
-//        // float zyAngle = FastMath.nextRandomFloat() * FastMath.TWO_PI;
-//        float zySpeed = speed.getMinSpeedYz() + FastMath.nextRandomFloat() * (speed.getMaxSpeedYz() - speed.getMinSpeedYz());
-//        vel.y = FastMath.nextRandomFloat() * zySpeed;
-//
-//        return vel;
-//    }
-    
     public static Vector3f calculateVelocity(IEffect speed) {
 
-        float zySpeed = speed.getMinSpeedYz() + FastMath.nextRandomFloat() * (speed.getMaxSpeedYz() - speed.getMinSpeedYz());
-        float zyAngle = FastMath.nextRandomFloat() * FastMath.TWO_PI;
-
-        Vector3f result = new Vector3f(-(float) Math.sin(zyAngle), 0, (float) Math.cos(zyAngle)).multLocal(zySpeed);
-
+        float xzAngle = FastMath.nextRandomFloat() * FastMath.TWO_PI;
         float xzSpeed = speed.getMinSpeedXy()+ FastMath.nextRandomFloat() * (speed.getMaxSpeedXy() - speed.getMinSpeedXy());
-        //float xzAngle = FastMath.nextRandomFloat() * FastMath.TWO_PI;
-        result.y = FastMath.nextRandomFloat() * xzSpeed;
+        Vector3f vel = new Vector3f(-(float) Math.sin(xzAngle), 0, (float) Math.cos(xzAngle)).multLocal(xzSpeed);
 
-        return result;
+        // float zyAngle = FastMath.nextRandomFloat() * FastMath.TWO_PI;
+        float zySpeed = speed.getMinSpeedYz() + FastMath.nextRandomFloat() * (speed.getMaxSpeedYz() - speed.getMinSpeedYz());
+        vel.y = FastMath.nextRandomFloat() * zySpeed;
+
+        return vel;
     }
+
+//    public static Vector3f calculateVelocity(IEffect speed) {
+//
+//        float zySpeed = speed.getMinSpeedYz() + FastMath.nextRandomFloat() * (speed.getMaxSpeedYz() - speed.getMinSpeedYz());
+//        float zyAngle = FastMath.nextRandomFloat() * FastMath.TWO_PI;
+//
+//        Vector3f result = new Vector3f(-(float) Math.sin(zyAngle), 0, (float) Math.cos(zyAngle)).multLocal(zySpeed);
+//
+//        float xzSpeed = speed.getMinSpeedXy()+ FastMath.nextRandomFloat() * (speed.getMaxSpeedXy() - speed.getMinSpeedXy());
+//        //float xzAngle = FastMath.nextRandomFloat() * FastMath.TWO_PI;
+//        result.y = FastMath.nextRandomFloat() * xzSpeed;
+//
+//        return result;
+//    }
 
     @Override
     public void setSpatial(Spatial spatial) {
@@ -117,18 +116,19 @@ public abstract class EffectControl extends AbstractControl {
         }
 
         if (effect.getFlags().contains(Effect.EffectFlag.SHRINK)) {
-            scale.sub(scaleRatio);
+            scale.sub(scaleRatio * tpf);
             spatial.setLocalScale(scale.getValue());
         } else if (effect.getFlags().contains(Effect.EffectFlag.EXPAND)) {
-            scale.add(scaleRatio);
+            scale.add(scaleRatio * tpf);
             spatial.setLocalScale(scale.getValue());
         } else if (effect.getFlags().contains(Effect.EffectFlag.EXPAND_THEN_SHRINK)) {
-            if (hpCurrent > hp / 2f) {
-                scale.add(scaleRatio);
+            if (hpCurrent > hp / 2) {
+                scale.add(scaleRatio * tpf * 2);
             } else {
-                scale.sub(scaleRatio);
+                scale.sub(scaleRatio * tpf * 2);
             }
             spatial.setLocalScale(scale.getValue());
+            //System.out.println(hpCurrent + ": " + scale.getValue());
         }
 
         if (velocity != Vector3f.ZERO) {
@@ -153,14 +153,15 @@ public abstract class EffectControl extends AbstractControl {
         if (isHit()) {
             hpCurrent = 0;
             onHit(spatial.getLocalTranslation());
-            spatial.removeFromParent();            
+            spatial.removeFromParent();
             spatial.removeControl(this);
         }
 
-        hpCurrent-= 1.0f / 4; // FIXME
+        //hpCurrent -= 1.0f / 4; // FIXME
+        hpCurrent -= tpf * 4; // FIXME
         if (hpCurrent <= 0) {
             onDie(spatial.getLocalTranslation());
-            spatial.removeFromParent();            
+            spatial.removeFromParent();
             spatial.removeControl(this);
         }
     }
@@ -173,7 +174,7 @@ public abstract class EffectControl extends AbstractControl {
     private boolean isHit() {
         return false;
     }
-    
+
     public abstract void onDie(Vector3f location);
     public abstract void onHit(Vector3f location);
 }

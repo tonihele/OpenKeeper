@@ -110,15 +110,19 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
         return creatureRoot;
     }
 
-    private static void attachResource(final Node creatureRoot, final CreatureControl creatureControl, final ArtResource resource, AssetManager assetManager) {
-        if (resource != null && (resource.getSettings().getType() == ArtResource.Type.ANIMATING_MESH || resource.getSettings().getType() == ArtResource.Type.MESH || resource.getSettings().getType() == ArtResource.Type.PROCEDURAL_MESH)) {
+    private static void attachResource(final Node creatureRoot, final CreatureControl creatureControl,
+            final ArtResource resource, AssetManager assetManager) {
+
+        if (resource != null && (resource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH
+                || resource.getType() == ArtResource.ArtResourceType.MESH
+                || resource.getType() == ArtResource.ArtResourceType.PROCEDURAL_MESH)) {
             try {
 
                 Spatial spat = loadModel(assetManager, resource.getName(), creatureRoot);
                 spat.setName(resource.getName());
 
                 // If the animations has end and/or start, it is located in a different file
-                if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
+                if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
                     String name = resource.getName() + START_ANIMATION_NAME;
                     Spatial spatStart = loadModel(assetManager, name, creatureRoot);
                     spatStart.setName(START_ANIMATION_NAME);
@@ -157,7 +161,7 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                         animControl.createChannel();
                     }
                 }
-                if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
+                if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
                     String name = resource.getName() + END_ANIMATION_NAME;
                     Spatial spatEnd = loadModel(assetManager, name, creatureRoot);
                     spatEnd.setName(END_ANIMATION_NAME);
@@ -206,7 +210,7 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                                 control.setEnabled(false);
 
                                 // We need to stop
-                                if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
+                                if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
 
                                     // Hide us
                                     control.getSpatial().setCullHint(Spatial.CullHint.Always);
@@ -235,7 +239,7 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                         }
                     });
                     AnimChannel channel = animControl.createChannel();
-                    if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP)) {
+                    if (resource.getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP)) {
                         channel.setLoopMode(LoopMode.DontLoop);
                     } else {
                         setLoopModeOnChannel(spat, channel);
@@ -295,7 +299,7 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
 
         // Get the anim node
         String animNodeName = anim.getName();
-        if (anim.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
+        if (anim.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
             animNodeName = START_ANIMATION_NAME;
         }
         Spatial spat = root.getChild(animNodeName);

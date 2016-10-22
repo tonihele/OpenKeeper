@@ -16,13 +16,14 @@
  */
 package toniarts.openkeeper.world.effect;
 
+import com.jme3.animation.AnimControl;
 import com.jme3.asset.AssetManager;
 import com.jme3.effect.ParticleEmitter;
-import com.jme3.effect.ParticleMesh;
 import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -38,12 +39,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceFlag;
+import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.EffectElement;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
@@ -73,14 +75,14 @@ public class VisualEffect {
     private PointLight light;
     private static final Logger logger = Logger.getLogger(VisualEffect.class.getName());
 
-    public VisualEffect(KwdFile kwdFile, AssetManager assetManager, EffectManagerState effectManagerState, Node node, Effect effect) {
-        this(kwdFile, assetManager, effectManagerState, node, null, effect, false);
+    public VisualEffect(EffectManagerState effectManagerState, Node node, Effect effect) {
+        this(effectManagerState, node, null, effect, false);
     }
 
-    public VisualEffect(KwdFile kwdFile, AssetManager assetManager, EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite) {
+    public VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite) {
         this.effect = effect;
-        this.kwdFile = kwdFile;
-        this.assetManager = assetManager;
+        this.kwdFile = effectManagerState.getKwdFile();
+        this.assetManager = effectManagerState.getAssetManger();
         this.effectManagerState = effectManagerState;
         this.infinite = infinite;
 
@@ -109,51 +111,95 @@ public class VisualEffect {
 
         Spatial model = new Node();
         if (resource != null) {
-            if (resource.getSettings() instanceof ArtResource.Mesh) {
+            switch (resource.getType()) {
+                case MESH:
+                case ANIMATING_MESH:
+                    model = AssetUtils.loadModel(assetManager,
+                                    AssetsConverter.MODELS_FOLDER + "/" + resource.getName() + ".j3o",
+                                    false);
+                    break;
 
-                model = AssetUtils.loadModel(assetManager,
-                        AssetsConverter.MODELS_FOLDER + "/" + resource.getName() + ".j3o",
-                        false);
-                model.setLocalScale(((ArtResource.Mesh)resource.getSettings()).getScale());
-                model.addControl(new EffectControl(effect) {
+                case PROCEDURAL_MESH:
+                    model = AssetUtils.createProceduralMesh(resource);
+                    break;
 
-                    @Override
-                    public void onDie(Vector3f location) {
-                        if (effect.getDeathEffectId() != 0) {
-                            VisualEffect.this.addEffect(effect.getDeathEffectId(), location);
-                        }
+                case ALPHA:
+                case ADDITIVE_ALPHA:
+                case SPRITE:
+                    //PG g = new PG("effect");
+                    //g.setFrames(Math.max(1, resource.getData("frames")));
+                    Geometry g = new Geometry("effect", new ParticleMesh(1f));
+                    g.setBatchHint(Spatial.BatchHint.Never);
+                    g.setShadowMode(RenderQueue.ShadowMode.Off);
+                    g.setQueueBucket(RenderQueue.Bucket.Transparent);
+
+                    Material material;
+                    if (resource.getFlags().contains(ArtResourceFlag.ANIMATING_TEXTURE)) {
+                        material = AssetUtils.createLightningSpriteMaterial(resource, assetManager);
+                    } else {
+                        material = AssetUtils.createParticleMaterial(resource, assetManager);
                     }
+                    g.setMaterial(material);
+                    ((Node) model).attachChild(g);
+                    break;
 
-                    @Override
-                    public void onHit(Vector3f location) {
-                        TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldState.getTileCoordinates(location));
-                        if (tile == null) {
-                            logger.warning("Effect hit error");
-                            return;
-                        }
-
-                        if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.LAVA)
-                                && effect.getHitLavaEffectId() != 0) {
-                            VisualEffect.this.addEffect(effect.getHitLavaEffectId(), location);
-                        } else if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.WATER) &&
-                                effect.getHitWaterEffectId() != 0) {
-                            VisualEffect.this.addEffect(effect.getHitWaterEffectId(), location);
-                        } else if (effect.getHitSolidEffectId() != 0) {
-                            // && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                            if (effect.getFlags().contains(Effect.EffectFlag.DIE_WHEN_HIT_SOLID)) {
-                                onDie(location);
-                            } else {
-                                VisualEffect.this.addEffect(effect.getHitSolidEffectId(), location);
-                            }
-                        }
-                    }
-                });
-                effectNode.attachChild(model);
-            } else {
-                logger.log(Level.WARNING, "Not supported effect type. Was of {0} type!",
-                        resource.getSettings().getClass().getName());
+                default:
+                    logger.log(Level.WARNING, "Not supported effect type {0}", resource.getType());
             }
+
+            if (resource.getType() == ArtResourceType.MESH) {
+                model.setLocalScale(resource.getData("scale"));
+
+            } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
+
+                AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
+                if (animControl != null) {
+//                    AnimChannel channel = animControl.getChannel(0);
+//                    channel.setAnim(ANIM_NAME);
+//                    resource.getData("fps");
+//                    resource.getData("frames");
+//                    channel.setSpeed(speed);
+//                    channel.setTime(time);
+                    animControl.setEnabled(true);
+                }
+            }
+
+            model.addControl(new EffectControl(effect) {
+
+                @Override
+                public void onDie(Vector3f location) {
+                    if (effect.getDeathEffectId() != 0) {
+                        VisualEffect.this.addEffect(effect.getDeathEffectId(), location);
+                    }
+                }
+
+                @Override
+                public void onHit(Vector3f location) {
+                    TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldState.getTileCoordinates(location));
+                    if (tile == null) {
+                        logger.warning("Effect hit error");
+                        return;
+                    }
+
+                    if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.LAVA)
+                            && effect.getHitLavaEffectId() != 0) {
+                        VisualEffect.this.addEffect(effect.getHitLavaEffectId(), location);
+                    } else if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.WATER) &&
+                            effect.getHitWaterEffectId() != 0) {
+                        VisualEffect.this.addEffect(effect.getHitWaterEffectId(), location);
+                    } else if (effect.getHitSolidEffectId() != 0) {
+                        // && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                        if (effect.getFlags().contains(Effect.EffectFlag.DIE_WHEN_HIT_SOLID)) {
+                            onDie(location);
+                        } else {
+                            VisualEffect.this.addEffect(effect.getHitSolidEffectId(), location);
+                        }
+                    }
+                }
+            });
+            effectNode.attachChild(model);
         }
+
         // Light
         light = getLight(effect.getLight());
         if (light != null) {
@@ -178,8 +224,7 @@ public class VisualEffect {
     }
 
     private void addEffect(Integer id, Vector3f location) {
-        VisualEffect visualEffect = new VisualEffect(kwdFile, assetManager,
-                effectManagerState, effectNode, location, kwdFile.getEffect(id), false);
+        VisualEffect visualEffect = new VisualEffect(effectManagerState, effectNode, location, kwdFile.getEffect(id), false);
         effects.add(visualEffect);
         effectNode.attachChild(visualEffect.effectNode);
     }
@@ -213,101 +258,127 @@ public class VisualEffect {
             return null;
         }
 
-        // FIXME take resource.getType to check how load
-        if (resource.getSettings() instanceof ArtResource.Image) {
-            ParticleEmitter emitter = new ParticleEmitter(element.getName(),
-                    ParticleMesh.Type.Triangle,
-                    effect.getElementsPerTurn());
-            emitter.setParticlesPerSec(0);
-            Material material = AssetUtils.createParticleMaterial(assetManager, resource);
-            emitter.setMaterial(material);
-            emitter.setImagesX(Math.max(1, ((ArtResource.Image) resource.getSettings()).getFrames()));
-            emitter.setImagesY(1);
-            emitter.setSelectRandomImage(resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.RANDOM_START_FRAME));
-            emitter.setInWorldSpace(false);
+        if (resource == null) {
+            return null;
+        }
 
-            Color color = element.getColor();
-            float alpha = 1f;
-            if (element.getFlags().contains(EffectElement.EffectElementFlag.FADE)) {
-                alpha -= element.getFadePercentage() / 100;
-            }
+        switch (resource.getType()) {
+            case ALPHA:
+            case ADDITIVE_ALPHA:
+            case SPRITE: {
+                ParticleEmitter emitter = new ParticleEmitter(element.getName(),
+                        com.jme3.effect.ParticleMesh.Type.Triangle,
+                        effect.getElementsPerTurn());
+                emitter.setParticlesPerSec(0);
+                Material material = AssetUtils.createParticleMaterial(resource, assetManager);
+                emitter.setMaterial(material);
+                emitter.setImagesX(Math.max(1, resource.getData("frames")));
+                emitter.setImagesY(1);
+                emitter.setSelectRandomImage(resource.getFlags().contains(ArtResource.ArtResourceFlag.RANDOM_START_FRAME));
+                emitter.setInWorldSpace(false);
 
-            emitter.setStartColor(new ColorRGBA(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, 1f));
-            emitter.setEndColor(new ColorRGBA(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, alpha));
-            //
-            Vector3f velocity = EffectControl.calculateVelocity(element);
-            emitter.getParticleInfluencer().setInitialVelocity(velocity);
-            //
-            float scaleRatio = element.getScaleRatio() == 0 ? 1 : element.getScaleRatio();
-            if (element.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
-                emitter.setEndSize(element.getMaxScale() * scaleRatio);
-                emitter.setStartSize(element.getMinScale() * scaleRatio);
-            } else {
-                emitter.setStartSize(element.getMaxScale() * scaleRatio);
-                emitter.setEndSize(element.getMinScale() * scaleRatio);
-            }
-            //
-            emitter.setFacingVelocity(element.getFlags().contains(EffectElement.EffectElementFlag.ROTATE_TO_MOVEMENT_DIRECTION));
-            //
-            emitter.setGravity(0, element.getMass() * element.getAirFriction(), 0);
-            emitter.setLowLife(element.getMinHp() / 10f);
-            emitter.setHighLife(element.getMaxHp() / 10f);
-            //
-            float delta = Math.max((element.getMaxSpeedXy() - element.getMinSpeedXy()) / (element.getMaxSpeedXy() + 1),
-                    (element.getMaxSpeedYz() - element.getMinSpeedYz()) / (element.getMaxSpeedYz() + 1));
-            emitter.getParticleInfluencer().setVelocityVariation(delta);
-
-            return emitter;
-
-        } else if (resource.getSettings() instanceof ArtResource.Mesh
-                || resource.getSettings() instanceof ArtResource.Animation) {
-            // FIXME custom emitter ?
-            SpatialEmitter emitter = new SpatialEmitter(element.getName(), element, effect) {
-
-                @Override
-                public void onDeath(Vector3f location) {
-                    if (element.getDeathElementId() != 0) {
-                        VisualEffect.this.addEffectElement(element.getDeathElementId(), location);
-                    }
+                Color color = element.getColor();
+                float alpha = 1f;
+                if (element.getFlags().contains(EffectElement.EffectElementFlag.FADE)) {
+                    alpha -= element.getFadePercentage() / 100;
                 }
 
-                @Override
-                public void onHit(Vector3f location) {
-                    TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldState.getTileCoordinates(location));
-                    if (tile == null) {
-                        logger.warning("Effect hit error");
-                        return;
-                    }
+                emitter.setStartColor(new ColorRGBA(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, 1f));
+                emitter.setEndColor(new ColorRGBA(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, alpha));
+                //
+                Vector3f velocity = EffectControl.calculateVelocity(element);
+                emitter.getParticleInfluencer().setInitialVelocity(velocity);
+                //
+                float scaleRatio = element.getScaleRatio() == 0 ? 1 : element.getScaleRatio();
+                if (element.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
+                    emitter.setEndSize(element.getMaxScale() * scaleRatio);
+                    emitter.setStartSize(element.getMinScale() * scaleRatio);
+                } else {
+                    emitter.setStartSize(element.getMaxScale() * scaleRatio);
+                    emitter.setEndSize(element.getMinScale() * scaleRatio);
+                }
+                //
+                emitter.setFacingVelocity(element.getFlags().contains(EffectElement.EffectElementFlag.ROTATE_TO_MOVEMENT_DIRECTION));
+                //
+                emitter.setGravity(0, element.getMass() * element.getAirFriction(), 0);
+                emitter.setLowLife(element.getMinHp() / 10f);
+                emitter.setHighLife(element.getMaxHp() / 10f);
+                //
+                float delta = Math.max((element.getMaxSpeedXy() - element.getMinSpeedXy()) / (element.getMaxSpeedXy() + 1),
+                        (element.getMaxSpeedYz() - element.getMinSpeedYz()) / (element.getMaxSpeedYz() + 1));
+                emitter.getParticleInfluencer().setVelocityVariation(delta);
 
-                    if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.LAVA)
-                            && element.getHitLavaElementId() != 0) {
-                        VisualEffect.this.addEffectElement(element.getHitLavaElementId(), location);
-                    } else if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.WATER)
-                            && element.getHitWaterElementId() != 0) {
-                        VisualEffect.this.addEffectElement(element.getHitWaterElementId(), location);
-                    } else if (element.getHitSolidElementId() != 0 ) {
-                        // && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                        if (element.getFlags().contains(EffectElement.EffectElementFlag.DIE_WHEN_HIT_SOLID)) {
-                            onDeath(location);
-                        } else {
-                            VisualEffect.this.addEffectElement(element.getHitSolidElementId(), location);
+                return emitter;
+            }
+
+            case MESH:
+            case ANIMATING_MESH:
+            case PROCEDURAL_MESH: {
+                SpatialEmitter emitter = new SpatialEmitter(element, effect) {
+
+                    @Override
+                    public void onDeath(Vector3f location) {
+                        if (element.getDeathElementId() != 0) {
+                            VisualEffect.this.addEffectElement(element.getDeathElementId(), location);
                         }
                     }
+
+                    @Override
+                    public void onHit(Vector3f location) {
+                        TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldState.getTileCoordinates(location));
+                        if (tile == null) {
+                            logger.warning("Effect hit error");
+                            return;
+                        }
+
+                        if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.LAVA)
+                                && element.getHitLavaElementId() != 0) {
+                            VisualEffect.this.addEffectElement(element.getHitLavaElementId(), location);
+                        } else if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.WATER)
+                                && element.getHitWaterElementId() != 0) {
+                            VisualEffect.this.addEffectElement(element.getHitWaterElementId(), location);
+                        } else if (element.getHitSolidElementId() != 0 ) {
+                            // && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                            if (element.getFlags().contains(EffectElement.EffectElementFlag.DIE_WHEN_HIT_SOLID)) {
+                                onDeath(location);
+                            } else {
+                                VisualEffect.this.addEffectElement(element.getHitSolidElementId(), location);
+                            }
+                        }
+                    }
+                };
+
+                Node model;
+                if (resource.getType() == ArtResourceType.PROCEDURAL_MESH) {
+                    model = (Node) AssetUtils.createProceduralMesh(resource);
+                } else {
+                    model = (Node) AssetUtils.loadModel(assetManager,
+                            AssetsConverter.MODELS_FOLDER + "/" + resource.getName() + ".j3o",
+                            false);
                 }
-            };
-            Node model = (Node) AssetUtils.loadModel(assetManager,
-                    AssetsConverter.MODELS_FOLDER + "/" + resource.getName() + ".j3o",
-                    false);
-            model.setLocalScale(((ArtResource.Mesh)resource.getSettings()).getScale());
-            emitter.setSpatial(model);
 
-            //emitter.setInWorldSpace(true);
+                if (resource.getType() == ArtResourceType.MESH) {
+                    model.setLocalScale(resource.getData("scale"));
 
-            return emitter;
+                } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
 
-        } else {
-            logger.log(Level.WARNING, "Not supported effect element type. Was of {0} type!",
-                    resource.getSettings().getClass().getName());
+                    AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
+                    if (animControl != null) {
+//                        AnimChannel channel = animControl.getChannel(0);
+//                        channel.setAnim(ANIM_NAME);
+//                        resource.getData("fps");
+//                        resource.getData("frames");
+//                        channel.setSpeed(speed);
+//                        channel.setTime(time);
+                        animControl.setEnabled(true);
+                    }
+                }
+                emitter.setSpatial(model);
+                return emitter;
+            }
+
+            default:
+                logger.log(Level.WARNING, "Not supported effect element type {0}", resource.getType());
         }
 
         return null;
@@ -384,7 +455,7 @@ public class VisualEffect {
         }
 
         // If no children at all, remove us
-        if (effectElements.isEmpty() && effects.isEmpty()) {
+        if (effectElements.isEmpty() && effects.isEmpty() && effectNode.getQuantity() == 0) {
 
             // If infitine, just restart
             if (infinite) {

@@ -28,7 +28,7 @@ public class FloatLimit {
     public FloatLimit(float value) {
         this.value = value;
     }
-    
+
     public FloatLimit(float value, float upperLimit, float lowerLimit) {
         this(value);
         this.upperLimit = upperLimit;
@@ -46,14 +46,14 @@ public class FloatLimit {
     public float getValue() {
         return value;
     }
-    
+
     public void add(float value) {
         this.value += value;
         if (upperLimit != null && this.value > upperLimit) {
             this.value = upperLimit;
         }
     }
-    
+
     public void sub(float value) {
         this.value -= value;
         if (lowerLimit != null && this.value < lowerLimit) {
