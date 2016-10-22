@@ -51,6 +51,7 @@ import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
@@ -164,10 +165,32 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 }
                 if (interactionState.getType() == Type.SELL) {
                     return ColorIndicator.RED;
-                } else if (interactionState.getType() == Type.ROOM && !isTaggable && !getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(interactionState.getItemId()))) {
+                } else if (interactionState.getType() == Type.ROOM && !(getWorldHandler().isTaggable((int) pos.x, (int) pos.y) || (getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(interactionState.getItemId())) && isPlayerAffordToBuild(player, gameState.getLevelData().getRoomById(interactionState.getItemId()))))) {
                     return ColorIndicator.RED;
                 }
                 return ColorIndicator.BLUE;
+            }
+
+            private boolean isPlayerAffordToBuild(Player player, Room room) {
+                int playerMoney = getWorldHandler().getGameState().getPlayer(player.getPlayerId()).getGoldControl().getGold();
+                if (playerMoney == 0) {
+                    return false;
+                }
+                int buildablePlots = 0;
+                for (int x = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().x); x < Math.min(getWorldHandler().getMapData().getWidth(), selectionHandler.getSelectionArea().getEnd().x + 1); x++) {
+                    for (int y = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().y); y < Math.min(getWorldHandler().getMapData().getHeight(), selectionHandler.getSelectionArea().getEnd().y + 1); y++) {
+                        if (getWorldHandler().isBuildable(x, y, player, room)) {
+                            buildablePlots++;
+                        }
+
+                        // See the gold amount
+//                        if (playerMoney < buildablePlots * room.getCost()) {
+                        if (buildablePlots > 3) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
             }
         };
 
