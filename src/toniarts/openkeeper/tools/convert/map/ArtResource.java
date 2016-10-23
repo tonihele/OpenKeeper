@@ -88,8 +88,6 @@ public class ArtResource {
     private String name;
     private EnumSet<ArtResourceFlag> flags;
     private ArtResourceType type;
-    private short startAf; // Start animation frame
-    private short endAf; // End animation frame
     private short sometimesOne;
 
     private HashMap<String, Number> data = null;
@@ -116,22 +114,6 @@ public class ArtResource {
 
     protected void setType(ArtResourceType type) {
         this.type = type;
-    }
-
-    public short getStartAf() {
-        return startAf;
-    }
-
-    protected void setStartAf(short startAf) {
-        this.startAf = startAf;
-    }
-
-    public short getEndAf() {
-        return endAf;
-    }
-
-    protected void setEndAf(short endAf) {
-        this.endAf = endAf;
     }
 
     public short getSometimesOne() {

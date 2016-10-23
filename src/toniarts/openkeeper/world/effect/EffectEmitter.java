@@ -27,7 +27,7 @@ import toniarts.openkeeper.tools.convert.map.EffectElement;
  *
  * @author ArchDemon
  */
-public abstract class SpatialEmitter extends Node {
+public abstract class EffectEmitter extends Node {
     private boolean enabled = true;
 
     //private static final EmitterShape DEFAULT_SHAPE = new EmitterPointShape(Vector3f.ZERO);
@@ -48,7 +48,7 @@ public abstract class SpatialEmitter extends Node {
     private EffectElement effectElement;
     private Effect effect;
 
-    public SpatialEmitter(EffectElement effectElement, Effect effect) {
+    public EffectEmitter(EffectElement effectElement, Effect effect) {
         super(effectElement.getName());
         this.effectElement = effectElement;
         this.effect = effect;
@@ -58,7 +58,7 @@ public abstract class SpatialEmitter extends Node {
     /**
      * For serialization only. Do not use.
      */
-    public SpatialEmitter() {
+    public EffectEmitter() {
         super();
     }
 
@@ -137,12 +137,12 @@ public abstract class SpatialEmitter extends Node {
 
                 @Override
                 public void onDie(Vector3f location) {
-                    SpatialEmitter.this.onDeath(location);
+                    EffectEmitter.this.onDeath(location);
                 }
 
                 @Override
                 public void onHit(Vector3f location) {
-                    SpatialEmitter.this.onHit(location);
+                    EffectEmitter.this.onHit(location);
                 }
             });
 

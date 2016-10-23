@@ -189,7 +189,7 @@ public class AssetUtils {
                 mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
                 int frames = resource.getData("frames");
                 mat.setInt("NumberOfTiles", frames);
-                mat.setInt("Speed", frames / 2); // Just a guess work
+                mat.setInt("Speed", frames); // FIXME: Just a guess work
 
                 // Create the texture
                 try {

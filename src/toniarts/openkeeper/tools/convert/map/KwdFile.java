@@ -663,7 +663,6 @@ public final class KwdFile {
                 artResource.setData("width", ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
                 artResource.setData("height", ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
                 artResource.setData("frames", ConversionUtils.readUnsignedInteger(file)); // if (ANIMATING_TEXTURE)
-                System.out.println("frames: " + artResource.getData("frames"));
                 break;
 
             case TERRAIN_MESH:
@@ -674,8 +673,7 @@ public final class KwdFile {
 
             case MESH:
                 artResource.setData("scale", ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
-                artResource.setData("frames", ConversionUtils.readUnsignedInteger(file));
-                System.out.println("frames: " + artResource.getData("frames")); // if (ANIMATING_TEXTURE)
+                artResource.setData("frames", ConversionUtils.readUnsignedInteger(file)); // if (ANIMATING_TEXTURE)
                 artResource.setData("unknown_1", ConversionUtils.readUnsignedInteger(file));
                 break;
 
@@ -697,7 +695,6 @@ public final class KwdFile {
                 artResource.setData("unknown_1", ConversionUtils.readUnsignedInteger(file));
                 artResource.setData("unknown_2", ConversionUtils.readUnsignedInteger(file));
                 artResource.setData("unknown_3", ConversionUtils.readUnsignedInteger(file));
-                logger.log(Level.WARNING, "Skip artResource type {0}", artResource.getType());
                 break;
 
             default:

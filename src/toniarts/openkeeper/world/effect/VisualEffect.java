@@ -19,12 +19,11 @@ package toniarts.openkeeper.world.effect;
 import com.jme3.animation.AnimControl;
 import com.jme3.asset.AssetManager;
 import com.jme3.effect.ParticleEmitter;
+import com.jme3.effect.ParticleMesh;
 import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
-import com.jme3.renderer.queue.RenderQueue;
-import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Color;
@@ -39,7 +38,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceFlag;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.EffectElement;
@@ -126,20 +124,12 @@ public class VisualEffect {
                 case ALPHA:
                 case ADDITIVE_ALPHA:
                 case SPRITE:
-                    //PG g = new PG("effect");
-                    //g.setFrames(Math.max(1, resource.getData("frames")));
-                    Geometry g = new Geometry("effect", new ParticleMesh(1f));
-                    g.setBatchHint(Spatial.BatchHint.Never);
-                    g.setShadowMode(RenderQueue.ShadowMode.Off);
-                    g.setQueueBucket(RenderQueue.Bucket.Transparent);
+                    EffectGeometry g = new EffectGeometry("effect");
+                    g.setFrames(Math.max(1, resource.getData("frames")));
 
-                    Material material;
-                    if (resource.getFlags().contains(ArtResourceFlag.ANIMATING_TEXTURE)) {
-                        material = AssetUtils.createLightningSpriteMaterial(resource, assetManager);
-                    } else {
-                        material = AssetUtils.createParticleMaterial(resource, assetManager);
-                    }
+                    Material material = AssetUtils.createParticleMaterial(resource, assetManager);
                     g.setMaterial(material);
+
                     ((Node) model).attachChild(g);
                     break;
 
@@ -267,7 +257,7 @@ public class VisualEffect {
             case ADDITIVE_ALPHA:
             case SPRITE: {
                 ParticleEmitter emitter = new ParticleEmitter(element.getName(),
-                        com.jme3.effect.ParticleMesh.Type.Triangle,
+                        ParticleMesh.Type.Triangle,
                         effect.getElementsPerTurn());
                 emitter.setParticlesPerSec(0);
                 Material material = AssetUtils.createParticleMaterial(resource, assetManager);
@@ -314,7 +304,7 @@ public class VisualEffect {
             case MESH:
             case ANIMATING_MESH:
             case PROCEDURAL_MESH: {
-                SpatialEmitter emitter = new SpatialEmitter(element, effect) {
+                EffectEmitter emitter = new EffectEmitter(element, effect) {
 
                     @Override
                     public void onDeath(Vector3f location) {
