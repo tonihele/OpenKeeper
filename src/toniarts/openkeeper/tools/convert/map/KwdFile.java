@@ -2384,7 +2384,7 @@ public final class KwdFile {
                         case FLAG:
                             ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
                             trigger.setUserData("targetId", (short) file.readUnsignedByte()); // flagId
-                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = EffectFlag
+                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = Flag
                             trigger.setUserData("flagId", (short) file.readUnsignedByte());
                             trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
                             break;
@@ -2392,7 +2392,7 @@ public final class KwdFile {
                         case TIMER:
                             ((TriggerGeneric) trigger).setTargetValueComparison(ConversionUtils.parseEnum((short) file.readUnsignedByte(), TriggerGeneric.ComparisonType.class));
                             trigger.setUserData("targetId", (short) file.readUnsignedByte()); // timerId
-                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = EffectFlag
+                            trigger.setUserData("flag", (short) file.readUnsignedByte()); // 0x1 = Value, !0x1 = Flag
                             trigger.setUserData("timerId", (short) file.readUnsignedByte());
                             trigger.setUserData("value", ConversionUtils.readUnsignedInteger(file));
                             break;

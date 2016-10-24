@@ -190,8 +190,8 @@ public class KeeperHand {
 
     private void addIcon(final ArtResource image, final int index) {
         if (image.getType() != ArtResourceType.ALPHA
-                || image.getType() != ArtResourceType.ADDITIVE_ALPHA
-                || image.getType() != ArtResourceType.SPRITE) {
+                && image.getType() != ArtResourceType.ADDITIVE_ALPHA
+                && image.getType() != ArtResourceType.SPRITE) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 
