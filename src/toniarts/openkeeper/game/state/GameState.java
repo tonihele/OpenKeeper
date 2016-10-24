@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
+import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -76,6 +77,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private TriggerControl triggerControl = null;
     private CreatureTriggerState creatureTriggerState;
     private ObjectTriggerState objectTriggerState;
+    private DoorTriggerState doorTriggerState;
     private final Map<Short, Integer> flags = new HashMap<>(LEVEL_FLAG_MAX_COUNT);
     // TODO What timer class we should take ?
     private final Map<Byte, GameTimer> timers = new HashMap<>(LEVEL_TIMER_MAX_COUNT);
@@ -145,6 +147,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     creatureTriggerState.initialize(stateManager, app);
                     objectTriggerState = new ObjectTriggerState(true);
                     objectTriggerState.initialize(stateManager, app);
+                    doorTriggerState = new DoorTriggerState(true);
+                    doorTriggerState.initialize(stateManager, app);
                     setProgress(0.20f);
 
                     // Create the actual level
@@ -353,6 +357,9 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         if (objectTriggerState != null) {
             objectTriggerState.update(tpf);
         }
+        if (doorTriggerState != null) {
+            doorTriggerState.update(tpf);
+        }
 
         for (Keeper player : players.values()) {
             player.update(tpf);
@@ -459,6 +466,10 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     public ObjectTriggerState getObjectTriggerState() {
         return objectTriggerState;
+    }
+
+    public DoorTriggerState getDoorTriggerState() {
+        return doorTriggerState;
     }
 
 }

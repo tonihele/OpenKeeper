@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
 
 /**
  * Stub for the container class for the Doors.kwd
@@ -183,7 +183,7 @@ public class Door implements Comparable<Door> {
         return flags;
     }
 
-    public void setFlags(EnumSet<DoorFlag> flags) {
+    protected void setFlags(EnumSet<DoorFlag> flags) {
         this.flags = flags;
     }
 
