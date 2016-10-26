@@ -29,6 +29,7 @@ import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
@@ -178,23 +179,22 @@ public class AssetUtils {
      * @return JME material
      */
     public static Material createLightningSpriteMaterial(ArtResource resource, AssetManager assetManager) {
-        if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+        if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
 
             // Cache
             MaterialKey assetKey = new MaterialKey(resource.getName());
             Material mat = assetCache.getFromCache(assetKey);
 
             if (mat == null) {
-                mat = new Material(assetManager,
-                        "MatDefs/LightingSprite.j3md");
-                int frames = ((ArtResource.Image) resource.getSettings()).getFrames();
+                mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
+                int frames = resource.getData("frames");
                 mat.setInt("NumberOfTiles", frames);
-                mat.setInt("Speed", 8); // Just a guess work
+                mat.setInt("Speed", frames); // FIXME: Just a guess work
 
                 // Create the texture
                 try {
 
-                    if (resource.getSettings().getType() == ArtResource.Type.ALPHA) {
+                    if (resource.getType() == ArtResource.ArtResourceType.ALPHA) {
                         mat.setTransparent(true);
                         mat.setFloat("AlphaDiscardThreshold", 0.1f);
                         mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
@@ -223,7 +223,7 @@ public class AssetUtils {
      * @param assetManager the asset manager
      * @return JME material
      */
-    public static Material createParticleMaterial(AssetManager assetManager, ArtResource resource) {
+    public static Material createParticleMaterial(ArtResource resource, AssetManager assetManager) {
 
         // Cache
         MaterialKey assetKey = new MaterialKey(resource.getName());
@@ -245,10 +245,10 @@ public class AssetUtils {
 
     private static Texture createArtResourceTexture(ArtResource resource, AssetManager assetManager) throws IOException {
 
-        if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
-            int frames = ((ArtResource.Image) resource.getSettings()).getFrames();
+        if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+
             RescaleOp rop = null;
-            if (resource.getSettings().getType() == ArtResource.Type.ALPHA) {
+            if (resource.getType() == ArtResource.ArtResourceType.ALPHA) {
                 float[] scales = {1f, 1f, 1f, 0.75f};
                 float[] offsets = new float[4];
                 rop = new RescaleOp(scales, offsets, null);
@@ -258,13 +258,19 @@ public class AssetUtils {
             BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + resource.getName() + "0.png"))).openStream());
 
             // Create image big enough to fit all the frames
-            BufferedImage text
-                    = new BufferedImage(img.getWidth() * frames, img.getHeight(),
-                            BufferedImage.TYPE_INT_ARGB);
+            int frames = resource.getData("frames");
+            BufferedImage text = new BufferedImage(img.getWidth() * frames, img.getHeight(),
+                    BufferedImage.TYPE_INT_ARGB);
             Graphics2D g = text.createGraphics();
             g.drawImage(img, rop, 0, 0);
             for (int x = 1; x < frames; x++) {
-                img = ImageIO.read(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + resource.getName() + x + ".png"))).openStream());
+                AssetInfo asset = assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + resource.getName() + x + ".png")));
+                if (asset != null) {
+                    img = ImageIO.read(asset.openStream());
+                } else {
+                    // use previous img
+                    logger.log(Level.WARNING, "Animated Texture {0}{1} not found", new Object[]{resource.getName(), x});
+                }
                 g.drawImage(img, rop, img.getWidth() * x, 0);
             }
             g.dispose();
@@ -341,14 +347,17 @@ public class AssetUtils {
             for (Object obj : objects) {
                 for (Method method : methodsToScan) {
                     ArtResource artResource = (ArtResource) method.invoke(obj, (Object[]) null);
-                    if (artResource != null && artResource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.PRELOAD)) {
+                    if (artResource != null && artResource.getFlags().contains(ArtResource.ArtResourceFlag.PRELOAD)) {
 
                         try {
 
                             // TODO: if possible, we should have here a general loadAsset(ArtResource) stuff
-                            if (artResource.getSettings().getType() == ArtResource.Type.MESH || artResource.getSettings().getType() == ArtResource.Type.ANIMATING_MESH || artResource.getSettings().getType() == ArtResource.Type.MESH_COLLECTION || artResource.getSettings().getType() == ArtResource.Type.PROCEDURAL_MESH) {
+                            if (artResource.getType() == ArtResource.ArtResourceType.MESH
+                                    || artResource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH
+                                    || artResource.getType() == ArtResource.ArtResourceType.MESH_COLLECTION
+                                    || artResource.getType() == ArtResource.ArtResourceType.PROCEDURAL_MESH) {
                                 models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + ".j3o", false));
-                            } else if (artResource.getSettings().getType() == ArtResource.Type.TERRAIN_MESH && obj instanceof Terrain) {
+                            } else if (artResource.getType() == ArtResource.ArtResourceType.TERRAIN_MESH && obj instanceof Terrain) {
 
                                 // With terrains, we need to see the contruction type
                                 Terrain terrain = (Terrain) obj;
@@ -368,7 +377,7 @@ public class AssetUtils {
                                 else if (!terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)) {
                                     models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + ".j3o", false));
                                 }
-                            } else if (artResource.getSettings().getType() == ArtResource.Type.TERRAIN_MESH && obj instanceof Room) {
+                            } else if (artResource.getType() == ArtResource.ArtResourceType.TERRAIN_MESH && obj instanceof Room) {
 
                                 // With terrains, we need to see the contruction type
                                 Room room = (Room) obj;
@@ -457,4 +466,15 @@ public class AssetUtils {
         });
     }
 
+    /**
+     * Generate procedural mesh
+     * TODO: procedural mesh
+     * @param resource
+     * @return generated mesh
+     */
+    public static Spatial createProceduralMesh(ArtResource resource) {
+        int id = resource.getData("id");
+
+        return new Node();
+    }
 }

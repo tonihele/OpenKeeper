@@ -53,6 +53,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.world.effect.TorchControl;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomConstructor;
@@ -486,7 +487,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         Node pageNode = getPageNode(p, root);
 
         // Torch (see https://github.com/tonihele/OpenKeeper/issues/128)
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && tile.getX() % 2 != 0 && tile.getY() % 2 != 0) {
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && (tile.getX() % 2 == 0 || tile.getY() % 2 == 0)) {
             handleTorch(tile, pageNode);
         }
 
@@ -516,30 +518,32 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         // and sometimes even null and there is still a torch. So I don't think they are used
         // Take the first direction where we can put a torch
         Spatial spatial = null;
-        if (canPlaceTorch(tile.getX(), tile.getY() + 1)) { // North
-            spatial = loadModel("Torch1", false);
-            spatial = transformWall(spatial, 0, 0, FastMath.HALF_PI);
-            spatial.move(-TILE_WIDTH / 2 + 0.05f, 0, -0.175f);
-            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
-        } else if (canPlaceTorch(tile.getX() - 1, tile.getY())) { // East
-            spatial = loadModel("Torch1", false);
-            spatial.move(-TILE_WIDTH / 1.5f - 0.175f, 0, -TILE_WIDTH / 2 + 0.05f);
-            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
-        } else if (canPlaceTorch(tile.getX(), tile.getY() - 1)) { // South
+        if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0  && canPlaceTorch(tile.getX(), tile.getY() - 1)) { // South
             spatial = loadModel("Torch1", false);
             spatial = transformWall(spatial, 0, 0, -FastMath.HALF_PI);
             spatial.move(-TILE_WIDTH / 2 - 0.05f, 0, -TILE_WIDTH / 1.5f - 0.175f);
-            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
-        } else if (canPlaceTorch(tile.getX() + 1, tile.getY())) { // West
+
+        } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() - 1, tile.getY())) { // East
+            spatial = loadModel("Torch1", false);
+            spatial.move(-TILE_WIDTH / 1.5f - 0.175f, 0, -TILE_WIDTH / 2 + 0.05f);
+
+        } else if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() + 1)) { // North
+            spatial = loadModel("Torch1", false);
+            spatial = transformWall(spatial, 0, 0, FastMath.HALF_PI);
+            spatial.move(-TILE_WIDTH / 2 + 0.05f, 0, -0.175f);
+
+        } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() + 1, tile.getY())) { // West
             spatial = loadModel("Torch1", false);
             spatial = transformWall(spatial, 0, 0, FastMath.PI);
             spatial.move(-0.175f, 0, -TILE_WIDTH / 2 - 0.05f);
-            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
+
         }
 
         // Move to tile and right height
         if (spatial != null) {
             spatial.move(tile.getX(), 0.75f, tile.getY());
+            spatial.addControl(new TorchControl(kwdFile, assetManager));
+            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
         }
     }
 

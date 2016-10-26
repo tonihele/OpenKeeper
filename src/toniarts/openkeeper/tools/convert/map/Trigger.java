@@ -32,38 +32,32 @@ public abstract class Trigger {
     private int idNext; // SiblingID
     private int idChild; // ChildID
     private short repeatTimes; // Repeat x times, 255 = always
-    protected HashMap<String, Number> userData = null;
+    protected HashMap<String, Number> data = null;
 
     public Trigger(KwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 
-    public void setUserData(String key, Number data) {
-        if (userData == null) {
-            userData = new HashMap<>();
+    protected void setUserData(String key, Number value) {
+        if (data == null) {
+            data = new HashMap<>();
         }
 
-        if (data == null) {
-            userData.remove(key);
-        } else if (data instanceof Number) {
-            userData.put(key, data);
-        } else {
-            throw new RuntimeException("unexpected value");
-        }
+        data.put(key, value);
     }
 
     public <T extends Number> T getUserData(String key) {
-        if (userData == null) {
+        if (data == null) {
             return null;
         }
 
-        Number s = userData.get(key);
+        Number s = data.get(key);
         return (T) s;
     }
 
     public Collection<String> getUserDataKeys() {
-        if (userData != null) {
-            return userData.keySet();
+        if (data != null) {
+            return data.keySet();
         }
 
         return Collections.EMPTY_SET;
