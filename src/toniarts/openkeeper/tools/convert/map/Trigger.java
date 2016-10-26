@@ -43,13 +43,7 @@ public abstract class Trigger {
             data = new HashMap<>();
         }
 
-        if (value == null) {
-            data.remove(key);
-        } else if (value instanceof Number) {
-            data.put(key, value);
-        } else {
-            throw new RuntimeException("unexpected value");
-        }
+        data.put(key, value);
     }
 
     public <T extends Number> T getUserData(String key) {

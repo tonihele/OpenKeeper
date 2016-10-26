@@ -129,13 +129,7 @@ public class ArtResource {
             data = new HashMap<>();
         }
 
-        if (value == null) {
-            data.remove(key);
-        } else if (value instanceof Number) {
-            data.put(key, value);
-        } else {
-            throw new RuntimeException("unexpected value");
-        }
+        data.put(key, value);
     }
 
     public Collection<String> getDataKeys() {
@@ -143,7 +137,7 @@ public class ArtResource {
             return data.keySet();
         }
 
-        return Collections.EMPTY_SET;
+        return Collections.emptySet();
     }
 
     public <T extends Number> T getData(String key) {
