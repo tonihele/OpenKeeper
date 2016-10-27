@@ -20,11 +20,16 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
+import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
@@ -44,22 +49,27 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
     private final WorldState worldState;
     private final Door door;
+    private final toniarts.openkeeper.tools.convert.map.Object lockObject;
+    private final Trap doorTrap;
     private final String tooltip;
     private final AssetManager assetManager;
+    private Spatial lockSpatial;
     private boolean locked = false;
     private final TileData tile;
     private DoorState state = DoorState.CLOSED;
     private int health;
 
-    public DoorControl(TileData tile, Door door, WorldState worldState, AssetManager assetManager) {
-        this(tile, door, worldState, assetManager, false, false);
+    public DoorControl(TileData tile, Door door, toniarts.openkeeper.tools.convert.map.Object lockObject, Trap doorTrap, WorldState worldState, AssetManager assetManager) {
+        this(tile, door, lockObject, doorTrap, worldState, assetManager, false, false);
     }
 
-    public DoorControl(TileData tile, Door door, WorldState worldState, AssetManager assetManager, boolean locked, boolean blueprint) {
+    public DoorControl(TileData tile, Door door, toniarts.openkeeper.tools.convert.map.Object lockObject, Trap doorTrap, WorldState worldState, AssetManager assetManager, boolean locked, boolean blueprint) {
         super();
 
         this.worldState = worldState;
         this.door = door;
+        this.lockObject = lockObject;
+        this.doorTrap = doorTrap;
         this.tile = tile;
         this.assetManager = assetManager;
         this.health = door.getHealth();
@@ -94,7 +104,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
     @Override
     public boolean isInteractable(short playerId) {
-        return (!door.getFlags().contains(Door.DoorFlag.IS_BARRICADE) && getOwnerId() == playerId);
+        return (!door.getFlags().contains(Door.DoorFlag.IS_BARRICADE) && state != DoorState.BLUEPRINT && state != DoorState.DESTROYED && getOwnerId() == playerId);
     }
 
     @Override
@@ -129,7 +139,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
     @Override
     public boolean interact(short playerId) {
-        if (state != DoorState.BLUEPRINT && state != DoorState.DESTROYED && getOwnerId() == playerId) {
+        if (isInteractable(playerId)) {
             if (locked) {
                 unlockDoor();
             } else {
@@ -152,12 +162,18 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
     private void unlockDoor() {
         locked = false;
-        // TODO:
+        if (lockSpatial != null) {
+            ((Node) getSpatial()).detachChild(lockSpatial);
+            lockSpatial = null;
+        }
     }
 
     private void lockDoor() {
         locked = true;
-        // TODO :
+        if (lockSpatial == null && lockObject != null) {
+            lockSpatial = AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + lockObject.getMeshResource().getName() + ".j3o", false);
+            ((Node) getSpatial()).attachChild(lockSpatial);
+        }
     }
 
     private void openDoor() {

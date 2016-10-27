@@ -54,7 +54,7 @@ public class DoorLoader implements ILoader<Thing.Door> {
         toniarts.openkeeper.tools.convert.map.Door door = kwdFile.getDoorById(doorId);
 
         // Load
-        DoorControl doorControl = new DoorControl(worldState.getMapData().getTile(posX, posY), door, worldState, assetManager, locked, blueprint);
+        DoorControl doorControl = new DoorControl(worldState.getMapData().getTile(posX, posY), door, kwdFile.getObject(door.getKeyObjectId()), kwdFile.getTrapById(door.getTrapTypeId()), worldState, assetManager, locked, blueprint);
         Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE) ? door.getMesh().getName() : door.getCloseResource().getName()) + ".j3o", false);
         nodeObject.addControl(doorControl);
 
