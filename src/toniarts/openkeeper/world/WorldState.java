@@ -1028,8 +1028,13 @@ public abstract class WorldState extends AbstractAppState {
         boolean tileDestroyed;
         damage = Math.abs(damage);
         if (tile.getGold() > 0) { // Mine
-            returnedGold = tile.mineGold(damage);
-            tileDestroyed = (tile.getGold() < 1);
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
+                returnedGold = damage;
+                tileDestroyed = false;
+            } else {
+                returnedGold = tile.mineGold(damage);
+                tileDestroyed = (tile.getGold() < 1);
+            }
         } else { // Apply damage
             tileDestroyed = tile.applyDamage(damage);
         }
