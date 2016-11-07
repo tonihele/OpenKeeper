@@ -29,6 +29,7 @@ import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
@@ -54,6 +55,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.world.MapLoader;
 
 /**
  * Collection of asset related common functions
@@ -455,6 +457,24 @@ public class AssetUtils {
                 }
             }
         });
+    }
+
+    /**
+     * Reset the spatial scale & transform and all the first level children
+     *
+     * @param spatial the spatial to reset
+     */
+    public static void resetSpatial(Spatial spatial) {
+        if (spatial instanceof Node) {
+            for (Spatial subSpat : ((Node) spatial).getChildren()) {
+                subSpat.setLocalScale(MapLoader.TILE_WIDTH);
+                subSpat.setLocalTranslation(0, 0, 0);
+            }
+        } else {
+            spatial.setLocalScale(MapLoader.TILE_WIDTH);
+            spatial.setLocalTranslation(0, 0, 0);
+        }
+        spatial.move(0, -MapLoader.TILE_HEIGHT, 0);
     }
 
 }
