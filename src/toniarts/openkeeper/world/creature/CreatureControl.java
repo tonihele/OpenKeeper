@@ -62,6 +62,8 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.animation.AnimationControl;
+import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
@@ -75,7 +77,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener {
+public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener, AnimationControl {
 
     public enum AnimationType {
 
@@ -271,7 +273,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     private void playAnimation(ArtResource anim) {
         animationPlaying = true;
-        CreatureLoader.playAnimation(getSpatial(), anim, worldState.getAssetManager());
+        AnimationLoader.playAnimation(getSpatial(), anim, worldState.getAssetManager());
     }
 
     /**
@@ -279,7 +281,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      *
      * @return stop or not
      */
-    boolean isStopAnimation() {
+    @Override
+    public boolean isStopAnimation() {
         // FIXME: not very elegant to check this way
         if (!enabled) {
             return false;
@@ -307,7 +310,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     /**
      * Current animation has stopped
      */
-    void onAnimationStop() {
+    @Override
+    public void onAnimationStop() {
         animationPlaying = false;
 
         // If steering is set, enable it
@@ -335,7 +339,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     /**
      * An animation cycle is finished
      */
-    void onAnimationCycleDone() {
+    @Override
+    public void onAnimationCycleDone() {
 
         if (isStopped() && stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid()) {
 

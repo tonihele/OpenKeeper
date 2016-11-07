@@ -66,10 +66,10 @@ import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.FlashTileControl;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.creature.CreatureLoader;
 import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
 import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
 import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
@@ -261,9 +261,9 @@ public abstract class WorldState extends AbstractAppState {
         for (CreatureControl creature : getThingLoader().getCreatures()) {
             creature.setEnabled(enabled);
             if (enabled) {
-                CreatureLoader.resumeAnimations(creature.getSpatial());
+                AnimationLoader.resumeAnimations(creature.getSpatial());
             } else {
-                CreatureLoader.pauseAnimations(creature.getSpatial());
+                AnimationLoader.pauseAnimations(creature.getSpatial());
             }
         }
     }

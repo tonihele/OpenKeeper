@@ -32,6 +32,8 @@ import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.animation.AnimationControl;
+import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.object.HighlightControl;
 
@@ -40,7 +42,7 @@ import toniarts.openkeeper.world.object.HighlightControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorControl extends HighlightControl implements IInteractiveControl {
+public class DoorControl extends HighlightControl implements IInteractiveControl, AnimationControl {
 
     public enum DoorState {
 
@@ -56,8 +58,10 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     private Spatial lockSpatial;
     private boolean locked = false;
     private final TileData tile;
-    private DoorState state = DoorState.CLOSED;
+    private DoorState state = DoorState.OPEN;
     private int health;
+    private boolean animating = false;
+    private DoorState animatedState = DoorState.OPEN;
 
     public DoorControl(TileData tile, Door door, toniarts.openkeeper.tools.convert.map.Object lockObject, Trap doorTrap, WorldState worldState, AssetManager assetManager) {
         this(tile, door, lockObject, doorTrap, worldState, assetManager, false, false);
@@ -176,26 +180,56 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
             lockSpatial.move(0, 0.75f, 0);
             ((Node) getSpatial()).attachChild(lockSpatial);
         }
+        closeDoor();
     }
 
     private void openDoor() {
 
         // Start opening animation and mark open
         state = DoorState.OPEN;
+        setAnimation(DoorState.OPEN);
     }
 
     private void closeDoor() {
 
         // Start closing animation and mark closed
         state = DoorState.CLOSED;
+        setAnimation(DoorState.CLOSED);
     }
 
     public DoorState getState() {
         return state;
     }
 
+    private void setAnimation(DoorState doorState) {
+        if (!animating && doorState != this.animatedState) {
+            startAnimation(doorState);
+        }
+    }
+
+    private void startAnimation(DoorState doorState) {
+        animatedState = doorState;
+        AnimationLoader.playAnimation(spatial, doorState == DoorState.CLOSED ? door.getCloseResource() : door.getOpenResource(), assetManager);
+    }
+
     public int getHealth() {
         return health;
+    }
+
+    @Override
+    public void onAnimationStop() {
+        animating = false;
+        setAnimation(state);
+    }
+
+    @Override
+    public void onAnimationCycleDone() {
+        //
+    }
+
+    @Override
+    public boolean isStopAnimation() {
+        return true; // We stop it always
     }
 
 }
