@@ -60,4 +60,13 @@ public interface IUnitFlowerControl extends Control {
      */
     float getHeight();
 
+    /**
+     * Get percentage of health
+     *
+     * @return human formatted percentage
+     */
+    default int getHealthPercentage() {
+        return (int) ((getHealth() * 100.0f) / getMaxHealth());
+    }
+
 }
