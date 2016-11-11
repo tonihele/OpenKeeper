@@ -448,7 +448,13 @@ public class AssetUtils {
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
+
                 if (!(spatial instanceof Geometry)) {
+                    return;
+                }
+
+                // Don't highlight non-removables
+                if (Boolean.FALSE.equals(spatial.getParent().getParent().getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE))) {
                     return;
                 }
 
@@ -497,6 +503,11 @@ public class AssetUtils {
             @Override
             public void visit(Spatial spatial) {
                 if (!(spatial instanceof Geometry)) {
+                    return;
+                }
+
+                // Don't highlight non-removables
+                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE))) {
                     return;
                 }
 

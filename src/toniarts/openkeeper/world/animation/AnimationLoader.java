@@ -272,7 +272,7 @@ public class AnimationLoader {
         for (Spatial child : root.getChildren()) {
 
             // Don't hide the unit flower
-            if (aufc != null && aufc.getSpatial().equals(child)) {
+            if (Boolean.FALSE.equals(child.getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE))) {
                 continue;
             }
 

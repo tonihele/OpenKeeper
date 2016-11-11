@@ -82,10 +82,8 @@ public class DoorLoader implements ILoader<Thing.Door> {
         doorControl.initState();
 
         // Door flower
-        if (!blueprint) {
-            UnitFlowerControl aufc = new UnitFlowerControl(assetManager, doorControl);
-            nodeObject.addControl(aufc);
-        }
+        UnitFlowerControl aufc = new UnitFlowerControl(assetManager, doorControl);
+        nodeObject.addControl(aufc);
 
         return nodeObject;
     }

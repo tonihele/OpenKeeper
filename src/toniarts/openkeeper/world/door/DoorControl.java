@@ -56,7 +56,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     private final Door door;
     private final toniarts.openkeeper.tools.convert.map.Object lockObject;
     private final Trap doorTrap;
-    private final String tooltip;
+    private final String name;
     private final AssetManager assetManager;
     private Spatial lockSpatial;
     private boolean locked = false;
@@ -65,6 +65,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     private int health;
     private boolean animating = false;
     private DoorState animatedState = DoorState.CLOSED;
+    private final static ResourceBundle BUNDLE = Main.getResourceBundle("Interface/Texts/Text");
 
     public DoorControl(TileData tile, Door door, toniarts.openkeeper.tools.convert.map.Object lockObject, Trap doorTrap, WorldState worldState, AssetManager assetManager) {
         this(tile, door, lockObject, doorTrap, worldState, assetManager, false, false);
@@ -84,10 +85,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
         if (blueprint) {
             state = DoorState.BLUEPRINT;
         }
-
-        // Strings
-        ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
-        tooltip = bundle.getString(Integer.toString(door.getTooltipStringId()));
+        name = BUNDLE.getString(Integer.toString(door.getNameStringId()));
     }
 
     @Override
@@ -114,7 +112,24 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
     @Override
     public String getTooltip(short playerId) {
-        return tooltip;
+        String tooltip;
+        if (playerId == getOwnerId()) {
+            switch (state) {
+                case BLUEPRINT: {
+                    tooltip = BUNDLE.getString("2512");
+                    break;
+                }
+                default: {
+                    tooltip = BUNDLE.getString("2532");
+                    tooltip = tooltip.replaceFirst("%72", locked ? BUNDLE.getString("2516") : BUNDLE.getString("2515"));
+                    break;
+                }
+            }
+            tooltip = tooltip.replaceFirst("%68", name);
+        } else {
+            tooltip = BUNDLE.getString("2540");
+        }
+        return tooltip.replaceFirst("%37%", Integer.toString(getHealthPercentage()));
     }
 
     @Override
@@ -172,9 +187,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
     @Override
     public void onHover() {
-        if (state != DoorState.BLUEPRINT) {
-            UnitFlowerControl.showUnitFlower(this, null);
-        }
+        UnitFlowerControl.showUnitFlower(this, null);
     }
 
     @Override
