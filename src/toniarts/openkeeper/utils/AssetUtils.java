@@ -71,6 +71,9 @@ public class AssetUtils {
     private final static Map<String, Boolean> textureMapCache = new HashMap<>();
     private static final Logger logger = Logger.getLogger(AssetUtils.class.getName());
 
+    // Custom model data keys
+    public final static String USER_DATE_KEY_REMOVABLE = "Removable";
+
     private AssetUtils() {
         // Nope
     }

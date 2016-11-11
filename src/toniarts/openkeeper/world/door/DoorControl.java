@@ -26,6 +26,7 @@ import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -35,6 +36,8 @@ import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.animation.AnimationControl;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.IInteractiveControl;
+import toniarts.openkeeper.world.control.IUnitFlowerControl;
+import toniarts.openkeeper.world.control.UnitFlowerControl;
 import toniarts.openkeeper.world.object.HighlightControl;
 
 /**
@@ -42,7 +45,7 @@ import toniarts.openkeeper.world.object.HighlightControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorControl extends HighlightControl implements IInteractiveControl, AnimationControl {
+public class DoorControl extends HighlightControl implements IInteractiveControl, AnimationControl, IUnitFlowerControl {
 
     public enum DoorState {
 
@@ -156,7 +159,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
     @Override
     public void onHover() {
-
+        UnitFlowerControl.showUnitFlower(this, null);
     }
 
     @Override
@@ -172,12 +175,13 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
         }
     }
 
-    private void lockDoor() {
+    protected void lockDoor() {
         locked = true;
         if (lockSpatial == null && lockObject != null) {
             lockSpatial = AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + lockObject.getMeshResource().getName() + ".j3o", false);
             AssetUtils.resetSpatial(lockSpatial);
             lockSpatial.move(0, 0.75f, 0);
+            lockSpatial.setUserData(AssetUtils.USER_DATE_KEY_REMOVABLE, false);
             ((Node) getSpatial()).attachChild(lockSpatial);
         }
         closeDoor();
@@ -212,6 +216,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
         AnimationLoader.playAnimation(spatial, doorState == DoorState.CLOSED ? door.getCloseResource() : door.getOpenResource(), assetManager);
     }
 
+    @Override
     public int getHealth() {
         return health;
     }
@@ -230,6 +235,21 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     @Override
     public boolean isStopAnimation() {
         return true; // We stop it always
+    }
+
+    @Override
+    public int getMaxHealth() {
+        return door.getHealth();
+    }
+
+    @Override
+    public float getHeight() {
+        return door.getHeight();
+    }
+
+    @Override
+    public String getCenterIcon() {
+        return ConversionUtils.getCanonicalAssetKey("Textures/" + door.getFlowerIcon().getName() + ".png");
     }
 
 }

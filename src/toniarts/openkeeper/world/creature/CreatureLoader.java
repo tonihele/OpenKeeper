@@ -29,7 +29,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.control.AbstractUnitFlowerControl;
+import toniarts.openkeeper.world.control.UnitFlowerControl;
 import toniarts.openkeeper.world.listener.CreatureListener;
 
 /**
@@ -78,6 +78,13 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                 CreatureLoader.this.onDie(creature);
             }
 
+            @Override
+            public String getCenterIcon() {
+
+                // Creatures have their own custom control
+                throw new UnsupportedOperationException("Not supported yet.");
+            }
+
         };
 
         // Set map position
@@ -93,7 +100,7 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
         creatureRoot.addControl(creatureControl);
 
         // Creature flower
-        AbstractUnitFlowerControl aufc = new CreatureUnitFlowerControl(assetManager, creatureControl);
+        UnitFlowerControl aufc = new CreatureFlowerControl(assetManager, creatureControl);
         creatureRoot.addControl(aufc);
 
         return creatureRoot;
@@ -108,15 +115,6 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
         // Need to re-adjust the steering
         CreatureControl creatureControl = creature.getControl(CreatureControl.class);
         creatureControl.setSpatial(creature);
-    }
-
-    static void showUnitFlower(CreatureControl creature, Integer seconds) {
-        AbstractUnitFlowerControl aufc = creature.getSpatial().getControl(AbstractUnitFlowerControl.class);
-        if (seconds != null) {
-            aufc.show(seconds);
-        } else {
-            aufc.show();
-        }
     }
 
 }

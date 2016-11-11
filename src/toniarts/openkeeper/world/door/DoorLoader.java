@@ -33,6 +33,7 @@ import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.control.UnitFlowerControl;
 
 /**
  * Loads doors
@@ -59,7 +60,7 @@ public class DoorLoader implements ILoader<Thing.Door> {
         toniarts.openkeeper.tools.convert.map.Door door = kwdFile.getDoorById(doorId);
 
         // Load
-        DoorControl doorControl = new DoorControl(worldState.getMapData().getTile(posX, posY), door, kwdFile.getObject(door.getKeyObjectId()), kwdFile.getTrapById(door.getTrapTypeId()), worldState, assetManager, locked, blueprint);
+        DoorControl doorControl = new DoorControl(worldState.getMapData().getTile(posX, posY), door, kwdFile.getObject(door.getKeyObjectId()), kwdFile.getTrapById(door.getTrapTypeId()), worldState, assetManager);
         Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE) ? door.getMesh().getName() : door.getCloseResource().getName()) + ".j3o", false);
         nodeObject.addControl(doorControl);
 
@@ -78,6 +79,18 @@ public class DoorLoader implements ILoader<Thing.Door> {
             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
             nodeObject.rotate(quat);
         }
+
+        // Set correct state
+        // TODO: We should do this initially, no point of having to do extra work perhaps
+        if (locked) {
+            doorControl.lockDoor();
+        } else if (blueprint) {
+
+        }
+
+        // Creature flower
+        UnitFlowerControl aufc = new UnitFlowerControl(assetManager, doorControl);
+        nodeObject.addControl(aufc);
 
         return nodeObject;
     }

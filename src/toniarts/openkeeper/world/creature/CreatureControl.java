@@ -65,6 +65,8 @@ import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.animation.AnimationControl;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.IInteractiveControl;
+import toniarts.openkeeper.world.control.IUnitFlowerControl;
+import toniarts.openkeeper.world.control.UnitFlowerControl;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
 import toniarts.openkeeper.world.listener.CreatureListener;
@@ -77,7 +79,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener, AnimationControl {
+public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener, AnimationControl, IUnitFlowerControl {
 
     public enum AnimationType {
 
@@ -811,6 +813,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return false;
     }
 
+    @Override
     public int getHealth() {
         return health;
     }
@@ -823,10 +826,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return experience;
     }
 
+    @Override
     public int getMaxHealth() {
         return maxHealth;
     }
 
+    @Override
     public float getHeight() {
         return height;
     }
@@ -847,7 +852,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void showUnitFlower(Integer seconds) {
-        CreatureLoader.showUnitFlower(this, seconds);
+        UnitFlowerControl.showUnitFlower(this, seconds);
     }
 
     @Override
