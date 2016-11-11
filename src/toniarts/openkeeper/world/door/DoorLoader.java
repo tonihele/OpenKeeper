@@ -72,13 +72,11 @@ public class DoorLoader implements ILoader<Thing.Door> {
 
         // Figure out which way we should face, the door probably doesn't need to know it
         // There can be 3 tiles that are solid
-        if (!door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
-            short ownerId = worldState.getMapLoader().getMapData().getTile(posX, posY).getPlayerId();
-            if (canTileSupportDoor(posX, posY - 1, ownerId) && canTileSupportDoor(posX, posY + 1, ownerId)) {
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                nodeObject.rotate(quat);
-            }
+        short ownerId = worldState.getMapLoader().getMapData().getTile(posX, posY).getPlayerId();
+        if (canTileSupportDoor(posX, posY - 1, ownerId) && canTileSupportDoor(posX, posY + 1, ownerId)) {
+            Quaternion quat = new Quaternion();
+            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
+            nodeObject.rotate(quat);
         }
 
         return nodeObject;
