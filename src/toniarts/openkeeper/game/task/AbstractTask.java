@@ -161,7 +161,7 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
         Point targetTile = new Point((int) Math.floor(target.x), (int) Math.floor(target.y));
         boolean hasAccessibleNeighbour = false;
         for (Point p : worldState.getMapLoader().getSurroundingTiles(targetTile, false)) {
-            if (worldState.isAccessible(worldState.getMapData().getTile(p), creature.getCreature())) {
+            if (worldState.isAccessible(worldState.getMapData().getTile(p), creature)) {
                 hasAccessibleNeighbour = true;
                 break; // At least one accessible point
             }
@@ -171,7 +171,7 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
         }
 
         // Path find
-        return (worldState.findPath(worldState.getTileCoordinates(new Vector3f(creature.getPosition().x, 0, creature.getPosition().y)), targetTile, creature.getCreature()) != null);
+        return (worldState.findPath(worldState.getTileCoordinates(new Vector3f(creature.getPosition().x, 0, creature.getPosition().y)), targetTile, creature) != null);
     }
 
     /**

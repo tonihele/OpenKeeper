@@ -32,12 +32,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
+import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.CreatureLoader;
+import toniarts.openkeeper.world.door.DoorControl;
+import toniarts.openkeeper.world.door.DoorLoader;
 import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.listener.ObjectListener;
 import toniarts.openkeeper.world.object.GoldObjectControl;
@@ -54,11 +57,13 @@ public class ThingLoader {
     private final WorldState worldState;
     private final CreatureLoader creatureLoader;
     private final ObjectLoader objectLoader;
+    private final DoorLoader doorLoader;
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
     private final Node root;
     private final Node nodeCreatures;
     private final Node nodeObjects;
+    private final Node nodeDoors;
     private final int maxLooseGoldPerPile;
 
     /**
@@ -73,6 +78,7 @@ public class ThingLoader {
      * tile they are on)
      */
     private final Set<ObjectControl> objects = new LinkedHashSet<>();
+    private final Map<Point, DoorControl> doors = new HashMap<>();
     private Map<Short, List<CreatureListener>> creatureListeners;
     private List<ObjectListener> objectListeners;
 
@@ -123,11 +129,13 @@ public class ThingLoader {
 
         };
         objectLoader = new ObjectLoader(kwdFile, worldState);
+        doorLoader = new DoorLoader(kwdFile, worldState);
 
         // Create the scene graph
         root = new Node("Things");
         nodeCreatures = new Node("Creatures");
         nodeObjects = new Node("Objects");
+        nodeDoors = new Node("Doors");
     }
 
     /**
@@ -138,7 +146,7 @@ public class ThingLoader {
      * @param objectTriggerState
      * @return the things node
      */
-    public Node loadAll(CreatureTriggerState creatureTriggerState, ObjectTriggerState objectTriggerState) {
+    public Node loadAll(CreatureTriggerState creatureTriggerState, ObjectTriggerState objectTriggerState, DoorTriggerState doorTriggerState) {
 
         //Create a root
         for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
@@ -172,6 +180,18 @@ public class ThingLoader {
                     }
 
                     notifyOnObjectAdded(objectControl);
+                } else if (obj instanceof Thing.Door) {
+
+                    Thing.Door doorThing = (Thing.Door) obj;
+                    Spatial door = doorLoader.load(assetManager, doorThing);
+                    DoorControl doorControl = door.getControl(DoorControl.class);
+                    doors.put(new Point(doorThing.getPosX(), doorThing.getPosY()), doorControl);
+                    nodeDoors.attachChild(door);
+
+                    // Trigger
+                    if (doorThing.getTriggerId() != 0) {
+                        doorTriggerState.setThing(doorThing.getTriggerId(), null);
+                    }
                 }
             } catch (Exception ex) {
                 logger.log(Level.WARNING, "Could not load Thing.", ex);
@@ -180,6 +200,7 @@ public class ThingLoader {
 
         root.attachChild(nodeCreatures);
         root.attachChild(nodeObjects);
+        root.attachChild(nodeDoors);
         return root;
     }
 
@@ -374,6 +395,16 @@ public class ThingLoader {
                 listener.onAdded(object);
             }
         }
+    }
+
+    /**
+     * Get a door/barricade on given point
+     *
+     * @param point point
+     * @return door or {@code null} if not found
+     */
+    public DoorControl getDoor(Point point) {
+        return doors.get(point);
     }
 
 }

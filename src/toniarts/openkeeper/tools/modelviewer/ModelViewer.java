@@ -75,7 +75,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TerrainLoader;
-import toniarts.openkeeper.world.creature.CreatureLoader;
+import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
@@ -523,7 +523,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             if (animControl != null) {
                 AnimChannel channel = animControl.createChannel();
                 channel.setAnim("anim");
-                CreatureLoader.setLoopModeOnChannel(spatial, channel);
+                AnimationLoader.setLoopModeOnChannel(spatial, channel);
             }
         }
     }

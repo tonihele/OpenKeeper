@@ -28,6 +28,7 @@ import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.VertexBuffer;
+import com.jme3.scene.control.AbstractControl;
 import com.jme3.scene.control.BillboardControl;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
@@ -38,6 +39,7 @@ import java.awt.image.BufferedImage;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapThumbnailGenerator;
 
 /**
@@ -45,10 +47,10 @@ import toniarts.openkeeper.world.MapThumbnailGenerator;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractUnitFlowerControl extends BillboardControl {
+public class UnitFlowerControl extends BillboardControl {
 
     private static final float DISPLAY_SECONDS = 2.5f;
-    private static final Logger logger = Logger.getLogger(AbstractUnitFlowerControl.class.getName());
+    private static final Logger logger = Logger.getLogger(UnitFlowerControl.class.getName());
 
     private float targetTimeVisible = DISPLAY_SECONDS;
     private float timeVisible = 0;
@@ -56,10 +58,12 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
     private Node unitSpatial;
     private boolean updateRequired = false;
     private Material material;
+    private final IUnitFlowerControl unitFlowerControl;
     private final AssetManager assetManager;
 
-    public AbstractUnitFlowerControl(AssetManager assetManager) {
+    public UnitFlowerControl(AssetManager assetManager, IUnitFlowerControl unitFlowerControl) {
         this.assetManager = assetManager;
+        this.unitFlowerControl = unitFlowerControl;
         setAlignment(Alignment.Screen);
     }
 
@@ -68,35 +72,45 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
      *
      * @return the unit player id
      */
-    protected abstract short getOwnerId();
+    protected short getOwnerId() {
+        return unitFlowerControl.getOwnerId();
+    }
 
     /**
      * Get unit max health
      *
      * @return max health
      */
-    protected abstract int getHealthMax();
+    protected int getHealthMax() {
+        return unitFlowerControl.getMaxHealth();
+    }
 
     /**
      * Get current unit health
      *
      * @return unit current health
      */
-    protected abstract int getHealthCurrent();
+    protected int getHealthCurrent() {
+        return unitFlowerControl.getHealth();
+    }
 
     /**
      * Get the center icon resource as a string resource path
      *
      * @return the center icon
      */
-    protected abstract String getCenterIcon();
+    protected String getCenterIcon() {
+        return unitFlowerControl.getCenterIcon();
+    }
 
     /**
      * Get unit height, to correctly position the flower
      *
      * @return the unit height
      */
-    protected abstract float getHeight();
+    protected float getHeight() {
+        return unitFlowerControl.getHeight();
+    }
 
     /**
      * Get the objective icon as a string resource path, the flower around the
@@ -221,6 +235,7 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
             material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
             material.getAdditionalRenderState().setDepthTest(false);
             spatial.setQueueBucket(Bucket.Translucent);
+            spatial.setUserData(AssetUtils.USER_DATE_KEY_REMOVABLE, false);
 
             generateTexture();
         }
@@ -315,6 +330,21 @@ public abstract class AbstractUnitFlowerControl extends BillboardControl {
         mesh.updateBound();
         mesh.setStatic();
         return mesh;
+    }
+
+    /**
+     * Show the unit flower
+     *
+     * @param control the control to own the flower control
+     * @param seconds how many seconds to show, can be {@code null}
+     */
+    public static void showUnitFlower(AbstractControl control, Integer seconds) {
+        UnitFlowerControl aufc = control.getSpatial().getControl(UnitFlowerControl.class);
+        if (seconds != null) {
+            aufc.show(seconds);
+        } else {
+            aufc.show();
+        }
     }
 
 }

@@ -19,14 +19,14 @@ package toniarts.openkeeper.world.creature;
 import com.jme3.asset.AssetManager;
 import java.awt.Color;
 import java.awt.Graphics2D;
-import toniarts.openkeeper.world.control.AbstractUnitFlowerControl;
+import toniarts.openkeeper.world.control.UnitFlowerControl;
 
 /**
  * Unit flower control for creatures
  *
  * @author toni
  */
-public class CreatureUnitFlowerControl extends AbstractUnitFlowerControl {
+public class CreatureFlowerControl extends UnitFlowerControl {
 
     private enum Status {
 
@@ -40,8 +40,8 @@ public class CreatureUnitFlowerControl extends AbstractUnitFlowerControl {
     private Status currentStatus = Status.LEVEL;
     private final CreatureControl creatureControl;
 
-    public CreatureUnitFlowerControl(AssetManager assetManager, CreatureControl creatureControl) {
-        super(assetManager);
+    public CreatureFlowerControl(AssetManager assetManager, CreatureControl creatureControl) {
+        super(assetManager, creatureControl);
         this.creatureControl = creatureControl;
     }
 
@@ -110,26 +110,6 @@ public class CreatureUnitFlowerControl extends AbstractUnitFlowerControl {
         g.setPaint(new Color(0, 0, 0, 100));
         g.fillArc(
                 22, 22, 20, 20, 90, 360 - angle);
-    }
-
-    @Override
-    protected short getOwnerId() {
-        return creatureControl.getOwnerId();
-    }
-
-    @Override
-    protected int getHealthMax() {
-        return creatureControl.getMaxHealth();
-    }
-
-    @Override
-    protected int getHealthCurrent() {
-        return creatureControl.getHealth();
-    }
-
-    @Override
-    protected float getHeight() {
-        return creatureControl.getHeight();
     }
 
 }

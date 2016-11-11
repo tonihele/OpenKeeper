@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.trigger.object;
+package toniarts.openkeeper.game.trigger.door;
 
 import com.jme3.app.state.AppStateManager;
 import java.util.HashMap;
@@ -23,34 +23,34 @@ import java.util.Map;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerState;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.object.ObjectControl;
+import toniarts.openkeeper.world.door.DoorControl;
 
 /**
- * A state for handling object triggers
+ * A state for handling door triggers
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectTriggerState extends AbstractThingTriggerState<ObjectControl> {
+public class DoorTriggerState extends AbstractThingTriggerState<DoorControl> {
 
-    public ObjectTriggerState() {
+    public DoorTriggerState() {
     }
 
-    public ObjectTriggerState(boolean enabled) {
+    public DoorTriggerState(boolean enabled) {
         super(enabled);
     }
 
     @Override
-    protected Map<Integer, AbstractThingTriggerControl<ObjectControl>> initTriggers(List<Thing> things, AppStateManager stateManager) {
-        Map<Integer, AbstractThingTriggerControl<ObjectControl>> objectTriggers = new HashMap<>();
+    protected Map<Integer, AbstractThingTriggerControl<DoorControl>> initTriggers(List<Thing> things, AppStateManager stateManager) {
+        Map<Integer, AbstractThingTriggerControl<DoorControl>> doorTriggers = new HashMap<>();
         for (Thing thing : things) {
-            if (thing instanceof Thing.Object) {
-                Thing.Object object = (Thing.Object) thing;
-                if (object.getTriggerId() != 0) {
-                    objectTriggers.put(object.getTriggerId(), new ObjectTriggerControl(stateManager, object.getTriggerId()));
+            if (thing instanceof Thing.Door) {
+                Thing.Door door = (Thing.Door) thing;
+                if (door.getTriggerId() != 0) {
+                    doorTriggers.put(door.getTriggerId(), new DoorTriggerControl(stateManager, door.getTriggerId()));
                 }
             }
         }
-        return objectTriggers;
+        return doorTriggers;
     }
 
 }

@@ -62,7 +62,11 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.animation.AnimationControl;
+import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.IInteractiveControl;
+import toniarts.openkeeper.world.control.IUnitFlowerControl;
+import toniarts.openkeeper.world.control.UnitFlowerControl;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
 import toniarts.openkeeper.world.listener.CreatureListener;
@@ -75,7 +79,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener {
+public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener, AnimationControl, IUnitFlowerControl {
 
     public enum AnimationType {
 
@@ -241,9 +245,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void navigateToRandomPoint() {
-        Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, creature);
+        Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, this);
         if (p != null) {
-            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, creature);
+            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, this);
 
             if (outPath != null && outPath.getCount() > 1) {
 
@@ -271,7 +275,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     private void playAnimation(ArtResource anim) {
         animationPlaying = true;
-        CreatureLoader.playAnimation(getSpatial(), anim, worldState.getAssetManager());
+        AnimationLoader.playAnimation(getSpatial(), anim, worldState.getAssetManager());
     }
 
     /**
@@ -279,7 +283,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      *
      * @return stop or not
      */
-    boolean isStopAnimation() {
+    @Override
+    public boolean isStopAnimation() {
         // FIXME: not very elegant to check this way
         if (!enabled) {
             return false;
@@ -307,7 +312,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     /**
      * Current animation has stopped
      */
-    void onAnimationStop() {
+    @Override
+    public void onAnimationStop() {
         animationPlaying = false;
 
         // If steering is set, enable it
@@ -335,7 +341,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     /**
      * An animation cycle is finished
      */
-    void onAnimationCycleDone() {
+    @Override
+    public void onAnimationCycleDone() {
 
         if (isStopped() && stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid()) {
 
@@ -541,7 +548,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
         Vector2f loc = assignedTask.getTarget(this);
         if (loc != null) {
-            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), creature);
+            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), this);
 
             if (outPath != null && outPath.getCount() > 1) {
 
@@ -806,6 +813,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return false;
     }
 
+    @Override
     public int getHealth() {
         return health;
     }
@@ -818,10 +826,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return experience;
     }
 
+    @Override
     public int getMaxHealth() {
         return maxHealth;
     }
 
+    @Override
     public float getHeight() {
         return height;
     }
@@ -842,7 +852,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void showUnitFlower(Integer seconds) {
-        CreatureLoader.showUnitFlower(this, seconds);
+        UnitFlowerControl.showUnitFlower(this, seconds);
     }
 
     @Override

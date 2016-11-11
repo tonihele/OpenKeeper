@@ -37,8 +37,8 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.IInteractiveControl;
-import toniarts.openkeeper.world.creature.CreatureLoader;
 
 /**
  * TODO I think we need to move cursor here
@@ -165,7 +165,7 @@ public class KeeperHand {
             item.getSpatial().setLocalTranslation(0, 0, 0);
             item.getSpatial().setLocalRotation(Matrix3f.ZERO);
             queueNode.attachChild(item.getSpatial());
-            CreatureLoader.playAnimation(item.getSpatial(), item.getInHandMesh(), assetManager);
+            AnimationLoader.playAnimation(item.getSpatial(), item.getInHandMesh(), assetManager);
         }
     }
 

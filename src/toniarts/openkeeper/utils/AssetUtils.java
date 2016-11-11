@@ -27,6 +27,7 @@ import com.jme3.asset.cache.SimpleAssetCache;
 import com.jme3.asset.cache.WeakRefAssetCache;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
+import com.jme3.material.RenderState.BlendMode;
 import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
@@ -55,6 +56,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.world.MapLoader;
 
 /**
  * Collection of asset related common functions
@@ -69,6 +71,9 @@ public class AssetUtils {
     private final static AssetCache weakAssetCache = new WeakRefAssetCache();
     private final static Map<String, Boolean> textureMapCache = new HashMap<>();
     private static final Logger logger = Logger.getLogger(AssetUtils.class.getName());
+
+    // Custom model data keys
+    public final static String USER_DATE_KEY_REMOVABLE = "Removable";
 
     private AssetUtils() {
         // Nope
@@ -451,14 +456,75 @@ public class AssetUtils {
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
+
                 if (!(spatial instanceof Geometry)) {
+                    return;
+                }
+
+                // Don't highlight non-removables
+                if (Boolean.FALSE.equals(spatial.getParent().getParent().getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE))) {
                     return;
                 }
 
                 try {
                     Material material = ((Geometry) spatial).getMaterial();
-                    material.setColor("Ambient", highlightColor);
-                    material.setBoolean("UseMaterialColors", enabled);
+                    if (material.getMaterialDef().getMaterialParam("Ambient") != null) {
+                        material.setColor("Ambient", highlightColor);
+                        material.setBoolean("UseMaterialColors", enabled);
+                    } else {
+                        material.setColor("Color", highlightColor);
+                        material.setBoolean("UseMaterialColors", enabled);
+                    }
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Failed to set material color!", e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Reset the spatial scale & transform and all the first level children
+     *
+     * @param spatial the spatial to reset
+     */
+    public static void resetSpatial(Spatial spatial) {
+        if (spatial instanceof Node) {
+            for (Spatial subSpat : ((Node) spatial).getChildren()) {
+                subSpat.setLocalScale(MapLoader.TILE_WIDTH);
+                subSpat.setLocalTranslation(0, 0, 0);
+            }
+        } else {
+            spatial.setLocalScale(MapLoader.TILE_WIDTH);
+            spatial.setLocalTranslation(0, 0, 0);
+        }
+        spatial.move(0, -MapLoader.TILE_HEIGHT, 0);
+    }
+
+    /**
+     * Creates a blueprint material for the wanted spatial
+     *
+     * @param assetManager the asset manager
+     * @param spatial the spatial which to change to blueprint
+     */
+    public static void setBlueprint(AssetManager assetManager, Spatial spatial) {
+        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (!(spatial instanceof Geometry)) {
+                    return;
+                }
+
+                // Don't highlight non-removables
+                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE))) {
+                    return;
+                }
+
+                try {
+                    Material mat = new Material(assetManager,
+                            "Common/MatDefs/Misc/Unshaded.j3md");
+                    mat.setColor("Color", new ColorRGBA(0, 0, 0.8f, 0.4f));
+                    mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+                    spatial.setMaterial(mat);
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Failed to set material color!", e);
                 }
