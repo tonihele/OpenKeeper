@@ -113,21 +113,30 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     @Override
     public String getTooltip(short playerId) {
         String tooltip;
-        if (playerId == getOwnerId()) {
-            switch (state) {
-                case BLUEPRINT: {
-                    tooltip = BUNDLE.getString("2512");
-                    break;
-                }
-                default: {
-                    tooltip = BUNDLE.getString("2532");
-                    tooltip = tooltip.replaceFirst("%72", locked ? BUNDLE.getString("2516") : BUNDLE.getString("2515"));
-                    break;
-                }
+        if (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
+            if (state == DoorState.BLUEPRINT) {
+                tooltip = BUNDLE.getString("2512");
+                tooltip = tooltip.replaceFirst("%68", name);
+            } else {
+                tooltip = BUNDLE.getString("2536");
             }
-            tooltip = tooltip.replaceFirst("%68", name);
         } else {
-            tooltip = BUNDLE.getString("2540");
+            if (playerId == getOwnerId()) {
+                switch (state) {
+                    case BLUEPRINT: {
+                        tooltip = BUNDLE.getString("2512");
+                        break;
+                    }
+                    default: {
+                        tooltip = BUNDLE.getString("2532");
+                        tooltip = tooltip.replaceFirst("%72", locked ? BUNDLE.getString("2516") : BUNDLE.getString("2515"));
+                        break;
+                    }
+                }
+                tooltip = tooltip.replaceFirst("%68", name);
+            } else {
+                tooltip = BUNDLE.getString("2540");
+            }
         }
         return tooltip.replaceFirst("%37%", Integer.toString(getHealthPercentage()));
     }
