@@ -25,6 +25,7 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
@@ -80,10 +81,11 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
         };
 
         // Set map position
+        AssetUtils.resetSpatial(creatureRoot);
         if (object != null) {
             creatureRoot.setLocalTranslation(
                     object.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
-                    object.getPosZ() * MapLoader.TILE_HEIGHT,
+                    0,
                     object.getPosY() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
         }
 
@@ -100,7 +102,7 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
     public static void setPosition(Spatial creature, Vector2f position) {
         creature.setLocalTranslation(
                 position.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
-                0 * MapLoader.TILE_HEIGHT,
+                0,
                 position.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
 
         // Need to re-adjust the steering

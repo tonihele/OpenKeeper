@@ -74,6 +74,7 @@ public class ObjectLoader implements ILoader<Thing.Object> {
         nodeObject.addControl(objectControl);
 
         // Move to the center of the tile
+        AssetUtils.resetSpatial(nodeObject);
         nodeObject.setLocalTranslation(
                 posX,
                 0 * MapLoader.TILE_HEIGHT,
