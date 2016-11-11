@@ -283,7 +283,7 @@ public class TaskManager {
             // Assign
             if (!coordinates.isEmpty()) {
                 Point target = Utils.getRandomItem(coordinates);
-                GraphPath<TileData> path = worldState.findPath(creature.getCreatureCoordinates(), target, creature.getCreature());
+                GraphPath<TileData> path = worldState.findPath(creature.getCreatureCoordinates(), target, creature);
                 if (path != null || target == creature.getCreatureCoordinates()) {
 
                     // Assign the task

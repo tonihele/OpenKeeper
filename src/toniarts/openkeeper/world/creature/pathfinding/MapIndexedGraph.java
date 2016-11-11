@@ -24,6 +24,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Map representation for the path finding
@@ -34,7 +35,7 @@ public class MapIndexedGraph implements IndexedGraph<TileData> {
 
     private final WorldState worldState;
     private final int nodeCount;
-    private Creature creature;
+    private CreatureControl creature;
 
     public MapIndexedGraph(WorldState worldState) {
         this.worldState = worldState;
@@ -57,7 +58,7 @@ public class MapIndexedGraph implements IndexedGraph<TileData> {
      *
      * @param creature the creature
      */
-    public void setCreature(Creature creature) {
+    public void setCreature(CreatureControl creature) {
         this.creature = creature;
     }
 
@@ -90,7 +91,7 @@ public class MapIndexedGraph implements IndexedGraph<TileData> {
                         return;
                     }
 
-                    if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
+                    if (creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
                         connections.add(new DefaultConnection<>(startTile, tile)); // No cost
                         return;
                     }

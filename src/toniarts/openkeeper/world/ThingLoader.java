@@ -397,4 +397,14 @@ public class ThingLoader {
         }
     }
 
+    /**
+     * Get a door/barricade on given point
+     *
+     * @param point point
+     * @return door or {@code null} if not found
+     */
+    public DoorControl getDoor(Point point) {
+        return doors.get(point);
+    }
+
 }

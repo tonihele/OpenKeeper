@@ -245,9 +245,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void navigateToRandomPoint() {
-        Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, creature);
+        Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, this);
         if (p != null) {
-            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, creature);
+            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, this);
 
             if (outPath != null && outPath.getCount() > 1) {
 
@@ -548,7 +548,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
         Vector2f loc = assignedTask.getTarget(this);
         if (loc != null) {
-            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), creature);
+            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), this);
 
             if (outPath != null && outPath.getCount() > 1) {
 

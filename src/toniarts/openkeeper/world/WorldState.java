@@ -73,6 +73,7 @@ import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
 import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
 import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
+import toniarts.openkeeper.world.door.DoorControl;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.listener.RoomListener;
@@ -855,7 +856,7 @@ public abstract class WorldState extends AbstractAppState {
      * @param creature
      * @return a random tile if one is found
      */
-    public Point findRandomAccessibleTile(Point start, int radius, Creature creature) {
+    public Point findRandomAccessibleTile(Point start, int radius, CreatureControl creature) {
         List<Point> tiles = new ArrayList<>(radius * radius - 1);
         for (int y = start.y - radius / 2; y < start.y + radius / 2; y++) {
             for (int x = start.x - radius / 2; x < start.x + radius / 2; x++) {
@@ -887,7 +888,7 @@ public abstract class WorldState extends AbstractAppState {
      * @param creature the creature to find path for
      * @return output path, null if path not found
      */
-    public GraphPath<TileData> findPath(Point start, Point end, Creature creature) {
+    public GraphPath<TileData> findPath(Point start, Point end, CreatureControl creature) {
         pathFindingMap.setCreature(creature);
         GraphPath<TileData> outPath = new DefaultGraphPath<>();
         if (pathFinder.searchNodePath(getMapData().getTile(start.x, start.y), getMapData().getTile(end.x, end.y), heuristic, outPath)) {
@@ -913,9 +914,15 @@ public abstract class WorldState extends AbstractAppState {
      * @param creature creature
      * @return is accessible
      */
-    public boolean isAccessible(TileData tile, Creature creature) {
+    public boolean isAccessible(TileData tile, CreatureControl creature) {
         Terrain terrain = tile.getTerrain();
         if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+
+            // Check for doors etc.
+            DoorControl doorControl = thingLoader.getDoor(new Point(tile.getX(), tile.getY()));
+            if (doorControl != null && !doorControl.isPassable(creature)) {
+                return false;
+            }
 
             // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
             if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
@@ -924,7 +931,7 @@ public abstract class WorldState extends AbstractAppState {
                 RoomInstance roomInstance = getMapLoader().getRoomCoordinates().get(new Point(tile.getX(), tile.getY()));
                 GenericRoom room = getMapLoader().getRoomActuals().get(roomInstance);
                 return room.isTileAccessible(tile.getX(), tile.getY());
-            } else if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
+            } else if (creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
                 return true;
             } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
                 return false;

@@ -38,6 +38,7 @@ import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.control.IUnitFlowerControl;
 import toniarts.openkeeper.world.control.UnitFlowerControl;
+import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.HighlightControl;
 
 /**
@@ -306,6 +307,19 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     @Override
     public String getCenterIcon() {
         return ConversionUtils.getCanonicalAssetKey("Textures/" + door.getFlowerIcon().getName() + ".png");
+    }
+
+    public boolean isPassable(CreatureControl creature) {
+        if (state == DoorState.BLUEPRINT || state == DoorState.DESTROYED) {
+            return true;
+        }
+
+        // Barricades and locked doors are not passable by anyone
+        if (locked || door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
+            return false;
+        }
+
+        return creature.getOwnerId() == getOwnerId();
     }
 
 }
