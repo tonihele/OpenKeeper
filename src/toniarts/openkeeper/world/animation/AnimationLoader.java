@@ -49,14 +49,14 @@ public class AnimationLoader {
     }
 
     private static void attachResource(final Node root, final AnimationControl animationControl, final ArtResource resource, AssetManager assetManager) {
-        if (resource != null && (resource.getSettings().getType() == ArtResource.Type.ANIMATING_MESH || resource.getSettings().getType() == ArtResource.Type.MESH || resource.getSettings().getType() == ArtResource.Type.PROCEDURAL_MESH)) {
+        if (resource != null && (resource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH || resource.getType() == ArtResource.ArtResourceType.MESH || resource.getType() == ArtResource.ArtResourceType.PROCEDURAL_MESH)) {
             try {
 
                 Spatial spat = loadModel(assetManager, resource.getName(), root);
                 spat.setName(resource.getName());
 
                 // If the animations has end and/or start, it is located in a different file
-                if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
+                if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
                     String name = resource.getName() + START_ANIMATION_NAME;
                     Spatial spatStart = loadModel(assetManager, name, root);
                     spatStart.setName(START_ANIMATION_NAME);
@@ -95,7 +95,7 @@ public class AnimationLoader {
                         animControl.createChannel();
                     }
                 }
-                if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
+                if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
                     String name = resource.getName() + END_ANIMATION_NAME;
                     Spatial spatEnd = loadModel(assetManager, name, root);
                     spatEnd.setName(END_ANIMATION_NAME);
@@ -144,7 +144,7 @@ public class AnimationLoader {
                                 control.setEnabled(false);
 
                                 // We need to stop
-                                if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
+                                if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
 
                                     // Hide us
                                     control.getSpatial().setCullHint(Spatial.CullHint.Always);
@@ -173,7 +173,7 @@ public class AnimationLoader {
                         }
                     });
                     AnimChannel channel = animControl.createChannel();
-                    if (resource.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP)) {
+                    if (resource.getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP)) {
                         channel.setLoopMode(LoopMode.DontLoop);
                     } else {
                         setLoopModeOnChannel(spat, channel);
@@ -233,7 +233,7 @@ public class AnimationLoader {
 
         // Get the anim node
         String animNodeName = anim.getName();
-        if (anim.getSettings().getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
+        if (anim.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
             animNodeName = START_ANIMATION_NAME;
         }
         Spatial spat = root.getChild(animNodeName);
