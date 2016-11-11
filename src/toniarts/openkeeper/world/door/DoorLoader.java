@@ -60,7 +60,7 @@ public class DoorLoader implements ILoader<Thing.Door> {
         toniarts.openkeeper.tools.convert.map.Door door = kwdFile.getDoorById(doorId);
 
         // Load
-        DoorControl doorControl = new DoorControl(worldState.getMapData().getTile(posX, posY), door, kwdFile.getObject(door.getKeyObjectId()), kwdFile.getTrapById(door.getTrapTypeId()), worldState, assetManager);
+        DoorControl doorControl = new DoorControl(worldState.getMapData().getTile(posX, posY), door, kwdFile.getObject(door.getKeyObjectId()), kwdFile.getTrapById(door.getTrapTypeId()), worldState, assetManager, locked, blueprint);
         Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE) ? door.getMesh().getName() : door.getCloseResource().getName()) + ".j3o", false);
         nodeObject.addControl(doorControl);
 
@@ -79,18 +79,13 @@ public class DoorLoader implements ILoader<Thing.Door> {
             quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
             nodeObject.rotate(quat);
         }
+        doorControl.initState();
 
-        // Set correct state
-        // TODO: We should do this initially, no point of having to do extra work perhaps
-        if (locked) {
-            doorControl.lockDoor();
-        } else if (blueprint) {
-
+        // Door flower
+        if (!blueprint) {
+            UnitFlowerControl aufc = new UnitFlowerControl(assetManager, doorControl);
+            nodeObject.addControl(aufc);
         }
-
-        // Creature flower
-        UnitFlowerControl aufc = new UnitFlowerControl(assetManager, doorControl);
-        nodeObject.addControl(aufc);
 
         return nodeObject;
     }

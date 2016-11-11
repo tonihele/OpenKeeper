@@ -27,6 +27,7 @@ import com.jme3.asset.cache.SimpleAssetCache;
 import com.jme3.asset.cache.WeakRefAssetCache;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
+import com.jme3.material.RenderState.BlendMode;
 import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
@@ -453,8 +454,13 @@ public class AssetUtils {
 
                 try {
                     Material material = ((Geometry) spatial).getMaterial();
-                    material.setColor("Ambient", highlightColor);
-                    material.setBoolean("UseMaterialColors", enabled);
+                    if (material.getMaterialDef().getMaterialParam("Ambient") != null) {
+                        material.setColor("Ambient", highlightColor);
+                        material.setBoolean("UseMaterialColors", enabled);
+                    } else {
+                        material.setColor("Color", highlightColor);
+                        material.setBoolean("UseMaterialColors", enabled);
+                    }
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Failed to set material color!", e);
                 }
@@ -478,6 +484,33 @@ public class AssetUtils {
             spatial.setLocalTranslation(0, 0, 0);
         }
         spatial.move(0, -MapLoader.TILE_HEIGHT, 0);
+    }
+
+    /**
+     * Creates a blueprint material for the wanted spatial
+     *
+     * @param assetManager the asset manager
+     * @param spatial the spatial which to change to blueprint
+     */
+    public static void setBlueprint(AssetManager assetManager, Spatial spatial) {
+        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (!(spatial instanceof Geometry)) {
+                    return;
+                }
+
+                try {
+                    Material mat = new Material(assetManager,
+                            "Common/MatDefs/Misc/Unshaded.j3md");
+                    mat.setColor("Color", new ColorRGBA(0, 0, 0.8f, 0.4f));
+                    mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+                    spatial.setMaterial(mat);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Failed to set material color!", e);
+                }
+            }
+        });
     }
 
 }

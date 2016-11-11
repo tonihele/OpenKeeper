@@ -61,10 +61,10 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     private Spatial lockSpatial;
     private boolean locked = false;
     private final TileData tile;
-    private DoorState state = DoorState.OPEN;
+    private DoorState state = DoorState.CLOSED;
     private int health;
     private boolean animating = false;
-    private DoorState animatedState = DoorState.OPEN;
+    private DoorState animatedState = DoorState.CLOSED;
 
     public DoorControl(TileData tile, Door door, toniarts.openkeeper.tools.convert.map.Object lockObject, Trap doorTrap, WorldState worldState, AssetManager assetManager) {
         this(tile, door, lockObject, doorTrap, worldState, assetManager, false, false);
@@ -97,6 +97,19 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
     @Override
     protected void controlRender(RenderManager rm, ViewPort vp) {
+    }
+
+    public void initState() {
+
+        // TODO: We should do this initially, no point of having to do extra work perhaps
+        if (!door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
+            AnimationLoader.playAnimation(spatial, door.getCloseResource(), assetManager, true);
+        }
+        if (locked) {
+            lockDoor();
+        } else if (state == DoorState.BLUEPRINT && door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
+            AssetUtils.setBlueprint(assetManager, spatial);
+        }
     }
 
     @Override
@@ -159,12 +172,24 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
     @Override
     public void onHover() {
-        UnitFlowerControl.showUnitFlower(this, null);
+        if (state != DoorState.BLUEPRINT) {
+            UnitFlowerControl.showUnitFlower(this, null);
+        }
     }
 
     @Override
     public short getOwnerId() {
         return tile.getPlayerId();
+    }
+
+    @Override
+    public void onHoverEnd() {
+        super.onHoverEnd();
+
+        // Restore blueprint state
+        if (state == DoorState.BLUEPRINT) {
+            AssetUtils.setBlueprint(assetManager, spatial);
+        }
     }
 
     private void unlockDoor() {
@@ -191,14 +216,18 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
         // Start opening animation and mark open
         state = DoorState.OPEN;
-        setAnimation(DoorState.OPEN);
+        if (!door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
+            setAnimation(DoorState.OPEN);
+        }
     }
 
     private void closeDoor() {
 
         // Start closing animation and mark closed
         state = DoorState.CLOSED;
-        setAnimation(DoorState.CLOSED);
+        if (!door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
+            setAnimation(DoorState.CLOSED);
+        }
     }
 
     public DoorState getState() {
@@ -224,7 +253,12 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     @Override
     public void onAnimationStop() {
         animating = false;
-        setAnimation(state);
+
+        if (state == DoorState.BLUEPRINT) {
+            AssetUtils.setBlueprint(assetManager, spatial);
+        } else {
+            setAnimation(state);
+        }
     }
 
     @Override

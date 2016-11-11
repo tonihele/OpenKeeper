@@ -216,8 +216,9 @@ public class AnimationLoader {
      * @param spatial the creature root
      * @param anim wanted animation
      * @param assetManager the AssetManager
+     * @param endFrame start from the end frame
      */
-    public static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager) {
+    public static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager, boolean endFrame) {
 
         Node root = (Node) spatial;
 
@@ -250,8 +251,20 @@ public class AnimationLoader {
             if (loopMode != null) {
                 channel.setLoopMode(loopMode);
             }
+            if (endFrame) {
+                channel.setTime(Integer.MAX_VALUE);
+            }
             animControl.setEnabled(true);
         }
+    }
+
+    /**
+     * @see #playAnimation(com.jme3.scene.Spatial,
+     * toniarts.openkeeper.tools.convert.map.ArtResource,
+     * com.jme3.asset.AssetManager, boolean)
+     */
+    public static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager) {
+        playAnimation(spatial, anim, assetManager, false);
     }
 
     private static void hideAllNodes(Node root) {
