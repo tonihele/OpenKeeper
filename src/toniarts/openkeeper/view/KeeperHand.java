@@ -35,6 +35,7 @@ import java.util.List;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.TEXTURES_FOLDER;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.IInteractiveControl;
@@ -188,7 +189,9 @@ public class KeeperHand {
     }
 
     private void addIcon(final ArtResource image, final int index) {
-        if (!(image.getSettings() instanceof ArtResource.Image)) {
+        if (image.getType() != ArtResourceType.ALPHA
+                && image.getType() != ArtResourceType.ADDITIVE_ALPHA
+                && image.getType() != ArtResourceType.SPRITE) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 

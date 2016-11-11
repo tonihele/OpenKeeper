@@ -903,8 +903,8 @@ public abstract class WorldState extends AbstractAppState {
      * @param location position
      * @return tile coordinates
      */
-    public Point getTileCoordinates(Vector3f location) {
-        return new Point((int) Math.floor(location.x + 0.5f), (int) Math.floor(location.z + 0.5f));
+    public static Point getTileCoordinates(Vector3f location) {
+        return new Point((int) Math.floor(location.x) + 1, (int) Math.floor(location.z) + 1);
     }
 
     /**
@@ -1035,8 +1035,13 @@ public abstract class WorldState extends AbstractAppState {
         boolean tileDestroyed;
         damage = Math.abs(damage);
         if (tile.getGold() > 0) { // Mine
-            returnedGold = tile.mineGold(damage);
-            tileDestroyed = (tile.getGold() < 1);
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
+                returnedGold = damage;
+                tileDestroyed = false;
+            } else {
+                returnedGold = tile.mineGold(damage);
+                tileDestroyed = (tile.getGold() < 1);
+            }
         } else { // Apply damage
             tileDestroyed = tile.applyDamage(damage);
         }

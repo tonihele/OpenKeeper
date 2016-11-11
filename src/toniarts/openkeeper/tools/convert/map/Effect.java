@@ -20,13 +20,14 @@ import java.util.EnumSet;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
+import toniarts.openkeeper.world.effect.IEffect;
 
 /**
  * Container class for Effects.kwd
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Effect implements Comparable<Effect> {
+public class Effect implements Comparable<Effect>, IEffect {
 
     /**
      * Effect flags
@@ -182,6 +183,7 @@ public class Effect implements Comparable<Effect> {
     private short elementsPerTurn; // f3
     private int unknown3; // f4 pad?
 
+    @Override
     public String getName() {
         return name;
     }
@@ -190,6 +192,7 @@ public class Effect implements Comparable<Effect> {
         this.name = name;
     }
 
+    @Override
     public ArtResource getArtResource() {
         return artResource;
     }
@@ -206,6 +209,7 @@ public class Effect implements Comparable<Effect> {
         this.light = light;
     }
 
+    @Override
     public float getMass() {
         return mass;
     }
@@ -214,6 +218,7 @@ public class Effect implements Comparable<Effect> {
         this.mass = mass;
     }
 
+    @Override
     public float getAirFriction() {
         return airFriction;
     }
@@ -222,6 +227,7 @@ public class Effect implements Comparable<Effect> {
         this.airFriction = airFriction;
     }
 
+    @Override
     public float getElasticity() {
         return elasticity;
     }
@@ -238,6 +244,7 @@ public class Effect implements Comparable<Effect> {
         this.radius = radius;
     }
 
+    @Override
     public float getMinSpeedXy() {
         return minSpeedXy;
     }
@@ -246,6 +253,7 @@ public class Effect implements Comparable<Effect> {
         this.minSpeedXy = minSpeedXy;
     }
 
+    @Override
     public float getMaxSpeedXy() {
         return maxSpeedXy;
     }
@@ -254,6 +262,7 @@ public class Effect implements Comparable<Effect> {
         this.maxSpeedXy = maxSpeedXy;
     }
 
+    @Override
     public float getMinSpeedYz() {
         return minSpeedYz;
     }
@@ -262,6 +271,7 @@ public class Effect implements Comparable<Effect> {
         this.minSpeedYz = minSpeedYz;
     }
 
+    @Override
     public float getMaxSpeedYz() {
         return maxSpeedYz;
     }
@@ -270,6 +280,7 @@ public class Effect implements Comparable<Effect> {
         this.maxSpeedYz = maxSpeedYz;
     }
 
+    @Override
     public float getMinScale() {
         return minScale;
     }
@@ -278,6 +289,7 @@ public class Effect implements Comparable<Effect> {
         this.minScale = minScale;
     }
 
+    @Override
     public float getMaxScale() {
         return maxScale;
     }
@@ -302,6 +314,7 @@ public class Effect implements Comparable<Effect> {
         this.effectId = effectId;
     }
 
+    @Override
     public int getMinHp() {
         return minHp;
     }
@@ -310,6 +323,7 @@ public class Effect implements Comparable<Effect> {
         this.minHp = minHp;
     }
 
+    @Override
     public int getMaxHp() {
         return maxHp;
     }
@@ -454,6 +468,10 @@ public class Effect implements Comparable<Effect> {
         this.generateRandomness = generateRandomness;
     }
 
+    /**
+     * Allways 0
+     * @return
+     */
     public int getMisc2() {
         return misc2;
     }
@@ -462,6 +480,10 @@ public class Effect implements Comparable<Effect> {
         this.misc2 = misc2;
     }
 
+    /**
+     * Allways 0
+     * @return
+     */
     public int getMisc3() {
         return misc3;
     }
@@ -486,6 +508,10 @@ public class Effect implements Comparable<Effect> {
         this.elementsPerTurn = elementsPerTurn;
     }
 
+    /**
+     * Allways 0
+     * @return
+     */
     public int getUnknown3() {
         return unknown3;
     }
@@ -520,9 +546,7 @@ public class Effect implements Comparable<Effect> {
             return false;
         }
         final Effect other = (Effect) obj;
-        if (this.effectId != other.effectId) {
-            return false;
-        }
-        return true;
+
+        return this.effectId == other.effectId;
     }
 }

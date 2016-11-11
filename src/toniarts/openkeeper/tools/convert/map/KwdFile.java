@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -33,12 +32,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.vecmath.Vector3f;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.ArtResource.Animation;
-import toniarts.openkeeper.tools.convert.map.ArtResource.Image;
-import toniarts.openkeeper.tools.convert.map.ArtResource.Mesh;
-import toniarts.openkeeper.tools.convert.map.ArtResource.Proc;
-import toniarts.openkeeper.tools.convert.map.ArtResource.ResourceType;
-import toniarts.openkeeper.tools.convert.map.ArtResource.TerrainResource;
+import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
 import toniarts.openkeeper.tools.convert.map.Creature.JobAlternative;
 import toniarts.openkeeper.tools.convert.map.Creature.Spell;
@@ -83,6 +77,8 @@ public final class KwdFile {
 
     // These are needed in various places, I don't know how to else regognize these
     private final static short ROOM_PORTAL_ID = 3;
+    private final static short TRIGGER_GENERIC = 213;
+    private final static short TRIGGER_ACTION = 214;
 
     private GameLevel gameLevel;
     private Map map;
@@ -641,83 +637,75 @@ public final class KwdFile {
 
         // Read the data
         artResource.setName(ConversionUtils.readString(file, 64).trim());
-        long flags = ConversionUtils.readUnsignedIntegerAsLong(file);
-        byte[] bytes = new byte[12];
-        file.read(bytes); // Depends on the type how these are interpreted?
-        short type = (short) file.readUnsignedByte();
-        short startAf = (short) file.readUnsignedByte();
-        short endAf = (short) file.readUnsignedByte();
-        short sometimesOne = (short) file.readUnsignedByte();
+        artResource.setFlags(ConversionUtils.parseFlagValue(ConversionUtils.readUnsignedIntegerAsLong(file),
+                ArtResource.ArtResourceFlag.class));
 
-        // Debug
-        // System.out.println("Name: " + artResource.getName());
-        // System.out.println("Type: " + type);
-        // System.out.println("Flag: " + flags);
-        // Mesh collection (type 8) has just the name, reference to GROP meshes probably
-        // And alphas and images probably share the same attributes
-        ResourceType resourceType = artResource.new ResourceType();
-        switch (type) {
-            case 0: // skip empty type
-                break;
+        long pointer = file.getFilePointer();
+        file.seek(pointer + 12);
+        artResource.setType(ConversionUtils.parseEnum((short) file.readUnsignedByte(), ArtResource.ArtResourceType.class));
+        if (artResource.getType() == ArtResourceType.ANIMATING_MESH) {
+            artResource.setData("startAf", (short) file.readUnsignedByte()); // if HAS_START_ANIMATION
+            artResource.setData("endAf", (short) file.readUnsignedByte()); // if HAS_END_ANIMATION
+        } else {
+            artResource.setData("unknown_n", ConversionUtils.readUnsignedShort(file));
+        }
+        artResource.setSometimesOne((short) file.readUnsignedByte());
 
-            case 8: // FIXME nothing todo ?!
-                logger.log(Level.WARNING, "Skip artResource type {0}", type);
+        file.seek(pointer);
+        switch (artResource.getType()) {
+            case NONE: // skip empty type
+                ConversionUtils.checkNull(file, 12);
                 break;
 
-            case 1:
-            case 2:
-            case 3: { // Images of different type
-                resourceType = artResource.new Image();
-                ((Image) resourceType).setWidth(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)) / ConversionUtils.FLOAT);
-                ((Image) resourceType).setHeight(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)) / ConversionUtils.FLOAT);
-                ((Image) resourceType).setFrames(ConversionUtils.toUnsignedShort(Arrays.copyOfRange(bytes, 8, 10)));
-                break;
-            }
-            case 4: {
-                resourceType = artResource.new TerrainResource();
-                ((TerrainResource) resourceType).setX00(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
-                ((TerrainResource) resourceType).setX04(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)));
-                ((TerrainResource) resourceType).setFrames(ConversionUtils.toUnsignedByte(bytes[8]));
-                break;
-            }
-            case 5: {
-                resourceType = artResource.new Mesh();
-                ((Mesh) resourceType).setScale(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)) / ConversionUtils.FLOAT);
-                ((Mesh) resourceType).setFrames(ConversionUtils.toUnsignedShort(Arrays.copyOfRange(bytes, 4, 6)));
-                break;
-            }
-            case 6: {
-                resourceType = artResource.new Animation();
-                ((Animation) resourceType).setFrames(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
-                ((Animation) resourceType).setFps(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 4, 8)));
-                ((Animation) resourceType).setStartDist(ConversionUtils.toUnsignedShort(Arrays.copyOfRange(bytes, 8, 10)));
-                ((Animation) resourceType).setEndDist(ConversionUtils.toUnsignedShort(Arrays.copyOfRange(bytes, 10, 12)));
-                break;
-            }
-            case 7: {
-                resourceType = artResource.new Proc();
-                ((Proc) resourceType).setId(ConversionUtils.toUnsignedInteger(Arrays.copyOfRange(bytes, 0, 4)));
+            case SPRITE: // And alphas and images probably share the same attributes
+            case ALPHA:
+            case ADDITIVE_ALPHA:  // Images of different type
+                artResource.setData("width", ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
+                artResource.setData("height", ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
+                artResource.setData("frames", ConversionUtils.readUnsignedInteger(file)); // if (ANIMATING_TEXTURE)
                 break;
 
-            }
+            case TERRAIN_MESH:
+                artResource.setData("unknown_1", ConversionUtils.readUnsignedInteger(file));
+                artResource.setData("unknown_2", ConversionUtils.readUnsignedInteger(file));
+                artResource.setData("unknown_3", ConversionUtils.readUnsignedInteger(file));
+                break;
+
+            case MESH:
+                artResource.setData("scale", ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
+                artResource.setData("frames", ConversionUtils.readUnsignedInteger(file)); // if (ANIMATING_TEXTURE)
+                artResource.setData("unknown_1", ConversionUtils.readUnsignedInteger(file));
+                break;
+
+            case ANIMATING_MESH:
+                artResource.setData("frames", ConversionUtils.readUnsignedInteger(file));
+                artResource.setData("fps", ConversionUtils.readUnsignedInteger(file));
+                artResource.setData("startDist", ConversionUtils.readUnsignedShort(file));
+                artResource.setData("endDist", ConversionUtils.readUnsignedShort(file));
+                break;
+
+            case PROCEDURAL_MESH:
+                artResource.setData("id", ConversionUtils.readUnsignedInteger(file));
+                artResource.setData("unknown_1", ConversionUtils.readUnsignedInteger(file));
+                artResource.setData("unknown_2", ConversionUtils.readUnsignedInteger(file));
+                break;
+
+            case MESH_COLLECTION: // FIXME nothing todo ?! has just the name, reference to GROP meshes probably
+            case UNKNOWN:
+                artResource.setData("unknown_1", ConversionUtils.readUnsignedInteger(file));
+                artResource.setData("unknown_2", ConversionUtils.readUnsignedInteger(file));
+                artResource.setData("unknown_3", ConversionUtils.readUnsignedInteger(file));
+                break;
+
             default:
-                logger.log(Level.WARNING, "Unknown artResource type {0}", type);
+                ConversionUtils.checkNull(file, 12);
+                logger.log(Level.WARNING, "Unknown artResource type {0}", artResource.getType());
                 break;
         }
 
-        // Add the common values
-        resourceType.setFlags(ConversionUtils.parseFlagValue(flags, ArtResource.ArtResourceFlag.class));
-        resourceType.setType(ConversionUtils.parseEnum(type, ArtResource.Type.class));
-        resourceType.setStartAf(startAf);
-
-        resourceType.setEndAf(endAf);
-
-        resourceType.setSometimesOne(sometimesOne);
-
-        artResource.setSettings(resourceType);
-
+        file.skipBytes(4);
         // If it has no name or the type is not known, return null
-        if (artResource.getName().isEmpty() || resourceType.getType() == null) {
+        if (artResource.getName().isEmpty() || artResource.getType() == null) {
             return null;
         }
 
@@ -1253,7 +1241,7 @@ public final class KwdFile {
                         ConversionUtils.readUnsignedIntegerAsLong(file) / ConversionUtils.FLOAT,
                         ConversionUtils.readUnsignedIntegerAsLong(file) / ConversionUtils.FLOAT));
                 spell.setX0c((short) file.readUnsignedByte());
-                spell.setPlayAnimation((short) file.readUnsignedByte() == 1 ? true : false);
+                spell.setPlayAnimation(((short) file.readUnsignedByte() == 1));
                 spell.setX0e((short) file.readUnsignedByte()); // This value can changed when you not change anything on map, only save it
                 spell.setX0f((short) file.readUnsignedByte());
                 spell.setShotDelay(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
@@ -2209,8 +2197,7 @@ public final class KwdFile {
 
             // Figure out the type
             switch (triggerTag[0]) {
-                case 213: {
-                    // TriggerGeneric
+                case TRIGGER_GENERIC: {
                     long start = file.getFilePointer();
                     file.seek(start + triggerTag[1] - 2);
 
@@ -2424,8 +2411,8 @@ public final class KwdFile {
                     file.skipBytes(2);
                     break;
                 }
-                case 214: {
-                    // TriggerAction
+                case TRIGGER_ACTION: {
+
                     long start = file.getFilePointer();
                     file.seek(start + triggerTag[1] - 2);
 
