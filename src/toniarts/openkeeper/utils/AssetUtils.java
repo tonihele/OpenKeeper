@@ -462,7 +462,7 @@ public class AssetUtils {
                 }
 
                 // Don't highlight non-removables
-                if (Boolean.FALSE.equals(spatial.getParent().getParent().getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE))) {
+                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE)) || Boolean.FALSE.equals(spatial.getParent().getParent().getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE))) {
                     return;
                 }
 
@@ -533,8 +533,8 @@ public class AssetUtils {
     }
 
     /**
-     * Generate procedural mesh
-     * TODO: procedural mesh
+     * Generate procedural mesh TODO: procedural mesh
+     *
      * @param resource
      * @return generated mesh
      */
