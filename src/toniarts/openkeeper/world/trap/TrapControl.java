@@ -36,7 +36,7 @@ import toniarts.openkeeper.world.control.UnitFlowerControl;
 import toniarts.openkeeper.world.object.HighlightControl;
 
 /**
- * The door control, handles door stuff, you know... Open sesame!
+ * The trap control, handles trap related functions...
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
