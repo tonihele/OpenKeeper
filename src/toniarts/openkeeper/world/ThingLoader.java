@@ -46,6 +46,8 @@ import toniarts.openkeeper.world.listener.ObjectListener;
 import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.object.ObjectLoader;
+import toniarts.openkeeper.world.trap.TrapControl;
+import toniarts.openkeeper.world.trap.TrapLoader;
 
 /**
  * Loads things, all things
@@ -58,12 +60,14 @@ public class ThingLoader {
     private final CreatureLoader creatureLoader;
     private final ObjectLoader objectLoader;
     private final DoorLoader doorLoader;
+    private final TrapLoader trapLoader;
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
     private final Node root;
     private final Node nodeCreatures;
     private final Node nodeObjects;
     private final Node nodeDoors;
+    private final Node nodeTraps;
     private final int maxLooseGoldPerPile;
 
     /**
@@ -79,6 +83,7 @@ public class ThingLoader {
      */
     private final Set<ObjectControl> objects = new LinkedHashSet<>();
     private final Map<Point, DoorControl> doors = new HashMap<>();
+    private final Map<Point, TrapControl> traps = new HashMap<>();
     private Map<Short, List<CreatureListener>> creatureListeners;
     private List<ObjectListener> objectListeners;
 
@@ -130,12 +135,14 @@ public class ThingLoader {
         };
         objectLoader = new ObjectLoader(kwdFile, worldState);
         doorLoader = new DoorLoader(kwdFile, worldState);
+        trapLoader = new TrapLoader(kwdFile, worldState);
 
         // Create the scene graph
         root = new Node("Things");
         nodeCreatures = new Node("Creatures");
         nodeObjects = new Node("Objects");
         nodeDoors = new Node("Doors");
+        nodeTraps = new Node("Traps");
     }
 
     /**
@@ -192,6 +199,13 @@ public class ThingLoader {
                     if (doorThing.getTriggerId() != 0) {
                         doorTriggerState.setThing(doorThing.getTriggerId(), null);
                     }
+                } else if (obj instanceof Thing.Trap) {
+
+                    Thing.Trap trapThing = (Thing.Trap) obj;
+                    Spatial trap = trapLoader.load(assetManager, trapThing);
+                    TrapControl trapControl = trap.getControl(TrapControl.class);
+                    traps.put(new Point(trapThing.getPosX(), trapThing.getPosY()), trapControl);
+                    nodeTraps.attachChild(trap);
                 }
             } catch (Exception ex) {
                 logger.log(Level.WARNING, "Could not load Thing.", ex);
@@ -201,6 +215,7 @@ public class ThingLoader {
         root.attachChild(nodeCreatures);
         root.attachChild(nodeObjects);
         root.attachChild(nodeDoors);
+        root.attachChild(nodeTraps);
         return root;
     }
 
