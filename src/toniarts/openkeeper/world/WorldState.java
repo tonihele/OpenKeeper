@@ -199,7 +199,7 @@ public abstract class WorldState extends AbstractAppState {
                                 message = String.format("${level.%d}", creatureIntroOveride.getValue() - 1);
                                 stateManager.getState(SoundState.class).attachLevelSpeech(creatureIntroOveride.getValue());
 
-                                stateManager.getState(PlayerState.class).setText(creatureIntroOveride.getValue(), true);
+                                stateManager.getState(PlayerState.class).setText(creatureIntroOveride.getValue(), true, 0);
                             }
                         }
 
