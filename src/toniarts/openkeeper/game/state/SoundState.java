@@ -38,7 +38,7 @@ public class SoundState extends AbstractPauseAwareState {
     private AppStateManager stateManager;
     private AudioNode speech = null;
     private AudioNode background = null;
-    private final Queue<Integer> speechQueue = new LinkedList<>();
+    private final Queue<String> speechQueue = new LinkedList<>();
     private static final Logger logger = Logger.getLogger(SoundState.class.getName());
 
     public SoundState() {
@@ -61,14 +61,30 @@ public class SoundState extends AbstractPauseAwareState {
         return false;
     }
 
-    public void attachSpeech(int speechId) {
-        speechQueue.add(speechId);
+    /**
+     * Plays mentor speeches for the current level
+     *
+     * @param speechId
+     */
+    public void attachLevelSpeech(int speechId) {
+        String file = String.format("Sounds/%s/lvlspe%02d.mp2", stateManager.getState(GameState.class).getLevelData().getGameLevel().getSpeechStr().toLowerCase(), speechId);
+        speechQueue.add(file);
     }
 
-    private void playSpeech(int speechId) {
-        String file = String.format("Sounds/%s/lvlspe%02d.mp2", stateManager.getState(GameState.class).getLevelData().getGameLevel().getSpeechStr().toLowerCase(), speechId);
+    /**
+     * Plays general mentor speeches
+     *
+     * @param audioFile Name of the audio file in the speech_mentor folder,
+     * without extension!
+     */
+    public void attachMentorSpeech(String audioFile) {
+        String file = String.format("Sounds/speech_mentor/%s.mp2", audioFile);
+        speechQueue.add(file);
+    }
+
+    private void playSpeech(String file) {
         speech = new AudioNode(app.getAssetManager(), file, false);
-        if (background == null) {
+        if (speech == null) {
             logger.log(Level.WARNING, "Audio file {0} not found", file);
             return;
         }
@@ -151,8 +167,8 @@ public class SoundState extends AbstractPauseAwareState {
 
         if (!speechQueue.isEmpty()) {
             if (speech == null || speech.getStatus() == AudioSource.Status.Stopped) {
-                Integer speechId = speechQueue.poll();
-                playSpeech(speechId);
+                String speechFile = speechQueue.poll();
+                playSpeech(speechFile);
             }
         }
 

@@ -17,6 +17,8 @@
 package toniarts.openkeeper.game.player;
 
 import com.jme3.app.state.AppStateManager;
+import com.jme3.cinematic.events.CinematicEvent;
+import com.jme3.cinematic.events.CinematicEventListener;
 import java.awt.Point;
 import java.util.Set;
 import java.util.logging.Level;
@@ -373,7 +375,7 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAY_SPEECH: // Info part
                 if (playerId == playerState.getPlayerId()) {
                     int speechId = trigger.getUserData("speechId", int.class);
-                    stateManager.getState(SoundState.class).attachSpeech(speechId);
+                    stateManager.getState(SoundState.class).attachLevelSpeech(speechId);
                     stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
                     int pathId = trigger.getUserData("pathId", int.class);
                     // text show when Cinematic camera by pathId

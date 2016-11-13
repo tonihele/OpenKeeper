@@ -54,6 +54,9 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.game.state.SoundState;
+import toniarts.openkeeper.game.state.SystemMessageState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -188,6 +191,26 @@ public abstract class WorldState extends AbstractAppState {
 
                 @Override
                 public void onSpawn(CreatureControl creature) {
+                    if (player.getId() == stateManager.getState(PlayerState.class).getPlayerId() && player.getCreatureControl().getTypeCount(creature.getCreature()) == 0) {
+                        // First appearance
+                        String message = "";
+                        for (Entry<Short, Integer> creatureIntroOveride : kwdFile.getGameLevel().getIntroductionOverrideTextIds().entrySet()) {
+                            if (creature.getCreature().equals(kwdFile.getCreature(creatureIntroOveride.getKey()))) {
+                                message = String.format("${level.%d}", creatureIntroOveride.getValue() - 1);
+                                stateManager.getState(SoundState.class).attachLevelSpeech(creatureIntroOveride.getValue());
+
+                                stateManager.getState(PlayerState.class).setText(creatureIntroOveride.getValue(), true);
+                            }
+                        }
+
+                        if (message.isEmpty()) {
+                            // default entrance message
+                            message = "${speech.376}";
+                            stateManager.getState(SoundState.class).attachMentorSpeech("portl003");
+                        }
+
+                        stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.CREATURE, message);
+                    }
                     player.getCreatureControl().onSpawn(creature);
                 }
 
