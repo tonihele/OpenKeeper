@@ -212,6 +212,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
             @Override
             public void onPlay(CinematicEvent cinematic) {
                 stateManager.getState(PlayerState.class).setTransitionEnd(false);
+                stateManager.getState(PlayerState.class).setWideScreen(true);
                 inputManager.setCursorVisible(false);
                 PlayerCameraState.this.cameraStore();
             }
@@ -223,6 +224,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
             @Override
             public void onStop(CinematicEvent cinematic) {
                 stateManager.getState(PlayerState.class).setTransitionEnd(true);
+                stateManager.getState(PlayerState.class).setWideScreen(false);
                 inputManager.setCursorVisible(true);
                 PlayerCameraState.this.cameraRestore();
             }
