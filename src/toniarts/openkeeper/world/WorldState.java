@@ -192,18 +192,16 @@ public abstract class WorldState extends AbstractAppState {
                 @Override
                 public void onSpawn(CreatureControl creature) {
                     if (player.getId() == stateManager.getState(PlayerState.class).getPlayerId() && player.getCreatureControl().getTypeCount(creature.getCreature()) == 0) {
+
                         // First appearance
-                        String message = "";
-                        for (Entry<Short, Integer> creatureIntroOveride : kwdFile.getGameLevel().getIntroductionOverrideTextIds().entrySet()) {
-                            if (creature.getCreature().equals(kwdFile.getCreature(creatureIntroOveride.getKey()))) {
-                                message = String.format("${level.%d}", creatureIntroOveride.getValue() - 1);
-                                stateManager.getState(SoundState.class).attachLevelSpeech(creatureIntroOveride.getValue());
+                        String message;
+                        Integer overrideTextId = kwdFile.getGameLevel().getIntroductionOverrideTextIds().get(creature.getCreature().getCreatureId());
+                        if (overrideTextId != null) {
+                            message = String.format("${level.%d}", overrideTextId - 1);
+                            stateManager.getState(SoundState.class).attachLevelSpeech(overrideTextId);
 
-                                stateManager.getState(PlayerState.class).setText(creatureIntroOveride.getValue(), true, 0);
-                            }
-                        }
-
-                        if (message.isEmpty()) {
+                            stateManager.getState(PlayerState.class).setText(overrideTextId, true, 0);
+                        } else {
                             // default entrance message
                             message = "${speech.376}";
                             stateManager.getState(SoundState.class).attachMentorSpeech("portl003");
