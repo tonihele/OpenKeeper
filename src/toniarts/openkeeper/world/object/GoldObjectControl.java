@@ -101,6 +101,7 @@ public class GoldObjectControl extends ObjectControl {
     private void refreshResource() {
         if (isAdditionalResources() && currentResourceIndex != getResourceIndex()) {
             Node nodeObject = (Node) AssetUtils.loadModel(worldState.getAssetManager(), AssetsConverter.MODELS_FOLDER + "/" + getResource().getName() + ".j3o", false);
+            AssetUtils.resetSpatial(nodeObject);
             ((Node) getSpatial()).detachAllChildren();
             for (Spatial spat : nodeObject.getChildren()) {
                 ((Node) getSpatial()).attachChild(spat);
