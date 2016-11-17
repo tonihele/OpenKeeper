@@ -954,9 +954,9 @@ public abstract class WorldState extends AbstractAppState {
                 return room.isTileAccessible(tile.getX(), tile.getY());
             } else if (creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
                 return true;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
                 return false;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && !creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
                 return false;
             }
             return true;
