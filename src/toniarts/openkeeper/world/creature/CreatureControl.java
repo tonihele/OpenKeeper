@@ -40,8 +40,10 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.party.Party;
@@ -131,6 +133,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private AnimationType playingAnimationType = AnimationType.IDLE;
     private ObjectControl creatureLair;
     private CreatureControl followTarget;
+    /**
+     * Things we hear & see per tick
+     */
+    private final Set<CreatureControl> visibilityList = new HashSet<>();
+    private boolean visibilityListUpdated = false;
 
     // Good creature specific stuff
     private Party party;
@@ -197,6 +204,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     @Override
     public void processTick(float tpf, Application app) {
+        visibilityList.clear();
+        visibilityListUpdated = false;
         if (stateMachine.getCurrentState() == null) {
             stateMachine.changeState(CreatureState.IDLE);
         }
@@ -413,20 +422,22 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     private String getStatusText() {
-        switch (state) {
-            case IDLE: {
-                return Utils.getMainTextResourceBundle().getString("2599");
-            }
-            case WORK: {
-                if (assignedTask != null) {
-                    return assignedTask.getTooltip();
+        if (state != null) {
+            switch (state) {
+                case IDLE: {
+                    return Utils.getMainTextResourceBundle().getString("2599");
                 }
-            }
-            case WANDER: {
-                return Utils.getMainTextResourceBundle().getString("2628");
-            }
-            case DEAD: {
-                return Utils.getMainTextResourceBundle().getString("2598");
+                case WORK: {
+                    if (assignedTask != null) {
+                        return assignedTask.getTooltip();
+                    }
+                }
+                case WANDER: {
+                    return Utils.getMainTextResourceBundle().getString("2628");
+                }
+                case DEAD: {
+                    return Utils.getMainTextResourceBundle().getString("2598");
+                }
             }
         }
         return "";
@@ -659,7 +670,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return the tile coordinates
      */
     public Point getCreatureCoordinates() {
-        return worldState.getTileCoordinates(getSpatial().getWorldTranslation());
+        return WorldState.getTileCoordinates(getSpatial().getWorldTranslation());
     }
 
     /**
@@ -942,6 +953,52 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
         // TODO: chickens etc..??
         return false;
+    }
+
+    public Set<CreatureControl> getVisibleCreatures() {
+        if (!visibilityListUpdated) {
+
+            // Get creatures we sense
+            Point currentPoint = getCreatureCoordinates();
+
+            // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
+            // https://github.com/tonihele/OpenKeeper/issues/261
+            visibilityList.addAll(worldState.getMapData().getTile(currentPoint).getCreatures());
+            addVisibleCreatures(currentPoint.x, currentPoint.y - 1, (int) creature.getDistanceCanHear());
+            addVisibleCreatures(currentPoint.x + 1, currentPoint.y, (int) creature.getDistanceCanHear());
+            addVisibleCreatures(currentPoint.x, currentPoint.y + 1, (int) creature.getDistanceCanHear());
+            addVisibleCreatures(currentPoint.x - 1, currentPoint.y, (int) creature.getDistanceCanHear());
+
+            visibilityListUpdated = true;
+        }
+        return visibilityList;
+    }
+
+    private void addVisibleCreatures(int x, int y, int range) {
+        TileData tile = worldState.getMapData().getTile(x, y);
+        if (tile != null) {
+            if (!tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                visibilityList.addAll(tile.getCreatures());
+                int newRange = range - 1;
+                if (newRange > -1) {
+                    addVisibleCreatures(x, y - 1, newRange);
+                    addVisibleCreatures(x + 1, y, newRange);
+                    addVisibleCreatures(x, y + 1, newRange);
+                    addVisibleCreatures(x - 1, y, newRange);
+                }
+            }
+        }
+    }
+
+    /**
+     * Get creature facing direction in map directions. FIXME: I don't really
+     * like this enum to be used here, wrap it
+     *
+     * @return map facing direction
+     */
+    public Thing.Room.Direction getFacingDirection() {
+        float orientation = getOrientation();
+        return Thing.Room.Direction.NORTH;
     }
 
 }
