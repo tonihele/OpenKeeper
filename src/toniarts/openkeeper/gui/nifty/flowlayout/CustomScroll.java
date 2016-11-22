@@ -31,6 +31,7 @@ import de.lessvoid.nifty.tools.SizeValue;
  * @author ArchDemon
  */
 public class CustomScroll implements Controller {
+
     private Nifty nifty;
     private Screen screen;
     private Parameters parameters;
@@ -146,5 +147,10 @@ public class CustomScroll implements Controller {
 
             this.visible = visible;
         }
+    }
+
+    @Override
+    public void onEndScreen() {
+
     }
 }
