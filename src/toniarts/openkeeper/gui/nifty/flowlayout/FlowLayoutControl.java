@@ -30,6 +30,7 @@ import de.lessvoid.nifty.screen.Screen;
  * @author ArchDemon
  */
 public class FlowLayoutControl implements Controller {
+
     private Nifty nifty;
     private Screen screen;
     private Parameters parameters;
@@ -95,5 +96,10 @@ public class FlowLayoutControl implements Controller {
         for (int i = 0; i < rows; i++) {
             getLineElement(i).removeAll();
         }
+    }
+
+    @Override
+    public void onEndScreen() {
+
     }
 }

@@ -614,9 +614,6 @@ public class Main extends SimpleApplication {
                     getAudioRenderer(),
                     getGuiViewPort(), config);
 
-            // Unfortunate Nifty hack, see https://github.com/nifty-gui/nifty-gui/issues/414
-            niftyDisplay.getNifty().setLocale(Locale.ROOT);
-
             // Attach the nifty display to the gui view port as a processor
             getGuiViewPort().addProcessor(niftyDisplay);
         }
@@ -625,14 +622,6 @@ public class Main extends SimpleApplication {
 
     public Nifty getNifty() {
         return getNiftyDisplay().getNifty();
-    }
-
-    @Override
-    public void stop() {
-        super.stop();
-
-        // https://github.com/jMonkeyEngine/jmonkeyengine/issues/330 :(
-        System.exit(0);
     }
 
     /**
