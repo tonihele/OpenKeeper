@@ -18,21 +18,13 @@ package toniarts.openkeeper.world.creature;
 
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
-import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.ai.steer.behaviors.Cohesion;
-import com.badlogic.gdx.ai.steer.behaviors.FollowPath;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance;
-import com.badlogic.gdx.ai.steer.behaviors.Wander;
 import com.badlogic.gdx.ai.steer.proximities.InfiniteProximity;
-import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
-import com.badlogic.gdx.ai.steer.utils.paths.LinePath.LinePathParam;
-import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
-import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.jme3.app.Application;
-import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
@@ -70,7 +62,7 @@ import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.control.IUnitFlowerControl;
 import toniarts.openkeeper.world.control.UnitFlowerControl;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
-import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
+import toniarts.openkeeper.world.creature.steering.CreatureSteeringCreator;
 import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.object.ObjectControl;
@@ -234,42 +226,14 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     }
 
-    public void wander() {
-
-        // Set wandering
-        PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
-        RaycastCollisionDetector<Vector2> raycastCollisionDetector = new CreatureRayCastCollisionDetector(worldState);
-        RaycastObstacleAvoidance<Vector2> raycastObstacleAvoidanceSB = new RaycastObstacleAvoidance<>(this, new SingleRayConfiguration<>(this, 1.5f),
-                raycastCollisionDetector, 0.5f);
-        prioritySteering.add(raycastObstacleAvoidanceSB);
-        prioritySteering.add(new Wander<>(this).setFaceEnabled(false) // We want to use Face internally (independent facing is on)
-                .setAlignTolerance(0.001f) // Used by Face
-                .setDecelerationRadius(5) // Used by Face
-                .setTimeToTarget(0.1f) // Used by Face
-                .setWanderOffset(10) //
-                .setWanderOrientation(10) //
-                .setWanderRadius(10) //
-                .setWanderRate(FastMath.TWO_PI * 4));
-        setSteeringBehavior(prioritySteering);
-    }
-
     public void navigateToRandomPoint() {
-        Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, this);
+        Point p = worldState.findRandomAccessibleTile(WorldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, this);
         if (p != null) {
-            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, this);
 
-            if (outPath != null && outPath.getCount() > 1) {
-
-                // Debug
-//                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
-                PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
-                FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(pathToArray(outPath), true), 2);
-                followPath.setDecelerationRadius(1f);
-                followPath.setArrivalTolerance(0.2f);
-                prioritySteering.add(followPath);
-
-                prioritySteering.setEnabled(!isAnimationPlaying());
-                setSteeringBehavior(prioritySteering);
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, p);
+            if (steering != null) {
+                steering.setEnabled(!isAnimationPlaying());
+                setSteeringBehavior(steering);
             }
         }
     }
@@ -396,14 +360,6 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
             idleAnimationPlayCount = 0;
         }
-    }
-
-    private Array<Vector2> pathToArray(GraphPath<TileData> outPath) {
-        Array<Vector2> path = new Array<>(outPath.getCount());
-        for (TileData tile : outPath) {
-            path.add(new Vector2(tile.getX() - 0.5f, tile.getY() - 0.5f));
-        }
-        return path;
     }
 
     @Override
@@ -559,20 +515,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
         Vector2f loc = assignedTask.getTarget(this);
         if (loc != null) {
-            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), this);
 
-            if (outPath != null && outPath.getCount() > 1) {
-
-                // Debug
-//                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
-                PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
-                FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(pathToArray(outPath), true), 2);
-                followPath.setDecelerationRadius(1f);
-                followPath.setArrivalTolerance(0.2f);
-                prioritySteering.add(followPath);
-
-                prioritySteering.setEnabled(!isAnimationPlaying());
-                setSteeringBehavior(prioritySteering);
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)));
+            if (steering != null) {
+                steering.setEnabled(!isAnimationPlaying());
+                setSteeringBehavior(steering);
             }
         }
     }
