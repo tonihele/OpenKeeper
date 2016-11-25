@@ -91,7 +91,7 @@ public enum CreatureState implements State<CreatureControl> {
 
                 @Override
                 public void enter(CreatureControl entity) {
-                    entity.wander();
+//                    entity.wander();
                 }
 
                 @Override
