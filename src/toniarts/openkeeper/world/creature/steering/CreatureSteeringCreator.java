@@ -53,7 +53,7 @@ public class CreatureSteeringCreator {
             // worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
             // Navigate
             PrioritySteering<Vector2> prioritySteering = new PrioritySteering(creature, 0.0001f);
-            FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(creature, new LinePath<>(pathToArray(outPath), true), 2);
+            FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(creature, new LinePath<>(pathToArray(outPath), true), 1);
             followPath.setDecelerationRadius(1f);
             followPath.setArrivalTolerance(0.2f);
             prioritySteering.add(followPath);
