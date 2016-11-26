@@ -17,19 +17,13 @@
 package toniarts.openkeeper.world.creature.steering;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
-import com.badlogic.gdx.ai.steer.Proximity;
-import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
-import com.badlogic.gdx.ai.steer.behaviors.CollisionAvoidance;
 import com.badlogic.gdx.ai.steer.behaviors.FollowPath;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
-import com.badlogic.gdx.ai.steer.proximities.ProximityBase;
 import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import java.awt.Point;
-import java.util.ArrayList;
-import java.util.List;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -45,39 +39,63 @@ public class CreatureSteeringCreator {
     }
 
     public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final CreatureControl creature, final Point p) {
+        return navigateToPoint(worldState, creature, p, null);
+    }
+
+    public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final CreatureControl creature, final Point p, final Point faceTarget) {
         GraphPath<TileData> outPath = worldState.findPath(WorldState.getTileCoordinates(creature.getSpatial().getWorldTranslation()), p, creature);
 
-        if (outPath != null && outPath.getCount() > 1) {
+        if ((outPath != null && outPath.getCount() > 1) || faceTarget != null) {
+//            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(creature, 0.0001f);
 
-            // Debug
-            // worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
-            // Navigate
-            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(creature, 0.0001f);
-            FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(creature, new LinePath<>(pathToArray(outPath), true), 1);
-            followPath.setDecelerationRadius(1f);
-            followPath.setArrivalTolerance(0.2f);
-            prioritySteering.add(followPath);
+            if (outPath != null && outPath.getCount() > 1) {
 
-            // Add regular avoidance
-            CollisionAvoidance<Vector2> ca = new CollisionAvoidance<>(creature, new ProximityBase<Vector2>(creature, null) {
+                PrioritySteering<Vector2> prioritySteering = new PrioritySteering(creature, 0.0001f);
 
-                @Override
-                public int findNeighbors(Proximity.ProximityCallback<Vector2> callback) {
-                    List<CreatureControl> creatures = new ArrayList<>(creature.getVisibleCreatures());
-                    int neighborCount = 0;
-                    int agentCount = creatures.size();
-                    for (int i = 0; i < agentCount; i++) {
-                        Steerable<Vector2> currentAgent = creatures.get(i);
-                        if (callback.reportNeighbor(currentAgent)) {
-                            neighborCount++;
-                        }
-                    }
+                // Add regular avoidance
+//                CollisionAvoidance<Vector2> ca = new CollisionAvoidance<>(creature, new ProximityBase<Vector2>(creature, null) {
+//
+//                    @Override
+//                    public int findNeighbors(Proximity.ProximityCallback<Vector2> callback) {
+//                        List<CreatureControl> creatures = new ArrayList<>(creature.getVisibleCreatures());
+//                        int neighborCount = 0;
+//                        int agentCount = creatures.size();
+//                        for (int i = 0; i < agentCount; i++) {
+//                            Steerable<Vector2> currentAgent = creatures.get(i);
+//
+//                            // Skip if this is us, when sharing collission avoidance i.e. this can contain us
+//                            if (!currentAgent.equals(owner)) {
+//                                if (callback.reportNeighbor(currentAgent)) {
+//                                    neighborCount++;
+//                                }
+//                            }
+//                        }
+//
+//                        return neighborCount;
+//                    }
+//                });
+//                prioritySteering.add(ca);
+                // Debug
+                // worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
+                // Navigate
+                FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(creature, new LinePath<>(pathToArray(outPath), true), 2);
+                followPath.setDecelerationRadius(1f);
+                followPath.setArrivalTolerance(0.2f);
+                prioritySteering.add(followPath);
 
-                    return neighborCount;
-                }
-            });
-            prioritySteering.add(ca);
-            return prioritySteering;
+                return prioritySteering;
+            }
+
+//            if (faceTarget != null) {
+//
+//                // Add reach orientation
+//                ReachOrientation orient = new ReachOrientation(creature, new TargetLocation(new Vector2(faceTarget.x - 0.5f, faceTarget.y - 0.5f), new Vector2(p.x - 0.5f, p.y - 0.5f)));
+//                orient.setDecelerationRadius(1.5f);
+//                orient.setTimeToTarget(0.001f);
+//                orient.setAlignTolerance(0.6f);
+//                prioritySteering.add(orient);
+//            }
+//            return prioritySteering;
         }
 
         return null;

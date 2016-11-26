@@ -516,7 +516,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         Vector2f loc = assignedTask.getTarget(this);
         if (loc != null) {
 
-            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)));
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
             if (steering != null) {
                 steering.setEnabled(!isAnimationPlaying());
                 setSteeringBehavior(steering);
@@ -915,7 +915,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             addVisibleCreatures(currentPoint.x + 1, currentPoint.y, (int) creature.getDistanceCanHear());
             addVisibleCreatures(currentPoint.x, currentPoint.y + 1, (int) creature.getDistanceCanHear());
             addVisibleCreatures(currentPoint.x - 1, currentPoint.y, (int) creature.getDistanceCanHear());
-
+            visibilityList.remove(this);
             visibilityListUpdated = true;
         }
         return visibilityList;
