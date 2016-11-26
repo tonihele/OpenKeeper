@@ -102,4 +102,9 @@ public class DigTileTask extends AbstractTileTask {
         return "Textures/GUI/moods/SJ-Dig.png";
     }
 
+    @Override
+    public boolean isFaceTarget() {
+        return true;
+    }
+
 }
