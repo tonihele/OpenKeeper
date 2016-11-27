@@ -599,6 +599,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                                 keeperHand.pop().drop(tile, selectionHandler.getPointedPositionInTile(), interactiveControl);
                                 updateCursor();
                             }
+                        } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
+                            getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, KeeperHand.getSlapSound());
+                            interactiveControl.interact(player.getPlayerId());
                         } else if (Main.isDebug()) {
                             // taggable -> "dig"
                             if (getWorldHandler().isTaggable((int) pos.x, (int) pos.y)) {
@@ -607,9 +610,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                             else if (getWorldHandler().isClaimable((int) pos.x, (int) pos.y, player.getPlayerId())) {
                                 getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
                             }
-                        } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
-                            getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, KeeperHand.getSlapSound());
-                            interactiveControl.interact(player.getPlayerId());
                         }
                     }
 
