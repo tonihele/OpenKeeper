@@ -24,8 +24,6 @@ import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.party.Party;
-import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.player.PlayerCameraControl;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
@@ -40,6 +38,7 @@ import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.creature.Party;
 
 /**
  *
@@ -182,9 +181,9 @@ public class TriggerControl extends Control {
                 // TODO this
                 short creatureId = trigger.getUserData("creatureId", short.class);
                 short playerId = trigger.getUserData("playerId", short.class);
-                short level =  trigger.getUserData("level", short.class);
+                short level = trigger.getUserData("level", short.class);
                 EnumSet<Creature.CreatureFlag> flags = ConversionUtils.parseFlagValue(trigger.getUserData("flag", short.class), Creature.CreatureFlag.class);
-                Point p = new Point(trigger.getUserData("posX", int.class) -1,
+                Point p = new Point(trigger.getUserData("posX", int.class) - 1,
                         trigger.getUserData("posY", int.class) - 1);
                 break;
 
@@ -242,12 +241,12 @@ public class TriggerControl extends Control {
                 break;
 
             case CREATE_HERO_PARTY:
-                Party party = getParty(trigger.getUserData("partyId", short.class));
+                ThingLoader loader = stateManager.getState(WorldState.class).getThingLoader();
+                Party party = loader.getParty(trigger.getUserData("partyId", short.class));
                 party.setType(ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Party.Type.class));
                 ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
 
                 // Load the party members
-                ThingLoader loader = stateManager.getState(WorldState.class).getThingLoader();
                 for (Thing.GoodCreature creature : party.getMembers()) {
                     CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter(), stateManager.getApplication());
                     creatureInstance.setParty(party);
@@ -345,10 +344,6 @@ public class TriggerControl extends Control {
 
     protected ActionPoint getActionPoint(int id) {
         return stateManager.getState(ActionPointState.class).getActionPoint(id);
-    }
-
-    protected Party getParty(int id) {
-        return stateManager.getState(PartyState.class).getParty(id);
     }
 
     private int getTargetValue(int base, int value, EnumSet<FlagTargetValueActionType> flagType) {

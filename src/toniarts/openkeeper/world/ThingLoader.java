@@ -34,11 +34,13 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
+import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.CreatureLoader;
+import toniarts.openkeeper.world.creature.Party;
 import toniarts.openkeeper.world.door.DoorControl;
 import toniarts.openkeeper.world.door.DoorLoader;
 import toniarts.openkeeper.world.listener.CreatureListener;
@@ -85,6 +87,7 @@ public class ThingLoader {
     private final Map<Point, DoorControl> doors = new HashMap<>();
     private final Map<Point, TrapControl> traps = new HashMap<>();
     private Map<Short, List<CreatureListener>> creatureListeners;
+    private final Map<Integer, Party> creatureParties = new HashMap<>();
     private List<ObjectListener> objectListeners;
 
     private static final Logger logger = Logger.getLogger(ThingLoader.class.getName());
@@ -151,14 +154,23 @@ public class ThingLoader {
      * @param creatureTriggerState the creature trigger state to assign the
      * created creatures to triggers
      * @param objectTriggerState
+     * @param doorTriggerState
+     * @param partyTriggerState
      * @return the things node
      */
-    public Node loadAll(CreatureTriggerState creatureTriggerState, ObjectTriggerState objectTriggerState, DoorTriggerState doorTriggerState) {
+    public Node loadAll(CreatureTriggerState creatureTriggerState, ObjectTriggerState objectTriggerState, DoorTriggerState doorTriggerState, PartyTriggerState partyTriggerState) {
 
-        //Create a root
+        // Load the thing
         for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
             try {
-                if (obj instanceof Thing.Creature) {
+                if (obj instanceof Thing.HeroParty) {
+                    Thing.HeroParty partyThing = (Thing.HeroParty) obj;
+                    Party party = new Party(partyThing);
+                    if (partyThing.getTriggerId() != 0) {
+                        partyTriggerState.addParty(partyThing.getTriggerId(), party);
+                    }
+                    creatureParties.put(party.getId(), party);
+                } else if (obj instanceof Thing.Creature) {
                     CreatureControl creatureControl = spawnCreature((Thing.Creature) obj, null, null);
 
                     // Also add to the creature trigger control
@@ -420,6 +432,16 @@ public class ThingLoader {
      */
     public DoorControl getDoor(Point point) {
         return doors.get(point);
+    }
+
+    /**
+     * Get party instance by ID
+     *
+     * @param id the party id
+     * @return party
+     */
+    public Party getParty(int id) {
+        return creatureParties.get(id);
     }
 
 }

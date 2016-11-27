@@ -145,7 +145,7 @@ public abstract class WorldState extends AbstractAppState {
         heuristic = new MapDistance();
 
         // Things
-        thingsNode = thingLoader.loadAll(gameState.getCreatureTriggerState(), gameState.getObjectTriggerState(), gameState.getDoorTriggerState());
+        thingsNode = thingLoader.loadAll(gameState.getCreatureTriggerState(), gameState.getObjectTriggerState(), gameState.getDoorTriggerState(), gameState.getPartyTriggerState());
         worldNode.attachChild(thingsNode);
 
         flashTileControl = new FlashTileControl(this, (Main) gameState.getApplication());

@@ -171,7 +171,7 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
         }
 
         // Path find
-        return (worldState.findPath(worldState.getTileCoordinates(new Vector3f(creature.getPosition().x, 0, creature.getPosition().y)), targetTile, creature) != null);
+        return (worldState.findPath(WorldState.getTileCoordinates(new Vector3f(creature.getPosition().x, 0, creature.getPosition().y)), targetTile, creature) != null);
     }
 
     /**

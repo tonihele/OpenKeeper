@@ -44,7 +44,6 @@ import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.action.ActionPoint;
-import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.task.AbstractTask;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.CursorFactory.CursorType;
