@@ -97,6 +97,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private boolean isInteractable = false;
 
     private RawInputListener inputListener;
+    private boolean inputListenerAdded = false;
     private IInteractiveControl interactiveControl;
     private Label tooltip;
     private KeeperHand keeperHand;
@@ -106,6 +107,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     public PlayerInteractionState(Player player) {
         this.player = player;
 
+        // The input
         initializeInput();
     }
 
@@ -221,10 +223,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
 
-        if (enabled) {
+        if (enabled && !inputListenerAdded) {
             app.getInputManager().addRawInputListener(inputListener);
-        } else {
+            inputListenerAdded = true;
+        } else if (!enabled && inputListenerAdded) {
             app.getInputManager().removeRawInputListener(inputListener);
+            inputListenerAdded = false;
         }
     }
 
@@ -385,7 +389,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             StringBuilder sb = new StringBuilder();
             Point p;
             if (interactiveControl != null) {
-                p = getWorldHandler().getTileCoordinates(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation());
+                p = WorldState.getTileCoordinates(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation());
             } else {
                 p = new Point((int) v.x, (int) v.y);
             }
