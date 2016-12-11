@@ -357,7 +357,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private boolean isInteractable() {
         if (isOnGui || !isOnMap || isTaggable) {
             setInteractiveControl(null);
-            return false;
         }
 
         Vector2f v = null;
@@ -366,7 +365,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             // Maybe a kinda hack, but set the tooltip here
             tooltip.setText(interactiveControl.getTooltip(player.getPlayerId()));
             interactiveControl.onHover();
-        } else {
+        } else if (isOnMap) {
 
             // Tile tooltip then
             v = selectionHandler.getPointedTilePosition();
@@ -385,7 +384,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         }
 
         // If debug, show tile coordinate
-        if (Main.isDebug()) {
+        if (Main.isDebug() && (interactiveControl != null || isOnMap)) {
             StringBuilder sb = new StringBuilder();
             Point p;
             if (interactiveControl != null) {
