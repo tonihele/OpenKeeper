@@ -228,7 +228,9 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
                         // Spells are all available for research unless otherwise stated
                         for (KeeperSpell spell : kwdFile.getKeeperSpells()) {
-                            keeper.getSpellControl().setTypeAvailable(spell, true);
+                            if (spell.getBonusRTime() != 0) {
+                                keeper.getSpellControl().setTypeAvailable(spell, true);
+                            }
                         }
                     }
                 }
