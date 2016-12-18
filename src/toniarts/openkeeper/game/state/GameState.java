@@ -49,6 +49,7 @@ import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -224,13 +225,18 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     // Init
                     if (keeper != null) {
                         keeper.initialize(stateManager, app);
+
+                        // Spells are all available for research unless otherwise stated
+                        for (KeeperSpell spell : kwdFile.getKeeperSpells()) {
+                            keeper.getSpellControl().setTypeAvailable(spell, true);
+                        }
                     }
                 }
 
                 // Set player availabilities
                 // TODO: the player customized game settings
                 for (Variable.Availability availability : kwdFile.getAvailabilities()) {
-                    if (availability.getPlayerId() == 0) {
+                    if (availability.getPlayerId() == 0 && availability.getType() != Variable.Availability.AvailabilityType.SPELL) {
 
                         // All players
                         for (Keeper player : getPlayers()) {
@@ -256,6 +262,15 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     case ROOM: {
                         player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
                         break;
+                    }
+                    case SPELL: {
+                        if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
+
+                            // Enable the spell, no need to research it
+                            player.getSpellControl().setSpellDiscovered(kwdFile.getKeeperSpellById(availability.getTypeId()), true);
+                        } else {
+                            player.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), false);
+                        }
                     }
                 }
             }

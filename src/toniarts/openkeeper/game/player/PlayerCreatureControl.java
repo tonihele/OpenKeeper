@@ -35,7 +35,7 @@ import toniarts.openkeeper.world.listener.CreatureListener;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerCreatureControl extends AbstractPlayerControl<Creature, CreatureControl> implements CreatureListener {
+public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<CreatureControl>> implements CreatureListener {
 
     public enum CreatureUIState {
 

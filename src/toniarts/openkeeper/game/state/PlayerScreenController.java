@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -60,6 +61,7 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.game.player.PlayerRoomControl;
+import toniarts.openkeeper.game.player.PlayerSpell;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
@@ -527,8 +529,8 @@ public class PlayerScreenController implements IPlayerScreenController {
         FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
 
         contentPanel.removeAll();
-        for (final KeeperSpell spell : state.getAvailableKeeperSpells()) {
-            contentPanel.addElement(createSpellIcon(spell));
+        for (final Entry<KeeperSpell, PlayerSpell> entry : state.getSpellControl().getTypes().entrySet()) {
+            contentPanel.addElement(createSpellIcon(entry.getValue()));
         }
 
         contentPanel = hud.findElementById("tab-workshop-content").getControl(FlowLayoutControl.class);
@@ -752,13 +754,19 @@ public class PlayerScreenController implements IPlayerScreenController {
         return createIcon(room.getRoomId(), "room", room.getGuiIcon(), room.getGeneralDescriptionStringId(), hint.replace("%21", room.getCost() + ""));
     }
 
-    private ControlBuilder createSpellIcon(final KeeperSpell spell) {
-        String name = Utils.getMainTextResourceBundle().getString(Integer.toString(spell.getNameStringId()));
-        final String hint = Utils.getMainTextResourceBundle().getString("1785")
-                .replace("%1", name)
-                .replace("%2", spell.getManaCost() + "")
-                .replace("%3", "1"); // TODO use real spell level
-        return createIcon(spell.getKeeperSpellId(), "spell", spell.getGuiIcon(), spell.getGeneralDescriptionStringId(), hint);
+    private ControlBuilder createSpellIcon(final PlayerSpell spell) {
+        String hint = "";
+        if (spell.isDiscovered()) {
+            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(spell.getKeeperSpell().getNameStringId()));
+            hint = Utils.getMainTextResourceBundle().getString("1785")
+                    .replace("%1", name)
+                    .replace("%2", spell.getKeeperSpell().getManaCost() + "")
+                    .replace("%3", spell.isUpgraded() ? "2" : "1");
+        }
+        if (spell.isDiscovered()) {
+            return createIcon(spell.getKeeperSpell().getKeeperSpellId(), "spell", spell.getKeeperSpell().getGuiIcon(), spell.getKeeperSpell().getGeneralDescriptionStringId(), hint);
+        }
+        return createIcon(spell.getKeeperSpell().getKeeperSpellId(), "spell", "gui\\spells\\s-tba", spell.getKeeperSpell().getGeneralDescriptionStringId(), hint);
     }
 
     private ControlBuilder createDoorIcon(final Door door) {
@@ -778,12 +786,18 @@ public class PlayerScreenController implements IPlayerScreenController {
     }
 
     public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint) {
+        return createIcon(id, type, guiIcon.getName(), generalDescriptionId, hint);
+    }
+
+    public ControlBuilder createIcon(final int id, final String type, final String guiIcon, final int generalDescriptionId, final String hint) {
         return new ControlBuilder(type + "_" + id, "guiIcon") {
             {
-                parameter("image", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon.getName() + ".png"));
+                parameter("image", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon + ".png"));
                 parameter("click", "select(" + type + ", " + id + ")");
                 parameter("tooltip", "${menu." + generalDescriptionId + "}");
-                parameter("hint", hint);
+                if (hint != null && !hint.isEmpty()) {
+                    parameter("hint", hint);
+                }
                 parameter("hoverImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/frame.png"));
                 parameter("activeImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"));
             }
