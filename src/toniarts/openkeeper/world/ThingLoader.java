@@ -367,7 +367,7 @@ public class ThingLoader {
      */
     public SpellBookObjectControl addRoomSpellBook(Point p, PlayerSpell spell, short playerId) {
         // FIXME: The object ID
-        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, 0, 0, (short) 4, playerId, 0);
+        Spatial object = objectLoader.load(assetManager, worldState.getMapData().getTile(p), p.x, p.y, spell, 0, 0, (short) 4, playerId, 0);
         SpellBookObjectControl control = object.getControl(SpellBookObjectControl.class);
         nodeObjects.attachChild(object);
         return control;
