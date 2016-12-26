@@ -302,13 +302,14 @@ public class TaskManager {
                 GraphPath<TileData> path = worldState.findPath(creature.getCreatureCoordinates(), target, creature);
                 if (path != null || target == creature.getCreatureCoordinates()) {
 
-                    // See if really assign
-                    if (!assign) {
-                        return true;
-                    }
-
                     // Assign the task
                     AbstractTask task = getRoomTask(objectType, target, creature, room);
+
+                    // See if really assign
+                    if (!assign) {
+                        return task.isValid();
+                    }
+
                     if (task instanceof AbstractCapacityCriticalRoomTask) {
                         if (taskPoints == null) {
                             taskPoints = new HashMap<>();
