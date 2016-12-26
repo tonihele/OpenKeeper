@@ -95,11 +95,7 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
         }
 
         // See if anything to upgrade
-        if (nextToUpgrade != null) {
-            currentResearch = nextToUpgrade;
-        } else {
-            currentResearch = null;
-        }
+        currentResearch = nextToUpgrade;
     }
 
 }
