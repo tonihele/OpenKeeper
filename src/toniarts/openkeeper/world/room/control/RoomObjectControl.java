@@ -31,9 +31,10 @@ import toniarts.openkeeper.world.room.GenericRoom;
  * Room object controller
  *
  * @param <T> the held object type
+ * @param <V> the value type to add
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomObjectControl<T extends ObjectControl> {
+public abstract class RoomObjectControl<T extends ObjectControl, V> {
 
     protected final GenericRoom parent;
     protected final Map<Point, Collection<T>> objectsByCoordinate = new HashMap<>();
@@ -68,13 +69,13 @@ public abstract class RoomObjectControl<T extends ObjectControl> {
     /**
      * Add item to room
      *
-     * @param sum the number of items to add
+     * @param value the number of items to add
      * @param p preferred dropping point for the item
      * @param thingLoader thing loader for displaying the actual item
      * @param creature the creature adding the item
      * @return the item count that doesn't fit
      */
-    public abstract int addItem(int sum, Point p, ThingLoader thingLoader, CreatureControl creature);
+    public abstract V addItem(V value, Point p, ThingLoader thingLoader, CreatureControl creature);
 
     /**
      * Get a room objects

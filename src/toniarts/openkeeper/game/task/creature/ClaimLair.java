@@ -67,7 +67,7 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
 
         // Create a lair
         RoomObjectControl control = getRoomObjectControl();
-        if (control.addItem(1, getTaskLocation(), worldState.getThingLoader(), creature) == 0) {
+        if ((int) control.addItem(1, getTaskLocation(), worldState.getThingLoader(), creature) == 0) {
             creature.setCreatureLair((ObjectControl) control.getItems(getTaskLocation()).iterator().next());
         }
 

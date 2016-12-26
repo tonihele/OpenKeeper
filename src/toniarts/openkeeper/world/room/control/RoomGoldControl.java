@@ -35,7 +35,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectControl> {
+public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectControl, Integer> {
 
     private int storedGold = 0;
 
@@ -44,7 +44,7 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
     }
 
     @Override
-    public int addItem(int sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
+    public Integer addItem(Integer sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
         if (p != null) {
             sum = putGold(sum, p, thingLoader);
         }

@@ -742,7 +742,7 @@ public abstract class WorldState extends AbstractAppState {
                 for (ObjectControl objectControl : thingLoader.getObjects()) {
                     if (objectControl instanceof GoldObjectControl && instance.hasCoordinate(objectControl.getTile().getLocation())) {
                         GoldObjectControl gold = (GoldObjectControl) objectControl;
-                        int goldLeft = genericRoom.getObjectControl(GenericRoom.ObjectType.GOLD).addItem(gold.getGold(), gold.getTile().getLocation(), thingLoader, null);
+                        int goldLeft = (int) genericRoom.getObjectControl(GenericRoom.ObjectType.GOLD).addItem(gold.getGold(), gold.getTile().getLocation(), thingLoader, null);
                         if (goldLeft == 0) {
                             gold.removeObject();
                         } else {
@@ -802,14 +802,11 @@ public abstract class WorldState extends AbstractAppState {
                     Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
+                    } else // Water or lava
+                    if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
+                        tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
                     } else {
-
-                        // Water or lava
-                        if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
-                            tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
-                        } else {
-                            tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
-                        }
+                        tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                     }
 
                     // Give money back

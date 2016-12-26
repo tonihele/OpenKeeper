@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.player;
 
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.world.object.SpellBookObjectControl;
 
 /**
  * Player's spell (Keeper Spell)
@@ -29,9 +30,15 @@ public class PlayerSpell {
     private boolean upgraded = false;
     private boolean discovered = false;
     private int research = 0;
+    private SpellBookObjectControl spellBookObjectControl;
 
     public PlayerSpell(KeeperSpell keeperSpell) {
+        this(keeperSpell, false);
+    }
+
+    public PlayerSpell(KeeperSpell keeperSpell, boolean discovered) {
         this.keeperSpell = keeperSpell;
+        this.discovered = discovered;
     }
 
     public boolean isUpgraded() {
@@ -62,6 +69,14 @@ public class PlayerSpell {
             return true;
         }
         return false;
+    }
+
+    public void setSpellBookObjectControl(SpellBookObjectControl spellBookObjectControl) {
+        this.spellBookObjectControl = spellBookObjectControl;
+    }
+
+    public SpellBookObjectControl getSpellBookObjectControl() {
+        return spellBookObjectControl;
     }
 
 }

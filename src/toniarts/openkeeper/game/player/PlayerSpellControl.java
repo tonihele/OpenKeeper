@@ -91,17 +91,26 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
      * Researches current spell
      *
      * @param researchAmount the research amount
+     * @return returns the spell if it is researched, it should be bound to a
+     * world object
      */
-    public void research(int researchAmount) {
+    public PlayerSpell research(int researchAmount) {
+        PlayerSpell spell = currentResearch;
         boolean advanceToNext = currentResearch.research(researchAmount);
         if (playerSpellListeners != null) {
             for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
-                playerSpellListener.onResearchStatusChanged(currentResearch);
+                playerSpellListener.onResearchStatusChanged(spell);
             }
         }
         if (advanceToNext) {
             setNextResearchTarget();
         }
+
+        // If discovered by the player for the first time, tie the spell to a spell book
+        if (advanceToNext && spell.isDiscovered() && spell.getSpellBookObjectControl() == null) {
+            return spell;
+        }
+        return null;
     }
 
     /**

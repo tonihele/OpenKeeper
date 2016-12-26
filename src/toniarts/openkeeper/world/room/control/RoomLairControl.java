@@ -29,7 +29,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomLairControl extends RoomObjectControl<ObjectControl> {
+public abstract class RoomLairControl extends RoomObjectControl<ObjectControl, Integer> {
 
     private int lairs = 0;
 
@@ -48,7 +48,7 @@ public abstract class RoomLairControl extends RoomObjectControl<ObjectControl> {
     }
 
     @Override
-    public int addItem(int sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
+    public Integer addItem(Integer sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
         Collection<ObjectControl> objects = objectsByCoordinate.get(p);
         if (objects != null && !objects.isEmpty()) {
             return sum; // Already a lair here

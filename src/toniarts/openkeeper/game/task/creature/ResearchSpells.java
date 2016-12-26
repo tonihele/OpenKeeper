@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
+import toniarts.openkeeper.game.player.PlayerSpell;
 import toniarts.openkeeper.game.player.PlayerSpellControl;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
@@ -63,7 +64,12 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
     public void executeTask(CreatureControl creature) {
 
         // Advance players spell research
-        spellControl.research(creature.getCreature().getResearchPerSecond());
+        PlayerSpell playerSpell = spellControl.research(creature.getCreature().getResearchPerSecond());
+        if (playerSpell != null) {
+
+            // Create a spell book
+            getRoom().getObjectControl(GenericRoom.ObjectType.SPELL_BOOK).addItem(playerSpell, null, worldState.getThingLoader(), creature);
+        }
     }
 
     @Override

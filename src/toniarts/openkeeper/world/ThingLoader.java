@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.player.PlayerSpell;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
@@ -48,6 +49,7 @@ import toniarts.openkeeper.world.listener.ObjectListener;
 import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.object.ObjectLoader;
+import toniarts.openkeeper.world.object.SpellBookObjectControl;
 import toniarts.openkeeper.world.trap.TrapControl;
 import toniarts.openkeeper.world.trap.TrapLoader;
 
@@ -351,6 +353,22 @@ public class ThingLoader {
     public ObjectControl addObject(Point p, short objectId, short playerId) {
         Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, 0, 0, objectId, playerId, 0);
         ObjectControl control = object.getControl(ObjectControl.class);
+        nodeObjects.attachChild(object);
+        return control;
+    }
+
+    /**
+     * Add an object, does not add the object to the object registry
+     *
+     * @param p the point to add
+     * @param spell the spell
+     * @param playerId the player id, the owner
+     * @return the object contol
+     */
+    public SpellBookObjectControl addRoomSpellBook(Point p, PlayerSpell spell, short playerId) {
+        // FIXME: The object ID
+        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, 0, 0, (short) 4, playerId, 0);
+        SpellBookObjectControl control = object.getControl(SpellBookObjectControl.class);
         nodeObjects.attachChild(object);
         return control;
     }

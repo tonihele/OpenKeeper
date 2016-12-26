@@ -17,9 +17,13 @@
 package toniarts.openkeeper.world.room.control;
 
 import java.awt.Point;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import toniarts.openkeeper.game.player.PlayerSpell;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.object.ObjectControl;
+import toniarts.openkeeper.world.object.SpellBookObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
@@ -27,7 +31,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomSpellBookControl extends RoomObjectControl<ObjectControl> {
+public abstract class RoomSpellBookControl extends RoomObjectControl<SpellBookObjectControl, PlayerSpell> {
 
     private int storedSpellBooks = 0;
 
@@ -51,8 +55,37 @@ public abstract class RoomSpellBookControl extends RoomObjectControl<ObjectContr
     }
 
     @Override
-    public int addItem(int sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
-        return sum;
+    public PlayerSpell addItem(PlayerSpell value, Point p, ThingLoader thingLoader, CreatureControl creature) {
+        Collection<SpellBookObjectControl> spellBooks = null;
+        if (p != null) {
+            spellBooks = objectsByCoordinate.get(p);
+            if (spellBooks != null && spellBooks.size() == getObjectsPerTile()) {
+                return value; // Already max amount of books there
+            }
+        } else {
+
+            // FIXME: floor furniture coordinates
+            // Find a spot
+            List<Point> coordinates = parent.getRoomInstance().getCoordinates();
+            for (Point coordinate : coordinates) {
+                if (parent.isTileAccessible(coordinate.x, coordinate.y)) {
+                    p = new Point(coordinate.x, coordinate.y);
+                    spellBooks = objectsByCoordinate.get(p);
+                    if (spellBooks == null || spellBooks.size() < getObjectsPerTile()) {
+                        break;
+                    }
+                }
+            }
+        }
+        SpellBookObjectControl object = thingLoader.addRoomSpellBook(p, value, creature.getOwnerId());
+        if (spellBooks == null) {
+            spellBooks = new ArrayList<>(getObjectsPerTile());
+        }
+        spellBooks.add(object);
+        objectsByCoordinate.put(p, spellBooks);
+        object.setRoomObjectControl(this);
+        storedSpellBooks++;
+        return null;
     }
 
     @Override

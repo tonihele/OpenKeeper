@@ -27,7 +27,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomResearcherControl extends RoomObjectControl<ObjectControl> {
+public abstract class RoomResearcherControl extends RoomObjectControl<ObjectControl, Integer> {
 
     public RoomResearcherControl(GenericRoom parent) {
         super(parent);
@@ -49,7 +49,7 @@ public abstract class RoomResearcherControl extends RoomObjectControl<ObjectCont
     }
 
     @Override
-    public int addItem(int sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
+    public Integer addItem(Integer sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
         return sum;
     }
 
