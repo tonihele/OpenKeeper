@@ -555,6 +555,15 @@ public abstract class GenericRoom {
         return floorFurniture.size();
     }
 
+    /**
+     * Get the number of wall furniture in a room
+     *
+     * @return wall furniture count
+     */
+    public int getWallFurnitureCount() {
+        return wallFurniture.size();
+    }
+
     public Set<ObjectControl> getFloorFurniture() {
         return floorFurniture;
     }

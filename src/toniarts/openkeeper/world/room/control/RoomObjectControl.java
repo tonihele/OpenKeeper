@@ -20,6 +20,7 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.world.ThingLoader;
@@ -28,7 +29,8 @@ import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
- * Room object controller
+ * Room object controller. FIXME: Cache the coorninates and listen to changes in
+ * rooms
  *
  * @param <T> the held object type
  * @param <V> the value type to add
@@ -129,6 +131,41 @@ public abstract class RoomObjectControl<T extends ObjectControl, V> {
                 obj.removeObject();
             }
         }
+    }
+
+    /**
+     * Gets all coordinates, coordinates that can handle the objects
+     *
+     * @return list of all coordinates
+     */
+    protected Collection<Point> getCoordinates() {
+        List<Point> coordinates = parent.getRoomInstance().getCoordinates();
+        Iterator<Point> iter = coordinates.iterator();
+        while (iter.hasNext()) {
+            Point p = iter.next();
+            if (!parent.isTileAccessible(p)) {
+                iter.remove();
+            }
+        }
+        return coordinates;
+    }
+
+    /**
+     * Gets available coordinates
+     *
+     * @return list of available coordinates
+     */
+    public Collection<Point> getAvailableCoordinates() {
+        Collection<Point> coordinates = getCoordinates();
+        Iterator<Point> iter = coordinates.iterator();
+        while (iter.hasNext()) {
+            Point p = iter.next();
+            Collection<T> items = getItems(p);
+            if (items != null && items.size() == getObjectsPerTile()) {
+                iter.remove();
+            }
+        }
+        return coordinates;
     }
 
 }

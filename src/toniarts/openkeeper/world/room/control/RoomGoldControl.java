@@ -185,4 +185,9 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
         return 1;
     }
 
+    @Override
+    public Collection<Point> getAvailableCoordinates() {
+        return getCoordinates(); // Everything goes
+    }
+
 }

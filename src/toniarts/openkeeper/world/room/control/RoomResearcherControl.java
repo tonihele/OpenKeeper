@@ -17,6 +17,9 @@
 package toniarts.openkeeper.world.room.control;
 
 import java.awt.Point;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.ObjectControl;
@@ -57,6 +60,20 @@ public abstract class RoomResearcherControl extends RoomObjectControl<ObjectCont
     public void destroy() {
 
         // The keeper has no more access to the spells
+    }
+
+    @Override
+    protected Collection<Point> getCoordinates() {
+
+        // Only furniture
+        List<Point> coordinates = new ArrayList<>(parent.getFloorFurnitureCount() + parent.getWallFurnitureCount());
+        for (ObjectControl oc : parent.getFloorFurniture()) {
+            coordinates.add(oc.getObjectCoordinates());
+        }
+        for (ObjectControl oc : parent.getWallFurniture()) {
+            coordinates.add(oc.getObjectCoordinates());
+        }
+        return coordinates;
     }
 
 }

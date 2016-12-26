@@ -23,6 +23,7 @@ import java.util.List;
 import toniarts.openkeeper.game.player.PlayerSpell;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.object.SpellBookObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
@@ -64,16 +65,13 @@ public abstract class RoomSpellBookControl extends RoomObjectControl<SpellBookOb
             }
         } else {
 
-            // FIXME: floor furniture coordinates
             // Find a spot
-            List<Point> coordinates = parent.getRoomInstance().getCoordinates();
+            Collection<Point> coordinates = getAvailableCoordinates();
             for (Point coordinate : coordinates) {
-                if (parent.isTileAccessible(coordinate.x, coordinate.y)) {
-                    p = new Point(coordinate.x, coordinate.y);
-                    spellBooks = objectsByCoordinate.get(p);
-                    if (spellBooks == null || spellBooks.size() < getObjectsPerTile()) {
-                        break;
-                    }
+                p = new Point(coordinate.x, coordinate.y);
+                spellBooks = objectsByCoordinate.get(p);
+                if (spellBooks == null || spellBooks.size() < getObjectsPerTile()) {
+                    break;
                 }
             }
         }
@@ -92,6 +90,18 @@ public abstract class RoomSpellBookControl extends RoomObjectControl<SpellBookOb
     public void destroy() {
 
         // The keeper has no more access to the spells
+        // TODO: how
+    }
+
+    @Override
+    protected Collection<Point> getCoordinates() {
+
+        // Only floor furniture
+        List<Point> coordinates = new ArrayList<>(parent.getFloorFurnitureCount());
+        for (ObjectControl oc : parent.getFloorFurniture()) {
+            coordinates.add(oc.getObjectCoordinates());
+        }
+        return coordinates;
     }
 
 }

@@ -283,10 +283,9 @@ public class TaskManager {
         // See that are they really accessible starting from the least distance one
         for (GenericRoom room : distancesToRooms.values()) {
 
+            // FIXME: if we are to have more capacity than one per tile, we need to refactor
             // The whole rooms are always accessible, take a random point from the room like DK II seems to do
-            // TODO: a point where the task can be done
-            // FIXME: now just eliminate the non-accessible ones
-            List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
+            List<Point> coordinates = new ArrayList<>(room.getObjectControl(objectType).getAvailableCoordinates());
             Iterator<Point> iter = coordinates.iterator();
             Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(room);
             while (iter.hasNext()) {
