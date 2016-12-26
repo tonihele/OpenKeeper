@@ -32,7 +32,7 @@ import toniarts.openkeeper.world.room.RoomInstance;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> implements RoomListener {
+public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<GenericRoom>> implements RoomListener {
 
     private int roomCount = 0;
     private boolean portalsOpen = true;

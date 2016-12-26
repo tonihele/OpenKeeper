@@ -56,7 +56,7 @@ public class RoomGoldFixer extends AbstractAppState implements IGameLogicUpdatea
 
                                 // Give the gold
                                 GoldObjectControl gold = (GoldObjectControl) objectControl;
-                                int goldLeft = room.getObjectControl(GenericRoom.ObjectType.GOLD).addItem(gold.getGold(), gold.getTile().getLocation(), worldState.getThingLoader(), null);
+                                int goldLeft = (int) room.getObjectControl(GenericRoom.ObjectType.GOLD).addItem(gold.getGold(), gold.getTile().getLocation(), worldState.getThingLoader(), null);
                                 if (goldLeft == 0) {
                                     gold.removeObject();
                                 } else {

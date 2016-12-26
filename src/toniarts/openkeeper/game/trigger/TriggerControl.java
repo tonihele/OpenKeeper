@@ -203,6 +203,7 @@ public class TriggerControl extends Control {
                     case DOOR:
                         break;
                     case KEEPER_SPELL:
+                        keeper.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(targetId), available);
                         break;
                     case ROOM:
                         keeper.getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);

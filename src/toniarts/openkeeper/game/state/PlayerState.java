@@ -30,10 +30,10 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerRoomControl;
+import toniarts.openkeeper.game.player.PlayerSpellControl;
 import toniarts.openkeeper.game.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
-import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -249,6 +249,14 @@ public class PlayerState extends AbstractAppState {
         return null;
     }
 
+    public PlayerSpellControl getSpellControl() {
+        Keeper keeper = getPlayer();
+        if (keeper != null) {
+            return keeper.getSpellControl();
+        }
+        return null;
+    }
+
     public void setTransitionEnd(boolean value) {
         transitionEnd = value;
     }
@@ -279,12 +287,6 @@ public class PlayerState extends AbstractAppState {
 
     protected List<Room> getAvailableRoomsToBuild() {
         return getRoomControl().getTypesAvailable();
-    }
-
-    protected List<KeeperSpell> getAvailableKeeperSpells() {
-        GameState gameState = stateManager.getState(GameState.class);
-        List<KeeperSpell> spells = gameState.getLevelData().getKeeperSpells();
-        return spells;
     }
 
     protected List<Door> getAvailableDoors() {

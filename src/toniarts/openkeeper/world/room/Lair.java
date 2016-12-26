@@ -35,11 +35,6 @@ public class Lair extends Normal {
         addObjectControl(new RoomLairControl(this) {
 
             @Override
-            protected int getObjectsPerTile() {
-                return 1;
-            }
-
-            @Override
             protected int getNumberOfAccessibleTiles() {
                 return roomInstance.getCoordinates().size();
             }
