@@ -25,8 +25,10 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -34,6 +36,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
@@ -46,7 +49,7 @@ public abstract class GenericRoom {
 
     public enum ObjectType {
 
-        GOLD, LAIR;
+        GOLD, LAIR, SPELL_BOOK, RESEARCHER;
 
     };
 
@@ -84,6 +87,8 @@ public abstract class GenericRoom {
     protected boolean[][] map;
     protected Point start;
     protected final ObjectLoader objectLoader;
+    private final Set<ObjectControl> floorFurniture = new HashSet<>();
+    private final Set<ObjectControl> wallFurniture = new HashSet<>();
 
     public GenericRoom(AssetManager assetManager,
             RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
@@ -165,6 +170,8 @@ public abstract class GenericRoom {
      * @return node with all the room objects
      */
     protected Node constructObjects() {
+        floorFurniture.clear();
+        wallFurniture.clear();
 
         // Floor objects 0-2
         Room room = roomInstance.getRoom();
@@ -219,10 +226,17 @@ public abstract class GenericRoom {
 
                         // Add object
                         objectMap[x][y] = true;
-                        objects.attachChild(objectLoader.load(assetManager, start.x + x, start.y + y, room.getObjects().get(index), roomInstance.getOwnerId()));
+                        Spatial object = objectLoader.load(assetManager, start.x + x, start.y + y, room.getObjects().get(index), roomInstance.getOwnerId());
+                        objects.attachChild(object);
+                        floorFurniture.add(object.getControl(ObjectControl.class));
                     }
                 }
             }
+        }
+
+        // Wall objects 3-5
+        if (room.getObjects().get(3) > 0 || room.getObjects().get(4) > 0 || room.getObjects().get(5) > 0) {
+
         }
         return objects;
     }
@@ -408,7 +422,7 @@ public abstract class GenericRoom {
                 + "/" + model + ".j3o", false);
     }
 
-    protected void addObjectControl(RoomObjectControl control) {
+    protected final void addObjectControl(RoomObjectControl control) {
         objectControls.put(control.getObjectType(), control);
         if (defaultObjectType == null) {
             defaultObjectType = control.getObjectType();
@@ -521,6 +535,32 @@ public abstract class GenericRoom {
 
     public WorldState getWorldState() {
         return worldState;
+    }
+
+    /**
+     * Get the total number of furniture in room
+     *
+     * @return furniture count
+     */
+    public int getFurnitureCount() {
+        return wallFurniture.size() + floorFurniture.size();
+    }
+
+    /**
+     * Get the number of floor furniture in a room
+     *
+     * @return floor furniture count
+     */
+    public int getFloorFurnitureCount() {
+        return floorFurniture.size();
+    }
+
+    public Set<ObjectControl> getFloorFurniture() {
+        return floorFurniture;
+    }
+
+    public Set<ObjectControl> getWallFurniture() {
+        return wallFurniture;
     }
 
 }

@@ -19,6 +19,7 @@ package toniarts.openkeeper.world.room.control;
 import com.jme3.math.Vector2f;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import toniarts.openkeeper.world.MapLoader;
@@ -63,12 +64,14 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
 
     private int putGold(int sum, Point p, ThingLoader thingLoader) {
         int pointStoredGold = 0;
-        GoldObjectControl goldPile = objects.get(p);
-        if (goldPile != null) {
+        Collection<GoldObjectControl> goldPiles = objectsByCoordinate.get(p);
+        GoldObjectControl goldPile = null;
+        if (goldPiles != null && !goldPiles.isEmpty()) {
+            goldPile = goldPiles.iterator().next();
             pointStoredGold = goldPile.getGold();
         }
-        if (pointStoredGold < getObjectsPerTile()) {
-            int goldToStore = Math.min(sum, getObjectsPerTile() - pointStoredGold);
+        if (pointStoredGold < getGoldPerObject()) {
+            int goldToStore = Math.min(sum, getGoldPerObject() - pointStoredGold);
             pointStoredGold += goldToStore;
             sum -= goldToStore;
             storedGold += goldToStore;
@@ -76,8 +79,11 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
             // Add the visuals
             if (goldPile == null) {
                 GoldObjectControl object = thingLoader.addRoomGold(p, parent.getRoomInstance().getOwnerId(), goldToStore, getObjectsPerTile());
-                goldPile = object;
-                objects.put(p, goldPile);
+                if (goldPiles == null) {
+                    goldPiles = new ArrayList<>(1);
+                }
+                goldPiles.add(object);
+                objectsByCoordinate.put(p, goldPiles);
                 object.setRoomObjectControl(this);
             } else {
 
@@ -103,7 +109,7 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
 
     @Override
     public void destroy() {
-        List<Entry<Point, GoldObjectControl>> storedGoldList = new ArrayList<>(objects.entrySet());
+        List<Entry<Point, Collection<GoldObjectControl>>> storedGoldList = new ArrayList<>(objectsByCoordinate.entrySet());
 
         // Delete all gold
         removeAllObjects();
@@ -111,8 +117,8 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
         // Create the loose gold
         if (!storedGoldList.isEmpty()) {
             ThingLoader thingLoader = parent.getWorldState().getThingLoader();
-            for (Entry<Point, GoldObjectControl> entry : storedGoldList) {
-                thingLoader.addLooseGold(entry.getKey(), new Vector2f(MapLoader.TILE_WIDTH / 2, MapLoader.TILE_WIDTH / 2), parent.getRoomInstance().getOwnerId(), entry.getValue().getGold());
+            for (Entry<Point, Collection<GoldObjectControl>> entry : storedGoldList) {
+                thingLoader.addLooseGold(entry.getKey(), new Vector2f(MapLoader.TILE_WIDTH / 2, MapLoader.TILE_WIDTH / 2), parent.getRoomInstance().getOwnerId(), entry.getValue().iterator().next().getGold());
             }
         }
     }
@@ -137,22 +143,25 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
      */
     public int removeGold(int amount) {
         List<GoldObjectControl> objectsToRemove = new ArrayList<>();
-        for (GoldObjectControl goldObjectControl : objects.values()) {
-            int goldToRemove = Math.min(goldObjectControl.getGold(), amount);
-            amount -= goldToRemove;
-            goldObjectControl.setGold(goldObjectControl.getGold() - goldToRemove);
+        for (Collection<GoldObjectControl> goldObjectControls : objectsByCoordinate.values()) {
+            if (!goldObjectControls.isEmpty()) {
+                GoldObjectControl goldObjectControl = goldObjectControls.iterator().next();
+                int goldToRemove = Math.min(goldObjectControl.getGold(), amount);
+                amount -= goldToRemove;
+                goldObjectControl.setGold(goldObjectControl.getGold() - goldToRemove);
 
-            // Substract the gold from the player
-            parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(goldToRemove);
-            storedGold -= goldToRemove;
+                // Substract the gold from the player
+                parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(goldToRemove);
+                storedGold -= goldToRemove;
 
-            // Add to removal list if empty item
-            if (goldObjectControl.getGold() == 0) {
-                objectsToRemove.add(goldObjectControl);
-            }
+                // Add to removal list if empty item
+                if (goldObjectControl.getGold() == 0) {
+                    objectsToRemove.add(goldObjectControl);
+                }
 
-            if (amount == 0) {
-                break;
+                if (amount == 0) {
+                    break;
+                }
             }
         }
 
@@ -162,6 +171,18 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
         }
 
         return amount;
+    }
+
+    @Override
+    public int getMaxCapacity() {
+        return getObjectsPerTile() * getNumberOfAccessibleTiles() * getGoldPerObject();
+    }
+
+    protected abstract int getGoldPerObject();
+
+    @Override
+    protected int getObjectsPerTile() {
+        return 1;
     }
 
 }

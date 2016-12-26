@@ -244,9 +244,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void navigateToRandomPoint() {
-        Point p = worldState.findRandomAccessibleTile(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, this);
+        Point p = worldState.findRandomAccessibleTile(WorldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, this);
         if (p != null) {
-            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, this);
+            GraphPath<TileData> outPath = worldState.findPath(WorldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, this);
 
             if (outPath != null && outPath.getCount() > 1) {
 
@@ -695,7 +695,43 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public boolean findWork() {
 
         // See if we have some available work
-        return (worldState.getTaskManager().assignTask(this, false));
+        if (isWorker()) {
+            return (worldState.getTaskManager().assignTask(this, false));
+        }
+
+        // See that is there a prefered job for us
+        // FIXME: moods
+        List<Creature.JobPreference> jobs = new ArrayList<>();
+        if (creature.getHappyJobs() != null) {
+            for (Creature.JobPreference jobPreference : creature.getHappyJobs()) {
+                if (worldState.getTaskManager().isTaskAvailable(this, jobPreference.getJobType())) {
+                    jobs.add(jobPreference);
+                }
+            }
+        }
+
+        // Choose
+        if (!jobs.isEmpty()) {
+            return (worldState.getTaskManager().assignTask(this, chooseOnWeight(jobs).getJobType()));
+        }
+
+        return false;
+    }
+
+    private static Creature.JobPreference chooseOnWeight(List<Creature.JobPreference> items) {
+        double completeWeight = 0.0;
+        for (Creature.JobPreference item : items) {
+            completeWeight += item.getChance();
+        }
+        double r = FastMath.rand.nextDouble() * completeWeight;
+        double countWeight = 0.0;
+        for (Creature.JobPreference item : items) {
+            countWeight += item.getChance();
+            if (countWeight >= r) {
+                return item;
+            }
+        }
+        return null;
     }
 
     /**

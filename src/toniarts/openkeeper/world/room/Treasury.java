@@ -35,14 +35,15 @@ public abstract class Treasury extends Normal {
         addObjectControl(new RoomGoldControl(this) {
 
             @Override
-            protected int getObjectsPerTile() {
-                return Treasury.this.getGoldPerTile();
-            }
-
-            @Override
             protected int getNumberOfAccessibleTiles() {
                 return roomInstance.getCoordinates().size();
             }
+
+            @Override
+            protected int getGoldPerObject() {
+                return Treasury.this.getGoldPerTile();
+            }
+
         });
     }
 

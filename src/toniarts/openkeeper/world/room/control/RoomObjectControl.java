@@ -18,6 +18,7 @@ package toniarts.openkeeper.world.room.control;
 
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
 public abstract class RoomObjectControl<T extends ObjectControl> {
 
     protected final GenericRoom parent;
-    protected final Map<Point, T> objects = new HashMap<>();
+    protected final Map<Point, Collection<T>> objectsByCoordinate = new HashMap<>();
 
     public RoomObjectControl(GenericRoom parent) {
         this.parent = parent;
@@ -76,13 +77,13 @@ public abstract class RoomObjectControl<T extends ObjectControl> {
     public abstract int addItem(int sum, Point p, ThingLoader thingLoader, CreatureControl creature);
 
     /**
-     * Get a room object
+     * Get a room objects
      *
      * @param p the object from point
-     * @return the object in given point
+     * @return the objects in given point
      */
-    public T getItem(Point p) {
-        return objects.get(p);
+    public Collection<T> getItems(Point p) {
+        return objectsByCoordinate.get(p);
     }
 
     /**
@@ -110,16 +111,22 @@ public abstract class RoomObjectControl<T extends ObjectControl> {
      */
     public void removeItem(T object) {
         object.setRoomObjectControl(null);
-        objects.values().remove(object);
+        for (Collection<T> objects : objectsByCoordinate.values()) {
+            if (objects.remove(object)) {
+                break;
+            }
+        }
     }
 
     /**
      * Removes all objects (for real)
      */
     protected void removeAllObjects() {
-        List<ObjectControl> objectList = new ArrayList<>(objects.values());
-        for (ObjectControl obj : objectList) {
-            obj.removeObject();
+        List<Collection<T>> objectList = new ArrayList<>(objectsByCoordinate.values());
+        for (Collection<T> objects : objectList) {
+            for (T obj : objects) {
+                obj.removeObject();
+            }
         }
     }
 

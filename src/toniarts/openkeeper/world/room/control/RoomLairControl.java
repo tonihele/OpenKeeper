@@ -17,6 +17,8 @@
 package toniarts.openkeeper.world.room.control;
 
 import java.awt.Point;
+import java.util.ArrayList;
+import java.util.Collection;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.ObjectControl;
@@ -29,13 +31,15 @@ import toniarts.openkeeper.world.room.GenericRoom;
  */
 public abstract class RoomLairControl extends RoomObjectControl<ObjectControl> {
 
+    private int lairs = 0;
+
     public RoomLairControl(GenericRoom parent) {
         super(parent);
     }
 
     @Override
     public int getCurrentCapacity() {
-        return objects.size();
+        return lairs;
     }
 
     @Override
@@ -45,12 +49,18 @@ public abstract class RoomLairControl extends RoomObjectControl<ObjectControl> {
 
     @Override
     public int addItem(int sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
-        if (objects.containsKey(p)) {
+        Collection<ObjectControl> objects = objectsByCoordinate.get(p);
+        if (objects != null && !objects.isEmpty()) {
             return sum; // Already a lair here
         }
         ObjectControl object = thingLoader.addObject(p, creature.getCreature().getLairObjectId(), creature.getOwnerId());
-        objects.put(p, object);
+        if (objects == null) {
+            objects = new ArrayList<>(1);
+        }
+        objects.add(object);
+        objectsByCoordinate.put(p, objects);
         object.setRoomObjectControl(this);
+        lairs++;
         return 0;
     }
 
@@ -59,6 +69,17 @@ public abstract class RoomLairControl extends RoomObjectControl<ObjectControl> {
 
         // Just release all the lairs
         removeAllObjects();
+    }
+
+    @Override
+    public void removeItem(ObjectControl object) {
+        super.removeItem(object);
+        lairs--;
+    }
+
+    @Override
+    protected int getObjectsPerTile() {
+        return 1;
     }
 
 }

@@ -26,6 +26,8 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
  */
 public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, PlayerSpell> {
 
+    private PlayerSpell currentResearch = null;
+
     public PlayerSpellControl(Application application) {
         super(application);
     }
@@ -36,7 +38,11 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
 
         // Add one to the stock
         if (available) {
-            put(type, new PlayerSpell(type));
+            PlayerSpell playerSpell = new PlayerSpell(type);
+            put(type, playerSpell);
+            if (currentResearch == null) {
+                currentResearch = playerSpell;
+            }
         } else {
             types.remove(type);
         }
@@ -54,7 +60,46 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
      * @param discovered discovery state
      */
     public void setSpellDiscovered(KeeperSpell spell, boolean discovered) {
-        get(spell).setDiscovered(discovered);
+        PlayerSpell playerSpell = get(spell);
+        playerSpell.setDiscovered(discovered);
+        if (discovered && playerSpell == currentResearch) {
+            setNextResearchTarget();
+        }
+    }
+
+    public void research(int researchAmount) {
+        if (currentResearch.research(researchAmount)) {
+            setNextResearchTarget();
+        }
+    }
+
+    public boolean isAnythingToReaseach() {
+        return currentResearch != null;
+    }
+
+    private void setNextResearchTarget() {
+        PlayerSpell nextToUpgrade = null;
+        PlayerSpell nextToReseach = null;
+        for (PlayerSpell spell : types.values()) {
+            if (!spell.isDiscovered() && nextToReseach == null) {
+                nextToReseach = spell;
+            } else if (spell.isDiscovered() && !spell.isUpgraded() && nextToUpgrade == null) {
+                nextToUpgrade = spell;
+            }
+
+            // Always prioritize discovering new over upgrading
+            if (nextToReseach != null) {
+                currentResearch = nextToReseach;
+                return;
+            }
+        }
+
+        // See if anything to upgrade
+        if (nextToUpgrade != null) {
+            currentResearch = nextToUpgrade;
+        } else {
+            currentResearch = null;
+        }
     }
 
 }

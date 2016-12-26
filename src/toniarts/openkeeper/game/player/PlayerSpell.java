@@ -50,4 +50,18 @@ public class PlayerSpell {
         this.discovered = discovered;
     }
 
+    protected boolean research(int researchAmount) {
+        research += researchAmount;
+        if (discovered && research >= keeperSpell.getBonusRTime()) {
+            upgraded = true;
+            research = 0;
+            return true;
+        } else if (!discovered && research >= keeperSpell.getResearchTime()) {
+            discovered = true;
+            research = 0;
+            return true;
+        }
+        return false;
+    }
+
 }
