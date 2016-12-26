@@ -139,7 +139,7 @@ public abstract class RoomObjectControl<T extends ObjectControl, V> {
      * @return list of all coordinates
      */
     protected Collection<Point> getCoordinates() {
-        List<Point> coordinates = parent.getRoomInstance().getCoordinates();
+        List<Point> coordinates = new ArrayList<>(parent.getRoomInstance().getCoordinates());
         Iterator<Point> iter = coordinates.iterator();
         while (iter.hasNext()) {
             Point p = iter.next();
@@ -156,7 +156,7 @@ public abstract class RoomObjectControl<T extends ObjectControl, V> {
      * @return list of available coordinates
      */
     public Collection<Point> getAvailableCoordinates() {
-        Collection<Point> coordinates = getCoordinates();
+        List<Point> coordinates = new ArrayList<>(getCoordinates());
         Iterator<Point> iter = coordinates.iterator();
         while (iter.hasNext()) {
             Point p = iter.next();
