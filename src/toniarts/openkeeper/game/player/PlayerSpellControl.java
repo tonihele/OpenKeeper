@@ -17,6 +17,8 @@
 package toniarts.openkeeper.game.player;
 
 import com.jme3.app.Application;
+import java.util.ArrayList;
+import java.util.List;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 
 /**
@@ -27,6 +29,7 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, PlayerSpell> {
 
     private PlayerSpell currentResearch = null;
+    private List<PlayerSpellListener> playerSpellListeners;
 
     public PlayerSpellControl(Application application) {
         super(application);
@@ -37,14 +40,26 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
         super.setTypeAvailable(type, available);
 
         // Add one to the stock
+        PlayerSpell playerSpell;
         if (available) {
-            PlayerSpell playerSpell = new PlayerSpell(type);
+            playerSpell = new PlayerSpell(type);
             put(type, playerSpell);
             if (currentResearch == null) {
                 currentResearch = playerSpell;
             }
         } else {
-            types.remove(type);
+            playerSpell = types.remove(type);
+        }
+
+        // Listeners
+        if (playerSpellListeners != null) {
+            for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
+                if (available) {
+                    playerSpellListener.onAdded(playerSpell);
+                } else {
+                    playerSpellListener.onRemoved(playerSpell);
+                }
+            }
         }
     }
 
@@ -65,14 +80,35 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
         if (discovered && playerSpell == currentResearch) {
             setNextResearchTarget();
         }
+        if (playerSpellListeners != null) {
+            for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
+                playerSpellListener.onResearchStatusChanged(playerSpell);
+            }
+        }
     }
 
+    /**
+     * Researches current spell
+     *
+     * @param researchAmount the research amount
+     */
     public void research(int researchAmount) {
-        if (currentResearch.research(researchAmount)) {
+        boolean advanceToNext = currentResearch.research(researchAmount);
+        if (playerSpellListeners != null) {
+            for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
+                playerSpellListener.onResearchStatusChanged(currentResearch);
+            }
+        }
+        if (advanceToNext) {
             setNextResearchTarget();
         }
     }
 
+    /**
+     * Determines can the player research any spells
+     *
+     * @return is there anything to research
+     */
     public boolean isAnythingToReaseach() {
         return currentResearch != null;
     }
@@ -96,6 +132,18 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
 
         // See if anything to upgrade
         currentResearch = nextToUpgrade;
+    }
+
+    /**
+     * Listen to spell status changes
+     *
+     * @param listener the listener
+     */
+    public void addPlayerSpellListener(PlayerSpellListener listener) {
+        if (playerSpellListeners == null) {
+            playerSpellListeners = new ArrayList<>();
+        }
+        playerSpellListeners.add(listener);
     }
 
 }
