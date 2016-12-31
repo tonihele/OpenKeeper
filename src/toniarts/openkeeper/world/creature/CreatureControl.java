@@ -21,6 +21,7 @@ import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.ai.steer.behaviors.Cohesion;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
+import com.badlogic.gdx.ai.steer.behaviors.Seek;
 import com.badlogic.gdx.ai.steer.proximities.InfiniteProximity;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
@@ -77,39 +78,40 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public enum AnimationType {
 
-        MOVE, WORK, IDLE, OTHER;
+        MOVE, WORK, IDLE, ATTACK, DYING, OTHER;
     }
 
     // Attributes
     private final String name;
     private final String bloodType;
-    private int gold = 0;
-    private int level = 1;
-    private int health = 1;
-    private int experience = 0;
-    private short ownerId;
-    private float height;
-    private int maxHealth;
-    private int fear;
-    private int threat;
-    private int meleeDamage;
-    private int pay;
-    private int maxGoldHeld;
-    private int hungerFill;
-    private int manaGenPrayer;
-    private int experienceToNextLevel;
-    private int experiencePerSecond;
-    private int experiencePerSecondTraining;
-    private int researchPerSecond;
-    private int manufacturePerSecond;
-    private int decomposeValue;
-    private float speed;
-    private float runSpeed;
-    private float tortureTimeToConvert;
-    private int posessionManaCost;
-    private int ownLandHealthIncrease;
-    private float distanceCanHear;
-    private float meleeRecharge;
+    protected int gold = 0;
+    protected int level = 1;
+    protected int health = 1;
+    protected int experience = 0;
+    protected short ownerId;
+    protected float height;
+    protected int maxHealth;
+    protected int fear;
+    protected int threat;
+    protected int meleeDamage;
+    protected int pay;
+    protected int maxGoldHeld;
+    protected int hungerFill;
+    protected int manaGenPrayer;
+    protected int experienceToNextLevel;
+    protected int experiencePerSecond;
+    protected int experiencePerSecondTraining;
+    protected int researchPerSecond;
+    protected int manufacturePerSecond;
+    protected int decomposeValue;
+    protected float speed;
+    protected float runSpeed;
+    protected float tortureTimeToConvert;
+    protected int posessionManaCost;
+    protected int ownLandHealthIncrease;
+    protected float distanceCanHear;
+    protected float meleeRecharge;
+    private CreatureAttack executingAttack;
     private static final int MAX_CREATURE_LEVEL = 10;
     //
 
@@ -125,11 +127,15 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private AnimationType playingAnimationType = AnimationType.IDLE;
     private ObjectControl creatureLair;
     private CreatureControl followTarget;
+    private final List<CreatureAttack> attacks;
     /**
      * Things we hear & see per tick
      */
     private final Set<CreatureControl> visibilityList = new HashSet<>();
     private boolean visibilityListUpdated = false;
+    private Integer ourThreat;
+    private Integer enemyThreat;
+    private CreatureControl attackTarget;
 
     // Good creature specific stuff
     private Party party;
@@ -184,6 +190,13 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 ownerId = ((DeadBody) creatureInstance).getPlayerId();
             }
         }
+
+        // Create the attacks
+        attacks = new ArrayList<>(creature.getSpells().size() + 1);
+        attacks.add(new CreatureAttack(this)); // Melee
+        for (Creature.Spell spell : creature.getSpells()) {
+            attacks.add(new CreatureAttack(this, spell, worldState.getGameState().getLevelData())); // Spells
+        }
     }
 
     @Override
@@ -200,6 +213,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         visibilityListUpdated = false;
         if (stateMachine.getCurrentState() == null) {
             stateMachine.changeState(CreatureState.IDLE);
+        }
+
+        // Update attacks
+        for (CreatureAttack attack : attacks) {
+            attack.recharge(tpf);
         }
 
         // Update attributes
@@ -298,7 +316,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
             // Return to previous state
             stateMachine.revertToPreviousState();
-        } else if (stateMachine.getCurrentState() == CreatureState.DEAD) {
+        } else if (playingAnimationType == AnimationType.DYING) {
 
             // TODO: should show the pose for awhile I guess
             removeCreature();
@@ -340,6 +358,32 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 }
             } else if (stateMachine.getCurrentState() == CreatureState.ENTERING_DUNGEON) {
                 playAnimation(creature.getAnimEntranceResource());
+            } else if (stateMachine.getCurrentState() == CreatureState.FIGHT) {
+                CreatureAttack executeAttack = executingAttack;
+                if (executeAttack != null && executeAttack.isPlayAnimation()) {
+                    if (executeAttack.isMelee()) {
+                        List<ArtResource> meleeAttackAnimations = new ArrayList<>(2);
+                        if (creature.getAnimMelee1Resource() != null) {
+                            meleeAttackAnimations.add(creature.getAnimMelee1Resource());
+                        }
+                        if (creature.getAnimMelee2Resource() != null) {
+                            meleeAttackAnimations.add(creature.getAnimMelee2Resource());
+                        }
+                        ArtResource attackAnim = meleeAttackAnimations.get(0);
+                        if (meleeAttackAnimations.size() > 1) {
+                            attackAnim = Utils.getRandomItem(meleeAttackAnimations);
+                        }
+                        playAnimation(attackAnim);
+                    } else {
+                        playAnimation(creature.getAnimMagicResource());
+                    }
+                    playingAnimationType = AnimationType.ATTACK;
+                }
+            } else if (stateMachine.getCurrentState() == CreatureState.DEAD) {
+
+                //TODO: Dying direction
+                playAnimation(creature.getAnimDieResource());
+                playingAnimationType = AnimationType.DYING;
             } else {
                 List<ArtResource> idleAnimations = new ArrayList<>(3);
                 if (creature.getAnimIdle1Resource() != null) {
@@ -405,12 +449,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             stateMachine.changeState(CreatureState.SLAPPED);
             steeringBehavior = null;
             idleAnimationPlayCount = 0;
-            health -= creature.getSlapDamage();
-            if (health < 1) {
-
-                // Die :(
-                stateMachine.changeState(CreatureState.DEAD);
-            } else {
+            if (!applyDamage(creature.getSlapDamage())) {
                 playAnimation(creature.getAnimFallbackResource());
                 playingAnimationType = AnimationType.OTHER;
             }
@@ -424,8 +463,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void die() {
-        //TODO: Dying direction
-        playAnimation(creature.getAnimDieResource());
+        stop();
 
         // Notify
         onDie(CreatureControl.this);
@@ -982,6 +1020,194 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public Thing.Room.Direction getFacingDirection() {
         float orientation = getOrientation();
         return Thing.Room.Direction.NORTH;
+    }
+
+    /**
+     * Should the creature flee or attack. Sets the AI state accordingly
+     *
+     * @return true if the creature should take a part in any of these actions
+     */
+    public boolean shouldFleeOrAttack() {
+
+        // Check fleeing, TODO: Always flee?
+        if (!creature.getFlags().contains(Creature.CreatureFlag.IS_FEARLESS) && (getEnemyThreat() - getOurThreat() > fear)) {
+            stateMachine.changeState(CreatureState.FLEE);
+            return true;
+        }
+
+        // Should we attack
+        if (getAttackTarget() != null) {
+            stateMachine.changeState(CreatureState.FIGHT);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Gets the total threat caused by the enemies visible
+     *
+     * @return total enemy threat
+     */
+    private int getEnemyThreat() {
+        if (enemyThreat == null) {
+            enemyThreat = 0;
+            for (CreatureControl c : getVisibleCreatures()) {
+                if (isEnemy(c)) {
+                    enemyThreat += c.threat;
+                }
+            }
+        }
+        return enemyThreat;
+    }
+
+    /**
+     * Gets the total threat caused by us. Meaning the band of brothers visible
+     * to us
+     *
+     * @return total threat caused by us
+     */
+    private int getOurThreat() {
+        if (ourThreat == null) {
+            ourThreat = 0;
+            for (CreatureControl c : getVisibleCreatures()) {
+                if (!isEnemy(c)) {
+                    ourThreat += c.threat;
+                }
+            }
+        }
+        return ourThreat;
+    }
+
+    public CreatureControl getAttackTarget() {
+        if (attackTarget == null || attackTarget.isIncapacitated()) {
+
+            // Pick a new target
+            // TODO: is there any preference? Now just take the nearest
+            CreatureControl nearestEnemy = null;
+            float nearestDistance = Float.MAX_VALUE;
+            for (CreatureControl c : getVisibleCreatures()) {
+                if (isEnemy(c)) {
+                    float distance = getDistanceToCreature(c);
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestEnemy = c;
+                    }
+                }
+            }
+            attackTarget = nearestEnemy;
+        }
+        return attackTarget;
+    }
+
+    private boolean isEnemy(CreatureControl creature) {
+        // TODO: alliances?
+        return getOwnerId() != creature.getOwnerId();
+    }
+
+    private boolean isIncapacitated() {
+
+        // TODO: unconscious
+        return getStateMachine().getCurrentState() != CreatureState.DEAD || getStateMachine().getCurrentState() != CreatureState.PICKED_UP;
+    }
+
+    /**
+     * Get distance to given creature
+     *
+     * @param creature the creature to measure distance to
+     * @return the distance yo creature
+     */
+    private float getDistanceToCreature(CreatureControl creature) {
+
+        // FIXME: now just direct distance, should be perhaps real distance that the creature needs to traverse to reach the target
+        return getPosition().dst2(creature.getPosition());
+    }
+
+    public void navigateToAttackTarget(CreatureControl target) {
+        PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+
+        // Seek to approach the target
+        Seek<Vector2> seek = new Seek<>(this, target);
+        prioritySteering.add(seek);
+
+        setSteeringBehavior(prioritySteering);
+    }
+
+    /**
+     * See if we are withing attack distance of the given target
+     *
+     * @param target our target
+     * @return if the distance is short enough for us to deliver a blow
+     */
+    public boolean isWithinAttackDistance(CreatureControl target) {
+        float distanceNeeded = attacks.get(0).getRange(); // The melee range, the shortest range
+        if (creature.getFightStyle() == Creature.FightStyle.SUPPORT) {
+
+            // Get max distance we can cast all spells, and hopefully stay safe
+            Float shortestDistance = null;
+            for (CreatureAttack attack : attacks) {
+                if (!attack.isMelee() && attack.isAvailable() && attack.isAttacking()) {
+                    if (shortestDistance == null) {
+                        shortestDistance = attack.getRange();
+                    } else {
+                        shortestDistance = Math.min(shortestDistance, attack.getRange());
+                    }
+                }
+            }
+            if (shortestDistance != null) {
+                distanceNeeded = shortestDistance;
+            }
+        }
+        return distanceNeeded >= getDistanceToCreature(target);
+    }
+
+    /**
+     * Stop the creature from moving
+     */
+    public void stop() {
+        setSteeringBehavior(null);
+    }
+
+    /**
+     * Makes the creature attack the given target
+     *
+     * @param target target to attack
+     */
+    public void executeAttack(CreatureControl target) {
+
+        // Select attack to execute
+        // Hmm, just first one we can?
+        float distanceToTarget = getDistanceToCreature(target);
+        for (CreatureAttack attack : attacks) {
+            if (attack.isExecutable() && attack.isAttacking() && distanceToTarget <= attack.getRange()) {
+                executingAttack = attack;
+                attack.execute(); // Mark for executing
+
+                // FIXME: perhaps telegrams or whatnot and not instant like this, is it the shot delay that governs this?
+                target.damage(this, attack.getDamage());
+            }
+        }
+    }
+
+    private void damage(CreatureControl damagedBy, float damage) {
+        applyDamage((int) damage);
+    }
+
+    /**
+     * Apply damage
+     *
+     * @param damage amount of damage
+     * @return true if we dieded
+     */
+    private boolean applyDamage(int damage) {
+        health -= damage;
+        if (health < 1) {
+
+            // Die :(
+            stateMachine.changeState(CreatureState.DEAD);
+            return true;
+        }
+        return false;
     }
 
 }
