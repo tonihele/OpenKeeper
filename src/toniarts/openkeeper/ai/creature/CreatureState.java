@@ -212,8 +212,9 @@ public enum CreatureState implements State<CreatureControl> {
 
         @Override
         public void enter(CreatureControl entity) {
-            if (!entity.isWithinAttackDistance(entity.getAttackTarget())) {
-                entity.navigateToAttackTarget(entity.getAttackTarget());
+            CreatureControl attackTarget = entity.getAttackTarget();
+            if (attackTarget != null && !entity.isWithinAttackDistance(attackTarget)) {
+                entity.navigateToAttackTarget(attackTarget);
             }
         }
 
@@ -222,6 +223,7 @@ public enum CreatureState implements State<CreatureControl> {
             CreatureControl attackTarget = entity.getAttackTarget();
             if (attackTarget == null) {
                 entity.getStateMachine().changeState(IDLE); // Nothing to do
+                return;
             }
 
             // If we have reached the target, stop and fight!

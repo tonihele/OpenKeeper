@@ -377,8 +377,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                     } else {
                         playAnimation(creature.getAnimMagicResource());
                     }
-                    playingAnimationType = AnimationType.ATTACK;
                 }
+                playingAnimationType = AnimationType.ATTACK;
             } else if (stateMachine.getCurrentState() == CreatureState.DEAD) {
 
                 //TODO: Dying direction
@@ -1120,6 +1120,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private float getDistanceToCreature(CreatureControl creature) {
 
         // FIXME: now just direct distance, should be perhaps real distance that the creature needs to traverse to reach the target
+        if (getPosition() == null || creature.getPosition() == null) {
+            return Float.MAX_VALUE;
+        }
         return getPosition().dst2(creature.getPosition());
     }
 
