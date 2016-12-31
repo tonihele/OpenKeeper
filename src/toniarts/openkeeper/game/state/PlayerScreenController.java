@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -60,6 +61,8 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.game.player.PlayerRoomControl;
+import toniarts.openkeeper.game.player.PlayerSpell;
+import toniarts.openkeeper.game.player.PlayerSpellListener;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
@@ -524,20 +527,45 @@ public class PlayerScreenController implements IPlayerScreenController {
         });
         populateRoomTab();
 
-        FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
+        // Spells
+        state.getSpellControl().addPlayerSpellListener(new PlayerSpellListener() {
+            @Override
+            public void onAdded(PlayerSpell spell) {
+                populateSpellTab();
+            }
 
-        contentPanel.removeAll();
-        for (final KeeperSpell spell : state.getAvailableKeeperSpells()) {
-            contentPanel.addElement(createSpellIcon(spell));
-        }
+            @Override
+            public void onRemoved(PlayerSpell spell) {
+                populateSpellTab();
+            }
 
-        contentPanel = hud.findElementById("tab-workshop-content").getControl(FlowLayoutControl.class);
+            @Override
+            public void onResearchStatusChanged(PlayerSpell spell) {
+                // FIXME: implement properly
+                populateSpellTab();
+            }
+        });
+        populateSpellTab();
+
+        FlowLayoutControl contentPanel = hud.findElementById("tab-workshop-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
         for (final Door door : state.getAvailableDoors()) {
             contentPanel.addElement(createDoorIcon(door));
         }
         for (final Trap trap : state.getAvailableTraps()) {
             contentPanel.addElement(createTrapIcon(trap));
+        }
+    }
+
+    /**
+     * Populates the player spells tab
+     */
+    public void populateSpellTab() {
+        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+        FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
+        contentPanel.removeAll();
+        for (final Entry<KeeperSpell, PlayerSpell> entry : state.getSpellControl().getTypes().entrySet()) {
+            contentPanel.addElement(createSpellIcon(entry.getValue()));
         }
     }
 
@@ -749,16 +777,19 @@ public class PlayerScreenController implements IPlayerScreenController {
         final String hint = Utils.getMainTextResourceBundle().getString("1783")
                 .replace("%1", name)
                 .replace("%2", room.getCost() + "");
-        return createIcon(room.getRoomId(), "room", room.getGuiIcon(), room.getGeneralDescriptionStringId(), hint.replace("%21", room.getCost() + ""));
+        return createIcon(room.getRoomId(), "room", room.getGuiIcon(), room.getGeneralDescriptionStringId(), hint.replace("%21", room.getCost() + ""), true);
     }
 
-    private ControlBuilder createSpellIcon(final KeeperSpell spell) {
-        String name = Utils.getMainTextResourceBundle().getString(Integer.toString(spell.getNameStringId()));
-        final String hint = Utils.getMainTextResourceBundle().getString("1785")
-                .replace("%1", name)
-                .replace("%2", spell.getManaCost() + "")
-                .replace("%3", "1"); // TODO use real spell level
-        return createIcon(spell.getKeeperSpellId(), "spell", spell.getGuiIcon(), spell.getGeneralDescriptionStringId(), hint);
+    private ControlBuilder createSpellIcon(final PlayerSpell spell) {
+        if (spell.isDiscovered()) {
+            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(spell.getKeeperSpell().getNameStringId()));
+            String hint = Utils.getMainTextResourceBundle().getString("1785")
+                    .replace("%1", name)
+                    .replace("%2", spell.getKeeperSpell().getManaCost() + "")
+                    .replace("%3", spell.isUpgraded() ? "2" : "1");
+            return createIcon(spell.getKeeperSpell().getKeeperSpellId(), "spell", spell.isUpgraded() ? spell.getKeeperSpell().getGuiIcon().getName() + "-2" : spell.getKeeperSpell().getGuiIcon().getName(), spell.getKeeperSpell().getGeneralDescriptionStringId(), hint, true);
+        }
+        return createIcon(spell.getKeeperSpell().getKeeperSpellId(), "spell", "gui\\spells\\s-tba", null, null, false);
     }
 
     private ControlBuilder createDoorIcon(final Door door) {
@@ -766,7 +797,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         final String hint = Utils.getMainTextResourceBundle().getString("1783")
                 .replace("%1", name)
                 .replace("%2", door.getGoldCost() + "");
-        return createIcon(door.getDoorId(), "door", door.getGuiIcon(), door.getGeneralDescriptionStringId(), hint);
+        return createIcon(door.getDoorId(), "door", door.getGuiIcon(), door.getGeneralDescriptionStringId(), hint, true);
     }
 
     private ControlBuilder createTrapIcon(final Trap trap) {
@@ -774,20 +805,31 @@ public class PlayerScreenController implements IPlayerScreenController {
         final String hint = Utils.getMainTextResourceBundle().getString("1784")
                 .replace("%1", name)
                 .replace("%2", trap.getManaCost() + "");
-        return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""));
+        return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""), true);
     }
 
-    public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint) {
-        return new ControlBuilder(type + "_" + id, "guiIcon") {
+    public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint, final boolean allowSelect) {
+        return createIcon(id, type, guiIcon.getName(), generalDescriptionId, hint, allowSelect);
+    }
+
+    public ControlBuilder createIcon(final int id, final String type, final String guiIcon, final Integer generalDescriptionId, final String hint, final boolean allowSelect) {
+        ControlBuilder cb = new ControlBuilder(type + "_" + id, "guiIcon") {
             {
-                parameter("image", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon.getName() + ".png"));
+                parameter("image", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon + ".png"));
+                if (generalDescriptionId != null) {
+                    parameter("tooltip", "${menu." + generalDescriptionId + "}");
+                }
+                if (hint != null) {
+                    parameter("hint", hint);
+                }
+//                if (allowSelect) {
                 parameter("click", "select(" + type + ", " + id + ")");
-                parameter("tooltip", "${menu." + generalDescriptionId + "}");
-                parameter("hint", hint);
                 parameter("hoverImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/frame.png"));
                 parameter("activeImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"));
+//                }
             }
         };
+        return cb;
     }
 
     private class GameMenu {

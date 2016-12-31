@@ -31,14 +31,17 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.player.PlayerSpell;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
+import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.CreatureLoader;
+import toniarts.openkeeper.world.creature.Party;
 import toniarts.openkeeper.world.door.DoorControl;
 import toniarts.openkeeper.world.door.DoorLoader;
 import toniarts.openkeeper.world.listener.CreatureListener;
@@ -46,6 +49,7 @@ import toniarts.openkeeper.world.listener.ObjectListener;
 import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.object.ObjectLoader;
+import toniarts.openkeeper.world.object.SpellBookObjectControl;
 import toniarts.openkeeper.world.trap.TrapControl;
 import toniarts.openkeeper.world.trap.TrapLoader;
 
@@ -85,6 +89,7 @@ public class ThingLoader {
     private final Map<Point, DoorControl> doors = new HashMap<>();
     private final Map<Point, TrapControl> traps = new HashMap<>();
     private Map<Short, List<CreatureListener>> creatureListeners;
+    private final Map<Integer, Party> creatureParties = new HashMap<>();
     private List<ObjectListener> objectListeners;
 
     private static final Logger logger = Logger.getLogger(ThingLoader.class.getName());
@@ -151,14 +156,23 @@ public class ThingLoader {
      * @param creatureTriggerState the creature trigger state to assign the
      * created creatures to triggers
      * @param objectTriggerState
+     * @param doorTriggerState
+     * @param partyTriggerState
      * @return the things node
      */
-    public Node loadAll(CreatureTriggerState creatureTriggerState, ObjectTriggerState objectTriggerState, DoorTriggerState doorTriggerState) {
+    public Node loadAll(CreatureTriggerState creatureTriggerState, ObjectTriggerState objectTriggerState, DoorTriggerState doorTriggerState, PartyTriggerState partyTriggerState) {
 
-        //Create a root
+        // Load the thing
         for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
             try {
-                if (obj instanceof Thing.Creature) {
+                if (obj instanceof Thing.HeroParty) {
+                    Thing.HeroParty partyThing = (Thing.HeroParty) obj;
+                    Party party = new Party(partyThing);
+                    if (partyThing.getTriggerId() != 0) {
+                        partyTriggerState.addParty(partyThing.getTriggerId(), party);
+                    }
+                    creatureParties.put(party.getId(), party);
+                } else if (obj instanceof Thing.Creature) {
                     CreatureControl creatureControl = spawnCreature((Thing.Creature) obj, null, null);
 
                     // Also add to the creature trigger control
@@ -343,6 +357,22 @@ public class ThingLoader {
         return control;
     }
 
+    /**
+     * Add an object, does not add the object to the object registry
+     *
+     * @param p the point to add
+     * @param spell the spell
+     * @param playerId the player id, the owner
+     * @return the object contol
+     */
+    public SpellBookObjectControl addRoomSpellBook(Point p, PlayerSpell spell, short playerId) {
+        // FIXME: The object ID
+        Spatial object = objectLoader.load(assetManager, worldState.getMapData().getTile(p), p.x, p.y, spell, 0, 0, (short) 4, playerId, 0);
+        SpellBookObjectControl control = object.getControl(SpellBookObjectControl.class);
+        nodeObjects.attachChild(object);
+        return control;
+    }
+
     public void onObjectRemoved(ObjectControl object) {
         objects.remove(object);
         if (objectListeners != null) {
@@ -420,6 +450,16 @@ public class ThingLoader {
      */
     public DoorControl getDoor(Point point) {
         return doors.get(point);
+    }
+
+    /**
+     * Get party instance by ID
+     *
+     * @param id the party id
+     * @return party
+     */
+    public Party getParty(int id) {
+        return creatureParties.get(id);
     }
 
 }

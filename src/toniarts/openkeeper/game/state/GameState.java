@@ -40,15 +40,16 @@ import toniarts.openkeeper.game.logic.GameLogicThread;
 import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.game.logic.MovementThread;
 import toniarts.openkeeper.game.logic.RoomGoldFixer;
-import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
+import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -78,6 +79,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private CreatureTriggerState creatureTriggerState;
     private ObjectTriggerState objectTriggerState;
     private DoorTriggerState doorTriggerState;
+    private PartyTriggerState partyTriggerState;
     private final Map<Short, Integer> flags = new HashMap<>(LEVEL_FLAG_MAX_COUNT);
     // TODO What timer class we should take ?
     private final Map<Byte, GameTimer> timers = new HashMap<>(LEVEL_TIMER_MAX_COUNT);
@@ -143,6 +145,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     GameState.this.stateManager.attach(new ActionPointState(false));
 
                     // Triggers
+                    partyTriggerState = new PartyTriggerState(true);
+                    partyTriggerState.initialize(stateManager, app);
                     creatureTriggerState = new CreatureTriggerState(true);
                     creatureTriggerState.initialize(stateManager, app);
                     objectTriggerState = new ObjectTriggerState(true);
@@ -167,9 +171,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
                     GameState.this.stateManager.attach(new SoundState(false));
                     setProgress(0.60f);
-
-                    GameState.this.stateManager.attach(new PartyState(false));
-                    setProgress(0.80f);
 
                     // Trigger data
                     for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
@@ -224,13 +225,20 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     // Init
                     if (keeper != null) {
                         keeper.initialize(stateManager, app);
+
+                        // Spells are all available for research unless otherwise stated
+                        for (KeeperSpell spell : kwdFile.getKeeperSpells()) {
+                            if (spell.getBonusRTime() != 0) {
+                                keeper.getSpellControl().setTypeAvailable(spell, true);
+                            }
+                        }
                     }
                 }
 
                 // Set player availabilities
                 // TODO: the player customized game settings
                 for (Variable.Availability availability : kwdFile.getAvailabilities()) {
-                    if (availability.getPlayerId() == 0) {
+                    if (availability.getPlayerId() == 0 && availability.getType() != Variable.Availability.AvailabilityType.SPELL) {
 
                         // All players
                         for (Keeper player : getPlayers()) {
@@ -257,6 +265,15 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                         player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
                         break;
                     }
+                    case SPELL: {
+                        if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
+
+                            // Enable the spell, no need to research it
+                            player.getSpellControl().setSpellDiscovered(kwdFile.getKeeperSpellById(availability.getTypeId()), true);
+                        } else {
+                            player.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), false);
+                        }
+                    }
                 }
             }
 
@@ -269,7 +286,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 // Enable player state
                 GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);
                 GameState.this.stateManager.getState(ActionPointState.class).setEnabled(true);
-                GameState.this.stateManager.getState(PartyState.class).setEnabled(true);
                 GameState.this.stateManager.getState(SoundState.class).setEnabled(true);
 
                 // Set initialized
@@ -308,7 +324,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private void detachRelatedAppStates() {
         stateManager.detach(stateManager.getState(WorldState.class));
         stateManager.detach(stateManager.getState(ActionPointState.class));
-        stateManager.detach(stateManager.getState(PartyState.class));
         stateManager.detach(stateManager.getState(SoundState.class));
     }
 
@@ -348,6 +363,10 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
         if (triggerControl != null) {
             triggerControl.update(tpf);
+        }
+
+        if (partyTriggerState != null) {
+            partyTriggerState.update(tpf);
         }
 
         if (creatureTriggerState != null) {
@@ -470,6 +489,10 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     public DoorTriggerState getDoorTriggerState() {
         return doorTriggerState;
+    }
+
+    public PartyTriggerState getPartyTriggerState() {
+        return partyTriggerState;
     }
 
 }

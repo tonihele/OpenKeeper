@@ -14,21 +14,18 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.party;
+package toniarts.openkeeper.game.trigger.party;
 
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
-
-/**
- *
- * @author ArchDemon
- */
-
+import toniarts.openkeeper.world.creature.Party;
 
 public class PartyTriggerControl extends TriggerControl {
+
+    private Party party;
 
     private static final Logger logger = Logger.getLogger(PartyTriggerControl.class.getName());
 
@@ -36,8 +33,9 @@ public class PartyTriggerControl extends TriggerControl {
         super();
     }
 
-    public PartyTriggerControl(final AppStateManager stateManager, int triggerId) {
+    public PartyTriggerControl(final AppStateManager stateManager, int triggerId, Party party) {
         super(stateManager, triggerId);
+        this.party = party;
     }
 
     @Override
@@ -46,7 +44,6 @@ public class PartyTriggerControl extends TriggerControl {
 
         float target = 0;
         int value = 0;
-        Party party = (Party) parent;
 
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {

@@ -97,6 +97,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private boolean isInteractable = false;
 
     private RawInputListener inputListener;
+    private boolean inputListenerAdded = false;
     private IInteractiveControl interactiveControl;
     private Label tooltip;
     private KeeperHand keeperHand;
@@ -106,6 +107,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     public PlayerInteractionState(Player player) {
         this.player = player;
 
+        // The input
         initializeInput();
     }
 
@@ -221,10 +223,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
 
-        if (enabled) {
+        if (enabled && !inputListenerAdded) {
             app.getInputManager().addRawInputListener(inputListener);
-        } else {
+            inputListenerAdded = true;
+        } else if (!enabled && inputListenerAdded) {
             app.getInputManager().removeRawInputListener(inputListener);
+            inputListenerAdded = false;
         }
     }
 
@@ -353,7 +357,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private boolean isInteractable() {
         if (isOnGui || !isOnMap || isTaggable) {
             setInteractiveControl(null);
-            return false;
         }
 
         Vector2f v = null;
@@ -362,7 +365,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             // Maybe a kinda hack, but set the tooltip here
             tooltip.setText(interactiveControl.getTooltip(player.getPlayerId()));
             interactiveControl.onHover();
-        } else {
+        } else if (isOnMap) {
 
             // Tile tooltip then
             v = selectionHandler.getPointedTilePosition();
@@ -381,11 +384,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         }
 
         // If debug, show tile coordinate
-        if (Main.isDebug()) {
+        if (Main.isDebug() && (interactiveControl != null || isOnMap)) {
             StringBuilder sb = new StringBuilder();
             Point p;
             if (interactiveControl != null) {
-                p = getWorldHandler().getTileCoordinates(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation());
+                p = WorldState.getTileCoordinates(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation());
             } else {
                 p = new Point((int) v.x, (int) v.y);
             }
@@ -595,6 +598,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                                 keeperHand.pop().drop(tile, selectionHandler.getPointedPositionInTile(), interactiveControl);
                                 updateCursor();
                             }
+                        } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
+                            getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, KeeperHand.getSlapSound());
+                            interactiveControl.interact(player.getPlayerId());
                         } else if (Main.isDebug()) {
                             // taggable -> "dig"
                             if (getWorldHandler().isTaggable((int) pos.x, (int) pos.y)) {
@@ -603,9 +609,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                             else if (getWorldHandler().isClaimable((int) pos.x, (int) pos.y, player.getPlayerId())) {
                                 getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
                             }
-                        } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
-                            getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, KeeperHand.getSlapSound());
-                            interactiveControl.interact(player.getPlayerId());
                         }
                     }
 

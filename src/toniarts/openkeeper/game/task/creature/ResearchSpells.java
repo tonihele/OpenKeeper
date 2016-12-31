@@ -17,34 +17,32 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
+import toniarts.openkeeper.game.player.PlayerSpell;
+import toniarts.openkeeper.game.player.PlayerSpellControl;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
-import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
 /**
- * Claim a lair for a creature
+ * Research spells for the keeper
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ClaimLair extends AbstractCapacityCriticalRoomTask {
+public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
 
-    private boolean executed = false;
+    private final PlayerSpellControl spellControl;
 
-    public ClaimLair(WorldState worldState, int x, int y, short playerId, GenericRoom room, TaskManager taskManager) {
+    public ResearchSpells(WorldState worldState, int x, int y, short playerId, GenericRoom room, TaskManager taskManager) {
         super(worldState, x, y, playerId, room, taskManager);
+        spellControl = worldState.getGameState().getPlayer(playerId).getSpellControl();
     }
 
     @Override
     public boolean isValid() {
-        if (!executed) {
-            return super.isValid();
-        }
-        return false;
+        return (spellControl.isAnythingToReaseach() && !getRoom().isFullCapacity());
     }
 
     @Override
@@ -54,34 +52,33 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
 
     @Override
     protected String getStringId() {
-        return "2627";
+        return "2625";
     }
 
     @Override
     protected GenericRoom.ObjectType getRoomObjectType() {
-        return GenericRoom.ObjectType.LAIR;
+        return GenericRoom.ObjectType.RESEARCHER;
     }
 
     @Override
     public void executeTask(CreatureControl creature) {
 
-        // Create a lair
-        RoomObjectControl control = getRoomObjectControl();
-        if ((int) control.addItem(1, getTaskLocation(), worldState.getThingLoader(), creature) == 0) {
-            creature.setCreatureLair((ObjectControl) control.getItems(getTaskLocation()).iterator().next());
-        }
+        // Advance players spell research
+        PlayerSpell playerSpell = spellControl.research(creature.getCreature().getResearchPerSecond());
+        if (playerSpell != null) {
 
-        // This is a one timer
-        executed = true;
+            // Create a spell book
+            getRoom().getObjectControl(GenericRoom.ObjectType.SPELL_BOOK).addItem(playerSpell, null, worldState.getThingLoader(), creature);
+        }
     }
 
     @Override
     public ArtResource getTaskAnimation(CreatureControl creature) {
-        return null;
+        return creature.getCreature().getAnimResearchResource();
     }
 
     @Override
     public String getTaskIcon() {
-        return "Textures/GUI/moods/SJ-Rest.png";
+        return "Textures/GUI/moods/SJ-Library.png";
     }
 }

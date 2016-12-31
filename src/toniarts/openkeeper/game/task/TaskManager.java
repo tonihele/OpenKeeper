@@ -33,6 +33,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
+import toniarts.openkeeper.game.task.creature.ResearchSpells;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
 import toniarts.openkeeper.game.task.worker.ClaimRoomTask;
@@ -41,6 +42,7 @@ import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
 import toniarts.openkeeper.game.task.worker.FetchObjectTask;
 import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapData;
@@ -252,6 +254,20 @@ public class TaskManager {
      * @return true if the task was assigned
      */
     public boolean assignClosestRoomTask(CreatureControl creature, GenericRoom.ObjectType objectType) {
+        return assignClosestRoomTask(creature, objectType, true);
+    }
+
+    /**
+     * Assigns closest room task to a given creature of requested type or check
+     * for validity
+     *
+     * @param creature the creature to assign to
+     * @param objectType the type of room service
+     * @param assign whether to actually assign the creature to the task or just
+     * test
+     * @return true if the task was assigned
+     */
+    private boolean assignClosestRoomTask(CreatureControl creature, GenericRoom.ObjectType objectType, boolean assign) {
         Point currentPosition = creature.getCreatureCoordinates();
 
         // Get all the rooms of the given type
@@ -267,10 +283,9 @@ public class TaskManager {
         // See that are they really accessible starting from the least distance one
         for (GenericRoom room : distancesToRooms.values()) {
 
+            // FIXME: if we are to have more capacity than one per tile, we need to refactor
             // The whole rooms are always accessible, take a random point from the room like DK II seems to do
-            // TODO: a point where the task can be done
-            // FIXME: now just eliminate the non-accessible ones
-            List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
+            List<Point> coordinates = new ArrayList<>(room.getObjectControl(objectType).getAvailableCoordinates());
             Iterator<Point> iter = coordinates.iterator();
             Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(room);
             while (iter.hasNext()) {
@@ -288,6 +303,12 @@ public class TaskManager {
 
                     // Assign the task
                     AbstractTask task = getRoomTask(objectType, target, creature, room);
+
+                    // See if really assign
+                    if (!assign) {
+                        return task.isValid();
+                    }
+
                     if (task instanceof AbstractCapacityCriticalRoomTask) {
                         if (taskPoints == null) {
                             taskPoints = new HashMap<>();
@@ -328,6 +349,9 @@ public class TaskManager {
             case LAIR: {
                 return new ClaimLair(worldState, target.x, target.y, creature.getOwnerId(), room, this);
             }
+            case RESEARCHER: {
+                return new ResearchSpells(worldState, target.x, target.y, creature.getOwnerId(), room, this);
+            }
         }
         return null;
     }
@@ -360,6 +384,26 @@ public class TaskManager {
 
     private AbstractTask getObjectTask(ObjectControl objectControl, short playerId) {
         return new FetchObjectTask(worldState, objectControl, playerId);
+    }
+
+    public boolean isTaskAvailable(CreatureControl creature, Creature.JobType jobType) {
+        switch (jobType) {
+            case RESEARCH: {
+                return assignClosestRoomTask(creature, GenericRoom.ObjectType.RESEARCHER, false);
+            }
+            default:
+                return false;
+        }
+    }
+
+    public boolean assignTask(CreatureControl creature, Creature.JobType jobType) {
+        switch (jobType) {
+            case RESEARCH: {
+                return assignClosestRoomTask(creature, GenericRoom.ObjectType.RESEARCHER);
+            }
+            default:
+                return false;
+        }
     }
 
 }

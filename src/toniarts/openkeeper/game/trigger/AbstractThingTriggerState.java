@@ -71,7 +71,7 @@ public abstract class AbstractThingTriggerState<T extends IInteractiveControl> e
             return;
         }
 
-        // Update creature triggers
+        // Update thing triggers
         for (AbstractThingTriggerControl thingTrigger : thingTriggers.values()) {
             thingTrigger.update(tpf);
         }

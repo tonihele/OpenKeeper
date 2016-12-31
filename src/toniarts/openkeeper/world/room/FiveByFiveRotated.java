@@ -50,14 +50,15 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
         addObjectControl(new RoomGoldControl(this) {
 
             @Override
-            protected int getObjectsPerTile() {
-                return FiveByFiveRotated.this.getGoldPerTile();
-            }
-
-            @Override
             protected int getNumberOfAccessibleTiles() {
                 return 16;
             }
+
+            @Override
+            protected int getGoldPerObject() {
+                return FiveByFiveRotated.this.getGoldPerTile();
+            }
+
         });
     }
 

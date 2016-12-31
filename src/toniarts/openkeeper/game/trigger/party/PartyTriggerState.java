@@ -14,31 +14,31 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.party;
+package toniarts.openkeeper.game.trigger.party;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import java.util.HashMap;
+import java.util.Map;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.state.GameState;
-import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.creature.Party;
 
 /**
  *
  * @author ArchDemon
  */
-public class PartyState extends AbstractAppState {
+public class PartyTriggerState extends AbstractAppState {
 
     private AppStateManager stateManager;
     private Main app;
-    private HashMap<Integer, Party> parties = null;
+    private final Map<Integer, PartyTriggerControl> parties = new HashMap<>();
 
-    public PartyState() {
+    public PartyTriggerState() {
     }
 
-    public PartyState(boolean enabled) {
-        super.setEnabled(false);
+    public PartyTriggerState(boolean enabled) {
+        super.setEnabled(enabled);
     }
 
     @Override
@@ -47,19 +47,6 @@ public class PartyState extends AbstractAppState {
 
         this.stateManager = stateManager;
         this.app = (Main) app;
-
-        parties = new HashMap<>();
-
-        for (Thing thing : stateManager.getState(GameState.class).getLevelData().getThings()) {
-            if (thing instanceof Thing.HeroParty) {
-                Thing.HeroParty temp = (Thing.HeroParty) thing;
-                Party party = new Party(temp);
-                if (temp.getTriggerId() != 0) {
-                    party.addControl(new PartyTriggerControl(this.stateManager, temp.getTriggerId()));
-                }
-                parties.put(party.getId(), party);
-            }
-        }
     }
 
     @Override
@@ -68,14 +55,14 @@ public class PartyState extends AbstractAppState {
             return;
         }
 
-        for (Party party : parties.values()) {
-            party.update(tpf);
+        for (PartyTriggerControl partyTriggerControl : parties.values()) {
+            partyTriggerControl.update(tpf);
         }
 
         super.update(tpf);
     }
 
-    public Party getParty(int id) {
-        return parties.get(id);
+    public void addParty(int triggerId, Party party) {
+        parties.put(triggerId, new PartyTriggerControl(stateManager, triggerId, party));
     }
 }

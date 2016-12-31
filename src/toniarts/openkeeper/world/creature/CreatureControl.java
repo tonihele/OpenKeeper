@@ -25,6 +25,7 @@ import com.badlogic.gdx.ai.steer.proximities.InfiniteProximity;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.jme3.app.Application;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
@@ -38,7 +39,6 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.action.ActionPoint;
-import toniarts.openkeeper.game.party.Party;
 import toniarts.openkeeper.game.task.AbstractTask;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.CursorFactory.CursorType;
@@ -654,7 +654,43 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public boolean findWork() {
 
         // See if we have some available work
-        return (worldState.getTaskManager().assignTask(this, false));
+        if (isWorker()) {
+            return (worldState.getTaskManager().assignTask(this, false));
+        }
+
+        // See that is there a prefered job for us
+        // FIXME: moods
+        List<Creature.JobPreference> jobs = new ArrayList<>();
+        if (creature.getHappyJobs() != null) {
+            for (Creature.JobPreference jobPreference : creature.getHappyJobs()) {
+                if (worldState.getTaskManager().isTaskAvailable(this, jobPreference.getJobType())) {
+                    jobs.add(jobPreference);
+                }
+            }
+        }
+
+        // Choose
+        if (!jobs.isEmpty()) {
+            return (worldState.getTaskManager().assignTask(this, chooseOnWeight(jobs).getJobType()));
+        }
+
+        return false;
+    }
+
+    private static Creature.JobPreference chooseOnWeight(List<Creature.JobPreference> items) {
+        double completeWeight = 0.0;
+        for (Creature.JobPreference item : items) {
+            completeWeight += item.getChance();
+        }
+        double r = FastMath.rand.nextDouble() * completeWeight;
+        double countWeight = 0.0;
+        for (Creature.JobPreference item : items) {
+            countWeight += item.getChance();
+            if (countWeight >= r) {
+                return item;
+            }
+        }
+        return null;
     }
 
     /**

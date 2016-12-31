@@ -20,6 +20,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.player.PlayerSpell;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -62,14 +63,21 @@ public class ObjectLoader implements ILoader<Thing.Object> {
     }
 
     public Spatial load(AssetManager assetManager, TileData tile, float posX, float posY, int keeperSpellId, int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
-        toniarts.openkeeper.tools.convert.map.Object obj = kwdFile.getObject(objectId);
-        KeeperSpell keeperSpell = null;
+        PlayerSpell playerSpell = null;
         if (keeperSpellId > 0) {
-            keeperSpell = kwdFile.getKeeperSpellById(keeperSpellId);
+            KeeperSpell keeperSpell = kwdFile.getKeeperSpellById(keeperSpellId);
+
+            // Create a wrapper for it
+            playerSpell = new PlayerSpell(keeperSpell, true);
         }
+        return load(assetManager, tile, posX, posY, playerSpell, moneyAmount, triggerId, objectId, playerId, maxMoney);
+    }
+
+    public Spatial load(AssetManager assetManager, TileData tile, float posX, float posY, PlayerSpell playerSpell, int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
+        toniarts.openkeeper.tools.convert.map.Object obj = kwdFile.getObject(objectId);
 
         // Load
-        ObjectControl objectControl = getControl(tile, obj, moneyAmount, maxMoney);
+        ObjectControl objectControl = getControl(tile, obj, moneyAmount, maxMoney, playerSpell);
         Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + objectControl.getResource().getName() + ".j3o", false);
         nodeObject.addControl(objectControl);
 
@@ -86,9 +94,11 @@ public class ObjectLoader implements ILoader<Thing.Object> {
         return nodeObject;
     }
 
-    private ObjectControl getControl(TileData tile, Object obj, int moneyAmount, int maxMoney) {
+    private ObjectControl getControl(TileData tile, Object obj, int moneyAmount, int maxMoney, PlayerSpell playerSpell) {
         if (obj.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_GOLD)) {
             return new GoldObjectControl(tile, obj, worldState, moneyAmount, maxMoney);
+        } else if (obj.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_SPELL_BOOK)) {
+            return new SpellBookObjectControl(tile, obj, worldState, playerSpell);
         }
         return new ObjectControl(tile, obj, worldState);
     }

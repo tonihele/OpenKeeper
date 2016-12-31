@@ -14,20 +14,19 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.party;
+package toniarts.openkeeper.world.creature;
 
 import java.util.ArrayList;
 import java.util.List;
-import toniarts.openkeeper.game.control.Container;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
+ * Represents a party, a group of creatures
  *
  * @author ArchDemon
  */
-public class Party extends Container {
+public class Party {
 
     public enum Type implements IValueEnum {
 

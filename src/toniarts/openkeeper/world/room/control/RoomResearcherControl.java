@@ -19,67 +19,61 @@ package toniarts.openkeeper.world.room.control;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
- * Controls creature lairs in a room
+ * Holds out the researchers populating a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomLairControl extends RoomObjectControl<ObjectControl, Integer> {
+public abstract class RoomResearcherControl extends RoomObjectControl<ObjectControl, Integer> {
 
-    private int lairs = 0;
-
-    public RoomLairControl(GenericRoom parent) {
+    public RoomResearcherControl(GenericRoom parent) {
         super(parent);
     }
 
     @Override
     public int getCurrentCapacity() {
-        return lairs;
-    }
-
-    @Override
-    public GenericRoom.ObjectType getObjectType() {
-        return GenericRoom.ObjectType.LAIR;
-    }
-
-    @Override
-    public Integer addItem(Integer sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
-        Collection<ObjectControl> objects = objectsByCoordinate.get(p);
-        if (objects != null && !objects.isEmpty()) {
-            return sum; // Already a lair here
-        }
-        ObjectControl object = thingLoader.addObject(p, creature.getCreature().getLairObjectId(), creature.getOwnerId());
-        if (objects == null) {
-            objects = new ArrayList<>(1);
-        }
-        objects.add(object);
-        objectsByCoordinate.put(p, objects);
-        object.setRoomObjectControl(this);
-        lairs++;
-        return 0;
-    }
-
-    @Override
-    public void destroy() {
-
-        // Just release all the lairs
-        removeAllObjects();
-    }
-
-    @Override
-    public void removeItem(ObjectControl object) {
-        super.removeItem(object);
-        lairs--;
+        return objectsByCoordinate.size();
     }
 
     @Override
     protected int getObjectsPerTile() {
         return 1;
+    }
+
+    @Override
+    public GenericRoom.ObjectType getObjectType() {
+        return GenericRoom.ObjectType.RESEARCHER;
+    }
+
+    @Override
+    public Integer addItem(Integer sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
+        return sum;
+    }
+
+    @Override
+    public void destroy() {
+
+        // The keeper has no more access to the spells
+    }
+
+    @Override
+    protected Collection<Point> getCoordinates() {
+
+        // Only furniture
+        List<Point> coordinates = new ArrayList<>(parent.getFloorFurnitureCount() + parent.getWallFurnitureCount());
+        for (ObjectControl oc : parent.getFloorFurniture()) {
+            coordinates.add(oc.getObjectCoordinates());
+        }
+        for (ObjectControl oc : parent.getWallFurniture()) {
+            coordinates.add(oc.getObjectCoordinates());
+        }
+        return coordinates;
     }
 
 }

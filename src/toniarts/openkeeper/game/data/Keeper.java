@@ -22,6 +22,7 @@ import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.game.player.PlayerRoomControl;
+import toniarts.openkeeper.game.player.PlayerSpellControl;
 import toniarts.openkeeper.game.player.PlayerStatsControl;
 import toniarts.openkeeper.game.player.PlayerTriggerControl;
 import toniarts.openkeeper.tools.convert.map.AI.AIType;
@@ -48,6 +49,7 @@ public class Keeper {
     private int initialGold = 0;
     private final PlayerGoldControl goldControl = new PlayerGoldControl();
     private final PlayerCreatureControl creatureControl;
+    private final PlayerSpellControl spellControl;
     private final PlayerStatsControl statsControl = new PlayerStatsControl();
     private final PlayerRoomControl roomControl;
     private PlayerTriggerControl triggerControl;
@@ -63,6 +65,7 @@ public class Keeper {
 
         creatureControl = new PlayerCreatureControl(app);
         roomControl = new PlayerRoomControl(app);
+        spellControl = new PlayerSpellControl(app);
     }
 
     public Keeper(Player player, final Application app) {
@@ -72,6 +75,7 @@ public class Keeper {
 
         creatureControl = new PlayerCreatureControl(app);
         roomControl = new PlayerRoomControl(app);
+        spellControl = new PlayerSpellControl(app);
     }
 
     public void initialize(final AppStateManager stateManager, final Application app) {
@@ -125,6 +129,10 @@ public class Keeper {
 
     public PlayerManaControl getManaControl() {
         return manaControl;
+    }
+
+    public PlayerSpellControl getSpellControl() {
+        return spellControl;
     }
 
     public void update(float tpf) {
