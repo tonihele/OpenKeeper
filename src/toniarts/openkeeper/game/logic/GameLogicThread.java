@@ -25,11 +25,13 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Line;
+import java.awt.Point;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
@@ -71,7 +73,11 @@ public class GameLogicThread implements Runnable {
             }
         }
         for (CreatureControl creature : worldState.getThingLoader().getCreatures()) {
-            worldState.getMapData().getTile(creature.getCreatureCoordinates()).addCreature(creature);
+            Point p = creature.getCreatureCoordinates();
+            TileData tile = worldState.getMapData().getTile(p);
+            if (tile != null) {
+                tile.addCreature(creature);
+            }
         }
         if (Main.isDebug()) {
             drawCreatureVisibilities();

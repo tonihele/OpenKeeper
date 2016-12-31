@@ -28,6 +28,7 @@ import com.badlogic.gdx.utils.Array;
 import com.jme3.app.Application;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
@@ -655,7 +656,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return the tile coordinates
      */
     public Point getCreatureCoordinates() {
-        return WorldState.getTileCoordinates(getSpatial().getWorldTranslation());
+        Vector3f translation = getSpatial().getWorldTranslation();
+        if (translation != null) {
+            return WorldState.getTileCoordinates(translation);
+        }
+        return null;
     }
 
     /**
