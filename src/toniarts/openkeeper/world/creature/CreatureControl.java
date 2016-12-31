@@ -656,9 +656,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return the tile coordinates
      */
     public Point getCreatureCoordinates() {
-        Vector3f translation = getSpatial().getWorldTranslation();
-        if (translation != null) {
-            return WorldState.getTileCoordinates(translation);
+        if (stateMachine.getCurrentState() != CreatureState.PICKED_UP && stateMachine.getCurrentState() != CreatureState.DEAD) {
+            Vector3f translation = getSpatial().getWorldTranslation();
+            if (translation != null) {
+                return WorldState.getTileCoordinates(translation);
+            }
         }
         return null;
     }

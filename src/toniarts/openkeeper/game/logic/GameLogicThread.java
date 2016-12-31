@@ -74,9 +74,11 @@ public class GameLogicThread implements Runnable {
         }
         for (CreatureControl creature : worldState.getThingLoader().getCreatures()) {
             Point p = creature.getCreatureCoordinates();
-            TileData tile = worldState.getMapData().getTile(p);
-            if (tile != null) {
-                tile.addCreature(creature);
+            if (p != null) {
+                TileData tile = worldState.getMapData().getTile(p);
+                if (tile != null) {
+                    tile.addCreature(creature);
+                }
             }
         }
         if (Main.isDebug()) {
