@@ -391,6 +391,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 if (playingAnimationType != AnimationType.DYING) {
                     playAnimation(creature.getAnimDieResource());
                     playingAnimationType = AnimationType.DYING;
+                    showUnitFlower(Integer.MAX_VALUE);
                 }
             } else {
                 List<ArtResource> idleAnimations = new ArrayList<>(3);
