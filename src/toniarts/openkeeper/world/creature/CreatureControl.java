@@ -1168,7 +1168,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return getOwnerId() != creature.getOwnerId();
     }
 
-    private boolean isIncapacitated() {
+    /**
+     * Is the creature able to function
+     *
+     * @return true if the creature is down
+     */
+    public boolean isIncapacitated() {
         return getStateMachine().getCurrentState() == CreatureState.DEAD || getStateMachine().getCurrentState() == CreatureState.PICKED_UP || getStateMachine().getCurrentState() == CreatureState.UNCONSCIOUS;
     }
 
@@ -1392,6 +1397,15 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public ObjectiveType getPlayerObjective() {
         return playerObjective;
+    }
+
+    /**
+     * Is the creature dead
+     *
+     * @return dead or alive
+     */
+    public boolean isDead() {
+        return stateMachine.isInState(CreatureState.DEAD);
     }
 
 }
