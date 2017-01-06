@@ -464,6 +464,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 case UNCONSCIOUS: {
                     return Utils.getMainTextResourceBundle().getString("2655");
                 }
+                case STUNNED: {
+                    return Utils.getMainTextResourceBundle().getString("2597");
+                }
             }
         }
         return "";

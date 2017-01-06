@@ -99,6 +99,9 @@ public class CreatureFlowerControl extends UnitFlowerControl {
                 case UNCONSCIOUS: {
                     return "Textures/GUI/moods/SJ-Unconscious.png";
                 }
+                case STUNNED: {
+                    return "Textures/GUI/moods/SJ-Stunned.png";
+                }
             }
         }
 
