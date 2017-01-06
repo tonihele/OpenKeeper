@@ -25,6 +25,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  *
@@ -60,6 +61,16 @@ public class ActionPointTriggerControl extends TriggerControl {
                 switch (type) {
                     case 0:
                     case 3: // Creature
+                        MapData map = stateManager.getState(WorldState.class).getMapData();
+                        for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
+                            for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
+                                for (CreatureControl creature : map.getTile(x, y).getCreatures()) {
+                                    if ((playerId == 0 || creature.getOwnerId() == playerId) && (targetId == 0 || creature.getCreature().getCreatureId() == targetId)) {
+                                        target++;
+                                    }
+                                }
+                            }
+                        }
                         break;
                     case 6: // Object
                         break;

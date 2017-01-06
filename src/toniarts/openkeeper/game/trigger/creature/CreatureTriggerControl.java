@@ -18,7 +18,6 @@ package toniarts.openkeeper.game.trigger.creature;
 
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
-import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
@@ -56,8 +55,8 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
             case CREATURE_CREATED:
                 return instanceControl != null;
             case CREATURE_KILLED:
-                if (instanceControl != null && instanceControl.getStateMachine().getCurrentState() != null) {
-                    return instanceControl.getStateMachine().getCurrentState().equals(CreatureState.DEAD);
+                if (instanceControl != null) {
+                    return instanceControl.isDead();
                 }
                 return false;
             case CREATURE_SLAPPED:
@@ -81,8 +80,14 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
             case CREATURE_LEAVES:
                 return false;
             case CREATURE_STUNNED:
+                if (instanceControl != null) {
+                    return instanceControl.isStunned();
+                }
                 return false;
             case CREATURE_DYING:
+                if (instanceControl != null) {
+                    return instanceControl.isUnconscious();
+                }
                 return false;
             case CREATURE_HEALTH:
                 if (instanceControl != null) {
@@ -91,8 +96,16 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
                 }
                 return false;
             case CREATURE_GOLD_HELD:
+                if (instanceControl != null) {
+                    target = instanceControl.getGold();
+                    break;
+                }
                 return false;
             case CREATURE_EXPERIENCE_LEVEL:
+                if (instanceControl != null) {
+                    target = instanceControl.getLevel();
+                    break;
+                }
                 return false;
             case CREATURE_HUNGER_SATED:
                 return false;
@@ -101,6 +114,9 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
             case CREATURE_SACKED:
                 return false;
             case CREATURE_PICKED_UP:
+                if (instanceControl != null) {
+                    return instanceControl.isPickedUp();
+                }
                 return false;
             default:
                 return super.isActive(trigger);

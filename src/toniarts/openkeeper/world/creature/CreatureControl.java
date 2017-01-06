@@ -1408,4 +1408,31 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return stateMachine.isInState(CreatureState.DEAD);
     }
 
+    /**
+     * Is the creature picked up
+     *
+     * @return hanging
+     */
+    public boolean isPickedUp() {
+        return stateMachine.isInState(CreatureState.PICKED_UP);
+    }
+
+    /**
+     * Is the creature unconscious, or rather dying
+     *
+     * @return hanging on a thread
+     */
+    public boolean isUnconscious() {
+        return stateMachine.isInState(CreatureState.UNCONSCIOUS);
+    }
+
+    /**
+     * Is the creature stunned
+     *
+     * @return seeing stars
+     */
+    public boolean isStunned() {
+        return stateMachine.isInState(CreatureState.STUNNED);
+    }
+
 }
