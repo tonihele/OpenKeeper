@@ -24,7 +24,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * Holds a single creature attack ability and its status
  *
- * @author Toni
+ * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class CreatureAttack {
 

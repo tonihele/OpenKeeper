@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.trigger.creature;
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
@@ -120,6 +121,9 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
         // Some triggers are bound to the creature itself
         switch (type) {
             case ATTACH_PORTAL_GEM:
+                if (instanceControl != null) {
+                    instanceControl.attachPortalGem();
+                }
                 break;
 
             case MAKE_HUNGRY:
@@ -158,12 +162,28 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
                 break;
 
             case MAKE_OBJECTIVE: // Game part
-                // TODO this
                 short targetId = trigger.getUserData("targetId", short.class);
                 if (targetId == 0) {
                     super.makeObjectiveOff();
                 }
-                //0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert;
+                if (instanceControl != null) {
+
+                    //0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert;
+                    switch (targetId) {
+                        case 0:
+                            instanceControl.setPlayerObjective(null);
+                            break;
+                        case 1:
+                            instanceControl.setPlayerObjective(ObjectiveType.KILL);
+                            break;
+                        case 2:
+                            instanceControl.setPlayerObjective(ObjectiveType.IMPRISON);
+                            break;
+                        case 3:
+                            instanceControl.setPlayerObjective(ObjectiveType.CONVERT);
+                            break;
+                    }
+                }
                 break;
 
             default:

@@ -17,8 +17,6 @@
 package toniarts.openkeeper.game.player;
 
 import com.jme3.app.state.AppStateManager;
-import com.jme3.cinematic.events.CinematicEvent;
-import com.jme3.cinematic.events.CinematicEventListener;
 import java.awt.Point;
 import java.util.Set;
 import java.util.logging.Level;

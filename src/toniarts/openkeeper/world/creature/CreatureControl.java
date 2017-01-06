@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.action.ActionPoint;
+import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.task.AbstractTask;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.CursorFactory.CursorType;
@@ -129,6 +130,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private ObjectControl creatureLair;
     private CreatureControl followTarget;
     private final List<CreatureAttack> attacks;
+    private boolean hasPortalGem = false;
+    private ObjectiveType playerObjective;
     /**
      * Things we hear & see per tick
      */
@@ -492,7 +495,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public void die() {
         stop();
-        dropGold();
+        dropPosession();
 
         // Notify
         onDie(CreatureControl.this);
@@ -677,10 +680,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             }
 
             // No merging, just add loose gold
+            Point p = getCreatureCoordinates();
             worldState.getGameState().getApplication().enqueue(() -> {
 
                 // FIXME: Better coordinates
-                worldState.getThingLoader().addLooseGold(getCreatureCoordinates(), new Vector2f(MapLoader.TILE_WIDTH / 2, MapLoader.TILE_WIDTH / 2), ownerId, goldToSet);
+                worldState.getThingLoader().addLooseGold(p, new Vector2f(MapLoader.TILE_WIDTH / 2, MapLoader.TILE_WIDTH / 2), ownerId, goldToSet);
             });
             gold = 0;
         }
@@ -692,7 +696,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return the tile coordinates
      */
     public Point getCreatureCoordinates() {
-        if (stateMachine.getCurrentState() != CreatureState.PICKED_UP && stateMachine.getCurrentState() != CreatureState.DEAD) {
+        if (stateMachine.getCurrentState() != CreatureState.PICKED_UP) {
             Vector3f translation = getSpatial().getWorldTranslation();
             if (translation != null) {
                 return WorldState.getTileCoordinates(translation);
@@ -1337,6 +1341,57 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             }
         }
         return false;
+    }
+
+    /**
+     * Attaches portal gem to the creature
+     */
+    public void attachPortalGem() {
+        hasPortalGem = true;
+    }
+
+    /**
+     * Has the crature got the portal gem
+     *
+     * @return true if posesses the portal gem
+     */
+    public boolean isPortalGem() {
+        return hasPortalGem;
+    }
+
+    /**
+     * Drops the creature posession
+     */
+    private void dropPosession() {
+        dropGold();
+        dropPortalGem();
+    }
+
+    private void dropPortalGem() {
+        if (hasPortalGem) {
+            Point p = getCreatureCoordinates();
+            worldState.getGameState().getApplication().enqueue(() -> {
+                worldState.getThingLoader().addObject(p, worldState.getLevelData().getLevelGem().getObjectId(), ownerId);
+            });
+        }
+    }
+
+    /**
+     * Sets the creature as a player objective
+     *
+     * @param objectiveType the objective type
+     */
+    public void setPlayerObjective(ObjectiveType objectiveType) {
+        playerObjective = objectiveType;
+    }
+
+    /**
+     * Get player objective for this creature
+     *
+     * @return player objective
+     */
+    public ObjectiveType getPlayerObjective() {
+        return playerObjective;
     }
 
 }
