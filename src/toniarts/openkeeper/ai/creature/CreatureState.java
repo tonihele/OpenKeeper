@@ -319,12 +319,14 @@ public enum CreatureState implements State<CreatureControl> {
 
         @Override
         public void enter(CreatureControl entity) {
-
+            entity.flee();
         }
 
         @Override
         public void update(CreatureControl entity) {
-
+            if (!entity.shouldFleeOrAttack()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
         }
 
         @Override

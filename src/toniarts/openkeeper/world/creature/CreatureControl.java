@@ -20,6 +20,7 @@ import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.ai.steer.behaviors.Cohesion;
+import com.badlogic.gdx.ai.steer.behaviors.Flee;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.ai.steer.behaviors.Seek;
 import com.badlogic.gdx.ai.steer.proximities.InfiniteProximity;
@@ -212,6 +213,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public void processTick(float tpf, Application app) {
         visibilityList.clear();
         visibilityListUpdated = false;
+        ourThreat = null;
+        enemyThreat = null;
         if (stateMachine.getCurrentState() == null) {
             stateMachine.changeState(CreatureState.IDLE);
         }
@@ -991,7 +994,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
             // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
             // https://github.com/tonihele/OpenKeeper/issues/261
-            visibilityList.addAll(worldState.getMapData().getTile(currentPoint).getCreatures());
+            TileData tile = worldState.getMapData().getTile(currentPoint);
+            if (tile != null) {
+                visibilityList.addAll(tile.getCreatures());
+            }
             addVisibleCreatures(currentPoint.x, currentPoint.y - 1, (int) creature.getDistanceCanHear());
             addVisibleCreatures(currentPoint.x + 1, currentPoint.y, (int) creature.getDistanceCanHear());
             addVisibleCreatures(currentPoint.x, currentPoint.y + 1, (int) creature.getDistanceCanHear());
@@ -1037,13 +1043,17 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public boolean shouldFleeOrAttack() {
 
         // Check fleeing, TODO: Always flee?
-        if (!creature.getFlags().contains(Creature.CreatureFlag.IS_FEARLESS) && (getEnemyThreat() - getOurThreat() > fear)) {
-            stateMachine.changeState(CreatureState.FLEE);
-            return true;
+        if (!creature.getFlags().contains(Creature.CreatureFlag.IS_FEARLESS)) {
+            int threatToUs = getEnemyThreat();
+            int threatCaused = creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE) || isHealthAtCriticalLevel() ? threat : getOurThreat();
+            if (threatToUs - threatCaused > fear) {
+                stateMachine.changeState(CreatureState.FLEE);
+                return true;
+            }
         }
 
-        // Should we attack
-        if (getAttackTarget() != null) {
+        // Should we attack, try to avoid i.e. imps engaging in a fight
+        if (creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER && getAttackTarget() != null) {
             stateMachine.changeState(CreatureState.FIGHT);
             return true;
         }
@@ -1087,14 +1097,14 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public CreatureControl getAttackTarget() {
-        if (attackTarget == null || attackTarget.isIncapacitated()) {
+        if (attackTarget == null || attackTarget.isIncapacitated() || attackTarget.getStateMachine().getCurrentState() == CreatureState.FLEE) {
 
             // Pick a new target
             // TODO: is there any preference? Now just take the nearest
             CreatureControl nearestEnemy = null;
             float nearestDistance = Float.MAX_VALUE;
             for (CreatureControl c : getVisibleCreatures()) {
-                if (isEnemy(c)) {
+                if (isEnemy(c) && !c.isIncapacitated() || c.getStateMachine().getCurrentState() == CreatureState.FLEE) {
                     float distance = getDistanceToCreature(c);
                     if (distance < nearestDistance) {
                         nearestDistance = distance;
@@ -1115,7 +1125,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private boolean isIncapacitated() {
 
         // TODO: unconscious
-        return getStateMachine().getCurrentState() != CreatureState.DEAD || getStateMachine().getCurrentState() != CreatureState.PICKED_UP;
+        return getStateMachine().getCurrentState() == CreatureState.DEAD || getStateMachine().getCurrentState() == CreatureState.PICKED_UP;
     }
 
     /**
@@ -1201,6 +1211,14 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     private void damage(CreatureControl damagedBy, float damage) {
         applyDamage((int) damage);
+
+        // If we are not in a fight mode, see what we should do
+        if (!isIncapacitated() && stateMachine.getCurrentState() != CreatureState.FIGHT) {
+            attackTarget = damagedBy;
+            if (stateMachine.getCurrentState() != CreatureState.FLEE) {
+                shouldFleeOrAttack();
+            }
+        }
     }
 
     /**
@@ -1218,6 +1236,35 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             return true;
         }
         return false;
+    }
+
+    /**
+     * If we see enemies, avoid them, try to navigate to our dungeon heart
+     */
+    public void flee() {
+        PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+
+        // Get the nearest enemy
+        // FIXME: method naming if truly nearest enemy, and perhaps we should flee from our assailant
+        CreatureControl target = getAttackTarget();
+
+        // Flee from the enemy
+        if (target != null) {
+            Flee<Vector2> flee = new Flee<>(this, target);
+            prioritySteering.add(flee);
+        }
+
+        // Try to find our dungeon heart etc. safety haven
+        setSteeringBehavior(prioritySteering);
+    }
+
+    /**
+     * Checks if we should fear death
+     *
+     * @return true if we have critically low health level
+     */
+    public boolean isHealthAtCriticalLevel() {
+        return worldState.getLevelVariable(Variable.MiscVariable.MiscType.CREATURE_CRITICAL_HEALTH_PERCENTAGE_OF_MAX) > getHealthPercentage();
     }
 
 }
