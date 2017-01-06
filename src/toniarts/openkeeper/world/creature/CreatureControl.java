@@ -508,7 +508,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
             // Experience gaining, I don't know how accurate this should be, like clock the time in work animation etc.
             if (level < MAX_CREATURE_LEVEL) {
-                if (playingAnimationType == AnimationType.WORK && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER) || creature.getFlags().contains(Creature.CreatureFlag.TRAIN_WHEN_IDLE)) {
+                if (playingAnimationType == AnimationType.WORK && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER) || stateMachine.isInState(CreatureState.FIGHT)) {
                     if (worldState.getLevelData().getImp().equals(creature)) {
                         experience += worldState.getLevelVariable(Variable.MiscVariable.MiscType.IMP_EXPERIENCE_GAIN_PER_SECOND);
                     } else {
