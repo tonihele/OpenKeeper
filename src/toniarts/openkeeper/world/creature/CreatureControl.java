@@ -80,7 +80,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public enum AnimationType {
 
-        MOVE, WORK, IDLE, ATTACK, DYING, OTHER;
+        MOVE, WORK, IDLE, ATTACK, DYING, STUNNED, OTHER;
     }
 
     // Attributes
@@ -350,7 +350,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     private void playStateAnimation() {
         if (!animationPlaying) {
-            if (steeringBehavior != null && steeringBehavior.isEnabled()) {
+            if (playingAnimationType == AnimationType.STUNNED && !stateMachine.isInState(CreatureState.STUNNED)) {
+                playAnimation(creature.getAnimGetUpResource());
+                playingAnimationType = AnimationType.OTHER;
+            } else if (steeringBehavior != null && steeringBehavior.isEnabled()) {
                 playAnimation(creature.getAnimWalkResource());
                 playingAnimationType = AnimationType.MOVE;
             } else if (stateMachine.getCurrentState() == CreatureState.WORK) {
@@ -392,6 +395,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                     playAnimation(creature.getAnimDieResource());
                     playingAnimationType = AnimationType.DYING;
                     showUnitFlower(Integer.MAX_VALUE);
+                }
+            } else if (stateMachine.isInState(CreatureState.STUNNED)) {
+                if (playingAnimationType != AnimationType.STUNNED) {
+                    playAnimation(creature.getAnimDieResource());
+                    playingAnimationType = AnimationType.STUNNED;
                 }
             } else {
                 List<ArtResource> idleAnimations = new ArrayList<>(3);
@@ -531,6 +539,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             if (stateMachine.isInState(CreatureState.UNCONSCIOUS) && timeInState > worldState.getLevelVariable(Variable.MiscVariable.MiscType.DEAD_BODY_DIES_AFTER_SECONDS)) {
                 stateMachine.changeState(CreatureState.DEAD);
                 removeCreature();
+            } else if (stateMachine.isInState(CreatureState.STUNNED) && timeInState > creature.getStunDuration()) {
+                stateMachine.changeState(CreatureState.IDLE);
             }
         }
     }
@@ -982,8 +992,13 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         // TODO: actual dropping & being stunned, & evict (Imp to DHeart & creature to portal)
         CreatureLoader.setPosition(spatial, new Vector2f(tile.getX(), tile.getY()));
         worldState.getThingLoader().attachCreature(getSpatial());
+        animationPlaying = false;
+        if (creature.getStunDuration() > 0) {
+            stateMachine.changeState(CreatureState.STUNNED);
+        } else {
+            stateMachine.changeState(CreatureState.IDLE);
+        }
         setEnabled(true);
-        stateMachine.changeState(CreatureState.IDLE);
 
         // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
         worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
