@@ -35,12 +35,15 @@ public class ActionPointTriggerControl extends TriggerControl {
 
     private static final Logger logger = Logger.getLogger(ActionPointTriggerControl.class.getName());
 
+    private ActionPoint ap;
+
     public ActionPointTriggerControl() { // empty serialization constructor
         super();
     }
 
-    public ActionPointTriggerControl(final AppStateManager stateManager, int triggerId) {
+    public ActionPointTriggerControl(final AppStateManager stateManager, int triggerId, ActionPoint ap) {
         super(stateManager, triggerId);
+        this.ap = ap;
     }
 
     @Override
@@ -49,7 +52,6 @@ public class ActionPointTriggerControl extends TriggerControl {
 
         int target = 0;
         int value = 0;
-        ActionPoint ap = (ActionPoint) parent;
 
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {

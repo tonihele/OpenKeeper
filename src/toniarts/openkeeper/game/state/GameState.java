@@ -80,6 +80,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private ObjectTriggerState objectTriggerState;
     private DoorTriggerState doorTriggerState;
     private PartyTriggerState partyTriggerState;
+    private ActionPointState actionPointState;
     private final Map<Short, Integer> flags = new HashMap<>(LEVEL_FLAG_MAX_COUNT);
     // TODO What timer class we should take ?
     private final Map<Byte, GameTimer> timers = new HashMap<>(LEVEL_TIMER_MAX_COUNT);
@@ -142,8 +143,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     // The players
                     setupPlayers();
 
-                    GameState.this.stateManager.attach(new ActionPointState(false));
-
                     // Triggers
                     partyTriggerState = new PartyTriggerState(true);
                     partyTriggerState.initialize(stateManager, app);
@@ -153,6 +152,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     objectTriggerState.initialize(stateManager, app);
                     doorTriggerState = new DoorTriggerState(true);
                     doorTriggerState.initialize(stateManager, app);
+                    actionPointState = new ActionPointState(true);
+                    actionPointState.initialize(stateManager, app);
                     setProgress(0.20f);
 
                     // Create the actual level
@@ -285,7 +286,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
                 // Enable player state
                 GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);
-                GameState.this.stateManager.getState(ActionPointState.class).setEnabled(true);
                 GameState.this.stateManager.getState(SoundState.class).setEnabled(true);
 
                 // Set initialized
@@ -323,7 +323,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     private void detachRelatedAppStates() {
         stateManager.detach(stateManager.getState(WorldState.class));
-        stateManager.detach(stateManager.getState(ActionPointState.class));
         stateManager.detach(stateManager.getState(SoundState.class));
     }
 
@@ -345,6 +344,14 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         detach();
 
         super.cleanup();
+    }
+
+    @Override
+    public void update(float tpf) {
+        super.update(tpf);
+        if (actionPointState != null) {
+            actionPointState.updateControls(tpf);
+        }
     }
 
     @Override
@@ -378,6 +385,9 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         }
         if (doorTriggerState != null) {
             doorTriggerState.update(tpf);
+        }
+        if (actionPointState != null) {
+            actionPointState.update(tpf);
         }
 
         for (Keeper player : players.values()) {
@@ -448,7 +458,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     }
 
     public ActionPointState getActionPointState() {
-        return stateManager.getState(ActionPointState.class);
+        return actionPointState;
     }
 
     /**
