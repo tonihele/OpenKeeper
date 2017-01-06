@@ -1123,7 +1123,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             CreatureControl nearestEnemy = null;
             float nearestDistance = Float.MAX_VALUE;
             for (CreatureControl c : getVisibleCreatures()) {
-                if (isEnemy(c) && !c.isIncapacitated() || c.getStateMachine().getCurrentState() == CreatureState.FLEE) {
+                if (isEnemy(c) && (!c.isIncapacitated() || c.getStateMachine().getCurrentState() == CreatureState.FLEE)) {
                     float distance = getDistanceToCreature(c);
                     if (distance < nearestDistance) {
                         nearestDistance = distance;
