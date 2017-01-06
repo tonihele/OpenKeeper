@@ -481,6 +481,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public void die() {
         stop();
+        dropGold();
 
         // Notify
         onDie(CreatureControl.this);
