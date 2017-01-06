@@ -212,6 +212,7 @@ public enum CreatureState implements State<CreatureControl> {
 
         @Override
         public void enter(CreatureControl entity) {
+            entity.unassingCurrentTask();
             CreatureControl attackTarget = entity.getAttackTarget();
             if (attackTarget != null && !entity.isWithinAttackDistance(attackTarget)) {
                 entity.navigateToAttackTarget(attackTarget);
@@ -319,6 +320,7 @@ public enum CreatureState implements State<CreatureControl> {
 
         @Override
         public void enter(CreatureControl entity) {
+            entity.unassingCurrentTask();
             entity.flee();
         }
 
@@ -327,6 +329,28 @@ public enum CreatureState implements State<CreatureControl> {
             if (!entity.shouldFleeOrAttack()) {
                 entity.getStateMachine().changeState(IDLE);
             }
+        }
+
+        @Override
+        public void exit(CreatureControl entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(CreatureControl entity, Telegram telegram) {
+            return true;
+        }
+
+    }, UNCONSCIOUS {
+        @Override
+        public void enter(CreatureControl entity) {
+            entity.stop();
+            entity.unassingCurrentTask();
+        }
+
+        @Override
+        public void update(CreatureControl entity) {
+
         }
 
         @Override

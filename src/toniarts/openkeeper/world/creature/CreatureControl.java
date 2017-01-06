@@ -323,7 +323,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         } else if (playingAnimationType == AnimationType.DYING) {
 
             // TODO: should show the pose for awhile I guess
-            removeCreature();
+            if (stateMachine.getCurrentState() == CreatureState.DEAD) {
+                removeCreature();
+            }
         } else {
             playStateAnimation();
         }
@@ -383,11 +385,13 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                     }
                 }
                 playingAnimationType = AnimationType.ATTACK;
-            } else if (stateMachine.getCurrentState() == CreatureState.DEAD) {
+            } else if (stateMachine.getCurrentState() == CreatureState.DEAD || stateMachine.getCurrentState() == CreatureState.UNCONSCIOUS) {
 
                 //TODO: Dying direction
-                playAnimation(creature.getAnimDieResource());
-                playingAnimationType = AnimationType.DYING;
+                if (playingAnimationType != AnimationType.DYING) {
+                    playAnimation(creature.getAnimDieResource());
+                    playingAnimationType = AnimationType.DYING;
+                }
             } else {
                 List<ArtResource> idleAnimations = new ArrayList<>(3);
                 if (creature.getAnimIdle1Resource() != null) {
@@ -441,6 +445,15 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 }
                 case DEAD: {
                     return Utils.getMainTextResourceBundle().getString("2598");
+                }
+                case FLEE: {
+                    return Utils.getMainTextResourceBundle().getString("2658");
+                }
+                case FIGHT: {
+                    return Utils.getMainTextResourceBundle().getString("2651");
+                }
+                case UNCONSCIOUS: {
+                    return Utils.getMainTextResourceBundle().getString("2655");
                 }
             }
         }
@@ -511,6 +524,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             // Health
             health += ownLandHealthIncrease; // FIXME, need to detect prev & current pos
             health = Math.min(health, maxHealth);
+
+            // Dying counter :)
+            if (stateMachine.isInState(CreatureState.UNCONSCIOUS) && timeInState > worldState.getLevelVariable(Variable.MiscVariable.MiscType.DEAD_BODY_DIES_AFTER_SECONDS)) {
+                stateMachine.changeState(CreatureState.DEAD);
+                removeCreature();
+            }
         }
     }
 
@@ -604,7 +623,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     private boolean isSlappable(short playerId) {
-        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) && !stateMachine.isInState(CreatureState.DEAD);
+        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) && !isIncapacitated();
     }
 
     public boolean isTooMuchGold() {
@@ -904,7 +923,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     @Override
     public boolean isPickable(short playerId) {
-        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP) && !stateMachine.isInState(CreatureState.DEAD);
+        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP) && !isIncapacitated() && isOnOwnLand();
     }
 
     @Override
@@ -1070,7 +1089,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (enemyThreat == null) {
             enemyThreat = 0;
             for (CreatureControl c : getVisibleCreatures()) {
-                if (isEnemy(c)) {
+                if (isEnemy(c) && !c.isIncapacitated()) {
                     enemyThreat += c.threat;
                 }
             }
@@ -1088,7 +1107,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (ourThreat == null) {
             ourThreat = 0;
             for (CreatureControl c : getVisibleCreatures()) {
-                if (!isEnemy(c)) {
+                if (!isEnemy(c) && !c.isIncapacitated()) {
                     ourThreat += c.threat;
                 }
             }
@@ -1123,9 +1142,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     private boolean isIncapacitated() {
-
-        // TODO: unconscious
-        return getStateMachine().getCurrentState() == CreatureState.DEAD || getStateMachine().getCurrentState() == CreatureState.PICKED_UP;
+        return getStateMachine().getCurrentState() == CreatureState.DEAD || getStateMachine().getCurrentState() == CreatureState.PICKED_UP || getStateMachine().getCurrentState() == CreatureState.UNCONSCIOUS;
     }
 
     /**
@@ -1232,7 +1249,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (health < 1) {
 
             // Die :(
-            stateMachine.changeState(CreatureState.DEAD);
+            if (creature.getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
+                stateMachine.changeState(CreatureState.UNCONSCIOUS);
+            } else {
+                stateMachine.changeState(CreatureState.DEAD);
+            }
             return true;
         }
         return false;
@@ -1265,6 +1286,22 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public boolean isHealthAtCriticalLevel() {
         return worldState.getLevelVariable(Variable.MiscVariable.MiscType.CREATURE_CRITICAL_HEALTH_PERCENTAGE_OF_MAX) > getHealthPercentage();
+    }
+
+    /**
+     * Is the creature on own land
+     *
+     * @return is on own land
+     */
+    protected boolean isOnOwnLand() {
+        Point p = getCreatureCoordinates();
+        if (p != null) {
+            TileData tileData = worldState.getMapData().getTile(p);
+            if (tileData != null) {
+                return tileData.getPlayerId() == getOwnerId();
+            }
+        }
+        return false;
     }
 
 }
