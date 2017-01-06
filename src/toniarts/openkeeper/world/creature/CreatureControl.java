@@ -1246,7 +1246,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return true if we dieded
      */
     private boolean applyDamage(int damage) {
-        health -= damage;
+        health -= Math.min(damage, health);
         if (health < 1) {
 
             // Die :(
