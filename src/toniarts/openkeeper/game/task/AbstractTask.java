@@ -175,6 +175,15 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
     }
 
     /**
+     * Should the creature face the task it is doing
+     *
+     * @return true to face the task
+     */
+    public boolean isFaceTarget() {
+        return false;
+    }
+
+    /**
      * Get the task tooltip
      *
      * @return the task tooltip

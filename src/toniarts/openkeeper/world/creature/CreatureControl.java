@@ -18,30 +18,27 @@ package toniarts.openkeeper.world.creature;
 
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
-import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.ai.steer.behaviors.Cohesion;
-import com.badlogic.gdx.ai.steer.behaviors.FollowPath;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance;
-import com.badlogic.gdx.ai.steer.behaviors.Wander;
+import com.badlogic.gdx.ai.steer.behaviors.Seek;
 import com.badlogic.gdx.ai.steer.proximities.InfiniteProximity;
-import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
-import com.badlogic.gdx.ai.steer.utils.paths.LinePath.LinePathParam;
-import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
-import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.jme3.app.Application;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.task.AbstractTask;
@@ -67,7 +64,7 @@ import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.control.IUnitFlowerControl;
 import toniarts.openkeeper.world.control.UnitFlowerControl;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
-import toniarts.openkeeper.world.creature.steering.CreatureRayCastCollisionDetector;
+import toniarts.openkeeper.world.creature.steering.CreatureSteeringCreator;
 import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.object.ObjectControl;
@@ -82,39 +79,40 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public enum AnimationType {
 
-        MOVE, WORK, IDLE, OTHER;
+        MOVE, WORK, IDLE, ATTACK, DYING, STUNNED, OTHER;
     }
 
     // Attributes
     private final String name;
     private final String bloodType;
-    private int gold = 0;
-    private int level = 1;
-    private int health = 1;
-    private int experience = 0;
-    private short ownerId;
-    private float height;
-    private int maxHealth;
-    private int fear;
-    private int threat;
-    private int meleeDamage;
-    private int pay;
-    private int maxGoldHeld;
-    private int hungerFill;
-    private int manaGenPrayer;
-    private int experienceToNextLevel;
-    private int experiencePerSecond;
-    private int experiencePerSecondTraining;
-    private int researchPerSecond;
-    private int manufacturePerSecond;
-    private int decomposeValue;
-    private float speed;
-    private float runSpeed;
-    private float tortureTimeToConvert;
-    private int posessionManaCost;
-    private int ownLandHealthIncrease;
-    private float distanceCanHear;
-    private float meleeRecharge;
+    protected int gold = 0;
+    protected int level = 1;
+    protected int health = 1;
+    protected int experience = 0;
+    protected short ownerId;
+    protected float height;
+    protected int maxHealth;
+    protected int fear;
+    protected int threat;
+    protected int meleeDamage;
+    protected int pay;
+    protected int maxGoldHeld;
+    protected int hungerFill;
+    protected int manaGenPrayer;
+    protected int experienceToNextLevel;
+    protected int experiencePerSecond;
+    protected int experiencePerSecondTraining;
+    protected int researchPerSecond;
+    protected int manufacturePerSecond;
+    protected int decomposeValue;
+    protected float speed;
+    protected float runSpeed;
+    protected float tortureTimeToConvert;
+    protected int posessionManaCost;
+    protected int ownLandHealthIncrease;
+    protected float distanceCanHear;
+    protected float meleeRecharge;
+    private CreatureAttack executingAttack;
     private static final int MAX_CREATURE_LEVEL = 10;
     //
 
@@ -130,6 +128,15 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private AnimationType playingAnimationType = AnimationType.IDLE;
     private ObjectControl creatureLair;
     private CreatureControl followTarget;
+    private final List<CreatureAttack> attacks;
+    /**
+     * Things we hear & see per tick
+     */
+    private final Set<CreatureControl> visibilityList = new HashSet<>();
+    private boolean visibilityListUpdated = false;
+    private Integer ourThreat;
+    private Integer enemyThreat;
+    private CreatureControl attackTarget;
 
     // Good creature specific stuff
     private Party party;
@@ -184,6 +191,13 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 ownerId = ((DeadBody) creatureInstance).getPlayerId();
             }
         }
+
+        // Create the attacks
+        attacks = new ArrayList<>(creature.getSpells().size() + 1);
+        attacks.add(new CreatureAttack(this)); // Melee
+        for (Creature.Spell spell : creature.getSpells()) {
+            attacks.add(new CreatureAttack(this, spell, worldState.getGameState().getLevelData())); // Spells
+        }
     }
 
     @Override
@@ -196,8 +210,17 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     @Override
     public void processTick(float tpf, Application app) {
+        visibilityList.clear();
+        visibilityListUpdated = false;
+        ourThreat = null;
+        enemyThreat = null;
         if (stateMachine.getCurrentState() == null) {
             stateMachine.changeState(CreatureState.IDLE);
+        }
+
+        // Update attacks
+        for (CreatureAttack attack : attacks) {
+            attack.recharge(tpf);
         }
 
         // Update attributes
@@ -224,42 +247,14 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     }
 
-    public void wander() {
-
-        // Set wandering
-        PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
-        RaycastCollisionDetector<Vector2> raycastCollisionDetector = new CreatureRayCastCollisionDetector(worldState);
-        RaycastObstacleAvoidance<Vector2> raycastObstacleAvoidanceSB = new RaycastObstacleAvoidance<>(this, new SingleRayConfiguration<>(this, 1.5f),
-                raycastCollisionDetector, 0.5f);
-        prioritySteering.add(raycastObstacleAvoidanceSB);
-        prioritySteering.add(new Wander<>(this).setFaceEnabled(false) // We want to use Face internally (independent facing is on)
-                .setAlignTolerance(0.001f) // Used by Face
-                .setDecelerationRadius(5) // Used by Face
-                .setTimeToTarget(0.1f) // Used by Face
-                .setWanderOffset(10) //
-                .setWanderOrientation(10) //
-                .setWanderRadius(10) //
-                .setWanderRate(FastMath.TWO_PI * 4));
-        setSteeringBehavior(prioritySteering);
-    }
-
     public void navigateToRandomPoint() {
         Point p = worldState.findRandomAccessibleTile(WorldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, this);
         if (p != null) {
-            GraphPath<TileData> outPath = worldState.findPath(WorldState.getTileCoordinates(getSpatial().getWorldTranslation()), p, this);
 
-            if (outPath != null && outPath.getCount() > 1) {
-
-                // Debug
-//                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
-                PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
-                FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(pathToArray(outPath), true), 2);
-                followPath.setDecelerationRadius(1f);
-                followPath.setArrivalTolerance(0.2f);
-                prioritySteering.add(followPath);
-
-                prioritySteering.setEnabled(!isAnimationPlaying());
-                setSteeringBehavior(prioritySteering);
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, p);
+            if (steering != null) {
+                steering.setEnabled(!isAnimationPlaying());
+                setSteeringBehavior(steering);
             }
         }
     }
@@ -324,10 +319,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
             // Return to previous state
             stateMachine.revertToPreviousState();
-        } else if (stateMachine.getCurrentState() == CreatureState.DEAD) {
+        } else if (playingAnimationType == AnimationType.DYING) {
 
             // TODO: should show the pose for awhile I guess
-            removeCreature();
+            if (stateMachine.getCurrentState() == CreatureState.DEAD) {
+                removeCreature();
+            }
         } else {
             playStateAnimation();
         }
@@ -352,7 +349,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     private void playStateAnimation() {
         if (!animationPlaying) {
-            if (steeringBehavior != null && steeringBehavior.isEnabled()) {
+            if (playingAnimationType == AnimationType.STUNNED && !stateMachine.isInState(CreatureState.STUNNED)) {
+                playAnimation(creature.getAnimGetUpResource());
+                playingAnimationType = AnimationType.OTHER;
+            } else if (steeringBehavior != null && steeringBehavior.isEnabled()) {
                 playAnimation(creature.getAnimWalkResource());
                 playingAnimationType = AnimationType.MOVE;
             } else if (stateMachine.getCurrentState() == CreatureState.WORK) {
@@ -366,6 +366,40 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 }
             } else if (stateMachine.getCurrentState() == CreatureState.ENTERING_DUNGEON) {
                 playAnimation(creature.getAnimEntranceResource());
+            } else if (stateMachine.getCurrentState() == CreatureState.FIGHT) {
+                CreatureAttack executeAttack = executingAttack;
+                if (executeAttack != null && executeAttack.isPlayAnimation()) {
+                    if (executeAttack.isMelee()) {
+                        List<ArtResource> meleeAttackAnimations = new ArrayList<>(2);
+                        if (creature.getAnimMelee1Resource() != null) {
+                            meleeAttackAnimations.add(creature.getAnimMelee1Resource());
+                        }
+                        if (creature.getAnimMelee2Resource() != null) {
+                            meleeAttackAnimations.add(creature.getAnimMelee2Resource());
+                        }
+                        ArtResource attackAnim = meleeAttackAnimations.get(0);
+                        if (meleeAttackAnimations.size() > 1) {
+                            attackAnim = Utils.getRandomItem(meleeAttackAnimations);
+                        }
+                        playAnimation(attackAnim);
+                    } else {
+                        playAnimation(creature.getAnimMagicResource());
+                    }
+                }
+                playingAnimationType = AnimationType.ATTACK;
+            } else if (stateMachine.getCurrentState() == CreatureState.DEAD || stateMachine.getCurrentState() == CreatureState.UNCONSCIOUS) {
+
+                //TODO: Dying direction
+                if (playingAnimationType != AnimationType.DYING) {
+                    playAnimation(creature.getAnimDieResource());
+                    playingAnimationType = AnimationType.DYING;
+                    showUnitFlower(Integer.MAX_VALUE);
+                }
+            } else if (stateMachine.isInState(CreatureState.STUNNED)) {
+                if (playingAnimationType != AnimationType.STUNNED) {
+                    playAnimation(creature.getAnimDieResource());
+                    playingAnimationType = AnimationType.STUNNED;
+                }
             } else {
                 List<ArtResource> idleAnimations = new ArrayList<>(3);
                 if (creature.getAnimIdle1Resource() != null) {
@@ -388,14 +422,6 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         }
     }
 
-    private Array<Vector2> pathToArray(GraphPath<TileData> outPath) {
-        Array<Vector2> path = new Array<>(outPath.getCount());
-        for (TileData tile : outPath) {
-            path.add(new Vector2(tile.getX() - 0.5f, tile.getY() - 0.5f));
-        }
-        return path;
-    }
-
     @Override
     public String getTooltip(short playerId) {
         String tooltip;
@@ -412,20 +438,34 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     private String getStatusText() {
-        switch (state) {
-            case IDLE: {
-                return Utils.getMainTextResourceBundle().getString("2599");
-            }
-            case WORK: {
-                if (assignedTask != null) {
-                    return assignedTask.getTooltip();
+        if (state != null) {
+            switch (state) {
+                case IDLE: {
+                    return Utils.getMainTextResourceBundle().getString("2599");
                 }
-            }
-            case WANDER: {
-                return Utils.getMainTextResourceBundle().getString("2628");
-            }
-            case DEAD: {
-                return Utils.getMainTextResourceBundle().getString("2598");
+                case WORK: {
+                    if (assignedTask != null) {
+                        return assignedTask.getTooltip();
+                    }
+                }
+                case WANDER: {
+                    return Utils.getMainTextResourceBundle().getString("2628");
+                }
+                case DEAD: {
+                    return Utils.getMainTextResourceBundle().getString("2598");
+                }
+                case FLEE: {
+                    return Utils.getMainTextResourceBundle().getString("2658");
+                }
+                case FIGHT: {
+                    return Utils.getMainTextResourceBundle().getString("2651");
+                }
+                case UNCONSCIOUS: {
+                    return Utils.getMainTextResourceBundle().getString("2655");
+                }
+                case STUNNED: {
+                    return Utils.getMainTextResourceBundle().getString("2597");
+                }
             }
         }
         return "";
@@ -437,12 +477,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             stateMachine.changeState(CreatureState.SLAPPED);
             steeringBehavior = null;
             idleAnimationPlayCount = 0;
-            health -= creature.getSlapDamage();
-            if (health < 1) {
-
-                // Die :(
-                stateMachine.changeState(CreatureState.DEAD);
-            } else {
+            if (!applyDamage(creature.getSlapDamage())) {
                 playAnimation(creature.getAnimFallbackResource());
                 playingAnimationType = AnimationType.OTHER;
             }
@@ -456,8 +491,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void die() {
-        //TODO: Dying direction
-        playAnimation(creature.getAnimDieResource());
+        stop();
+        dropGold();
 
         // Notify
         onDie(CreatureControl.this);
@@ -484,7 +519,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
             // Experience gaining, I don't know how accurate this should be, like clock the time in work animation etc.
             if (level < MAX_CREATURE_LEVEL) {
-                if (playingAnimationType == AnimationType.WORK && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER) || creature.getFlags().contains(Creature.CreatureFlag.TRAIN_WHEN_IDLE)) {
+                if (playingAnimationType == AnimationType.WORK && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER) || stateMachine.isInState(CreatureState.FIGHT)) {
                     if (worldState.getLevelData().getImp().equals(creature)) {
                         experience += worldState.getLevelVariable(Variable.MiscVariable.MiscType.IMP_EXPERIENCE_GAIN_PER_SECOND);
                     } else {
@@ -501,6 +536,14 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             // Health
             health += ownLandHealthIncrease; // FIXME, need to detect prev & current pos
             health = Math.min(health, maxHealth);
+
+            // Dying counter :)
+            if (stateMachine.isInState(CreatureState.UNCONSCIOUS) && timeInState > worldState.getLevelVariable(Variable.MiscVariable.MiscType.DEAD_BODY_DIES_AFTER_SECONDS)) {
+                stateMachine.changeState(CreatureState.DEAD);
+                removeCreature();
+            } else if (stateMachine.isInState(CreatureState.STUNNED) && timeInState > creature.getStunDuration()) {
+                stateMachine.changeState(CreatureState.IDLE);
+            }
         }
     }
 
@@ -547,20 +590,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
         Vector2f loc = assignedTask.getTarget(this);
         if (loc != null) {
-            GraphPath<TileData> outPath = worldState.findPath(worldState.getTileCoordinates(getSpatial().getWorldTranslation()), new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), this);
 
-            if (outPath != null && outPath.getCount() > 1) {
-
-                // Debug
-//                worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
-                PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
-                FollowPath<Vector2, LinePathParam> followPath = new FollowPath(this, new LinePath<>(pathToArray(outPath), true), 2);
-                followPath.setDecelerationRadius(1f);
-                followPath.setArrivalTolerance(0.2f);
-                prioritySteering.add(followPath);
-
-                prioritySteering.setEnabled(!isAnimationPlaying());
-                setSteeringBehavior(prioritySteering);
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
+            if (steering != null) {
+                steering.setEnabled(!isAnimationPlaying());
+                setSteeringBehavior(steering);
             }
         }
     }
@@ -603,7 +637,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     private boolean isSlappable(short playerId) {
-        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) && !stateMachine.isInState(CreatureState.DEAD);
+        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) && !isIncapacitated();
     }
 
     public boolean isTooMuchGold() {
@@ -658,7 +692,13 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return the tile coordinates
      */
     public Point getCreatureCoordinates() {
-        return worldState.getTileCoordinates(getSpatial().getWorldTranslation());
+        if (stateMachine.getCurrentState() != CreatureState.PICKED_UP && stateMachine.getCurrentState() != CreatureState.DEAD) {
+            Vector3f translation = getSpatial().getWorldTranslation();
+            if (translation != null) {
+                return WorldState.getTileCoordinates(translation);
+            }
+        }
+        return null;
     }
 
     /**
@@ -897,7 +937,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     @Override
     public boolean isPickable(short playerId) {
-        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP) && !stateMachine.isInState(CreatureState.DEAD);
+        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP) && !isIncapacitated() && isOnOwnLand();
     }
 
     @Override
@@ -954,8 +994,13 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         // TODO: actual dropping & being stunned, & evict (Imp to DHeart & creature to portal)
         CreatureLoader.setPosition(spatial, new Vector2f(tile.getX(), tile.getY()));
         worldState.getThingLoader().attachCreature(getSpatial());
+        animationPlaying = false;
+        if (creature.getStunDuration() > 0) {
+            stateMachine.changeState(CreatureState.STUNNED);
+        } else {
+            stateMachine.changeState(CreatureState.IDLE);
+        }
         setEnabled(true);
-        stateMachine.changeState(CreatureState.IDLE);
 
         // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
         worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
@@ -976,6 +1021,321 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         }
 
         // TODO: chickens etc..??
+        return false;
+    }
+
+    public Set<CreatureControl> getVisibleCreatures() {
+        if (!visibilityListUpdated) {
+
+            // Get creatures we sense
+            Point currentPoint = getCreatureCoordinates();
+
+            // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
+            // https://github.com/tonihele/OpenKeeper/issues/261
+            TileData tile = worldState.getMapData().getTile(currentPoint);
+            if (tile != null) {
+                visibilityList.addAll(tile.getCreatures());
+            }
+            addVisibleCreatures(currentPoint.x, currentPoint.y - 1, (int) creature.getDistanceCanHear());
+            addVisibleCreatures(currentPoint.x + 1, currentPoint.y, (int) creature.getDistanceCanHear());
+            addVisibleCreatures(currentPoint.x, currentPoint.y + 1, (int) creature.getDistanceCanHear());
+            addVisibleCreatures(currentPoint.x - 1, currentPoint.y, (int) creature.getDistanceCanHear());
+            visibilityList.remove(this);
+            visibilityListUpdated = true;
+        }
+        return visibilityList;
+    }
+
+    private void addVisibleCreatures(int x, int y, int range) {
+        TileData tile = worldState.getMapData().getTile(x, y);
+        if (tile != null) {
+            if (!tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                visibilityList.addAll(tile.getCreatures());
+                int newRange = range - 1;
+                if (newRange > -1) {
+                    addVisibleCreatures(x, y - 1, newRange);
+                    addVisibleCreatures(x + 1, y, newRange);
+                    addVisibleCreatures(x, y + 1, newRange);
+                    addVisibleCreatures(x - 1, y, newRange);
+                }
+            }
+        }
+    }
+
+    /**
+     * Get creature facing direction in map directions. FIXME: I don't really
+     * like this enum to be used here, wrap it
+     *
+     * @return map facing direction
+     */
+    public Thing.Room.Direction getFacingDirection() {
+        float orientation = getOrientation();
+        return Thing.Room.Direction.NORTH;
+    }
+
+    /**
+     * Should the creature flee or attack. Sets the AI state accordingly
+     *
+     * @return true if the creature should take a part in any of these actions
+     */
+    public boolean shouldFleeOrAttack() {
+
+        // Check fleeing, TODO: Always flee?
+        if (!creature.getFlags().contains(Creature.CreatureFlag.IS_FEARLESS)) {
+            int threatToUs = getEnemyThreat();
+            int threatCaused = creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE) || isHealthAtCriticalLevel() ? threat : getOurThreat();
+            if (threatToUs - threatCaused > fear) {
+                if (!stateMachine.isInState(CreatureState.FLEE)) {
+                    stateMachine.changeState(CreatureState.FLEE);
+                }
+                return true;
+            }
+        }
+
+        // Should we attack, try to avoid i.e. imps engaging in a fight
+        if (creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER && getAttackTarget() != null) {
+            if (!stateMachine.isInState(CreatureState.FIGHT)) {
+                stateMachine.changeState(CreatureState.FIGHT);
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Gets the total threat caused by the enemies visible
+     *
+     * @return total enemy threat
+     */
+    private int getEnemyThreat() {
+        if (enemyThreat == null) {
+            enemyThreat = 0;
+            for (CreatureControl c : getVisibleCreatures()) {
+                if (isEnemy(c) && !c.isIncapacitated()) {
+                    enemyThreat += c.threat;
+                }
+            }
+        }
+        return enemyThreat;
+    }
+
+    /**
+     * Gets the total threat caused by us. Meaning the band of brothers visible
+     * to us
+     *
+     * @return total threat caused by us
+     */
+    private int getOurThreat() {
+        if (ourThreat == null) {
+            ourThreat = 0;
+            for (CreatureControl c : getVisibleCreatures()) {
+                if (!isEnemy(c) && !c.isIncapacitated()) {
+                    ourThreat += c.threat;
+                }
+            }
+        }
+        return ourThreat;
+    }
+
+    public CreatureControl getAttackTarget() {
+        if (attackTarget == null || attackTarget.isIncapacitated() || attackTarget.getStateMachine().getCurrentState() == CreatureState.FLEE) {
+
+            // Pick a new target
+            // TODO: is there any preference? Now just take the nearest
+            CreatureControl nearestEnemy = null;
+            float nearestDistance = Float.MAX_VALUE;
+            for (CreatureControl c : getVisibleCreatures()) {
+                if (isEnemy(c) && (!c.isIncapacitated() || c.getStateMachine().getCurrentState() == CreatureState.FLEE)) {
+                    float distance = getDistanceToCreature(c);
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestEnemy = c;
+                    }
+                }
+            }
+            attackTarget = nearestEnemy;
+        }
+        return attackTarget;
+    }
+
+    private boolean isEnemy(CreatureControl creature) {
+        // TODO: alliances?
+        return getOwnerId() != creature.getOwnerId();
+    }
+
+    private boolean isIncapacitated() {
+        return getStateMachine().getCurrentState() == CreatureState.DEAD || getStateMachine().getCurrentState() == CreatureState.PICKED_UP || getStateMachine().getCurrentState() == CreatureState.UNCONSCIOUS;
+    }
+
+    /**
+     * Get distance to given creature
+     *
+     * @param creature the creature to measure distance to
+     * @return the distance yo creature
+     */
+    private float getDistanceToCreature(CreatureControl creature) {
+
+        // FIXME: now just direct distance, should be perhaps real distance that the creature needs to traverse to reach the target
+        if (getPosition() == null || creature.getPosition() == null) {
+            return Float.MAX_VALUE;
+        }
+        return getPosition().dst2(creature.getPosition());
+    }
+
+    public void navigateToAttackTarget(CreatureControl target) {
+        PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+
+        // Seek to approach the target
+        Seek<Vector2> seek = new Seek<>(this, target);
+        prioritySteering.add(seek);
+
+        setSteeringBehavior(prioritySteering);
+    }
+
+    /**
+     * See if we are withing attack distance of the given target
+     *
+     * @param target our target
+     * @return if the distance is short enough for us to deliver a blow
+     */
+    public boolean isWithinAttackDistance(CreatureControl target) {
+        float distanceNeeded = attacks.get(0).getRange(); // The melee range, the shortest range
+        if (creature.getFightStyle() == Creature.FightStyle.SUPPORT) {
+
+            // Get max distance we can cast all spells, and hopefully stay safe
+            Float shortestDistance = null;
+            for (CreatureAttack attack : attacks) {
+                if (!attack.isMelee() && attack.isAvailable() && attack.isAttacking()) {
+                    if (shortestDistance == null) {
+                        shortestDistance = attack.getRange();
+                    } else {
+                        shortestDistance = Math.min(shortestDistance, attack.getRange());
+                    }
+                }
+            }
+            if (shortestDistance != null) {
+                distanceNeeded = shortestDistance;
+            }
+        }
+        return distanceNeeded >= getDistanceToCreature(target);
+    }
+
+    /**
+     * Stop the creature from moving
+     */
+    public void stop() {
+        setSteeringBehavior(null);
+    }
+
+    /**
+     * Makes the creature attack the given target
+     *
+     * @param target target to attack
+     */
+    public void executeAttack(CreatureControl target) {
+
+        // Select attack to execute
+        // Hmm, just first one we can?
+        float distanceToTarget = getDistanceToCreature(target);
+        for (CreatureAttack attack : attacks) {
+            if (attack.isExecutable() && attack.isAttacking() && distanceToTarget <= attack.getRange()) {
+                executingAttack = attack;
+                attack.execute(); // Mark for executing
+
+                // FIXME: perhaps telegrams or whatnot and not instant like this, is it the shot delay that governs this?
+                target.damage(this, attack.getDamage());
+            }
+        }
+    }
+
+    private void damage(CreatureControl damagedBy, float damage) {
+        applyDamage((int) damage);
+
+        // If we are not in a fight mode, see what we should do
+        if (!isIncapacitated() && stateMachine.getCurrentState() != CreatureState.FIGHT) {
+            attackTarget = damagedBy;
+            if (stateMachine.getCurrentState() != CreatureState.FLEE) {
+                shouldFleeOrAttack();
+            }
+        }
+    }
+
+    /**
+     * Apply damage
+     *
+     * @param damage amount of damage
+     * @return true if we dieded
+     */
+    private boolean applyDamage(int damage) {
+        health -= Math.min(damage, health);
+        if (health < 1) {
+
+            // Die :(
+            if (creature.getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
+                stateMachine.changeState(CreatureState.UNCONSCIOUS);
+            } else {
+                stateMachine.changeState(CreatureState.DEAD);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * If we see enemies, avoid them, try to navigate to our dungeon heart
+     */
+    public void flee() {
+        //PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+
+        // Get the nearest enemy
+        // FIXME: method naming if truly nearest enemy, and perhaps we should flee from our assailant
+//        CreatureControl target = getAttackTarget();
+//
+//        // Flee from the enemy
+//        if (target != null) {
+//            Flee<Vector2> flee = new Flee<>(this, target);
+//            prioritySteering.add(flee);
+//        }
+        // FIXME: For now just flee towards the dungeon heart or random tiles
+        GenericRoom room = worldState.getGameState().getPlayer(ownerId).getRoomControl().getDungeonHeart();
+        if (room != null) {
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, room.getRoomInstance().getCoordinates().get(0));
+            if (steering != null) {
+                steering.setEnabled(!isAnimationPlaying());
+                setSteeringBehavior(steering);
+                return;
+            }
+        }
+
+        navigateToRandomPoint();
+
+        // Try to find our dungeon heart etc. safety haven
+        //setSteeringBehavior(prioritySteering);
+    }
+
+    /**
+     * Checks if we should fear death
+     *
+     * @return true if we have critically low health level
+     */
+    public boolean isHealthAtCriticalLevel() {
+        return worldState.getLevelVariable(Variable.MiscVariable.MiscType.CREATURE_CRITICAL_HEALTH_PERCENTAGE_OF_MAX) > getHealthPercentage();
+    }
+
+    /**
+     * Is the creature on own land
+     *
+     * @return is on own land
+     */
+    protected boolean isOnOwnLand() {
+        Point p = getCreatureCoordinates();
+        if (p != null) {
+            TileData tileData = worldState.getMapData().getTile(p);
+            if (tileData != null) {
+                return tileData.getPlayerId() == getOwnerId();
+            }
+        }
         return false;
     }
 

@@ -34,6 +34,11 @@ public enum CreatureState implements State<CreatureControl> {
         @Override
         public void enter(CreatureControl entity) {
 
+            // Should we flee or attack
+            if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+
             // Idling is the last resort
             entity.unassingCurrentTask();
             if (!findStuffToDo(entity)) {
@@ -72,6 +77,11 @@ public enum CreatureState implements State<CreatureControl> {
         @Override
         public void update(CreatureControl entity) {
 
+            // Should we flee or attack
+            if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+
             if (!findStuffToDo(entity) && entity.getIdleAnimationPlayCount() > 0 && entity.isStopped()) {
                 entity.navigateToRandomPoint();
             }
@@ -91,7 +101,7 @@ public enum CreatureState implements State<CreatureControl> {
 
         @Override
         public void enter(CreatureControl entity) {
-            entity.wander();
+//                    entity.wander();
         }
 
         @Override
@@ -165,6 +175,11 @@ public enum CreatureState implements State<CreatureControl> {
         @Override
         public void update(CreatureControl entity) {
 
+            // Should we flee or attack
+            if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+
             // Check arrival
             if (entity.isAtAssignedTaskTarget()) {
 
@@ -197,12 +212,30 @@ public enum CreatureState implements State<CreatureControl> {
 
         @Override
         public void enter(CreatureControl entity) {
-
+            entity.unassingCurrentTask();
+            CreatureControl attackTarget = entity.getAttackTarget();
+            if (attackTarget != null && !entity.isWithinAttackDistance(attackTarget)) {
+                entity.navigateToAttackTarget(attackTarget);
+            }
         }
 
         @Override
         public void update(CreatureControl entity) {
+            CreatureControl attackTarget = entity.getAttackTarget();
+            if (attackTarget == null) {
+                entity.getStateMachine().changeState(IDLE); // Nothing to do
+                return;
+            }
 
+            // If we have reached the target, stop and fight!
+            if (entity.isWithinAttackDistance(attackTarget)) {
+
+                // Attack!!
+                entity.stop();
+                entity.executeAttack(attackTarget);
+            } else {
+                entity.navigateToAttackTarget(attackTarget);
+            }
         }
 
         @Override
@@ -283,6 +316,72 @@ public enum CreatureState implements State<CreatureControl> {
             return true;
         }
 
+    }, FLEE {
+
+        @Override
+        public void enter(CreatureControl entity) {
+            entity.unassingCurrentTask();
+            entity.flee();
+        }
+
+        @Override
+        public void update(CreatureControl entity) {
+            if (!entity.shouldFleeOrAttack()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void exit(CreatureControl entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(CreatureControl entity, Telegram telegram) {
+            return true;
+        }
+
+    }, UNCONSCIOUS {
+        @Override
+        public void enter(CreatureControl entity) {
+            entity.stop();
+            entity.unassingCurrentTask();
+        }
+
+        @Override
+        public void update(CreatureControl entity) {
+
+        }
+
+        @Override
+        public void exit(CreatureControl entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(CreatureControl entity, Telegram telegram) {
+            return true;
+        }
+
+    }, STUNNED;
+
+    @Override
+    public void enter(CreatureControl entity) {
+
     }
 
+    @Override
+    public void update(CreatureControl entity) {
+
+    }
+
+    @Override
+    public void exit(CreatureControl entity) {
+
+    }
+
+    @Override
+    public boolean onMessage(CreatureControl entity, Telegram telegram) {
+        return true;
+    }
 }

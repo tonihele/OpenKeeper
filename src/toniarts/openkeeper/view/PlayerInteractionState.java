@@ -162,8 +162,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 }
                 if (interactionState.getType() == Type.NONE && keeperHand.getItem() != null) {
                     TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
-                    IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile);
-                    return (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
+                    if (tile != null) {
+                        IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile);
+                        return (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
+                    }
+                    return ColorIndicator.RED;
                 }
                 if (interactionState.getType() == Type.SELL) {
                     return ColorIndicator.RED;

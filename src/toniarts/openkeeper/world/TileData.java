@@ -17,11 +17,14 @@
 package toniarts.openkeeper.world;
 
 import java.awt.Point;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Wrapper for a map tile
@@ -40,6 +43,7 @@ public final class TileData extends Tile {
     private final Point p;
     private final int index;
     private final KwdFile kwdFile;
+    private final List<CreatureControl> creatures = new ArrayList<>();
     private final static ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
 
     protected TileData(KwdFile kwdFile, Tile tile, Terrain terrain, int x, int y, int index) {
@@ -218,6 +222,31 @@ public final class TileData extends Tile {
      */
     public boolean isAtFullHealth() {
         return (health == getTerrain().getMaxHealth());
+    }
+
+    /**
+     * Clears the tile creature record
+     */
+    public void clearCreatures() {
+        creatures.clear();
+    }
+
+    /**
+     * Add a creature to the tile creature record
+     *
+     * @param creature the creature to add
+     */
+    public void addCreature(CreatureControl creature) {
+        creatures.add(creature);
+    }
+
+    /**
+     * Get list of creatures currently wondering at this tile
+     *
+     * @return creatures at this tile
+     */
+    public List<CreatureControl> getCreatures() {
+        return creatures;
     }
 
 }

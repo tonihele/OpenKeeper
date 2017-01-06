@@ -803,11 +803,11 @@ public abstract class WorldState extends AbstractAppState {
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else // Water or lava
-                    if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
-                        tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
-                    } else {
-                        tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
-                    }
+                     if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
+                            tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
+                        } else {
+                            tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
+                        }
 
                     // Give money back
                     int goldLeft = addGold(player.getPlayerId(), room.getCost() / 2);
@@ -909,7 +909,9 @@ public abstract class WorldState extends AbstractAppState {
     public GraphPath<TileData> findPath(Point start, Point end, CreatureControl creature) {
         pathFindingMap.setCreature(creature);
         GraphPath<TileData> outPath = new DefaultGraphPath<>();
-        if (pathFinder.searchNodePath(getMapData().getTile(start.x, start.y), getMapData().getTile(end.x, end.y), heuristic, outPath)) {
+        TileData startTile = getMapData().getTile(start.x, start.y);
+        TileData endTile = getMapData().getTile(end.x, end.y);
+        if (startTile != null && endTile != null && pathFinder.searchNodePath(startTile, endTile, heuristic, outPath)) {
             return outPath;
         }
         return null;

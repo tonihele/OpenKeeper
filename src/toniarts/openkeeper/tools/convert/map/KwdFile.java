@@ -1234,8 +1234,8 @@ public final class KwdFile {
             creature.setAttractions(attractions);
             creature.setFirstPersonWaddleScale(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
             creature.setFirstPersonOscillateScale(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
-            Spell[] spells = new Spell[3];
-            for (int x = 0; x < spells.length; x++) {
+            List<Spell> spells = new ArrayList<>(3);
+            for (int x = 0; x < 3; x++) {
                 Spell spell = creature.new Spell();
                 spell.setShotOffset(new Vector3f(ConversionUtils.readUnsignedIntegerAsLong(file) / ConversionUtils.FLOAT,
                         ConversionUtils.readUnsignedIntegerAsLong(file) / ConversionUtils.FLOAT,
@@ -1249,7 +1249,9 @@ public final class KwdFile {
                 spell.setX15((short) file.readUnsignedByte());
                 spell.setCreatureSpellId((short) file.readUnsignedByte());
                 spell.setLevelAvailable((short) file.readUnsignedByte());
-                spells[x] = spell;
+                if (spell.getCreatureSpellId() != 0) {
+                    spells.add(spell);
+                }
             }
             creature.setSpells(spells);
             Creature.Resistance[] resistances = new Creature.Resistance[4];

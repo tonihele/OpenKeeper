@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import java.util.List;
 import javax.vecmath.Vector3f;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
@@ -601,7 +602,7 @@ public class Creature implements Comparable<Creature> {
     private Attraction attractions[];
     private float firstPersonWaddleScale; // dbc Movement
     private float firstPersonOscillateScale; // dc0 Movement
-    private Spell spells[];
+    private List<Spell> spells;
     private Resistance resistances[];
     private JobPreference happyJobs[];
     private JobPreference unhappyJobs[];
@@ -1280,11 +1281,11 @@ public class Creature implements Comparable<Creature> {
         this.firstPersonOscillateScale = firstPersonOscillateScale;
     }
 
-    public Spell[] getSpells() {
+    public List<Spell> getSpells() {
         return spells;
     }
 
-    protected void setSpells(Spell[] spells) {
+    protected void setSpells(List<Spell> spells) {
         this.spells = spells;
     }
 
