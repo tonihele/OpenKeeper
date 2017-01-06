@@ -20,7 +20,6 @@ import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.ai.steer.behaviors.Cohesion;
-import com.badlogic.gdx.ai.steer.behaviors.Flee;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.ai.steer.behaviors.Seek;
 import com.badlogic.gdx.ai.steer.proximities.InfiniteProximity;
@@ -1086,14 +1085,18 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             int threatToUs = getEnemyThreat();
             int threatCaused = creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE) || isHealthAtCriticalLevel() ? threat : getOurThreat();
             if (threatToUs - threatCaused > fear) {
-                stateMachine.changeState(CreatureState.FLEE);
+                if (!stateMachine.isInState(CreatureState.FLEE)) {
+                    stateMachine.changeState(CreatureState.FLEE);
+                }
                 return true;
             }
         }
 
         // Should we attack, try to avoid i.e. imps engaging in a fight
         if (creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER && getAttackTarget() != null) {
-            stateMachine.changeState(CreatureState.FIGHT);
+            if (!stateMachine.isInState(CreatureState.FIGHT)) {
+                stateMachine.changeState(CreatureState.FIGHT);
+            }
             return true;
         }
 
@@ -1283,20 +1286,32 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * If we see enemies, avoid them, try to navigate to our dungeon heart
      */
     public void flee() {
-        PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+        //PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
 
         // Get the nearest enemy
         // FIXME: method naming if truly nearest enemy, and perhaps we should flee from our assailant
-        CreatureControl target = getAttackTarget();
-
-        // Flee from the enemy
-        if (target != null) {
-            Flee<Vector2> flee = new Flee<>(this, target);
-            prioritySteering.add(flee);
+//        CreatureControl target = getAttackTarget();
+//
+//        // Flee from the enemy
+//        if (target != null) {
+//            Flee<Vector2> flee = new Flee<>(this, target);
+//            prioritySteering.add(flee);
+//        }
+        // FIXME: For now just flee towards the dungeon heart or random tiles
+        GenericRoom room = worldState.getGameState().getPlayer(ownerId).getRoomControl().getDungeonHeart();
+        if (room != null) {
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, room.getRoomInstance().getCoordinates().get(0));
+            if (steering != null) {
+                steering.setEnabled(!isAnimationPlaying());
+                setSteeringBehavior(steering);
+                return;
+            }
         }
 
+        navigateToRandomPoint();
+
         // Try to find our dungeon heart etc. safety haven
-        setSteeringBehavior(prioritySteering);
+        //setSteeringBehavior(prioritySteering);
     }
 
     /**

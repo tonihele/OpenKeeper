@@ -37,6 +37,7 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<GenericRo
     private int roomCount = 0;
     private boolean portalsOpen = true;
     private List<IRoomAvailabilityListener> roomAvailabilityListeners;
+    private GenericRoom dungeonHeart;
 
     public PlayerRoomControl(Application application) {
         super(application);
@@ -79,6 +80,9 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<GenericRo
         }
         roomSet.add(room);
         roomCount++;
+        if (dungeonHeart == null && room.isDungeonHeart()) {
+            dungeonHeart = room;
+        }
     }
 
     @Override
@@ -167,6 +171,15 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<GenericRo
             roomAvailabilityListeners = new ArrayList<>();
         }
         roomAvailabilityListeners.add(listener);
+    }
+
+    /**
+     * Returns the dungeon heart of the player
+     *
+     * @return the dungeon heart
+     */
+    public GenericRoom getDungeonHeart() {
+        return dungeonHeart;
     }
 
     /**
