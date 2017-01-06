@@ -251,7 +251,7 @@ public class UnitFlowerControl extends BillboardControl {
     }
 
     private void updateHealth() {
-        int healthIndex = 5 - (int) Math.ceil((float) getHealthCurrent() / getHealthMax() / 0.2f);
+        int healthIndex = 6 - (int) Math.round((float) getHealthCurrent() / getHealthMax() / 0.166666f);
         if (healthIndex != currentHealthIndex) {
 
             // Reload health ring
