@@ -16,8 +16,10 @@
  */
 package toniarts.openkeeper.world.creature;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
@@ -49,17 +51,22 @@ public class Party {
     private final int id;
     private final int triggerId;
     private final String name;
-    private final List<Thing.GoodCreature> members;
-    private final List<CreatureControl> actualMembers;
+    private final Map<Thing.GoodCreature, CreatureControl> members;
     private Type type;
     private boolean created = false;
+    private Thing.GoodCreature leader;
 
     public Party(Thing.HeroParty heroParty) {
         id = heroParty.getId();
         name = heroParty.getName();
         triggerId = heroParty.getTriggerId();
-        members = heroParty.getHeroPartyMembers();
-        actualMembers = new ArrayList<>(members.size());
+        members = new LinkedHashMap<>(heroParty.getHeroPartyMembers().size());
+        for (Thing.GoodCreature creature : heroParty.getHeroPartyMembers()) {
+            members.put(creature, null);
+            if (leader == null && creature.getFlags().contains(Thing.Creature.CreatureFlag.LEADER)) {
+                leader = creature;
+            }
+        }
     }
 
     public int getId() {
@@ -92,12 +99,12 @@ public class Party {
      * @see #getActualMembers()
      * @return the members
      */
-    public List<Thing.GoodCreature> getMembers() {
-        return members;
+    public Set<Thing.GoodCreature> getMembers() {
+        return members.keySet();
     }
 
-    public void addMemberInstance(CreatureControl creatureInstance) {
-        actualMembers.add(creatureInstance);
+    public void addMemberInstance(Thing.GoodCreature creature, CreatureControl creatureInstance) {
+        members.put(creature, creatureInstance);
     }
 
     /**
@@ -105,8 +112,8 @@ public class Party {
      *
      * @return the member instances
      */
-    public List<CreatureControl> getActualMembers() {
-        return actualMembers;
+    public Collection<CreatureControl> getActualMembers() {
+        return members.values();
     }
 
     public String getName() {
@@ -121,7 +128,7 @@ public class Party {
     public CreatureControl getPartyLeader() {
 
         // TODO: now just the first one, and check if he is alive
-        return getActualMembers().get(0);
+        return members.get(leader);
     }
 
 }
