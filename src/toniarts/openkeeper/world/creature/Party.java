@@ -31,8 +31,8 @@ public class Party {
     public enum Type implements IValueEnum {
 
         NONE(0x0),
-        INVANSION_PARTY(0x1),
-        RANDOM_CREATYRE_TYPES(0x2);
+        INVASION_PARTY(0x1),
+        RANDOM_CREATURE_TYPES(0x2);
 
         private Type(int id) {
             this.id = id;
