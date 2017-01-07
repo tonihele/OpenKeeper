@@ -235,7 +235,7 @@ public class UnitFlowerControl extends BillboardControl {
             material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
             material.getAdditionalRenderState().setDepthTest(false);
             spatial.setQueueBucket(Bucket.Translucent);
-            spatial.setUserData(AssetUtils.USER_DATE_KEY_REMOVABLE, false);
+            spatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
 
             generateTexture();
         }

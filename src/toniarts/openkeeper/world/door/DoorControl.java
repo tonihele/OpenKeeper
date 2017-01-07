@@ -121,23 +121,21 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
             } else {
                 tooltip = BUNDLE.getString("2536");
             }
-        } else {
-            if (playerId == getOwnerId()) {
-                switch (state) {
-                    case BLUEPRINT: {
-                        tooltip = BUNDLE.getString("2512");
-                        break;
-                    }
-                    default: {
-                        tooltip = BUNDLE.getString("2532");
-                        tooltip = tooltip.replaceFirst("%72", locked ? BUNDLE.getString("2516") : BUNDLE.getString("2515"));
-                        break;
-                    }
+        } else if (playerId == getOwnerId()) {
+            switch (state) {
+                case BLUEPRINT: {
+                    tooltip = BUNDLE.getString("2512");
+                    break;
                 }
-                tooltip = tooltip.replaceFirst("%68", name);
-            } else {
-                tooltip = BUNDLE.getString("2540");
+                default: {
+                    tooltip = BUNDLE.getString("2532");
+                    tooltip = tooltip.replaceFirst("%72", locked ? BUNDLE.getString("2516") : BUNDLE.getString("2515"));
+                    break;
+                }
             }
+            tooltip = tooltip.replaceFirst("%68", name);
+        } else {
+            tooltip = BUNDLE.getString("2540");
         }
         return tooltip.replaceFirst("%37%", Integer.toString(getHealthPercentage()));
     }
@@ -229,7 +227,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
             lockSpatial = AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + lockObject.getMeshResource().getName() + ".j3o", false);
             AssetUtils.resetSpatial(lockSpatial);
             lockSpatial.move(0, 0.75f, 0);
-            lockSpatial.setUserData(AssetUtils.USER_DATE_KEY_REMOVABLE, false);
+            lockSpatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
             ((Node) getSpatial()).attachChild(lockSpatial);
         }
         closeDoor();

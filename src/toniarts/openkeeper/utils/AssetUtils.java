@@ -73,7 +73,7 @@ public class AssetUtils {
     private static final Logger logger = Logger.getLogger(AssetUtils.class.getName());
 
     // Custom model data keys
-    public final static String USER_DATE_KEY_REMOVABLE = "Removable";
+    public final static String USER_DATA_KEY_REMOVABLE = "Removable";
 
     private AssetUtils() {
         // Nope
@@ -462,7 +462,7 @@ public class AssetUtils {
                 }
 
                 // Don't highlight non-removables
-                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE)) || Boolean.FALSE.equals(spatial.getParent().getParent().getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE))) {
+                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE)) || Boolean.FALSE.equals(spatial.getParent().getParent().getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))) {
                     return;
                 }
 
@@ -515,7 +515,7 @@ public class AssetUtils {
                 }
 
                 // Don't highlight non-removables
-                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE))) {
+                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))) {
                     return;
                 }
 

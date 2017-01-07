@@ -224,7 +224,7 @@ public class AnimationLoader {
 
         // Attach the anim node and get rid of the rest
         for (Spatial child : root.getChildren()) {
-            if (Boolean.FALSE.equals(child.getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE))) {
+            if (Boolean.FALSE.equals(child.getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))) {
                 continue;
             }
             child.removeFromParent();
@@ -272,7 +272,7 @@ public class AnimationLoader {
         for (Spatial child : root.getChildren()) {
 
             // Don't hide the unit flower
-            if (Boolean.FALSE.equals(child.getUserData(AssetUtils.USER_DATE_KEY_REMOVABLE))) {
+            if (Boolean.FALSE.equals(child.getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))) {
                 continue;
             }
 
