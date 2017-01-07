@@ -250,7 +250,7 @@ public class TriggerControl extends Control {
                 for (Thing.GoodCreature creature : party.getMembers()) {
                     CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter(), stateManager.getApplication());
                     creatureInstance.setParty(party);
-                    party.addMemberInstance(creatureInstance);
+                    party.addMemberInstance(creature, creatureInstance);
 
                     // Also add to the creature trigger control
                     if (creature.getTriggerId() != 0) {
