@@ -22,7 +22,9 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
- * Represents a party, a group of creatures
+ * Represents a party, a group of creatures. When the Leader is incapacitated, a
+ * new Leader is chosen at random. Any triggers and actions which hung off the
+ * old Leader are transferred to the new.
  *
  * @author ArchDemon
  */
