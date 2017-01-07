@@ -733,6 +733,13 @@ public abstract class Thing {
 //    };
     public static class HeroParty extends Thing implements Comparable<HeroParty> {
 
+        /**
+         * This is really a subset of
+         * {@link toniarts.openkeeper.tools.convert.map.Creature.JobType}, only
+         * includes the job types a hero party can do. FIXME: maybe we should
+         * unify these, just add a boolean whether it is available to parties
+         * only
+         */
         public enum Objective implements IValueEnum {
 
             NONE(0),
