@@ -265,10 +265,10 @@ public enum CreatureState implements State<CreatureControl> {
             }
 
             // Don't let the target wander too far off
-            if (entity.isStopped() && entity.getDistanceToCreature(entity.getFollowTarget()) > 2) {
+            if (entity.isStopped() && !entity.getFollowTarget().isStopped() && entity.getDistanceToCreature(entity.getFollowTarget()) > 2.5f) {
                 entity.followTarget(entity);
-            } else if (entity.getDistanceToCreature(entity.getFollowTarget()) <= 2) {
-                entity.stop();
+            } else if (entity.isStopped()) {
+                entity.navigateToRandomPointAroundTarget(entity.getFollowTarget(), 2);
             }
         }
 

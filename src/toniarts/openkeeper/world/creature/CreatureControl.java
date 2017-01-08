@@ -265,6 +265,18 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         }
     }
 
+    public void navigateToRandomPointAroundTarget(CreatureControl target, int radius) {
+        Point p = worldState.findRandomAccessibleTile(WorldState.getTileCoordinates(target.getSpatial().getWorldTranslation()), radius, this);
+        if (p != null) {
+
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, p);
+            if (steering != null) {
+                steering.setEnabled(!isAnimationPlaying());
+                setSteeringBehavior(steering);
+            }
+        }
+    }
+
     public boolean idleTimeExceeded() {
         return ((creature.getIdleDuration() < 0.1f ? 1f : creature.getIdleDuration()) < timeInState);
     }
