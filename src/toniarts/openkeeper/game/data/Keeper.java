@@ -54,6 +54,7 @@ public class Keeper {
     private final PlayerRoomControl roomControl;
     private PlayerTriggerControl triggerControl;
     private PlayerManaControl manaControl;
+    private boolean destroyed = false;
 
     public Keeper(boolean ai, String name, short id, final Application app) {
         this.ai = ai;
@@ -155,5 +156,14 @@ public class Keeper {
     @Override
     public String toString() {
         return (ai ? aiType.toString() : name);
+    }
+
+    /**
+     * Check whether the player is destroyed or not
+     *
+     * @return is destroyed
+     */
+    public boolean isDestroyed() {
+        return destroyed;
     }
 }

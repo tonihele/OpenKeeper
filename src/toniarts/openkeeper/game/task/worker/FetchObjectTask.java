@@ -45,7 +45,7 @@ public class FetchObjectTask extends AbstractTileTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
         return object.isPickableByPlayerCreature(playerId) && !isPlayerCapacityFull();
     }
 

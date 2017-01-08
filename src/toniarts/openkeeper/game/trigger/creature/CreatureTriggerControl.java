@@ -23,7 +23,7 @@ import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -171,10 +171,18 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
                 break;
 
             case SET_OBJECTIVE: // Creature part. Only for Good player
-                // TODO this
                 short playerId = trigger.getUserData("playerId", short.class);
-                Creature.JobType jobType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Creature.JobType.class);
+                Thing.HeroParty.Objective jobType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Thing.HeroParty.Objective.class);
                 int apId = trigger.getUserData("actionPointId", int.class);
+
+                // Assign to creature
+                if (instanceControl != null) {
+                    if (apId != 0) {
+                        instanceControl.setObjectiveTargetActionPoint(getActionPoint(apId));
+                    }
+                    instanceControl.setObjectiveTargetPlayerId(playerId);
+                    instanceControl.setObjective(jobType);
+                }
                 break;
 
             case MAKE_OBJECTIVE: // Game part

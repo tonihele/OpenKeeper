@@ -20,6 +20,7 @@ import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
@@ -40,7 +41,12 @@ public class SendToActionPoint extends AbstractTileTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
+        if (!executed && creature != null) {
+
+            // Check that the objectives are still the same
+            return Thing.HeroParty.Objective.SEND_TO_ACTION_POINT.equals(creature.getObjective()) && actionPoint.equals(creature.getObjectiveTargetActionPoint());
+        }
         return !executed;
     }
 
@@ -51,12 +57,7 @@ public class SendToActionPoint extends AbstractTileTask {
 
     @Override
     protected String getStringId() {
-        return null;
-    }
-
-    @Override
-    public String getTooltip() {
-        return "";
+        return "2670";
     }
 
     @Override

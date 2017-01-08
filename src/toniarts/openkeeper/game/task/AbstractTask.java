@@ -97,9 +97,11 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
     /**
      * Evaluates the task validity
      *
+     * @param creature who wants to know? Maybe null if testing for general
+     * validity
      * @return the task validity
      */
-    public abstract boolean isValid();
+    public abstract boolean isValid(CreatureControl creature);
 
     /**
      * Get the target coordinates to navigate to for accomplishing the task
@@ -116,7 +118,7 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
      * @return returns tru if the entity can be assigned to the task
      */
     public boolean canAssign(CreatureControl creature) {
-        return (assignees.size() < getMaxAllowedNumberOfAsignees() && isValid() && isReachable(creature));
+        return (assignees.size() < getMaxAllowedNumberOfAsignees() && isValid(creature) && isReachable(creature));
     }
 
     /**

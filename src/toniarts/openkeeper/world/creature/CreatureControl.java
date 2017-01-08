@@ -69,6 +69,7 @@ import toniarts.openkeeper.world.creature.steering.CreatureSteeringCreator;
 import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.object.ObjectControl;
+import toniarts.openkeeper.world.pathfinding.PathFindable;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
@@ -76,7 +77,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener, AnimationControl, IUnitFlowerControl {
+public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener, AnimationControl, IUnitFlowerControl, PathFindable {
 
     public enum AnimationType {
 
@@ -132,6 +133,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private final List<CreatureAttack> attacks;
     private boolean hasPortalGem = false;
     private ObjectiveType playerObjective;
+    private short objectiveTargetPlayerId;
     /**
      * Things we hear & see per tick
      */
@@ -182,6 +184,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 this.level = ((GoodCreature) creatureInstance).getLevel();
                 ownerId = Player.GOOD_PLAYER_ID;
                 objective = ((GoodCreature) creatureInstance).getObjective();
+                objectiveTargetPlayerId = ((GoodCreature) creatureInstance).getObjectiveTargetPlayerId();
                 if (((GoodCreature) creatureInstance).getObjectiveTargetActionPointId() != 0) {
                     objectiveTargetActionPoint = worldState.getGameState().getActionPointState().getActionPoint(((GoodCreature) creatureInstance).getObjectiveTargetActionPointId());
                 }
@@ -254,7 +257,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         Point p = worldState.findRandomAccessibleTile(WorldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, this);
         if (p != null) {
 
-            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, p);
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, p);
             if (steering != null) {
                 steering.setEnabled(!isAnimationPlaying());
                 setSteeringBehavior(steering);
@@ -469,6 +472,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 case STUNNED: {
                     return Utils.getMainTextResourceBundle().getString("2597");
                 }
+                case FOLLOW: {
+                    return Utils.getMainTextResourceBundle().getString("2675");
+                }
             }
         }
         return "";
@@ -594,7 +600,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         Vector2f loc = assignedTask.getTarget(this);
         if (loc != null) {
 
-            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, (getParty() != null ? getParty() : this), this, new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
             if (steering != null) {
                 steering.setEnabled(!isAnimationPlaying());
                 setSteeringBehavior(steering);
@@ -628,7 +634,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public boolean isAssignedTaskValid() {
         // FIXME: yep
-        return (assignedTask != null && assignedTask.isValid());
+        return (assignedTask != null && assignedTask.isValid(this));
     }
 
     public boolean isStopped() {
@@ -835,6 +841,18 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return objective;
     }
 
+    public void setObjective(Thing.HeroParty.Objective objective) {
+        this.objective = objective;
+    }
+
+    public void setObjectiveTargetPlayerId(short objectivePlayerId) {
+        this.objectiveTargetPlayerId = objectivePlayerId;
+    }
+
+    public short getObjectiveTargetPlayerId() {
+        return objectiveTargetPlayerId;
+    }
+
     public ActionPoint getObjectiveTargetActionPoint() {
         return objectiveTargetActionPoint;
     }
@@ -866,7 +884,6 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public boolean followTarget(CreatureControl target) {
         if (target != null) {
-            followTarget = target;
             PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
 
             // Create proximity
@@ -890,6 +907,14 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             return true;
         }
         return false;
+    }
+
+    public void setFollowTarget(CreatureControl followTarget) {
+        this.followTarget = followTarget;
+    }
+
+    public CreatureControl getFollowTarget() {
+        return followTarget;
     }
 
     @Override
@@ -1183,7 +1208,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @param creature the creature to measure distance to
      * @return the distance yo creature
      */
-    private float getDistanceToCreature(CreatureControl creature) {
+    public float getDistanceToCreature(CreatureControl creature) {
 
         // FIXME: now just direct distance, should be perhaps real distance that the creature needs to traverse to reach the target
         if (getPosition() == null || creature.getPosition() == null) {
@@ -1280,12 +1305,18 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         health -= Math.min(damage, health);
         if (health < 1) {
 
+            // If we are in a party as a leader, we should give up our position
+            if (party != null) {
+                party.partyMemberIncapacitated(this);
+            }
+
             // Die :(
             if (creature.getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
                 stateMachine.changeState(CreatureState.UNCONSCIOUS);
             } else {
                 stateMachine.changeState(CreatureState.DEAD);
             }
+
             return true;
         }
         return false;
@@ -1309,7 +1340,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         // FIXME: For now just flee towards the dungeon heart or random tiles
         GenericRoom room = worldState.getGameState().getPlayer(ownerId).getRoomControl().getDungeonHeart();
         if (room != null) {
-            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, room.getRoomInstance().getCoordinates().get(0));
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, room.getRoomInstance().getCoordinates().get(0));
             if (steering != null) {
                 steering.setEnabled(!isAnimationPlaying());
                 setSteeringBehavior(steering);
@@ -1433,6 +1464,21 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public boolean isStunned() {
         return stateMachine.isInState(CreatureState.STUNNED);
+    }
+
+    @Override
+    public boolean canFly() {
+        return creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY);
+    }
+
+    @Override
+    public boolean canWalkOnWater() {
+        return creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER);
+    }
+
+    @Override
+    public boolean canWalkOnLava() {
+        return creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA);
     }
 
 }

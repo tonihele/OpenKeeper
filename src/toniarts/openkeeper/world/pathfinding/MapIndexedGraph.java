@@ -14,17 +14,14 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.world.creature.pathfinding;
+package toniarts.openkeeper.world.pathfinding;
 
 import com.badlogic.gdx.ai.pfa.Connection;
 import com.badlogic.gdx.ai.pfa.DefaultConnection;
 import com.badlogic.gdx.ai.pfa.indexed.IndexedGraph;
 import com.badlogic.gdx.utils.Array;
-import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Map representation for the path finding
@@ -35,7 +32,7 @@ public class MapIndexedGraph implements IndexedGraph<TileData> {
 
     private final WorldState worldState;
     private final int nodeCount;
-    private CreatureControl creature;
+    private PathFindable pathFindable;
 
     public MapIndexedGraph(WorldState worldState) {
         this.worldState = worldState;
@@ -53,13 +50,13 @@ public class MapIndexedGraph implements IndexedGraph<TileData> {
     }
 
     /**
-     * Set this prior to finding the path to search the path for certain
-     * creature type
+     * Set this prior to finding the path to search the path for certain path
+     * findable type
      *
-     * @param creature the creature
+     * @param pathFindable the path findable
      */
-    public void setCreature(CreatureControl creature) {
-        this.creature = creature;
+    public void setPathFindable(PathFindable pathFindable) {
+        this.pathFindable = pathFindable;
     }
 
     @Override
@@ -81,22 +78,16 @@ public class MapIndexedGraph implements IndexedGraph<TileData> {
         // Valid coordinate
         TileData tile = worldState.getMapData().getTile(x, y);
         if (tile != null) {
-            Terrain terrain = tile.getTerrain();
-            if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            Float cost = pathFindable.getCost(startTile, tile, worldState);
+            if (cost != null) {
+                connections.add(new DefaultConnection<TileData>(startTile, tile) {
 
-                // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
-                if (creature != null) {
-
-                    if (!worldState.isAccessible(tile, creature)) {
-                        return;
+                    @Override
+                    public float getCost() {
+                        return cost;
                     }
 
-                    if (creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
-                        connections.add(new DefaultConnection<>(startTile, tile)); // No cost
-                        return;
-                    }
-                }
-                connections.add(new MapConnection(startTile, tile));
+                });
             }
         }
     }

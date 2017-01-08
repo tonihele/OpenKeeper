@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 OpenKeeper
+ * Copyright (C) 2014-2017 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,34 +14,38 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.task.worker;
+package toniarts.openkeeper.game.task.objective;
 
 import com.jme3.math.Vector2f;
-import toniarts.openkeeper.game.task.AbstractRoomTask;
+import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
- * Carry gold to treasury
+ * Kill player objective for those goodly heroes
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CarryGoldToTreasuryTask extends AbstractRoomTask {
+public class KillPlayer extends AbstractTileTask {
 
-    private boolean executed = false;
+    protected final short targetPlayerId;
 
-    public CarryGoldToTreasuryTask(WorldState worldState, int x, int y, short playerId, GenericRoom room) {
-        super(worldState, x, y, playerId, room);
+    public KillPlayer(WorldState worldState, short targetPlayerId, short playerId) {
+        super(worldState, worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).x, worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).y, playerId);
+
+        this.targetPlayerId = targetPlayerId;
     }
 
     @Override
     public boolean isValid(CreatureControl creature) {
-        if (!executed) {
-            return super.isValid(creature);
+        if (!isPlayerDestroyed() && creature != null) {
+
+            // Check that the objectives are still the same
+            return Thing.HeroParty.Objective.KILL_PLAYER.equals(creature.getObjective()) && Short.valueOf(targetPlayerId).equals(creature.getObjectiveTargetPlayerId());
         }
-        return false;
+        return !isPlayerDestroyed();
     }
 
     @Override
@@ -51,21 +55,12 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
 
     @Override
     protected String getStringId() {
-        return "2786";
-    }
-
-    @Override
-    protected GenericRoom.ObjectType getRoomObjectType() {
-        return GenericRoom.ObjectType.GOLD;
+        return "2645";
     }
 
     @Override
     public void executeTask(CreatureControl creature) {
-        int gold = creature.getGold();
-        creature.substractGold(gold - worldState.addGold(playerId, getTaskLocation(), gold));
 
-        // This is a one timer
-        executed = true;
     }
 
     @Override
@@ -75,7 +70,11 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
 
     @Override
     public String getTaskIcon() {
-        return "Textures/GUI/moods/SJ-Take_Gold.png";
+        return null;
+    }
+
+    private boolean isPlayerDestroyed() {
+        return worldState.getGameState().getPlayer(targetPlayerId).isDestroyed();
     }
 
 }

@@ -66,7 +66,7 @@ public class DigTileTask extends AbstractTileTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
         TileData tile = worldState.getMapData().getTile(getTaskLocation());
         return tile.isSelectedByPlayerId(playerId);
     }

@@ -18,7 +18,6 @@ package toniarts.openkeeper.ai.creature;
 
 import com.badlogic.gdx.ai.fsm.State;
 import com.badlogic.gdx.ai.msg.Telegram;
-import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
@@ -49,8 +48,10 @@ public enum CreatureState implements State<CreatureControl> {
         private boolean findStuffToDo(CreatureControl entity) {
 
             // See if we should just follow
-            if (entity.getParty() != null && entity.getFlags().contains(Thing.Creature.CreatureFlag.FOLLOWER) && entity.followTarget(entity.getParty().getPartyLeader())) {
+            if (entity.getParty() != null && !entity.getParty().isPartyLeader(entity)) {
+                entity.setFollowTarget(entity.getParty().getPartyLeader());
                 entity.getStateMachine().changeState(CreatureState.FOLLOW);
+                return true;
             }
 
             // See if we have an objective
@@ -252,12 +253,23 @@ public enum CreatureState implements State<CreatureControl> {
 
         @Override
         public void enter(CreatureControl entity) {
-
+            entity.followTarget(entity.getFollowTarget());
         }
 
         @Override
         public void update(CreatureControl entity) {
 
+            // See if we should follow
+            if (entity.getFollowTarget() == null || entity.getFollowTarget().isIncapacitated()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+
+            // Don't let the target wander too far off
+            if (entity.isStopped() && entity.getDistanceToCreature(entity.getFollowTarget()) > 2) {
+                entity.followTarget(entity);
+            } else if (entity.getDistanceToCreature(entity.getFollowTarget()) <= 2) {
+                entity.stop();
+            }
         }
 
         @Override

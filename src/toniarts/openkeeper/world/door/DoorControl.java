@@ -38,7 +38,6 @@ import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.control.IUnitFlowerControl;
 import toniarts.openkeeper.world.control.UnitFlowerControl;
-import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.HighlightControl;
 
 /**
@@ -307,7 +306,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
         return ConversionUtils.getCanonicalAssetKey("Textures/" + door.getFlowerIcon().getName() + ".png");
     }
 
-    public boolean isPassable(CreatureControl creature) {
+    public boolean isPassable(short ownerId) {
         if (state == DoorState.BLUEPRINT || state == DoorState.DESTROYED) {
             return true;
         }
@@ -317,7 +316,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
             return false;
         }
 
-        return creature.getOwnerId() == getOwnerId();
+        return ownerId == getOwnerId();
     }
 
 }

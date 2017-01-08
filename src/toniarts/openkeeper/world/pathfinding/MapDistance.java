@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.world.creature.pathfinding;
+package toniarts.openkeeper.world.pathfinding;
 
 import com.badlogic.gdx.ai.pfa.Heuristic;
 import toniarts.openkeeper.world.TileData;

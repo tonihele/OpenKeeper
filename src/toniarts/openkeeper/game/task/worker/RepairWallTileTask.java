@@ -33,7 +33,7 @@ public class RepairWallTileTask extends DigTileTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
         TileData tile = worldState.getMapData().getTile(getTaskLocation());
         return worldState.isRepairableWall(getTaskLocation().x, getTaskLocation().y, playerId) && !tile.isSelectedByPlayerId(playerId);
     }

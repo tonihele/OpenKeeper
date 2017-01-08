@@ -27,6 +27,7 @@ import java.awt.Point;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.pathfinding.PathFindable;
 
 /**
  * A steering factory, static methods for constructing steerings for creatures
@@ -38,12 +39,12 @@ public class CreatureSteeringCreator {
     private CreatureSteeringCreator() {
     }
 
-    public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final CreatureControl creature, final Point p) {
-        return navigateToPoint(worldState, creature, p, null);
+    public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final PathFindable pathFindable, final CreatureControl creature, final Point p) {
+        return navigateToPoint(worldState, pathFindable, creature, p, null);
     }
 
-    public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final CreatureControl creature, final Point p, final Point faceTarget) {
-        GraphPath<TileData> outPath = worldState.findPath(WorldState.getTileCoordinates(creature.getSpatial().getWorldTranslation()), p, creature);
+    public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final PathFindable pathFindable, final CreatureControl creature, final Point p, final Point faceTarget) {
+        GraphPath<TileData> outPath = worldState.findPath(WorldState.getTileCoordinates(creature.getSpatial().getWorldTranslation()), p, pathFindable);
 
         if ((outPath != null && outPath.getCount() > 1) || faceTarget != null) {
 //            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(creature, 0.0001f);

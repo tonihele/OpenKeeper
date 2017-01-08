@@ -41,7 +41,7 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
         return (spellControl.isAnythingToReaseach() && !getRoom().isFullCapacity());
     }
 

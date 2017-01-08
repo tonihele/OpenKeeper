@@ -40,9 +40,9 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
         if (!executed) {
-            return super.isValid();
+            return super.isValid(creature);
         }
         return false;
     }
