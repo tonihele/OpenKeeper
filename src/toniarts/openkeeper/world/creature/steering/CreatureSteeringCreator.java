@@ -45,7 +45,10 @@ public class CreatureSteeringCreator {
 
     public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final PathFindable pathFindable, final CreatureControl creature, final Point p, final Point faceTarget) {
         GraphPath<TileData> outPath = worldState.findPath(WorldState.getTileCoordinates(creature.getSpatial().getWorldTranslation()), p, pathFindable);
+        return navigateToPoint(outPath, faceTarget, creature);
+    }
 
+    public static SteeringBehavior<Vector2> navigateToPoint(GraphPath<TileData> outPath, final Point faceTarget, final CreatureControl creature) {
         if ((outPath != null && outPath.getCount() > 1) || faceTarget != null) {
 //            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(creature, 0.0001f);
 
@@ -76,9 +79,9 @@ public class CreatureSteeringCreator {
 //                    }
 //                });
 //                prioritySteering.add(ca);
-                // Debug
-                // worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
-                // Navigate
+// Debug
+// worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
+// Navigate
                 FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(creature, new LinePath<>(pathToArray(outPath), true), 2);
                 followPath.setDecelerationRadius(1f);
                 followPath.setArrivalTolerance(0.2f);

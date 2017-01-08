@@ -16,10 +16,7 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
-import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.action.ActionPoint;
-import toniarts.openkeeper.game.task.AbstractTileTask;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -29,7 +26,7 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SendToActionPoint extends AbstractTileTask {
+public class SendToActionPoint extends GoToTask {
 
     protected final ActionPoint actionPoint;
     private boolean executed = false;
@@ -51,17 +48,8 @@ public class SendToActionPoint extends AbstractTileTask {
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
-        return new Vector2f(getTaskLocation().x + 0.5f, getTaskLocation().y + 0.5f);
-    }
-
-    @Override
-    protected String getStringId() {
-        return "2670";
-    }
-
-    @Override
     public void executeTask(CreatureControl creature) {
+
         // TODO: Wait delay
         executed = true;
         if (actionPoint.getNextWaypointId() != 0) {
@@ -69,16 +57,6 @@ public class SendToActionPoint extends AbstractTileTask {
             // Assign new objective
             creature.setObjectiveTargetActionPoint(worldState.getGameState().getActionPointState().getActionPoint(actionPoint.getNextWaypointId()));
         }
-    }
-
-    @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
-        return null;
-    }
-
-    @Override
-    public String getTaskIcon() {
-        return null;
     }
 
 }

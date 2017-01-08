@@ -42,7 +42,7 @@ import java.util.Set;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.data.ObjectiveType;
-import toniarts.openkeeper.game.task.AbstractTask;
+import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.CursorFactory.CursorType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -126,7 +126,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private int idleAnimationPlayCount = 1;
     private float lastAttributeUpdateTime = 0;
     private float lastStateUpdateTime = 0;
-    private AbstractTask assignedTask;
+    private Task assignedTask;
     private AnimationType playingAnimationType = AnimationType.IDLE;
     private ObjectControl creatureLair;
     private CreatureControl followTarget;
@@ -571,7 +571,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private void setAttributesByLevel() {
         Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = worldState.getLevelData().getCreatureStats(level);
         height = creature.getHeight() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEIGHT_TILES).getValue() : 100) / 100);
+        int prevMaxHealth = maxHealth;
         maxHealth = creature.getHp() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEALTH).getValue() : 100) / 100);
+        health += Math.abs(maxHealth - prevMaxHealth); // Abs for some weird level configs :)
         fear = creature.getFear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.FEAR).getValue() : 100) / 100);
         threat = creature.getThreat() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.THREAT).getValue() : 100) / 100);
         meleeDamage = creature.getMeleeDamage() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_DAMAGE).getValue() : 100) / 100);
@@ -607,20 +609,27 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return ownerId;
     }
 
-    public void navigateToAssignedTask() {
+    /**
+     * Navigate to the assigned task
+     *
+     * @return true if can navigate to assigned task
+     */
+    public boolean navigateToAssignedTask() {
 
         Vector2f loc = assignedTask.getTarget(this);
         if (loc != null) {
 
-            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, (getParty() != null ? getParty() : this), this, new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
             if (steering != null) {
                 steering.setEnabled(!isAnimationPlaying());
                 setSteeringBehavior(steering);
+                return true;
             }
         }
+        return false;
     }
 
-    public void setAssignedTask(AbstractTask task) {
+    public void setAssignedTask(Task task) {
 
         // Unassign previous task
         unassingCurrentTask();
@@ -824,7 +833,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void removeObject(ObjectControl object) {
-        // TODO: basically we don't own execpt lair, but if we do, we need similar controls as the rooms have
+        // TODO: basically we don't own except lair, but if we do, we need similar controls as the rooms have
         if (object.equals(creatureLair)) {
             creatureLair = null;
         }
@@ -952,7 +961,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return height;
     }
 
-    protected AbstractTask getAssignedTask() {
+    public Task getAssignedTask() {
         return assignedTask;
     }
 

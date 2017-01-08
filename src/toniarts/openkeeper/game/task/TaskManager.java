@@ -34,6 +34,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.ResearchSpells;
+import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
@@ -213,7 +214,7 @@ public class TaskManager {
             if (task.canAssign(creature)) {
 
                 // Assign to first task
-                task.assign(creature);
+                task.assign(creature, true);
                 return true;
             }
         }
@@ -317,7 +318,7 @@ public class TaskManager {
                         taskPoints.put(target, (AbstractCapacityCriticalRoomTask) task);
                         roomTasks.put(room, taskPoints);
                     }
-                    task.assign(creature);
+                    task.assign(creature, true);
                     return true;
                 }
             }
@@ -373,17 +374,22 @@ public class TaskManager {
      * @return true if the objective task could be accomplished
      */
     public boolean assignObjectiveTask(CreatureControl creature, Thing.HeroParty.Objective objective) {
+        AbstractObjectiveTask task = null;
         switch (objective) {
             case SEND_TO_ACTION_POINT: {
-                AbstractTask task = new SendToActionPoint(worldState, creature.getObjectiveTargetActionPoint(), creature.getOwnerId());
-                task.assign(creature);
-                return true;
+                task = new SendToActionPoint(worldState, creature.getObjectiveTargetActionPoint(), creature.getOwnerId());
+                break;
             }
             case KILL_PLAYER: {
-                AbstractTask task = new KillPlayer(worldState, creature.getObjectiveTargetPlayerId(), creature.getOwnerId());
-                task.assign(creature);
-                return true;
+                task = new KillPlayer(worldState, creature.getObjectiveTargetPlayerId(), creature);
+                break;
             }
+        }
+
+        // Assign
+        if (task != null) {
+            task.getTask().assign(creature, true);
+            return true;
         }
         return false;
     }

@@ -22,7 +22,7 @@ import java.awt.Point;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
+import java.util.logging.Logger;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -32,117 +32,64 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractTask implements Comparable<AbstractTask> {
+public abstract class AbstractTask implements Task {
 
     private final Date taskCreated;
     protected final WorldState worldState;
     private final Set<CreatureControl> assignees = new HashSet<>();
+    private static final Logger logger = Logger.getLogger(AbstractTask.class.getName());
 
     public AbstractTask(final WorldState worldState) {
         this.taskCreated = new Date();
         this.worldState = worldState;
     }
 
+    @Override
     public Date getTaskCreated() {
         return taskCreated;
     }
 
-    /**
-     * Amount of assignees this task can be assigned on
-     *
-     * @return max number of assignees
-     */
+    @Override
     public int getMaxAllowedNumberOfAsignees() {
         return 1;
     }
 
-    /**
-     * Assing an entity to the task
-     *
-     * @param creature entity to be assigned
-     */
-    public void assign(CreatureControl creature) {
+    @Override
+    public void assign(CreatureControl creature, boolean setToCreature) {
         if (assignees.size() == getMaxAllowedNumberOfAsignees()) {
-            throw new IllegalArgumentException("Task already has the maximum number of assignees!");
+            logger.warning("Task already has the maximum number of assignees!");
         }
         assignees.add(creature);
-        creature.setAssignedTask(this);
+        if (setToCreature) {
+            creature.setAssignedTask(this);
+        }
     }
 
-    /**
-     * Unassing a creature from the job. A place for doing some cleanup
-     *
-     * @param creature
-     */
+    @Override
     public void unassign(CreatureControl creature) {
         assignees.remove(creature);
     }
 
-    /**
-     * How many workers have already been assigned to this task
-     *
-     * @return number of assignees on duty
-     */
+    @Override
     public int getAssigneeCount() {
         return assignees.size();
     }
 
-    /**
-     * Task location, the task it self not necessarily the target for navigating
-     *
-     * @return the task location
-     */
-    public abstract Point getTaskLocation();
-
-    /**
-     * Evaluates the task validity
-     *
-     * @param creature who wants to know? Maybe null if testing for general
-     * validity
-     * @return the task validity
-     */
-    public abstract boolean isValid(CreatureControl creature);
-
-    /**
-     * Get the target coordinates to navigate to for accomplishing the task
-     *
-     * @param creature who wants to know?
-     * @return the target coordinates
-     */
-    public abstract Vector2f getTarget(CreatureControl creature);
-
-    /**
-     * Can the entity be assigned to this task
-     *
-     * @param creature the tested entity
-     * @return returns tru if the entity can be assigned to the task
-     */
+    @Override
     public boolean canAssign(CreatureControl creature) {
         return (assignees.size() < getMaxAllowedNumberOfAsignees() && isValid(creature) && isReachable(creature));
     }
 
-    /**
-     * Task priority, added to distance when evaluating tasks to give out. The
-     * bigger the number, the less urgent the task is
-     *
-     * @return task priority
-     */
+    @Override
     public int getPriority() {
         return 100;
     }
 
-    @Override
     public int compareTo(AbstractTask t) {
         return getTaskCreated().compareTo(t.getTaskCreated());
     }
 
-    /**
-     * Is the task reachable by the given creature. Ask this last if determining
-     * validity etc. As the method might be heavy
-     *
-     * @param creature the creature trying to reach this
-     * @return is the task reachable
-     */
+    @Override
     public boolean isReachable(CreatureControl creature) {
         Vector2f target = getTarget(creature);
         if (target != null) {
@@ -176,20 +123,12 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
         return (worldState.findPath(WorldState.getTileCoordinates(new Vector3f(creature.getPosition().x, 0, creature.getPosition().y)), targetTile, creature) != null);
     }
 
-    /**
-     * Should the creature face the task it is doing
-     *
-     * @return true to face the task
-     */
+    @Override
     public boolean isFaceTarget() {
         return false;
     }
 
-    /**
-     * Get the task tooltip
-     *
-     * @return the task tooltip
-     */
+    @Override
     public String getTooltip() {
         return Utils.getMainTextResourceBundle().getString(getStringId());
     }
@@ -200,28 +139,5 @@ public abstract class AbstractTask implements Comparable<AbstractTask> {
      * @return string ID
      */
     protected abstract String getStringId();
-
-    /**
-     * Execute task!
-     *
-     * @param creature creature executing the task
-     */
-    public abstract void executeTask(CreatureControl creature);
-
-    /**
-     * Get the animation used for the task. Might be null if no animation is
-     * tied to the task, sufficient to have the creature visit the location
-     *
-     * @param creature executing the task
-     * @return the animation
-     */
-    public abstract ArtResource getTaskAnimation(CreatureControl creature);
-
-    /**
-     * The task icon for unit flowers
-     *
-     * @return the path t the icon
-     */
-    public abstract String getTaskIcon();
 
 }

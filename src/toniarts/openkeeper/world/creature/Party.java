@@ -184,7 +184,7 @@ public class Party implements PathFindable {
      *
      * @return does the party contain workers
      */
-    private boolean isWorkersAvailable() {
+    public boolean isWorkersAvailable() {
         for (CreatureControl creature : getActualMembers()) {
             if (!creature.isIncapacitated() && creature.isWorker()) {
                 return true;
@@ -235,11 +235,13 @@ public class Party implements PathFindable {
 
             // No path by ordinary means, but we might want to tunnel or smash our way through obstacles
             Terrain terrain = to.getTerrain();
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH) && isWorkersAvailable()) {
-                return 1.0f; // Dig our selves in
-            }
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)) {
-                return 2.0f; // It seems that everybody can attack reinforced walls i.e.
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isWorkersAvailable()) {
+                if (terrain.getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH)) {
+                    return 1.0f; // Dig our selves in
+                }
+                if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)) {
+                    return 2.0f; // It seems that everybody can attack reinforced walls i.e. ?
+                }
             }
 
             // Check if any obstacles lies in our path, we can smash through enemy doors but not our own locked doors

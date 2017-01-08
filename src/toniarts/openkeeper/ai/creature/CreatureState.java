@@ -262,6 +262,18 @@ public enum CreatureState implements State<CreatureControl> {
             // See if we should follow
             if (entity.getFollowTarget() == null || entity.getFollowTarget().isIncapacitated()) {
                 entity.getStateMachine().changeState(IDLE);
+                return;
+            }
+
+            // Should we flee or attack
+            if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+
+            // If leader has set a task, perform it
+            if (entity.getAssignedTask() != null) {
+                entity.getStateMachine().changeState(WORK);
+                return;
             }
 
             // Don't let the target wander too far off
@@ -275,6 +287,7 @@ public enum CreatureState implements State<CreatureControl> {
         @Override
         public void exit(CreatureControl entity) {
             entity.resetFollowTarget();
+            entity.stop();
         }
 
         @Override

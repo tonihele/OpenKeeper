@@ -16,26 +16,33 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
+import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.jme3.math.Vector2f;
-import toniarts.openkeeper.game.task.AbstractTileTask;
+import java.util.Iterator;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
- * Kill player objective for those goodly heroes
+ * Kill player objective for those goodly heroes. Can create a complex set of
+ * tasks
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KillPlayer extends AbstractTileTask {
+public class KillPlayer extends AbstractObjectiveTask {
 
     protected final short targetPlayerId;
+    protected final CreatureControl creature;
 
-    public KillPlayer(WorldState worldState, short targetPlayerId, short playerId) {
-        super(worldState, worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).x, worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).y, playerId);
+    public KillPlayer(WorldState worldState, short targetPlayerId, CreatureControl creature) {
+        super(worldState, worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).x, worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).y, creature.getOwnerId());
 
         this.targetPlayerId = targetPlayerId;
+        this.creature = creature;
+        createSubTasks();
     }
 
     @Override
@@ -75,6 +82,50 @@ public class KillPlayer extends AbstractTileTask {
 
     private boolean isPlayerDestroyed() {
         return worldState.getGameState().getPlayer(targetPlayerId).isDestroyed();
+    }
+
+    private void createSubTasks() {
+
+        // See if we can navigate there
+        GraphPath<TileData> outPath = worldState.findPath(creature.getCreatureCoordinates(), getTaskLocation(), creature.getParty() != null ? creature.getParty() : creature);
+        if (outPath != null) {
+            Iterator<TileData> iter = outPath.iterator();
+            TileData lastPoint = null;
+            boolean first = true;
+            int i = 0;
+            while (iter.hasNext()) {
+                TileData tile = iter.next();
+                if (!worldState.isAccessible(tile, creature)) {
+
+                    // Add task to last accessible point
+                    if (i != 1 && first && lastPoint != null) {
+                        addSubTask(new ObjectiveTaskDecorator(new GoToTask(worldState, lastPoint.getX(), lastPoint.getY(), playerId)));
+                        first = false;
+                    }
+
+                    // See if we should dig
+                    if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) && (creature.isWorker() || (creature.getParty() != null && creature.getParty().isWorkersAvailable())) && (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH) || tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ATTACKABLE))) {
+                        addSubTask(new ObjectiveTaskDecorator(new ObjectiveDigTileTask(worldState, tile.getX(), tile.getY(), playerId)) {
+
+                            @Override
+                            public boolean isWorkerPartyTask() {
+                                return true;
+                            }
+
+                        });
+                        addSubTask(new ObjectiveTaskDecorator(new GoToTask(worldState, tile.getX(), tile.getY(), playerId)));
+                    } else {
+
+                        // Hmm, this is it, should we have like attack target type tasks? Or let the AI just figure out itself
+                        return;
+                    }
+                } else {
+                    first = true;
+                }
+                lastPoint = tile;
+                i++;
+            }
+        }
     }
 
 }
