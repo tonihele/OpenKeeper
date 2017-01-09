@@ -71,6 +71,7 @@ import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.pathfinding.PathFindable;
 import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.world.room.RoomInstance;
 
 /**
  * Controller for creature. Bridge between the visual object and AI.
@@ -141,6 +142,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private boolean visibilityListUpdated = false;
     private Integer ourThreat;
     private Integer enemyThreat;
+    private Integer fellowFighters;
     private CreatureControl attackTarget;
 
     // Good creature specific stuff
@@ -220,6 +222,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         visibilityListUpdated = false;
         ourThreat = null;
         enemyThreat = null;
+        fellowFighters = null;
         if (stateMachine.getCurrentState() == null) {
             stateMachine.changeState(CreatureState.IDLE);
         }
@@ -1131,19 +1134,29 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public boolean shouldFleeOrAttack() {
 
         // Check fleeing, TODO: Always flee?
+        boolean inDHeart = false;
         if (!creature.getFlags().contains(Creature.CreatureFlag.IS_FEARLESS)) {
             int threatToUs = getEnemyThreat();
             int threatCaused = creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE) || isHealthAtCriticalLevel() ? threat : getOurThreat();
-            if (threatToUs - threatCaused > fear) {
-                if (!stateMachine.isInState(CreatureState.FLEE)) {
-                    stateMachine.changeState(CreatureState.FLEE);
+            if (threatToUs - threatCaused > fear && (getFellowFighters() == 0 || creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE))) {
+
+                // No longer flee from DHeart
+                RoomInstance roomInstance = worldState.getMapLoader().getRoomCoordinates().get(getCreatureCoordinates());
+                if (roomInstance == null || !worldState.getMapLoader().getRoomActuals().get(roomInstance).isDungeonHeart()) {
+                    if (!stateMachine.isInState(CreatureState.FLEE)) {
+
+                        stateMachine.changeState(CreatureState.FLEE);
+                    }
+                    return true;
+                } else {
+                    inDHeart = true;
                 }
-                return true;
             }
         }
 
         // Should we attack, try to avoid i.e. imps engaging in a fight
-        if (creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER && getAttackTarget() != null) {
+        if ((creature.getFightStyle()
+                != Creature.FightStyle.NON_FIGHTER || inDHeart) && getAttackTarget() != null) {
             if (!stateMachine.isInState(CreatureState.FIGHT)) {
                 stateMachine.changeState(CreatureState.FIGHT);
             }
@@ -1151,6 +1164,18 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         }
 
         return false;
+    }
+
+    private int getFellowFighters() {
+        if (fellowFighters == null) {
+            fellowFighters = 0;
+            for (CreatureControl c : getVisibleCreatures()) {
+                if (!isEnemy(c) && !c.isIncapacitated() && !c.equals(this) && c.getCreature().getFightStyle() != Creature.FightStyle.NON_FIGHTER) {
+                    fellowFighters++;
+                }
+            }
+        }
+        return fellowFighters;
     }
 
     /**
