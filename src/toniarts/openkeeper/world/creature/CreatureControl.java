@@ -1357,7 +1357,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             }
 
             // Die :(
-            if (creature.getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
+            // If we are the objective to kill, we'll die immidiately
+            if ((getPlayerObjective() == null || getPlayerObjective() != ObjectiveType.KILL) && creature.getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
                 stateMachine.changeState(CreatureState.UNCONSCIOUS);
             } else {
                 stateMachine.changeState(CreatureState.DEAD);
