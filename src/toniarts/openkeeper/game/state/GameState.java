@@ -437,7 +437,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     public void setEnd(boolean win) {
         // TODO make lose and win the game
-        stateManager.getState(MainMenuState.class).setEnabled(true);
+        stateManager.getState(PlayerState.class).quitToMainMenu();
     }
 
     public TaskManager getTaskManager() {
