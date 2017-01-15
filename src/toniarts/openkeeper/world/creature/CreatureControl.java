@@ -415,6 +415,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                     playAnimation(creature.getAnimDieResource());
                     playingAnimationType = AnimationType.DYING;
                     showUnitFlower(Integer.MAX_VALUE);
+                } else if (stateMachine.getCurrentState() == CreatureState.DEAD) {
+                    removeCreature();
                 }
             } else if (stateMachine.isInState(CreatureState.STUNNED)) {
                 if (playingAnimationType != AnimationType.STUNNED) {
@@ -564,7 +566,6 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             // Dying counter :)
             if (stateMachine.isInState(CreatureState.UNCONSCIOUS) && timeInState > worldState.getLevelVariable(Variable.MiscVariable.MiscType.DEAD_BODY_DIES_AFTER_SECONDS)) {
                 stateMachine.changeState(CreatureState.DEAD);
-                removeCreature();
             } else if (stateMachine.isInState(CreatureState.STUNNED) && timeInState > creature.getStunDuration()) {
                 stateMachine.changeState(CreatureState.IDLE);
             }
