@@ -106,7 +106,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         }
         cameraSweepData = (CameraSweepData) obj;
 
-        // Add the listener, it is critical that this listener is executed before any cutom ones
+        // Add the listener, it is critical that this listener is executed before any custom ones
         addListener(new CinematicEventListener() {
             private boolean executed = false;
 
