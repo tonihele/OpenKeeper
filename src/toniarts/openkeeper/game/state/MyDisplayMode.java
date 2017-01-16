@@ -84,7 +84,7 @@ public class MyDisplayMode implements Comparable<MyDisplayMode> {
 
     @Override
     public String toString() {
-        return width + " x " + height + (bitDepth != DisplayMode.BIT_DEPTH_MULTI ? " @" + bitDepth : "");
+        return width + " x " + height + (bitDepth != DisplayMode.BIT_DEPTH_MULTI ? " @ " + bitDepth : "");
     }
 
     @Override
