@@ -340,6 +340,15 @@ public class PlayerState extends AbstractAppState {
     public void zoomToCreature(String creatureId) {
         GameState gs = stateManager.getState(GameState.class);
         CreatureControl creature = getCreatureControl().getNextCreature(gs.getLevelData().getCreature(Short.parseShort(creatureId)));
+        zoomToCreature(creature);
+    }
+
+    /**
+     * Zoom to given creature
+     *
+     * @param creature creature to zoom to
+     */
+    public void zoomToCreature(CreatureControl creature) {
         cameraState.setCameraLookAt(creature.getSpatial());
     }
 
