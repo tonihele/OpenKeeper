@@ -64,6 +64,7 @@ public class UnitFlowerControl extends BillboardControl {
     public UnitFlowerControl(AssetManager assetManager, IUnitFlowerControl unitFlowerControl) {
         this.assetManager = assetManager;
         this.unitFlowerControl = unitFlowerControl;
+        enabled = false;
         setAlignment(Alignment.Screen);
     }
 
@@ -174,7 +175,7 @@ public class UnitFlowerControl extends BillboardControl {
 
             // If already showing, just extend the time
             targetTimeVisible = timeVisible + period;
-        } else {
+        } else if (!isEnabled()) {
 
             // Reset counter and create the graphics
             timeVisible = 0;
