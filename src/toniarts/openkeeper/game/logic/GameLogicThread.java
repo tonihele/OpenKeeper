@@ -136,11 +136,13 @@ public class GameLogicThread implements Runnable {
                 for (CreatureControl visibleCreature : creature.getVisibleCreatures()) {
                     if (!visibleCreature.equals(creature)) {
                         Line line = new Line(creature.getSpatial().getWorldTranslation(), visibleCreature.getSpatial().getWorldTranslation());
-                        line.setLineWidth(2);
-                        geometry = new Geometry("Bullet", line);
+
                         orange = new Material(worldState.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
                         orange.setColor("Color", creatureColor);
                         orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+                        orange.getAdditionalRenderState().setLineWidth(2);
+
+                        geometry = new Geometry("Bullet", line);
                         geometry.setCullHint(Spatial.CullHint.Never);
                         geometry.setMaterial(orange);
                         geometry.move(0, elevation, 0);

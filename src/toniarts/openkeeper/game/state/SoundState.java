@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
 import java.util.LinkedList;
@@ -83,7 +84,7 @@ public class SoundState extends AbstractPauseAwareState {
     }
 
     private void playSpeech(String file) {
-        speech = new AudioNode(app.getAssetManager(), file, false);
+        speech = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
         if (speech == null) {
             logger.log(Level.WARNING, "Audio file {0} not found", file);
             return;
@@ -101,7 +102,7 @@ public class SoundState extends AbstractPauseAwareState {
 
     private void playBackground() {
         String file = this.getRandomSoundFile();
-        background = new AudioNode(app.getAssetManager(), file, false);
+        background = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
         if (background == null) {
             logger.log(Level.WARNING, "Audio file {0} not found", file);
             return;

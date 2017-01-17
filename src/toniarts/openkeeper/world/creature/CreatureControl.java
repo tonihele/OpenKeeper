@@ -937,7 +937,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     @Override
     public boolean isPickable(short playerId) {
-        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP) && !isIncapacitated() && isOnOwnLand();
+        return playerId == ownerId
+                && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP)
+                && !isIncapacitated() && isOnOwnLand();
     }
 
     @Override
@@ -985,7 +987,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     @Override
     public DroppableStatus getDroppableStatus(TileData tile) {
-        return (tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
+        return (tile.getPlayerId() == ownerId
+                && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
     }
 
     @Override

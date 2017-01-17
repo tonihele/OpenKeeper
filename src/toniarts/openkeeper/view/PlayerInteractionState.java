@@ -622,8 +622,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     selectionHandler.setActive(false);
 
                 } else if (evt.getButtonIndex() == MouseInput.BUTTON_MIDDLE && evt.isReleased()) {
-                    Vector2f pos = selectionHandler.getPointedTilePosition();
                     if (Main.isDebug()) {
+                        Vector2f pos = selectionHandler.getPointedTilePosition();
                         getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
                     }
                 }
