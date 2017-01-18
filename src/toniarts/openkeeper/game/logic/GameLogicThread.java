@@ -64,43 +64,48 @@ public class GameLogicThread implements Runnable {
 
     @Override
     public void run() {
-        long start = System.currentTimeMillis();
+        // Please, use tryc in Threads. Because Exceptions here kill thread
+        try {
+            long start = System.currentTimeMillis();
 
-        // Before anything is run, update last known positions to our map
-        for (int y = 0; y < worldState.getMapData().getHeight(); y++) {
-            for (int x = 0; x < worldState.getMapData().getWidth(); x++) {
-                worldState.getMapData().getTile(x, y).clearCreatures();
-            }
-        }
-        for (CreatureControl creature : worldState.getThingLoader().getCreatures()) {
-            Point p = creature.getCreatureCoordinates();
-            if (p != null) {
-                TileData tile = worldState.getMapData().getTile(p);
-                if (tile != null) {
-                    tile.addCreature(creature);
+            // Before anything is run, update last known positions to our map
+            for (int y = 0; y < worldState.getMapData().getHeight(); y++) {
+                for (int x = 0; x < worldState.getMapData().getWidth(); x++) {
+                    worldState.getMapData().getTile(x, y).clearCreatures();
                 }
             }
-        }
-        if (Main.isDebug()) {
-            drawCreatureVisibilities();
-        }
-        //
-
-        // Update updatables
-        for (IGameLogicUpdateable updatable : updatables) {
-            try {
-                updatable.processTick(tpf, app);
-            } catch (Exception e) {
-                logger.log(Level.SEVERE, "Error in game logic tick on " + updatable.getClass() + "!", e);
+            for (CreatureControl creature : worldState.getThingLoader().getCreatures()) {
+                Point p = creature.getCreatureCoordinates();
+                if (p != null) {
+                    TileData tile = worldState.getMapData().getTile(p);
+                    if (tile != null) {
+                        tile.addCreature(creature);
+                    }
+                }
             }
+            if (Main.isDebug()) {
+                drawCreatureVisibilities();
+            }
+            //
+
+            // Update updatables
+            for (IGameLogicUpdateable updatable : updatables) {
+                try {
+                    updatable.processTick(tpf, app);
+                } catch (Exception e) {
+                    logger.log(Level.SEVERE, "Error in game logic tick on " + updatable.getClass() + "!", e);
+                }
+            }
+
+            // Increase ticks
+            ticks++;
+
+            // Logging
+            long tickTime = System.currentTimeMillis() - start;
+            logger.log(tickTime < tpf * 1000 ? Level.FINEST : Level.SEVERE, "Tick took {0} ms!", tickTime);
+        } catch (Exception e) {
+            logger.severe(e.getLocalizedMessage());
         }
-
-        // Increase ticks
-        ticks++;
-
-        // Logging
-        long tickTime = System.currentTimeMillis() - start;
-        logger.log(tickTime < tpf * 1000 ? Level.FINEST : Level.SEVERE, "Tick took {0} ms!", tickTime);
     }
 
     /**
