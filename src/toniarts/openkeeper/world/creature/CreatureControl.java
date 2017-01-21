@@ -1042,26 +1042,33 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (!visibilityListUpdated) {
 
             // Get creatures we sense
-            Point p = getCreatureCoordinates();
-            if (p != null) {
-                // TODO: Every creature has hearing & vision 4, so I can just
-                // cheat this in, but should fix eventually
-                // https://github.com/tonihele/OpenKeeper/issues/261
-                int dist = (int) creature.getDistanceCanHear();
-                for (int x = p.x - dist; x <= p.x + dist; x++) {
-                    for (int y = p.y - dist; y <= p.y + dist; y++) {
-                        TileData tile = worldState.getMapData().getTile(x, y);
-                        if (tile != null && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                            visibilityList.addAll(tile.getCreatures());
-                        }
-                    }
-                }
-
-                visibilityList.remove(this);
+            Point currentPoint = getCreatureCoordinates();
+            // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
+            // https://github.com/tonihele/OpenKeeper/issues/261
+            TileData tile = worldState.getMapData().getTile(currentPoint);
+            if (tile != null) {
+                visibilityList.addAll(tile.getCreatures());
+                addVisibleCreatures(currentPoint, (int) creature.getDistanceCanHear());
             }
+            visibilityList.remove(this);
             visibilityListUpdated = true;
         }
         return visibilityList;
+    }
+
+    private void addVisibleCreatures(Point p, int range) {
+        TileData tile = worldState.getMapData().getTile(p);
+        if (tile == null || tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)
+                || range-- < 0) {
+            return;
+        }
+
+        visibilityList.addAll(tile.getCreatures());
+
+        addVisibleCreatures(new Point(p.x + 1, p.y), range);
+        addVisibleCreatures(new Point(p.x - 1, p.y), range);
+        addVisibleCreatures(new Point(p.x, p.y + 1), range);
+        addVisibleCreatures(new Point(p.x, p.y - 1), range);
     }
 
     /**
