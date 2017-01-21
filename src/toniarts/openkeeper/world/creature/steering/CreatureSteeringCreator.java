@@ -24,6 +24,7 @@ import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import java.awt.Point;
+import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -104,7 +105,9 @@ public class CreatureSteeringCreator {
     private static Array<Vector2> pathToArray(GraphPath<TileData> outPath) {
         Array<Vector2> path = new Array<>(outPath.getCount());
         for (TileData tile : outPath) {
-            path.add(new Vector2(tile.getX() - 0.5f, tile.getY() - 0.5f));
+            path.add(new Vector2(
+                    MapLoader.TILE_WIDTH * (tile.getX() - 0.5f),
+                    MapLoader.TILE_WIDTH * (tile.getY() - 0.5f)));
         }
         return path;
     }

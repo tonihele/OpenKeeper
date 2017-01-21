@@ -329,24 +329,28 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             case "selectCampaignLevel":
                 state.inputManager.addRawInputListener(state.listener);
                 break;
+
             case "briefing":
                 showBriefing();
                 break;
+
             case "hiscores":
                 generateHiscoreList();
                 break;
 
             case "optionsGraphics":
-
                 // Populate settings screen
                 setGraphicsSettingsToGUI();
                 break;
+
             case "optionsControl":
                 setControlSettingsToGUI();
                 break;
+
             case "movies":
                 generateMovieList();
                 break;
+
             case "skirmish":
                 // Init the screen
                 state.mapSelector.setSkirmish(true);
@@ -400,28 +404,24 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
             case "multiplayerLocal":
                 state.mapSelector.reset();
-
                 // Set the game & user name
                 player = screen.findNiftyControl("playerName", TextField.class);
                 TextField game = screen.findNiftyControl("gameName", TextField.class);
                 player.setText(Main.getUserSettings().getSetting(Settings.Setting.PLAYER_NAME).toString());
                 game.setText(Main.getUserSettings().getSetting(Settings.Setting.GAME_NAME).toString());
-
                 // multiplayerRefresh();
                 break;
 
-            case "skirmishMapSelect": {
+            case "skirmishMapSelect":
                 // Populate the maps
                 populateMapSelection(true);
                 break;
-            }
 
-            case "myPetDungeonMapSelect": {
+            case "myPetDungeonMapSelect":
                 // Populate the maps
                 state.mapSelector.setMPD(true);
                 populateMapSelection(false);
                 break;
-            }
         }
     }
 
@@ -431,9 +431,11 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             case "selectCampaignLevel":
                 state.inputManager.removeRawInputListener(state.listener);
                 break;
+
             case "briefing":
                 state.clearLevelBriefingNarration();
                 break;
+
             case "multiplayerCreate":
                 state.multiplayerReset();
                 break;

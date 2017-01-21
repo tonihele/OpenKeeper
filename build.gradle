@@ -109,3 +109,7 @@ compileJava {
 task wrapper(type: Wrapper) {
     gradleVersion = '3.2.1'
 }
+
+//tasks.withType(JavaCompile) {
+//    options.compilerArgs << "-Xlint:deprecation"
+//}

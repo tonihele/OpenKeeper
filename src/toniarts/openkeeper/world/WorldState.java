@@ -953,9 +953,11 @@ public abstract class WorldState extends AbstractAppState {
                 return room.isTileAccessible(tile.getX(), tile.getY());
             } else if (creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
                 return true;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)
+                    && !creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
                 return false;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && !creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER)
+                    && !creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
                 return false;
             }
             return true;
@@ -972,11 +974,13 @@ public abstract class WorldState extends AbstractAppState {
         for (Segment<Vector2> segment : linePath.getSegments()) {
 
             Line line = new Line(new Vector3f(segment.getBegin().x, 0.25f, segment.getBegin().y), new Vector3f(segment.getEnd().x, 0.25f, segment.getEnd().y));
-            Geometry geometry = new Geometry("Bullet", line);
+
             Material orange = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
             orange.setColor("Color", ColorRGBA.Red);
             orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
             orange.getAdditionalRenderState().setLineWidth(2);
+
+            Geometry geometry = new Geometry("Bullet", line);
             geometry.setCullHint(Spatial.CullHint.Never);
             geometry.setMaterial(orange);
             getWorld().attachChild(geometry);
