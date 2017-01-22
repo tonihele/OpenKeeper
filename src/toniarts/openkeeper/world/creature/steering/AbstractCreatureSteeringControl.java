@@ -54,6 +54,8 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
         this.creature = creature;
 
         maxLinearSpeed = creature.getSpeed();
+        // FIXME how calculate acceleration? mass & maxLinearSpeed?
+        maxLinearAcceleration = maxLinearSpeed * 4;
     }
 
     @Override

@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.data.ObjectiveType;
@@ -63,6 +64,7 @@ import toniarts.openkeeper.world.animation.AnimationControl;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.control.IUnitFlowerControl;
+import toniarts.openkeeper.world.control.LandingControl;
 import toniarts.openkeeper.world.control.UnitFlowerControl;
 import toniarts.openkeeper.world.creature.steering.AbstractCreatureSteeringControl;
 import toniarts.openkeeper.world.creature.steering.CreatureSteeringCreator;
@@ -726,6 +728,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      *
      * @return the tile coordinates
      */
+    @Nullable
     public Point getCreatureCoordinates() {
         if (stateMachine.getCurrentState() != CreatureState.PICKED_UP) {
             Vector3f translation = getSpatial().getWorldTranslation();
@@ -991,7 +994,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     @Override
     public boolean isPickable(short playerId) {
-        return playerId == ownerId && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP) && !isIncapacitated() && isOnOwnLand();
+        return playerId == ownerId
+                && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP)
+                && !isIncapacitated() && isOnOwnLand();
     }
 
     @Override
@@ -1039,7 +1044,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     @Override
     public DroppableStatus getDroppableStatus(TileData tile) {
-        return (tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
+        return (tile.getPlayerId() == ownerId
+                && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
     }
 
     @Override
@@ -1048,13 +1055,21 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         // TODO: actual dropping & being stunned, & evict (Imp to DHeart & creature to portal)
         CreatureLoader.setPosition(spatial, new Vector2f(tile.getX(), tile.getY()));
         worldState.getThingLoader().attachCreature(getSpatial());
-        animationPlaying = false;
-        if (creature.getStunDuration() > 0) {
-            stateMachine.changeState(CreatureState.STUNNED);
-        } else {
-            stateMachine.changeState(CreatureState.IDLE);
-        }
-        setEnabled(true);
+
+        spatial.addControl(new LandingControl(tile) {
+
+            @Override
+            public void onLanded() {
+                if (creature.getStunDuration() > 0) {
+                    stateMachine.changeState(CreatureState.STUNNED);
+                } else {
+                    stateMachine.changeState(CreatureState.IDLE);
+                }
+
+                CreatureControl.this.enabled = true;
+                CreatureControl.this.animationPlaying = false;
+            }
+        });
 
         // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
         worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
@@ -1083,37 +1098,32 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
             // Get creatures we sense
             Point currentPoint = getCreatureCoordinates();
-
             // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
             // https://github.com/tonihele/OpenKeeper/issues/261
             TileData tile = worldState.getMapData().getTile(currentPoint);
             if (tile != null) {
                 visibilityList.addAll(tile.getCreatures());
+                addVisibleCreatures(currentPoint, (int) creature.getDistanceCanHear());
             }
-            addVisibleCreatures(currentPoint.x, currentPoint.y - 1, (int) creature.getDistanceCanHear());
-            addVisibleCreatures(currentPoint.x + 1, currentPoint.y, (int) creature.getDistanceCanHear());
-            addVisibleCreatures(currentPoint.x, currentPoint.y + 1, (int) creature.getDistanceCanHear());
-            addVisibleCreatures(currentPoint.x - 1, currentPoint.y, (int) creature.getDistanceCanHear());
             visibilityList.remove(this);
             visibilityListUpdated = true;
         }
         return visibilityList;
     }
 
-    private void addVisibleCreatures(int x, int y, int range) {
-        TileData tile = worldState.getMapData().getTile(x, y);
-        if (tile != null) {
-            if (!tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                visibilityList.addAll(tile.getCreatures());
-                int newRange = range - 1;
-                if (newRange > -1) {
-                    addVisibleCreatures(x, y - 1, newRange);
-                    addVisibleCreatures(x + 1, y, newRange);
-                    addVisibleCreatures(x, y + 1, newRange);
-                    addVisibleCreatures(x - 1, y, newRange);
-                }
-            }
+    private void addVisibleCreatures(Point p, int range) {
+        TileData tile = worldState.getMapData().getTile(p);
+        if (tile == null || tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)
+                || range-- < 0) {
+            return;
         }
+
+        visibilityList.addAll(tile.getCreatures());
+
+        addVisibleCreatures(new Point(p.x + 1, p.y), range);
+        addVisibleCreatures(new Point(p.x - 1, p.y), range);
+        addVisibleCreatures(new Point(p.x, p.y + 1), range);
+        addVisibleCreatures(new Point(p.x, p.y - 1), range);
     }
 
     /**

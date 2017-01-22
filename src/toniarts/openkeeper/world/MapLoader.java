@@ -77,6 +77,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final static int FLOOR_INDEX = 0;
     private final static int WALL_INDEX = 1;
     private final static int TOP_INDEX = 2;
+    private final static int TERRAIN_INDEX = 0;
     private List<Node> pages;
     private final KwdFile kwdFile;
     private Node map;
@@ -175,7 +176,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         // Reconstruct all tiles in the area
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
-        Node terrainNode = (Node) map.getChild(0);
+        Node terrainNode = (Node) map.getChild(TERRAIN_INDEX);
         for (Point point : points) {
             TileData tile = mapData.getTile(point);
             // Reconstruct and mark for patching
@@ -201,7 +202,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             }
 
             // Reconstruct
-            handleTile(tile, (Node) map.getChild(0));
+            handleTile(tile, (Node) map.getChild(TERRAIN_INDEX));
         }
 
         // Batch

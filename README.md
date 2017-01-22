@@ -47,4 +47,5 @@ Resources
  * [kwd, library for loading kwd/klb files](https://github.com/werkt/kwd)
  * [Sound & Video formats](http://wiki.multimedia.cx/index.php?title=Electronic_Arts_Formats)
  * [A write-up about the walls in DK2](http://simonschreibt.de/gat/dungeon-keeper-2-walls/)
+ * [DK2 editor manual, contains a lot of hints on how the game should work](http://keeper.lubiki.pl/dk2_docs/dk2_editor_manual.htm)
 

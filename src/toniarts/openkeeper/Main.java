@@ -360,7 +360,7 @@ public class Main extends SimpleApplication {
                     List<String> guiXMLs = Arrays.asList("Interface/MainMenu.xml", "Interface/GameHUD.xml");
                     for (String xml : guiXMLs) {
                         try {
-//                            nifty.validateXml(xml); <-- Amazingly buggy?
+                            nifty.validateXml(xml);
                         } catch (Exception e) {
                             throw new RuntimeException("GUI file " + xml + " failed to validate!", e);
                         }

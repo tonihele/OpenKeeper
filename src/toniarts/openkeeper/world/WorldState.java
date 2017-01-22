@@ -949,11 +949,13 @@ public abstract class WorldState extends AbstractAppState {
         for (Segment<Vector2> segment : linePath.getSegments()) {
 
             Line line = new Line(new Vector3f(segment.getBegin().x, 0.25f, segment.getBegin().y), new Vector3f(segment.getEnd().x, 0.25f, segment.getEnd().y));
-            Geometry geometry = new Geometry("Bullet", line);
+
             Material orange = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
             orange.setColor("Color", ColorRGBA.Red);
             orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
             orange.getAdditionalRenderState().setLineWidth(2);
+
+            Geometry geometry = new Geometry("Bullet", line);
             geometry.setCullHint(Spatial.CullHint.Never);
             geometry.setMaterial(orange);
             getWorld().attachChild(geometry);

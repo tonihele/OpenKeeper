@@ -219,9 +219,15 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                             return new Thread(r, "GameLogicAndMovementThread");
                         }
                     });
-                    gameLogicThread = new GameLogicThread(GameState.this.app, worldState, 1.0f / kwdFile.getGameLevel().getTicksPerSec(), GameState.this, new CreatureLogicState(worldState.getThingLoader()), new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this), new RoomGoldFixer(worldState));
-                    exec.scheduleAtFixedRate(gameLogicThread, 0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
-                    exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()), 0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
+                    gameLogicThread = new GameLogicThread(GameState.this.app,
+                            worldState, 1.0f / kwdFile.getGameLevel().getTicksPerSec(),
+                            GameState.this, new CreatureLogicState(worldState.getThingLoader()),
+                            new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this),
+                            new RoomGoldFixer(worldState));
+                    exec.scheduleAtFixedRate(gameLogicThread,
+                            0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
+                    exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()),
+                            0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
 
                     setProgress(1.0f);
                 } catch (Exception e) {

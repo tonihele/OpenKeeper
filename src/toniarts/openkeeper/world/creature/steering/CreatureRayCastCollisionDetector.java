@@ -67,11 +67,13 @@ public class CreatureRayCastCollisionDetector implements RaycastCollisionDetecto
             if (collisionPoint != null) {
 
                 Line line = new Line(new Vector3f(inputRay.start.x, 0.25f, inputRay.start.y), new Vector3f(inputRay.end.x, 0.25f, inputRay.end.y));
-                line.setLineWidth(2);
-                Geometry geometry = new Geometry("Bullet", line);
+
                 Material orange = new Material(worldState.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
                 orange.setColor("Color", ColorRGBA.Red);
                 orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+                orange.getAdditionalRenderState().setLineWidth(2);
+
+                Geometry geometry = new Geometry("Bullet", line);
                 geometry.setCullHint(Spatial.CullHint.Never);
                 geometry.setMaterial(orange);
                 worldState.getWorld().attachChild(geometry);
@@ -115,11 +117,13 @@ public class CreatureRayCastCollisionDetector implements RaycastCollisionDetecto
                 return true;
             } else {
                 Line line = new Line(new Vector3f(inputRay.start.x, 0.25f, inputRay.start.y), new Vector3f(inputRay.end.x, 0.25f, inputRay.end.y));
-                line.setLineWidth(2);
-                Geometry geometry = new Geometry("Bullet", line);
+
                 Material orange = new Material(worldState.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
                 orange.setColor("Color", ColorRGBA.Green);
                 orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+                orange.getAdditionalRenderState().setLineWidth(2);
+
+                Geometry geometry = new Geometry("Bullet", line);
                 geometry.setCullHint(Spatial.CullHint.Never);
                 geometry.setMaterial(orange);
 //                world.getWorld().attachChild(geometry);
@@ -182,11 +186,9 @@ public class CreatureRayCastCollisionDetector implements RaycastCollisionDetecto
     }
 
     private boolean isPointAccessible(int x, int y) {
-        if (x > -1 && y > -1 && worldState.getMapData().getWidth() > x && worldState.getMapData().getHeight() > y) {
-            TileData tile = worldState.getMapData().getTile(x, y);
-            if (worldState.getLevelData().getTerrain(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                return false;
-            }
+        TileData tile = worldState.getMapData().getTile(x, y);
+        if (tile == null || tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            return false;
         }
         return true;
     }

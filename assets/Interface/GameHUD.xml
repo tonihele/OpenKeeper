@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<nifty xmlns="http://nifty-gui.sourceforge.net/nifty-1.3.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<nifty xmlns="http://nifty-gui.lessvoid.com/nifty-gui" xmlns:xsi="http://www.w3.org/2001/XMLSchema">
     <useStyles filename="nifty-default-styles.xml" />
     <useStyles filename="Interface/ScrollbarSmallStyle.xml" />
     <useStyles filename="Interface/ScrollpanelStyle.xml" />
@@ -38,26 +38,26 @@
                 <panel width="100%" childLayout="horizontal">
                     <panel width="256px" align="left" valign="center" childLayout="overlay">
                         <panel childLayout="horizontal" align="left" valign="center" visibleToMouse="true">
-                            <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-00.png" />
-                            <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-01.png" />
                             <effect>
                                 <onHover name="hint" hintText="${menu.2133}" hintDelay="200" />
                                 <onHover name="simpleHint" hintText="${menu.2134}" targetElement="tooltip" />
                                 <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                             </effect>
+                            <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-00.png" />
+                            <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-01.png" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
                             <panel backgroundImage="Textures/GUI/Windows/heart-hp.png" childLayout="center" valign="center" visibleToMouse="true">
-                                <image filename="Textures/GUI/Windows/heart-bg.png" align="left" valign="center">
-                                    <effect>
-                                        <onHover name="imageOverlay" filename="Textures/GUI/Windows/heart-alarm.png" post="true" neverStopRendering="true" />
-                                    </effect>
-                                </image>
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2139}" hintDelay="200" />
                                     <onHover name="simpleHint" hintText="${menu.2140}" targetElement="tooltip" />
                                     <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
+                                <image filename="Textures/GUI/Windows/heart-bg.png" align="left" valign="center">
+                                    <effect>
+                                        <onHover name="imageOverlay" filename="Textures/GUI/Windows/heart-alarm.png" post="true" neverStopRendering="true" />
+                                    </effect>
+                                </image>
                             </panel>
                             <panel childLayout="vertical" valign="center" padding="0px,14px,0px,10px">
                                 <control name="label" id="mana" color="#27d067" style="text" width="100%" text="0" textHAlign="right" valign="center" />
@@ -71,23 +71,23 @@
                     <panel width="16px" />
                     <panel width="256px" align="left" valign="center" childLayout="overlay">
                         <panel childLayout="horizontal" align="left" valign="center" visibleToMouse="true">
-                            <image valign="center" filename="Textures/GUI/Windows/gold-bg-00.png" />
-                            <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" />
+                            <interact onClick="grabGold()"/>
                             <effect>
                                 <onHover name="hint" hintText="${menu.2141}" hintDelay="200" />
                                 <onHover name="simpleHint" hintText="${menu.2142}" targetElement="tooltip" />
                                 <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                             </effect>
-                            <interact onClick="grabGold()"/>
+                            <image valign="center" filename="Textures/GUI/Windows/gold-bg-00.png" />
+                            <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
                             <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center" visibleToMouse="true">
-                                <image filename="Textures/GUI/Windows/payday-BG.png" align="left" valign="center" />
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2143}" hintDelay="200" />
                                     <onHover name="simpleHint" hintText="${menu.2144}" targetElement="tooltip" />
                                     <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
+                                <image filename="Textures/GUI/Windows/payday-BG.png" align="left" valign="center" />
                             </panel>
                             <panel childLayout="center" valign="center" align="center" padding="0px,14px,0px,36px">
                                 <control name="label" id="gold" color="#D3B000" text="0" style="text" width="100%" textHAlign="right" valign="center" />
@@ -203,6 +203,7 @@
                             <!--Sell-->
                             <panel x="100%" y="0" width="64px" height="64px" childLayout="center" id="tab-sell-content">
                                 <panel id="sell_0">
+                                    <interact onClick="select(sell,0)" />
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-01.png" post="true" />
                                         <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-01.png" post="true" neverStopRendering="true" />
@@ -210,11 +211,11 @@
                                         <onHover name="simpleHint" hintText="${menu.1806}" targetElement="tooltip" />
                                         <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                     </effect>
-                                    <interact onClick="select(sell,0)" />
                                 </panel>
                             </panel>
                             <!--The menu-->
                             <panel id="menuButton" x="0" y="100%" width="64px" height="64px">
+                                <interact onClick="pauseMenu()"/>
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-02.png" post="true"/>
                                     <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-02.png" post="true" />
@@ -222,7 +223,6 @@
                                     <onHover name="simpleHint" hintText="${menu.1802}" targetElement="tooltip" />
                                     <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
-                                <interact onClick="pauseMenu()"/>
                             </panel>
                             <!-- mag magnifier -->
                             <panel x="100%" y="100%" width="64px" height="64px" visibleToMouse="true">
@@ -341,13 +341,13 @@
 
         <layer childLayout="vertical">
             <!--The upper panel-->
-            <panel height="12%" width="100%" valign="top" childLayout="center" backgroundColor="#000">
+            <panel height="12%" width="100%" valign="top" childLayout="center" backgroundColor="#000f">
                 <image align="right" filename="Textures/GUI/Icons/i-camera-no_go.png"  marginRight="10px" />
             </panel>
             <!--Empty center-->
             <panel height="*" width="100%" childLayout="horizontal" />
             <!--The bottom panel-->
-            <panel height="12%" width="100%" valign="bottom" backgroundColor="#000" childLayout="center">
+            <panel height="12%" width="100%" valign="bottom" backgroundColor="#000f" childLayout="center">
                 <control name="label" id="speechText" text="" style="text" wrap="true" width="90%" />
             </panel>
         </layer>

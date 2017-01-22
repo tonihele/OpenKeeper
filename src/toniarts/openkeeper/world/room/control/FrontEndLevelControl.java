@@ -17,6 +17,7 @@
 package toniarts.openkeeper.world.room.control;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
@@ -65,7 +66,7 @@ public class FrontEndLevelControl extends AbstractControl {
 
                     // If the spatial starts in the base location, play the sound
                     if (getSpatial().getLocalTranslation().equals(baseLocation)) {
-                        AudioNode fx = new AudioNode(assetManager, "Sounds/Global/RockRise nl.mp2", false);
+                        AudioNode fx = new AudioNode(assetManager, "Sounds/Global/RockRise nl.mp2", DataType.Buffer);
                         fx.setLooping(false);
                         fx.setPositional(true);
                         fx.play();
