@@ -281,6 +281,10 @@ public class PlayerState extends AbstractAppState {
         screen.setCinematicText(textId, introduction, pathId);
     }
 
+    public void setGeneralText(int textId) {
+        screen.setCinematicText(textId);
+    }
+
     public void flashButton(int id, TriggerAction.MakeType type, boolean enabled, int time) {
         // TODO make flash button
     }
@@ -374,5 +378,17 @@ public class PlayerState extends AbstractAppState {
             GoldObjectControl goc = ws.getThingLoader().addRoomGold(new Point(0, 0), playerId, goldSubstracted, goldSubstracted);
             interactionState.pickupObject(goc);
         }
+    }
+
+    /**
+     * End the game for the player
+     *
+     * @param win did we win or not
+     */
+    protected void endGame(boolean win) {
+
+        // Disable us to get rid of all interaction
+        setEnabled(false);
+        stateManager.attach(new EndGameState(this));
     }
 }

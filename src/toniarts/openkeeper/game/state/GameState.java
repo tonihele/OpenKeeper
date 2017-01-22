@@ -20,6 +20,7 @@ import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -33,7 +34,9 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
+import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.logic.CreatureLogicState;
 import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.game.logic.GameLogicThread;
@@ -71,8 +74,9 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     private AppStateManager stateManager;
 
-    private String level;
+    private final String level;
     private KwdFile kwdFile;
+    private final toniarts.openkeeper.game.data.Level levelObject;
 
     private GameLogicThread gameLogicThread;
     private TriggerControl triggerControl = null;
@@ -100,6 +104,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
      */
     public GameState(String level) {
         this.level = level;
+        this.levelObject = null;
     }
 
     /**
@@ -109,11 +114,28 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
      * @param players player participating in this game, can be {@code null}
      */
     public GameState(KwdFile level, List<Keeper> players) {
+        this.level = null;
         this.kwdFile = level;
+        this.levelObject = null;
         if (players != null) {
             for (Keeper keeper : players) {
                 this.players.put(keeper.getId(), keeper);
             }
+        }
+    }
+
+    /**
+     * Single use game states
+     *
+     * @param selectedLevel the level to load
+     */
+    public GameState(GeneralLevel selectedLevel) {
+        this.level = null;
+        this.kwdFile = selectedLevel.getKwdFile();
+        if (selectedLevel instanceof toniarts.openkeeper.game.data.Level) {
+            this.levelObject = (toniarts.openkeeper.game.data.Level) selectedLevel;
+        } else {
+            this.levelObject = null;
         }
     }
 
@@ -436,8 +458,22 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     }
 
     public void setEnd(boolean win) {
-        // TODO make lose and win the game
-        stateManager.getState(PlayerState.class).quitToMainMenu();
+
+        // Enable the end game state
+        stateManager.getState(PlayerState.class).endGame(win);
+
+        // Mark the achievement if campaign level
+        if (levelObject != null) {
+            Main.getUserSettings().increaseLevelAttempts(levelObject);
+            if (win) {
+                Main.getUserSettings().setLevelStatus(levelObject, Settings.LevelStatus.COMPLETED);
+            }
+            try {
+                Main.getUserSettings().save();
+            } catch (IOException ex) {
+                Logger.getLogger(GameState.class.getName()).log(Level.SEVERE, "Failed to save the level progress!", ex);
+            }
+        }
     }
 
     public TaskManager getTaskManager() {

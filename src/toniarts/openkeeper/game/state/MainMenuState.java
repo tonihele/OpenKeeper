@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
@@ -359,39 +360,34 @@ public class MainMenuState extends AbstractAppState {
      * otherwise
      */
     public void startLevel(String type) {
+        GameState gameState;
         if ("campaign".equals(type.toLowerCase())) {
-            // Disable us
-            setEnabled(false);
 
             // Create the level state
-            GameState gameState = new GameState(selectedLevel.getKwdFile(), null);
-            stateManager.attach(gameState);
-
+            gameState = new GameState(selectedLevel);
         } else if ("skirmish".equals(type.toLowerCase())) {
             if (mapSelector.getMap() == null) {
                 logger.warning("Skirmish map not selected");
                 return;
             }
-            // Disable us
-            setEnabled(false);
-
-            GameState gameState = new GameState(mapSelector.getMap(), skirmishPlayers);
-            stateManager.attach(gameState);
-
+            gameState = new GameState(mapSelector.getMap(), skirmishPlayers);
         } else if ("multiplayer".equals(type.toLowerCase())) {
             if (mapSelector.getMap() == null) {
                 logger.warning("Multiplayer map not selected");
                 return;
             }
-            // Disable us
-            setEnabled(false);
+
             //TODO make true multiplayer start
-            GameState gameState = new GameState(mapSelector.getMap(), new ArrayList<>());
-            stateManager.attach(gameState);
+            gameState = new GameState(mapSelector.getMap(), new ArrayList<>());
 
         } else {
-            logger.warning("Unknown type of Level " + type);
+            logger.log(Level.WARNING, "Unknown type of Level {0}", type);
+            return;
         }
+
+        // Start the game
+        setEnabled(false);
+        stateManager.attach(gameState);
     }
 
     /**
