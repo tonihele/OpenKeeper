@@ -33,7 +33,7 @@ public class ClaimWallTileTask extends DigTileTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
         TileData tile = worldState.getMapData().getTile(getTaskLocation());
         return worldState.isClaimableWall(getTaskLocation().x, getTaskLocation().y, playerId) && !tile.isSelectedByPlayerId(playerId);
     }

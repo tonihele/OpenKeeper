@@ -402,10 +402,30 @@ public class PlayerScreenController implements IPlayerScreenController {
         return nifty.getScreen(HUD_SCREEN_ID).findElementById("systemMessages");
     }
 
+    /**
+     * Sets a level based text as cinematic text (subtitles)
+     *
+     * @param textId the text id from the dict
+     * @param introduction is introduction
+     * @param pathId
+     */
     public void setCinematicText(int textId, boolean introduction, int pathId) {
-        Label text = nifty.getScreen(CINEMATIC_SCREEN_ID).findNiftyControl("speechText", Label.class);
-        cinematicText = String.format("${level.%d}", textId - 1);
-        text.setText(cinematicText);
+        setCinematicText(String.format("${level.%d}", textId - 1));
+    }
+
+    /**
+     * Sets a general text as cinematic text (subtitles)
+     *
+     * @param textId id taken from the main bundle
+     */
+    public void setCinematicText(int textId) {
+        setCinematicText(Utils.getMainTextResourceBundle().getString(Integer.toString(textId)));
+    }
+
+    private void setCinematicText(String text) {
+        Label label = nifty.getScreen(CINEMATIC_SCREEN_ID).findNiftyControl("speechText", Label.class);
+        cinematicText = text;
+        label.setText(cinematicText);
     }
 
     private void setScreen(Screen screen) {

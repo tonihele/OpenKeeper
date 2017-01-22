@@ -28,6 +28,7 @@ import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.pathfinding.PathFindable;
 
 /**
  * A steering factory, static methods for constructing steerings for creatures
@@ -39,13 +40,16 @@ public class CreatureSteeringCreator {
     private CreatureSteeringCreator() {
     }
 
-    public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final CreatureControl creature, final Point p) {
-        return navigateToPoint(worldState, creature, p, null);
+    public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final PathFindable pathFindable, final CreatureControl creature, final Point p) {
+        return navigateToPoint(worldState, pathFindable, creature, p, null);
     }
 
-    public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final CreatureControl creature, final Point p, final Point faceTarget) {
-        GraphPath<TileData> outPath = worldState.findPath(WorldState.getTileCoordinates(creature.getSpatial().getWorldTranslation()), p, creature);
+    public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final PathFindable pathFindable, final CreatureControl creature, final Point p, final Point faceTarget) {
+        GraphPath<TileData> outPath = worldState.findPath(WorldState.getTileCoordinates(creature.getSpatial().getWorldTranslation()), p, pathFindable);
+        return navigateToPoint(outPath, faceTarget, creature);
+    }
 
+    public static SteeringBehavior<Vector2> navigateToPoint(GraphPath<TileData> outPath, final Point faceTarget, final CreatureControl creature) {
         if ((outPath != null && outPath.getCount() > 1) || faceTarget != null) {
 //            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(creature, 0.0001f);
 
@@ -76,9 +80,9 @@ public class CreatureSteeringCreator {
 //                    }
 //                });
 //                prioritySteering.add(ca);
-                // Debug
-                // worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
-                // Navigate
+// Debug
+// worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
+// Navigate
                 FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(creature, new LinePath<>(pathToArray(outPath), true), 2);
                 followPath.setDecelerationRadius(1f);
                 followPath.setArrivalTolerance(0.2f);

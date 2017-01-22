@@ -21,7 +21,6 @@ import java.awt.Point;
 import java.util.EnumSet;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.action.ActionPoint;
-import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.player.PlayerCameraControl;
@@ -251,7 +250,7 @@ public class TriggerControl extends Control {
                 for (Thing.GoodCreature creature : party.getMembers()) {
                     CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter(), stateManager.getApplication());
                     creatureInstance.setParty(party);
-                    party.addMemberInstance(creatureInstance);
+                    party.addMemberInstance(creature, creatureInstance);
 
                     // Also add to the creature trigger control
                     if (creature.getTriggerId() != 0) {
@@ -344,7 +343,7 @@ public class TriggerControl extends Control {
     }
 
     protected ActionPoint getActionPoint(int id) {
-        return stateManager.getState(ActionPointState.class).getActionPoint(id);
+        return stateManager.getState(GameState.class).getActionPointState().getActionPoint(id);
     }
 
     private int getTargetValue(int base, int value, EnumSet<FlagTargetValueActionType> flagType) {

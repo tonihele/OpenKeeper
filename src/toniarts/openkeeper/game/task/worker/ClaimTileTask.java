@@ -39,7 +39,7 @@ public class ClaimTileTask extends AbstractTileTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
         return worldState.isClaimableTile(getTaskLocation().x, getTaskLocation().y, playerId);
     }
 

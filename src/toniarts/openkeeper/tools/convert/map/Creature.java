@@ -199,20 +199,6 @@ public class Creature implements Comparable<Creature> {
             return id;
         }
 
-        public static JobType fromValue(int value) throws IllegalArgumentException {
-            try {
-                return JobType.values()[value];
-            } catch (ArrayIndexOutOfBoundsException e) {
-                throw new IllegalArgumentException("Unknown enum value: " + value);
-            }
-            /*
-             for(JobType e : JobType.values()){
-             if(code == e.value) return e;
-             }
-             return null;
-             */
-        }
-
         @Override
         public String toString() {
             String[] splitted = name().split("_");

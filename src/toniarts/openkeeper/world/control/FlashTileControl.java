@@ -69,7 +69,7 @@ public class FlashTileControl extends AbstractControl {
         if (tick > FLASH_PERIOD) {
             tick -= FLASH_PERIOD;
             flashed = !flashed;
-            worldState.getMapLoader().flashTile(flashed, points);
+            worldState.getMapLoader().flashTile(flashed, new ArrayList<>(points));
         }
 
         tick += tpf;

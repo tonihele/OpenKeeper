@@ -38,6 +38,7 @@ public class ActionPoint extends Container {
     private final EnumSet<Thing.ActionPoint.ActionPointFlag> flags;
     private final int waitDelay;
     private final int nextWaypointId;
+    private final List<Point> points;
 
     public ActionPoint(Thing.ActionPoint acionPoint) {
         id = acionPoint.getId();
@@ -47,6 +48,13 @@ public class ActionPoint extends Container {
         nextWaypointId = acionPoint.getNextWaypointId();
         flags = acionPoint.getFlags();
         triggerId = acionPoint.getTriggerId();
+
+        points = new ArrayList<>((end.x - start.x + 1) * (end.y - start.y + 1));
+        for (int x = start.x; x <= end.x; x++) {
+            for (int y = start.y; y <= end.y; y++) {
+                points.add(new Point(x, y));
+            }
+        }
     }
 
     public int getId() {
@@ -90,12 +98,6 @@ public class ActionPoint extends Container {
     }
 
     public List<Point> getPoints() {
-        List<Point> points = new ArrayList<>();
-        for (int x = start.x; x <= end.x; x++) {
-            for (int y = start.y; y <= end.y; y++) {
-                points.add(new Point(x, y));
-            }
-        }
         return points;
     }
 

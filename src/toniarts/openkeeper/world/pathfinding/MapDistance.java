@@ -14,35 +14,21 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.task.worker;
+package toniarts.openkeeper.world.pathfinding;
 
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
+import com.badlogic.gdx.ai.pfa.Heuristic;
+import toniarts.openkeeper.world.TileData;
 
 /**
- * Claim a room
+ * Calculates distance between nodes
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ClaimRoomTask extends ClaimTileTask {
-
-    public ClaimRoomTask(WorldState worldState, int x, int y, short playerId) {
-        super(worldState, x, y, playerId);
-    }
+public class MapDistance implements Heuristic<TileData> {
 
     @Override
-    public boolean isValid(CreatureControl creature) {
-        return worldState.isClaimableRoom(getTaskLocation().x, getTaskLocation().y, playerId);
-    }
-
-    @Override
-    public String toString() {
-        return "Claim room at " + getTaskLocation();
-    }
-
-    @Override
-    protected String getStringId() {
-        return "2602";
+    public float estimate(TileData node, TileData endNode) {
+        return Math.abs(endNode.getX() - node.getX()) + Math.abs(endNode.getY() - node.getY());
     }
 
 }

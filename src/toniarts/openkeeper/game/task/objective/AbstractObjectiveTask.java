@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 OpenKeeper
+ * Copyright (C) 2014-2017 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,35 +14,30 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.task.worker;
+package toniarts.openkeeper.game.task.objective;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
- * Claim a room
+ * Abstract base class for objective tasks, allows chaining of objectives for
+ * more complex set of behaviors. As a tree or a simple queue.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ClaimRoomTask extends ClaimTileTask {
+public abstract class AbstractObjectiveTask extends AbstractTileTask implements ObjectiveTask {
 
-    public ClaimRoomTask(WorldState worldState, int x, int y, short playerId) {
+    private final Deque<ObjectiveTask> taskQueue = new ArrayDeque<>();
+
+    public AbstractObjectiveTask(WorldState worldState, int x, int y, short playerId) {
         super(worldState, x, y, playerId);
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
-        return worldState.isClaimableRoom(getTaskLocation().x, getTaskLocation().y, playerId);
-    }
-
-    @Override
-    public String toString() {
-        return "Claim room at " + getTaskLocation();
-    }
-
-    @Override
-    protected String getStringId() {
-        return "2602";
+    public Deque<ObjectiveTask> getTaskQueue() {
+        return taskQueue;
     }
 
 }

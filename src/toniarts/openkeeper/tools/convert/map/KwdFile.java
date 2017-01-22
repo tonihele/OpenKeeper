@@ -110,6 +110,7 @@ public final class KwdFile {
     private boolean loaded = false;
     private Creature imp;
     private final String basePath;
+    private Object levelGem;
     private static final Logger logger = Logger.getLogger(KwdFile.class.getName());
 
     /**
@@ -1556,6 +1557,11 @@ public final class KwdFile {
 
             // Add to the hash by the object ID
             objects.put(object.getObjectId(), object);
+
+            // See special objects
+            if (levelGem == null && object.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_LEVEL_GEM)) {
+                levelGem = object;
+            }
 
             // Check file offset
             checkOffset(header, file, offset);
@@ -3082,6 +3088,10 @@ public final class KwdFile {
 
     public Room getPortal() {
         return getRoomById(ROOM_PORTAL_ID);
+    }
+
+    public Object getLevelGem() {
+        return levelGem;
     }
 
     /**

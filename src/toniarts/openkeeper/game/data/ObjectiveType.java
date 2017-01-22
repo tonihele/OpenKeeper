@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 OpenKeeper
+ * Copyright (C) 2014-2017 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,21 +14,15 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.world.creature.pathfinding;
-
-import com.badlogic.gdx.ai.pfa.Heuristic;
-import toniarts.openkeeper.world.TileData;
+package toniarts.openkeeper.game.data;
 
 /**
- * Calculates distance between nodes
+ * Player objective for a target
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapDistance implements Heuristic<TileData> {
+public enum ObjectiveType {
 
-    @Override
-    public float estimate(TileData node, TileData endNode) {
-        return Math.abs(endNode.getX() - node.getX()) + Math.abs(endNode.getY() - node.getY());
-    }
+    KILL, IMPRISON, CONVERT;
 
 }

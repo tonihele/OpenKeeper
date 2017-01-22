@@ -60,7 +60,6 @@ import toniarts.openkeeper.game.state.SystemMessageState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -73,16 +72,16 @@ import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.FlashTileControl;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
-import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
-import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
-import toniarts.openkeeper.world.door.DoorControl;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.listener.RoomListener;
 import toniarts.openkeeper.world.listener.TileChangeListener;
 import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.object.ObjectControl;
+import toniarts.openkeeper.world.pathfinding.MapDistance;
+import toniarts.openkeeper.world.pathfinding.MapIndexedGraph;
+import toniarts.openkeeper.world.pathfinding.MapPathFinder;
+import toniarts.openkeeper.world.pathfinding.PathFindable;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 import toniarts.openkeeper.world.room.control.RoomGoldControl;
@@ -803,11 +802,13 @@ public abstract class WorldState extends AbstractAppState {
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else // Water or lava
-                     if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
+                    {
+                        if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
                             tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
                         } else {
                             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                         }
+                    }
 
                     // Give money back
                     int goldLeft = addGold(player.getPlayerId(), room.getCost() / 2);
@@ -903,11 +904,11 @@ public abstract class WorldState extends AbstractAppState {
      *
      * @param start start point
      * @param end end point
-     * @param creature the creature to find path for
+     * @param pathFindable the entity to find path for
      * @return output path, null if path not found
      */
-    public GraphPath<TileData> findPath(Point start, Point end, CreatureControl creature) {
-        pathFindingMap.setCreature(creature);
+    public GraphPath<TileData> findPath(Point start, Point end, PathFindable pathFindable) {
+        pathFindingMap.setPathFindable(pathFindable);
         GraphPath<TileData> outPath = new DefaultGraphPath<>();
         TileData startTile = getMapData().getTile(start.x, start.y);
         TileData endTile = getMapData().getTile(end.x, end.y);
@@ -931,38 +932,12 @@ public abstract class WorldState extends AbstractAppState {
      * Check if given tile is accessible by the given creature
      *
      * @param tile the tile
-     * @param creature creature
+     * @param pathFindable the entity to test with
      * @return is accessible
      */
-    public boolean isAccessible(TileData tile, CreatureControl creature) {
-        Terrain terrain = tile.getTerrain();
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-
-            // Check for doors etc.
-            DoorControl doorControl = thingLoader.getDoor(new Point(tile.getX(), tile.getY()));
-            if (doorControl != null && !doorControl.isPassable(creature)) {
-                return false;
-            }
-
-            // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-
-                // Get room obstacles
-                RoomInstance roomInstance = getMapLoader().getRoomCoordinates().get(new Point(tile.getX(), tile.getY()));
-                GenericRoom room = getMapLoader().getRoomActuals().get(roomInstance);
-                return room.isTileAccessible(tile.getX(), tile.getY());
-            } else if (creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
-                return true;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)
-                    && !creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
-                return false;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER)
-                    && !creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
-                return false;
-            }
-            return true;
-        }
-        return false;
+    public boolean isAccessible(TileData tile, PathFindable pathFindable) {
+        Float cost = pathFindable.getCost(null, tile, this);
+        return cost != null;
     }
 
     /**

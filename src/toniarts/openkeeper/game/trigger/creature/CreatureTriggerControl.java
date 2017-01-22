@@ -18,12 +18,13 @@ package toniarts.openkeeper.game.trigger.creature;
 
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
-import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.data.ObjectiveType;
+import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -55,8 +56,8 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
             case CREATURE_CREATED:
                 return instanceControl != null;
             case CREATURE_KILLED:
-                if (instanceControl != null && instanceControl.getStateMachine().getCurrentState() != null) {
-                    return instanceControl.getStateMachine().getCurrentState().equals(CreatureState.DEAD);
+                if (instanceControl != null) {
+                    return instanceControl.isDead();
                 }
                 return false;
             case CREATURE_SLAPPED:
@@ -80,8 +81,14 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
             case CREATURE_LEAVES:
                 return false;
             case CREATURE_STUNNED:
+                if (instanceControl != null) {
+                    return instanceControl.isStunned();
+                }
                 return false;
             case CREATURE_DYING:
+                if (instanceControl != null) {
+                    return instanceControl.isUnconscious();
+                }
                 return false;
             case CREATURE_HEALTH:
                 if (instanceControl != null) {
@@ -90,8 +97,16 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
                 }
                 return false;
             case CREATURE_GOLD_HELD:
+                if (instanceControl != null) {
+                    target = instanceControl.getGold();
+                    break;
+                }
                 return false;
             case CREATURE_EXPERIENCE_LEVEL:
+                if (instanceControl != null) {
+                    target = instanceControl.getLevel();
+                    break;
+                }
                 return false;
             case CREATURE_HUNGER_SATED:
                 return false;
@@ -100,6 +115,9 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
             case CREATURE_SACKED:
                 return false;
             case CREATURE_PICKED_UP:
+                if (instanceControl != null) {
+                    return instanceControl.isPickedUp();
+                }
                 return false;
             default:
                 return super.isActive(trigger);
@@ -120,6 +138,9 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
         // Some triggers are bound to the creature itself
         switch (type) {
             case ATTACH_PORTAL_GEM:
+                if (instanceControl != null) {
+                    instanceControl.attachPortalGem();
+                }
                 break;
 
             case MAKE_HUNGRY:
@@ -128,10 +149,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
             case SHOW_HEALTH_FLOWER:
                 if (instanceControl != null) {
                     stateManager.getApplication().enqueue(() -> {
-
                         instanceControl.showUnitFlower(trigger.getUserData("value", Integer.class));
-
-                        return null;
                     });
                 }
                 break;
@@ -148,22 +166,49 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
                 break;
 
             case ZOOM_TO:
+                if (instanceControl != null) {
+                    stateManager.getState(PlayerState.class).zoomToCreature(instanceControl);
+                }
                 break;
 
             case SET_OBJECTIVE: // Creature part. Only for Good player
-                // TODO this
                 short playerId = trigger.getUserData("playerId", short.class);
-                Creature.JobType jobType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Creature.JobType.class);
+                Thing.HeroParty.Objective jobType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Thing.HeroParty.Objective.class);
                 int apId = trigger.getUserData("actionPointId", int.class);
+
+                // Assign to creature
+                if (instanceControl != null) {
+                    if (apId != 0) {
+                        instanceControl.setObjectiveTargetActionPoint(getActionPoint(apId));
+                    }
+                    instanceControl.setObjectiveTargetPlayerId(playerId);
+                    instanceControl.setObjective(jobType);
+                }
                 break;
 
             case MAKE_OBJECTIVE: // Game part
-                // TODO this
                 short targetId = trigger.getUserData("targetId", short.class);
                 if (targetId == 0) {
                     super.makeObjectiveOff();
                 }
-                //0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert;
+                if (instanceControl != null) {
+
+                    //0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert;
+                    switch (targetId) {
+                        case 0:
+                            instanceControl.setPlayerObjective(null);
+                            break;
+                        case 1:
+                            instanceControl.setPlayerObjective(ObjectiveType.KILL);
+                            break;
+                        case 2:
+                            instanceControl.setPlayerObjective(ObjectiveType.IMPRISON);
+                            break;
+                        case 3:
+                            instanceControl.setPlayerObjective(ObjectiveType.CONVERT);
+                            break;
+                    }
+                }
                 break;
 
             default:

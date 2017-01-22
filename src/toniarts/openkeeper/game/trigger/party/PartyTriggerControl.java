@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
+import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.Party;
 
 public class PartyTriggerControl extends TriggerControl {
@@ -53,7 +54,15 @@ public class PartyTriggerControl extends TriggerControl {
             case PARTY_MEMBERS_KILLED:
                 short unknown = (short) trigger.getUserData("unknown");
                 value = (int) trigger.getUserData("value");
-                break;
+                if (party.isCreated()) {
+                    for (CreatureControl creature : party.getActualMembers()) {
+                        if (creature.isDead()) {
+                            target++;
+                        }
+                    }
+                    break;
+                }
+                return false;
 
             case PARTY_MEMBERS_CAPTURED:
                 value = (int) trigger.getUserData("value");
@@ -62,7 +71,15 @@ public class PartyTriggerControl extends TriggerControl {
             case PARTY_MEMBERS_INCAPACITATED:
                 unknown = (short) trigger.getUserData("unknown");
                 value = (int) trigger.getUserData("value");
-                break;
+                if (party.isCreated()) {
+                    for (CreatureControl creature : party.getActualMembers()) {
+                        if (creature.isIncapacitated()) {
+                            target++;
+                        }
+                    }
+                    break;
+                }
+                return false;
 
             default:
                 return super.isActive(trigger);

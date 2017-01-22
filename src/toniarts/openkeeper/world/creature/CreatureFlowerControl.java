@@ -121,4 +121,24 @@ public class CreatureFlowerControl extends UnitFlowerControl {
                 22, 22, 20, 20, 90, 360 - angle);
     }
 
+    @Override
+    protected String getObjectiveIcon() {
+        if (creatureControl.getPlayerObjective() != null) {
+            switch (creatureControl.getPlayerObjective()) {
+                case CONVERT:
+                case IMPRISON:
+                    return "Textures/GUI/moods/Imprison.png";
+                case KILL:
+
+                    // Hmm, is this so...?
+                    if (creatureControl.isPortalGem()) {
+                        return "Textures/GUI/moods/Objective.png";
+                    } else {
+                        return "Textures/GUI/moods/Objective-2.png";
+                    }
+            }
+        }
+        return null;
+    }
+
 }

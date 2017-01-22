@@ -14,17 +14,14 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.world.creature.pathfinding;
+package toniarts.openkeeper.world.pathfinding;
 
 import com.badlogic.gdx.ai.pfa.Connection;
 import com.badlogic.gdx.ai.pfa.DefaultConnection;
 import com.badlogic.gdx.ai.pfa.indexed.IndexedGraph;
 import com.badlogic.gdx.utils.Array;
-import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Map representation for the path finding
@@ -35,7 +32,7 @@ public class MapIndexedGraph implements IndexedGraph<TileData> {
 
     private final WorldState worldState;
     private final int nodeCount;
-    private CreatureControl creature;
+    private PathFindable pathFindable;
 
     public MapIndexedGraph(WorldState worldState) {
         this.worldState = worldState;
@@ -53,20 +50,20 @@ public class MapIndexedGraph implements IndexedGraph<TileData> {
     }
 
     /**
-     * Set this prior to finding the path to search the path for certain
-     * creature type
+     * Set this prior to finding the path to search the path for certain path
+     * findable type
      *
-     * @param creature the creature
+     * @param pathFindable the path findable
      */
-    public void setCreature(CreatureControl creature) {
-        this.creature = creature;
+    public void setPathFindable(PathFindable pathFindable) {
+        this.pathFindable = pathFindable;
     }
 
     @Override
     public Array<Connection<TileData>> getConnections(TileData tile) {
 
         // The connections depend on the creature type
-        Array<Connection<TileData>> connections = new Array<>(4);
+        Array<Connection<TileData>> connections = new Array<>(8);
         boolean valids[] = new boolean[4];
 
         valids[0] = addIfValidCoordinate(tile, tile.getX(), tile.getY() - 1, connections); // North
@@ -74,51 +71,43 @@ public class MapIndexedGraph implements IndexedGraph<TileData> {
         valids[2] = addIfValidCoordinate(tile, tile.getX(), tile.getY() + 1, connections); // South
         valids[3] = addIfValidCoordinate(tile, tile.getX() - 1, tile.getY(), connections); // West
 
-        if (valids[0] && valids[1]) { // North-East
-            addIfValidCoordinate(tile, tile.getX() + 1, tile.getY() - 1, connections);
-        }
-        if (valids[0] && valids[3]) { // North-West
-            addIfValidCoordinate(tile, tile.getX() - 1, tile.getY() - 1, connections);
-        }
-        if (valids[2] && valids[1]) { // South-East
-            addIfValidCoordinate(tile, tile.getX() + 1, tile.getY() + 1, connections);
-        }
-        if (valids[2] && valids[3]) { // South-West
-            addIfValidCoordinate(tile, tile.getX() - 1, tile.getY() + 1, connections);
+        if (pathFindable.canMoveDiagonally()) {
+            if (valids[0] && valids[1]) { // North-East
+                addIfValidCoordinate(tile, tile.getX() + 1, tile.getY() - 1, connections);
+            }
+            if (valids[0] && valids[3]) { // North-West
+                addIfValidCoordinate(tile, tile.getX() - 1, tile.getY() - 1, connections);
+            }
+            if (valids[2] && valids[1]) { // South-East
+                addIfValidCoordinate(tile, tile.getX() + 1, tile.getY() + 1, connections);
+            }
+            if (valids[2] && valids[3]) { // South-West
+                addIfValidCoordinate(tile, tile.getX() - 1, tile.getY() + 1, connections);
+            }
         }
 
         return connections;
     }
 
-    private boolean addIfValidCoordinate(final TileData startTile, final int x, final int y,
-            final Array<Connection<TileData>> connections) {
+    private boolean addIfValidCoordinate(final TileData startTile, final int x, final int y, final Array<Connection<TileData>> connections) {
 
         // Valid coordinate
         TileData tile = worldState.getMapData().getTile(x, y);
-        if (tile == null) {
-            return false;
-        }
+        if (tile != null) {
+            Float cost = pathFindable.getCost(startTile, tile, worldState);
+            if (cost != null) {
+                connections.add(new DefaultConnection<TileData>(startTile, tile) {
 
-        if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            return false;
-        }
+                    @Override
+                    public float getCost() {
+                        return cost;
+                    }
 
-        // TODO: Rooms, obstacles and what not, should create an universal
-        // isAccessible(Creature) to map loader / world handler maybe
-        if (creature != null) {
-
-            if (!worldState.isAccessible(tile, creature)) {
-                return false;
-            }
-
-            if (creature.getCreature().getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
-                connections.add(new DefaultConnection<>(startTile, tile)); // No cost
+                });
                 return true;
             }
         }
-
-        connections.add(new MapConnection(startTile, tile));
-        return true;
+        return false;
     }
 
 }

@@ -17,6 +17,7 @@
 package toniarts.openkeeper.cinematics;
 
 import com.jme3.animation.LoopMode;
+import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.cinematic.MotionPath;
@@ -55,6 +56,9 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
     private static final String CAMERA_NAME = "Motion cam";
     private final AppStateManager stateManager;
     private final CameraSweepData cameraSweepData;
+    private final Camera cam;
+    private final Vector3f start;
+    private CameraNode camNode;
 
     /**
      * Creates a new cinematic ready for consumption
@@ -90,6 +94,8 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         super(scene);
         this.assetManager = assetManager;
         this.stateManager = stateManager;
+        this.start = start;
+        this.cam = cam;
 
         // Load up the camera sweep file
         Object obj = assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat(cameraSweepFile.concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
@@ -100,12 +106,51 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         }
         cameraSweepData = (CameraSweepData) obj;
 
+        // Add the listener, it is critical that this listener is executed before any custom ones
+        addListener(new CinematicEventListener() {
+            private boolean executed = false;
+
+            @Override
+            public void onPlay(CinematicEvent cinematic) {
+            }
+
+            @Override
+            public void onPause(CinematicEvent cinematic) {
+            }
+
+            @Override
+            public void onStop(CinematicEvent cinematic) {
+
+                if (!executed) {
+                    executed = true;
+
+                    // We never reach the final point
+                    CameraSweepDataEntry entry = cameraSweepData.getEntries().get(cameraSweepData.getEntries().size() - 1);
+                    applyCameraSweepEntry(cam, start, entry);
+
+                    // Detach
+                    scene.detachChild(camNode);
+
+                    // Remove us, this will cause stack over flow loop without the executed flag
+                    // Dirty but, working in a way
+                    stateManager.detach(Cinematic.this);
+                }
+            }
+        });
+    }
+
+    @Override
+    public void initialize(AppStateManager stateManager, Application app) {
+
         // Initialize
-        initializeCinematic(scene, cam, start);
+        initializeCinematic(getScene(), cam, start);
 
         // Set the camera as a first step
         activateCamera(0, CAMERA_NAME);
+
+        super.initialize(stateManager, app);
     }
+
 
     /**
      * Creates the actual cinematic
@@ -113,9 +158,8 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      * @param scene the scene to attach to
      */
     private void initializeCinematic(final Node scene, final Camera cam, final Vector3f startLocation) {
-        final CameraNode camNode = bindCamera(CAMERA_NAME, cam);
+        camNode = bindCamera(CAMERA_NAME, cam);
         camNode.setControlDir(ControlDirection.SpatialToCamera);
-        scene.attachChild(camNode);
         final MotionPath path = new MotionPath();
         path.setCycle(false);
 
@@ -159,11 +203,6 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
                 }
             }
 
-            @Override
-            public void onStop() {
-                super.onStop();
-
-            }
         };
         cameraMotionControl.setLoopMode(LoopMode.DontLoop);
         cameraMotionControl.setInitialDuration(cameraSweepData.getEntries().size() / getFramesPerSecond());
@@ -174,37 +213,6 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
         // Set duration of the whole animation
         setInitialDuration(cameraSweepData.getEntries().size() / getFramesPerSecond());
-
-        addListener(new CinematicEventListener() {
-            private boolean executed = false;
-
-            @Override
-            public void onPlay(CinematicEvent cinematic) {
-            }
-
-            @Override
-            public void onPause(CinematicEvent cinematic) {
-            }
-
-            @Override
-            public void onStop(CinematicEvent cinematic) {
-
-                if (!executed) {
-                    executed = true;
-
-                    // We never reach the final point
-                    CameraSweepDataEntry entry = cameraSweepData.getEntries().get(cameraSweepData.getEntries().size() - 1);
-                    applyCameraSweepEntry(cam, startLocation, entry);
-
-                    // Detach
-                    scene.detachChild(camNode);
-
-                    // Remove us, this will cause stack over flow loop without the executed flag
-                    // Dirty but, working in a way
-                    stateManager.detach(Cinematic.this);
-                }
-            }
-        });
     }
 
     /**

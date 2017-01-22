@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 OpenKeeper
+ * Copyright (C) 2014-2017 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,43 +14,36 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.task;
+package toniarts.openkeeper.game.task.objective;
 
+import toniarts.openkeeper.game.task.worker.DigTileTask;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.GenericRoom;
-import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
 /**
- * A base of a task that involves a room
+ * Dig tile task for objectives
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractRoomTask extends AbstractTileTask {
+public class ObjectiveDigTileTask extends DigTileTask {
 
-    private final GenericRoom room;
-
-    public AbstractRoomTask(WorldState worldState, int x, int y, short playerId, GenericRoom room) {
+    public ObjectiveDigTileTask(WorldState worldState, int x, int y, short playerId) {
         super(worldState, x, y, playerId);
-
-        this.room = room;
-    }
-
-    protected GenericRoom getRoom() {
-        return room;
     }
 
     @Override
     public boolean isValid(CreatureControl creature) {
-
-        // See that the room exists and has capacity etc.
-        return room.getRoomInstance().getOwnerId() == playerId && !room.isDestroyed() && !getRoomObjectControl().isFullCapacity();
+        TileData tile = worldState.getMapData().getTile(getTaskLocation());
+        return tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) && (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH) || tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ATTACKABLE));
     }
 
-    protected abstract GenericRoom.ObjectType getRoomObjectType();
-
-    protected RoomObjectControl getRoomObjectControl() {
-        return getRoom().getObjectControl(getRoomObjectType());
+    @Override
+    public void executeTask(CreatureControl creature) {
+        if (creature.isWorker()) { // Only workers
+            super.executeTask(creature);
+        }
     }
 
 }
