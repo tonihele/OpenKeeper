@@ -20,7 +20,6 @@ package toniarts.openkeeper.game;
  *
  * @author ArchDemon
  */
-
 // TODO create timer or use existed
 public final class GameTimer {
 
@@ -45,6 +44,11 @@ public final class GameTimer {
     public void update(float tpf) {
         if (active) {
             time += tpf;
+
+            // Overflow protection
+            if (time < 0) {
+                time = Float.MAX_VALUE;
+            }
         }
     }
 
