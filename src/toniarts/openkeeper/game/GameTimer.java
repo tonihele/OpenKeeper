@@ -29,15 +29,20 @@ public final class GameTimer {
     public GameTimer() {
     }
 
-    public GameTimer(boolean active) {
-        this.active = active;
+    /**
+     * Activates and resets the timer
+     */
+    public void initialize() {
+        active = true;
+        time = 0;
     }
 
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public boolean getActive() {
+    /**
+     * Is the timer active or not
+     *
+     * @return {@code true} if active
+     */
+    public boolean isActive() {
         return active;
     }
 

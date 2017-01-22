@@ -236,7 +236,7 @@ public class TriggerControl extends Control {
                     value = trigger.getUserData("value", int.class);
                     stateManager.getState(GameState.class).setTimeLimit(value);
                 } else {
-                    stateManager.getState(GameState.class).getTimer(timerId).setActive(true);
+                    stateManager.getState(GameState.class).getTimer(timerId).initialize();
                 }
                 break;
 
