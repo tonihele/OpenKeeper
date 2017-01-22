@@ -254,4 +254,11 @@ public class Party implements PathFindable {
         return cost;
     }
 
+    @Override
+    public boolean canMoveDiagonally() {
+
+        // Maybe not a perfect solution, but if workers don't allow diagonal paths so that we don't dig diagonally
+        return !isWorkersAvailable();
+    }
+
 }

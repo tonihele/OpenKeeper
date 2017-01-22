@@ -1539,4 +1539,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA);
     }
 
+    @Override
+    public boolean canMoveDiagonally() {
+        return true;
+    }
+
 }

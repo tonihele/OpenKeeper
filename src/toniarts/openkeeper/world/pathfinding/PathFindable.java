@@ -107,4 +107,11 @@ public interface PathFindable {
      */
     public boolean canWalkOnLava();
 
+    /**
+     * Can the entity move diagonally
+     *
+     * @return true for walking diagonally
+     */
+    public boolean canMoveDiagonally();
+
 }
