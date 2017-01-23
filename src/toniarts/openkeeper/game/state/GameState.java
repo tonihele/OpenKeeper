@@ -21,8 +21,8 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -85,9 +85,9 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private DoorTriggerState doorTriggerState;
     private PartyTriggerState partyTriggerState;
     private ActionPointState actionPointState;
-    private final Map<Short, Integer> flags = new HashMap<>(LEVEL_FLAG_MAX_COUNT);
+    private final List<Integer> flags = new ArrayList<>(LEVEL_FLAG_MAX_COUNT);
     // TODO What timer class we should take ?
-    private final Map<Byte, GameTimer> timers = new HashMap<>(LEVEL_TIMER_MAX_COUNT);
+    private final List<GameTimer> timers = new ArrayList<>(LEVEL_TIMER_MAX_COUNT);
     private int levelScore = 0;
 
     private Float timeLimit = null;
@@ -197,11 +197,11 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
                     // Trigger data
                     for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
-                        flags.put(i, 0);
+                        flags.add(i, 0);
                     }
 
                     for (byte i = 0; i < LEVEL_TIMER_MAX_COUNT; i++) {
-                        timers.put(i, new GameTimer());
+                        timers.add(i, new GameTimer());
                     }
 
                     int triggerId = kwdFile.getGameLevel().getTriggerId();
@@ -392,7 +392,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
             timeLimit -= tpf;
         }
 
-        for (GameTimer timer : timers.values()) {
+        for (GameTimer timer : timers) {
             timer.update(tpf);
         }
 
@@ -433,15 +433,15 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     }
 
     public int getFlag(int id) {
-        return flags.get((short) id);
+        return flags.get(id);
     }
 
     public void setFlag(int id, int value) {
-        flags.put((short) id, value);
+        flags.set(id, value);
     }
 
     public GameTimer getTimer(int id) {
-        return timers.get((byte) id);
+        return timers.get(id);
     }
 
     /**

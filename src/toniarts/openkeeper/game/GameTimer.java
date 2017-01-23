@@ -53,6 +53,7 @@ public final class GameTimer {
             // Overflow protection
             if (time < 0) {
                 time = Float.MAX_VALUE;
+                active = false;
             }
         }
     }
