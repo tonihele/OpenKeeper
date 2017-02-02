@@ -46,8 +46,8 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
     private boolean independentFacing = false;
     private float maxLinearSpeed = 1;
     private float maxLinearAcceleration = 2;
-    private float maxAngularSpeed = 0.1f;
-    private float maxAngularAcceleration = 0.1f;
+    private float maxAngularSpeed = 10.0f;
+    private float maxAngularAcceleration = 20.0f;
     private volatile boolean applySteering = false;
 
     public AbstractCreatureSteeringControl(Creature creature) {
@@ -119,6 +119,9 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
                 float newOrientation = vectorToAngle(linearVelocity);
                 angularVelocity = (newOrientation - getOrientation()) * tpf; // this is superfluous if independentFacing is always true
                 setOrientation(newOrientation);
+            } else if (angularVelocity !=0 || steering.angular != 0) {
+                angularVelocity += steering.angular * tpf;
+                setOrientation(getOrientation() + (angularVelocity * tpf));
             }
         }
     }
@@ -225,7 +228,7 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
 
     @Override
     public float getZeroLinearSpeedThreshold() {
-        return 0.001f;
+        return 0.6f;
     }
 
     @Override
