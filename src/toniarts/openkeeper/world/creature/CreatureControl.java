@@ -88,7 +88,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     // Attributes
-    private final String name;
+    private String name;
     private final String bloodType;
     protected int gold = 0;
     protected int level = 1;
@@ -1442,6 +1442,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public void attachPortalGem() {
         hasPortalGem = true;
+
+        // I don't really know how this is determined, but this is the easiest way and needs no creatures IDs etc.
+        // Set the lord of the land name, you can't even edit is in the editor, so official campaign only
+        if (worldState.getGameState().getLevelData().getGameLevel().getHeroName() != null) {
+            name = worldState.getGameState().getLevelData().getGameLevel().getHeroName();
+        }
     }
 
     /**
