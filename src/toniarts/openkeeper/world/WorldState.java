@@ -802,13 +802,11 @@ public abstract class WorldState extends AbstractAppState {
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else // Water or lava
-                    {
-                        if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
+                     if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
                             tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
                         } else {
                             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                         }
-                    }
 
                     // Give money back
                     int goldLeft = addGold(player.getPlayerId(), room.getCost() / 2);
@@ -1481,6 +1479,20 @@ public abstract class WorldState extends AbstractAppState {
         }
 
         return amount;
+    }
+
+    /**
+     * Tests if there is a room in the given location
+     *
+     * @param p the point to test
+     * @return returns the room, or {@code null} if no room is found
+     */
+    public GenericRoom getRoomAtPoint(Point p) {
+        RoomInstance roomInstance = mapLoader.getRoomCoordinates().get(p);
+        if (roomInstance != null) {
+            return mapLoader.getRoomActuals().get(roomInstance);
+        }
+        return null;
     }
 
 }
