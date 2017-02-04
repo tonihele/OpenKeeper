@@ -146,6 +146,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private Integer enemyThreat;
     private Integer fellowFighters;
     private CreatureControl attackTarget;
+    private boolean attacked = false;
 
     // Good creature specific stuff
     private Party party;
@@ -226,7 +227,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         enemyThreat = null;
         fellowFighters = null;
         if (stateMachine.getCurrentState() == null) {
-            stateMachine.changeState(CreatureState.IDLE);
+            initState();
         }
 
         // Update attacks
@@ -249,8 +250,35 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             }
         }
 
+        // Set the attacked flag, when no threats visible, assume attack over
+        if (attacked && getEnemyThreat() == 0) {
+            attacked = false;
+        }
+
         // Update state machine
         stateMachine.update();
+    }
+
+    /**
+     * Sets up initial state
+     */
+    private void initState() {
+        GenericRoom room = worldState.getRoomAtPoint(getCreatureCoordinates());
+        if (room != null && room.getRoomInstance().getOwnerId() != getOwnerId()) {
+
+            // See if tortured or imprisoned
+            if (room.hasObjectControl(GenericRoom.ObjectType.PRISONER)) {
+                room.getObjectControl(GenericRoom.ObjectType.PRISONER).addItem(1, getCreatureCoordinates(), null, this);
+                stateMachine.changeState(CreatureState.IMPRISONED);
+                return;
+            }
+            if (room.hasObjectControl(GenericRoom.ObjectType.TORTUREE)) {
+                room.getObjectControl(GenericRoom.ObjectType.TORTUREE).addItem(1, getCreatureCoordinates(), null, this);
+                stateMachine.changeState(CreatureState.TORTURED);
+                return;
+            }
+        }
+        stateMachine.changeState(CreatureState.IDLE);
     }
 
     @Override
@@ -494,6 +522,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 case FOLLOW: {
                     return Utils.getMainTextResourceBundle().getString("2675");
                 }
+                case IMPRISONED: {
+                    return Utils.getMainTextResourceBundle().getString("2674");
+                }
+                case TORTURED: {
+                    return Utils.getMainTextResourceBundle().getString("2635");
+                }
             }
         }
         return "";
@@ -677,11 +711,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public boolean isTooMuchGold() {
-        return gold >= maxGoldHeld;
+        return gold >= maxGoldHeld && isWorker();
     }
 
     public boolean dropGoldToTreasury() {
-        if (gold > 0) {
+        if (gold > 0 && isWorker()) {
             if (worldState.getTaskManager().assignGoldToTreasuryTask(this)) {
                 navigateToAssignedTask();
                 return true;
@@ -1256,7 +1290,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return true if the creature is down
      */
     public boolean isIncapacitated() {
-        return getStateMachine().getCurrentState() == CreatureState.DEAD || getStateMachine().getCurrentState() == CreatureState.PICKED_UP || getStateMachine().getCurrentState() == CreatureState.UNCONSCIOUS;
+        return getStateMachine().getCurrentState() == CreatureState.DEAD || getStateMachine().getCurrentState() == CreatureState.PICKED_UP || getStateMachine().getCurrentState() == CreatureState.UNCONSCIOUS || getStateMachine().getCurrentState() == CreatureState.IMPRISONED || getStateMachine().getCurrentState() == CreatureState.TORTURED;
     }
 
     /**
@@ -1342,6 +1376,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     private void damage(CreatureControl damagedBy, float damage) {
         applyDamage((int) damage);
+        attacked = true;
 
         // If we are not in a fight mode, see what we should do
         if (!isIncapacitated() && stateMachine.getCurrentState() != CreatureState.FIGHT) {
@@ -1528,6 +1563,34 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public boolean isStunned() {
         return stateMachine.isInState(CreatureState.STUNNED);
+    }
+
+    /**
+     * Is the creature imprisoned
+     *
+     * @return being imprisoned
+     */
+    public boolean isImprisoned() {
+        return stateMachine.isInState(CreatureState.IMPRISONED);
+    }
+
+    /**
+     * Is the creature being tortured, hopefully by those sexy pixelly
+     * mistresses
+     *
+     * @return being tortured
+     */
+    public boolean isTortured() {
+        return stateMachine.isInState(CreatureState.TORTURED);
+    }
+
+    /**
+     * Is the creature being attacked
+     *
+     * @return being attacked
+     */
+    public boolean isAttacked() {
+        return attacked;
     }
 
     @Override
