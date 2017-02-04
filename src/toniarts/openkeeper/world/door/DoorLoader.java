@@ -90,6 +90,6 @@ public class DoorLoader implements ILoader<Thing.Door> {
 
     private boolean canTileSupportDoor(int x, int y, short ownerId) {
         TileData tile = worldState.getMapLoader().getMapData().getTile(x, y);
-        return tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE);
+        return (tile != null && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) && ((!tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE)) || (tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE))));
     }
 }
