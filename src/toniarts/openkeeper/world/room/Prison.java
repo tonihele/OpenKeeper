@@ -29,6 +29,8 @@ import static toniarts.openkeeper.world.MapLoader.loadAsset;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
+import static toniarts.openkeeper.world.room.GenericRoom.hasSameTile;
+import toniarts.openkeeper.world.room.control.RoomPrisonerControl;
 
 /**
  * TODO: not completed
@@ -39,6 +41,31 @@ public class Prison extends DoubleQuad {
 
     public Prison(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         super(assetManager, roomInstance, objectLoader, worldState, effectManager);
+
+        addObjectControl(new RoomPrisonerControl(this) {
+
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                boolean[][] matrix = roomInstance.getCoordinatesAsMatrix();
+                int tiles = 0;
+                for (int x = 1; x < matrix.length - 1; x++) {
+                    for (int y = 1; y < matrix[x].length - 1; y++) {
+                        boolean N = hasSameTile(map, x, y + 1);
+                        boolean NE = hasSameTile(map, x - 1, y + 1);
+                        boolean E = hasSameTile(map, x - 1, y);
+                        boolean SE = hasSameTile(map, x - 1, y - 1);
+                        boolean S = hasSameTile(map, x, y - 1);
+                        boolean SW = hasSameTile(map, x + 1, y - 1);
+                        boolean W = hasSameTile(map, x + 1, y);
+                        boolean NW = hasSameTile(map, x + 1, y + 1);
+                        if (N && NE && E && SE && S && SW && W && NW) {
+                            tiles++;
+                        }
+                    }
+                }
+                return tiles;
+            }
+        });
     }
 
     @Override

@@ -235,15 +235,6 @@ public class Normal extends GenericRoom {
         return root;
     }
 
-    protected boolean hasSameTile(boolean[][] map, int x, int y) {
-
-        // Check for out of bounds
-        if (x < 0 || x >= map.length || y < 0 || y >= map[x].length) {
-            return false;
-        }
-        return map[x][y];
-    }
-
     /**
      * Does the room have pillars
      *

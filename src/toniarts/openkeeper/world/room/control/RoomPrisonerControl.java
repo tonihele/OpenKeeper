@@ -17,22 +17,19 @@
 package toniarts.openkeeper.world.room.control;
 
 import java.awt.Point;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
- * Holds out the researchers populating a room
+ * Holds out the prisoners populating a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomResearcherControl extends RoomObjectControl<ObjectControl, Integer> {
+public abstract class RoomPrisonerControl extends RoomObjectControl<ObjectControl, Integer> {
 
-    public RoomResearcherControl(GenericRoom parent) {
+    public RoomPrisonerControl(GenericRoom parent) {
         super(parent);
     }
 
@@ -48,7 +45,7 @@ public abstract class RoomResearcherControl extends RoomObjectControl<ObjectCont
 
     @Override
     public GenericRoom.ObjectType getObjectType() {
-        return GenericRoom.ObjectType.RESEARCHER;
+        return GenericRoom.ObjectType.PRISONER;
     }
 
     @Override
@@ -59,21 +56,7 @@ public abstract class RoomResearcherControl extends RoomObjectControl<ObjectCont
     @Override
     public void destroy() {
 
-        // TODO: The researcher can't do his/her job
-    }
-
-    @Override
-    protected Collection<Point> getCoordinates() {
-
-        // Only furniture
-        List<Point> coordinates = new ArrayList<>(parent.getFloorFurnitureCount() + parent.getWallFurnitureCount());
-        for (ObjectControl oc : parent.getFloorFurniture()) {
-            coordinates.add(oc.getObjectCoordinates());
-        }
-        for (ObjectControl oc : parent.getWallFurniture()) {
-            coordinates.add(oc.getObjectCoordinates());
-        }
-        return coordinates;
+        // TODO: The prisoners are released!
     }
 
 }

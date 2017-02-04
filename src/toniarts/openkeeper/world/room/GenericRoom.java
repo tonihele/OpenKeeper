@@ -49,7 +49,7 @@ public abstract class GenericRoom {
 
     public enum ObjectType {
 
-        GOLD, LAIR, SPELL_BOOK, RESEARCHER;
+        GOLD, LAIR, SPELL_BOOK, RESEARCHER, PRISONER, TORTUREE;
 
     };
 
@@ -241,7 +241,7 @@ public abstract class GenericRoom {
         return objects;
     }
 
-    protected boolean hasSameTile(boolean[][] map, int x, int y) {
+    protected static boolean hasSameTile(boolean[][] map, int x, int y) {
 
         // Check for out of bounds
         if (x < 0 || x >= map.length || y < 0 || y >= map[x].length) {
@@ -406,7 +406,7 @@ public abstract class GenericRoom {
         return true;
     }
 
-    public boolean isTileAccessible(Point p) {
+    public final boolean isTileAccessible(Point p) {
         return isTileAccessible(p.x, p.y);
     }
 
