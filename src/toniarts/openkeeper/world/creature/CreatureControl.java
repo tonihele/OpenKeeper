@@ -596,16 +596,36 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             }
 
             // Health
-            health += ownLandHealthIncrease; // FIXME, need to detect prev & current pos
-            health = Math.min(health, maxHealth);
-
-            // Dying counter :)
-            if (stateMachine.isInState(CreatureState.UNCONSCIOUS) && timeInState > worldState.getLevelVariable(Variable.MiscVariable.MiscType.DEAD_BODY_DIES_AFTER_SECONDS)) {
-                stateMachine.changeState(CreatureState.DEAD);
-            } else if (stateMachine.isInState(CreatureState.STUNNED) && timeInState > creature.getStunDuration()) {
-                stateMachine.changeState(CreatureState.IDLE);
+            if (ownLandHealthIncrease > 0 && !isIncapacitated() && isOnOwnLand()) {
+                health += ownLandHealthIncrease; // FIXME, need to detect prev & current pos ??
+                health = Math.min(health, maxHealth);
+            } else if (stateMachine.isInState(CreatureState.TORTURED)) {
+                applyDamage(Math.abs(creature.getTortureHpChange()));
+            } else if (stateMachine.isInState(CreatureState.IMPRISONED)) {
+                applyDamage((int) Math.abs(worldState.getLevelVariable(Variable.MiscVariable.MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND)));
             }
         }
+
+        // Dying counter :)
+        if (stateMachine.isInState(CreatureState.UNCONSCIOUS) && timeInState > worldState.getLevelVariable(Variable.MiscVariable.MiscType.DEAD_BODY_DIES_AFTER_SECONDS)) {
+            stateMachine.changeState(CreatureState.DEAD);
+        } else if (stateMachine.isInState(CreatureState.STUNNED) && timeInState > creature.getStunDuration()) {
+            stateMachine.changeState(CreatureState.IDLE);
+        }
+
+        // Conversion counter
+        if (stateMachine.isInState(CreatureState.TORTURED) && timeInState > tortureTimeToConvert) {
+            convertCreature(worldState.getMapData().getTile(getCreatureCoordinates()).getPlayerId());
+        }
+    }
+
+    /**
+     * Convert the creature to player
+     *
+     * @param playerId the new owner
+     */
+    private void convertCreature(short playerId) {
+
     }
 
     private void setAttributesByLevel() {
@@ -1404,7 +1424,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
             // Die :(
             // If we are the objective to kill, we'll die immidiately
-            if ((getPlayerObjective() == null || getPlayerObjective() != ObjectiveType.KILL) && creature.getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
+            if (stateMachine.isInState(CreatureState.TORTURED) || stateMachine.isInState(CreatureState.IMPRISONED)) {
+                stateMachine.changeState(CreatureState.DEAD);
+                if (stateMachine.isInState(CreatureState.IMPRISONED)) {
+                    // FIXME: Create a skeleton, IF we have the capacity
+                }
+            } else if ((getPlayerObjective() == null || getPlayerObjective() != ObjectiveType.KILL) && creature.getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
                 stateMachine.changeState(CreatureState.UNCONSCIOUS);
             } else {
                 stateMachine.changeState(CreatureState.DEAD);
