@@ -1152,6 +1152,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
             // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
             worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
+        } else {
+            CreatureControl.this.enabled = true;
+            CreatureControl.this.animationPlaying = false;
         }
     }
 
