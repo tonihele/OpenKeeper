@@ -187,8 +187,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     };
 
                     // Initialize tasks
-                    // FIXME: for all players managed by this computer
-                    taskManager = new TaskManager(worldState, (short) 3);
+                    taskManager = new TaskManager(worldState, getPlayers());
 
                     GameState.this.stateManager.attach(worldState);
 

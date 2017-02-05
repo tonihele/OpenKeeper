@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.task;
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -31,6 +32,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.ResearchSpells;
@@ -44,6 +46,7 @@ import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
 import toniarts.openkeeper.game.task.worker.FetchObjectTask;
 import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
+import toniarts.openkeeper.game.task.worker.RescueCreatureTask;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
@@ -51,6 +54,7 @@ import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.listener.ObjectListener;
 import toniarts.openkeeper.world.listener.TileChangeListener;
 import toniarts.openkeeper.world.object.ObjectControl;
@@ -68,18 +72,23 @@ public class TaskManager {
     private final Map<GenericRoom, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
     private static final Logger logger = Logger.getLogger(TaskManager.class.getName());
 
-    public TaskManager(WorldState worldState, short... playerIds) {
+    public TaskManager(WorldState worldState, Collection<Keeper> players) {
         this.worldState = worldState;
 
         // Create a queue for each managed player
-        taskQueues = new HashMap<>(playerIds.length);
-        for (short playerId : playerIds) {
-            taskQueues.put(playerId, new HashSet<>());
+        taskQueues = new HashMap<>(players.size());
+        for (Keeper keeper : players) {
+            taskQueues.put(keeper.getId(), new HashSet<>());
         }
 
         // Scan the initial tasks
         scanInitialTasks();
 
+        // Add task listeners
+        addListeners(players);
+    }
+
+    private void addListeners(Collection<Keeper> players) {
         // We want to be notified on tile changes, we are event based, not constantly scanning type
         this.worldState.addListener(new TileChangeListener() {
 
@@ -107,6 +116,39 @@ public class TaskManager {
                 }
             }
         });
+
+        // Get notified by fallen comrades and enemies
+        for (Keeper keeper : players) {
+            this.worldState.getThingLoader().addListener(keeper.getId(), new CreatureListener() {
+                @Override
+                public void onSpawn(CreatureControl creature) {
+
+                }
+
+                @Override
+                public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
+                    if (newState == CreatureState.UNCONSCIOUS) {
+
+                        // Add rescue mission for the own troops and capture for the enemy
+                        for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+                            if (entry.getKey() == creature.getOwnerId()) {
+
+                                // Rescue
+                                entry.getValue().add(new RescueCreatureTask(worldState, creature, entry.getKey()));
+                            } else {
+
+                                // Capture
+                            }
+                        }
+                    }
+                }
+
+                @Override
+                public void onDie(CreatureControl creature) {
+                }
+
+            });
+        }
     }
 
     private void scanInitialTasks() {
@@ -398,20 +440,32 @@ public class TaskManager {
         return new FetchObjectTask(worldState, objectControl, playerId);
     }
 
+    /**
+     * Test if a given task type is available
+     *
+     * @param creature the creature asking for the task
+     * @param jobType the job type to ask for
+     * @return true if task type is available
+     */
     public boolean isTaskAvailable(CreatureControl creature, Creature.JobType jobType) {
-        switch (jobType) {
-            case RESEARCH: {
-                return assignClosestRoomTask(creature, GenericRoom.ObjectType.RESEARCHER, false);
-            }
-            default:
-                return false;
-        }
+        return assignTask(creature, jobType, false);
     }
 
+    /**
+     * Assigns a creature to given task type
+     *
+     * @param creature the creature asking for the task
+     * @param jobType the job type to ask for
+     * @return true if the task was assigned
+     */
     public boolean assignTask(CreatureControl creature, Creature.JobType jobType) {
+        return assignTask(creature, jobType, true);
+    }
+
+    private boolean assignTask(CreatureControl creature, Creature.JobType jobType, boolean assign) {
         switch (jobType) {
             case RESEARCH: {
-                return assignClosestRoomTask(creature, GenericRoom.ObjectType.RESEARCHER);
+                return assignClosestRoomTask(creature, GenericRoom.ObjectType.RESEARCHER, assign);
             }
             default:
                 return false;

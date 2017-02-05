@@ -62,6 +62,7 @@ import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.animation.AnimationControl;
 import toniarts.openkeeper.world.animation.AnimationLoader;
+import toniarts.openkeeper.world.control.IHaulable;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.control.IUnitFlowerControl;
 import toniarts.openkeeper.world.control.LandingControl;
@@ -80,7 +81,7 @@ import toniarts.openkeeper.world.room.RoomInstance;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener, AnimationControl, IUnitFlowerControl, PathFindable {
+public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener, AnimationControl, IUnitFlowerControl, PathFindable, IHaulable {
 
     public enum AnimationType {
 
@@ -137,6 +138,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private boolean hasPortalGem = false;
     private ObjectiveType playerObjective;
     private short objectiveTargetPlayerId;
+    private IHaulable hauling;
+
     /**
      * Things we hear & see per tick
      */
@@ -217,6 +220,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
         // Set the appropriate animation
         playStateAnimation();
+
+        // If hauling, update the haulable position
+        if (hauling != null) {
+            hauling.updatePosition(getSpatial().getWorldTranslation());
+        }
     }
 
     @Override
@@ -476,6 +484,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                     playAnimation(creature.getAnimDieResource());
                     playingAnimationType = AnimationType.STUNNED;
                 }
+            } else if (stateMachine.isInState(CreatureState.DRAGGED)) {
+                playAnimation(creature.getAnimDraggedPoseResource());
+                playingAnimationType = AnimationType.OTHER;
             } else {
                 List<ArtResource> idleAnimations = new ArrayList<>(3);
                 if (creature.getAnimIdle1Resource() != null) {
@@ -536,6 +547,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 case FIGHT: {
                     return Utils.getMainTextResourceBundle().getString("2651");
                 }
+                case DRAGGED:
                 case UNCONSCIOUS: {
                     return Utils.getMainTextResourceBundle().getString("2655");
                 }
@@ -550,6 +562,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 }
                 case TORTURED: {
                     return Utils.getMainTextResourceBundle().getString("2635");
+                }
+                case SLEEPING: {
+                    return Utils.getMainTextResourceBundle().getString("2672");
+                }
+                case RECUPERATING: {
+                    return Utils.getMainTextResourceBundle().getString("2667");
                 }
             }
         }
@@ -626,6 +644,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 applyDamage(Math.abs(creature.getTortureHpChange()));
             } else if (stateMachine.isInState(CreatureState.IMPRISONED)) {
                 applyDamage((int) Math.abs(worldState.getLevelVariable(Variable.MiscVariable.MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND)));
+            } else if (stateMachine.isInState(CreatureState.SLEEPING) || stateMachine.isInState(CreatureState.RECUPERATING)) {
+                health += (int) Math.abs(worldState.getLevelVariable(Variable.MiscVariable.MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND));
+                health = Math.min(health, maxHealth);
             }
         }
 
@@ -1339,7 +1360,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return true if the creature is down
      */
     public boolean isIncapacitated() {
-        return getStateMachine().getCurrentState() == CreatureState.DEAD || getStateMachine().getCurrentState() == CreatureState.PICKED_UP || getStateMachine().getCurrentState() == CreatureState.UNCONSCIOUS || getStateMachine().getCurrentState() == CreatureState.IMPRISONED || getStateMachine().getCurrentState() == CreatureState.TORTURED;
+        return getStateMachine().getCurrentState() == CreatureState.DEAD || getStateMachine().getCurrentState() == CreatureState.PICKED_UP || getStateMachine().getCurrentState() == CreatureState.UNCONSCIOUS || getStateMachine().getCurrentState() == CreatureState.IMPRISONED || getStateMachine().getCurrentState() == CreatureState.TORTURED || getStateMachine().getCurrentState() == CreatureState.DRAGGED || getStateMachine().getCurrentState() == CreatureState.RECUPERATING;
     }
 
     /**
@@ -1665,6 +1686,85 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     @Override
     public boolean canMoveDiagonally() {
         return true;
+    }
+
+    /**
+     * Get creature lair location
+     *
+     * @return the creature lair location
+     */
+    public Point getLairLocation() {
+        if (creatureLair != null) {
+            return creatureLair.getTile().getLocation();
+        }
+        return null;
+    }
+
+    /**
+     * Is the creature being dragged
+     *
+     * @return is dragged
+     */
+    public boolean isDragged() {
+        return stateMachine.isInState(CreatureState.DRAGGED);
+    }
+
+    /**
+     * Set the creature to sleep until healed
+     */
+    public void sleepUntilHealed() {
+        animationPlaying = false;
+        stateMachine.changeState(CreatureState.RECUPERATING);
+    }
+
+    /**
+     * Sets an object for us to haul
+     *
+     * @param haulable the haulable object, null for cancelling the hauling
+     */
+    public void setHaulable(IHaulable haulable) {
+        if (haulable != null && !haulable.equals(hauling)) {
+            haulable.haulingStarted();
+        } else if (hauling != null && !hauling.equals(haulable)) {
+            hauling.haulingEnded();
+        }
+        hauling = haulable;
+    }
+
+    @Override
+    public void haulingStarted() {
+        stateMachine.changeState(CreatureState.DRAGGED);
+    }
+
+    @Override
+    public void haulingEnded() {
+        if (stateMachine.isInState(CreatureState.DRAGGED)) {
+            stateMachine.revertToPreviousState();
+        }
+    }
+
+    @Override
+    public void updatePosition(Vector3f position) {
+        getSpatial().setLocalTranslation(position);
+        setPositionFromSpatial();
+    }
+
+    /**
+     * Is the creature in full health
+     *
+     * @return true if fully healed
+     */
+    public boolean isFullHealth() {
+        return health >= maxHealth;
+    }
+
+    /**
+     * Has the creature slept enough
+     *
+     * @return should we wake up
+     */
+    public boolean isEnoughSleep() {
+        return timeInState >= creature.getTimeSleep();
     }
 
 }

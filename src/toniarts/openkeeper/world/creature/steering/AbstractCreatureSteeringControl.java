@@ -48,7 +48,7 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
     private float maxLinearAcceleration = 2;
     private float maxAngularSpeed = 0.1f;
     private float maxAngularAcceleration = 0.1f;
-    private volatile boolean applySteering = false;
+    protected volatile boolean applySteering = false;
 
     public AbstractCreatureSteeringControl(Creature creature) {
         this.creature = creature;
@@ -63,8 +63,7 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
         super.setSpatial(spatial);
 
         // Init the position
-        position.set(getSpatial().getLocalTranslation().x, getSpatial().getLocalTranslation().z);
-        orientation = getSpatial().getLocalRotation().getY();
+        setPositionFromSpatial();
     }
 
     @Override
@@ -113,14 +112,12 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
         if (independentFacing) {
             setOrientation(getOrientation() + (angularVelocity * tpf));
             angularVelocity += steering.angular * tpf;
-        } else {
-            // If we haven't got any velocity, then we can do nothing.
-            if (!linearVelocity.isZero(getZeroLinearSpeedThreshold())) {
+        } else // If we haven't got any velocity, then we can do nothing.
+         if (!linearVelocity.isZero(getZeroLinearSpeedThreshold())) {
                 float newOrientation = vectorToAngle(linearVelocity);
                 angularVelocity = (newOrientation - getOrientation()) * tpf; // this is superfluous if independentFacing is always true
                 setOrientation(newOrientation);
             }
-        }
     }
 
     @Override
@@ -257,6 +254,11 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
         outVector.x = -(float) Math.sin(angle);
         outVector.y = (float) Math.cos(angle);
         return outVector;
+    }
+
+    protected void setPositionFromSpatial() {
+        position.set(getSpatial().getLocalTranslation().x, getSpatial().getLocalTranslation().z);
+        orientation = getSpatial().getLocalRotation().getY();
     }
 
 }

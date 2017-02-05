@@ -96,11 +96,22 @@ public class CreatureFlowerControl extends UnitFlowerControl {
                 case FLEE: {
                     return "Textures/GUI/moods/ST-Fear.png";
                 }
+                case DRAGGED:
                 case UNCONSCIOUS: {
                     return "Textures/GUI/moods/SJ-Unconscious.png";
                 }
                 case STUNNED: {
                     return "Textures/GUI/moods/SJ-Stunned.png";
+                }
+                case SLEEPING:
+                case RECUPERATING: {
+                    return "Textures/GUI/moods/SJ-Rest.png";
+                }
+                case TORTURED: {
+                    return "Textures/GUI/moods/SJ-Torture.png";
+                }
+                case IMPRISONED: {
+                    return "Textures/GUI/moods/SJ-Prison.png";
                 }
             }
         }
