@@ -1752,6 +1752,15 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         hauling = haulable;
     }
 
+    /**
+     * Get the object that the creature is hauling
+     *
+     * @return hauled object
+     */
+    public IHaulable getHaulable() {
+        return hauling;
+    }
+
     @Override
     public void haulingStarted() {
         stateMachine.changeState(CreatureState.DRAGGED);
@@ -1806,6 +1815,15 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         } else {
             stateMachine.changeState(CreatureState.SLEEPING);
         }
+    }
+
+    /**
+     * Sets the creature as imprisoned
+     */
+    public void imprison() {
+        animationPlaying = false;
+        health = (int) Math.floor(maxHealth * 0.2f); // Return health to 20%
+        stateMachine.changeState(CreatureState.IMPRISONED);
     }
 
 }

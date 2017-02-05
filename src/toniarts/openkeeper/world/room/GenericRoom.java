@@ -402,12 +402,12 @@ public abstract class GenericRoom {
         return wallIndexes[pointer];
     }
 
-    public boolean isTileAccessible(int x, int y) {
+    public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
         return true;
     }
 
-    public final boolean isTileAccessible(Point p) {
-        return isTileAccessible(p.x, p.y);
+    public final boolean isTileAccessible(Point from, Point to) {
+        return isTileAccessible(from != null ? from.x : null, (from != null ? from.y : null), to.x, to.y);
     }
 
     public String getTooltip(short playerId) {

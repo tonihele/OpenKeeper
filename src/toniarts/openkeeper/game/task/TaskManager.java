@@ -40,6 +40,8 @@ import toniarts.openkeeper.game.task.creature.ResearchSpells;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
+import toniarts.openkeeper.game.task.worker.CaptureEnemyCreatureTask;
+import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
 import toniarts.openkeeper.game.task.worker.ClaimRoomTask;
 import toniarts.openkeeper.game.task.worker.ClaimTileTask;
@@ -139,6 +141,7 @@ public class TaskManager {
                             } else {
 
                                 // Capture
+                                entry.getValue().add(new CaptureEnemyCreatureTask(worldState, creature, entry.getKey()));
                             }
                         }
                     }
@@ -146,6 +149,7 @@ public class TaskManager {
 
                 @Override
                 public void onDie(CreatureControl creature) {
+                    // TODO: Rob the corpses
                 }
 
             });
@@ -335,7 +339,7 @@ public class TaskManager {
             Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(room);
             while (iter.hasNext()) {
                 Point p = iter.next();
-                if (!room.isTileAccessible(p) || (taskPoints != null && taskPoints.containsKey(p))) {
+                if (!room.isTileAccessible(null, p) || (taskPoints != null && taskPoints.containsKey(p))) {
                     iter.remove();
                 }
             }
@@ -396,6 +400,9 @@ public class TaskManager {
             }
             case RESEARCHER: {
                 return new ResearchSpells(worldState, target.x, target.y, creature.getOwnerId(), room, this);
+            }
+            case PRISONER: {
+                return new CarryEnemyCreatureToPrison(worldState, target.x, target.y, creature.getOwnerId(), room, this);
             }
         }
         return null;

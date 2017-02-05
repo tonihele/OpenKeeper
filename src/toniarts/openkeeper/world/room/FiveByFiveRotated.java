@@ -317,10 +317,10 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
     }
 
     @Override
-    public boolean isTileAccessible(int x, int y) {
+    public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
 
         // The center 3x3 is not accessible
-        Point roomPoint = roomInstance.worldCoordinateToLocalCoordinate(x, y);
+        Point roomPoint = roomInstance.worldCoordinateToLocalCoordinate(toX, toY);
         return ((roomPoint.x == 0 || roomPoint.x == 4) || (roomPoint.y == 0 || roomPoint.y == 4));
     }
 
