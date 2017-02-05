@@ -60,14 +60,14 @@ public enum CreatureState implements State<CreatureControl> {
                 return true;
             }
 
-            // See basic needs
+            // See lair need
             if (entity.needsLair() && !entity.hasLair() && entity.findLair()) {
                 entity.getStateMachine().changeState(CreatureState.WORK);
                 return true; // Found work
             }
 
             // See basic needs
-            if (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()) {
+            if (entity.hasLair() && (entity.isNeedForSleep() || entity.isHealthAtCriticalLevel()) && entity.goToSleep()) {
                 entity.getStateMachine().changeState(CreatureState.WORK);
                 return true; // Found work
             }
@@ -386,7 +386,7 @@ public enum CreatureState implements State<CreatureControl> {
 
         @Override
         public void exit(CreatureControl entity) {
-
+            entity.hideUnitFlower();
         }
 
         @Override
@@ -496,7 +496,7 @@ public enum CreatureState implements State<CreatureControl> {
 
         @Override
         public void exit(CreatureControl entity) {
-            entity.hideUnitFlower();
+
         }
 
         @Override

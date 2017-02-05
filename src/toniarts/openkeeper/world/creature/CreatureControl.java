@@ -1801,7 +1801,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * Instructs the creature to sleep
      */
     public void sleep() {
-        stateMachine.changeState(CreatureState.SLEEPING);
+        if (isHealthAtCriticalLevel()) {
+            stateMachine.changeState(CreatureState.RECUPERATING);
+        } else {
+            stateMachine.changeState(CreatureState.SLEEPING);
+        }
     }
 
 }
