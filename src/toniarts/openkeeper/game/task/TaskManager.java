@@ -35,6 +35,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
+import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.ResearchSpells;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
@@ -470,6 +471,21 @@ public class TaskManager {
             default:
                 return false;
         }
+    }
+
+    /**
+     * Assigns a go to sleep task to the player if the lair is accessible
+     *
+     * @param creature the creature wanting to go to sleep
+     * @return true if the task was assigned
+     */
+    public boolean assignSleepTask(CreatureControl creature) {
+        GoToSleep task = new GoToSleep(worldState, creature);
+        if (task.isReachable(creature)) {
+            task.assign(creature, true);
+            return true;
+        }
+        return false;
     }
 
 }

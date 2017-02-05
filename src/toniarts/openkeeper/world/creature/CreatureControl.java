@@ -130,6 +130,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private int idleAnimationPlayCount = 1;
     private float lastAttributeUpdateTime = 0;
     private float lastStateUpdateTime = 0;
+    private float timeAwake = 0;
     private Task assignedTask;
     private AnimationType playingAnimationType = AnimationType.IDLE;
     private ObjectControl creatureLair;
@@ -255,6 +256,13 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             } else {
                 state = stateMachine.getCurrentState();
                 timeInState = 0f;
+            }
+
+            // Time awake
+            if (!(stateMachine.isInState(CreatureState.SLEEPING) || stateMachine.isInState(CreatureState.RECUPERATING))) {
+                timeAwake += tpf;
+            } else if (stateMachine.isInState(CreatureState.SLEEPING)) {
+                timeAwake = 0;
             }
         }
 
@@ -920,6 +928,15 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     /**
+     * Intsruct the creature to go to sleep, a task really
+     *
+     * @return true if a sleep task is found
+     */
+    public boolean goToSleep() {
+        return (worldState.getTaskManager().assignSleepTask(this));
+    }
+
+    /**
      * Does the creature need a lair
      *
      * @return needs a lair
@@ -1075,6 +1092,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public void resetFollowTarget() {
         followTarget = null;
+    }
+
+    public void hideUnitFlower() {
+        UnitFlowerControl.hideUnitFlower(this);
     }
 
     public void showUnitFlower() {
@@ -1765,6 +1786,22 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public boolean isEnoughSleep() {
         return timeInState >= creature.getTimeSleep();
+    }
+
+    /**
+     * Has the creature been awake for too long
+     *
+     * @return should we go to sleep
+     */
+    public boolean isNeedForSleep() {
+        return needsLair() && timeAwake >= creature.getTimeAwake();
+    }
+
+    /**
+     * Instructs the creature to sleep
+     */
+    public void sleep() {
+        stateMachine.changeState(CreatureState.SLEEPING);
     }
 
 }

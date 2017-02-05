@@ -348,4 +348,14 @@ public class UnitFlowerControl extends BillboardControl {
         }
     }
 
+    /**
+     * Hide the unit flower
+     *
+     * @param control the control to own the flower control
+     */
+    public static void hideUnitFlower(AbstractControl control) {
+        UnitFlowerControl aufc = control.getSpatial().getControl(UnitFlowerControl.class);
+        aufc.hide();
+    }
+
 }
