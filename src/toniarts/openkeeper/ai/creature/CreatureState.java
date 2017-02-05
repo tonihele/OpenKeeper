@@ -386,7 +386,7 @@ public enum CreatureState implements State<CreatureControl> {
 
         @Override
         public void exit(CreatureControl entity) {
-            entity.hideUnitFlower();
+
         }
 
         @Override

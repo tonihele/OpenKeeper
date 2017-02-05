@@ -1735,6 +1735,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public void sleepUntilHealed() {
         animationPlaying = false;
+        hideUnitFlower();
         stateMachine.changeState(CreatureState.RECUPERATING);
     }
 
@@ -1821,6 +1822,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * Sets the creature as imprisoned
      */
     public void imprison() {
+        hideUnitFlower();
         animationPlaying = false;
         health = (int) Math.floor(maxHealth * 0.2f); // Return health to 20%
         stateMachine.changeState(CreatureState.IMPRISONED);
