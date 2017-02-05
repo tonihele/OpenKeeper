@@ -912,7 +912,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public boolean followTarget(CreatureControl target) {
         if (target != null) {
-            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this);
 
             // Create proximity
             Array<CreatureControl> creatures;

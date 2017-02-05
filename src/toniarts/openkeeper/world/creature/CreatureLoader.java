@@ -111,10 +111,6 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
                 MapLoader.TILE_WIDTH * (position.x - 0.5f),
                 0,
                 MapLoader.TILE_WIDTH * (position.y  - 0.5f));
-
-        // Need to re-adjust the steering
-        CreatureControl creatureControl = creature.getControl(CreatureControl.class);
-        creatureControl.setSpatial(creature);
     }
 
 }

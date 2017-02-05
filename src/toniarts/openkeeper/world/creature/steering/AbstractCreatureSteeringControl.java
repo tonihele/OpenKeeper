@@ -48,7 +48,8 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
     private float maxLinearAcceleration = 2;
     private float maxAngularSpeed = 10.0f;
     private float maxAngularAcceleration = 20.0f;
-    private volatile boolean applySteering = false;
+    private float zeroLinearSpeedThreshold = 0.1f;
+    private volatile boolean steeringReady = false;
 
     public AbstractCreatureSteeringControl(Creature creature) {
         this.creature = creature;
@@ -56,23 +57,16 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
         maxLinearSpeed = creature.getSpeed();
         // FIXME how calculate acceleration? mass & maxLinearSpeed?
         maxLinearAcceleration = maxLinearSpeed * 4;
-    }
-
-    @Override
-    public void setSpatial(Spatial spatial) {
-        super.setSpatial(spatial);
-
-        // Init the position
-        position.set(getSpatial().getLocalTranslation().x, getSpatial().getLocalTranslation().z);
-        orientation = getSpatial().getLocalRotation().getY();
+        // FIXME how calculate zero linear speed threshold?
+        zeroLinearSpeedThreshold = maxLinearSpeed / 3;
     }
 
     @Override
     protected void controlUpdate(float tpf) {
 
         // Set the actual location to where we believe it is
-        if (applySteering) {
-            applySteering = false;
+        if (steeringReady) {
+            steeringReady = false;
             getSpatial().setLocalTranslation(position.x, 0, position.y);
             getSpatial().setLocalRotation(getSpatial().getLocalRotation().fromAngles(0, -orientation, 0));
         }
@@ -93,35 +87,35 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
              */
             // Apply steering acceleration
             applySteering(steeringOutput, tpf);
-            applySteering = true;
+            steeringReady = true;
         }
     }
 
     protected void applySteering(SteeringAcceleration<Vector2> steering, float tpf) {
-
-        // Update position and linear velocity. Velocity is trimmed to maximum speed
-        position.add(linearVelocity.x * tpf, linearVelocity.y * tpf);
-        linearVelocity.mulAdd(steering.linear, tpf).limit(getMaxLinearSpeed());
-
         // We are done
         // TODO: Call function?
         if (steering.isZero()) {
             steeringBehavior = null;
         }
-
+        // Update position and linear velocity. Velocity is trimmed to maximum speed
+        linearVelocity.mulAdd(steering.linear, tpf).limit(maxLinearSpeed);
+        position.add(linearVelocity.x * tpf, linearVelocity.y * tpf);
+        // Update angular velocity. Velocity is trimmed to maximum speed
+        angularVelocity += steering.angular * tpf;
+        if (angularVelocity > maxAngularSpeed) {
+            angularVelocity = maxAngularSpeed;
+        }
         // Update orientation and angular velocity
         if (independentFacing) {
-            setOrientation(getOrientation() + (angularVelocity * tpf));
-            angularVelocity += steering.angular * tpf;
+            orientation += angularVelocity * tpf;
         } else {
             // If we haven't got any velocity, then we can do nothing.
-            if (!linearVelocity.isZero(getZeroLinearSpeedThreshold())) {
+            if (!linearVelocity.isZero(zeroLinearSpeedThreshold)) {
                 float newOrientation = vectorToAngle(linearVelocity);
-                angularVelocity = (newOrientation - getOrientation()) * tpf; // this is superfluous if independentFacing is always true
-                setOrientation(newOrientation);
-            } else if (angularVelocity !=0 || steering.angular != 0) {
-                angularVelocity += steering.angular * tpf;
-                setOrientation(getOrientation() + (angularVelocity * tpf));
+                angularVelocity = (newOrientation - orientation) * tpf;
+                orientation = newOrientation;
+            } else if (angularVelocity !=0) {
+                orientation += angularVelocity * tpf;
             }
         }
     }
@@ -228,7 +222,7 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
 
     @Override
     public float getZeroLinearSpeedThreshold() {
-        return 0.6f;
+        return zeroLinearSpeedThreshold;
     }
 
     @Override
@@ -250,6 +244,12 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
 
     public void setSteeringBehavior(SteeringBehavior<Vector2> steeringBehavior) {
         this.steeringBehavior = steeringBehavior;
+
+        if (this.steeringBehavior != null) {
+            // Init the position
+            position.set(getSpatial().getLocalTranslation().x, getSpatial().getLocalTranslation().z);
+            orientation = getSpatial().getLocalRotation().getY();
+        }
     }
 
     public static float calculateVectorToAngle(Vector2 vector) {
