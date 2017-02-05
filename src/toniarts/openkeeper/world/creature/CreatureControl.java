@@ -1798,7 +1798,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return should we wake up
      */
     public boolean isEnoughSleep() {
-        return timeInState >= creature.getTimeSleep();
+        return timeInState >= creature.getTimeSleep() && isFullHealth();
     }
 
     /**
@@ -1807,18 +1807,14 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return should we go to sleep
      */
     public boolean isNeedForSleep() {
-        return needsLair() && timeAwake >= creature.getTimeAwake();
+        return needsLair() && (timeAwake >= creature.getTimeAwake() || worldState.getLevelVariable(Variable.MiscVariable.MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH) > getHealthPercentage());
     }
 
     /**
      * Instructs the creature to sleep
      */
     public void sleep() {
-        if (isHealthAtCriticalLevel()) {
-            stateMachine.changeState(CreatureState.RECUPERATING);
-        } else {
-            stateMachine.changeState(CreatureState.SLEEPING);
-        }
+        stateMachine.changeState(CreatureState.SLEEPING);
     }
 
     /**

@@ -67,7 +67,7 @@ public enum CreatureState implements State<CreatureControl> {
             }
 
             // See basic needs
-            if (entity.hasLair() && (entity.isNeedForSleep() || entity.isHealthAtCriticalLevel()) && entity.goToSleep()) {
+            if (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()) {
                 entity.getStateMachine().changeState(CreatureState.WORK);
                 return true; // Found work
             }
