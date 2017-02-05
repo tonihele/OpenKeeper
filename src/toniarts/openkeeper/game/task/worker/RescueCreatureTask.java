@@ -64,7 +64,6 @@ public class RescueCreatureTask extends AbstractTileTask {
         // Assign carry to lair
         CarryCreatureToLairTask task = new CarryCreatureToLairTask(worldState, this.creature, playerId);
         task.assign(creature, true);
-        creature.navigateToAssignedTask();
     }
 
     @Override

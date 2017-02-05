@@ -64,7 +64,6 @@ public class CaptureEnemyCreatureTask extends AbstractTileTask {
         // Assign carry to prison
         if (worldState.getTaskManager().assignClosestRoomTask(creature, GenericRoom.ObjectType.PRISONER)) {
             creature.setHaulable(this.creature);
-            creature.navigateToAssignedTask();
         }
     }
 

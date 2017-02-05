@@ -140,6 +140,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private ObjectiveType playerObjective;
     private short objectiveTargetPlayerId;
     private IHaulable hauling;
+    private boolean workNavigationRequired = true;
 
     /**
      * Things we hear & see per tick
@@ -430,7 +431,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     @Override
     public void onAnimationCycleDone() {
 
-        if (isStopped() && stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid()) {
+        if (isStopped() && stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid() && !workNavigationRequired) {
 
             // Different work based reactions
             assignedTask.executeTask(this);
@@ -729,6 +730,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public boolean navigateToAssignedTask() {
 
         Vector2f loc = assignedTask.getTarget(this);
+        workNavigationRequired = false;
         if (loc != null) {
 
             SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
@@ -747,6 +749,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         unassingCurrentTask();
 
         assignedTask = task;
+        workNavigationRequired = true;
     }
 
     public void unassingCurrentTask() {

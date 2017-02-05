@@ -16,8 +16,6 @@
  */
 package toniarts.openkeeper.world.pathfinding;
 
-import com.badlogic.gdx.ai.pfa.GraphPath;
-import com.badlogic.gdx.ai.pfa.Heuristic;
 import com.badlogic.gdx.ai.pfa.indexed.IndexedAStarPathFinder;
 import toniarts.openkeeper.world.TileData;
 
@@ -30,13 +28,6 @@ public class MapPathFinder extends IndexedAStarPathFinder<TileData> {
 
     public MapPathFinder(MapIndexedGraph graph, boolean calculateMetrics) {
         super(graph, calculateMetrics);
-    }
-
-    @Override
-    public boolean searchNodePath(TileData startNode, TileData endNode, Heuristic<TileData> heuristic, GraphPath<TileData> outPath) {
-
-        // Cheat
-        return super.searchNodePath(startNode, endNode, heuristic, outPath);
     }
 
 }
