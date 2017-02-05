@@ -263,22 +263,45 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * Sets up initial state
      */
     private void initState() {
-        GenericRoom room = worldState.getRoomAtPoint(getCreatureCoordinates());
+        if (!detectImprisoningAndTorturing()) {
+            stateMachine.changeState(CreatureState.IDLE);
+        }
+    }
+
+    /**
+     * Detects if creature should be imprisoned or tortured and sets the state
+     * accordingly
+     *
+     * @return true if the state has been set
+     */
+    private boolean detectImprisoningAndTorturing() {
+        return detectImprisoningAndTorturing(getCreatureCoordinates());
+    }
+
+    /**
+     * Detects if creature should be imprisoned or tortured and sets the state
+     * accordingly
+     *
+     * @param p the point to test upon
+     * @return true if the state has been set
+     */
+    private boolean detectImprisoningAndTorturing(Point p) {
+        GenericRoom room = worldState.getRoomAtPoint(p);
         if (room != null && room.getRoomInstance().getOwnerId() != getOwnerId()) {
 
             // See if tortured or imprisoned
             if (room.hasObjectControl(GenericRoom.ObjectType.PRISONER)) {
-                room.getObjectControl(GenericRoom.ObjectType.PRISONER).addItem(1, getCreatureCoordinates(), null, this);
+                room.getObjectControl(GenericRoom.ObjectType.PRISONER).addItem(1, p, null, this);
                 stateMachine.changeState(CreatureState.IMPRISONED);
-                return;
+                return true;
             }
             if (room.hasObjectControl(GenericRoom.ObjectType.TORTUREE)) {
-                room.getObjectControl(GenericRoom.ObjectType.TORTUREE).addItem(1, getCreatureCoordinates(), null, this);
+                room.getObjectControl(GenericRoom.ObjectType.TORTUREE).addItem(1, p, null, this);
                 stateMachine.changeState(CreatureState.TORTURED);
-                return;
+                return true;
             }
         }
-        stateMachine.changeState(CreatureState.IDLE);
+        return false;
     }
 
     @Override
@@ -1111,23 +1134,25 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         CreatureLoader.setPosition(spatial, new Vector2f(tile.getX(), tile.getY()));
         worldState.getThingLoader().attachCreature(getSpatial());
 
-        spatial.addControl(new LandingControl(tile) {
+        if (!detectImprisoningAndTorturing(tile.getLocation())) {
+            spatial.addControl(new LandingControl(tile) {
 
-            @Override
-            public void onLanded() {
-                if (creature.getStunDuration() > 0) {
-                    stateMachine.changeState(CreatureState.STUNNED);
-                } else {
-                    stateMachine.changeState(CreatureState.IDLE);
+                @Override
+                public void onLanded() {
+                    if (creature.getStunDuration() > 0) {
+                        stateMachine.changeState(CreatureState.STUNNED);
+                    } else {
+                        stateMachine.changeState(CreatureState.IDLE);
+                    }
+
+                    CreatureControl.this.enabled = true;
+                    CreatureControl.this.animationPlaying = false;
                 }
+            });
 
-                CreatureControl.this.enabled = true;
-                CreatureControl.this.animationPlaying = false;
-            }
-        });
-
-        // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
-        worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
+            // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
+            worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
+        }
     }
 
     /**
