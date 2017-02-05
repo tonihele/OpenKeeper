@@ -170,7 +170,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     }
 
     @Override
-    public DroppableStatus getDroppableStatus(TileData tile) {
+    public DroppableStatus getDroppableStatus(TileData tile, short playerId) {
         return null;
     }
 

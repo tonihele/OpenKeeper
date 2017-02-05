@@ -163,7 +163,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 if (interactionState.getType() == Type.NONE && keeperHand.getItem() != null) {
                     TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
                     if (tile != null) {
-                        IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile);
+                        IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
                         return (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
                     }
                     return ColorIndicator.RED;
@@ -594,7 +594,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         // Drop
                         if (keeperHand.getItem() != null) {
                             TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
-                            IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile);
+                            IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
                             if (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE) {
 
                                 // Drop & update cursor

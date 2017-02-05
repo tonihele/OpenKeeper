@@ -217,11 +217,11 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
     }
 
     @Override
-    public DroppableStatus getDroppableStatus(TileData tile) {
+    public DroppableStatus getDroppableStatus(TileData tile, short playerId) {
         return !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)
                 && (object.getFlags().contains(toniarts.openkeeper.tools.convert.map.Object.ObjectFlag.CAN_BE_DROPPED_ON_ANY_LAND)
                 || ((tile.getPlayerId() == getOwnerId() && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE))))
-                        ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
+                ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
     }
 
     @Override

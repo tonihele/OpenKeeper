@@ -109,9 +109,10 @@ public interface IInteractiveControl extends Control {
      * happen if...
      *
      * @param tile the tile to be tested against
+     * @param playerId the player who wants to drop
      * @return the result if the control were to be dropped here
      */
-    public DroppableStatus getDroppableStatus(TileData tile);
+    public DroppableStatus getDroppableStatus(TileData tile, short playerId);
 
     /**
      * Drop the control on the tile
