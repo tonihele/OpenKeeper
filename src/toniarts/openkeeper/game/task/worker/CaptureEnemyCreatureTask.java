@@ -49,6 +49,11 @@ public class CaptureEnemyCreatureTask extends AbstractTileTask {
     }
 
     @Override
+    public boolean isRemovable() {
+        return !this.creature.isUnconscious();
+    }
+
+    @Override
     public String toString() {
         return "Capturing a creature at " + getTaskLocation();
     }

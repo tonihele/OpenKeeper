@@ -48,6 +48,11 @@ public class RescueCreatureTask extends AbstractTileTask {
     }
 
     @Override
+    public boolean isRemovable() {
+        return !this.creature.isUnconscious();
+    }
+
+    @Override
     public String toString() {
         return "Rescuing a creature at " + getTaskLocation();
     }

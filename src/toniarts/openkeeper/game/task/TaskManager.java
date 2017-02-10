@@ -182,7 +182,7 @@ public class TaskManager {
                     AbstractTask task = iter.next();
                     if (task instanceof AbstractTileTask) {
                         AbstractTileTask tileTask = (AbstractTileTask) task;
-                        if (!tileTask.isValid(null)) {
+                        if (tileTask.isRemovable()) {
                             iter.remove();
                         }
                     }

@@ -92,6 +92,11 @@ public class FetchObjectTask extends AbstractTileTask {
     }
 
     @Override
+    public boolean isRemovable() {
+        return object.getState() != ObjectControl.ObjectState.NORMAL;
+    }
+
+    @Override
     public int hashCode() {
         int hash = 7;
         hash = 97 * hash + Objects.hashCode(this.object);
