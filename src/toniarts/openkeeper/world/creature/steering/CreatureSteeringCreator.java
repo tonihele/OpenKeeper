@@ -20,6 +20,7 @@ import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.ai.steer.behaviors.FollowPath;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
+import com.badlogic.gdx.ai.steer.behaviors.ReachOrientation;
 import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
@@ -46,17 +47,15 @@ public class CreatureSteeringCreator {
 
     public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final PathFindable pathFindable, final CreatureControl creature, final Point p, final Point faceTarget) {
         GraphPath<TileData> outPath = worldState.findPath(WorldState.getTileCoordinates(creature.getSpatial().getWorldTranslation()), p, pathFindable);
-        return navigateToPoint(outPath, faceTarget, creature);
+        return navigateToPoint(outPath, faceTarget, creature, p);
     }
 
-    public static SteeringBehavior<Vector2> navigateToPoint(GraphPath<TileData> outPath, final Point faceTarget, final CreatureControl creature) {
+    public static SteeringBehavior<Vector2> navigateToPoint(GraphPath<TileData> outPath, final Point faceTarget, final CreatureControl creature, final Point p) {
         if ((outPath != null && outPath.getCount() > 1) || faceTarget != null) {
-//            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(creature, 0.0001f);
+
+            PrioritySteering<Vector2> prioritySteering = new PrioritySteering(creature);
 
             if (outPath != null && outPath.getCount() > 1) {
-
-                PrioritySteering<Vector2> prioritySteering = new PrioritySteering(creature, 0.0001f);
-
                 // Add regular avoidance
 //                CollisionAvoidance<Vector2> ca = new CollisionAvoidance<>(creature, new ProximityBase<Vector2>(creature, null) {
 //
@@ -80,27 +79,27 @@ public class CreatureSteeringCreator {
 //                    }
 //                });
 //                prioritySteering.add(ca);
-// Debug
-// worldHandler.drawPath(new LinePath<>(pathToArray(outPath)));
-// Navigate
-                FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(creature, new LinePath<>(pathToArray(outPath), true), 2);
-                followPath.setDecelerationRadius(1f);
+
+                // Navigate
+                FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(creature,
+                        new LinePath<>(pathToArray(outPath), true), 2);
+                followPath.setDecelerationRadius(0.8f);
                 followPath.setArrivalTolerance(0.2f);
                 prioritySteering.add(followPath);
-
-                return prioritySteering;
             }
 
-//            if (faceTarget != null) {
-//
-//                // Add reach orientation
-//                ReachOrientation orient = new ReachOrientation(creature, new TargetLocation(new Vector2(faceTarget.x - 0.5f, faceTarget.y - 0.5f), new Vector2(p.x - 0.5f, p.y - 0.5f)));
-//                orient.setDecelerationRadius(1.5f);
-//                orient.setTimeToTarget(0.001f);
-//                orient.setAlignTolerance(0.6f);
-//                prioritySteering.add(orient);
-//            }
-//            return prioritySteering;
+            if (faceTarget != null) {
+
+                // Add reach orientation
+                ReachOrientation orient = new ReachOrientation(creature,
+                        new TargetLocation(pointToVector2(faceTarget), pointToVector2(p)));
+                orient.setDecelerationRadius(0.8f);
+                //orient.setTimeToTarget(0.001f);
+                orient.setAlignTolerance(0.2f);
+                prioritySteering.add(orient);
+            }
+
+            return prioritySteering;
         }
 
         return null;
@@ -116,4 +115,9 @@ public class CreatureSteeringCreator {
         return path;
     }
 
+    private static Vector2 pointToVector2(Point p) {
+        return new Vector2(
+                MapLoader.TILE_WIDTH * (p.x - 0.5f),
+                MapLoader.TILE_WIDTH * (p.y - 0.5f));
+    }
 }
