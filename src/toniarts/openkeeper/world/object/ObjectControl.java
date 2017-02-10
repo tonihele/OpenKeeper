@@ -43,7 +43,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
 
     public enum ObjectState {
 
-        NORMAL, PICKED_UP, OWNED_BY_CREATURE, STORED_IN_ROOM;
+        NORMAL, PICKED_UP, OWNED_BY_CREATURE, STORED_IN_ROOM, REMOVED;
     }
 
     protected final WorldState worldState;
@@ -106,6 +106,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
         if (roomObjectControl != null) {
             roomObjectControl.removeItem(this);
         }
+        state = ObjectState.REMOVED;
     }
 
     public void setCreature(CreatureControl creature) {
@@ -281,7 +282,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
     }
 
     public boolean isPickableByPlayerCreature(short playerId) {
-        return state == ObjectState.NORMAL; // Hmm, also some ownership stuff?
+        return state == ObjectState.NORMAL && getTile().getPlayerId() == playerId;
     }
 
     public void creaturePicksUp(CreatureControl creature) {
