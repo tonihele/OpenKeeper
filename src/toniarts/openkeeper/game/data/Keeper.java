@@ -195,4 +195,24 @@ public class Keeper {
     public boolean isAlly(short playerId) {
         return id == playerId || allies.contains(playerId);
     }
+
+    /**
+     * Create alliance between two players, remember to set both players as
+     * allies
+     *
+     * @param playerId the player to form alliance with
+     */
+    public void createAlliance(short playerId) {
+        allies.add(playerId);
+    }
+
+    /**
+     * Breaks alliance between two players, remember to break the alliance on
+     * both players
+     *
+     * @param playerId the player to break alliance with
+     */
+    public void breakAlliance(short playerId) {
+        allies.remove(playerId);
+    }
 }

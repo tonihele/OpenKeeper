@@ -546,4 +546,26 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         return partyTriggerState;
     }
 
+    /**
+     * Creates alliance between two players
+     *
+     * @param playerOneId player ID 1
+     * @param playerTwoId player ID 2
+     */
+    public void createAlliance(short playerOneId, short playerTwoId) {
+        getPlayer(playerOneId).createAlliance(playerTwoId);
+        getPlayer(playerTwoId).createAlliance(playerOneId);
+    }
+
+    /**
+     * Breaks alliance between two players
+     *
+     * @param playerOneId player ID 1
+     * @param playerTwoId player ID 2
+     */
+    public void breakAlliance(short playerOneId, short playerTwoId) {
+        getPlayer(playerOneId).breakAlliance(playerTwoId);
+        getPlayer(playerTwoId).breakAlliance(playerOneId);
+    }
+
 }
