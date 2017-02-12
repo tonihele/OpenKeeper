@@ -57,7 +57,7 @@ public class Keeper {
     private PlayerTriggerControl triggerControl;
     private PlayerManaControl manaControl;
     private boolean destroyed = false;
-    private final Set<Short> allies = new HashSet<>();
+    private final Set<Short> allies = new HashSet<>(4);
 
     public Keeper(boolean ai, String name, short id, final Application app) {
         this.ai = ai;
@@ -175,11 +175,24 @@ public class Keeper {
      *
      * @param playerId the other player
      * @return is the player enemy of ours
+     * @see #isAlly(short)
      */
     public boolean isEnemy(short playerId) {
         if (playerId == id || playerId == Player.NEUTRAL_PLAYER_ID || id == Player.NEUTRAL_PLAYER_ID) {
             return false; // Neutral player has no enemies
         }
         return !allies.contains(playerId);
+    }
+
+    /**
+     * Is the player an ally of us. If not, it is not necessarily the enemy. But
+     * we do not share vision, battless etc. with non-allies
+     *
+     * @param playerId the other player
+     * @return is the player an ally of ours
+     * @see #isEnemy(short)
+     */
+    public boolean isAlly(short playerId) {
+        return id == playerId || allies.contains(playerId);
     }
 }

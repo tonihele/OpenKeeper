@@ -1309,7 +1309,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (fellowFighters == null) {
             fellowFighters = 0;
             for (CreatureControl c : getVisibleCreatures()) {
-                if (!isEnemy(c) && !c.isIncapacitated() && !c.equals(this) && c.getCreature().getFightStyle() != Creature.FightStyle.NON_FIGHTER) {
+                if (isAlly(c) && !c.isIncapacitated() && !c.equals(this) && c.getCreature().getFightStyle() != Creature.FightStyle.NON_FIGHTER) {
                     fellowFighters++;
                 }
             }
@@ -1344,7 +1344,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (ourThreat == null) {
             ourThreat = 0;
             for (CreatureControl c : getVisibleCreatures()) {
-                if (!isEnemy(c) && !c.isIncapacitated()) {
+                if (isAlly(c) && !c.isIncapacitated()) {
                     ourThreat += c.threat;
                 }
             }
@@ -1375,6 +1375,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     private boolean isEnemy(CreatureControl creature) {
         return worldState.getGameState().getPlayer(ownerId).isEnemy(creature.getOwnerId());
+    }
+
+    private boolean isAlly(CreatureControl creature) {
+        return worldState.getGameState().getPlayer(ownerId).isAlly(creature.getOwnerId());
     }
 
     /**
