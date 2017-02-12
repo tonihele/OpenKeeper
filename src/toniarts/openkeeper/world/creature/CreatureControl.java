@@ -1374,8 +1374,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     private boolean isEnemy(CreatureControl creature) {
-        // TODO: alliances?
-        return getOwnerId() != creature.getOwnerId();
+        return worldState.getGameState().getPlayer(ownerId).isEnemy(creature.getOwnerId());
     }
 
     /**
