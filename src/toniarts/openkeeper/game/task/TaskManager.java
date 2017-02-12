@@ -51,6 +51,7 @@ import toniarts.openkeeper.game.task.worker.FetchObjectTask;
 import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
 import toniarts.openkeeper.game.task.worker.RescueCreatureTask;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapData;
@@ -78,10 +79,12 @@ public class TaskManager {
     public TaskManager(WorldState worldState, Collection<Keeper> players) {
         this.worldState = worldState;
 
-        // Create a queue for each managed player
+        // Create a queue for each managed player (everybody except Good & Neutral)
         taskQueues = new HashMap<>(players.size());
         for (Keeper keeper : players) {
-            taskQueues.put(keeper.getId(), new HashSet<>());
+            if (keeper.getId() != Player.GOOD_PLAYER_ID && keeper.getId() != Player.NEUTRAL_PLAYER_ID) {
+                taskQueues.put(keeper.getId(), new HashSet<>());
+            }
         }
 
         // Scan the initial tasks
