@@ -765,7 +765,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public boolean isAtAssignedTaskTarget() {
         // FIXME: not like this, universal solution
-        return (assignedTask != null && assignedTask.getTarget(this) != null && steeringBehavior == null && isNear(assignedTask.getTarget(this)));
+        return (assignedTask != null && assignedTask.getTarget(this) != null && !workNavigationRequired && steeringBehavior == null && isNear(assignedTask.getTarget(this)));
     }
 
     public boolean isAssignedTaskValid() {

@@ -117,15 +117,13 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
         if (independentFacing) {
             orientation += angularVelocity * tpf;
         } else // If we haven't got any velocity, then we can do nothing.
-        {
-            if (!linearVelocity.isZero(zeroLinearSpeedThreshold)) {
+         if (!linearVelocity.isZero(zeroLinearSpeedThreshold)) {
                 float newOrientation = vectorToAngle(linearVelocity);
                 angularVelocity = (newOrientation - orientation) * tpf;
                 orientation = newOrientation;
             } else if (angularVelocity != 0) {
                 orientation += angularVelocity * tpf;
             }
-        }
     }
 
     @Override
