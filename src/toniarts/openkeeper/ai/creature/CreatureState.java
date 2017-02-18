@@ -196,7 +196,7 @@ public enum CreatureState implements State<CreatureControl> {
                         entity.dropGold();
                     }
                 }
-            } else if (entity.isStopped()) {
+            } else if (entity.isStopped() && entity.isWorkNavigationRequired()) {
                 entity.navigateToAssignedTask();
             }
 
