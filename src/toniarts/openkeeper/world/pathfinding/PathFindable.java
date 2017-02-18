@@ -66,7 +66,7 @@ public interface PathFindable {
                 // Get room obstacles
                 RoomInstance roomInstance = worldState.getMapLoader().getRoomCoordinates().get(to.getLocation());
                 GenericRoom room = worldState.getMapLoader().getRoomActuals().get(roomInstance);
-                return room.isTileAccessible(to.getLocation()) ? DEFAULT_COST : null;
+                return room.isTileAccessible(from != null ? from.getLocation() : null, to.getLocation()) ? DEFAULT_COST : null;
             } else if (canFly()) {
                 return DEFAULT_COST;
             } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && canWalkOnLava()) {

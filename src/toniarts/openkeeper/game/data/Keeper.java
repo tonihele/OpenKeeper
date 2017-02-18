@@ -18,6 +18,8 @@ package toniarts.openkeeper.game.data;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import java.util.HashSet;
+import java.util.Set;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerManaControl;
@@ -55,6 +57,7 @@ public class Keeper {
     private PlayerTriggerControl triggerControl;
     private PlayerManaControl manaControl;
     private boolean destroyed = false;
+    private final Set<Short> allies = new HashSet<>(4);
 
     public Keeper(boolean ai, String name, short id, final Application app) {
         this.ai = ai;
@@ -165,5 +168,51 @@ public class Keeper {
      */
     public boolean isDestroyed() {
         return destroyed;
+    }
+
+    /**
+     * Is the given player an enemy of ours
+     *
+     * @param playerId the other player
+     * @return is the player enemy of ours
+     * @see #isAlly(short)
+     */
+    public boolean isEnemy(short playerId) {
+        if (playerId == id || playerId == Player.NEUTRAL_PLAYER_ID || id == Player.NEUTRAL_PLAYER_ID) {
+            return false; // Neutral player has no enemies
+        }
+        return !allies.contains(playerId);
+    }
+
+    /**
+     * Is the player an ally of us. If not, it is not necessarily the enemy. But
+     * we do not share vision, battless etc. with non-allies
+     *
+     * @param playerId the other player
+     * @return is the player an ally of ours
+     * @see #isEnemy(short)
+     */
+    public boolean isAlly(short playerId) {
+        return id == playerId || allies.contains(playerId);
+    }
+
+    /**
+     * Create alliance between two players, remember to set both players as
+     * allies
+     *
+     * @param playerId the player to form alliance with
+     */
+    public void createAlliance(short playerId) {
+        allies.add(playerId);
+    }
+
+    /**
+     * Breaks alliance between two players, remember to break the alliance on
+     * both players
+     *
+     * @param playerId the player to break alliance with
+     */
+    public void breakAlliance(short playerId) {
+        allies.remove(playerId);
     }
 }

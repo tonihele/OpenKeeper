@@ -51,7 +51,7 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
         if (sum > 0) {
             List<Point> coordinates = parent.getRoomInstance().getCoordinates();
             for (Point coordinate : coordinates) {
-                if (parent.isTileAccessible(coordinate.x, coordinate.y)) {
+                if (parent.isTileAccessible(null, null, coordinate.x, coordinate.y)) {
                     sum = putGold(sum, coordinate, thingLoader);
                     if (sum == 0) {
                         break;

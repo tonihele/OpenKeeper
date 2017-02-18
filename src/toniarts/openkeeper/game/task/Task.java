@@ -145,4 +145,12 @@ public interface Task {
      */
     void unassign(CreatureControl creature);
 
+    /**
+     * Evaluates the task validity, in a way that is it valid ever again and
+     * should it be removed from any task queue
+     *
+     * @return should the task be removed
+     */
+    boolean isRemovable();
+
 }

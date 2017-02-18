@@ -22,6 +22,11 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.world.MapLoader;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
@@ -29,6 +34,8 @@ import static toniarts.openkeeper.world.MapLoader.loadAsset;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
+import static toniarts.openkeeper.world.room.GenericRoom.hasSameTile;
+import toniarts.openkeeper.world.room.control.RoomPrisonerControl;
 
 /**
  * TODO: not completed
@@ -37,8 +44,25 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  */
 public class Prison extends DoubleQuad {
 
+    private Point door;
+
     public Prison(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         super(assetManager, roomInstance, objectLoader, worldState, effectManager);
+
+        addObjectControl(new RoomPrisonerControl(this) {
+            @Override
+            protected Collection<Point> getCoordinates() {
+
+                // Only the innards of prison can hold objects
+                return Prison.this.getInsideCoordinates();
+            }
+
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                return getCoordinates().size();
+            }
+
+        });
     }
 
     @Override
@@ -64,6 +88,8 @@ public class Prison extends DoubleQuad {
             boolean NW = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
 
             if (!hasDoor && !S && N && NE && NW && E && W && !SW && !SE) {
+                door = p;
+
                 Spatial part = loadAsset(assetManager, modelName + "14" + ".j3o", false);
 
                 resetAndMoveSpatial(part, start, p);
@@ -205,4 +231,53 @@ public class Prison extends DoubleQuad {
 
         return root;
     }
+
+    @Override
+    public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
+
+        // Prison is all accessible, but you do have to use the door!
+        if (door != null && fromX != null && fromY != null) {
+
+            // Path finding
+            Set<Point> insides = new HashSet<>(getInsideCoordinates());
+            Point from = new Point(fromX, fromY);
+            Point to = new Point(toX, toY);
+            if (insides.contains(to) && insides.contains(from)) {
+                return true; // Inside the prison == free movement
+            } else if (insides.contains(from) && to.equals(door)) {
+                return true; // From inside also through the door
+            } else if (insides.contains(to) && from.equals(door)) {
+                return true; // Path finding, from outside
+            } else if (!insides.contains(to) && !insides.contains(from)) {
+                return true; // Outside the prison == free movement
+            }
+            return false;
+        }
+        if (fromX == null && fromY == null && door != null) {
+            return true; // We have a door, the tile is accessible
+        }
+        return super.isTileAccessible(fromX, fromY, toX, toY);
+    }
+
+    private Collection<Point> getInsideCoordinates() {
+        boolean[][] matrix = roomInstance.getCoordinatesAsMatrix();
+        List<Point> coordinates = new ArrayList<>();
+        for (int x = 1; x < matrix.length - 1; x++) {
+            for (int y = 1; y < matrix[x].length - 1; y++) {
+                boolean N = hasSameTile(map, x, y + 1);
+                boolean NE = hasSameTile(map, x - 1, y + 1);
+                boolean E = hasSameTile(map, x - 1, y);
+                boolean SE = hasSameTile(map, x - 1, y - 1);
+                boolean S = hasSameTile(map, x, y - 1);
+                boolean SW = hasSameTile(map, x + 1, y - 1);
+                boolean W = hasSameTile(map, x + 1, y);
+                boolean NW = hasSameTile(map, x + 1, y + 1);
+                if (N && NE && E && SE && S && SW && W && NW) {
+                    coordinates.add(new Point(roomInstance.getMatrixStartPoint().x + x, roomInstance.getMatrixStartPoint().y + y));
+                }
+            }
+        }
+        return coordinates;
+    }
+
 }

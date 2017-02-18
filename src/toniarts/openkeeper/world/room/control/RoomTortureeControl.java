@@ -26,13 +26,13 @@ import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
- * Holds out the researchers populating a room
+ * Holds out the creatures tortured in a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomResearcherControl extends RoomObjectControl<ObjectControl, Integer> {
+public abstract class RoomTortureeControl extends RoomObjectControl<ObjectControl, Integer> {
 
-    public RoomResearcherControl(GenericRoom parent) {
+    public RoomTortureeControl(GenericRoom parent) {
         super(parent);
     }
 
@@ -48,7 +48,7 @@ public abstract class RoomResearcherControl extends RoomObjectControl<ObjectCont
 
     @Override
     public GenericRoom.ObjectType getObjectType() {
-        return GenericRoom.ObjectType.RESEARCHER;
+        return GenericRoom.ObjectType.TORTUREE;
     }
 
     @Override
@@ -59,7 +59,7 @@ public abstract class RoomResearcherControl extends RoomObjectControl<ObjectCont
     @Override
     public void destroy() {
 
-        // TODO: The researcher can't do his/her job
+        // TODO: The creature is released
     }
 
     @Override

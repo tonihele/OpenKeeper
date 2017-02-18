@@ -102,6 +102,9 @@ public final class RoomConstructor {
                 if (roomName.equalsIgnoreCase("Graveyard")) {
                     return new Graveyard(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 }
+                if (roomName.equalsIgnoreCase("Torture Chamber")) {
+                    return new TortureChamber(assetManager, roomInstance, objectLoader, worldState, effectManager);
+                }
                 if (roomName.equalsIgnoreCase("Treasury")) {
                     return new Treasury(assetManager, roomInstance, objectLoader, worldState, effectManager) {
 

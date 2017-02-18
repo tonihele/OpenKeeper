@@ -140,4 +140,9 @@ public abstract class AbstractTask implements Task {
      */
     protected abstract String getStringId();
 
+    @Override
+    public boolean isRemovable() {
+        return !isValid(null);
+    }
+
 }

@@ -60,8 +60,14 @@ public enum CreatureState implements State<CreatureControl> {
                 return true;
             }
 
-            // See basic needs
+            // See lair need
             if (entity.needsLair() && !entity.hasLair() && entity.findLair()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                return true; // Found work
+            }
+
+            // See basic needs
+            if (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()) {
                 entity.getStateMachine().changeState(CreatureState.WORK);
                 return true; // Found work
             }
@@ -190,6 +196,8 @@ public enum CreatureState implements State<CreatureControl> {
                         entity.dropGold();
                     }
                 }
+            } else if (entity.isStopped() && entity.isWorkNavigationRequired()) {
+                entity.navigateToAssignedTask();
             }
 
             // Check validity
@@ -388,7 +396,116 @@ public enum CreatureState implements State<CreatureControl> {
             return true;
         }
 
-    }, STUNNED;
+    }, STUNNED {
+
+        @Override
+        public void enter(CreatureControl entity) {
+
+        }
+
+        @Override
+        public void update(CreatureControl entity) {
+
+        }
+
+        @Override
+        public void exit(CreatureControl entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(CreatureControl entity, Telegram telegram) {
+            return true;
+        }
+    }, IMPRISONED {
+
+        @Override
+        public void enter(CreatureControl entity) {
+
+        }
+
+        @Override
+        public void update(CreatureControl entity) {
+
+        }
+
+        @Override
+        public void exit(CreatureControl entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(CreatureControl entity, Telegram telegram) {
+            return true;
+        }
+    }, TORTURED {
+
+        @Override
+        public void enter(CreatureControl entity) {
+
+        }
+
+        @Override
+        public void update(CreatureControl entity) {
+
+        }
+
+        @Override
+        public void exit(CreatureControl entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(CreatureControl entity, Telegram telegram) {
+            return true;
+        }
+    }, SLEEPING {
+
+        @Override
+        public void enter(CreatureControl entity) {
+
+        }
+
+        @Override
+        public void update(CreatureControl entity) {
+            if (entity.isAttacked() || entity.isEnoughSleep()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void exit(CreatureControl entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(CreatureControl entity, Telegram telegram) {
+            return true;
+        }
+    }, RECUPERATING {
+
+        @Override
+        public void enter(CreatureControl entity) {
+
+        }
+
+        @Override
+        public void update(CreatureControl entity) {
+            if (entity.isFullHealth()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void exit(CreatureControl entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(CreatureControl entity, Telegram telegram) {
+            return true;
+        }
+    }, DRAGGED;
 
     @Override
     public void enter(CreatureControl entity) {

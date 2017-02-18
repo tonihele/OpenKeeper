@@ -62,6 +62,7 @@ import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.animation.AnimationControl;
 import toniarts.openkeeper.world.animation.AnimationLoader;
+import toniarts.openkeeper.world.control.IHaulable;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.control.IUnitFlowerControl;
 import toniarts.openkeeper.world.control.LandingControl;
@@ -80,7 +81,7 @@ import toniarts.openkeeper.world.room.RoomInstance;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener, AnimationControl, IUnitFlowerControl, PathFindable {
+public abstract class CreatureControl extends AbstractCreatureSteeringControl implements IInteractiveControl, CreatureListener, AnimationControl, IUnitFlowerControl, PathFindable, IHaulable {
 
     public enum AnimationType {
 
@@ -129,6 +130,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private int idleAnimationPlayCount = 1;
     private float lastAttributeUpdateTime = 0;
     private float lastStateUpdateTime = 0;
+    private float timeAwake = 0;
     private Task assignedTask;
     private AnimationType playingAnimationType = AnimationType.IDLE;
     private ObjectControl creatureLair;
@@ -137,6 +139,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private boolean hasPortalGem = false;
     private ObjectiveType playerObjective;
     private short objectiveTargetPlayerId;
+    private IHaulable hauling;
+    private boolean workNavigationRequired = true;
+
     /**
      * Things we hear & see per tick
      */
@@ -146,6 +151,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private Integer enemyThreat;
     private Integer fellowFighters;
     private CreatureControl attackTarget;
+    private boolean attacked = false;
 
     // Good creature specific stuff
     private Party party;
@@ -216,6 +222,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
         // Set the appropriate animation
         playStateAnimation();
+
+        // If hauling, update the haulable position
+        if (hauling != null) {
+            hauling.updatePosition(getSpatial().getWorldTranslation());
+        }
     }
 
     @Override
@@ -226,7 +237,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         enemyThreat = null;
         fellowFighters = null;
         if (stateMachine.getCurrentState() == null) {
-            stateMachine.changeState(CreatureState.IDLE);
+            initState();
         }
 
         // Update attacks
@@ -247,10 +258,67 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 state = stateMachine.getCurrentState();
                 timeInState = 0f;
             }
+
+            // Time awake
+            if (!(stateMachine.isInState(CreatureState.SLEEPING) || stateMachine.isInState(CreatureState.RECUPERATING))) {
+                timeAwake += tpf;
+            } else if (stateMachine.isInState(CreatureState.SLEEPING)) {
+                timeAwake = 0;
+            }
+        }
+
+        // Set the attacked flag, when no threats visible, assume attack over
+        if (attacked && getEnemyThreat() == 0) {
+            attacked = false;
         }
 
         // Update state machine
         stateMachine.update();
+    }
+
+    /**
+     * Sets up initial state
+     */
+    private void initState() {
+        if (!detectImprisoningAndTorturing()) {
+            stateMachine.changeState(CreatureState.IDLE);
+        }
+    }
+
+    /**
+     * Detects if creature should be imprisoned or tortured and sets the state
+     * accordingly
+     *
+     * @return true if the state has been set
+     */
+    private boolean detectImprisoningAndTorturing() {
+        return detectImprisoningAndTorturing(getCreatureCoordinates());
+    }
+
+    /**
+     * Detects if creature should be imprisoned or tortured and sets the state
+     * accordingly
+     *
+     * @param p the point to test upon
+     * @return true if the state has been set
+     */
+    private boolean detectImprisoningAndTorturing(Point p) {
+        GenericRoom room = worldState.getRoomAtPoint(p);
+        if (room != null && room.getRoomInstance().getOwnerId() != getOwnerId()) {
+
+            // See if tortured or imprisoned
+            if (room.hasObjectControl(GenericRoom.ObjectType.PRISONER)) {
+                room.getObjectControl(GenericRoom.ObjectType.PRISONER).addItem(1, p, null, this);
+                stateMachine.changeState(CreatureState.IMPRISONED);
+                return true;
+            }
+            if (room.hasObjectControl(GenericRoom.ObjectType.TORTUREE)) {
+                room.getObjectControl(GenericRoom.ObjectType.TORTUREE).addItem(1, p, null, this);
+                stateMachine.changeState(CreatureState.TORTURED);
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -363,7 +431,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     @Override
     public void onAnimationCycleDone() {
 
-        if (isStopped() && stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid()) {
+        if (isStopped() && stateMachine.getCurrentState() == CreatureState.WORK && playingAnimationType == AnimationType.WORK && isAssignedTaskValid() && !workNavigationRequired) {
 
             // Different work based reactions
             assignedTask.executeTask(this);
@@ -425,6 +493,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                     playAnimation(creature.getAnimDieResource());
                     playingAnimationType = AnimationType.STUNNED;
                 }
+            } else if (stateMachine.isInState(CreatureState.DRAGGED)) {
+                playAnimation(creature.getAnimDraggedPoseResource());
+                playingAnimationType = AnimationType.OTHER;
             } else {
                 List<ArtResource> idleAnimations = new ArrayList<>(3);
                 if (creature.getAnimIdle1Resource() != null) {
@@ -485,6 +556,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 case FIGHT: {
                     return Utils.getMainTextResourceBundle().getString("2651");
                 }
+                case DRAGGED:
                 case UNCONSCIOUS: {
                     return Utils.getMainTextResourceBundle().getString("2655");
                 }
@@ -493,6 +565,18 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 }
                 case FOLLOW: {
                     return Utils.getMainTextResourceBundle().getString("2675");
+                }
+                case IMPRISONED: {
+                    return Utils.getMainTextResourceBundle().getString("2674");
+                }
+                case TORTURED: {
+                    return Utils.getMainTextResourceBundle().getString("2635");
+                }
+                case SLEEPING: {
+                    return Utils.getMainTextResourceBundle().getString("2672");
+                }
+                case RECUPERATING: {
+                    return Utils.getMainTextResourceBundle().getString("2667");
                 }
             }
         }
@@ -562,16 +646,39 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             }
 
             // Health
-            health += ownLandHealthIncrease; // FIXME, need to detect prev & current pos
-            health = Math.min(health, maxHealth);
-
-            // Dying counter :)
-            if (stateMachine.isInState(CreatureState.UNCONSCIOUS) && timeInState > worldState.getLevelVariable(Variable.MiscVariable.MiscType.DEAD_BODY_DIES_AFTER_SECONDS)) {
-                stateMachine.changeState(CreatureState.DEAD);
-            } else if (stateMachine.isInState(CreatureState.STUNNED) && timeInState > creature.getStunDuration()) {
-                stateMachine.changeState(CreatureState.IDLE);
+            if (ownLandHealthIncrease > 0 && !isIncapacitated() && isOnOwnLand()) {
+                health += ownLandHealthIncrease; // FIXME, need to detect prev & current pos ??
+                health = Math.min(health, maxHealth);
+            } else if (stateMachine.isInState(CreatureState.TORTURED)) {
+                applyDamage(Math.abs(creature.getTortureHpChange()));
+            } else if (stateMachine.isInState(CreatureState.IMPRISONED)) {
+                applyDamage((int) Math.abs(worldState.getLevelVariable(Variable.MiscVariable.MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND)));
+            } else if (stateMachine.isInState(CreatureState.SLEEPING) || stateMachine.isInState(CreatureState.RECUPERATING)) {
+                health += (int) Math.abs(worldState.getLevelVariable(Variable.MiscVariable.MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND));
+                health = Math.min(health, maxHealth);
             }
         }
+
+        // Dying counter :)
+        if (stateMachine.isInState(CreatureState.UNCONSCIOUS) && timeInState > worldState.getLevelVariable(Variable.MiscVariable.MiscType.DEAD_BODY_DIES_AFTER_SECONDS)) {
+            stateMachine.changeState(CreatureState.DEAD);
+        } else if (stateMachine.isInState(CreatureState.STUNNED) && timeInState > creature.getStunDuration()) {
+            stateMachine.changeState(CreatureState.IDLE);
+        }
+
+        // Conversion counter
+        if (stateMachine.isInState(CreatureState.TORTURED) && timeInState > tortureTimeToConvert) {
+            convertCreature(worldState.getMapData().getTile(getCreatureCoordinates()).getPlayerId());
+        }
+    }
+
+    /**
+     * Convert the creature to player
+     *
+     * @param playerId the new owner
+     */
+    private void convertCreature(short playerId) {
+
     }
 
     private void setAttributesByLevel() {
@@ -623,6 +730,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public boolean navigateToAssignedTask() {
 
         Vector2f loc = assignedTask.getTarget(this);
+        workNavigationRequired = false;
         if (loc != null) {
 
             SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
@@ -641,6 +749,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         unassingCurrentTask();
 
         assignedTask = task;
+        workNavigationRequired = true;
     }
 
     public void unassingCurrentTask() {
@@ -656,7 +765,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public boolean isAtAssignedTaskTarget() {
         // FIXME: not like this, universal solution
-        return (assignedTask != null && assignedTask.getTarget(this) != null && steeringBehavior == null && isNear(assignedTask.getTarget(this)));
+        return (assignedTask != null && assignedTask.getTarget(this) != null && !workNavigationRequired && steeringBehavior == null && isNear(assignedTask.getTarget(this)));
+    }
+
+    public boolean isWorkNavigationRequired() {
+        return workNavigationRequired;
     }
 
     public boolean isAssignedTaskValid() {
@@ -677,11 +790,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public boolean isTooMuchGold() {
-        return gold >= maxGoldHeld;
+        return gold >= maxGoldHeld && isWorker();
     }
 
     public boolean dropGoldToTreasury() {
-        if (gold > 0) {
+        if (gold > 0 && isWorker()) {
             if (worldState.getTaskManager().assignGoldToTreasuryTask(this)) {
                 navigateToAssignedTask();
                 return true;
@@ -819,6 +932,15 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public boolean findLair() {
         return (worldState.getTaskManager().assignClosestRoomTask(this, GenericRoom.ObjectType.LAIR));
+    }
+
+    /**
+     * Intsruct the creature to go to sleep, a task really
+     *
+     * @return true if a sleep task is found
+     */
+    public boolean goToSleep() {
+        return (worldState.getTaskManager().assignSleepTask(this));
     }
 
     /**
@@ -979,6 +1101,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         followTarget = null;
     }
 
+    public void hideUnitFlower() {
+        UnitFlowerControl.hideUnitFlower(this);
+    }
+
     public void showUnitFlower() {
         showUnitFlower(null);
     }
@@ -994,9 +1120,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     @Override
     public boolean isPickable(short playerId) {
-        return playerId == ownerId
+        return (playerId == ownerId
                 && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP)
-                && !isIncapacitated() && isOnOwnLand();
+                && !isIncapacitated() && isOnOwnLand())
+                || ((stateMachine.isInState(CreatureState.IMPRISONED) || stateMachine.isInState(CreatureState.TORTURED)) && worldState.getMapData().getTile(getCreatureCoordinates()).getPlayerId() == playerId);
     }
 
     @Override
@@ -1043,8 +1170,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     @Override
-    public DroppableStatus getDroppableStatus(TileData tile) {
-        return (tile.getPlayerId() == ownerId
+    public DroppableStatus getDroppableStatus(TileData tile, short playerId) {
+        return (tile.getPlayerId() == playerId
                 && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE)
                 && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
     }
@@ -1056,23 +1183,28 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         CreatureLoader.setPosition(spatial, new Vector2f(tile.getX(), tile.getY()));
         worldState.getThingLoader().attachCreature(getSpatial());
 
-        spatial.addControl(new LandingControl(tile) {
+        if (!detectImprisoningAndTorturing(tile.getLocation())) {
+            spatial.addControl(new LandingControl(tile) {
 
-            @Override
-            public void onLanded() {
-                if (creature.getStunDuration() > 0) {
-                    stateMachine.changeState(CreatureState.STUNNED);
-                } else {
-                    stateMachine.changeState(CreatureState.IDLE);
+                @Override
+                public void onLanded() {
+                    if (creature.getStunDuration() > 0) {
+                        stateMachine.changeState(CreatureState.STUNNED);
+                    } else {
+                        stateMachine.changeState(CreatureState.IDLE);
+                    }
+
+                    CreatureControl.this.enabled = true;
+                    CreatureControl.this.animationPlaying = false;
                 }
+            });
 
-                CreatureControl.this.enabled = true;
-                CreatureControl.this.animationPlaying = false;
-            }
-        });
-
-        // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
-        worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
+            // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
+            worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
+        } else {
+            CreatureControl.this.enabled = true;
+            CreatureControl.this.animationPlaying = false;
+        }
     }
 
     /**
@@ -1181,7 +1313,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (fellowFighters == null) {
             fellowFighters = 0;
             for (CreatureControl c : getVisibleCreatures()) {
-                if (!isEnemy(c) && !c.isIncapacitated() && !c.equals(this) && c.getCreature().getFightStyle() != Creature.FightStyle.NON_FIGHTER) {
+                if (isAlly(c) && !c.isIncapacitated() && !c.equals(this) && c.getCreature().getFightStyle() != Creature.FightStyle.NON_FIGHTER) {
                     fellowFighters++;
                 }
             }
@@ -1216,7 +1348,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (ourThreat == null) {
             ourThreat = 0;
             for (CreatureControl c : getVisibleCreatures()) {
-                if (!isEnemy(c) && !c.isIncapacitated()) {
+                if (isAlly(c) && !c.isIncapacitated()) {
                     ourThreat += c.threat;
                 }
             }
@@ -1246,8 +1378,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     private boolean isEnemy(CreatureControl creature) {
-        // TODO: alliances?
-        return getOwnerId() != creature.getOwnerId();
+        return worldState.getGameState().getPlayer(ownerId).isEnemy(creature.getOwnerId());
+    }
+
+    private boolean isAlly(CreatureControl creature) {
+        return worldState.getGameState().getPlayer(ownerId).isAlly(creature.getOwnerId());
     }
 
     /**
@@ -1256,7 +1391,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return true if the creature is down
      */
     public boolean isIncapacitated() {
-        return getStateMachine().getCurrentState() == CreatureState.DEAD || getStateMachine().getCurrentState() == CreatureState.PICKED_UP || getStateMachine().getCurrentState() == CreatureState.UNCONSCIOUS;
+        return getStateMachine().getCurrentState() == CreatureState.DEAD || getStateMachine().getCurrentState() == CreatureState.PICKED_UP || getStateMachine().getCurrentState() == CreatureState.UNCONSCIOUS || getStateMachine().getCurrentState() == CreatureState.IMPRISONED || getStateMachine().getCurrentState() == CreatureState.TORTURED || getStateMachine().getCurrentState() == CreatureState.DRAGGED || getStateMachine().getCurrentState() == CreatureState.RECUPERATING;
     }
 
     /**
@@ -1342,6 +1477,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     private void damage(CreatureControl damagedBy, float damage) {
         applyDamage((int) damage);
+        attacked = true;
 
         // If we are not in a fight mode, see what we should do
         if (!isIncapacitated() && stateMachine.getCurrentState() != CreatureState.FIGHT) {
@@ -1369,7 +1505,12 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
             // Die :(
             // If we are the objective to kill, we'll die immidiately
-            if ((getPlayerObjective() == null || getPlayerObjective() != ObjectiveType.KILL) && creature.getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
+            if (stateMachine.isInState(CreatureState.TORTURED) || stateMachine.isInState(CreatureState.IMPRISONED)) {
+                stateMachine.changeState(CreatureState.DEAD);
+                if (stateMachine.isInState(CreatureState.IMPRISONED)) {
+                    // FIXME: Create a skeleton, IF we have the capacity
+                }
+            } else if ((getPlayerObjective() == null || getPlayerObjective() != ObjectiveType.KILL) && creature.getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
                 stateMachine.changeState(CreatureState.UNCONSCIOUS);
             } else {
                 stateMachine.changeState(CreatureState.DEAD);
@@ -1530,6 +1671,34 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return stateMachine.isInState(CreatureState.STUNNED);
     }
 
+    /**
+     * Is the creature imprisoned
+     *
+     * @return being imprisoned
+     */
+    public boolean isImprisoned() {
+        return stateMachine.isInState(CreatureState.IMPRISONED);
+    }
+
+    /**
+     * Is the creature being tortured, hopefully by those sexy pixelly
+     * mistresses
+     *
+     * @return being tortured
+     */
+    public boolean isTortured() {
+        return stateMachine.isInState(CreatureState.TORTURED);
+    }
+
+    /**
+     * Is the creature being attacked
+     *
+     * @return being attacked
+     */
+    public boolean isAttacked() {
+        return attacked;
+    }
+
     @Override
     public boolean canFly() {
         return creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY);
@@ -1548,6 +1717,121 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     @Override
     public boolean canMoveDiagonally() {
         return true;
+    }
+
+    /**
+     * Get creature lair location
+     *
+     * @return the creature lair location
+     */
+    public Point getLairLocation() {
+        if (creatureLair != null) {
+            return creatureLair.getTile().getLocation();
+        }
+        return null;
+    }
+
+    /**
+     * Is the creature being dragged
+     *
+     * @return is dragged
+     */
+    public boolean isDragged() {
+        return stateMachine.isInState(CreatureState.DRAGGED);
+    }
+
+    /**
+     * Set the creature to sleep until healed
+     */
+    public void sleepUntilHealed() {
+        animationPlaying = false;
+        hideUnitFlower();
+        stateMachine.changeState(CreatureState.RECUPERATING);
+    }
+
+    /**
+     * Sets an object for us to haul
+     *
+     * @param haulable the haulable object, null for cancelling the hauling
+     */
+    public void setHaulable(IHaulable haulable) {
+        if (haulable != null && !haulable.equals(hauling)) {
+            haulable.haulingStarted();
+        } else if (hauling != null && !hauling.equals(haulable)) {
+            hauling.haulingEnded();
+        }
+        hauling = haulable;
+    }
+
+    /**
+     * Get the object that the creature is hauling
+     *
+     * @return hauled object
+     */
+    public IHaulable getHaulable() {
+        return hauling;
+    }
+
+    @Override
+    public void haulingStarted() {
+        stateMachine.changeState(CreatureState.DRAGGED);
+    }
+
+    @Override
+    public void haulingEnded() {
+        if (stateMachine.isInState(CreatureState.DRAGGED)) {
+            stateMachine.revertToPreviousState();
+        }
+    }
+
+    @Override
+    public void updatePosition(Vector3f position) {
+        getSpatial().setLocalTranslation(position);
+        setPositionFromSpatial();
+    }
+
+    /**
+     * Is the creature in full health
+     *
+     * @return true if fully healed
+     */
+    public boolean isFullHealth() {
+        return health >= maxHealth;
+    }
+
+    /**
+     * Has the creature slept enough
+     *
+     * @return should we wake up
+     */
+    public boolean isEnoughSleep() {
+        return timeInState >= creature.getTimeSleep() && isFullHealth();
+    }
+
+    /**
+     * Has the creature been awake for too long
+     *
+     * @return should we go to sleep
+     */
+    public boolean isNeedForSleep() {
+        return needsLair() && (timeAwake >= creature.getTimeAwake() || worldState.getLevelVariable(Variable.MiscVariable.MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH) > getHealthPercentage());
+    }
+
+    /**
+     * Instructs the creature to sleep
+     */
+    public void sleep() {
+        stateMachine.changeState(CreatureState.SLEEPING);
+    }
+
+    /**
+     * Sets the creature as imprisoned
+     */
+    public void imprison() {
+        hideUnitFlower();
+        animationPlaying = false;
+        health = (int) Math.floor(maxHealth * 0.2f); // Return health to 20%
+        stateMachine.changeState(CreatureState.IMPRISONED);
     }
 
 }

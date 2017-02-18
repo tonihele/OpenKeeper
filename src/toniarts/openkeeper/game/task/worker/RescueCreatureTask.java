@@ -22,21 +22,19 @@ import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.object.ObjectControl;
-import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
- * A task for creatures to get an object from the game world
+ * A task for creatures to rescue a fellow comrade from the harsh world
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class FetchObjectTask extends AbstractTileTask {
+public class RescueCreatureTask extends AbstractTileTask {
 
-    private final ObjectControl object;
+    private final CreatureControl creature;
 
-    public FetchObjectTask(WorldState worldState, ObjectControl object, short playerId) {
-        super(worldState, object.getObjectCoordinates().x, object.getObjectCoordinates().y, playerId);
-        this.object = object;
+    public RescueCreatureTask(WorldState worldState, CreatureControl creature, short playerId) {
+        super(worldState, creature.getCreatureCoordinates().x, creature.getCreatureCoordinates().y, playerId);
+        this.creature = creature;
     }
 
     @Override
@@ -46,29 +44,31 @@ public class FetchObjectTask extends AbstractTileTask {
 
     @Override
     public boolean isValid(CreatureControl creature) {
-        return object.isPickableByPlayerCreature(playerId) && !isPlayerCapacityFull();
+        return this.creature.isUnconscious() && this.creature.hasLair();
     }
 
     @Override
-    public int getPriority() {
-        return object.getObject().getPickUpPriority();
+    public boolean isRemovable() {
+        return !this.creature.isUnconscious();
     }
 
     @Override
     public String toString() {
-        return "Collecting item at " + getTaskLocation();
+        return "Rescuing a creature at " + getTaskLocation();
     }
 
     @Override
     protected String getStringId() {
-        return "546";
+        return "2617";
     }
 
     @Override
     public void executeTask(CreatureControl creature) {
-        object.creaturePicksUp(creature);
+        creature.setHaulable(this.creature);
 
-        // TODO: perhaps chaining? everything except gold, maybe a new task class...? Fetch & deliver
+        // Assign carry to lair
+        CarryCreatureToLairTask task = new CarryCreatureToLairTask(worldState, this.creature, playerId);
+        task.assign(creature, true);
     }
 
     @Override
@@ -78,41 +78,29 @@ public class FetchObjectTask extends AbstractTileTask {
 
     @Override
     public String getTaskIcon() {
-        return "Textures/GUI/moods/SJ-Claim.png";
-    }
-
-    private boolean isPlayerCapacityFull() {
-        // FIXME: Object type and capacity by the object type
-        for (GenericRoom room : worldState.getMapLoader().getRoomsByFunction(GenericRoom.ObjectType.GOLD, playerId)) {
-            if (!room.isFullCapacity()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public boolean isRemovable() {
-        return object.getState() != ObjectControl.ObjectState.NORMAL;
+        return "Textures/GUI/moods/SJ-Take_Crate.png";
     }
 
     @Override
     public int hashCode() {
-        int hash = 7;
-        hash = 97 * hash + Objects.hashCode(this.object);
+        int hash = 5;
+        hash = 83 * hash + Objects.hashCode(this.creature);
         return hash;
     }
 
     @Override
     public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
         if (obj == null) {
             return false;
         }
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final FetchObjectTask other = (FetchObjectTask) obj;
-        if (!Objects.equals(this.object, other.object)) {
+        final RescueCreatureTask other = (RescueCreatureTask) obj;
+        if (!Objects.equals(this.creature, other.creature)) {
             return false;
         }
         return true;

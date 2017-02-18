@@ -143,7 +143,7 @@ public abstract class RoomObjectControl<T extends ObjectControl, V> {
         Iterator<Point> iter = coordinates.iterator();
         while (iter.hasNext()) {
             Point p = iter.next();
-            if (!parent.isTileAccessible(p)) {
+            if (!parent.isTileAccessible(null, p)) {
                 iter.remove();
             }
         }

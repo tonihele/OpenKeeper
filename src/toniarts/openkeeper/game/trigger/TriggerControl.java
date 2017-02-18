@@ -261,10 +261,14 @@ public class TriggerControl extends Control {
                 break;
 
             case SET_ALLIANCE:
-                // TODO this
                 short playerOneId = trigger.getUserData("playerOneId", short.class);
                 short playerTwoId = trigger.getUserData("playerTwoId", short.class);
                 available = trigger.getUserData("available", short.class) == 0; // 0 = Create, !0 = Break
+                if (available) {
+                    stateManager.getState(GameState.class).createAlliance(playerOneId, playerTwoId);
+                } else {
+                    stateManager.getState(GameState.class).breakAlliance(playerOneId, playerTwoId);
+                }
                 break;
 
             case ALTER_TERRAIN_TYPE:

@@ -63,10 +63,19 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
             case CREATURE_SLAPPED:
                 return false;
             case CREATURE_ATTACKED:
+                if (instanceControl != null) {
+                    return instanceControl.isAttacked();
+                }
                 return false;
             case CREATURE_IMPRISONED:
+                if (instanceControl != null) {
+                    return instanceControl.isImprisoned();
+                }
                 return false;
             case CREATURE_TORTURED:
+                if (instanceControl != null) {
+                    return instanceControl.isTortured();
+                }
                 return false;
             case CREATURE_CONVERTED:
                 return false;

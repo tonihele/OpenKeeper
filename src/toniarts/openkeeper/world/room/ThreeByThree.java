@@ -61,10 +61,10 @@ public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
     }
 
     @Override
-    public boolean isTileAccessible(int x, int y) {
+    public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
 
         // The center tile is not accessible
-        Point roomPoint = roomInstance.worldCoordinateToLocalCoordinate(x, y);
+        Point roomPoint = roomInstance.worldCoordinateToLocalCoordinate(toX, toY);
         return !(roomPoint.x == 1 && roomPoint.y == 1);
     }
 

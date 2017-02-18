@@ -138,4 +138,9 @@ public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
         task.unassign(creature);
     }
 
+    @Override
+    public boolean isRemovable() {
+        return task.isRemovable();
+    }
+
 }

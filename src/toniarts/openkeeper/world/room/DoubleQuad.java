@@ -87,4 +87,20 @@ public class DoubleQuad extends GenericRoom {
         return root;
     }
 
+    @Override
+    public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
+
+        // Only the surroundings are accessible
+        Point roomPoint = roomInstance.worldCoordinateToLocalCoordinate(toX, toY);
+        boolean N = hasSameTile(map, roomPoint.x, roomPoint.y + 1);
+        boolean NE = hasSameTile(map, roomPoint.x - 1, roomPoint.y + 1);
+        boolean E = hasSameTile(map, roomPoint.x - 1, roomPoint.y);
+        boolean SE = hasSameTile(map, roomPoint.x - 1, roomPoint.y - 1);
+        boolean S = hasSameTile(map, roomPoint.x, roomPoint.y - 1);
+        boolean SW = hasSameTile(map, roomPoint.x + 1, roomPoint.y - 1);
+        boolean W = hasSameTile(map, roomPoint.x + 1, roomPoint.y);
+        boolean NW = hasSameTile(map, roomPoint.x + 1, roomPoint.y + 1);
+        return !(N && NE && E && SE && S && SW && W && NW);
+    }
+
 }

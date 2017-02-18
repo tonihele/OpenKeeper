@@ -243,18 +243,20 @@ public class AnimationLoader {
             hideAllNodes(root);
 
             // Show the anim
-            AnimControl animControl = (AnimControl) spat.getControl(0);
+            AnimControl animControl = spat.getControl(AnimControl.class);
             spat.setCullHint(Spatial.CullHint.Inherit);
-            AnimChannel channel = animControl.getChannel(0);
-            LoopMode loopMode = channel.getLoopMode();
-            channel.setAnim(ANIM_NAME, 0);
-            if (loopMode != null) {
-                channel.setLoopMode(loopMode);
+            if (animControl != null) { // Not all are anims
+                AnimChannel channel = animControl.getChannel(0);
+                LoopMode loopMode = channel.getLoopMode();
+                channel.setAnim(ANIM_NAME, 0);
+                if (loopMode != null) {
+                    channel.setLoopMode(loopMode);
+                }
+                if (endFrame) {
+                    channel.setTime(Integer.MAX_VALUE);
+                }
+                animControl.setEnabled(true);
             }
-            if (endFrame) {
-                channel.setTime(Integer.MAX_VALUE);
-            }
-            animControl.setEnabled(true);
         }
     }
 
