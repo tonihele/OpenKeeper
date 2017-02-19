@@ -21,7 +21,7 @@ import com.jme3.math.FastMath;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -56,8 +56,8 @@ public class HeroGate extends GenericRoom {
             if (!N && E && W) {
                 piece = 1;
             } else if (!S && !E && !W) {
-                tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCapResource().getName() + ".j3o");
-                resetAndMoveSpatial(tile, start, p);
+                tile = AssetUtils.loadTerrainWithoutCache(assetManager, roomInstance.getRoom().getCapResource().getName());
+                moveSpatial(tile, start, p);
                 root.attachChild(tile);
                 piece = 9;
             } else if (!W) {
@@ -67,10 +67,9 @@ public class HeroGate extends GenericRoom {
                 yAngle = - 2 * FastMath.HALF_PI;
             }
 
-            tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
-
+            tile = AssetUtils.loadTerrainWithoutCache(assetManager, modelName + piece);
             // Reset
-            resetAndMoveSpatial(tile, start, p);
+            moveSpatial(tile, start, p);
             if (yAngle != 0) {
                 tile.rotate(0, yAngle, 0);
             }
@@ -81,8 +80,9 @@ public class HeroGate extends GenericRoom {
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2);
+        AssetUtils.moveToTile(root, start);
         root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+
         return root;
     }
 
@@ -137,12 +137,12 @@ public class HeroGate extends GenericRoom {
                 }
 
                 i++;
-                part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
+                part = AssetUtils.loadTerrainWithoutCache(assetManager, modelName + piece);
                 if (yAngle != 0) {
                     part.rotate(0, yAngle, 0);
                 }
-                resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
-                part.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                moveSpatial(part, p);
+                //part.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
                 root.attachChild(part);
             }
         }

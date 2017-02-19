@@ -38,6 +38,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -98,13 +99,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         this.cam = cam;
 
         // Load up the camera sweep file
-        Object obj = assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat(cameraSweepFile.concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
-        if (obj == null || !(obj instanceof CameraSweepData)) {
-            String msg = "Failed to load the camera sweep file " + cameraSweepFile + "!";
-            logger.severe(msg);
-            throw new RuntimeException(msg);
-        }
-        cameraSweepData = (CameraSweepData) obj;
+        cameraSweepData = AssetUtils.loadCameraSweep(assetManager, cameraSweepFile);
 
         // Add the listener, it is critical that this listener is executed before any custom ones
         addListener(new CinematicEventListener() {

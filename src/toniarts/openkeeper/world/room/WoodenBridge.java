@@ -18,14 +18,14 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
-import static toniarts.openkeeper.world.MapLoader.loadAsset;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -43,7 +43,7 @@ public class WoodenBridge extends Quad {
     @Override
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
-        String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
+        String modelName = roomInstance.getRoom().getCompleteResource().getName();
         Point start = roomInstance.getCoordinates().get(0);
 
         // Contruct the tiles
@@ -65,36 +65,9 @@ public class WoodenBridge extends Quad {
 
                     int pieceNumber = 0;
                     float yAngle = 0;
+                    Vector3f movement;
                     // Determine the piece
-                    if (i == 1 && j == 1) { // North west corner
-                        if (!N && !W) {
-                            pieceNumber = 1;
-                            yAngle = -FastMath.HALF_PI;
-                        } else if (N && W && !NW) {
-                            pieceNumber = 2;
-                            yAngle = FastMath.HALF_PI;
-                        } else if (!W) {
-                            yAngle = FastMath.HALF_PI;
-                        }
-                    } else if (i == 0 && j == 1) { // North east corner
-                        if (!N && !E) {
-                            pieceNumber = 1;
-                            yAngle = FastMath.PI;
-                        } else if (N && E && !NE) {
-                            pieceNumber = 2;
-                        } else if (!E || N) {
-                            yAngle = FastMath.HALF_PI;
-                        }
-                    } else if (i == 1 && j == 0) { // South west corner
-                        if (!S && !W) {
-                            pieceNumber = 1;
-                        } else if (S && W && !SW) {
-                            pieceNumber = 2;
-                            yAngle = FastMath.PI;
-                        } else if (!W || S) {
-                            yAngle = FastMath.HALF_PI;
-                        }
-                    } else if (i == 0 && j == 0) { // South east corner
+                    if (i == 0 && j == 0) { // North west corner
                         if (!S && !E) {
                             pieceNumber = 1;
                             yAngle = FastMath.HALF_PI;
@@ -104,24 +77,55 @@ public class WoodenBridge extends Quad {
                         } else if (!E) {
                             yAngle = FastMath.HALF_PI;
                         }
-                    }
+                        movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
+                    } else if (i == 1 && j == 0) { // North east corner
+                        if (!S && !W) {
+                            pieceNumber = 1;
+                        } else if (S && W && !SW) {
+                            pieceNumber = 2;
+                            yAngle = FastMath.PI;
+                        } else if (!W || S) {
+                            yAngle = FastMath.HALF_PI;
+                        }
+                        movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
+                    } else if (i == 0 && j == 1) { // South west corner
+                        if (!N && !E) {
+                            pieceNumber = 1;
+                            yAngle = FastMath.PI;
+                        } else if (N && E && !NE) {
+                            pieceNumber = 2;
+                        } else if (!E || N) {
+                            yAngle = FastMath.HALF_PI;
+                        }
+                        movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
+                    } else { // South east corner if (i == 1 && j == 1)
+                        if (!N && !W) {
+                            pieceNumber = 1;
+                            yAngle = -FastMath.HALF_PI;
+                        } else if (N && W && !NW) {
+                            pieceNumber = 2;
+                            yAngle = FastMath.HALF_PI;
+                        } else if (!W) {
+                            yAngle = FastMath.HALF_PI;
+                        }
+                        movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
+                    } 
                     // Load the piece
-                    Spatial part = loadAsset(assetManager, modelName + pieceNumber + ".j3o", false);
-                    resetAndMoveSpatial(part, start, p);
-                    if (yAngle != 0) {
-                        part.rotate(0, yAngle, 0);
-                    }
-                    part.move(i * TILE_WIDTH / 2 - TILE_WIDTH / 4, 0, j * TILE_WIDTH / 2 - TILE_WIDTH / 4);
+                    Spatial part = MapLoader.loadTerrain(assetManager, modelName + pieceNumber);
+
+                    part.rotate(0, yAngle, 0);
+                    part.move(movement);
 
                     model.attachChild(part);
                 }
             }
+            moveSpatial(model, start, p);
             root.attachChild(model);
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, -0.1f, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        AssetUtils.scale(root);
+        AssetUtils.moveToTile(root, start);
 
         return root;
     }

@@ -16,10 +16,12 @@
  */
 package toniarts.openkeeper.world;
 
+import com.jme3.scene.Node;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -44,6 +46,8 @@ public final class TileData extends Tile {
     private final int index;
     private final KwdFile kwdFile;
     private final List<CreatureControl> creatures = new ArrayList<>();
+    private Node sideNode;
+    private Node topNode;
     private final static ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
 
     protected TileData(KwdFile kwdFile, Tile tile, Terrain terrain, int x, int y, int index) {
@@ -249,4 +253,21 @@ public final class TileData extends Tile {
         return creatures;
     }
 
+    @Nullable
+    public Node getSideNode() {
+        return sideNode;
+    }
+
+    public void setSideNode(Node node) {
+        this.sideNode = node;
+    }
+
+    @Nullable
+    public Node getTopNode() {
+        return topNode;
+    }
+
+    public void setTopNode(Node node) {
+        this.topNode = node;
+    }
 }

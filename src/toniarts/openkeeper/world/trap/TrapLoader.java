@@ -56,7 +56,7 @@ public class TrapLoader implements ILoader<Thing.Trap> {
 
         // Load
         TrapControl trapControl = new TrapControl(worldState.getMapData().getTile(posX, posY), trap, worldState, assetManager, blueprint);
-        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + trap.getMeshResource().getName() + ".j3o", false);
+        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, trap.getMeshResource().getName(), false);
         nodeObject.addControl(trapControl);
 
         // Move to the center of the tile

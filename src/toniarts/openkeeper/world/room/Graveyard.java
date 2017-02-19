@@ -36,6 +36,6 @@ public class Graveyard extends Normal {
 
     @Override
     protected String getPillarResource() {
-        return ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/Graveyard_Pillar.j3o");
+        return "Graveyard_Pillar";
     }
 }

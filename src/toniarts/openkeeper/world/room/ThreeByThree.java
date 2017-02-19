@@ -22,6 +22,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -45,17 +46,17 @@ public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
         int i = 0;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = (Spatial) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + i + ".j3o"));
+            Spatial tile = (Spatial) AssetUtils.loadTerrainWithoutCache(assetManager, roomInstance.getRoom().getCompleteResource().getName() + i);
 
-            resetAndMoveSpatial(tile, start, p);
+            moveSpatial(tile, start, p);
 
             root.attachChild(tile);
             i++;
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        AssetUtils.scale(root);
+        AssetUtils.moveToTile(root, start);
 
         return root;
     }

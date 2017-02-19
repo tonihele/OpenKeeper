@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Level.LevelType;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.FullMoon;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
@@ -64,10 +65,10 @@ public class HeroGateFrontEnd extends GenericRoom {
      * option)
      */
     private Spatial loadObject(String model, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
-        Node object = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + model + ".j3o"));
+        Node object = (Node) AssetUtils.loadTerrainWithoutCache(assetManager, model);
 
         // Reset
-        resetAndMoveSpatial(object, start, p);
+        moveSpatial(object, start, p);
         object.move(0, 1f, 0);
 
         // Animate
@@ -139,10 +140,10 @@ public class HeroGateFrontEnd extends GenericRoom {
         int i = 1;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + i + ".j3o"));
+            Spatial tile = AssetUtils.loadTerrainWithoutCache(assetManager, roomInstance.getRoom().getCompleteResource().getName() + i);
 
             // Reset
-            resetAndMoveSpatial(tile, start, p);
+            moveSpatial(tile, start, p);
 
             root.attachChild(tile);
 
@@ -230,8 +231,8 @@ public class HeroGateFrontEnd extends GenericRoom {
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        AssetUtils.moveToTile(root, start);
+        //root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return root;
     }

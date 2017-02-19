@@ -180,7 +180,7 @@ public class MainMenuState extends AbstractAppState {
      * @param transition the transition
      */
     private void loadCameraStartLocation(String transition) {
-        CameraSweepData csd = (CameraSweepData) assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat(transition.concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
+        CameraSweepData csd = AssetUtils.loadCameraSweep(assetManager, transition);
         CameraSweepDataEntry entry = csd.getEntries().get(0);
         Cinematic.applyCameraSweepEntry(app.getCamera(), startLocation, entry);
     }

@@ -21,8 +21,8 @@ import com.jme3.math.FastMath;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.Thing.Room.Direction;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -43,14 +43,14 @@ public class HeroGateThreeByOne extends GenericRoom {
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
-        Point center = roomInstance.getCenter();
+        //Point center = roomInstance.getCenter();
         // Contruct the tiles
         int j = 0;
         for (Point p : roomInstance.getCoordinates()) {
             int piece = (roomInstance.getDirection() == Direction.WEST || roomInstance.getDirection() == Direction.SOUTH) ? j + 3 : 5 - j;
-            Spatial tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
+            Spatial tile = AssetUtils.loadTerrainWithoutCache(assetManager, modelName + piece);
             j++;
-            resetAndMoveSpatial(tile, center, new Point(center.x + p.x, center.y + p.y));
+            moveSpatial(tile, p);
             root.attachChild(tile);
 
             // Set the transform and scale to our scale and 0 the transform
@@ -66,7 +66,7 @@ public class HeroGateThreeByOne extends GenericRoom {
                     break;
             }
         }
-        root.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+        //root.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
         // n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
         return root;
     }
@@ -102,12 +102,12 @@ public class HeroGateThreeByOne extends GenericRoom {
                 }
                 //yAngle = -section.getDirection().ordinal() * FastMath.HALF_PI;
 
-                Spatial tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
+                Spatial tile = AssetUtils.loadTerrainWithoutCache(assetManager, modelName + piece);
                 if (yAngle != 0) {
                     tile.rotate(0, yAngle, 0);
                 }
-                resetAndMoveSpatial(tile, center, new Point(center.x + p.x, center.y + p.y));
-                tile.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                moveSpatial(tile, p);
+                //tile.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
                 root.attachChild(tile);
             }
         }

@@ -264,7 +264,7 @@ public abstract class GenericRoom {
 
     public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
         float yAngle = FastMath.PI;
-        String resource = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
+        String resource = roomInstance.getRoom().getCompleteResource().getName();
 
         for (WallSection section : roomInstance.getWallSections()) {
 
@@ -285,11 +285,11 @@ public abstract class GenericRoom {
                     Vector3f moveSecond;
                     if (section.getDirection() == WallSection.WallDirection.WEST
                             || section.getDirection() == WallSection.WallDirection.SOUTH) {
-                        moveFirst = new Vector3f(-0.25f, 0, -0.25f);
-                        moveSecond = new Vector3f(-0.75f, 0, -0.25f);
+                        moveFirst = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -3 * MapLoader.TILE_WIDTH / 4);
+                        moveSecond = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -3 * MapLoader.TILE_WIDTH / 4);
                     } else { // NORTH, EAST
-                        moveFirst = new Vector3f(-0.75f, 0, -0.25f);
-                        moveSecond = new Vector3f(-0.25f, 0, -0.25f);
+                        moveFirst = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -3 * MapLoader.TILE_WIDTH / 4);
+                        moveSecond = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -3 * MapLoader.TILE_WIDTH / 4);
                     }
 
                     spatial = new BatchNode();
@@ -300,8 +300,7 @@ public abstract class GenericRoom {
                     }
 
                     // Load the piece
-                    Spatial part = AssetUtils.loadModel(assetManager, resource + firstPiece + ".j3o", false);
-                    resetSpatial(part);
+                    Spatial part = MapLoader.loadTerrain(assetManager, resource + firstPiece);
                     part.move(moveFirst);
                     part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
@@ -313,8 +312,7 @@ public abstract class GenericRoom {
                         secondPiece = 4; // The sorting direction forces us to do this
                     }
 
-                    part = AssetUtils.loadModel(assetManager, resource + secondPiece + ".j3o", false);
-                    resetSpatial(part);
+                    part = MapLoader.loadTerrain(assetManager, resource + secondPiece);
                     part.move(moveSecond);
                     part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
@@ -322,19 +320,23 @@ public abstract class GenericRoom {
                     ((BatchNode) spatial).batch();
                 } else {
                     // Complete walls, 8, 7, 8, 7 and so forth
-                    spatial = AssetUtils.loadModel(assetManager, resource + getWallIndex(i) + ".j3o", false);
-                    resetSpatial(spatial);
+                    spatial = MapLoader.loadTerrain(assetManager, resource + getWallIndex(i));
                     spatial.rotate(0, yAngle, 0);
 
                     if (section.getDirection() == WallSection.WallDirection.WEST) {
-                        spatial.move(-MapLoader.TILE_WIDTH / 2, 0, MapLoader.TILE_WIDTH / 2);
+                        spatial.move(-MapLoader.TILE_WIDTH, 0, 0);
                     } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
-                        spatial.move(MapLoader.TILE_WIDTH / 2, 0, MapLoader.TILE_WIDTH / 2);
+                        spatial.move(0, 0, MapLoader.TILE_WIDTH);
+                        //yAngle = 0;
                     } else if (section.getDirection() == WallSection.WallDirection.EAST) {
-                        spatial.move(MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                        spatial.move(MapLoader.TILE_WIDTH, 0, 0);
+                        //yAngle = FastMath.PI;
                     } else { // NORTH
-                        spatial.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                        spatial.move(0, 0, -MapLoader.TILE_WIDTH);
+                        //yAngle = FastMath.PI;
                     }
+                    
+                    
                 }
 
                 return spatial;
@@ -352,49 +354,23 @@ public abstract class GenericRoom {
      * @param start start point
      * @param p the tile point
      */
-    protected void resetAndMoveSpatial(Spatial tile, Point start, Point p) {
-
+    protected void moveSpatial(Spatial tile, Point start, Point p) {
         // Reset, really, the size is 1 after this...
-        if (tile instanceof Node) {
-            for (Spatial subSpat : ((Node) tile).getChildren()) {
-                subSpat.setLocalScale(1);
-                subSpat.setLocalTranslation(0, 0, 0);
-            }
-        } else {
-            tile.setLocalScale(1);
-            tile.setLocalTranslation(0, 0, 0);
-        }
-        tile.move(p.x - start.x, -MapLoader.TILE_HEIGHT, p.y - start.y);
+        //resetSpatial(tile);
+        tile.move(p.x - start.x, 0, p.y - start.y);
     }
-
+    
     /**
      * Resets (scale & translation) and moves the spatial to the point. The
      * point is relative to the start point
      *
-     * @param tile the tile, spatial
+     * @param tile the tile, Spatial
      * @param start start point
      */
-    protected void resetAndMoveSpatial(Node tile, Point start) {
-
+    protected void moveSpatial(Spatial tile, Point start) {
         // Reset, really, the size is 1 after this...
-        for (Spatial subSpat : tile.getChildren()) {
-            subSpat.setLocalScale(MapLoader.TILE_WIDTH);
-            subSpat.setLocalTranslation(0, 0, 0);
-        }
-        tile.move(start.x, -MapLoader.TILE_HEIGHT, start.y);
-    }
-
-    protected void resetSpatial(Spatial tile) {
-        if (tile instanceof Node) {
-            for (Spatial subSpat : ((Node) tile).getChildren()) {
-                subSpat.setLocalScale(MapLoader.TILE_WIDTH);
-                subSpat.setLocalTranslation(0, 0, 0);
-            }
-        } else {
-            tile.setLocalScale(MapLoader.TILE_WIDTH);
-            tile.setLocalTranslation(0, 0, 0);
-        }
-        tile.move(0, -MapLoader.TILE_HEIGHT, 0);
+        //resetSpatial(tile);
+        tile.move(start.x, 0, start.y);
     }
 
     public int getWallIndex(int index) {
@@ -417,9 +393,10 @@ public abstract class GenericRoom {
         return tooltip.replaceAll("%37", Integer.toString(roomInstance.getHealthPercentage())).replaceAll("%38", Integer.toString(getUsedCapacity())).replaceAll("%39", Integer.toString(getMaxCapacity()));
     }
 
-    protected final Spatial loadModel(String model) {
-        return AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER
-                + "/" + model + ".j3o", false);
+    protected final Spatial loadTerrain(String model) {
+        Spatial spatial = MapLoader.loadTerrain(assetManager, model);
+        //resetSpatial(spatial);
+        return spatial;
     }
 
     protected final void addObjectControl(RoomObjectControl control) {

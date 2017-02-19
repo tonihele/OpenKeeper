@@ -18,14 +18,13 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
-import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
-import static toniarts.openkeeper.world.MapLoader.loadAsset;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -43,7 +42,7 @@ public class Quad extends GenericRoom {
     @Override
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
-        String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
+        String modelName = roomInstance.getRoom().getCompleteResource().getName();
         Point start = roomInstance.getCoordinates().get(0);
 
         // Contruct the tiles
@@ -60,82 +59,129 @@ public class Quad extends GenericRoom {
             boolean W = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
             boolean NW = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
             // 2x2
-            Node model = new Node();
-            for (int i = 0; i < 2; i++) {
-                for (int j = 0; j < 2; j++) {
-
-                    int pieceNumber = 0;
-                    float yAngle = 0;
-                    // 0 == 3
-                    // Determine the piece
-                    if (i == 1 && j == 1) { // North west corner
-
-                        if (!N && !W) {
-                            pieceNumber = 1;
-                            yAngle = 3 * FastMath.HALF_PI;
-                        } else if (N && W && !NW) {
-                            pieceNumber = 2;
-                            yAngle = FastMath.HALF_PI;
-                        } else if (N && S && !E) {
-                            yAngle = FastMath.HALF_PI;
-                        } else if (!W) {
-                            yAngle = FastMath.HALF_PI;
-                        }
-
-                    } else if (i == 0 && j == 1) { // North east corner
-                        if (!N && !E) {
-                            pieceNumber = 1;
-                            yAngle = 2 * FastMath.HALF_PI;
-                        } else if (E && N && !NE) {
-                            pieceNumber = 2;
-                        } else if (N && S && !W) {
-                            yAngle = FastMath.HALF_PI;
-                        } else if (!E) {
-                            yAngle = FastMath.HALF_PI;
-                        }
-                    } else if (i == 1 && j == 0) { // South west corner
-                        if (!S && !W) {
-                            pieceNumber = 1;
-                        } else if (S && W && !SW) {
-                            pieceNumber = 2;
-                            yAngle = 2 * FastMath.HALF_PI;
-                        } else if (N && S && !E) {
-                            yAngle = FastMath.HALF_PI;
-                        } else if (!W) {
-                            yAngle = FastMath.HALF_PI;
-                        }
-                    } else if (i == 0 && j == 0) { // South east corner
-                        if (!S && !E) {
-                            pieceNumber = 1;
-                            yAngle = FastMath.HALF_PI;
-                        } else if (E && S && !SE) {
-                            pieceNumber = 2;
-                            yAngle = 3 * FastMath.HALF_PI;
-                        } else if (N && S && !W) {
-                            yAngle = FastMath.HALF_PI;
-                        } else if (!E) {
-                            yAngle = FastMath.HALF_PI;
-                        }
-                    }
-                    // Load the piece
-                    Spatial part = loadAsset(assetManager, modelName + pieceNumber + ".j3o", false);
-                    resetAndMoveSpatial(part, start, p);
-                    if (yAngle != 0) {
-                        part.rotate(0, yAngle, 0);
-                    }
-                    part.move(i * TILE_WIDTH / 2 - TILE_WIDTH / 4, 0, j * TILE_WIDTH / 2 - TILE_WIDTH / 4);
-
-                    model.attachChild(part);
-                }
-            }
+            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
+            AssetUtils.scale(root);
+            AssetUtils.moveToTile(model, p);
             root.attachChild(model);
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        //AssetUtils.scale(root);
+        //AssetUtils.moveToTile(root, start);
 
         return root;
     }
 
+    public static Node constructQuad(AssetManager assetManager, String modelName,
+            boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW) {
+
+        Node quad = new Node();
+
+        for (int i = 0; i < 2; i++) {
+            for (int k = 0; k < 2; k++) {
+
+                int piece = 0;
+                float yAngle = 0;
+                Vector3f movement;
+
+                // Determine the piece
+                if (i == 0 && k == 0) { // North west corner
+                    if (N && W && NW) {
+                        piece = 3;
+                    } else if (!N && W && NW) {
+                        piece = 0;
+                    } else if (!NW && N && W) {
+                        piece = 2;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (!N && !W) {
+                        piece = 1;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (W && !NW && !N) {
+                        piece = 0;
+                    } else if (!W && !NW && N) {
+                        piece = 0;
+                        yAngle = FastMath.HALF_PI;
+                    } else {
+                        piece = 0;
+                        yAngle = FastMath.HALF_PI;
+                    }
+                    movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
+                } else if (i == 1 && k == 0) { // North east corner
+                    if (N && E && NE) {
+                        piece = 3;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (!N && E && NE) {
+                        piece = 0;
+                    } else if (!NE && N && E) {
+                        piece = 2;
+                        yAngle = FastMath.PI;
+                    } else if (!N && !E) {
+                        piece = 1;
+                    } else if (!E && NE && N) {
+                        piece = 0;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (!E && !NE && N) {
+                        piece = 0;
+                        yAngle = -FastMath.HALF_PI;
+                    } else {
+                        piece = 0;
+                    }
+                    movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
+                } else if (i == 0 && k == 1) { // South west corner
+                    if (S && W && SW) {
+                        piece = 3;
+                    } else if (!S && W && SW) {
+                        piece = 0;
+                        yAngle = FastMath.PI;
+                    } else if (!SW && S && W) {
+                        piece = 2;
+                    } else if (!S && !W) {
+                        piece = 1;
+                        yAngle = FastMath.PI;
+                    } else if (!W && SW && S) {
+                        piece = 0;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (!W && !SW && S) {
+                        piece = 0;
+                        yAngle = FastMath.HALF_PI;
+                    } else {
+                        piece = 0;
+                        yAngle = FastMath.PI;
+                    }
+                    movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
+                } else { // South east corner if (i == 1 && k == 1)
+                    if (S && E && SE) {
+                        piece = 3;
+                    } else if (!S && E && SE) {
+                        piece = 0;
+                        yAngle = -FastMath.PI;
+                    } else if (!SE && S && E) {
+                        piece = 2;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (!S && !E) {
+                        piece = 1;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (!E && SE && S) {
+                        piece = 0;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (!E && !SE && S) {
+                        piece = 0;
+                        yAngle = -FastMath.HALF_PI;
+                    } else {
+                        piece = 0;
+                        yAngle = FastMath.PI;
+                    }
+                    movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
+                }
+                // Load the piece
+                Spatial part = MapLoader.loadTerrain(assetManager, modelName + piece);
+                part.rotate(0, yAngle, 0);
+                part.move(movement);
+
+                quad.attachChild(part);
+            }
+        }
+
+        return quad;
+    }
 }

@@ -20,8 +20,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -40,23 +39,23 @@ public class HeroGateTwoByTwo extends GenericRoom {
     @Override
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
-        String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
+        String modelName = roomInstance.getRoom().getCompleteResource().getName();
 
         // Contruct the tiles
         int i = 0;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(modelName + i++ + ".j3o"));
+            Spatial tile = AssetUtils.loadTerrainWithoutCache(assetManager, modelName + i++);
 
             // Reset
-            resetAndMoveSpatial(tile, start, p);
+            moveSpatial(tile, start, p);
 
             root.attachChild(tile);
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        AssetUtils.moveToTile(root, start);
+        //root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return root;
     }

@@ -27,8 +27,6 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.Arrays;
 import java.util.EnumSet;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
@@ -68,6 +66,7 @@ public class Normal extends GenericRoom {
     @Override
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
+        String modelName = roomInstance.getRoom().getCompleteResource().getName();
         // Normal rooms
         for (int x = 0; x < map.length; x++) {
             for (int y = 0; y < map[x].length; y++) {
@@ -78,7 +77,7 @@ public class Normal extends GenericRoom {
                 }
 
                 // There are 4 different floor pieces
-                Node tile = new Node();
+                Spatial part;
 
                 // Figure out which piece by seeing the neighbours
                 boolean N = hasSameTile(map, x, y - 1);
@@ -92,145 +91,18 @@ public class Normal extends GenericRoom {
 
                 // If we are completely covered, use a big tile
                 if (N && NE && E && SE && S && SW && W && NW && useBigFloorTile(x, y)) {
-                    Spatial part = AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "9.j3o", false);
-                    resetAndMoveSpatial(part, start, new Point(start.x + x, start.y + y));
-                    tile.attachChild(part);
+                    part = MapLoader.loadTerrain(assetManager, modelName + "9");
                 } else {
-                    for (int i = 0; i < 2; i++) {
-                        for (int k = 0; k < 2; k++) {
-
-                            int pieceNumber = 0;
-                            Quaternion quat = null;
-                            Vector3f movement = null;
-
-                            // Determine the piece
-                            if (i == 0 && k == 0) { // North west corner
-                                if (N && W && NW) {
-                                    pieceNumber = 3;
-                                } else if (!N && W && NW) {
-                                    pieceNumber = 0;
-                                } else if (!NW && N && W) {
-                                    pieceNumber = 2;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                                } else if (!N && !W) {
-                                    pieceNumber = 1;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                                } else if (W && !NW && !N) {
-                                    pieceNumber = 0;
-                                } else if (!W && !NW && N) {
-                                    pieceNumber = 0;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                                } else {
-                                    pieceNumber = 0;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                                }
-                            } else if (i == 1 && k == 0) { // North east corner
-                                if (N && E && NE) {
-                                    pieceNumber = 3;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                                } else if (!N && E && NE) {
-                                    pieceNumber = 0;
-                                } else if (!NE && N && E) {
-                                    pieceNumber = 2;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
-                                } else if (!N && !E) {
-                                    pieceNumber = 1;
-                                } else if (!E && NE && N) {
-                                    pieceNumber = 0;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                                } else if (!E && !NE && N) {
-                                    pieceNumber = 0;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                                } else {
-                                    pieceNumber = 0;
-                                }
-                            } else if (i == 0 && k == 1) { // South west corner
-                                if (S && W && SW) {
-                                    pieceNumber = 3;
-                                } else if (!S && W && SW) {
-                                    pieceNumber = 0;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
-                                } else if (!SW && S && W) {
-                                    pieceNumber = 2;
-                                } else if (!S && !W) {
-                                    pieceNumber = 1;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
-                                } else if (!W && SW && S) {
-                                    pieceNumber = 0;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                                } else if (!W && !SW && S) {
-                                    pieceNumber = 0;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                                } else {
-                                    pieceNumber = 0;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
-                                }
-
-                            } else if (i == 1 && k == 1) { // South east corner
-                                if (S && E && SE) {
-                                    pieceNumber = 3;
-                                } else if (!S && E && SE) {
-                                    pieceNumber = 0;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
-                                } else if (!SE && S && E) {
-                                    pieceNumber = 2;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                                } else if (!S && !E) {
-                                    pieceNumber = 1;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                                } else if (!E && SE && S) {
-                                    pieceNumber = 0;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                                } else if (!E && !SE && S) {
-                                    pieceNumber = 0;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                                } else {
-                                    pieceNumber = 0;
-                                    quat = new Quaternion();
-                                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
-                                }
-                            }
-
-                            // Load the piece
-                            Spatial part = AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + pieceNumber + ".j3o", false);
-                            resetAndMoveSpatial(part, start, new Point(start.x + x, start.y + y));
-                            if (quat != null) {
-                                part.rotate(quat);
-                            }
-                            if (movement != null) {
-                                part.move(movement);
-                            }
-                            part.move(i * 0.5f - 0.25f, 0, k * 0.5f - 0.25f);
-                            tile.attachChild(part);
-                        }
-                    }
+                    part = Quad.constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
                 }
-
-                root.attachChild(tile);
+                AssetUtils.moveToTile(part, new Point(x, y));
+                root.attachChild(part);
             }
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        AssetUtils.moveToTile(root, start);
+        //root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return root;
     }
@@ -299,8 +171,8 @@ public class Normal extends GenericRoom {
                 if (found) {
 
                     // Contruct a pillar
-                    Spatial part = assetManager.loadModel(getPillarResource());
-                    resetAndMoveSpatial(part, new Point(0, 0), p);
+                    Spatial part = AssetUtils.loadTerrainWithoutCache(assetManager, getPillarResource());
+                    moveSpatial(part, p);
 
                     // Face "in" diagonally
                     if (freeDirections.contains(WallDirection.NORTH) && freeDirections.contains(WallDirection.EAST)) {
@@ -331,7 +203,7 @@ public class Normal extends GenericRoom {
      * @return room pillar resource
      */
     protected String getPillarResource() {
-        return ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + "_Pillar.j3o");
+        return roomInstance.getRoom().getCompleteResource().getName() + "_Pillar";
     }
 
     /**

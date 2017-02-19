@@ -36,7 +36,7 @@ public class Casino extends Normal {
 
     @Override
     protected String getPillarResource() {
-        return ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/Casino_Pillar.j3o");
+        return "Casino_Pillar";
     }
 
     @Override

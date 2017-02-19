@@ -28,9 +28,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
-import static toniarts.openkeeper.world.MapLoader.loadAsset;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -68,8 +68,7 @@ public class Prison extends DoubleQuad {
     @Override
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
-        String modelName = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
-        String modelName2 = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName().toLowerCase();
+        String modelName = roomInstance.getRoom().getCompleteResource().getName();
         Point start = roomInstance.getCoordinates().get(0);
 
         // Contruct the tiles
@@ -90,9 +89,9 @@ public class Prison extends DoubleQuad {
             if (!hasDoor && !S && N && NE && NW && E && W && !SW && !SE) {
                 door = p;
 
-                Spatial part = loadAsset(assetManager, modelName + "14" + ".j3o", false);
+                Spatial part = AssetUtils.loadAsset(assetManager, modelName + "14");
 
-                resetAndMoveSpatial(part, start, p);
+                moveSpatial(part, start, p);
                 hasDoor = true;
                 part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
 
@@ -205,13 +204,9 @@ public class Prison extends DoubleQuad {
                         }
                     }
                     // Load the piece
-                    Spatial part;
-                    try {
-                        part = loadAsset(assetManager, modelName + pieceNumber + ".j3o", false);
-                    } catch (Exception ex) {
-                        part = loadAsset(assetManager, modelName2 + pieceNumber + ".j3o", false);
-                    }
-                    resetAndMoveSpatial(part, start, p);
+                    Spatial part = AssetUtils.loadAsset(assetManager, modelName + pieceNumber);
+                    
+                    moveSpatial(part, start, p);
                     if (yAngle != 0) {
                         part.rotate(0, yAngle, 0);
                     }
@@ -226,8 +221,8 @@ public class Prison extends DoubleQuad {
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        AssetUtils.scale(root);
+        AssetUtils.moveToTile(root, start);
 
         return root;
     }

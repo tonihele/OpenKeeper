@@ -21,11 +21,10 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.utils.AssetUtils;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
-import static toniarts.openkeeper.world.MapLoader.loadAsset;
 
 /**
  *
@@ -73,13 +72,13 @@ public class QuadConstructor extends TileConstructor {
         boolean NW = hasSameTile(mapData, x - 1, y - 1, terrain) || (solid && isSolidTile(mapData, x - 1, y - 1));
 
         // 2x2
-        Spatial model = new Node();
+        Node model = new Node();
         for (int i = 0; i < 2; i++) {
             for (int k = 0; k < 2; k++) {
 
                 int pieceNumber = 0;
-                float yAngle = 0;
-                Vector3f movement = null;
+                float yAngle;
+                Vector3f movement;
 
                 // Determine the piece
                 if (i == 0 && k == 0) { // North west corner
@@ -94,7 +93,8 @@ public class QuadConstructor extends TileConstructor {
                     }
 
                     yAngle = FastMath.PI;
-                    movement = new Vector3f(-TILE_WIDTH * 2, 0, 0);
+                    movement = new Vector3f(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
+
                 } else if (i == 1 && k == 0) { // North east corner
                     if (N && E && NE) {
                         pieceNumber = 3;
@@ -107,6 +107,8 @@ public class QuadConstructor extends TileConstructor {
                     }
 
                     yAngle = FastMath.HALF_PI;
+                    movement = new Vector3f(TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
+
                 } else if (i == 0 && k == 1) { // South west corner
                     if (S && W && SW) {
                         pieceNumber = 3;
@@ -119,8 +121,9 @@ public class QuadConstructor extends TileConstructor {
                     }
 
                     yAngle = -FastMath.HALF_PI;
-                    movement = new Vector3f(-TILE_WIDTH * 2, 0, 0);
-                } else if (i == 1 && k == 1) { // South east corner
+                    movement = new Vector3f(-TILE_WIDTH / 4, 0, TILE_WIDTH / 4);
+
+                } else { // (i == 1 && k == 1) South east corner
                     if (S && E && SE) {
                         pieceNumber = 3;
                     } else if (S && E && !SE) {
@@ -130,18 +133,18 @@ public class QuadConstructor extends TileConstructor {
                     } else if (S && !E) {
                         pieceNumber = 4;
                     }
+
+                    yAngle = 0;
+                    movement = new Vector3f(TILE_WIDTH / 4, 0, TILE_WIDTH / 4);
                 }
 
                 // Load the piece
-                Spatial part = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + modelName + pieceNumber + ".j3o", false);
-                if (yAngle != 0) {
-                    part.rotate(0, yAngle, 0);
-                }
-                if (movement != null) {
-                    part.move(movement);
-                }
-                part.move((i - 1) * -TILE_WIDTH, 0, (k - 1) * TILE_WIDTH);
-                ((Node) model).attachChild(part);
+                Spatial part = loadAsset(assetManager, modelName + pieceNumber);
+
+                part.rotate(0, yAngle, 0);
+                part.move(movement);
+                //part.move((i - 1) * -TILE_WIDTH, 0, (k - 1) * TILE_WIDTH);
+                model.attachChild(part);
             }
         }
 

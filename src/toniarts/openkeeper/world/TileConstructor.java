@@ -20,6 +20,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.utils.AssetUtils;
 
 /**
  *
@@ -59,6 +60,16 @@ abstract class TileConstructor {
             return false;
         }
         return tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID);
+    }
+    
+    protected Spatial loadAsset(final AssetManager assetManager, final String asset) {        
+        return loadAsset(assetManager, asset, false);
+    }
+    
+    protected Spatial loadAsset(final AssetManager assetManager, final String asset, final boolean useWeakCache) {
+        Spatial spatial = MapLoader.loadTerrain(assetManager, asset, useWeakCache);
+        
+        return spatial;
     }
 
     abstract public Spatial construct(MapData mapData, int x, int y, final Terrain terrain, final AssetManager assetManager, String model);

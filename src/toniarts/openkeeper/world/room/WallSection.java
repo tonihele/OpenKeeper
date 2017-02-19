@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.world.room;
 
+import com.jme3.math.FastMath;
 import java.awt.Point;
 import java.util.List;
 
@@ -28,8 +29,19 @@ public class WallSection {
 
     public enum WallDirection {
 
-        EAST, NORTH, WEST, SOUTH;
+        EAST(-FastMath.HALF_PI), NORTH(0), WEST(FastMath.HALF_PI), SOUTH(FastMath.PI);
+
+        WallDirection(float angle) {
+            this.angle = angle;
+        }
+
+        public float getAngle() {
+            return angle;
+        }
+
+        private final float angle;
     }
+
     private final WallDirection direction;
     private final List<Point> coordinates;
 

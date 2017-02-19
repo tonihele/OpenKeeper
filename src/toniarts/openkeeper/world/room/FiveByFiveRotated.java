@@ -26,6 +26,7 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -130,8 +131,8 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
             }
 
             if (piece != -1) {
-                tile = loadModel(resource + piece);
-                resetAndMoveSpatial(tile, start, p);
+                tile = loadTerrain(resource + piece);
+                moveSpatial(tile, start, p);
                 if (yAngle != 0) {
                     tile.rotate(0, yAngle, 0);
                 }
@@ -143,43 +144,43 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
             if (x == 2 && y == 2) {
 
                 if (destroyed) {
-                    tile = loadModel(resource + 4);
-                    resetAndMoveSpatial(tile, start, p);
+                    tile = loadTerrain(resource + 4);
+                    moveSpatial(tile, start, p);
                     root.attachChild(tile);
 
                     // The steps between the arches
-                    tile = loadModel(resource + 5);
-                    resetAndMoveSpatial(tile, start, p);
+                    tile = loadTerrain(resource + 5);
+                    moveSpatial(tile, start, p);
                     root.attachChild(tile.move(0, -MapLoader.TILE_HEIGHT * 0.42f, 0));
 
                 } else {
                     // The arches
-                    tile = loadModel("DHeart Arches");
-                    resetAndMoveSpatial(tile, start, p);
+                    tile = loadTerrain("DHeart Arches");
+                    moveSpatial(tile, start, p);
                     root.attachChild(tile);
 
                     // The steps between the arches
-                    tile = loadModel("DHeart BigSteps");
-                    resetAndMoveSpatial(tile, start, p);
+                    tile = loadTerrain("DHeart BigSteps");
+                    moveSpatial(tile, start, p);
                     root.attachChild(tile);
 
-                    tile = loadModel("DHeart BigSteps");
-                    resetAndMoveSpatial(tile, start, p);
+                    tile = loadTerrain("DHeart BigSteps");
+                    moveSpatial(tile, start, p);
                     tile.rotate(0, -FastMath.TWO_PI / 3, 0);
                     root.attachChild(tile);
 
-                    tile = loadModel("DHeart BigSteps");
-                    resetAndMoveSpatial(tile, start, p);
+                    tile = loadTerrain("DHeart BigSteps");
+                    moveSpatial(tile, start, p);
                     tile.rotate(0, FastMath.TWO_PI / 3, 0);
                     root.attachChild(tile);
 
                     // The alfa & omega! The heart, TODO: use object loader once it is in decent condition, this after all is a real object
                     if (centreDecay == -1) {
-                        tile = loadModel("Dungeon centre");
+                        tile = loadTerrain("Dungeon centre");
                     } else {
-                        tile = loadModel("DungeonCentre_DECAY" + centreDecay);
+                        tile = loadTerrain("DungeonCentre_DECAY" + centreDecay);
                     }
-                    resetAndMoveSpatial(tile, start, p);
+                    moveSpatial(tile, start, p);
 
                     // Animate
                     AnimControl animControl = (AnimControl) ((Node) tile).getChild(0).getControl(AnimControl.class);
@@ -203,11 +204,11 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
                     if (!created) {
                         created = true;
 
-                        tile = loadModel("DHeartPlug");
+                        tile = loadTerrain("DHeartPlug");
                         tile.setName("plug");
                         tile.setBatchHint(Spatial.BatchHint.Never);
                         tile.rotate(0, FastMath.QUARTER_PI, 0);
-                        resetAndMoveSpatial(tile, start, p);
+                        moveSpatial(tile, start, p);
                         root.attachChild(tile.move(0, MapLoader.TILE_HEIGHT, 0));
 
                         Node plug = getPlug();
@@ -223,8 +224,8 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2);
-        root.scale(MapLoader.TILE_WIDTH, MapLoader.TILE_HEIGHT, MapLoader.TILE_WIDTH);
+        AssetUtils.moveToTile(root, start);
+        //root.scale(MapLoader.TILE_WIDTH, MapLoader.TILE_HEIGHT, MapLoader.TILE_WIDTH);
 
         return root;
     }
@@ -235,7 +236,7 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
 
         for (int i = 1; i < 10; i++) {
 
-            Spatial piece = loadModel("DHeartPlug" + i);
+            Spatial piece = loadTerrain("DHeartPlug" + i);
             /*
              * with no reset spatial
              if (i == 1) {
@@ -277,8 +278,6 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
              step = 0;
              }
              */
-
-            resetAndMoveSpatial(piece, new Point(), new Point());
 
             if (i == 1) {
                 rp = 0.031f;

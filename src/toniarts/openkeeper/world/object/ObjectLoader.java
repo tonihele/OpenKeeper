@@ -78,7 +78,7 @@ public class ObjectLoader implements ILoader<Thing.Object> {
 
         // Load
         ObjectControl objectControl = getControl(tile, obj, moneyAmount, maxMoney, playerSpell);
-        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + objectControl.getResource().getName() + ".j3o", false);
+        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, objectControl.getResource().getName(), false);
         nodeObject.addControl(objectControl);
 
         // Move to the center of the tile

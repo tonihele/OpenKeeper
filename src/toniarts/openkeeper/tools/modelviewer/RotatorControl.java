@@ -29,14 +29,14 @@ import com.jme3.scene.control.AbstractControl;
  */
 public class RotatorControl extends AbstractControl {
 
-    private static final int TURN_RATE = 1;
+    private static final float TURN_RATE = 0.001f;
 
     @Override
     protected void controlUpdate(float tpf) {
         if (spatial != null) {
 
             //Rotate
-            spatial.rotate(0, FastMath.PI * (int) (TURN_RATE) / 180, 0);
+            spatial.rotate(0, FastMath.QUARTER_PI * TURN_RATE, 0);
         }
     }
 

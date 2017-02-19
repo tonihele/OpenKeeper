@@ -21,11 +21,11 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.utils.AssetUtils;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
-import static toniarts.openkeeper.world.MapLoader.loadAsset;
+import toniarts.openkeeper.world.room.Quad;
 
 /**
  *
@@ -74,56 +74,56 @@ public class WaterConstructor extends TileConstructor {
         if (!E && S && SW && W && NW && N) {
             piece = 0;
             yAngle = FastMath.HALF_PI;
-            movement = new Vector3f(0, 0, -TILE_WIDTH);
+            //movement = new Vector3f(0, TILE_WIDTH, 0);
         } else if (!S && W && NW && N && NE && E) {
             piece = 0;
         } else if (!W && N && NE && E && SE && S) {
             piece = 0;
             yAngle = -FastMath.HALF_PI;
-            movement = new Vector3f(-TILE_WIDTH, 0, 0);
+            //movement = new Vector3f(-TILE_WIDTH / 2, 0, 0);
         } else if (!N && E && SE && S && SW && W) {
             piece = 0;
             yAngle = -FastMath.PI;
-            movement = new Vector3f(-TILE_WIDTH, 0, -TILE_WIDTH);
+            //movement = new Vector3f(-TILE_WIDTH / 2, 0, -TILE_WIDTH / 2);
         } //
         // Just one corner
         else if (!SW && S && SE && E && W && N && NE && NW) {
             piece = 2;
             yAngle = -FastMath.PI;
-            movement = new Vector3f(-TILE_WIDTH, 0, -TILE_WIDTH);
+            //movement = new Vector3f(-TILE_WIDTH / 2, 0, -TILE_WIDTH / 2);
         } else if (!NE && S && SE && E && W && N && SW && NW) {
             piece = 2;
         } else if (!SE && S && SW && E && W && N && NE && NW) {
             piece = 2;
             yAngle = -FastMath.HALF_PI;
-            movement = new Vector3f(-TILE_WIDTH, 0, 0);
+            //movement = new Vector3f(-TILE_WIDTH / 2, 0, 0);
         } else if (!NW && S && SW && E && W && N && NE && SE) {
             piece = 2;
             yAngle = FastMath.HALF_PI;
-            movement = new Vector3f(0, 0, -TILE_WIDTH);
+            //movement = new Vector3f(0, 0, -TILE_WIDTH / 2);
         } // Land corner
         else if (!N && !NW && !W && S && SE && E) {
             piece = 1;
             yAngle = -FastMath.HALF_PI;
-            movement = new Vector3f(-TILE_WIDTH, 0, 0);
+            //movement = new Vector3f(-TILE_WIDTH / 2, 0, 0);
         } else if (!N && !NE && !E && SW && S && W) {
             piece = 1;
             yAngle = -FastMath.PI;
-            movement = new Vector3f(-TILE_WIDTH, 0, -TILE_WIDTH);
+            //movement = new Vector3f(-TILE_WIDTH / 2, 0, -TILE_WIDTH / 2);
         } else if (!S && !SE && !E && N && W && NW) {
             piece = 1;
             yAngle = FastMath.HALF_PI;
-            movement = new Vector3f(0, 0, -TILE_WIDTH);
+            //movement = new Vector3f(0, 0, -TILE_WIDTH / 2);
         } else if (!S && !SW && !W && N && NE && E) {
             piece = 1;
         }// Just a seabed
         else if (S && SW && W && SE && N && NE && E && NW) { // Just a seabed
             piece = 3;
-            movement = new Vector3f(0, -WATER_DEPTH, 0);
+            //movement = new Vector3f(0, 0, 0);
         }
         //
         if (piece != -1) {
-            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + piece + ".j3o", false, true);
+            floor = loadAsset(assetManager, model + piece, true);
             if (yAngle != 0) {
                 floor.rotate(0, yAngle, 0);
             }
@@ -141,7 +141,6 @@ public class WaterConstructor extends TileConstructor {
 
                 piece = 7;
                 yAngle = 0;
-                movement = null;
 
                 // Determine the piece
                 if (i == 0 && k == 0) { // North west corner
@@ -150,81 +149,69 @@ public class WaterConstructor extends TileConstructor {
                         yAngle = FastMath.PI;
                     } else if (!W && N) { // Side
                         piece = 4;
-                        yAngle = -FastMath.HALF_PI;
-                        movement = new Vector3f(0, 0, TILE_WIDTH / 2); //
+                        yAngle = -FastMath.HALF_PI;                        
                     } else if (!NW && N && W) { // Corner surrounded by water
                         piece = 6;
                         yAngle = FastMath.HALF_PI;
-                        movement = new Vector3f(TILE_WIDTH / 2, 0, 0); //
                     } else if (!N && !W) { // Corner surrounded by land
                         piece = 5;
                         yAngle = -FastMath.HALF_PI;
-                        movement = new Vector3f(0, 0, TILE_WIDTH / 2); //
-                    } else { // Seabed
-                        movement = new Vector3f(TILE_WIDTH / 2, 0, TILE_WIDTH / 2);
-                    }
+                    } 
+                    movement = new Vector3f(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
+                    
                 } else if (i == 1 && k == 0) { // North east corner
                     if (!N && E) { // Side
                         piece = 4;
                         yAngle = FastMath.PI;
-                        movement = new Vector3f(-TILE_WIDTH / 2, 0, 0); //
                     } else if (!E && N) { // Side
                         piece = 4;
                         yAngle = FastMath.HALF_PI;
                     } else if (!NE && N && E) { // Corner surrounded by water
                         piece = 6;
-                        movement = new Vector3f(0, 0, TILE_WIDTH / 2); //
                     } else if (!N && !E) { // Corner surrounded by land
                         piece = 5;
                         yAngle = -FastMath.PI;
-                        movement = new Vector3f(-TILE_WIDTH / 2, 0, 0); //
-                    } else { // Seabed
-                        movement = new Vector3f(0, 0, TILE_WIDTH / 2);
-                    }
+                    } 
+                    movement = new Vector3f(TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
+                    
                 } else if (i == 0 && k == 1) { // South west corner
                     if (!S && W) { // Side
                         piece = 4;
-                        movement = new Vector3f(TILE_WIDTH / 2, 0, 0); //
                     } else if (!W && S) { // Side
                         piece = 4;
                         yAngle = -FastMath.HALF_PI;
                     } else if (!SW && S && W) { // Corner surrounded by water
                         piece = 6;
                         yAngle = -FastMath.PI;
-                        movement = new Vector3f(0, 0, -TILE_WIDTH / 2); //
                     } else if (!S && !W) { // Corner surrounded by land
                         piece = 5;
-                        movement = new Vector3f(TILE_WIDTH / 2, 0, 0); //
-                    } else { // Seabed
-                        movement = new Vector3f(TILE_WIDTH / 2, 0, 0);
-                    }
-                } else if (i == 1 && k == 1) { // South east corner
+                    } 
+                    movement = new Vector3f(-TILE_WIDTH / 4, 0, TILE_WIDTH / 4);
+                    
+                } else { // South east corner if (i == 1 && k == 1)
                     if (!S && E) { // Side
                         piece = 4;
                     } else if (!E && S) { // Side
                         piece = 4;
                         yAngle = FastMath.HALF_PI;
-                        movement = new Vector3f(0, 0, -TILE_WIDTH / 2); //
                     } else if (!SE && S && E) { // Corner surrounded by water
                         piece = 6;
                         yAngle = -FastMath.HALF_PI;
-                        movement = new Vector3f(-TILE_WIDTH / 2, 0, 0); //
                     } else if (!S && !E) { // Corner surrounded by land
                         piece = 5;
                         yAngle = FastMath.HALF_PI;
-                        movement = new Vector3f(0, 0, -TILE_WIDTH / 2); //
                     }
+                    movement = new Vector3f(TILE_WIDTH / 4, 0, TILE_WIDTH / 4);
                 }
 
                 // Load the piece
-                Spatial part = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + piece + ".j3o", false, true);
+                Spatial part = MapLoader.loadTerrain(assetManager, model + piece, true);
                 if (yAngle != 0) {
                     part.rotate(0, yAngle, 0);
                 }
-                if (movement != null) {
-                    part.move(movement);
-                }
-                part.move((i - 1) * TILE_WIDTH, -(piece == 7 ? WATER_DEPTH : 0), (k - 1) * TILE_WIDTH);
+
+                part.move(movement);
+                //part.move((i - 1) * TILE_WIDTH, -(piece == 7 ? WATER_DEPTH : 0), (k - 1) * TILE_WIDTH);
                 ((Node) floor).attachChild(part);
             }
         }

@@ -202,7 +202,7 @@ public class AnimationLoader {
     private static Spatial loadModel(AssetManager assetManager, String resourceName, Node creatureRoot) {
 
         // Load the model and attach it without the root
-        Spatial model = AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + resourceName + ".j3o", false);
+        Spatial model = AssetUtils.loadModel(assetManager, resourceName, false);
         AssetUtils.resetSpatial(model);
         model = ((Node) model).getChild(0);
         model.setCullHint(Spatial.CullHint.Always);

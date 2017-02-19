@@ -223,7 +223,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     protected void lockDoor() {
         locked = true;
         if (lockSpatial == null && lockObject != null) {
-            lockSpatial = AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + lockObject.getMeshResource().getName() + ".j3o", false);
+            lockSpatial = AssetUtils.loadModel(assetManager, lockObject.getMeshResource().getName(), false);
             AssetUtils.resetSpatial(lockSpatial);
             lockSpatial.move(0, 0.75f, 0);
             lockSpatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);

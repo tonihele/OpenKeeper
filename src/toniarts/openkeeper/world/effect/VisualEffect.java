@@ -112,9 +112,7 @@ public class VisualEffect {
             switch (resource.getType()) {
                 case MESH:
                 case ANIMATING_MESH:
-                    model = AssetUtils.loadModel(assetManager,
-                                    AssetsConverter.MODELS_FOLDER + "/" + resource.getName() + ".j3o",
-                                    false);
+                    model = AssetUtils.loadModel(assetManager, resource.getName(), false);
                     break;
 
                 case PROCEDURAL_MESH:
@@ -342,9 +340,7 @@ public class VisualEffect {
                 if (resource.getType() == ArtResourceType.PROCEDURAL_MESH) {
                     model = (Node) AssetUtils.createProceduralMesh(resource);
                 } else {
-                    model = (Node) AssetUtils.loadModel(assetManager,
-                            AssetsConverter.MODELS_FOLDER + "/" + resource.getName() + ".j3o",
-                            false);
+                    model = (Node) AssetUtils.loadModel(assetManager, resource.getName(), false);
                 }
 
                 if (resource.getType() == ArtResourceType.MESH) {

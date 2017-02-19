@@ -74,7 +74,6 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.TerrainLoader;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -88,7 +87,13 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     public enum Types {
 
-        MODELS("Models"), TERRAIN("Terrain"), /*OBJECTS("Objects"),*/ MAPS("Maps"), EFFECTS("Effects");
+        CUSTOM("Custom"),
+        MODELS("Models"), 
+        TERRAIN("Terrain"), 
+        /*OBJECTS("Objects"),*/ 
+        MAPS("Maps"), 
+        EFFECTS("Effects");
+        
         private final String name;
 
         private Types(String name) {
@@ -100,6 +105,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             return name;
         }
     }
+    private final static float SCALE = 2;
     private static String dkIIFolder;
     private final Vector3f lightDir = new Vector3f(-1, -1, .5f).normalizeLocal();
     private DirectionalLight dl;
@@ -178,15 +184,15 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         Material mat = assetManager.loadMaterial("Materials/ModelViewer/FloorMarble.j3m");
 
         floorGeom = new Node("floorGeom");
-        Quad q = new Quad(100, 100);
-        q.scaleTextureCoordinates(new Vector2f(10, 10));
+        Quad q = new Quad(20, 20);
+        q.scaleTextureCoordinates(new Vector2f(5, 5));
         Geometry g = new Geometry("geom", q);
         g.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_X));
         g.setShadowMode(RenderQueue.ShadowMode.Receive);
         floorGeom.attachChild(g);
 
         TangentBinormalGenerator.generate(floorGeom);
-        floorGeom.setLocalTranslation(-50, 22, 60);
+        floorGeom.setLocalTranslation(-10, 0, 10);
 
         floorGeom.setMaterial(mat);
         rootNode.attachChild(floorGeom);
@@ -294,8 +300,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         nifty.getRenderEngine().setFont(font);
         nifty.registerMouseCursor("pointer", "Interface/Cursors/Idle.png", 4, 4);
 
-        cam.setLocation(new Vector3f(-15.445636f, 30.162927f, 60.252777f));
-        cam.setRotation(new Quaternion(0.05173137f, 0.92363626f, -0.13454558f, 0.35513034f));
+        cam.setLocation(new Vector3f(-10, 10, -10));
+        cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
+        //cam.setRotation(new Quaternion(0.05173137f, 0.92363626f, -0.13454558f, 0.35513034f));
         flyCam.setMoveSpeed(30);
         flyCam.setDragToRotate(true);
 
@@ -317,6 +324,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         setupLighting();
         setupFloor();
+        setupDebug();
 
         // Open a KMF model if set
         if (kmfModel != null) {
@@ -358,7 +366,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             });
             Path path = new File(rootDirectory).toPath();
             for (File file : files) {
-                String key = path.relativize(file.toPath()).toString();
+                String key = file.getName();
                 object.add(key.substring(0, key.length() - 4));
             }
         }
@@ -401,7 +409,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 case MODELS: {
 
                     // Load the selected model
-                    Node spat = (Node) AssetUtils.loadModel(assetManager, ((String) selection.get(0)).concat(".j3o").replaceAll(Matcher.quoteReplacement(File.separator), "/"), false);
+                    Node spat = (Node) AssetUtils.loadModel(assetManager, (String) selection.get(0), false);
                     setupModel(spat, false);
                     break;
                 }
@@ -415,8 +423,8 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 case MAPS: {
 
                     // Load the selected map
-                    String file = ((String) selection.get(0)).concat(".kwd").replaceAll(Matcher.quoteReplacement(File.separator), "/");
-                    KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(file)));
+                    String file = (String) selection.get(0) + ".kwd";
+                    KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder + AssetsConverter.MAPS_FOLDER + file));
                     Node spat = (Node) new MapLoader(this.getAssetManager(), kwd, new EffectManagerState(kwd, this.getAssetManager()), null, new ObjectLoader(kwdFile, null)) {
                         @Override
                         protected void updateProgress(float progress) {
@@ -443,8 +451,24 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     setupModel(spat, false);
                     break;
                 }
+                
+                case CUSTOM: {
+                    KwdFile kwd = getKwdFile();
+                    
+                    Terrain t = (Terrain) selection.get(0);
+                    
+                    // Load the selected terrain
+                    Node spat = (Node) new TerrainLoader().load(this.getAssetManager(), t);
+                    customSetup(spat);
+                    break;
+                }
             }
         }
+    }
+    
+    private void setupDebug() {
+        Debug.showNodeAxes(assetManager, rootNode, 10);
+        Debug.attachWireFrameDebugGrid(assetManager, rootNode, Vector3f.ZERO, 20, ColorRGBA.DarkGray);
     }
 
     @NiftyEventSubscriber(id = "typeCombo")
@@ -476,6 +500,34 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     @Override
     public void onEndScreen() {
     }
+    
+    private void customSetup(final Node model) {
+        model.setName(NODE_NAME);
+        
+        // Reset the game translation and scale
+        model.breadthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                spatial.setLocalTranslation(0, 0, 0);
+            }
+        });
+        
+        floorGeom.setCullHint(Spatial.CullHint.Always);
+
+        // Make it rotate
+        //model.addControl(new RotatorControl());
+        
+        rootNode.detachChildNamed(NODE_NAME);
+
+        // Attach the new model
+        rootNode.attachChild(model);
+        
+        // Wireframe status
+        toggleWireframe();
+
+        // Normals status
+        toggleShowNormals();
+    }
 
     private void setupModel(final Node spat, boolean isMap) {
         spat.setName(NODE_NAME);
@@ -489,8 +541,8 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             }
 
             // Make it bigger and move
-            spat.scale(10);
-            spat.setLocalTranslation(10, 25, 30);
+            //spat.scale(10);
+            //spat.setLocalTranslation(10, 25, 30);
 
             // Make it rotate
             RotatorControl rotator = new RotatorControl();
@@ -553,10 +605,12 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         getModelListBox().clear();
         switch (type) {
             case MODELS: {
-                fillWithFiles(models, AssetsConverter.getAssetsFolder(), AssetsConverter.getAssetsFolder().concat(AssetsConverter.MODELS_FOLDER).concat(File.separator), "j3o");
+                fillWithFiles(models, AssetsConverter.getAssetsFolder(), AssetsConverter.getAssetsFolder()
+                        + AssetsConverter.MODELS_FOLDER + File.separator, "j3o");
                 break;
             }
-            case TERRAIN: {
+            case TERRAIN:
+            case CUSTOM: {
                 fillTerrain();
                 break;
             }

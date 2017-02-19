@@ -66,6 +66,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.tools.modelviewer.Debug;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.world.animation.AnimationLoader;
@@ -123,6 +124,9 @@ public abstract class WorldState extends AbstractAppState {
 
         // World node
         worldNode = new Node("World");
+        if (Main.isDebug()) {
+            Debug.showNodeAxes(assetManager, worldNode, 10);
+        }
 
         // Create physics state
         bulletAppState = new BulletAppState();

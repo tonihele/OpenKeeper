@@ -24,6 +24,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.EnumSet;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -114,8 +115,8 @@ public class Workshop extends Normal {
     }
 
     private Spatial constructPillar(Node node, Point p, Quaternion quat) {
-        Spatial part = assetManager.loadModel(getPillarResource());
-        resetAndMoveSpatial(part, new Point(0, 0), p);
+        Spatial part = AssetUtils.loadTerrainWithoutCache(assetManager, getPillarResource());
+        moveSpatial(part, p);
 
         if (quat != null) {
             part.rotate(quat);
