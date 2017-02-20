@@ -129,7 +129,7 @@ public final class RoomConstructor {
                 if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
                     return new StoneBridge(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 } else {
-                    return new WoodenBridge(assetManager, roomInstance, objectLoader, worldState, effectManager);
+                    return new Quad(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 }
 
             case DOUBLE_QUAD:

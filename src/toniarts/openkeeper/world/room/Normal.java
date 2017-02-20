@@ -171,25 +171,20 @@ public class Normal extends GenericRoom {
                 if (found) {
 
                     // Contruct a pillar
-                    Spatial part = AssetUtils.loadTerrainWithoutCache(assetManager, getPillarResource());
-                    moveSpatial(part, p);
-
+                    Spatial part = AssetUtils.loadAsset(assetManager, getPillarResource());
                     // Face "in" diagonally
                     if (freeDirections.contains(WallDirection.NORTH) && freeDirections.contains(WallDirection.EAST)) {
-                        Quaternion quat = new Quaternion();
-                        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                        part.rotate(quat);
+                        float yAngle = -FastMath.HALF_PI;
+                        part.rotate(0, yAngle, 0);
                     } else if (freeDirections.contains(WallDirection.SOUTH) && freeDirections.contains(WallDirection.EAST)) {
-                        Quaternion quat = new Quaternion();
-                        quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
-                        part.rotate(quat);
+                        float yAngle = FastMath.PI;
+                        part.rotate(0, yAngle, 0);
                     } else if (freeDirections.contains(WallDirection.SOUTH) && freeDirections.contains(WallDirection.WEST)) {
-                        Quaternion quat = new Quaternion();
-                        quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                        part.rotate(quat);
+                        float yAngle = FastMath.HALF_PI;
+                        part.rotate(0, yAngle, 0);
                     }
-
-                    part.move(-0.5f, MapLoader.TILE_HEIGHT, -0.5f);
+                    
+                    moveSpatial(part, p);
                     node.attachChild(part);
                 }
             }

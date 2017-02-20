@@ -50,17 +50,17 @@ public class Quad extends GenericRoom {
 
             // The bed
             // Figure out which peace by seeing the neighbours
-            boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y + 1));
-            boolean NE = roomInstance.hasCoordinate(new Point(p.x - 1, p.y + 1));
-            boolean E = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
-            boolean SE = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
-            boolean S = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
-            boolean SW = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
-            boolean W = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
-            boolean NW = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
+            boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
+            boolean NE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
+            boolean E = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
+            boolean SE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
+            boolean S = roomInstance.hasCoordinate(new Point(p.x, p.y + 1));
+            boolean SW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y + 1));
+            boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
+            boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
             // 2x2
             Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
-            AssetUtils.scale(root);
+            AssetUtils.scale(model);
             AssetUtils.moveToTile(model, p);
             root.attachChild(model);
         }
@@ -88,88 +88,68 @@ public class Quad extends GenericRoom {
                 if (i == 0 && k == 0) { // North west corner
                     if (N && W && NW) {
                         piece = 3;
-                    } else if (!N && W && NW) {
-                        piece = 0;
-                    } else if (!NW && N && W) {
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (N && W && !NW) {
                         piece = 2;
                         yAngle = -FastMath.HALF_PI;
-                    } else if (!N && !W) {
+                    } else if (!N && W) { // && NW no matter
+                        piece = 0;
+                    } else if (N && !W) { // && NW no matter
+                        piece = 0;
+                        yAngle = FastMath.HALF_PI;
+                    } else { // if (!N && !W)
                         piece = 1;
-                        yAngle = FastMath.HALF_PI;
-                    } else if (W && !NW && !N) {
-                        piece = 0;
-                    } else if (!W && !NW && N) {
-                        piece = 0;
-                        yAngle = FastMath.HALF_PI;
-                    } else {
-                        piece = 0;
                         yAngle = FastMath.HALF_PI;
                     }
                     movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
                 } else if (i == 1 && k == 0) { // North east corner
                     if (N && E && NE) {
                         piece = 3;
-                        yAngle = -FastMath.HALF_PI;
-                    } else if (!N && E && NE) {
-                        piece = 0;
-                    } else if (!NE && N && E) {
+                        yAngle = FastMath.PI;
+                    } else if (N && E && !NE) {
                         piece = 2;
                         yAngle = FastMath.PI;
-                    } else if (!N && !E) {
-                        piece = 1;
-                    } else if (!E && NE && N) {
+                    } else if (!N && E) {
                         piece = 0;
-                        yAngle = -FastMath.HALF_PI;
-                    } else if (!E && !NE && N) {
+                    } else if (N && !E) {
                         piece = 0;
                         yAngle = -FastMath.HALF_PI;
                     } else {
-                        piece = 0;
+                        piece = 1;
                     }
                     movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
                 } else if (i == 0 && k == 1) { // South west corner
                     if (S && W && SW) {
                         piece = 3;
-                    } else if (!S && W && SW) {
-                        piece = 0;
-                        yAngle = FastMath.PI;
-                    } else if (!SW && S && W) {
+                    } else if (S && W && !SW) {
                         piece = 2;
-                    } else if (!S && !W) {
-                        piece = 1;
-                        yAngle = FastMath.PI;
-                    } else if (!W && SW && S) {
+                    } else if (!S && W) {
                         piece = 0;
-                        yAngle = FastMath.HALF_PI;
-                    } else if (!W && !SW && S) {
+                        yAngle = FastMath.PI;
+                    } else if (S && !W) {
                         piece = 0;
                         yAngle = FastMath.HALF_PI;
                     } else {
-                        piece = 0;
+                        piece = 1;
                         yAngle = FastMath.PI;
                     }
                     movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                 } else { // South east corner if (i == 1 && k == 1)
                     if (S && E && SE) {
                         piece = 3;
-                    } else if (!S && E && SE) {
-                        piece = 0;
-                        yAngle = -FastMath.PI;
-                    } else if (!SE && S && E) {
+                        yAngle = FastMath.HALF_PI;
+                    } else if (S && E && !SE) {
                         piece = 2;
                         yAngle = FastMath.HALF_PI;
-                    } else if (!S && !E) {
-                        piece = 1;
-                        yAngle = -FastMath.HALF_PI;
-                    } else if (!E && SE && S) {
+                    } else if (!S && E) {
                         piece = 0;
-                        yAngle = -FastMath.HALF_PI;
-                    } else if (!E && !SE && S) {
+                        yAngle = FastMath.PI;
+                    } else if (S && !E) {
                         piece = 0;
                         yAngle = -FastMath.HALF_PI;
                     } else {
-                        piece = 0;
-                        yAngle = FastMath.PI;
+                        piece = 1;
+                        yAngle = -FastMath.HALF_PI;
                     }
                     movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                 }

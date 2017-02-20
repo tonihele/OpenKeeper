@@ -74,52 +74,42 @@ public class WaterConstructor extends TileConstructor {
         if (!E && S && SW && W && NW && N) {
             piece = 0;
             yAngle = FastMath.HALF_PI;
-            //movement = new Vector3f(0, TILE_WIDTH, 0);
         } else if (!S && W && NW && N && NE && E) {
             piece = 0;
         } else if (!W && N && NE && E && SE && S) {
             piece = 0;
             yAngle = -FastMath.HALF_PI;
-            //movement = new Vector3f(-TILE_WIDTH / 2, 0, 0);
         } else if (!N && E && SE && S && SW && W) {
             piece = 0;
             yAngle = -FastMath.PI;
-            //movement = new Vector3f(-TILE_WIDTH / 2, 0, -TILE_WIDTH / 2);
         } //
         // Just one corner
         else if (!SW && S && SE && E && W && N && NE && NW) {
             piece = 2;
             yAngle = -FastMath.PI;
-            //movement = new Vector3f(-TILE_WIDTH / 2, 0, -TILE_WIDTH / 2);
         } else if (!NE && S && SE && E && W && N && SW && NW) {
             piece = 2;
         } else if (!SE && S && SW && E && W && N && NE && NW) {
             piece = 2;
             yAngle = -FastMath.HALF_PI;
-            //movement = new Vector3f(-TILE_WIDTH / 2, 0, 0);
         } else if (!NW && S && SW && E && W && N && NE && SE) {
             piece = 2;
             yAngle = FastMath.HALF_PI;
-            //movement = new Vector3f(0, 0, -TILE_WIDTH / 2);
         } // Land corner
         else if (!N && !NW && !W && S && SE && E) {
             piece = 1;
             yAngle = -FastMath.HALF_PI;
-            //movement = new Vector3f(-TILE_WIDTH / 2, 0, 0);
         } else if (!N && !NE && !E && SW && S && W) {
             piece = 1;
             yAngle = -FastMath.PI;
-            //movement = new Vector3f(-TILE_WIDTH / 2, 0, -TILE_WIDTH / 2);
         } else if (!S && !SE && !E && N && W && NW) {
             piece = 1;
             yAngle = FastMath.HALF_PI;
-            //movement = new Vector3f(0, 0, -TILE_WIDTH / 2);
         } else if (!S && !SW && !W && N && NE && E) {
             piece = 1;
         }// Just a seabed
         else if (S && SW && W && SE && N && NE && E && NW) { // Just a seabed
             piece = 3;
-            //movement = new Vector3f(0, 0, 0);
         }
         //
         if (piece != -1) {
@@ -132,7 +122,6 @@ public class WaterConstructor extends TileConstructor {
             }
             return floor;
         }
-
         // We have only the one tilers left, they need to be constructed similar to quads, but unfortunately not just the same
         // 2x2
         floor = new Node();
@@ -149,7 +138,7 @@ public class WaterConstructor extends TileConstructor {
                         yAngle = FastMath.PI;
                     } else if (!W && N) { // Side
                         piece = 4;
-                        yAngle = -FastMath.HALF_PI;                        
+                        yAngle = -FastMath.HALF_PI;
                     } else if (!NW && N && W) { // Corner surrounded by water
                         piece = 6;
                         yAngle = FastMath.HALF_PI;
@@ -211,7 +200,6 @@ public class WaterConstructor extends TileConstructor {
                 }
 
                 part.move(movement);
-                //part.move((i - 1) * TILE_WIDTH, -(piece == 7 ? WATER_DEPTH : 0), (k - 1) * TILE_WIDTH);
                 ((Node) floor).attachChild(part);
             }
         }
