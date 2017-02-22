@@ -66,7 +66,7 @@ public class Debug {
         n.attachChild(geom);
     }
 
-    public static void showVector3fArrow(AssetManager am, Node n, Vector3f v, 
+    public static void showVector3fArrow(AssetManager am, Node n, Vector3f v,
             ColorRGBA color, String name) {
         Arrow a = new Arrow(v);
         Material mat = DebugUtils.makeMaterial(am, "Common/MatDefs/Misc/Unshaded.j3md", color);
@@ -74,7 +74,7 @@ public class Debug {
         n.attachChild(geom);
     }
 
-    public static void showVector3fLine(AssetManager am, Node n, Vector3f v, 
+    public static void showVector3fLine(AssetManager am, Node n, Vector3f v,
             ColorRGBA color, String name) {
         Line l = new Line(v.subtract(v), v);
         Material mat = DebugUtils.makeMaterial(am, "Common/MatDefs/Misc/Unshaded.j3md", color);
@@ -92,7 +92,7 @@ public class Debug {
         player.attachChild(skeletonDebug);
     }
 
-    public static void attachWireFrameDebugGrid(AssetManager assetManager, Node n, Vector3f pos, 
+    public static void attachWireFrameDebugGrid(AssetManager assetManager, Node n, Vector3f pos,
             Integer size, ColorRGBA color) {
         Geometry g = new Geometry("wireFrameDebugGrid", new Grid(size, size, 1.0f));  //1WU
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");

@@ -48,7 +48,7 @@ public class DebugUtils {
         geom.setLocalScale(scl);
         return geom;
     }
-    
+
     //"Common/MatDefs/Misc/Unshaded.j3md"
     public static Material makeMaterial(AssetManager am, String name, ColorRGBA color) {
         Material mat = new Material(am, name);

@@ -70,7 +70,7 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
         BatchNode root = new BatchNode();
         // 5 by 5
         // DHeart Piece[1-20]Exp.j3o
-        Point start = roomInstance.getCoordinates().get(0);
+        //Point start = roomInstance.getCoordinates().get(0);
         String resource = (destroyed) ? "Dungeon_Destroyed" : roomInstance.getRoom().getCompleteResource().getName();
         for (Point p : roomInstance.getCoordinates()) {
 
@@ -151,7 +151,7 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
                     // The steps between the arches
                     tile = loadTerrain(resource + 5);
                     moveSpatial(tile, start, p);
-                    root.attachChild(tile.move(0, -MapLoader.TILE_HEIGHT * 0.42f, 0));
+                    root.attachChild(tile);
 
                 } else {
                     // The arches

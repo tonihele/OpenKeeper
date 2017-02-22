@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.world;
 
+import com.jme3.math.Vector2f;
 import com.jme3.scene.Node;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -135,8 +136,20 @@ public final class TileData extends Tile {
         return p.y;
     }
 
+    /**
+     * Get tile index in MapData 2D array as Point
+     * @return
+     */
     public Point getLocation() {
         return p;
+    }
+
+    /**
+     * Get real tile position in 3D World as Vector2f
+     * @return
+     */
+    public Vector2f getWorldLocation() {
+        return new Vector2f(p.x * MapLoader.TILE_WIDTH, p.y * MapLoader.TILE_WIDTH);
     }
 
     public int getIndex() {

@@ -16,26 +16,26 @@
  */
 package toniarts.openkeeper.world.control;
 
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.TileData;
 
 /**
  *
  * @author ArchDemon
  */
 public abstract class LandingControl extends AbstractControl {
-    private static final float VELOCITY = 2.0f;
-    private final TileData tileData;
+    private static final float GRAVITY = 2.0f;
+    private final Vector2f position;
 
-    public LandingControl(TileData tileData) {
+    public LandingControl(Vector2f position) {
         super();
 
-        this.tileData = tileData;
+        this.position = position;
         enabled = spatial != null;
     }
 
@@ -44,10 +44,7 @@ public abstract class LandingControl extends AbstractControl {
         super.setSpatial(spatial);
 
         if (spatial != null) {
-            spatial.setLocalTranslation(
-                MapLoader.TILE_WIDTH * (tileData.getX() - 0.5f),
-                MapLoader.TILE_WIDTH * 2f,
-                MapLoader.TILE_WIDTH * (tileData.getY() - 0.5f));
+            spatial.setLocalTranslation(position.x, MapLoader.TILE_WIDTH * 2f, position.y);
         }
         enabled = spatial != null;
     }
@@ -57,7 +54,7 @@ public abstract class LandingControl extends AbstractControl {
         Vector3f pos = spatial.getLocalTranslation();
         // FIXME set real height by BoundingBox height
         if (pos.y > 0.3f) {
-            spatial.move(0, -tpf * VELOCITY, 0);
+            spatial.move(0, -tpf * GRAVITY, 0);
         } else {
             enabled = false;
             spatial.setLocalTranslation(pos.x, 0.3f, pos.z);

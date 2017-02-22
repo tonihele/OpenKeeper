@@ -100,40 +100,44 @@ public class HeroGate extends GenericRoom {
 
                 Spatial part;
                 float yAngle = 0;
-                if (section.getDirection() == WallSection.WallDirection.SOUTH) {
-                    if (section.getCoordinates().size() == 1) {
-                        piece = 6; // gate
-                    } else {
-                        piece = (i == 1) ? 5 : 7;
-                    }
+                switch (section.getDirection()) {
+                    case SOUTH:
+                        piece = (i == 1) ? 5 : 7;                        
+                        break;
 
-                } else if (section.getDirection() == WallSection.WallDirection.EAST) {
-                    // FIXME if gate skip walls ???
-                    if (section.getCoordinates().size() == 1) {
-                        continue;
-                    }
-                    piece = 7;
-                    yAngle = FastMath.HALF_PI;
+                    case EAST:
+                        if (section.getCoordinates().size() == 1) {
+                            piece = 6; // outside gate
+                        } else { 
+                            piece = 7;
+                            yAngle = FastMath.HALF_PI;
+                        }
+                        break;
 
-                } else if (section.getDirection() == WallSection.WallDirection.WEST) {
-                    // FIXME if gate skip walls ???
-                    if (section.getCoordinates().size() == 1) {
-                        continue;
-                    }
-                    piece = 7;
-                    yAngle = -FastMath.HALF_PI;
+                    case WEST:
+                        // FIXME if gate skip walls ???
+                        if (section.getCoordinates().size() == 1) {
+                            piece = 6; // inside gate
+                            yAngle = FastMath.PI;
+                        } else { 
+                            piece = 7;
+                            yAngle = -FastMath.HALF_PI;
+                        }
+                        break;
 
-                } else { // WallSection.WallDirection.NORTH
-                    // FIXME looks good, but ... ugly code
-                    if (south == 0) {
-                        piece = 4;
-                    } else if (south == 1) {
-                        piece = 8;
-                    } else {
-                        piece = 6; // gate
-                    }
-                    south++;
-                    yAngle = FastMath.PI;
+                    default:
+                        // WallSection.WallDirection.NORTH
+                        // FIXME looks good, but ... ugly code
+                        if (south == 0) {
+                            piece = 4;
+                        } else if (south == 1) {
+                            piece = 8;
+                        } else {
+                            continue; // gate but we build it on EAST and WEST
+                        }
+                        south++;
+                        yAngle = FastMath.PI;
+                        break;
                 }
 
                 i++;

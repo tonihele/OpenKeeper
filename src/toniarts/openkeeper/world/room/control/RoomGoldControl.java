@@ -118,7 +118,8 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
         if (!storedGoldList.isEmpty()) {
             ThingLoader thingLoader = parent.getWorldState().getThingLoader();
             for (Entry<Point, Collection<GoldObjectControl>> entry : storedGoldList) {
-                thingLoader.addLooseGold(entry.getKey(), new Vector2f(MapLoader.TILE_WIDTH / 2, MapLoader.TILE_WIDTH / 2), parent.getRoomInstance().getOwnerId(), entry.getValue().iterator().next().getGold());
+                thingLoader.addLooseGold(entry.getKey(), parent.getRoomInstance().getOwnerId(),
+                        entry.getValue().iterator().next().getGold());
             }
         }
     }

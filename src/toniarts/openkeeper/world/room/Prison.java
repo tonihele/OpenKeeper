@@ -17,7 +17,6 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
-import com.jme3.math.FastMath;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -27,8 +26,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 import toniarts.openkeeper.world.WorldState;
@@ -69,160 +66,34 @@ public class Prison extends DoubleQuad {
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
-        Point start = roomInstance.getCoordinates().get(0);
+        //Point start = roomInstance.getCoordinates().get(0);
 
-        // Contruct the tiles
-        boolean hasDoor = false;
-
+        door = null;
         for (Point p : roomInstance.getCoordinates()) {
-
             // Figure out which peace by seeing the neighbours
-            boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y + 1));
-            boolean NE = roomInstance.hasCoordinate(new Point(p.x - 1, p.y + 1));
-            boolean E = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
-            boolean SE = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
-            boolean S = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
-            boolean SW = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
-            boolean W = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
-            boolean NW = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
+            boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
+            boolean NE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
+            boolean E = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
+            boolean SE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
+            boolean S = roomInstance.hasCoordinate(new Point(p.x, p.y + 1));
+            boolean SW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y + 1));
+            boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
+            boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
 
-            if (!hasDoor && !S && N && NE && NW && E && W && !SW && !SE) {
-                door = p;
-
-                Spatial part = AssetUtils.loadAsset(assetManager, modelName + "14");
-
-                moveSpatial(part, start, p);
-                hasDoor = true;
+            if (door == null && !N && !NE && E && SE && S && SW && W && !NW) {
+                Spatial part = MapLoader.loadTerrain(assetManager, modelName + "14");
                 part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
+                moveSpatial(part, p);
 
                 root.attachChild(part);
-
+                door = p;
                 continue;
             }
 
-            Node model = new Node();
-
-            for (int i = 0; i < 2; i++) {
-                for (int k = 0; k < 2; k++) {
-                    // 9 - stone floor
-                    // 8 stone wall with skeleton
-                    // 7 stone wall
-                    // 6 stone wall half
-                    // 5 stone wall half
-                    // 4 stone wall half
-                    // 3 -  dirt
-                    // 2 -  dirt corner
-                    // 19 - dirt with zabor
-                    // 17 - dirt
-                    // 15 dirt with zabor
-                    // 14 - dirt with gate
-                    // 13 - dirt
-                    // 12 - dirt corner with zabor
-                    // 11 dirt corner with palka
-                    // 10 - dirt with zabor
-                    // 1 - dirt corner with brics ?
-                    // 0 dirt with brics
-                    // Prison_Pillar
-                    int pieceNumber = 13;
-                    float yAngle = 0;
-                    // Determine the piece
-                    if (i == 0 && k == 0) { // North west corner
-                        if (!N && !W) {
-                            pieceNumber = 1;
-                            yAngle = -FastMath.HALF_PI;
-                        } else if (!S && !E) {
-                            pieceNumber = 11;
-                            yAngle = FastMath.HALF_PI;
-                        } else if ((W || E) && !N) {
-                            pieceNumber = 17;
-                            yAngle = FastMath.PI;
-                        } else if ((N || S) && !W) {
-                            pieceNumber = 17;
-                            yAngle = -FastMath.HALF_PI;
-                        } else if (N && S && !E) {
-                            pieceNumber = 19;
-                            yAngle = FastMath.PI;
-                        } else if (E && W && !S) {
-                            pieceNumber = 10;
-                            //yAngle = FastMath.PI;
-                        }
-                    } else if (i == 1 && k == 0) { // North east corner
-                        if (!N && !E) {
-                            pieceNumber = 1;
-                            //yAngle = -FastMath.HALF_PI;
-                        } else if (!S && !W) {
-                            pieceNumber = 11;
-                        } else if ((W || E) && !N) {
-                            pieceNumber = 17;
-                            yAngle = FastMath.PI;
-                        } else if ((N || S) && !E) {
-                            pieceNumber = 17;
-                            yAngle = FastMath.HALF_PI;
-                        } else if (N && S && !W) {
-                            pieceNumber = 19;
-                            //yAngle = FastMath.PI;
-                        } else if (E && W && !S) {
-                            pieceNumber = 10;
-                            //yAngle = FastMath.PI;
-                        }
-                    } else if (i == 0 && k == 1) { // South west corner
-                        if (!S && !W) {
-                            pieceNumber = 1;
-                        } else if (!N && !E) {
-                            pieceNumber = 11;
-                            yAngle = FastMath.PI;
-                        } else if ((W || E) && !S) {
-                            pieceNumber = 17;
-                        } else if ((N || S) && !W) {
-                            pieceNumber = 17;
-                            yAngle = -FastMath.HALF_PI;
-                        } else if (N && S && !E) {
-                            pieceNumber = 19;
-                            yAngle = FastMath.PI;
-                        } else if (E && W && !N) {
-                            pieceNumber = 10;
-                            yAngle = FastMath.PI;
-                        }
-                    } else if (i == 1 && k == 1) { // South east corner
-                        if (!S && !E) {
-                            pieceNumber = 1;
-                            yAngle = FastMath.HALF_PI;
-                        } else if (!N && !W) {
-                            pieceNumber = 11;
-                            yAngle = -FastMath.HALF_PI;
-                        } else if ((W || E) && !S) {
-                            pieceNumber = 17;
-                        } else if ((N || S) && !E) {
-                            pieceNumber = 17;
-                            yAngle = FastMath.HALF_PI;
-                        } else if (S && E && !W) {
-                            pieceNumber = 19;
-                            //yAngle = FastMath.PI;
-                        } else if (E && W && !N) {
-                            pieceNumber = 10;
-                            yAngle = FastMath.PI;
-                        }
-                    }
-                    // Load the piece
-                    Spatial part = AssetUtils.loadAsset(assetManager, modelName + pieceNumber);
-                    
-                    moveSpatial(part, start, p);
-                    if (yAngle != 0) {
-                        part.rotate(0, yAngle, 0);
-                    }
-                    part.move(TILE_WIDTH / 4 - i * TILE_WIDTH / 2, 0, TILE_WIDTH / 4 - k * TILE_WIDTH / 2);
-
-                    model.attachChild(part);
-
-                }
-            }
-
+            Node model = DoubleQuad.constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
+            moveSpatial(model, p);
             root.attachChild(model);
         }
-
-        // Set the transform and scale to our scale and 0 the transform
-        AssetUtils.scale(root);
-        AssetUtils.moveToTile(root, start);
 
         return root;
     }

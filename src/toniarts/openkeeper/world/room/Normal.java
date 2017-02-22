@@ -18,8 +18,6 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
-import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
@@ -102,7 +100,6 @@ public class Normal extends GenericRoom {
 
         // Set the transform and scale to our scale and 0 the transform
         AssetUtils.moveToTile(root, start);
-        //root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return root;
     }
@@ -173,17 +170,20 @@ public class Normal extends GenericRoom {
                     // Contruct a pillar
                     Spatial part = AssetUtils.loadAsset(assetManager, getPillarResource());
                     // Face "in" diagonally
-                    if (freeDirections.contains(WallDirection.NORTH) && freeDirections.contains(WallDirection.EAST)) {
+                    if (freeDirections.contains(WallDirection.NORTH)
+                            && freeDirections.contains(WallDirection.EAST)) {
                         float yAngle = -FastMath.HALF_PI;
                         part.rotate(0, yAngle, 0);
-                    } else if (freeDirections.contains(WallDirection.SOUTH) && freeDirections.contains(WallDirection.EAST)) {
+                    } else if (freeDirections.contains(WallDirection.SOUTH)
+                            && freeDirections.contains(WallDirection.EAST)) {
                         float yAngle = FastMath.PI;
                         part.rotate(0, yAngle, 0);
-                    } else if (freeDirections.contains(WallDirection.SOUTH) && freeDirections.contains(WallDirection.WEST)) {
+                    } else if (freeDirections.contains(WallDirection.SOUTH)
+                            && freeDirections.contains(WallDirection.WEST)) {
                         float yAngle = FastMath.HALF_PI;
                         part.rotate(0, yAngle, 0);
                     }
-                    
+
                     moveSpatial(part, p);
                     node.attachChild(part);
                 }

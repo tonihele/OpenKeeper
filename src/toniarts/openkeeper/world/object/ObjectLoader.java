@@ -17,24 +17,26 @@
 package toniarts.openkeeper.world.object;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector2f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import java.awt.Point;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.player.PlayerSpell;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.ILoader;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
 /**
  * Loads up object
+ * TODO: remove unnecessary methods
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -51,18 +53,32 @@ public class ObjectLoader implements ILoader<Thing.Object> {
 
     @Override
     public Spatial load(AssetManager assetManager, Thing.Object object) {
-        return load(assetManager, worldState.getMapData().getTile(object.getPosX(), object.getPosY()), object.getPosX() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f, object.getPosY() * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f, object.getKeeperSpellId(), object.getMoneyAmount(), object.getTriggerId(), object.getObjectId(), object.getPlayerId(), (int) worldState.getGameState().getLevelVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY));
+        Vector2f pos = WorldUtils.pointToVector2f(object.getPosX(), object.getPosY());
+
+        return load(assetManager, pos,
+                object.getKeeperSpellId(), object.getMoneyAmount(), object.getTriggerId(),
+                object.getObjectId(), object.getPlayerId(),
+                (int) worldState.getGameState().getLevelVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY));
     }
 
     public Spatial load(AssetManager assetManager, int posX, int posY, short objectId, short playerId) {
-        return load(assetManager, worldState.getMapData().getTile(posX, posY), posX * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f, posY * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f, 0, 0, 0, objectId, playerId, 0);
+        Vector2f pos = WorldUtils.pointToVector2f(posX, posY);
+
+        return load(assetManager, pos, 0, 0, 0, objectId, playerId, 0);
     }
 
-    public Spatial load(AssetManager assetManager, int posX, int posY, int keeperSpellId, int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
-        return load(assetManager, worldState.getMapData().getTile(posX, posY), posX * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f, posY * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f, keeperSpellId, moneyAmount, triggerId, objectId, playerId, maxMoney);
+    public Spatial load(AssetManager assetManager, Point p, int keeperSpellId,
+            int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
+
+        Vector2f pos = WorldUtils.pointToVector2f(p);
+
+        return load(assetManager, pos, keeperSpellId, moneyAmount, triggerId,
+                objectId, playerId, maxMoney);
     }
 
-    public Spatial load(AssetManager assetManager, TileData tile, float posX, float posY, int keeperSpellId, int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
+    public Spatial load(AssetManager assetManager, Vector2f pos, int keeperSpellId,
+            int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
+
         PlayerSpell playerSpell = null;
         if (keeperSpellId > 0) {
             KeeperSpell keeperSpell = kwdFile.getKeeperSpellById(keeperSpellId);
@@ -70,23 +86,35 @@ public class ObjectLoader implements ILoader<Thing.Object> {
             // Create a wrapper for it
             playerSpell = new PlayerSpell(keeperSpell, true);
         }
-        return load(assetManager, tile, posX, posY, playerSpell, moneyAmount, triggerId, objectId, playerId, maxMoney);
+
+        return load(assetManager, pos, playerSpell,
+                moneyAmount, triggerId, objectId, playerId, maxMoney);
     }
 
-    public Spatial load(AssetManager assetManager, TileData tile, float posX, float posY, PlayerSpell playerSpell, int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
+    public Spatial load(AssetManager assetManager, Point p, PlayerSpell playerSpell,
+            int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
+
+        Vector2f pos = WorldUtils.pointToVector2f(p);
+
+        return load(assetManager, pos, triggerId, moneyAmount,
+                triggerId, objectId, playerId, maxMoney);
+    }
+
+    public Spatial load(AssetManager assetManager, Vector2f pos, PlayerSpell playerSpell,
+            int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
+
+        Point p = WorldUtils.vector2fToPoint(pos);
+        TileData tile = worldState.getMapData().getTile(p);
+
         toniarts.openkeeper.tools.convert.map.Object obj = kwdFile.getObject(objectId);
 
         // Load
         ObjectControl objectControl = getControl(tile, obj, moneyAmount, maxMoney, playerSpell);
-        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, objectControl.getResource().getName(), false);
+        Node nodeObject = (Node) AssetUtils.loadAsset(assetManager, objectControl.getResource().getName());
         nodeObject.addControl(objectControl);
 
         // Move to the center of the tile
-        AssetUtils.resetSpatial(nodeObject);
-        nodeObject.setLocalTranslation(
-                posX,
-                0 * MapLoader.TILE_HEIGHT,
-                posY);
+        nodeObject.setLocalTranslation(pos.x, 0, pos.y);
 
         // Orientation
         nodeObject.setLocalRotation(nodeObject.getLocalRotation().fromAngles(0, -objectControl.getOrientation(), 0));
@@ -94,12 +122,15 @@ public class ObjectLoader implements ILoader<Thing.Object> {
         return nodeObject;
     }
 
-    private ObjectControl getControl(TileData tile, Object obj, int moneyAmount, int maxMoney, PlayerSpell playerSpell) {
+    private ObjectControl getControl(TileData tile, Object obj, int moneyAmount,
+            int maxMoney, PlayerSpell playerSpell) {
+
         if (obj.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_GOLD)) {
             return new GoldObjectControl(tile, obj, worldState, moneyAmount, maxMoney);
         } else if (obj.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_SPELL_BOOK)) {
             return new SpellBookObjectControl(tile, obj, worldState, playerSpell);
         }
+
         return new ObjectControl(tile, obj, worldState);
     }
 }

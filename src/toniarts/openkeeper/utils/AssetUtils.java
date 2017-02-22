@@ -118,7 +118,7 @@ public class AssetUtils {
         }
         return model.clone();
     }
-    
+
     public static Spatial loadTerrainWithoutCache(final AssetManager assetManager, String resourceName) {
         String filename = AssetsConverter.MODELS_FOLDER + File.separator + resourceName + ".j3o";
         String assetKey = ConversionUtils.getCanonicalAssetKey(filename);
@@ -126,29 +126,29 @@ public class AssetUtils {
         Spatial model = assetManager.loadModel(assetKey);
         resetSpatial(model);
         resetTerrain(model);
-        
+
         return model;
     }
-    
+
     public static void resetTerrain(Spatial spatial) {
         spatial.move(0, -MapLoader.TILE_HEIGHT, 0);
     }
-    
+
     public static CameraSweepData loadCameraSweep(final AssetManager assetManager, String resourceName) {
         String filename = AssetsConverter.PATHS_FOLDER + File.separator + resourceName + "." + CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION;
         String assetKey = ConversionUtils.getCanonicalAssetKey(filename);
-         
+
         Object asset = assetManager.loadAsset(assetKey);
-         
+
         if (asset == null || !(asset instanceof CameraSweepData)) {
             String msg = "Failed to load the camera sweep file " + resourceName + "!";
             logger.severe(msg);
             throw new RuntimeException(msg);
         }
-        
+
         return (CameraSweepData) asset;
     }
-    
+
     /**
      * Loads the given asset and resets its scale and translation to match our
      * give grid
@@ -187,7 +187,7 @@ public class AssetUtils {
                 }
             }
         });
-        */
+         */
         return spatial;
     }
 
@@ -212,7 +212,8 @@ public class AssetUtils {
      * @param material the material to apply to
      */
     public static void assignMapsToMaterial(AssetManager assetManager, Material material) {
-        String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName(); // Unharmed texture
+        // Unharmed texture
+        String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName();
 
         assignMapToMaterial(assetManager, material, "NormalMap", getNormalMapName(diffuseTexture));
         assignMapToMaterial(assetManager, material, "SpecularMap", getSpecularMapName(diffuseTexture));
@@ -575,11 +576,11 @@ public class AssetUtils {
             spatial.setLocalTranslation(0, 0, 0);
         }
     }
-    
+
     public static void moveToTile(final Spatial spatial, final Point tile) {
         spatial.move(tile.x * MapLoader.TILE_WIDTH, 0, tile.y * MapLoader.TILE_WIDTH);
     }
-    
+
     public static void scale(final Spatial spatial) {
         spatial.scale(MapLoader.TILE_WIDTH, MapLoader.TILE_HEIGHT, MapLoader.TILE_WIDTH);
     }

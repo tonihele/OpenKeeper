@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.control.IContainer;
 import toniarts.openkeeper.view.PlayerCamera;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * TODO need testing. What about `relative` ?
@@ -66,9 +66,7 @@ public class PlayerCameraRotateControl extends Control {
 
         if (parent instanceof ActionPoint) {
             ActionPoint ap = (ActionPoint) parent;
-            Vector3f location = MapLoader.getCameraPositionOnMapPoint(
-                    (int) ((ap.getStart().x + ap.getEnd().x) / 2),
-                    (int) ((ap.getStart().y + ap.getEnd().y) / 2));
+            Vector3f location = WorldUtils.ActionPointToVector3f(ap);
             camera.setLookAt(location);
         }
     }

@@ -43,12 +43,9 @@ public class Quad extends GenericRoom {
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
-        Point start = roomInstance.getCoordinates().get(0);
-
+        //Point start = roomInstance.getCoordinates().get(0);
         // Contruct the tiles
         for (Point p : roomInstance.getCoordinates()) {
-
-            // The bed
             // Figure out which peace by seeing the neighbours
             boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
             boolean NE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
@@ -73,6 +70,28 @@ public class Quad extends GenericRoom {
     }
 
     public static Node constructQuad(AssetManager assetManager, String modelName,
+            boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW) {
+
+        return constructQuad(assetManager, modelName, 0, 0, N, NE, E, SE, S, SW, W, NW);
+    }
+
+    /**
+     *
+     * @param assetManager
+     * @param modelName
+     * @param base base index of piece (need to construct water bed)
+     * @param angle base totation yAngle of piece (need to construct water bed)
+     * @param N
+     * @param NE
+     * @param E
+     * @param SE
+     * @param S
+     * @param SW
+     * @param W
+     * @param NW
+     * @return
+     */
+    public static Node constructQuad(AssetManager assetManager, String modelName, int base, float angle,
             boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW) {
 
         Node quad = new Node();
@@ -154,8 +173,8 @@ public class Quad extends GenericRoom {
                     movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                 }
                 // Load the piece
-                Spatial part = MapLoader.loadTerrain(assetManager, modelName + piece);
-                part.rotate(0, yAngle, 0);
+                Spatial part = MapLoader.loadTerrain(assetManager, modelName + (base + piece));
+                part.rotate(0, angle + yAngle, 0);
                 part.move(movement);
 
                 quad.attachChild(part);

@@ -87,13 +87,12 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     public enum Types {
 
-        CUSTOM("Custom"),
-        MODELS("Models"), 
-        TERRAIN("Terrain"), 
-        /*OBJECTS("Objects"),*/ 
-        MAPS("Maps"), 
+        MODELS("Models"),
+        TERRAIN("Terrain"),
+        /*OBJECTS("Objects"),*/
+        MAPS("Maps"),
         EFFECTS("Effects");
-        
+
         private final String name;
 
         private Types(String name) {
@@ -185,18 +184,19 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         floorGeom = new Node("floorGeom");
         Quad q = new Quad(20, 20);
-        q.scaleTextureCoordinates(new Vector2f(5, 5));
+        q.scaleTextureCoordinates(new Vector2f(1, 1));
         Geometry g = new Geometry("geom", q);
         g.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_X));
         g.setShadowMode(RenderQueue.ShadowMode.Receive);
         floorGeom.attachChild(g);
 
         TangentBinormalGenerator.generate(floorGeom);
-        floorGeom.setLocalTranslation(-10, 0, 10);
+        floorGeom.setLocalTranslation(-10, -0.1f, 10);
 
         floorGeom.setMaterial(mat);
         rootNode.attachChild(floorGeom);
     }
+
     private ActionListener actionListener = new ActionListener() {
         @Override
         public void onAction(String name, boolean pressed, float tpf) {
@@ -300,10 +300,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         nifty.getRenderEngine().setFont(font);
         nifty.registerMouseCursor("pointer", "Interface/Cursors/Idle.png", 4, 4);
 
-        cam.setLocation(new Vector3f(-10, 10, -10));
+        cam.setLocation(new Vector3f(0, 10, 10));
         cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
-        //cam.setRotation(new Quaternion(0.05173137f, 0.92363626f, -0.13454558f, 0.35513034f));
-        flyCam.setMoveSpeed(30);
+        flyCam.setMoveSpeed(10);
         flyCam.setDragToRotate(true);
 
         // Mouse cursor
@@ -331,7 +330,8 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             try {
                 KmfFile kmf = new KmfFile(kmfModel);
                 KmfModelLoader loader = new KmfModelLoader();
-                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf, AssetsConverter.getEngineTexturesFile(dkIIFolder), false);
+                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf,
+                        AssetsConverter.getEngineTexturesFile(dkIIFolder), false);
                 Node node = (Node) loader.load(asset);
                 setupModel(node, false);
             } catch (Exception e) {
@@ -350,7 +350,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
      * @param directory the actual directory where the objects are get
      * @param extension the file extension of the objects wanted
      */
-    public void fillWithFiles(List<String> object, final String rootDirectory, final String directory, final String extension) {
+    public void fillWithFiles(List<String> object, final String rootDirectory,
+            final String directory, final String extension) {
+
         ListBox<String> listBox = getModelListBox();
 
         if (object == null) {
@@ -447,25 +449,14 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     effectManagerState.setEnabled(true);
                     // Load the selected effect
                     final int selectedIndex = event.getSelectionIndices().get(0) + 1;
-                    effectManagerState.loadSingleEffect(spat, new Vector3f(10, 25, 30), selectedIndex, true);
+                    effectManagerState.loadSingleEffect(spat, new Vector3f(0, 0, 0), selectedIndex, true);
                     setupModel(spat, false);
-                    break;
-                }
-                
-                case CUSTOM: {
-                    KwdFile kwd = getKwdFile();
-                    
-                    Terrain t = (Terrain) selection.get(0);
-                    
-                    // Load the selected terrain
-                    Node spat = (Node) new TerrainLoader().load(this.getAssetManager(), t);
-                    customSetup(spat);
                     break;
                 }
             }
         }
     }
-    
+
     private void setupDebug() {
         Debug.showNodeAxes(assetManager, rootNode, 10);
         Debug.attachWireFrameDebugGrid(assetManager, rootNode, Vector3f.ZERO, 20, ColorRGBA.DarkGray);
@@ -499,34 +490,6 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     @Override
     public void onEndScreen() {
-    }
-    
-    private void customSetup(final Node model) {
-        model.setName(NODE_NAME);
-        
-        // Reset the game translation and scale
-        model.breadthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spatial) {
-                spatial.setLocalTranslation(0, 0, 0);
-            }
-        });
-        
-        floorGeom.setCullHint(Spatial.CullHint.Always);
-
-        // Make it rotate
-        //model.addControl(new RotatorControl());
-        
-        rootNode.detachChildNamed(NODE_NAME);
-
-        // Attach the new model
-        rootNode.attachChild(model);
-        
-        // Wireframe status
-        toggleWireframe();
-
-        // Normals status
-        toggleShowNormals();
     }
 
     private void setupModel(final Node spat, boolean isMap) {
@@ -609,8 +572,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                         + AssetsConverter.MODELS_FOLDER + File.separator, "j3o");
                 break;
             }
-            case TERRAIN:
-            case CUSTOM: {
+            case TERRAIN: {
                 fillTerrain();
                 break;
             }

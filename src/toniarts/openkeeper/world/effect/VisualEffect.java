@@ -45,6 +45,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
@@ -163,7 +164,7 @@ public class VisualEffect {
 
                 @Override
                 public void onHit(Vector3f location) {
-                    TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldState.getTileCoordinates(location));
+                    TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldUtils.vector3fToPoint(location));
                     if (tile == null) {
                         logger.warning("Effect hit error");
                         return;
@@ -313,7 +314,7 @@ public class VisualEffect {
 
                     @Override
                     public void onHit(Vector3f location) {
-                        TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldState.getTileCoordinates(location));
+                        TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldUtils.vector3fToPoint(location));
                         if (tile == null) {
                             logger.warning("Effect hit error");
                             return;

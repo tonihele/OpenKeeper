@@ -40,18 +40,9 @@ public class TerrainLoader implements ILoader<Terrain> {
         Node root = new Node(object.getName());
 
         if (object.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
-            int piece = 0;
-            int player = 0;
-            if (object.getCompleteResource() != null) {
-                Spatial s = AssetUtils.loadModel(assetManager, object.getCompleteResource().getName()
-                        + player + "_" + piece, false);
-                root.attachChild(s);
-            }
 
         } else if (object.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)) {
-            Spatial s = AssetUtils.loadModel(assetManager, "Torch1", false);
 
-            root.attachChild(s);
         } else {
             // Add the top
             if (object.getTopResource() != null) {

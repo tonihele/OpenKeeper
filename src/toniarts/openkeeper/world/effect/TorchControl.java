@@ -42,7 +42,6 @@ import java.awt.image.FilteredImageSource;
 import java.awt.image.ImageFilter;
 import java.awt.image.ImageProducer;
 import java.awt.image.RGBImageFilter;
-import java.awt.image.RescaleOp;
 import java.io.IOException;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -58,7 +57,6 @@ public class TorchControl extends BillboardControl {
     private final int frames = 20;
     private Material material;
     private Node torch;
-    private final float angle;
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
 
@@ -67,7 +65,6 @@ public class TorchControl extends BillboardControl {
     public TorchControl(KwdFile kwdFile, AssetManager assetManager, float angle) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
-        this.angle = angle;
         setAlignment(Alignment.AxialY);
     }
 
@@ -95,7 +92,6 @@ public class TorchControl extends BillboardControl {
             result.setMaterial(material);
             result.setQueueBucket(RenderQueue.Bucket.Translucent);
             result.move(0.14f, 0.2f, 0);
-            //result.rotate(0, angle, 0);
             
         } catch (Exception e) {
             log.warning("Can`t create torch flame");

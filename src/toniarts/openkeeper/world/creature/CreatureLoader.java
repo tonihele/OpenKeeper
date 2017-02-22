@@ -91,9 +91,9 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
         AssetUtils.resetSpatial(creatureRoot);
         if (object != null) {
             creatureRoot.setLocalTranslation(
-                    MapLoader.TILE_WIDTH * (object.getPosX() - 0.5f),
+                    MapLoader.TILE_WIDTH * object.getPosX(),
                     0,
-                    MapLoader.TILE_WIDTH * (object.getPosY() - 0.5f));
+                    MapLoader.TILE_WIDTH * object.getPosY());
         }
 
         // Add the creature control
@@ -108,9 +108,9 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
 
     public static void setPosition(Spatial creature, Vector2f position) {
         creature.setLocalTranslation(
-                MapLoader.TILE_WIDTH * (position.x - 0.5f),
+                MapLoader.TILE_WIDTH * position.x,
                 0,
-                MapLoader.TILE_WIDTH * (position.y  - 0.5f));
+                MapLoader.TILE_WIDTH * position.y);
     }
 
 }

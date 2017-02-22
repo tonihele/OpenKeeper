@@ -817,7 +817,7 @@ public abstract class WorldState extends AbstractAppState {
                     if (goldLeft > 0) {
 
                         // Add loose gold to this tile
-                        getThingLoader().addLooseGold(p, new Vector2f(MapLoader.TILE_WIDTH / 2, MapLoader.TILE_WIDTH / 2), player.getPlayerId(), goldLeft);
+                        getThingLoader().addLooseGold(p, player.getPlayerId(), goldLeft);
                     }
                 }
 
@@ -918,16 +918,6 @@ public abstract class WorldState extends AbstractAppState {
             return outPath;
         }
         return null;
-    }
-
-    /**
-     * Get tile coordinates from 3D coordinates
-     *
-     * @param location position
-     * @return tile coordinates
-     */
-    public static Point getTileCoordinates(Vector3f location) {
-        return new Point((int) Math.floor(location.x) + 1, (int) Math.floor(location.z) + 1);
     }
 
     /**
@@ -1444,7 +1434,7 @@ public abstract class WorldState extends AbstractAppState {
         if (goldLeft > 0) {
 
             // Create a gold pile
-            thingLoader.addLooseGold(tile.getLocation(), coordinates, gold.getOwnerId(), goldLeft);
+            thingLoader.addLooseGold(tile.getLocation(), gold.getOwnerId(), goldLeft);
         }
     }
 

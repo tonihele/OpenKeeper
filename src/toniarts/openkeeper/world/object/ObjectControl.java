@@ -28,6 +28,7 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
@@ -262,7 +263,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
      * @return the tile coordinates
      */
     public Point getObjectCoordinates() {
-        return worldState.getTileCoordinates(getSpatial().getWorldTranslation());
+        return WorldUtils.vector3fToPoint(getSpatial().getWorldTranslation());
     }
 
     public ObjectState getState() {

@@ -19,14 +19,7 @@ package toniarts.openkeeper.world.room;
 import com.jme3.asset.AssetManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.DOUBLE_QUAD;
-import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.HERO_GATE_2_BY_2;
-import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.HERO_GATE_3_BY_1;
-import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.HERO_GATE_FRONT_END;
-import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.NORMAL;
-import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.QUAD;
-import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction._3_BY_3;
-import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction._5_BY_5_ROTATED;
+import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.*;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -47,6 +40,7 @@ public final class RoomConstructor {
 
     public static GenericRoom constructRoom(RoomInstance roomInstance, AssetManager assetManager,
             EffectManagerState effectManager, WorldState worldState, ObjectLoader objectLoader) {
+
         String roomName = roomInstance.getRoom().getName();
 
         switch (roomInstance.getRoom().getTileConstruction()) {
@@ -83,29 +77,21 @@ public final class RoomConstructor {
             case NORMAL:
                 if (roomName.equalsIgnoreCase("Lair")) {
                     return new Lair(assetManager, roomInstance, objectLoader, worldState, effectManager);
-                }
-                if (roomName.equalsIgnoreCase("Library")) {
+                } else if (roomName.equalsIgnoreCase("Library")) {
                     return new Library(assetManager, roomInstance, objectLoader, worldState, effectManager);
-                }
-                if (roomName.equalsIgnoreCase("Training Room")) {
+                } else if (roomName.equalsIgnoreCase("Training Room")) {
                     return new TrainingRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
-                }
-                if (roomName.equalsIgnoreCase("Work Shop")) {
+                } else if (roomName.equalsIgnoreCase("Work Shop")) {
                     return new Workshop(assetManager, roomInstance, objectLoader, worldState, effectManager);
-                }
-                if (roomName.equalsIgnoreCase("Guard Room")) {
+                } else if (roomName.equalsIgnoreCase("Guard Room")) {
                     return new GuardRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
-                }
-                if (roomName.equalsIgnoreCase("Casino")) {
+                } else if (roomName.equalsIgnoreCase("Casino")) {
                     return new Casino(assetManager, roomInstance, objectLoader, worldState, effectManager);
-                }
-                if (roomName.equalsIgnoreCase("Graveyard")) {
+                } else if (roomName.equalsIgnoreCase("Graveyard")) {
                     return new Graveyard(assetManager, roomInstance, objectLoader, worldState, effectManager);
-                }
-                if (roomName.equalsIgnoreCase("Torture Chamber")) {
+                } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
                     return new TortureChamber(assetManager, roomInstance, objectLoader, worldState, effectManager);
-                }
-                if (roomName.equalsIgnoreCase("Treasury")) {
+                } else if (roomName.equalsIgnoreCase("Treasury")) {
                     return new Treasury(assetManager, roomInstance, objectLoader, worldState, effectManager) {
 
                         private Integer goldPerTile;
@@ -119,8 +105,7 @@ public final class RoomConstructor {
                         }
 
                     };
-                }
-                if (roomName.equalsIgnoreCase("Hatchery")) {
+                } else if (roomName.equalsIgnoreCase("Hatchery")) {
                     return new Hatchery(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 }
                 return new Normal(assetManager, roomInstance, objectLoader, worldState, effectManager);
@@ -128,9 +113,8 @@ public final class RoomConstructor {
             case QUAD:
                 if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
                     return new StoneBridge(assetManager, roomInstance, objectLoader, worldState, effectManager);
-                } else {
-                    return new Quad(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 }
+                return new Quad(assetManager, roomInstance, objectLoader, worldState, effectManager);
 
             case DOUBLE_QUAD:
                 if (roomName.equalsIgnoreCase("Prison")) {
@@ -141,8 +125,7 @@ public final class RoomConstructor {
                     return new Temple(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 }
                 // TODO use quad construction for different rooms
-                // root.attachChild(DoubleQuad.construct(assetManager, roomInstance));
-                break;
+                return new DoubleQuad(assetManager, roomInstance, objectLoader, worldState, effectManager);
 
             default:
 

@@ -418,13 +418,13 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         return spatial;
     }
-    
+
     public static Spatial loadTerrain(final AssetManager assetManager, final String model) {
         Spatial spatial = loadTerrain(assetManager, model, false);
 
         return spatial;
     }
-    
+
     public static Spatial loadTerrain(final AssetManager assetManager, final String model, final boolean useWeakCache) {
         Spatial spatial = AssetUtils.loadAsset(assetManager, model, useWeakCache);
         AssetUtils.resetTerrain(spatial);
@@ -785,17 +785,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         roomActuals.put(roomInstance, room);
         updateRoomWalls(roomInstance);
         return room.construct();
-    }
-
-    /**
-     * Get a standard camera position vector on given map point
-     *
-     * @param x tile x coordinate
-     * @param y tile y coordinate
-     * @return camera location
-     */
-    public static Vector3f getCameraPositionOnMapPoint(final int x, final int y) {
-        return new Vector3f(x * MapLoader.TILE_WIDTH, 0, y * MapLoader.TILE_WIDTH);
     }
 
     /**

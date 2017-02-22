@@ -57,7 +57,7 @@ import toniarts.openkeeper.tools.convert.map.Thing.KeeperCreature;
 import toniarts.openkeeper.tools.convert.map.Thing.NeutralCreature;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.animation.AnimationControl;
@@ -327,7 +327,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void navigateToRandomPoint() {
-        Point p = worldState.findRandomAccessibleTile(WorldState.getTileCoordinates(getSpatial().getWorldTranslation()), 10, this);
+        Point p = worldState.findRandomAccessibleTile(WorldUtils.vector3fToPoint(getSpatial().getWorldTranslation()), 10, this);
         if (p != null) {
 
             SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, p);
@@ -339,7 +339,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void navigateToRandomPointAroundTarget(CreatureControl target, int radius) {
-        Point p = worldState.findRandomAccessibleTile(WorldState.getTileCoordinates(target.getSpatial().getWorldTranslation()), radius, this);
+        Point p = worldState.findRandomAccessibleTile(WorldUtils.vector3fToPoint(target.getSpatial().getWorldTranslation()), radius, this);
         if (p != null) {
 
             SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, p);
@@ -826,11 +826,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             }
 
             // No merging, just add loose gold
-            Point p = getCreatureCoordinates();
+            Vector3f pos = spatial.getLocalTranslation();
             worldState.getGameState().getApplication().enqueue(() -> {
-
-                // FIXME: Better coordinates
-                worldState.getThingLoader().addLooseGold(p, new Vector2f(MapLoader.TILE_WIDTH / 2, MapLoader.TILE_WIDTH / 2), ownerId, goldToSet);
+                worldState.getThingLoader().addLooseGold(new Vector2f(pos.x, pos.z), ownerId, goldToSet);
             });
             gold = 0;
         }
@@ -846,7 +844,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (stateMachine.getCurrentState() != CreatureState.PICKED_UP) {
             Vector3f translation = getSpatial().getWorldTranslation();
             if (translation != null) {
-                return WorldState.getTileCoordinates(translation);
+                return WorldUtils.vector3fToPoint(translation);
             }
         }
         return null;
@@ -1178,13 +1176,13 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     @Override
     public void drop(TileData tile, Vector2f coordinates, IInteractiveControl control) {
-
+        //TODO TileData tile = worldState.getMapData().getTile(coordinates);
         // TODO: actual dropping & being stunned, & evict (Imp to DHeart & creature to portal)
-        CreatureLoader.setPosition(spatial, new Vector2f(tile.getX(), tile.getY()));
+        CreatureLoader.setPosition(spatial, coordinates);
         worldState.getThingLoader().attachCreature(getSpatial());
 
         if (!detectImprisoningAndTorturing(tile.getLocation())) {
-            spatial.addControl(new LandingControl(tile) {
+            spatial.addControl(new LandingControl(coordinates) {
 
                 @Override
                 public void onLanded() {

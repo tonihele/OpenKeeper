@@ -30,9 +30,7 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -323,26 +321,27 @@ public abstract class GenericRoom {
                     spatial = MapLoader.loadTerrain(assetManager, resource + getWallIndex(i));
                     spatial.rotate(0, yAngle, 0);
 
-                    if (section.getDirection() == WallSection.WallDirection.WEST) {
-                        spatial.move(-MapLoader.TILE_WIDTH, 0, 0);
-                    } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
-                        spatial.move(0, 0, MapLoader.TILE_WIDTH);
-                        //yAngle = 0;
-                    } else if (section.getDirection() == WallSection.WallDirection.EAST) {
-                        spatial.move(MapLoader.TILE_WIDTH, 0, 0);
-                        //yAngle = FastMath.PI;
-                    } else { // NORTH
-                        spatial.move(0, 0, -MapLoader.TILE_WIDTH);
-                        //yAngle = FastMath.PI;
+                    switch (section.getDirection()) {
+                        case WEST:
+                            spatial.move(-MapLoader.TILE_WIDTH, 0, 0);
+                            break;
+                        case SOUTH:
+                            spatial.move(0, 0, MapLoader.TILE_WIDTH);
+                            break;
+                        case EAST:
+                            spatial.move(MapLoader.TILE_WIDTH, 0, 0);
+                            break;
+                        default:
+                            // NORTH
+                            spatial.move(0, 0, -MapLoader.TILE_WIDTH);
+                            break;
                     }
-                    
-                    
                 }
 
                 return spatial;
-
             }
         }
+
         return null;
     }
 
@@ -359,7 +358,7 @@ public abstract class GenericRoom {
         //resetSpatial(tile);
         tile.move(p.x - start.x, 0, p.y - start.y);
     }
-    
+
     /**
      * Resets (scale & translation) and moves the spatial to the point. The
      * point is relative to the start point

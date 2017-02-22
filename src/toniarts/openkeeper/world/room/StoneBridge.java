@@ -25,7 +25,6 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
-import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -44,8 +43,7 @@ public class StoneBridge extends Quad {
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
-        Point start = roomInstance.getCoordinates().get(0);
-
+        //Point start = roomInstance.getCoordinates().get(0);
         // Contruct the tiles Wooden Bridge
         for (Point p : roomInstance.getCoordinates()) {
             // Figure out which peace by seeing the neighbours
