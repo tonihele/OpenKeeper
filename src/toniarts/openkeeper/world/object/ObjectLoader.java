@@ -31,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.ILoader;
+import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
@@ -103,18 +104,19 @@ public class ObjectLoader implements ILoader<Thing.Object> {
     public Spatial load(AssetManager assetManager, Vector2f pos, PlayerSpell playerSpell,
             int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
 
-        Point p = WorldUtils.vector2fToPoint(pos);
+        Point p = WorldUtils.vectorToPoint(pos);
         TileData tile = worldState.getMapData().getTile(p);
 
         toniarts.openkeeper.tools.convert.map.Object obj = kwdFile.getObject(objectId);
 
         // Load
         ObjectControl objectControl = getControl(tile, obj, moneyAmount, maxMoney, playerSpell);
-        Node nodeObject = (Node) AssetUtils.loadAsset(assetManager, objectControl.getResource().getName());
+        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, objectControl.getResource().getName());
         nodeObject.addControl(objectControl);
 
         // Move to the center of the tile
         nodeObject.setLocalTranslation(pos.x, 0, pos.y);
+        nodeObject.move(0, MapLoader.FLOOR_HEIGHT, 0);
 
         // Orientation
         nodeObject.setLocalRotation(nodeObject.getLocalRotation().fromAngles(0, -objectControl.getOrientation(), 0));

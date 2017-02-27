@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.task.creature;
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
@@ -44,7 +45,7 @@ public class GoToSleep extends AbstractTileTask {
 
     @Override
     public Vector2f getTarget(CreatureControl creature) {
-        return new Vector2f(getTaskLocation().x + 0.5f, getTaskLocation().y + 0.5f);
+        return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
     @Override

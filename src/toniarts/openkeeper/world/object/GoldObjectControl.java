@@ -19,10 +19,10 @@ package toniarts.openkeeper.world.object;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.gui.CursorFactory;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -100,8 +100,8 @@ public class GoldObjectControl extends ObjectControl {
 
     private void refreshResource() {
         if (isAdditionalResources() && currentResourceIndex != getResourceIndex()) {
-            Node nodeObject = (Node) AssetUtils.loadModel(worldState.getAssetManager(), getResource().getName(), false);
-            AssetUtils.resetSpatial(nodeObject);
+            Node nodeObject = (Node) AssetUtils.loadModel(worldState.getAssetManager(), getResource().getName());
+            nodeObject.move(0, MapLoader.FLOOR_HEIGHT, 0);
             ((Node) getSpatial()).detachAllChildren();
             for (Spatial spat : nodeObject.getChildren()) {
                 ((Node) getSpatial()).attachChild(spat);

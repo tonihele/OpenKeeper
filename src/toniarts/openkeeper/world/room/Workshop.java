@@ -109,7 +109,7 @@ public class Workshop extends Normal {
     }
 
     private Spatial constructPillar(Node node, Point p, float yAngle) {
-        Spatial part = AssetUtils.loadAsset(assetManager, getPillarResource());
+        Spatial part = AssetUtils.loadModel(assetManager, getPillarResource());
         moveSpatial(part, p);
 
         if (yAngle != 0) {

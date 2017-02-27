@@ -31,7 +31,6 @@ import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
 import java.awt.Color;
 import java.awt.Point;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -43,7 +42,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -68,9 +66,14 @@ import toniarts.openkeeper.world.terrain.Water;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class MapLoader implements ILoader<KwdFile> {
-
+    
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
+    public final static float TORCH_HEIGHT = 3 * TILE_HEIGHT / 2;
+    public final static float TOP_HEIGHT = 2 * TILE_HEIGHT;
+    public final static float FLOOR_HEIGHT = 1 * TILE_HEIGHT;
+    public final static float UNDERFLOOR_HEIGHT = 0 * TILE_HEIGHT;
+
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
     public final static ColorRGBA COLOR_TAG = new ColorRGBA(0, 0, 0.8f, 1);
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
@@ -347,7 +350,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
         // Check for out of bounds
         if (neigbourTile == null) {
-            return loadTerrain(modelName);
+            return loadModel(modelName);
         }
 
         if (neigbourTile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
@@ -355,12 +358,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
 
         if (!(tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS))) {
-            return loadTerrain(modelName);
+            return loadModel(modelName);
         } else if (hasRoomWalls(neigbourTile)) {
             return getRoomWall(neigbourTile, direction);
         }
 
-        return loadTerrain(modelName);
+        return loadModel(modelName);
     }
 
     private Spatial getRoomWall(TileData tile, WallDirection direction) {
@@ -413,21 +416,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         });
     }
 
-    private Spatial loadTerrain(final String model) {
-        Spatial spatial =loadTerrain(assetManager, model);
-
-        return spatial;
-    }
-
-    public static Spatial loadTerrain(final AssetManager assetManager, final String model) {
-        Spatial spatial = loadTerrain(assetManager, model, false);
-
-        return spatial;
-    }
-
-    public static Spatial loadTerrain(final AssetManager assetManager, final String model, final boolean useWeakCache) {
-        Spatial spatial = AssetUtils.loadAsset(assetManager, model, useWeakCache);
-        AssetUtils.resetTerrain(spatial);
+    private Spatial loadModel(final String model) {
+        Spatial spatial = AssetUtils.loadModel(assetManager, model);
 
         return spatial;
     }
@@ -480,29 +470,29 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         float angleY = 0;
         Vector3f position = Vector3f.ZERO;
 
-        if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0  && canPlaceTorch(tile.getX(), tile.getY() - 1)) { // South
+        if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0  && canPlaceTorch(tile.getX(), tile.getY() - 1)) { // North
             name = "Torch1";
             angleY = -FastMath.HALF_PI;
-            position = new Vector3f(0, TILE_HEIGHT / 2, -TILE_WIDTH / 2);
+            position = new Vector3f(0, TORCH_HEIGHT, -TILE_WIDTH / 2);
 
-        } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() - 1, tile.getY())) { // East
+        } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() - 1, tile.getY())) { // West
             name = "Torch1";
-            position = new Vector3f(-TILE_WIDTH / 2, TILE_HEIGHT / 2, 0);
+            position = new Vector3f(-TILE_WIDTH / 2, TORCH_HEIGHT, 0);
 
-        } else if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() + 1)) { // North
+        } else if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() + 1)) { // South
             name = "Torch1";
             angleY = FastMath.HALF_PI;
-            position = new Vector3f(0, TILE_HEIGHT / 2, TILE_WIDTH / 2);
+            position = new Vector3f(0, TORCH_HEIGHT, TILE_WIDTH / 2);
 
-        } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() + 1, tile.getY())) { // West
+        } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() + 1, tile.getY())) { // East
             name = "Torch1";
             angleY = FastMath.PI;
-            position = new Vector3f(TILE_WIDTH / 2, TILE_HEIGHT / 2, 0);
+            position = new Vector3f(TILE_WIDTH / 2, TORCH_HEIGHT, 0);
         }
 
         // Move to tile and right height
         if (name != null) {
-            Spatial spatial = AssetUtils.loadAsset(assetManager, name);
+            Spatial spatial = AssetUtils.loadModel(assetManager, name);
             spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
             spatial.rotate(0, angleY, 0);
             spatial.move(position);
@@ -585,7 +575,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
                 model = terrain.getTopResource();
             }
-            spatial = loadTerrain(model.getName());
+            spatial = loadModel(model.getName());
         }
 
         if (terrain.getFlags().contains(Terrain.TerrainFlag.RANDOM_TEXTURE)) {

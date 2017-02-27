@@ -135,7 +135,7 @@ public class StoneBridge extends Quad {
                         movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                     }
                     // Load the piece
-                    Spatial part = MapLoader.loadTerrain(assetManager, modelName + piece);
+                    Spatial part = AssetUtils.loadModel(assetManager, modelName + piece);
                     part.rotate(0, yAngle, 0);
                     part.move(movement);
 

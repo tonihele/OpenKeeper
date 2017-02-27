@@ -25,6 +25,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.ILoader;
+import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.UnitFlowerControl;
 
@@ -55,12 +56,12 @@ public class TrapLoader implements ILoader<Thing.Trap> {
 
         // Load
         TrapControl trapControl = new TrapControl(worldState.getMapData().getTile(posX, posY), trap, worldState, assetManager, blueprint);
-        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, trap.getMeshResource().getName(), false);
+        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, trap.getMeshResource().getName());
         nodeObject.addControl(trapControl);
 
         // Move to the center of the tile
-        AssetUtils.resetSpatial(nodeObject);
         nodeObject.setLocalTranslation(WorldUtils.pointToVector3f(posX, posY));
+        nodeObject.move(0, MapLoader.FLOOR_HEIGHT, 0);
 
         trapControl.initState();
 

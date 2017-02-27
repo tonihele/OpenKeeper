@@ -68,6 +68,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.modelviewer.Debug;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.FlashTileControl;
@@ -1043,7 +1044,7 @@ public abstract class WorldState extends AbstractAppState {
             // TODO: effect, drop loot & checks, claimed walls should also get destroyed if all adjacent tiles are not in cotrol anymore
             // The tile is dead
             if (terrain.getDestroyedEffectId() != 0) {
-                effectManager.load(worldNode, new Vector3f(point.x + 0.5f, 0, point.y + 0.5f), terrain.getDestroyedEffectId(), false);
+                effectManager.load(worldNode, WorldUtils.pointToVector3f(point), terrain.getDestroyedEffectId(), false);
             }
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
 
@@ -1093,7 +1094,7 @@ public abstract class WorldState extends AbstractAppState {
             // TODO: effect & checks
             // The tile is upgraded
             if (terrain.getMaxHealthEffectId() != 0) {
-                effectManager.load(worldNode, new Vector3f(point.x + 0.5f, 0, point.y + 0.5f), terrain.getMaxHealthEffectId(), false);
+                effectManager.load(worldNode, WorldUtils.pointToVector3f(point), terrain.getMaxHealthEffectId(), false);
             }
             if (terrain.getMaxHealthTypeTerrainId() > 0) {
                 tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());

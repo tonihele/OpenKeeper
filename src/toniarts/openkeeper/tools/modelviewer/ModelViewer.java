@@ -411,7 +411,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 case MODELS: {
 
                     // Load the selected model
-                    Node spat = (Node) AssetUtils.loadModel(assetManager, (String) selection.get(0), false);
+                    Node spat = (Node) AssetUtils.loadModel(assetManager, (String) selection.get(0));
                     setupModel(spat, false);
                     break;
                 }

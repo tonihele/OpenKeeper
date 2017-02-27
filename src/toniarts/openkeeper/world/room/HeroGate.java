@@ -56,7 +56,7 @@ public class HeroGate extends GenericRoom {
             if (!N && E && W) {
                 piece = 1;
             } else if (!S && !E && !W) {
-                tile = AssetUtils.loadTerrainWithoutCache(assetManager, roomInstance.getRoom().getCapResource().getName());
+                tile = AssetUtils.loadModel(assetManager, roomInstance.getRoom().getCapResource().getName(), false, true);
                 moveSpatial(tile, start, p);
                 root.attachChild(tile);
                 piece = 9;
@@ -67,7 +67,7 @@ public class HeroGate extends GenericRoom {
                 yAngle = - 2 * FastMath.HALF_PI;
             }
 
-            tile = AssetUtils.loadTerrainWithoutCache(assetManager, modelName + piece);
+            tile = AssetUtils.loadModel(assetManager, modelName + piece, false, true);
             // Reset
             moveSpatial(tile, start, p);
             if (yAngle != 0) {
@@ -81,7 +81,6 @@ public class HeroGate extends GenericRoom {
 
         // Set the transform and scale to our scale and 0 the transform
         AssetUtils.moveToTile(root, start);
-        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return root;
     }
@@ -102,13 +101,13 @@ public class HeroGate extends GenericRoom {
                 float yAngle = 0;
                 switch (section.getDirection()) {
                     case SOUTH:
-                        piece = (i == 1) ? 5 : 7;                        
+                        piece = (i == 1) ? 5 : 7;
                         break;
 
                     case EAST:
                         if (section.getCoordinates().size() == 1) {
                             piece = 6; // outside gate
-                        } else { 
+                        } else {
                             piece = 7;
                             yAngle = FastMath.HALF_PI;
                         }
@@ -119,7 +118,7 @@ public class HeroGate extends GenericRoom {
                         if (section.getCoordinates().size() == 1) {
                             piece = 6; // inside gate
                             yAngle = FastMath.PI;
-                        } else { 
+                        } else {
                             piece = 7;
                             yAngle = -FastMath.HALF_PI;
                         }
@@ -141,7 +140,7 @@ public class HeroGate extends GenericRoom {
                 }
 
                 i++;
-                part = AssetUtils.loadTerrainWithoutCache(assetManager, modelName + piece);
+                part = AssetUtils.loadModel(assetManager, modelName + piece, false, true);
                 if (yAngle != 0) {
                     part.rotate(0, yAngle, 0);
                 }

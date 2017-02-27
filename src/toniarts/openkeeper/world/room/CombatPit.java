@@ -63,7 +63,7 @@ public class CombatPit extends DoubleQuad {
             boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
 
             if (door == null && !N && !NE && E && SE && S && SW && W && !NW) {
-                Spatial part = MapLoader.loadTerrain(assetManager, modelName + "14");
+                Spatial part = AssetUtils.loadModel(assetManager, modelName + "14");
                 part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
                 moveSpatial(part, p);
 
@@ -79,7 +79,6 @@ public class CombatPit extends DoubleQuad {
 
         // Set the transform and scale to our scale and 0 the transform
         //AssetUtils.moveToTile(root, start);
-        //root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return root;
     }

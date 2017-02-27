@@ -26,6 +26,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
@@ -88,13 +89,10 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
         };
 
         // Set map position
-        AssetUtils.resetSpatial(creatureRoot);
         if (object != null) {
-            creatureRoot.setLocalTranslation(
-                    MapLoader.TILE_WIDTH * object.getPosX(),
-                    0,
-                    MapLoader.TILE_WIDTH * object.getPosY());
+            creatureRoot.setLocalTranslation(WorldUtils.pointToVector3f(object.getPosX(), object.getPosY()));
         }
+        creatureRoot.move(0, MapLoader.FLOOR_HEIGHT, 0);
 
         // Add the creature control
         creatureRoot.addControl(creatureControl);
@@ -107,10 +105,6 @@ public abstract class CreatureLoader implements ILoader<Thing.Creature>, Creatur
     }
 
     public static void setPosition(Spatial creature, Vector2f position) {
-        creature.setLocalTranslation(
-                MapLoader.TILE_WIDTH * position.x,
-                0,
-                MapLoader.TILE_WIDTH * position.y);
+        creature.setLocalTranslation(position.x, MapLoader.FLOOR_HEIGHT, position.y);
     }
-
 }

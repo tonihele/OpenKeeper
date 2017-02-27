@@ -327,7 +327,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void navigateToRandomPoint() {
-        Point p = worldState.findRandomAccessibleTile(WorldUtils.vector3fToPoint(getSpatial().getWorldTranslation()), 10, this);
+        Point p = worldState.findRandomAccessibleTile(WorldUtils.vectorToPoint(getSpatial().getWorldTranslation()), 10, this);
         if (p != null) {
 
             SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, p);
@@ -339,7 +339,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void navigateToRandomPointAroundTarget(CreatureControl target, int radius) {
-        Point p = worldState.findRandomAccessibleTile(WorldUtils.vector3fToPoint(target.getSpatial().getWorldTranslation()), radius, this);
+        Point p = worldState.findRandomAccessibleTile(WorldUtils.vectorToPoint(target.getSpatial().getWorldTranslation()), radius, this);
         if (p != null) {
 
             SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, p);
@@ -731,15 +731,18 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
         Vector2f loc = assignedTask.getTarget(this);
         workNavigationRequired = false;
-        if (loc != null) {
 
-            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, new Point((int) Math.floor(loc.x), (int) Math.floor(loc.y)), assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
+        if (loc != null) {
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState,
+                    this, this, WorldUtils.vectorToPoint(loc),
+                    assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
             if (steering != null) {
                 steering.setEnabled(!isAnimationPlaying());
                 setSteeringBehavior(steering);
                 return true;
             }
         }
+
         return false;
     }
 
@@ -844,7 +847,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (stateMachine.getCurrentState() != CreatureState.PICKED_UP) {
             Vector3f translation = getSpatial().getWorldTranslation();
             if (translation != null) {
-                return WorldUtils.vector3fToPoint(translation);
+                return WorldUtils.vectorToPoint(translation);
             }
         }
         return null;

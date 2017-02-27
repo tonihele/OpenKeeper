@@ -26,7 +26,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.utils.AssetUtils;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -81,7 +81,7 @@ public class Prison extends DoubleQuad {
             boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
 
             if (door == null && !N && !NE && E && SE && S && SW && W && !NW) {
-                Spatial part = MapLoader.loadTerrain(assetManager, modelName + "14");
+                Spatial part = AssetUtils.loadModel(assetManager, modelName + "14");
                 part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
                 moveSpatial(part, p);
 

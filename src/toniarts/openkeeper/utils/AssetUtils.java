@@ -88,54 +88,56 @@ public class AssetUtils {
      * cache.
      *
      * @param assetManager the asset manager to use
-     * @param resourceName the model name, the model name is checked and fixed
+     * @param modelName the model name, the model name is checked and fixed
+     * @param useCache use cache or not
      * @param useWeakCache use weak cache, if not then permanently cache the
      * models. Use weak cache to load some models that are not often needed
      * (water bed etc.)
      * @return a cloned instance from the cache
      */
-    public static Spatial loadModel(final AssetManager assetManager, String resourceName, boolean useWeakCache) {
-        String filename = AssetsConverter.MODELS_FOLDER + File.separator + resourceName + ".j3o";
+    public static Spatial loadModel(final AssetManager assetManager, String modelName,
+            final boolean useCache, final boolean useWeakCache) {
+        
+        String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
         ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(filename));
 
-        // Set the correct asset cache
-        final AssetCache cache;
-        if (useWeakCache) {
-            cache = weakAssetCache;
+        Spatial result;
+        if (useCache) {
+            // Set the correct asset cache
+            final AssetCache cache = (useWeakCache) ? weakAssetCache : assetCache;
+
+            // Get the model from cache
+            Spatial model = cache.getFromCache(assetKey);
+            if (model == null) {
+                model = assetManager.loadModel(assetKey);
+                resetSpatial(model);
+                // Assign maps
+                assignMapsToMaterial(model, assetManager);
+
+                cache.addToCache(assetKey, model);
+            }
+            result = model.clone();
         } else {
-            cache = assetCache;
-        }
-
-        // Get the model from cache
-        Spatial model = cache.getFromCache(assetKey);
-        if (model == null) {
-            model = assetManager.loadModel(assetKey);
-
-            // Assign maps
-            assignMapsToMaterial(model, assetManager);
-
-            cache.addToCache(assetKey, model);
-        }
-        return model.clone();
+            result = assetManager.loadModel(assetKey);
+            resetSpatial(result);
+        }        
+        
+        return result;
     }
-
-    public static Spatial loadTerrainWithoutCache(final AssetManager assetManager, String resourceName) {
-        String filename = AssetsConverter.MODELS_FOLDER + File.separator + resourceName + ".j3o";
-        String assetKey = ConversionUtils.getCanonicalAssetKey(filename);
-
-        Spatial model = assetManager.loadModel(assetKey);
-        resetSpatial(model);
-        resetTerrain(model);
-
-        return model;
+    
+    public static Spatial loadModel(final AssetManager assetManager, String resourceName,
+            final boolean useWeakCache) {
+        
+        return loadModel(assetManager, resourceName, true, useWeakCache);
     }
-
-    public static void resetTerrain(Spatial spatial) {
-        spatial.move(0, -MapLoader.TILE_HEIGHT, 0);
+    
+    public static Spatial loadModel(final AssetManager assetManager, String resourceName) {
+        return loadModel(assetManager, resourceName, true, false);
     }
 
     public static CameraSweepData loadCameraSweep(final AssetManager assetManager, String resourceName) {
-        String filename = AssetsConverter.PATHS_FOLDER + File.separator + resourceName + "." + CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION;
+        String filename = AssetsConverter.PATHS_FOLDER + File.separator + resourceName + "."
+                + CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION;
         String assetKey = ConversionUtils.getCanonicalAssetKey(filename);
 
         Object asset = assetManager.loadAsset(assetKey);
@@ -147,48 +149,6 @@ public class AssetUtils {
         }
 
         return (CameraSweepData) asset;
-    }
-
-    /**
-     * Loads the given asset and resets its scale and translation to match our
-     * give grid
-     *
-     * @param assetManager the asset manager
-     * @param asset the name and location of the asset (asset key)
-     * @return the asset loaded & ready to rock
-     */
-    public static Spatial loadAsset(final AssetManager assetManager, final String asset) {
-        return loadAsset(assetManager, asset, false);
-    }
-
-    /**
-     * Loads the given asset and resets its scale and translation to match our
-     * give grid
-     *
-     * @param assetManager the asset manager
-     * @param asset the name and location of the asset (asset key)
-     * @param useWeakCache use weak cache walls
-     * @return the asset loaded & ready to rock
-     */
-    public static Spatial loadAsset(final AssetManager assetManager, final String asset, final boolean useWeakCache) {
-        Spatial spatial = loadModel(assetManager, asset, useWeakCache);
-
-        // Set the transform and scale to our scale and 0 the transform
-        resetSpatial(spatial);
-        /*
-        spatial.breadthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spatial) {
-                if (spatial instanceof Node && spatial.getParent() != null) {
-                    Node n = (Node) spatial;
-                    // "Reset"
-                    n.setLocalTranslation(0, -TILE_HEIGHT, 0);
-                    //n.setLocalScale(1f);
-                }
-            }
-        });
-         */
-        return spatial;
     }
 
     private static void assignMapsToMaterial(Spatial model, AssetManager assetManager) {
@@ -439,26 +399,26 @@ public class AssetUtils {
                                     || artResource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH
                                     || artResource.getType() == ArtResource.ArtResourceType.MESH_COLLECTION
                                     || artResource.getType() == ArtResource.ArtResourceType.PROCEDURAL_MESH) {
-                                models.add(loadModel(assetManager, artResource.getName(), false));
+                                models.add(loadModel(assetManager, artResource.getName()));
                             } else if (artResource.getType() == ArtResource.ArtResourceType.TERRAIN_MESH && obj instanceof Terrain) {
 
                                 // With terrains, we need to see the contruction type
                                 Terrain terrain = (Terrain) obj;
                                 if (method.getName().startsWith("getTaggedTopResource") || method.getName().startsWith("getSideResource")) {
-                                    models.add(loadModel(assetManager, artResource.getName(), false));
+                                    models.add(loadModel(assetManager, artResource.getName()));
                                 } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
                                     for (int i = 0; i < 5; i++) {
                                         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                                             for (int y = 0; y < 7; y++) {
-                                                models.add(loadModel(assetManager, artResource.getName() + y + "_" + i, false));
+                                                models.add(loadModel(assetManager, artResource.getName() + y + "_" + i, true, false));
                                             }
                                         } else {
-                                            models.add(loadModel(assetManager, artResource.getName() + i, false));
+                                            models.add(loadModel(assetManager, artResource.getName() + i));
                                         }
                                     }
                                 } // TODO: No water... it is done in Water.java, need to tweak somehow
                                 else if (!terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)) {
-                                    models.add(loadModel(assetManager, artResource.getName(), false));
+                                    models.add(loadModel(assetManager, artResource.getName()));
                                 }
                             } else if (artResource.getType() == ArtResource.ArtResourceType.TERRAIN_MESH && obj instanceof Room) {
 
@@ -540,7 +500,8 @@ public class AssetUtils {
                 }
 
                 // Don't highlight non-removables
-                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE)) || Boolean.FALSE.equals(spatial.getParent().getParent().getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))) {
+                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE)) 
+                        || Boolean.FALSE.equals(spatial.getParent().getParent().getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))) {
                     return;
                 }
 
@@ -561,24 +522,30 @@ public class AssetUtils {
     }
 
     /**
-     * Reset the spatial scale & transform and all the first level children
+     * Reset translation of spatial and all children
      *
      * @param spatial the spatial to reset
      */
     public static void resetSpatial(Spatial spatial) {
+        /*
         if (spatial instanceof Node) {
             for (Spatial subSpat : ((Node) spatial).getChildren()) {
-                //subSpat.setLocalScale(MapLoader.TILE_WIDTH);
                 subSpat.setLocalTranslation(0, 0, 0);
             }
         } else {
-            //spatial.setLocalScale(MapLoader.TILE_WIDTH);
             spatial.setLocalTranslation(0, 0, 0);
         }
+        */
+        spatial.breadthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                spatial.setLocalTranslation(0, 0, 0);
+            }
+        });
     }
 
     public static void moveToTile(final Spatial spatial, final Point tile) {
-        spatial.move(tile.x * MapLoader.TILE_WIDTH, 0, tile.y * MapLoader.TILE_WIDTH);
+        spatial.move(WorldUtils.pointToVector3f(tile));
     }
 
     public static void scale(final Spatial spatial) {

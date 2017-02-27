@@ -59,12 +59,12 @@ public class DoorLoader implements ILoader<Thing.Door> {
 
         // Load
         DoorControl doorControl = new DoorControl(worldState.getMapData().getTile(posX, posY), door, kwdFile.getObject(door.getKeyObjectId()), kwdFile.getTrapById(door.getTrapTypeId()), worldState, assetManager, locked, blueprint);
-        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE) ? door.getMesh().getName() : door.getCloseResource().getName()), false);
+        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE) ? door.getMesh().getName() : door.getCloseResource().getName()));
         nodeObject.addControl(doorControl);
 
         // Move to the center of the tile
-        AssetUtils.resetSpatial(nodeObject);
         nodeObject.setLocalTranslation(WorldUtils.pointToVector3f(posX, posY));
+        nodeObject.move(0, MapLoader.FLOOR_HEIGHT, 0);
 
         // Figure out which way we should face, the door probably doesn't need to know it
         // There can be 3 tiles that are solid

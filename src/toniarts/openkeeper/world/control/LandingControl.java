@@ -44,7 +44,7 @@ public abstract class LandingControl extends AbstractControl {
         super.setSpatial(spatial);
 
         if (spatial != null) {
-            spatial.setLocalTranslation(position.x, MapLoader.TILE_WIDTH * 2f, position.y);
+            spatial.setLocalTranslation(position.x, MapLoader.FLOOR_HEIGHT * 2, position.y);
         }
         enabled = spatial != null;
     }
@@ -53,11 +53,11 @@ public abstract class LandingControl extends AbstractControl {
     protected void controlUpdate(float tpf) {
         Vector3f pos = spatial.getLocalTranslation();
         // FIXME set real height by BoundingBox height
-        if (pos.y > 0.3f) {
+        if (pos.y > MapLoader.FLOOR_HEIGHT + 0.3f) {
             spatial.move(0, -tpf * GRAVITY, 0);
         } else {
             enabled = false;
-            spatial.setLocalTranslation(pos.x, 0.3f, pos.z);
+            spatial.setLocalTranslation(pos.x, MapLoader.FLOOR_HEIGHT + 0.3f, pos.z);
             spatial.removeControl(this);
             onLanded();
         }

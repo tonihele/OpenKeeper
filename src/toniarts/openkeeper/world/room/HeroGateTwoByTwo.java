@@ -45,7 +45,7 @@ public class HeroGateTwoByTwo extends GenericRoom {
         int i = 0;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = AssetUtils.loadTerrainWithoutCache(assetManager, modelName + i++);
+            Spatial tile = AssetUtils.loadModel(assetManager, modelName + i++, false, true);
 
             // Reset
             moveSpatial(tile, start, p);
@@ -55,7 +55,6 @@ public class HeroGateTwoByTwo extends GenericRoom {
 
         // Set the transform and scale to our scale and 0 the transform
         AssetUtils.moveToTile(root, start);
-        //root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
 
         return root;
     }

@@ -263,7 +263,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
      * @return the tile coordinates
      */
     public Point getObjectCoordinates() {
-        return WorldUtils.vector3fToPoint(getSpatial().getWorldTranslation());
+        return WorldUtils.vectorToPoint(getSpatial().getWorldTranslation());
     }
 
     public ObjectState getState() {

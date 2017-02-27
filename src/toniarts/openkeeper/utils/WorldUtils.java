@@ -38,22 +38,34 @@ public class WorldUtils {
     public static Vector3f pointToVector3f(final int x, final int y) {
         return new Vector3f(x * MapLoader.TILE_WIDTH, 0, y * MapLoader.TILE_WIDTH);
     }
-    
+
     /**
      * calculates position from center ActionPoint
      * @param ap
      * @return position on 3D world with y = 0
      */
     public static Vector3f ActionPointToVector3f(final ActionPoint ap) {
-                    
+
         return new Vector3f(
-                (ap.getStart().x + ap.getEnd().x) / 2.0f * MapLoader.TILE_WIDTH, 
-                0, 
+                (ap.getStart().x + ap.getEnd().x) / 2.0f * MapLoader.TILE_WIDTH,
+                0,
                 (ap.getStart().y + ap.getEnd().y) / 2.0f * MapLoader.TILE_WIDTH);
     }
 
     /**
-     * 
+     * calculates position from center ActionPoint
+     * @param ap
+     * @return position on 2D world
+     */
+    public static Vector2f ActionPointToVector2f(final ActionPoint ap) {
+
+        return new Vector2f(
+                (ap.getStart().x + ap.getEnd().x) / 2.0f * MapLoader.TILE_WIDTH,
+                (ap.getStart().y + ap.getEnd().y) / 2.0f * MapLoader.TILE_WIDTH);
+    }
+
+    /**
+     *
      * @param p
      * @return position on 3D world with y = 0
      */
@@ -72,20 +84,24 @@ public class WorldUtils {
     public static Vector2 pointToVector2(final int x, final int y) {
         return new Vector2(x * MapLoader.TILE_WIDTH, y * MapLoader.TILE_WIDTH);
     }
-    
+
     public static Vector2 pointToVector2(final Point p) {
         return pointToVector2(p.x, p.y);
     }
 
-    public static Point vector2fToPoint(final Vector2f v) {
-        return vector2fToPoint(v.x, v.y);
+    public static Point vectorToPoint(final Vector2f v) {
+        return vectorToPoint(v.x, v.y);
     }
 
-    public static Point vector3fToPoint(final Vector3f v) {
-        return vector2fToPoint(v.x, v.z);
+    public static Point vectorToPoint(final Vector2 v) {
+        return vectorToPoint(v.x, v.y);
     }
-    
-    public static Point vector2fToPoint(final float x, final float y) {
+
+    public static Point vectorToPoint(final Vector3f v) {
+        return vectorToPoint(v.x, v.z);
+    }
+
+    public static Point vectorToPoint(final float x, final float y) {
         return new Point(Math.round(x / MapLoader.TILE_WIDTH), Math.round(y / MapLoader.TILE_WIDTH));
     }
 }

@@ -31,6 +31,7 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -298,7 +299,7 @@ public abstract class GenericRoom {
                     }
 
                     // Load the piece
-                    Spatial part = MapLoader.loadTerrain(assetManager, resource + firstPiece);
+                    Spatial part = AssetUtils.loadModel(assetManager, resource + firstPiece);
                     part.move(moveFirst);
                     part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
@@ -310,7 +311,7 @@ public abstract class GenericRoom {
                         secondPiece = 4; // The sorting direction forces us to do this
                     }
 
-                    part = MapLoader.loadTerrain(assetManager, resource + secondPiece);
+                    part = AssetUtils.loadModel(assetManager, resource + secondPiece);
                     part.move(moveSecond);
                     part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
@@ -318,7 +319,7 @@ public abstract class GenericRoom {
                     ((BatchNode) spatial).batch();
                 } else {
                     // Complete walls, 8, 7, 8, 7 and so forth
-                    spatial = MapLoader.loadTerrain(assetManager, resource + getWallIndex(i));
+                    spatial = AssetUtils.loadModel(assetManager, resource + getWallIndex(i));
                     spatial.rotate(0, yAngle, 0);
 
                     switch (section.getDirection()) {
@@ -393,7 +394,7 @@ public abstract class GenericRoom {
     }
 
     protected final Spatial loadTerrain(String model) {
-        Spatial spatial = MapLoader.loadTerrain(assetManager, model);
+        Spatial spatial = AssetUtils.loadModel(assetManager, model);
         //resetSpatial(spatial);
         return spatial;
     }

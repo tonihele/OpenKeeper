@@ -113,7 +113,7 @@ public class VisualEffect {
             switch (resource.getType()) {
                 case MESH:
                 case ANIMATING_MESH:
-                    model = AssetUtils.loadModel(assetManager, resource.getName(), false);
+                    model = AssetUtils.loadModel(assetManager, resource.getName());
                     break;
 
                 case PROCEDURAL_MESH:
@@ -164,7 +164,7 @@ public class VisualEffect {
 
                 @Override
                 public void onHit(Vector3f location) {
-                    TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldUtils.vector3fToPoint(location));
+                    TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldUtils.vectorToPoint(location));
                     if (tile == null) {
                         logger.warning("Effect hit error");
                         return;
@@ -314,7 +314,7 @@ public class VisualEffect {
 
                     @Override
                     public void onHit(Vector3f location) {
-                        TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldUtils.vector3fToPoint(location));
+                        TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldUtils.vectorToPoint(location));
                         if (tile == null) {
                             logger.warning("Effect hit error");
                             return;
@@ -341,7 +341,7 @@ public class VisualEffect {
                 if (resource.getType() == ArtResourceType.PROCEDURAL_MESH) {
                     model = (Node) AssetUtils.createProceduralMesh(resource);
                 } else {
-                    model = (Node) AssetUtils.loadModel(assetManager, resource.getName(), false);
+                    model = (Node) AssetUtils.loadModel(assetManager, resource.getName());
                 }
 
                 if (resource.getType() == ArtResourceType.MESH) {

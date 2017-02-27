@@ -391,7 +391,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         if (Main.isDebug() && (interactiveControl != null || isOnMap)) {
             StringBuilder sb = new StringBuilder();
             if (interactiveControl != null) {
-                p = WorldUtils.vector3fToPoint(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation());
+                p = WorldUtils.vectorToPoint(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation());
             }
             sb.append("(");
             sb.append(p.x + 1);  // 1-based coordinates

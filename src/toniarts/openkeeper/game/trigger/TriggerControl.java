@@ -33,6 +33,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerAction.FlagTargetValueActionType;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
@@ -248,7 +249,8 @@ public class TriggerControl extends Control {
 
                 // Load the party members
                 for (Thing.GoodCreature creature : party.getMembers()) {
-                    CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter(), stateManager.getApplication());
+                    CreatureControl creatureInstance = loader.spawnCreature(creature,
+                            WorldUtils.ActionPointToVector2f(ap), stateManager.getApplication());
                     creatureInstance.setParty(party);
                     party.addMemberInstance(creature, creatureInstance);
 

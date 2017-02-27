@@ -17,11 +17,8 @@
 package toniarts.openkeeper.tools.modelviewer;
 
 import com.jme3.asset.AssetManager;
-import com.jme3.math.FastMath;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.io.File;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.ILoader;
@@ -46,26 +43,26 @@ public class TerrainLoader implements ILoader<Terrain> {
         } else {
             // Add the top
             if (object.getTopResource() != null) {
-                Spatial s = AssetUtils.loadModel(assetManager, object.getTopResource().getName(), false);
+                Spatial s = AssetUtils.loadModel(assetManager, object.getTopResource().getName());
 
                 root.attachChild(s);
             }
 
             if (object.getCompleteResource() != null) {
-                Spatial s = AssetUtils.loadModel(assetManager, object.getCompleteResource().getName(), false);
+                Spatial s = AssetUtils.loadModel(assetManager, object.getCompleteResource().getName());
 
                 root.attachChild(s);
             }
 
             if (object.getTaggedTopResource() != null) {
-                Spatial s = AssetUtils.loadModel(assetManager, object.getTaggedTopResource().getName(), false);
+                Spatial s = AssetUtils.loadModel(assetManager, object.getTaggedTopResource().getName());
 
                 root.attachChild(s);
             }
 
             // The sides
             if (object.getSideResource() != null) {
-                Spatial s = AssetUtils.loadModel(assetManager, object.getSideResource().getName(), false);
+                Spatial s = AssetUtils.loadModel(assetManager, object.getSideResource().getName());
 
                 root.attachChild(s);
             }

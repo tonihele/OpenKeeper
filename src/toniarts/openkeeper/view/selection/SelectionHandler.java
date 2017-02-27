@@ -73,10 +73,10 @@ public abstract class SelectionHandler {
 
         Vector3f tmp = cam.getWorldCoordinates(this.mousePosition, 0f).clone();
         Vector3f dir = cam.getWorldCoordinates(this.mousePosition, 1f).subtractLocal(tmp).normalizeLocal();
-        dir.multLocal((MapLoader.TILE_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
+        dir.multLocal((MapLoader.TOP_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
         
         pointedPosition.set(dir.getX(), dir.getZ());
-        pointedTileIndex = WorldUtils.vector2fToPoint(pointedPosition);
+        pointedTileIndex = WorldUtils.vectorToPoint(pointedPosition);
         pointedTilePosition = WorldUtils.pointToVector2f(pointedTileIndex);
         
         setPos(pointedTilePosition);
@@ -163,10 +163,10 @@ public abstract class SelectionHandler {
             float delta = 0.01f;
 
             Vector2f position = selectionArea.getCenter();
-            wireBoxGeo.setLocalTranslation(position.x, MapLoader.TILE_HEIGHT / 2, position.y);
+            wireBoxGeo.setLocalTranslation(position.x, MapLoader.FLOOR_HEIGHT, position.y);
 
             wireBox.updatePositions(MapLoader.TILE_WIDTH / 2 * dx + delta,
-                    MapLoader.TILE_WIDTH / 2 + delta,
+                    MapLoader.FLOOR_HEIGHT + delta,
                     MapLoader.TILE_WIDTH / 2 * dy + delta);
 
             // Selection color indicator

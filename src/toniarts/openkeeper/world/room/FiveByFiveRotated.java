@@ -195,7 +195,7 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
 
                     for (Integer id : roomInstance.getRoom().getEffects()) {
                         if (id > 0) {
-                            effectManager.load(root, new Vector3f(p.x - start.x, -MapLoader.TILE_HEIGHT, p.y - start.y), id, true);
+                            effectManager.load(root, new Vector3f(p.x - start.x, MapLoader.UNDERFLOOR_HEIGHT, p.y - start.y), id, true);
                         }
                     }
 
@@ -209,13 +209,13 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
                         tile.setBatchHint(Spatial.BatchHint.Never);
                         tile.rotate(0, FastMath.QUARTER_PI, 0);
                         moveSpatial(tile, start, p);
-                        root.attachChild(tile.move(0, MapLoader.TILE_HEIGHT, 0));
+                        root.attachChild(tile.move(0, MapLoader.FLOOR_HEIGHT, 0));
 
                         Node plug = getPlug();
                         plug.setName("plug_decay");
                         plug.setCullHint(Spatial.CullHint.Always);
                         plug.setBatchHint(Spatial.BatchHint.Never);
-                        root.attachChild(plug.move(x, MapLoader.TILE_HEIGHT, y));
+                        root.attachChild(plug.move(x, MapLoader.FLOOR_HEIGHT, y));
 
                         root.addControl(new PlugControl());
                     }

@@ -248,7 +248,9 @@ public class UnitFlowerControl extends BillboardControl {
 
         // Create the spatial
         unitSpatial = (Node) spatial;
-        show();
+        if (unitSpatial != null) {
+            show();
+        }
     }
 
     private void updateHealth() {

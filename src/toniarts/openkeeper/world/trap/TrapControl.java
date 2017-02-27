@@ -20,9 +20,11 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
+import java.io.File;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -216,7 +218,8 @@ public class TrapControl extends HighlightControl implements IInteractiveControl
 
     @Override
     public String getCenterIcon() {
-        return ConversionUtils.getCanonicalAssetKey("Textures/" + trap.getFlowerIcon().getName() + ".png");
+        return ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                + File.separator + trap.getFlowerIcon().getName() + ".png");
     }
 
 }

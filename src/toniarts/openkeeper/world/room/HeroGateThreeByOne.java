@@ -48,7 +48,7 @@ public class HeroGateThreeByOne extends GenericRoom {
         int j = 0;
         for (Point p : roomInstance.getCoordinates()) {
             int piece = (roomInstance.getDirection() == Direction.WEST || roomInstance.getDirection() == Direction.SOUTH) ? j + 3 : 5 - j;
-            Spatial tile = AssetUtils.loadTerrainWithoutCache(assetManager, modelName + piece);
+            Spatial tile = AssetUtils.loadModel(assetManager, modelName + piece, false, true);
             j++;
             moveSpatial(tile, p);
             root.attachChild(tile);
@@ -67,7 +67,7 @@ public class HeroGateThreeByOne extends GenericRoom {
             }
         }
         //root.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
-        // n.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+
         return root;
     }
 
@@ -102,7 +102,7 @@ public class HeroGateThreeByOne extends GenericRoom {
                 }
                 //yAngle = -section.getDirection().ordinal() * FastMath.HALF_PI;
 
-                Spatial tile = AssetUtils.loadTerrainWithoutCache(assetManager, modelName + piece);
+                Spatial tile = AssetUtils.loadModel(assetManager, modelName + piece, false, true);
                 if (yAngle != 0) {
                     tile.rotate(0, yAngle, 0);
                 }

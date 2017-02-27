@@ -31,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.animation.AnimationControl;
@@ -223,9 +224,8 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     protected void lockDoor() {
         locked = true;
         if (lockSpatial == null && lockObject != null) {
-            lockSpatial = AssetUtils.loadModel(assetManager, lockObject.getMeshResource().getName(), false);
-            AssetUtils.resetSpatial(lockSpatial);
-            lockSpatial.move(0, 0.75f, 0);
+            lockSpatial = AssetUtils.loadModel(assetManager, lockObject.getMeshResource().getName());
+            lockSpatial.move(0, MapLoader.TORCH_HEIGHT, 0);
             lockSpatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
             ((Node) getSpatial()).attachChild(lockSpatial);
         }

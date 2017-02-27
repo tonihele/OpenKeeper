@@ -17,13 +17,13 @@
 package toniarts.openkeeper.game.task;
 
 import com.jme3.math.Vector2f;
-import com.jme3.math.Vector3f;
 import java.awt.Point;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
@@ -107,7 +107,7 @@ public abstract class AbstractTask implements Task {
      * @return is the task reachable
      */
     protected boolean isReachable(CreatureControl creature, Vector2f target) {
-        Point targetTile = new Point((int) Math.floor(target.x), (int) Math.floor(target.y));
+        Point targetTile = WorldUtils.vectorToPoint(target);
         boolean hasAccessibleNeighbour = false;
         for (Point p : worldState.getMapLoader().getSurroundingTiles(targetTile, false)) {
             if (worldState.isAccessible(worldState.getMapData().getTile(p), creature)) {
@@ -120,7 +120,7 @@ public abstract class AbstractTask implements Task {
         }
 
         // Path find
-        return (worldState.findPath(WorldState.getTileCoordinates(new Vector3f(creature.getPosition().x, 0, creature.getPosition().y)), targetTile, creature) != null);
+        return (worldState.findPath(WorldUtils.vectorToPoint(creature.getPosition()), targetTile, creature) != null);
     }
 
     @Override

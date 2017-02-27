@@ -37,6 +37,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.ICreatureEntrance;
@@ -161,10 +162,11 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
         return room.isDungeonHeart();
     }
 
-    public static void spawnCreature(short creatureId, short playerId, short level, Application app, ThingLoader thingLoader, Point tile, boolean entrance) {
+    public static void spawnCreature(short creatureId, short playerId, short level,
+            Application app, ThingLoader thingLoader, Point tile, boolean entrance) {
 
         // Spawn the creature
-        thingLoader.spawnCreature(creatureId, playerId, level, new Vector2f(tile.x + 0.5f, tile.y + 0.5f), entrance, app);
+        thingLoader.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(tile), entrance, app);
     }
 
     private boolean isCreatureLimitReached(Keeper player) {

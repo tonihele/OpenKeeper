@@ -47,7 +47,7 @@ public class CreatureSteeringCreator {
     }
 
     public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final PathFindable pathFindable, final CreatureControl creature, final Point p, final Point faceTarget) {
-        GraphPath<TileData> outPath = worldState.findPath(WorldUtils.vector3fToPoint(creature.getSpatial().getWorldTranslation()), p, pathFindable);
+        GraphPath<TileData> outPath = worldState.findPath(WorldUtils.vectorToPoint(creature.getSpatial().getWorldTranslation()), p, pathFindable);
         return navigateToPoint(outPath, faceTarget, creature, p);
     }
 

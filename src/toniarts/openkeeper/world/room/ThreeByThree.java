@@ -20,10 +20,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -46,7 +43,7 @@ public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
         int i = 0;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = (Spatial) AssetUtils.loadTerrainWithoutCache(assetManager, roomInstance.getRoom().getCompleteResource().getName() + i);
+            Spatial tile = (Spatial) AssetUtils.loadModel(assetManager, roomInstance.getRoom().getCompleteResource().getName() + i, false, true);
 
             moveSpatial(tile, start, p);
 
