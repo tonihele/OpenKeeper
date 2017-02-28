@@ -28,6 +28,7 @@ import java.util.List;
  * area
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
+ * @param <T> Room, Terrain
  */
 public class EntityInstance<T> {
 

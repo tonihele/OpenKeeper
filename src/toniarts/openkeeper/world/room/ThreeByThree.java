@@ -52,8 +52,8 @@ public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        AssetUtils.scale(root);
-        AssetUtils.moveToTile(root, start);
+        //AssetUtils.scale(root);
+        AssetUtils.translateToTile(root, start);
 
         return root;
     }

@@ -142,8 +142,8 @@ public class StoneBridge extends Quad {
                     quad.attachChild(part);
                 }
             }
-            AssetUtils.scale(quad);
-            AssetUtils.moveToTile(quad, p);
+            //AssetUtils.scale(quad);
+            AssetUtils.translateToTile(quad, p);
             root.attachChild(quad);
         }
 

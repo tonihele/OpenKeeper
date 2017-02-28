@@ -97,7 +97,7 @@ public class AssetUtils {
      */
     public static Spatial loadModel(final AssetManager assetManager, String modelName,
             final boolean useCache, final boolean useWeakCache) {
-        
+
         String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
         ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(filename));
 
@@ -120,17 +120,33 @@ public class AssetUtils {
         } else {
             result = assetManager.loadModel(assetKey);
             resetSpatial(result);
-        }        
-        
+        }
+
         return result;
     }
-    
+
+    /**
+     * Only for ModelViewer
+     * @param assetManager
+     * @param modelName
+     * @return
+     */
+    public static Spatial loadAsset(final AssetManager assetManager, String modelName) {
+
+        String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
+        //ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(filename));
+
+        Spatial result = assetManager.loadModel(filename);
+
+        return result;
+    }
+
     public static Spatial loadModel(final AssetManager assetManager, String resourceName,
             final boolean useWeakCache) {
-        
+
         return loadModel(assetManager, resourceName, true, useWeakCache);
     }
-    
+
     public static Spatial loadModel(final AssetManager assetManager, String resourceName) {
         return loadModel(assetManager, resourceName, true, false);
     }
@@ -500,7 +516,7 @@ public class AssetUtils {
                 }
 
                 // Don't highlight non-removables
-                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE)) 
+                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))
                         || Boolean.FALSE.equals(spatial.getParent().getParent().getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))) {
                     return;
                 }
@@ -544,8 +560,8 @@ public class AssetUtils {
         });
     }
 
-    public static void moveToTile(final Spatial spatial, final Point tile) {
-        spatial.move(WorldUtils.pointToVector3f(tile));
+    public static void translateToTile(final Spatial spatial, final Point tile) {
+        spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile));
     }
 
     public static void scale(final Spatial spatial) {

@@ -29,11 +29,8 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Level.LevelType;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.FullMoon;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -231,7 +228,7 @@ public class HeroGateFrontEnd extends GenericRoom {
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        AssetUtils.moveToTile(root, start);
+        AssetUtils.translateToTile(root, start);
 
         return root;
     }

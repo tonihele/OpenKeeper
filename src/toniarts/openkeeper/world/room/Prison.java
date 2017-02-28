@@ -82,6 +82,10 @@ public class Prison extends DoubleQuad {
 
             if (door == null && !N && !NE && E && SE && S && SW && W && !NW) {
                 Spatial part = AssetUtils.loadModel(assetManager, modelName + "14");
+                //Object Prison Door and Prison Door Bar
+                //Spatial part = AssetUtils.loadModel(assetManager, "barclose");
+                //Spatial part = AssetUtils.loadModel(assetManager, "dooropen");
+                //Spatial part = AssetUtils.loadModel(assetManager, "doorclose");
                 part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
                 moveSpatial(part, p);
 

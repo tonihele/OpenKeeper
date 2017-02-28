@@ -530,7 +530,13 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     private String formatString(String string) {
-        return string.replaceAll("%29", name).replaceAll("%30", creature.getName()).replaceAll("%31", getStatusText());
+        return string.replaceAll("%29", name)
+                .replaceAll("%30", creature.getName())
+                .replaceAll("%31", getStatusText());
+                //.replaceAll("%32", getStatusText()) // FIXME
+                //.replaceAll("%33", geMoodText()) // FIXME
+                //.replaceAll("%74%", getEfficiencyText()); // FIXME
+
     }
 
     private String getStatusText() {

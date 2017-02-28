@@ -50,6 +50,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.effect.TorchControl;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -69,7 +70,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
-    public final static float TORCH_HEIGHT = 3 * TILE_HEIGHT / 2;
+    public final static float TORCH_HEIGHT = 3 * TILE_HEIGHT / 2; // FIXME use Terrain Torch Height
     public final static float TOP_HEIGHT = 2 * TILE_HEIGHT;
     public final static float FLOOR_HEIGHT = 1 * TILE_HEIGHT;
     public final static float UNDERFLOOR_HEIGHT = 0 * TILE_HEIGHT;
@@ -495,9 +496,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             Spatial spatial = AssetUtils.loadModel(assetManager, name);
             spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
             spatial.rotate(0, angleY, 0);
-            spatial.move(position);
+            spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));
 
-            AssetUtils.moveToTile(spatial, tile.getLocation());
             ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
         }
     }
@@ -514,7 +514,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             return roomInstance;
         }
 
-        RoomInstance roomInstance = new RoomInstance(room, mapData, (thing != null ? thing.getDirection() : null));
+        RoomInstance roomInstance = new RoomInstance(room, mapData, thing);
         findRoom(p, roomInstance);
         findRoomWallSections(roomInstance);
         rooms.add(roomInstance);
@@ -591,7 +591,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         topTileNode.attachChild(spatial);
         setTileMaterialToGeometries(tile, topTileNode);
-        AssetUtils.moveToTile(topTileNode, p);
+        AssetUtils.translateToTile(topTileNode, p);
 
         tile.setTopNode(topTileNode);
     }
@@ -609,7 +609,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
 
         setTileMaterialToGeometries(tile, sideTileNode);
-        AssetUtils.moveToTile(sideTileNode, p);
+        AssetUtils.translateToTile(sideTileNode, p);
 
         tile.setSideNode(sideTileNode);
     }
@@ -1001,8 +1001,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     }
 
     private void addIfValidCoordinate(final int x, final int y, List<Point> tileCoords) {
-        if ((x >= 0 && x < mapData.getWidth() && y >= 0 && y < mapData.getHeight())) {
-            tileCoords.add(new Point(x, y));
+        TileData tile = mapData.getTile(x, y);
+        if (tile != null) {
+            tileCoords.add(tile.getLocation());
         }
     }
 

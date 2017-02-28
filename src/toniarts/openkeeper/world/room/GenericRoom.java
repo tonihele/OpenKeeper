@@ -210,10 +210,12 @@ public abstract class GenericRoom {
                         SW = hasSameTile(objectMap, x - 1, y + 1);
                         W = hasSameTile(objectMap, x - 1, y);
                         NW = hasSameTile(objectMap, x - 1, y - 1);
-                        if (getRoomObjectLayout() == RoomObjectLayout.ALLOW_DIAGONAL_NEIGHBOUR_ONLY && (N || E || S || W)) {
+                        if (getRoomObjectLayout() == RoomObjectLayout.ALLOW_DIAGONAL_NEIGHBOUR_ONLY
+                                && (N || E || S || W)) {
                             continue;
                         }
-                        if (getRoomObjectLayout() == RoomObjectLayout.ISOLATED && (N || E || S || W || NE || SE || SW || NW)) {
+                        if (getRoomObjectLayout() == RoomObjectLayout.ISOLATED
+                                && (N || E || S || W || NE || SE || SW || NW)) {
                             continue;
                         }
                         do {
@@ -225,7 +227,8 @@ public abstract class GenericRoom {
 
                         // Add object
                         objectMap[x][y] = true;
-                        Spatial object = objectLoader.load(assetManager, start.x + x, start.y + y, room.getObjects().get(index), roomInstance.getOwnerId());
+                        Spatial object = objectLoader.load(assetManager, start.x + x, start.y + y,
+                                room.getObjects().get(index), roomInstance.getOwnerId());
                         objects.attachChild(object);
                         floorFurniture.add(object.getControl(ObjectControl.class));
                     }
@@ -390,10 +393,36 @@ public abstract class GenericRoom {
         if (roomInstance.getOwnerId() != playerId && roomInstance.isAttackable()) {
             return notOwnedTooltip;
         }
-        return tooltip.replaceAll("%37", Integer.toString(roomInstance.getHealthPercentage())).replaceAll("%38", Integer.toString(getUsedCapacity())).replaceAll("%39", Integer.toString(getMaxCapacity()));
+        return tooltip.replaceAll("%37%", Integer.toString(roomInstance.getHealthPercentage()))
+                .replaceAll("%38", Integer.toString(getUsedCapacity()))
+                .replaceAll("%39", Integer.toString(getMaxCapacity()))
+                .replaceAll("%42", Integer.toString(getUsedCapacity())) // Creatures attracted
+                .replaceAll("%43", Integer.toString(getMaxCapacity()))  // Creatures attracted Max
+                .replaceAll("%44", getOwner())  // Portal
+                .replaceAll("%45", getOwner()) // Lairs
+                .replaceAll("%46", getOwner()) // Hatchery
+                .replaceAll("%47", getOwner()) // Treasure
+                .replaceAll("%48", getOwner()) // Library
+                .replaceAll("%49", getOwner()) // Training Room
+                .replaceAll("%50", getOwner()) // Workshop
+                .replaceAll("%51", getOwner()) // Guard Rooms
+                //.replaceAll("%52", ) // TODO Guard Rooms Patrol Routes
+                .replaceAll("%53", getOwner()) // Combat Pit
+                .replaceAll("%54", getOwner()) // Torture
+                //.replaceAll("%55", ) // TODO Skeleton Animated
+                //.replaceAll("%56", ) // TODO Skeleton Animated Max
+                //.replaceAll("%56", ) // TODO Prison status
+                .replaceAll("%58", getOwner()) // Prison
+                //.replaceAll("%59", ) // TODO Vampires Attracted
+                //.replaceAll("%60", ) // TODO Vampires Attracted Max
+                
+                .replaceAll("%61", getOwner()) // Graveyard
+                .replaceAll("%62", getOwner()) // Temple
+                .replaceAll("%63", getOwner()); // Casino
+                
     }
 
-    protected final Spatial loadTerrain(String model) {
+    protected final Spatial loadModel(String model) {
         Spatial spatial = AssetUtils.loadModel(assetManager, model);
         //resetSpatial(spatial);
         return spatial;
@@ -458,6 +487,15 @@ public abstract class GenericRoom {
         }
         return 0;
     }
+    
+    
+    private String getOwner() {
+        short ownerId = roomInstance.getOwnerId();
+        String result = worldState.getLevelData().getPlayer(ownerId).getName();
+        
+        return result;
+    }
+
 
     /**
      * Get used capacity

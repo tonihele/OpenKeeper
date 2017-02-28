@@ -57,8 +57,8 @@ public class Quad extends GenericRoom {
             boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
             // 2x2
             Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
-            AssetUtils.scale(model);
-            AssetUtils.moveToTile(model, p);
+            //AssetUtils.scale(model);
+            AssetUtils.translateToTile(model, p);
             root.attachChild(model);
         }
 

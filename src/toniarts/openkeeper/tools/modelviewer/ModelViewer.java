@@ -62,7 +62,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
@@ -89,7 +88,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         MODELS("Models"),
         TERRAIN("Terrain"),
-        /*OBJECTS("Objects"),*/
+        OBJECTS("Objects"),
         MAPS("Maps"),
         EFFECTS("Effects");
 
@@ -411,14 +410,14 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 case MODELS: {
 
                     // Load the selected model
-                    Node spat = (Node) AssetUtils.loadModel(assetManager, (String) selection.get(0));
+                    Node spat = (Node) AssetUtils.loadAsset(assetManager, (String) selection.get(0));
                     setupModel(spat, false);
                     break;
                 }
                 case TERRAIN: {
 
                     // Load the selected terrain
-                    Node spat = (Node) new TerrainLoader().load(this.getAssetManager(), (Terrain) selection.get(0));
+                    Node spat = (Node) new TerrainsLoader().load(this.getAssetManager(), (Terrain) selection.get(0));
                     setupModel(spat, false);
                     break;
                 }
@@ -436,13 +435,14 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     setupModel(spat, true);
                     break;
                 }
-//                case OBJECTS: {
-//
-//                    // Load the selected object
-//                    Node spat = (Node) new ObjectLoader().load(this.getAssetManager(), (toniarts.openkeeper.tools.convert.map.Object) selection.get(0));
-//                    setupModel(spat, false);
-//                    break;
-//                }
+                case OBJECTS: {
+
+                    // Load the selected object
+                    //Node spat = (Node) AssetUtils.loadAsset(assetManager, ((toniarts.openkeeper.tools.convert.map.Object) selection.get(0)).getMeshResource().getName());
+                    Node spat = (Node) new ObjectsLoader().load(this.getAssetManager(), (toniarts.openkeeper.tools.convert.map.Object) selection.get(0));
+                    setupModel(spat, false);
+                    break;
+                }
                 case EFFECTS: {
 
                     Node spat = new Node();
@@ -498,14 +498,14 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         if (!isMap) {
 
             // Reset the game translation and scale
-            for (Spatial subSpat : spat.getChildren()) {
-                subSpat.setLocalScale(1);
-                subSpat.setLocalTranslation(0, 0, 0);
-            }
+//            for (Spatial subSpat : spat.getChildren()) {
+//                subSpat.setLocalScale(1);
+//                subSpat.setLocalTranslation(0, 0, 0);
+//            }
 
             // Make it bigger and move
-            //spat.scale(10);
-            //spat.setLocalTranslation(10, 25, 30);
+//            spat.scale(10);
+//            spat.setLocalTranslation(10, 25, 30);
 
             // Make it rotate
             RotatorControl rotator = new RotatorControl();
@@ -580,10 +580,10 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 fillWithFiles(maps, dkIIFolder, dkIIFolder.concat(AssetsConverter.MAPS_FOLDER), "kwd");
                 break;
             }
-//            case OBJECTS: {
-//                fillObjects();
-//                break;
-//            }
+            case OBJECTS: {
+                fillObjects();
+                break;
+            }
             case EFFECTS: {
                 fillEffects();
                 break;

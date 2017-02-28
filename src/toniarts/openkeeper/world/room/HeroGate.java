@@ -80,7 +80,7 @@ public class HeroGate extends GenericRoom {
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        AssetUtils.moveToTile(root, start);
+        AssetUtils.translateToTile(root, start);
 
         return root;
     }

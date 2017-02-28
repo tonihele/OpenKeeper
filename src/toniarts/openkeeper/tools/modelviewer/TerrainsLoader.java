@@ -28,7 +28,7 @@ import toniarts.openkeeper.world.ILoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TerrainLoader implements ILoader<Terrain> {
+public class TerrainsLoader implements ILoader<Terrain> {
 
     @Override
     public Spatial load(AssetManager assetManager, Terrain object) {
@@ -43,26 +43,26 @@ public class TerrainLoader implements ILoader<Terrain> {
         } else {
             // Add the top
             if (object.getTopResource() != null) {
-                Spatial s = AssetUtils.loadModel(assetManager, object.getTopResource().getName());
+                Spatial s = AssetUtils.loadAsset(assetManager, object.getTopResource().getName());
 
                 root.attachChild(s);
             }
 
             if (object.getCompleteResource() != null) {
-                Spatial s = AssetUtils.loadModel(assetManager, object.getCompleteResource().getName());
+                Spatial s = AssetUtils.loadAsset(assetManager, object.getCompleteResource().getName());
 
                 root.attachChild(s);
             }
 
             if (object.getTaggedTopResource() != null) {
-                Spatial s = AssetUtils.loadModel(assetManager, object.getTaggedTopResource().getName());
+                Spatial s = AssetUtils.loadAsset(assetManager, object.getTaggedTopResource().getName());
 
                 root.attachChild(s);
             }
 
             // The sides
             if (object.getSideResource() != null) {
-                Spatial s = AssetUtils.loadModel(assetManager, object.getSideResource().getName());
+                Spatial s = AssetUtils.loadAsset(assetManager, object.getSideResource().getName());
 
                 root.attachChild(s);
             }

@@ -23,7 +23,6 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.Thing.Room.Direction;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -34,6 +33,8 @@ import toniarts.openkeeper.world.room.WallSection.WallDirection;
  * @author ArchDemon
  */
 public class HeroGateThreeByOne extends GenericRoom {
+    
+    private String destroyed = "";
 
     public HeroGateThreeByOne(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         super(assetManager, roomInstance, objectLoader, worldState, effectManager);
@@ -75,7 +76,7 @@ public class HeroGateThreeByOne extends GenericRoom {
     protected BatchNode constructWall() {
         BatchNode root = new BatchNode();
         // Get the wall points
-        Point center = roomInstance.getCenter();
+        //Point center = roomInstance.getCenter();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
         for (WallSection section : roomInstance.getWallSections()) {
 
@@ -102,7 +103,7 @@ public class HeroGateThreeByOne extends GenericRoom {
                 }
                 //yAngle = -section.getDirection().ordinal() * FastMath.HALF_PI;
 
-                Spatial tile = AssetUtils.loadModel(assetManager, modelName + piece, false, true);
+                Spatial tile = AssetUtils.loadModel(assetManager, modelName + piece + destroyed, false, true);
                 if (yAngle != 0) {
                     tile.rotate(0, yAngle, 0);
                 }
@@ -117,5 +118,9 @@ public class HeroGateThreeByOne extends GenericRoom {
     @Override
     public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
         return null;
+    }
+    
+    public void setDestroyed(boolean value) {
+        destroyed = value ? "DESTROYED" : "";
     }
 }
