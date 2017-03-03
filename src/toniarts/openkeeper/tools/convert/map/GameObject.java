@@ -20,14 +20,13 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
 import java.util.List;
-import toniarts.openkeeper.tools.convert.map.Object;
 
 /**
  * Container class for Objects.kwd
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Object implements Comparable<Object> {
+public class GameObject implements Comparable<GameObject> {
 
     /**
      * Object flags
@@ -185,6 +184,7 @@ public class Object implements Comparable<Object> {
     private ArtResource guiIconResource; // 74
     private ArtResource inHandIconResource; // c8
     private ArtResource inHandMeshResource; // 11c
+    // gui\spells\call_to_arms
     private ArtResource unknownResource; // 170
     private List<ArtResource> additionalResources; // 1c4
     private Light light; // 314
@@ -457,7 +457,7 @@ public class Object implements Comparable<Object> {
     }
 
     @Override
-    public int compareTo(Object o) {
+    public int compareTo(GameObject o) {
         return Short.compare(objectId, o.objectId);
     }
 
@@ -476,7 +476,7 @@ public class Object implements Comparable<Object> {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final Object other = (Object) obj;
+        final GameObject other = (GameObject) obj;
         if (this.objectId != other.objectId) {
             return false;
         }

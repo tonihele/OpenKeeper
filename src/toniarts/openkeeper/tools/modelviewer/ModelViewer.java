@@ -69,6 +69,7 @@ import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
@@ -385,7 +386,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     private void fillObjects() {
         KwdFile kwfFile = getKwdFile();
-        Collection<toniarts.openkeeper.tools.convert.map.Object> objects = kwfFile.getObjectList();
+        Collection<GameObject> objects = kwfFile.getObjectList();
         getModelListBox().addAllItems(objects);
     }
 
@@ -438,8 +439,8 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 case OBJECTS: {
 
                     // Load the selected object
-                    //Node spat = (Node) AssetUtils.loadAsset(assetManager, ((toniarts.openkeeper.tools.convert.map.Object) selection.get(0)).getMeshResource().getName());
-                    Node spat = (Node) new ObjectsLoader().load(this.getAssetManager(), (toniarts.openkeeper.tools.convert.map.Object) selection.get(0));
+                    //Node spat = (Node) AssetUtils.loadAsset(assetManager, ((GameObject) selection.get(0)).getMeshResource().getName());
+                    Node spat = (Node) new ObjectsLoader().load(this.getAssetManager(), (GameObject) selection.get(0));
                     setupModel(spat, false);
                     break;
                 }
@@ -532,15 +533,17 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         toggleShowNormals();
 
         // Animate!
-        if (!spat.getChildren().isEmpty()) {
-            final Spatial spatial = spat.getChild(0);
-            AnimControl animControl = (AnimControl) spatial.getControl(AnimControl.class);
-            if (animControl != null) {
-                AnimChannel channel = animControl.createChannel();
-                channel.setAnim("anim");
-                AnimationLoader.setLoopModeOnChannel(spatial, channel);
+        spat.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                AnimControl animControl = (AnimControl) spatial.getControl(AnimControl.class);
+                if (animControl != null) {
+                    AnimChannel channel = animControl.createChannel();
+                    channel.setAnim("anim");
+                    AnimationLoader.setLoopModeOnChannel(spatial, channel);
+                }
             }
-        }
+        });
     }
 
     /**

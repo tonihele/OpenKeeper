@@ -29,11 +29,11 @@ import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.WallSection.WallDirection;
 
 /**
- *
+ * FIXME some problem with wall when reinforce near tile
  * @author ArchDemon
  */
 public class HeroGateThreeByOne extends GenericRoom {
-    
+
     private String destroyed = "";
 
     public HeroGateThreeByOne(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
@@ -119,7 +119,7 @@ public class HeroGateThreeByOne extends GenericRoom {
     public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
         return null;
     }
-    
+
     public void setDestroyed(boolean value) {
         destroyed = value ? "DESTROYED" : "";
     }

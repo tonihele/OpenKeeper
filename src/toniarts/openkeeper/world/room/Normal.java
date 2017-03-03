@@ -25,6 +25,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.Arrays;
 import java.util.EnumSet;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
@@ -195,6 +196,7 @@ public class Normal extends GenericRoom {
     /**
      * Get the pillar resource. These are actually in object list. But there are
      * no mapping to my knowledge. So hard code :(
+     * @deprecated use toniarts.openkeeper.world.room.GenericRoom.getPillarObject
      *
      * @return room pillar resource
      */

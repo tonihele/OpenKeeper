@@ -21,9 +21,7 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.utils.AssetUtils;
-import static toniarts.openkeeper.world.MapLoader.TILE_HEIGHT;
-import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
+import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -33,6 +31,8 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  * @author ArchDemon
  */
 public class Temple extends DoubleQuad {
+
+    private static final short OBJECT_TEMPLE_HAND_ID = 66;
 
     public Temple(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         super(assetManager, roomInstance, objectLoader, worldState, effectManager);
@@ -45,9 +45,9 @@ public class Temple extends DoubleQuad {
         //Point start = roomInstance.getCoordinates().get(0);
         // Hand
         // FIXME need check room min size to load hand
-        Spatial part = AssetUtils.loadModel(assetManager, "Temple_Hand");
-        part.move(0, -TILE_HEIGHT / 2, TILE_WIDTH / 4);
-        moveSpatial(part, roomInstance.getCenter());
+        Point centre = roomInstance.getCenter();
+        Spatial part = objectLoader.load(assetManager, centre.x, centre.y, OBJECT_TEMPLE_HAND_ID, roomInstance.getOwnerId());
+        part.move(0, - 3 * MapLoader.FLOOR_HEIGHT / 2, MapLoader.TILE_WIDTH / 4);
         root.attachChild(part);
 
         for (Point p : roomInstance.getCoordinates()) {

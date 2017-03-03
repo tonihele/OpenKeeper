@@ -67,13 +67,14 @@ import toniarts.openkeeper.world.terrain.Water;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class MapLoader implements ILoader<KwdFile> {
-    
+
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
     public final static float TORCH_HEIGHT = 3 * TILE_HEIGHT / 2; // FIXME use Terrain Torch Height
     public final static float TOP_HEIGHT = 2 * TILE_HEIGHT;
     public final static float FLOOR_HEIGHT = 1 * TILE_HEIGHT;
     public final static float UNDERFLOOR_HEIGHT = 0 * TILE_HEIGHT;
+    public final static float WATER_LEVEL = MapLoader.FLOOR_HEIGHT - 0.07f;
 
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
     public final static ColorRGBA COLOR_TAG = new ColorRGBA(0, 0, 0.8f, 1);
@@ -493,6 +494,15 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         // Move to tile and right height
         if (name != null) {
+            // if room get room torch
+            if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                RoomInstance roomInstance = roomCoordinates.get(tile.getLocation());
+                ArtResource torch = roomInstance.getRoom().getTorch();
+                if (torch == null) {
+                    return;
+                }
+                name = torch.getName();
+            }
             Spatial spatial = AssetUtils.loadModel(assetManager, name);
             spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
             spatial.rotate(0, angleY, 0);

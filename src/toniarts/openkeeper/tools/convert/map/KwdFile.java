@@ -89,7 +89,7 @@ public final class KwdFile {
     private java.util.Map<Short, Room> rooms;
     private java.util.Map<Short, Room> roomsByTerrainId; // Maps have rooms by the terrain ID
     private java.util.Map<Short, Creature> creatures;
-    private java.util.Map<Short, Object> objects;
+    private java.util.Map<Short, GameObject> objects;
     private java.util.Map<Short, CreatureSpell> creatureSpells;
     private java.util.Map<Integer, EffectElement> effectElements;
     private java.util.Map<Integer, Effect> effects;
@@ -110,7 +110,7 @@ public final class KwdFile {
     private boolean loaded = false;
     private Creature imp;
     private final String basePath;
-    private Object levelGem;
+    private GameObject levelGem;
     private static final Logger logger = Logger.getLogger(KwdFile.class.getName());
 
     /**
@@ -930,7 +930,7 @@ public final class KwdFile {
             room.setFightEffectId(ConversionUtils.readUnsignedShort(file));
             room.setGeneralDescriptionStringId(ConversionUtils.readUnsignedShort(file));
             room.setStrengthStringId(ConversionUtils.readUnsignedShort(file));
-            room.setTorchRadius(ConversionUtils.readUnsignedShort(file) / ConversionUtils.FLOAT);
+            room.setTorchHeight(ConversionUtils.readUnsignedShort(file) / ConversionUtils.FLOAT);
             List<Integer> roomEffects = new ArrayList<>(8);
             for (int x = 0; x < 8; x++) {
                 int effectId = ConversionUtils.readUnsignedShort(file);
@@ -952,9 +952,7 @@ public final class KwdFile {
 
             room.setSoundCategory(ConversionUtils.readString(file, 32).trim());
             room.setOrderInEditor((short) file.readUnsignedByte());
-            room.setX3c3((short) file.readUnsignedByte());
-            room.setUnknown10(ConversionUtils.readUnsignedShort(file));
-            room.setUnknown11((short) file.readUnsignedByte());
+            room.setTorchRadius(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
             room.setTorch(readArtResource(file));
             room.setRecommendedSizeX((short) file.readUnsignedByte());
             room.setRecommendedSizeY((short) file.readUnsignedByte());
@@ -1510,7 +1508,7 @@ public final class KwdFile {
 
         for (int i = 0; i < header.getItemCount(); i++) {
             long offset = file.getFilePointer();
-            Object object = new Object();
+            GameObject object = new GameObject();
 
             object.setName(ConversionUtils.readString(file, 32).trim());
             object.setMeshResource(readArtResource(file));
@@ -1538,7 +1536,7 @@ public final class KwdFile {
                 unknown3[x] = (short) file.readUnsignedByte();
             }
             object.setUnknown3(unknown3);
-            object.setFlags(ConversionUtils.parseFlagValue(ConversionUtils.readUnsignedIntegerAsLong(file), Object.ObjectFlag.class));
+            object.setFlags(ConversionUtils.parseFlagValue(ConversionUtils.readUnsignedIntegerAsLong(file), GameObject.ObjectFlag.class));
             object.setHp(ConversionUtils.readUnsignedShort(file));
             object.setMaxAngle(ConversionUtils.readUnsignedShort(file));
             object.setX34c(ConversionUtils.readUnsignedShort(file));
@@ -1549,7 +1547,7 @@ public final class KwdFile {
             object.setDeathEffectId(ConversionUtils.readUnsignedShort(file));
             object.setMiscEffectId(ConversionUtils.readUnsignedShort(file));
             object.setObjectId((short) file.readUnsignedByte());
-            object.setStartState(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Object.State.class));
+            object.setStartState(ConversionUtils.parseEnum((short) file.readUnsignedByte(), GameObject.State.class));
             object.setRoomCapacity((short) file.readUnsignedByte());
             object.setPickUpPriority((short) file.readUnsignedByte());
 
@@ -1559,7 +1557,7 @@ public final class KwdFile {
             objects.put(object.getObjectId(), object);
 
             // See special objects
-            if (levelGem == null && object.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_LEVEL_GEM)) {
+            if (levelGem == null && object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_LEVEL_GEM)) {
                 levelGem = object;
             }
 
@@ -2829,7 +2827,7 @@ public final class KwdFile {
      *
      * @return list of objects
      */
-    public Collection<Object> getObjectList() {
+    public Collection<GameObject> getObjectList() {
         return objects.values();
     }
 
@@ -2948,7 +2946,7 @@ public final class KwdFile {
      * @param id the id of object
      * @return the object
      */
-    public Object getObject(int id) {
+    public GameObject getObject(int id) {
         return objects.get((short) id);
     }
 
@@ -3090,7 +3088,7 @@ public final class KwdFile {
         return getRoomById(ROOM_PORTAL_ID);
     }
 
-    public Object getLevelGem() {
+    public GameObject getLevelGem() {
         return levelGem;
     }
 

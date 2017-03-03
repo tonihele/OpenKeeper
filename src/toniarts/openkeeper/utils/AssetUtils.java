@@ -134,9 +134,9 @@ public class AssetUtils {
     public static Spatial loadAsset(final AssetManager assetManager, String modelName) {
 
         String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
-        //ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(filename));
+        ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(filename));
 
-        Spatial result = assetManager.loadModel(filename);
+        Spatial result = assetManager.loadModel(assetKey);
 
         return result;
     }

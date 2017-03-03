@@ -61,10 +61,6 @@ import toniarts.openkeeper.world.trap.TrapLoader;
  */
 public class ThingLoader {
 
-    private final static short GOLD_LOSE = 1;
-    private final static short SPELL_BOOK = 3;
-    private final static short GOLD_ROOM = 4;
-
     private final WorldState worldState;
     private final CreatureLoader creatureLoader;
     private final ObjectLoader objectLoader;
@@ -322,7 +318,8 @@ public class ThingLoader {
      */
     public GoldObjectControl addRoomGold(Point p, short playerId, int initialAmount, int maxAmount) {
         // TODO: the room gold object id..
-        Spatial object = objectLoader.load(assetManager, p, 0, initialAmount, 0, SPELL_BOOK, playerId, maxAmount);
+        Spatial object = objectLoader.load(assetManager, p, 0, initialAmount, 0,
+                ObjectLoader.OBJECT_GOLD_PILE_ID, playerId, maxAmount);
         GoldObjectControl control = object.getControl(GoldObjectControl.class);
         nodeObjects.attachChild(object);
         return control;
@@ -339,18 +336,18 @@ public class ThingLoader {
     public GoldObjectControl addLooseGold(Vector2f coordinates, short playerId, int initialAmount) {
         // TODO: the gold object id..
         Spatial object = objectLoader.load(assetManager, coordinates,
-                0, initialAmount, 0, GOLD_LOSE, playerId, maxLooseGoldPerPile);
+                0, initialAmount, 0, ObjectLoader.OBJECT_GOLD_ID, playerId, maxLooseGoldPerPile);
         GoldObjectControl control = object.getControl(GoldObjectControl.class);
         objects.add(control);
         nodeObjects.attachChild(object);
         notifyOnObjectAdded(control);
-        
+
         return control;
     }
-    
+
     public GoldObjectControl addLooseGold(Point p, short playerId, int initialAmount) {
         Vector2f coordinates = WorldUtils.pointToVector2f(p);
-        
+
         return addLooseGold(coordinates, playerId, initialAmount);
     }
 
@@ -379,7 +376,9 @@ public class ThingLoader {
      */
     public SpellBookObjectControl addRoomSpellBook(Point p, PlayerSpell spell, short playerId) {
         // FIXME: The object ID
-        Spatial object = objectLoader.load(assetManager, p, spell, 0, 0, GOLD_ROOM, playerId, 0);
+        Spatial object = objectLoader.load(assetManager, p, spell, 0, 0,
+                ObjectLoader.OBJECT_SPELL_BOOK_ID, playerId, 0);
+        object.move(0, MapLoader.FLOOR_HEIGHT, 0);
         SpellBookObjectControl control = object.getControl(SpellBookObjectControl.class);
         nodeObjects.attachChild(object);
         return control;

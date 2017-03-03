@@ -548,6 +548,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                                 && interactiveControl != null && !keeperHand.isFull()
                                 && interactiveControl.isPickable(player.getPlayerId())) {
                             pickupObject(interactiveControl);
+                        } else if (interactionState.getType() == Type.NONE
+                                && interactiveControl != null
+                                && interactiveControl.isInteractable(player.getPlayerId())) {
+                            interactiveControl.interact(player.getPlayerId());
                         } else {
 
                             // Selection stuff

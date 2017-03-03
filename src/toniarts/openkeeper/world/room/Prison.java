@@ -27,8 +27,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.utils.AssetUtils;
-import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
+import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.door.DoorControl;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import static toniarts.openkeeper.world.room.GenericRoom.hasSameTile;
@@ -40,6 +41,9 @@ import toniarts.openkeeper.world.room.control.RoomPrisonerControl;
  * @author ArchDemon
  */
 public class Prison extends DoubleQuad {
+
+    private static final short OBJECT_DOOR_ID = 109;
+    private static final short OBJECT_DOORBAR_ID = 116;
 
     private Point door;
 
@@ -81,12 +85,19 @@ public class Prison extends DoubleQuad {
             boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
 
             if (door == null && !N && !NE && E && SE && S && SW && W && !NW) {
-                Spatial part = AssetUtils.loadModel(assetManager, modelName + "14");
-                //Object Prison Door and Prison Door Bar
-                //Spatial part = AssetUtils.loadModel(assetManager, "barclose");
-                //Spatial part = AssetUtils.loadModel(assetManager, "dooropen");
-                //Spatial part = AssetUtils.loadModel(assetManager, "doorclose");
-                part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
+                Spatial part = objectLoader.load(assetManager, p.x, p.y, OBJECT_DOOR_ID, roomInstance.getOwnerId());
+                part.setBatchHint(Spatial.BatchHint.Never);
+//                part.addControl(new DoorControl(worldState.getMapData().getTile(p),
+//                        null, worldState.getLevelData().getObject(OBJECT_DOORBAR_ID),
+//                        null, worldState, assetManager));
+                root.attachChild(part);
+
+                part = objectLoader.load(assetManager, p.x, p.y, OBJECT_DOORBAR_ID, roomInstance.getOwnerId());
+                part.setBatchHint(Spatial.BatchHint.Never);
+                root.attachChild(part);
+
+                part = AssetUtils.loadModel(assetManager, modelName + "14");
+                part.move(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
                 moveSpatial(part, p);
 
                 root.attachChild(part);

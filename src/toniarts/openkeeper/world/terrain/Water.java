@@ -53,8 +53,6 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class Water {
 
-    public final static float WATER_LEVEL = -0.07f;
-
     /**
      * TODO: Options loaded from elsewhere
      */
@@ -166,13 +164,13 @@ public class Water {
 
                 // Vertices
                 Vector3f vertice1 = new Vector3f((tile.x - 0.5f) * MapLoader.TILE_WIDTH,
-                        WATER_LEVEL, (tile.y - 0.5f) * MapLoader.TILE_WIDTH);
+                        MapLoader.WATER_LEVEL, (tile.y - 0.5f) * MapLoader.TILE_WIDTH);
                 Vector3f vertice2 = new Vector3f((tile.x + 0.5f)* MapLoader.TILE_WIDTH,
-                        WATER_LEVEL, (tile.y - 0.5f) * MapLoader.TILE_WIDTH);
+                        MapLoader.WATER_LEVEL, (tile.y - 0.5f) * MapLoader.TILE_WIDTH);
                 Vector3f vertice3 = new Vector3f((tile.x - 0.5f) * MapLoader.TILE_WIDTH,
-                        WATER_LEVEL, (tile.y + 0.5f) * MapLoader.TILE_WIDTH);
+                        MapLoader.WATER_LEVEL, (tile.y + 0.5f) * MapLoader.TILE_WIDTH);
                 Vector3f vertice4 = new Vector3f((tile.x + 0.5f) * MapLoader.TILE_WIDTH,
-                        WATER_LEVEL, (tile.y + 0.5f) * MapLoader.TILE_WIDTH);
+                        MapLoader.WATER_LEVEL, (tile.y + 0.5f) * MapLoader.TILE_WIDTH);
 
                 int vertice1Index = addVertice(verticeHash, vertice1, vertices, textureCoord1,
                         textureCoordinates, normals, shareVertices);

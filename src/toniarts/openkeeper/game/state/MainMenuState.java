@@ -525,9 +525,9 @@ public class MainMenuState extends AbstractAppState {
 
             // Generate
             try {
-                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder().concat(MAP_THUMBNAILS_FOLDER).concat(File.separator));
+                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder() + MAP_THUMBNAILS_FOLDER + File.separator);
             } catch (Exception e) {
-                logger.log(java.util.logging.Level.WARNING, "Failed to generate map file out of {0}!", kwdFile);
+                logger.log(java.util.logging.Level.WARNING, "Failed to generate map file out of {0}!", map);
                 asset = "Textures/Unique_NoTextureName.png";
             }
         }

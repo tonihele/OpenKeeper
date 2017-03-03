@@ -26,7 +26,7 @@ import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.tools.convert.map.Object;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.TileData;
@@ -48,7 +48,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
     }
 
     protected final WorldState worldState;
-    protected final toniarts.openkeeper.tools.convert.map.Object object;
+    protected final GameObject object;
     private final String tooltip;
     protected TileData tile;
     private ObjectState state = ObjectState.NORMAL;
@@ -59,7 +59,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
     protected short pickedUpBy;
     protected final ResourceBundle bundle;
 
-    public ObjectControl(TileData tile, toniarts.openkeeper.tools.convert.map.Object object, WorldState worldState) {
+    public ObjectControl(TileData tile, GameObject object, WorldState worldState) {
         super();
 
         this.worldState = worldState;
@@ -154,7 +154,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
 
     @Override
     public boolean isPickable(short playerId) {
-        return object.getFlags().contains(toniarts.openkeeper.tools.convert.map.Object.ObjectFlag.CAN_BE_PICKED_UP);
+        return object.getFlags().contains(GameObject.ObjectFlag.CAN_BE_PICKED_UP);
     }
 
     @Override
@@ -221,8 +221,9 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
     @Override
     public DroppableStatus getDroppableStatus(TileData tile, short playerId) {
         return !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)
-                && (object.getFlags().contains(toniarts.openkeeper.tools.convert.map.Object.ObjectFlag.CAN_BE_DROPPED_ON_ANY_LAND)
-                || ((tile.getPlayerId() == getOwnerId() && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE))))
+                && (object.getFlags().contains(GameObject.ObjectFlag.CAN_BE_DROPPED_ON_ANY_LAND)
+                || ((tile.getPlayerId() == getOwnerId()
+                && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE))))
                 ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
     }
 
@@ -278,7 +279,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
         return tile;
     }
 
-    public Object getObject() {
+    public GameObject getObject() {
         return object;
     }
 

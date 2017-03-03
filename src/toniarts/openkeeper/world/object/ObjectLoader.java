@@ -22,10 +22,11 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
 import toniarts.openkeeper.game.player.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Object;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -43,11 +44,16 @@ import toniarts.openkeeper.world.WorldState;
  */
 public class ObjectLoader implements ILoader<Thing.Object> {
 
+    public final static short OBJECT_GOLD_ID = 1;
+    //public final static short OBJECT_GOLD_BAG_ID = 2;
+    public final static short OBJECT_GOLD_PILE_ID = 3;
+    public final static short OBJECT_SPELL_BOOK_ID = 4;
+
     private final KwdFile kwdFile;
     private final WorldState worldState;
     private static final Logger logger = Logger.getLogger(ObjectLoader.class.getName());
 
-    public ObjectLoader(KwdFile kwdFile, WorldState worldState) {
+    public ObjectLoader(@Nonnull KwdFile kwdFile, WorldState worldState) {
         this.kwdFile = kwdFile;
         this.worldState = worldState;
     }
@@ -105,9 +111,12 @@ public class ObjectLoader implements ILoader<Thing.Object> {
             int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
 
         Point p = WorldUtils.vectorToPoint(pos);
-        TileData tile = worldState.getMapData().getTile(p);
+        TileData tile = null;
+        if (worldState != null) {
+            tile = worldState.getMapData().getTile(p);
+        }
 
-        toniarts.openkeeper.tools.convert.map.Object obj = kwdFile.getObject(objectId);
+        GameObject obj = kwdFile.getObject(objectId);
 
         // Load
         ObjectControl objectControl = getControl(tile, obj, moneyAmount, maxMoney, playerSpell);
@@ -124,12 +133,12 @@ public class ObjectLoader implements ILoader<Thing.Object> {
         return nodeObject;
     }
 
-    private ObjectControl getControl(TileData tile, Object obj, int moneyAmount,
+    private ObjectControl getControl(TileData tile, GameObject obj, int moneyAmount,
             int maxMoney, PlayerSpell playerSpell) {
 
-        if (obj.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_GOLD)) {
+        if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
             return new GoldObjectControl(tile, obj, worldState, moneyAmount, maxMoney);
-        } else if (obj.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_SPELL_BOOK)) {
+        } else if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPELL_BOOK)) {
             return new SpellBookObjectControl(tile, obj, worldState, playerSpell);
         }
 

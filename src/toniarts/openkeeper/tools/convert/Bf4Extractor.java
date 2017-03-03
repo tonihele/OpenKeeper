@@ -81,9 +81,11 @@ public class Bf4Extractor {
 
             for (Bf4Entry entry : bf4) {
                 if (entry.getImage() != null) {
-                    String baseDir = destination.concat(ConversionUtils.stripFileName(file.getName())).concat(File.separator);
+                    String baseDir = destination + ConversionUtils.stripFileName(file.getName()) + File.separator;
                     new File(baseDir).mkdirs();
-                    ImageIO.write(entry.getImage(), "png", new File(baseDir.concat(ConversionUtils.stripFileName(entry.toString()).concat("_").concat(Integer.toString(entry.getCharacter())).concat(".png"))));
+                    ImageIO.write(entry.getImage(), "png", new File(baseDir
+                            + ConversionUtils.stripFileName(entry.toString()) + "_"
+                            + Integer.toString(entry.getCharacter()) + ".png"));
                 }
             }
         }

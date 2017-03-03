@@ -29,7 +29,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
@@ -415,11 +417,11 @@ public abstract class GenericRoom {
                 .replaceAll("%58", getOwner()) // Prison
                 //.replaceAll("%59", ) // TODO Vampires Attracted
                 //.replaceAll("%60", ) // TODO Vampires Attracted Max
-                
+
                 .replaceAll("%61", getOwner()) // Graveyard
                 .replaceAll("%62", getOwner()) // Temple
                 .replaceAll("%63", getOwner()); // Casino
-                
+
     }
 
     protected final Spatial loadModel(String model) {
@@ -487,12 +489,11 @@ public abstract class GenericRoom {
         }
         return 0;
     }
-    
-    
+
     private String getOwner() {
         short ownerId = roomInstance.getOwnerId();
         String result = worldState.getLevelData().getPlayer(ownerId).getName();
-        
+
         return result;
     }
 
@@ -587,4 +588,34 @@ public abstract class GenericRoom {
         return wallFurniture;
     }
 
+    @Nullable
+    public GameObject getPillarObject() {
+        // TODO hardcode maybe something else?
+        switch (roomInstance.getRoom().getRoomId()) {
+            case 1:  // Treasury
+                return worldState.getLevelData().getObject(76);
+            case 2:  // Lair
+                return worldState.getLevelData().getObject(77);
+            case 4:  // Hatchery
+                return worldState.getLevelData().getObject(78);
+            case 10:  // Workshop
+                return worldState.getLevelData().getObject(80);
+            case 11:  // Prison
+                return worldState.getLevelData().getObject(81);
+            case 12:  // Torture
+                return worldState.getLevelData().getObject(82);
+            case 13:  // Temple
+                return worldState.getLevelData().getObject(83);
+            case 14: // Graveyard
+                return worldState.getLevelData().getObject(84);
+            case 15: // Casino
+                return worldState.getLevelData().getObject(85);
+            case 16: // Pit
+                return worldState.getLevelData().getObject(79);
+            case 26: // Crypt
+                return worldState.getLevelData().getObject(141);
+        }
+
+        return null;
+    }
 }

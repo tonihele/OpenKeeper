@@ -20,7 +20,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.tools.convert.map.Object;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
@@ -42,11 +42,11 @@ public class GoldObjectControl extends ObjectControl {
      * rooms the piles can be way over this
      */
     private int maxGold;
-    private int currentResourceIndex = 0;
+    private ArtResource currentResource = null;
     private final String tooltipLooseGold;
     private final String tooltipGold;
 
-    public GoldObjectControl(TileData tile, Object object, WorldState worldState, int initialGoldAmount, int maxGold) {
+    public GoldObjectControl(TileData tile, GameObject object, WorldState worldState, int initialGoldAmount, int maxGold) {
         super(tile, object, worldState);
 
         this.gold = initialGoldAmount;
@@ -59,7 +59,8 @@ public class GoldObjectControl extends ObjectControl {
 
     @Override
     public String getTooltip(short playerId) {
-        return (getState() == ObjectState.STORED_IN_ROOM ? tooltipGold : tooltipLooseGold).replace("%73", Integer.toString(gold));
+        return (getState() == ObjectState.STORED_IN_ROOM ? tooltipGold : tooltipLooseGold)
+                .replace("%73", Integer.toString(gold));
     }
 
     public int getGold() {
@@ -82,25 +83,22 @@ public class GoldObjectControl extends ObjectControl {
 
     @Override
     protected ArtResource getResource() {
-        if (isAdditionalResources()) {
+        ArtResource result = object.getMeshResource();
 
-            // For gold it is the amount of gold
-            currentResourceIndex = getResourceIndex();
-            if (currentResourceIndex >= object.getAdditionalResources().size()) {
-                return object.getMeshResource();
-            }
-            return object.getAdditionalResources().get(currentResourceIndex);
+        if (gold != maxGold && isAdditionalResources()) {
+            float delta = (float) maxGold / object.getAdditionalResources().size();
+            int index = (int) (gold / delta);
+            result = object.getAdditionalResources().get(index);
         }
-        return object.getMeshResource();
-    }
 
-    private int getResourceIndex() {
-        return Math.max((int) Math.ceil((gold / (float) maxGold) * 100 / (100f / getResourceCount())) - 1, 0);
+        return result;
     }
 
     private void refreshResource() {
-        if (isAdditionalResources() && currentResourceIndex != getResourceIndex()) {
-            Node nodeObject = (Node) AssetUtils.loadModel(worldState.getAssetManager(), getResource().getName());
+        ArtResource temp = getResource();
+        if (temp != currentResource) {
+            currentResource = temp;
+            Node nodeObject = (Node) AssetUtils.loadModel(worldState.getAssetManager(), currentResource.getName());
             nodeObject.move(0, MapLoader.FLOOR_HEIGHT, 0);
             ((Node) getSpatial()).detachAllChildren();
             for (Spatial spat : nodeObject.getChildren()) {

@@ -69,6 +69,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     public static final int LEVEL_TIMER_MAX_COUNT = 16;
     private static final int LEVEL_FLAG_MAX_COUNT = 128;
+    private static final float MOVEMENT_UPDATE_TPF = 0.02f;
 
     private Main app;
 
@@ -94,7 +95,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private TaskManager taskManager;
     private final Map<Short, Keeper> players = new TreeMap<>();
     private PauseableScheduledThreadPoolExecutor exec;
-    private static final float MOVEMENT_UPDATE_TPF = 0.02f;
+
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
 
     /**
