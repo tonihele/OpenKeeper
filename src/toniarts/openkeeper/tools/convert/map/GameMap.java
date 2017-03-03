@@ -25,7 +25,7 @@ package toniarts.openkeeper.tools.convert.map;
  *
  * Thank you https://github.com/werkt
  */
-public class Map {
+public class GameMap {
 
     private Tile[][] tiles;
     private int width;
@@ -34,7 +34,7 @@ public class Map {
     private Terrain water;
     private Terrain lava;
 
-    public Map(int width, int height) {
+    public GameMap(int width, int height) {
         this.width = width;
         this.height = height;
         this.tiles = new Tile[width][height];

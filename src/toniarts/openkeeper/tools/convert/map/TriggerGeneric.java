@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.Map.Entry;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
@@ -221,7 +222,7 @@ public class TriggerGeneric extends Trigger {
         result += " " + getUserData("value");
 
         if (data != null) {
-            for (java.util.Map.Entry<String, Number> entry : data.entrySet()) {
+            for (Entry<String, Number> entry : data.entrySet()) {
                 String key = entry.getKey();
                 Number value = entry.getValue();
 
