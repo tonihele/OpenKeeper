@@ -24,9 +24,9 @@ import java.awt.Point;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import toniarts.openkeeper.game.player.PlayerSpell;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -37,8 +37,7 @@ import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
 /**
- * Loads up object
- * TODO: remove unnecessary methods
+ * Loads up object TODO: remove unnecessary methods
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -103,7 +102,7 @@ public class ObjectLoader implements ILoader<Thing.Object> {
 
         Vector2f pos = WorldUtils.pointToVector2f(p);
 
-        return load(assetManager, pos, triggerId, moneyAmount,
+        return load(assetManager, pos, playerSpell, moneyAmount,
                 triggerId, objectId, playerId, maxMoney);
     }
 
