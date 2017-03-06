@@ -381,7 +381,7 @@ public final class KwdFile {
     }
 
     /**
-     * Reads the *GameMap.kld
+     * Reads the *Map.kld
      *
      * @param header Kwd header data
      * @param file the file data, rewind to data position
@@ -3168,7 +3168,7 @@ public final class KwdFile {
         private int checkThree; // in level = 223
         private int dataSizeLevel; // in Level size of data exclude paths
         private int unknown; // only in Triggers and Level
-        private int headerEndOffset; // 28, *GameMap - 8, *Triggers - 32,
+        private int headerEndOffset; // 28, *Map - 8, *Triggers - 32,
         private Date dateCreated;
         private Date dateModified;
         private int checkTwo;
