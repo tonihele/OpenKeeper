@@ -33,12 +33,12 @@ import com.jme3.scene.CameraNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.control.CameraControl.ControlDirection;
 import java.awt.Point;
-import java.io.File;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.game.action.ActionPoint;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Our wrapper on JME cinematic class, produces ready cinematics from camera
@@ -71,12 +71,16 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      * @param scene scene node to attach to
      * @param stateManager the state manager
      */
-    public Cinematic(AssetManager assetManager, Camera cam, Point start, String cameraSweepFile, Node scene, AppStateManager stateManager) {
-        this(assetManager, cam, MapLoader.getCameraPositionOnMapPoint(start.x, start.y), cameraSweepFile, scene, stateManager);
+    public Cinematic(final AssetManager assetManager, Camera cam, Point start, String cameraSweepFile,
+            Node scene, AppStateManager stateManager) {
+
+        this(assetManager, cam, WorldUtils.pointToVector3f(start), cameraSweepFile, scene, stateManager);
     }
 
-    public Cinematic(final Main app, String cameraSweepFile, int x, int y) {
-        this(app.getAssetManager(), app.getCamera(), MapLoader.getCameraPositionOnMapPoint(x, y), cameraSweepFile, app.getRootNode(), app.getStateManager());
+    public Cinematic(final Main app, String cameraSweepFile, final ActionPoint ap) {
+
+        this(app.getAssetManager(), app.getCamera(), WorldUtils.ActionPointToVector3f(ap),
+                cameraSweepFile, app.getRootNode(), app.getStateManager());
     }
 
     /**
@@ -90,21 +94,18 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      * @param scene scene node to attach to
      * @param stateManager the state manager
      */
-    public Cinematic(AssetManager assetManager, final Camera cam, final Vector3f start, String cameraSweepFile, Node scene, final AppStateManager stateManager) {
+    public Cinematic(final AssetManager assetManager, final Camera cam, final Vector3f start,
+            String cameraSweepFile, Node scene, final AppStateManager stateManager) {
+
         super(scene);
+
         this.assetManager = assetManager;
         this.stateManager = stateManager;
         this.start = start;
         this.cam = cam;
 
         // Load up the camera sweep file
-        Object obj = assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat(cameraSweepFile.concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
-        if (obj == null || !(obj instanceof CameraSweepData)) {
-            String msg = "Failed to load the camera sweep file " + cameraSweepFile + "!";
-            logger.severe(msg);
-            throw new RuntimeException(msg);
-        }
-        cameraSweepData = (CameraSweepData) obj;
+        cameraSweepData = AssetUtils.loadCameraSweep(assetManager, cameraSweepFile);
 
         // Add the listener, it is critical that this listener is executed before any custom ones
         addListener(new CinematicEventListener() {

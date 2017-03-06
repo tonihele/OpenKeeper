@@ -25,12 +25,12 @@ import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
+import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Level.LevelType;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.FullMoon;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
@@ -46,6 +46,15 @@ import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class HeroGateFrontEnd extends GenericRoom {
+
+    private static final short OBJECT_BANNER_ONE_ID = 89;
+    //private static final int OBJECT_CANDLE_STICK_ID = 110;  // empty resource?
+    //private static final int OBJECT_ARROW_ID = 115;  // empty resource?
+    private static final short OBJECT_GEM_HOLDER_ID = 131;
+    private static final short OBJECT_CHAIN_ID = 132;
+    private static final short OBJECT_BANNER_TWO_ID = 134;
+    private static final short OBJECT_BANNER_THREE_ID = 135;
+    private static final short OBJECT_BANNER_FOUR_ID = 136;
 
     public HeroGateFrontEnd(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         super(assetManager, roomInstance, objectLoader, worldState, effectManager);
@@ -64,28 +73,46 @@ public class HeroGateFrontEnd extends GenericRoom {
      * option)
      */
     private Spatial loadObject(String model, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
-        Node object = (Node) assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + model + ".j3o"));
+        Node object = (Node) AssetUtils.loadModel(assetManager, model, false, true);
 
         // Reset
-        resetAndMoveSpatial(object, start, p);
-        object.move(0, 1f, 0);
-
-        // Animate
-        AnimControl animControl = (AnimControl) object.getChild(0).getControl(AnimControl.class);
-        if (animControl != null) {
-            AnimChannel channel = animControl.createChannel();
-            channel.setAnim("anim");
-            channel.setLoopMode(LoopMode.Loop);
-            if (randomizeAnimation) {
-                channel.setSpeed(FastMath.nextRandomInt(6, 10) / 10f);
-                channel.setTime(FastMath.nextRandomFloat() * channel.getAnimMaxTime());
-            }
-
-            // Don't batch animated objects, seems not to work
-            object.setBatchHint(Spatial.BatchHint.Never);
-        }
+        moveSpatial(object, start, p);
+        object.move(0, MapLoader.FLOOR_HEIGHT, 0);
+        animate(object, randomizeAnimation);
 
         return object;
+    }
+
+    private Spatial loadObject(short objectId, AssetManager assetManager, Point start,
+            Point p, boolean randomizeAnimation) {
+
+        Spatial object =  objectLoader.load(assetManager, 0, 0, objectId, roomInstance.getOwnerId());
+        moveSpatial(object, start, p);
+        animate(object, randomizeAnimation);
+
+        return object;
+    }
+
+    private void animate(Spatial object, final boolean randomizeAnimation) {
+        // Animate
+        object.breadthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                AnimControl animControl = spatial.getControl(AnimControl.class);
+                if (animControl != null) {
+                    AnimChannel channel = animControl.createChannel();
+                    channel.setAnim("anim");
+                    channel.setLoopMode(LoopMode.Loop);
+                    if (randomizeAnimation) {
+                        channel.setSpeed(FastMath.nextRandomInt(6, 10) / 10f);
+                        channel.setTime(FastMath.nextRandomFloat() * channel.getAnimMaxTime());
+                    }
+
+                    // Don't batch animated objects, seems not to work
+                    object.setBatchHint(Spatial.BatchHint.Never);
+                }
+            }
+        });
     }
 
     /**
@@ -99,10 +126,10 @@ public class HeroGateFrontEnd extends GenericRoom {
     private void addCandles(Node n, AssetManager assetManager, Point start, Point p) {
 
         // The "candles"
-        n.attachChild(loadObject("chain_swing", assetManager, start, p, true).move(-1f, 0, 0));
-        Quaternion quat = new Quaternion();
-        quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
-        n.attachChild(loadObject("chain_swing", assetManager, start, p, true).rotate(quat).move(1f, 0, 1f));
+        n.attachChild(loadObject(OBJECT_CHAIN_ID, assetManager, start, p, true).move(-1f, 0, 0));
+        float yAngle = -FastMath.PI;
+        n.attachChild(loadObject(OBJECT_CHAIN_ID, assetManager, start, p, true)
+                .rotate(0, yAngle, 0).move(1f, 0, 1f));
     }
 
     /**
@@ -118,13 +145,16 @@ public class HeroGateFrontEnd extends GenericRoom {
      * @param randomizeAnimation randomize object animation (speed and start
      * time)
      */
-    private void attachAndCreateLevel(Node map, LevelType type, int levelnumber, String variation, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
+    private void attachAndCreateLevel(Node map, LevelType type, int levelnumber, String variation,
+            AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
+
         String objName = "3dmap_level";
         if (type.equals(LevelType.Secret)) {
             objName = "Secret_Level";
         }
 
-        Spatial lvl = loadObject(objName + levelnumber + (variation == null ? "" : variation), assetManager, start, p, randomizeAnimation);
+        Spatial lvl = loadObject(objName + levelnumber + (variation == null ? "" : variation),
+                assetManager, start, p, randomizeAnimation);
         lvl.addControl(new FrontEndLevelControl(new Level(type, levelnumber, variation), assetManager));
         lvl.setBatchHint(Spatial.BatchHint.Never);
         map.attachChild(lvl);
@@ -139,47 +169,48 @@ public class HeroGateFrontEnd extends GenericRoom {
         int i = 1;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = assetManager.loadModel(ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName() + i + ".j3o"));
+            Spatial tile = AssetUtils.loadModel(assetManager, roomInstance.getRoom().getCompleteResource().getName() + i, false, true);
 
             // Reset
-            resetAndMoveSpatial(tile, start, p);
+            moveSpatial(tile, start, p);
 
             root.attachChild(tile);
 
             // Add some objects according to the tile number
             switch (i) {
                 case 2:
-                    root.attachChild(loadObject("3DFE_GemHolder", assetManager, start, p, false));
+                    root.attachChild(loadObject(OBJECT_GEM_HOLDER_ID, assetManager, start, p, false));
                     // The light beams, I dunno, there are maybe several of these here
-                    Quaternion quat = new Quaternion();
-                    quat.fromAngleAxis(FastMath.PI, new Vector3f(0, -1, 0));
-                    root.attachChild(loadObject("3dfe_beams", assetManager, start, p, true).rotate(quat).move(0, 0.4f, 0.1f));
+                    // FIXME beams is a visual effect of gem holder ???
+                    float yAngle = -FastMath.PI;
+                    root.attachChild(loadObject("3dfe_beams", assetManager, start, p, true)
+                            .rotate(0, yAngle, 0).move(0, 0.4f, 0.1f));
                     // TODO: Add a point/spot light here
 
                     // Banners
-                    root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
-                    root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
+                    root.attachChild(loadObject(OBJECT_BANNER_ONE_ID, assetManager, start, p, true));
+                    root.attachChild(loadObject(OBJECT_BANNER_TWO_ID, assetManager, start, p, true));
                     // The "candles"
                     addCandles(root, assetManager, start, p);
                     break;
                 case 5:
                     // Banners
-                    root.attachChild(loadObject("banner3_swing", assetManager, start, p, true));
-                    root.attachChild(loadObject("banner4_swing", assetManager, start, p, true));
+                    root.attachChild(loadObject(OBJECT_BANNER_THREE_ID, assetManager, start, p, true));
+                    root.attachChild(loadObject(OBJECT_BANNER_FOUR_ID, assetManager, start, p, true));
                     // The "candles"
                     addCandles(root, assetManager, start, p);
                     break;
                 case 8:
                     // Banners
-                    root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
-                    root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
+                    root.attachChild(loadObject(OBJECT_BANNER_ONE_ID, assetManager, start, p, true));
+                    root.attachChild(loadObject(OBJECT_BANNER_TWO_ID, assetManager, start, p, true));
                     // The "candles"
                     addCandles(root, assetManager, start, p);
                     break;
                 case 11:
                     // Banners
-                    root.attachChild(loadObject("banner1_swing", assetManager, start, p, true));
-                    root.attachChild(loadObject("banner2_swing", assetManager, start, p, true));
+                    root.attachChild(loadObject(OBJECT_BANNER_ONE_ID, assetManager, start, p, true));
+                    root.attachChild(loadObject(OBJECT_BANNER_TWO_ID, assetManager, start, p, true));
                     // The "candles"
                     addCandles(root, assetManager, start, p);
                     // Map
@@ -230,8 +261,7 @@ public class HeroGateFrontEnd extends GenericRoom {
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_HEIGHT - MapLoader.TILE_HEIGHT / 2);
-        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        AssetUtils.translateToTile(root, start);
 
         return root;
     }

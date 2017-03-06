@@ -22,6 +22,7 @@ import java.util.Iterator;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -57,7 +58,7 @@ public class KillPlayer extends AbstractObjectiveTask {
 
     @Override
     public Vector2f getTarget(CreatureControl creature) {
-        return new Vector2f(getTaskLocation().x + 0.5f, getTaskLocation().y + 0.5f);
+        return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
     @Override

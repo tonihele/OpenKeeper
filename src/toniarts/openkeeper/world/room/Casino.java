@@ -17,8 +17,6 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -36,7 +34,7 @@ public class Casino extends Normal {
 
     @Override
     protected String getPillarResource() {
-        return ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/Casino_Pillar.j3o");
+        return "Casino_Pillar";
     }
 
     @Override

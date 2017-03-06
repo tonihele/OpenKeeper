@@ -26,6 +26,7 @@ import com.jme3.bounding.BoundingBox;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.object.HighlightControl;
 
 /**
@@ -75,7 +76,7 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
         // Set the actual location to where we believe it is
         if (steeringReady) {
             steeringReady = false;
-            getSpatial().setLocalTranslation(position.x, 0, position.y);
+            getSpatial().setLocalTranslation(position.x, MapLoader.FLOOR_HEIGHT, position.y);
             getSpatial().setLocalRotation(getSpatial().getLocalRotation().fromAngles(0, -orientation, 0));
         }
     }

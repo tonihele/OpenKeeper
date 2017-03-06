@@ -18,17 +18,15 @@ package toniarts.openkeeper.world.door;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
-import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
@@ -61,23 +59,19 @@ public class DoorLoader implements ILoader<Thing.Door> {
 
         // Load
         DoorControl doorControl = new DoorControl(worldState.getMapData().getTile(posX, posY), door, kwdFile.getObject(door.getKeyObjectId()), kwdFile.getTrapById(door.getTrapTypeId()), worldState, assetManager, locked, blueprint);
-        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE) ? door.getMesh().getName() : door.getCloseResource().getName()) + ".j3o", false);
+        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE) ? door.getMesh().getName() : door.getCloseResource().getName()));
         nodeObject.addControl(doorControl);
 
         // Move to the center of the tile
-        AssetUtils.resetSpatial(nodeObject);
-        nodeObject.setLocalTranslation(
-                posX * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
-                0,
-                posY * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
+        nodeObject.setLocalTranslation(WorldUtils.pointToVector3f(posX, posY));
+        nodeObject.move(0, MapLoader.FLOOR_HEIGHT, 0);
 
         // Figure out which way we should face, the door probably doesn't need to know it
         // There can be 3 tiles that are solid
         short ownerId = worldState.getMapLoader().getMapData().getTile(posX, posY).getPlayerId();
         if (canTileSupportDoor(posX, posY - 1, ownerId) && canTileSupportDoor(posX, posY + 1, ownerId)) {
-            Quaternion quat = new Quaternion();
-            quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-            nodeObject.rotate(quat);
+            float yAngle = -FastMath.HALF_PI;
+            nodeObject.rotate(0, yAngle, 0);
         }
         doorControl.initState();
 
@@ -90,6 +84,9 @@ public class DoorLoader implements ILoader<Thing.Door> {
 
     private boolean canTileSupportDoor(int x, int y, short ownerId) {
         TileData tile = worldState.getMapLoader().getMapData().getTile(x, y);
-        return (tile != null && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID) && ((!tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE)) || (tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE))));
+
+        return (tile != null && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && ((!tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE))
+                || (tile.getPlayerId() == ownerId && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.OWNABLE))));
     }
 }

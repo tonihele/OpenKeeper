@@ -66,7 +66,9 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.tools.modelviewer.Debug;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.FlashTileControl;
@@ -123,6 +125,9 @@ public abstract class WorldState extends AbstractAppState {
 
         // World node
         worldNode = new Node("World");
+        if (Main.isDebug()) {
+            Debug.showNodeAxes(assetManager, worldNode, 10);
+        }
 
         // Create physics state
         bulletAppState = new BulletAppState();
@@ -813,7 +818,7 @@ public abstract class WorldState extends AbstractAppState {
                     if (goldLeft > 0) {
 
                         // Add loose gold to this tile
-                        getThingLoader().addLooseGold(p, new Vector2f(MapLoader.TILE_WIDTH / 2, MapLoader.TILE_WIDTH / 2), player.getPlayerId(), goldLeft);
+                        getThingLoader().addLooseGold(p, player.getPlayerId(), goldLeft);
                     }
                 }
 
@@ -914,16 +919,6 @@ public abstract class WorldState extends AbstractAppState {
             return outPath;
         }
         return null;
-    }
-
-    /**
-     * Get tile coordinates from 3D coordinates
-     *
-     * @param location position
-     * @return tile coordinates
-     */
-    public static Point getTileCoordinates(Vector3f location) {
-        return new Point((int) Math.floor(location.x) + 1, (int) Math.floor(location.z) + 1);
     }
 
     /**
@@ -1049,7 +1044,9 @@ public abstract class WorldState extends AbstractAppState {
             // TODO: effect, drop loot & checks, claimed walls should also get destroyed if all adjacent tiles are not in cotrol anymore
             // The tile is dead
             if (terrain.getDestroyedEffectId() != 0) {
-                effectManager.load(worldNode, new Vector3f(point.x + 0.5f, 0, point.y + 0.5f), terrain.getDestroyedEffectId(), false);
+                effectManager.load(worldNode,
+                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                        terrain.getDestroyedEffectId(), false);
             }
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
 
@@ -1099,7 +1096,9 @@ public abstract class WorldState extends AbstractAppState {
             // TODO: effect & checks
             // The tile is upgraded
             if (terrain.getMaxHealthEffectId() != 0) {
-                effectManager.load(worldNode, new Vector3f(point.x + 0.5f, 0, point.y + 0.5f), terrain.getMaxHealthEffectId(), false);
+                effectManager.load(worldNode,
+                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                        terrain.getMaxHealthEffectId(), false);
             }
             if (terrain.getMaxHealthTypeTerrainId() > 0) {
                 tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());
@@ -1440,7 +1439,7 @@ public abstract class WorldState extends AbstractAppState {
         if (goldLeft > 0) {
 
             // Create a gold pile
-            thingLoader.addLooseGold(tile.getLocation(), coordinates, gold.getOwnerId(), goldLeft);
+            thingLoader.addLooseGold(tile.getLocation(), gold.getOwnerId(), goldLeft);
         }
     }
 

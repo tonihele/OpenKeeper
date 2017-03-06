@@ -46,8 +46,8 @@ import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.MapData;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * The player camera state. Listens for camera movement inputs.
@@ -173,7 +173,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
      * Load the initial main menu camera position
      */
     private void loadCameraStartLocation() {
-        Vector3f location = MapLoader.getCameraPositionOnMapPoint(player.getStartingCameraX(),
+        Vector3f location = WorldUtils.pointToVector3f(player.getStartingCameraX(),
                 player.getStartingCameraY());
         camera.setLookAt(location);
     }
@@ -193,8 +193,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     }
 
     public void setCameraLookAt(ActionPoint point) {
-        Vector3f location = MapLoader.getCameraPositionOnMapPoint((int) ((point.getStart().x + point.getEnd().x) / 2),
-                (int) ((point.getStart().y + point.getEnd().y) / 2));
+        Vector3f location = WorldUtils.ActionPointToVector3f(point);
         camera.setLookAt(location);
     }
 
@@ -206,9 +205,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         String sweepFile = "EnginePath" + sweepFileId;
 
         // Do cinematic transition
-        Cinematic c = new Cinematic(app, sweepFile,
-                (int) ((point.getStart().x + point.getEnd().x) / 2),
-                (int) ((point.getStart().y + point.getEnd().y) / 2));
+        Cinematic c = new Cinematic(app, sweepFile, point);
         c.addListener(new CinematicEventListener() {
             @Override
             public void onPlay(CinematicEvent cinematic) {

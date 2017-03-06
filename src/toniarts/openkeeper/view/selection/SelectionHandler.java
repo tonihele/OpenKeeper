@@ -10,7 +10,9 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial.CullHint;
 import com.jme3.scene.debug.WireBox;
+import java.awt.Point;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -36,7 +38,6 @@ public abstract class SelectionHandler {
     }
 
     private final Main app;
-    private final float appScaled = MapLoader.TILE_WIDTH;
     private ColorIndicator selectionColor = ColorIndicator.BLUE;
 
     /* Visuals for Selection */
@@ -48,13 +49,13 @@ public abstract class SelectionHandler {
     private boolean active = false;
     private final Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
     private final Vector3f cameraPosition = new Vector3f(Vector3f.NAN);
-    private final Vector2f pointedTilePosition = new Vector2f(Vector2f.ZERO); // Could be just point...
+    private Point pointedTileIndex = new Point(); // Could be just point...
+    private Vector2f pointedTilePosition = new Vector2f(Vector2f.ZERO); // Could be just point...
     private final Vector2f pointedPosition = new Vector2f(Vector2f.ZERO);
-    private final Vector2f pointedPositionInTile = new Vector2f(Vector2f.ZERO);
 
     public SelectionHandler(Main app) {
         this.app = app;
-        this.selectionArea = new SelectionArea(appScaled);
+        this.selectionArea = new SelectionArea(MapLoader.TILE_WIDTH);
 
         setupVisualsForSelection();
     }
@@ -72,13 +73,12 @@ public abstract class SelectionHandler {
 
         Vector3f tmp = cam.getWorldCoordinates(this.mousePosition, 0f).clone();
         Vector3f dir = cam.getWorldCoordinates(this.mousePosition, 1f).subtractLocal(tmp).normalizeLocal();
-        dir.multLocal((MapLoader.TILE_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
-
-        pointedPosition.set(dir.getX() + appScaled / 2, dir.getZ() + appScaled / 2);
-        pointedPosition.multLocal(appScaled);
-        pointedTilePosition.set(Math.round(pointedPosition.x), Math.round(pointedPosition.y));
-        pointedPositionInTile.set(Math.min(appScaled - (pointedPosition.x + appScaled / 2 - pointedTilePosition.x), 1), Math.min(appScaled - (pointedPosition.y + appScaled / 2 - pointedTilePosition.y), 1));
-
+        dir.multLocal((MapLoader.TOP_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
+        
+        pointedPosition.set(dir.getX(), dir.getZ());
+        pointedTileIndex = WorldUtils.vectorToPoint(pointedPosition);
+        pointedTilePosition = WorldUtils.pointToVector2f(pointedTileIndex);
+        
         setPos(pointedTilePosition);
 
         return true;
@@ -94,14 +94,14 @@ public abstract class SelectionHandler {
     }
 
     /**
-     * Get the ~actual pointed location INSIDE the tile, always inside the tile
+     * Show coordinate of tile pointed by mouse
      *
-     * @return the pointed location in tile 2D space
+     * @return 2D rounded mouse position in tile plane
      */
-    public Vector2f getPointedPositionInTile() {
-        return pointedPositionInTile;
+    public Point getPointedTileIndex() {
+        return pointedTileIndex;
     }
-
+    
     /**
      * Show coordinate of tile pointed by mouse
      *
@@ -160,11 +160,14 @@ public abstract class SelectionHandler {
         if (isVisible()) {
             float dx = selectionArea.getDeltaX();
             float dy = selectionArea.getDeltaY();
+            float delta = 0.01f;
 
             Vector2f position = selectionArea.getCenter();
-            wireBoxGeo.setLocalTranslation(position.x - appScaled / 2, appScaled / 2, position.y - appScaled / 2);
+            wireBoxGeo.setLocalTranslation(position.x, MapLoader.FLOOR_HEIGHT, position.y);
 
-            wireBox.updatePositions(appScaled / 2 * dx + 0.01f, appScaled / 2 + 0.01f, appScaled / 2 * dy + 0.01f);
+            wireBox.updatePositions(MapLoader.TILE_WIDTH / 2 * dx + delta,
+                    MapLoader.FLOOR_HEIGHT + delta,
+                    MapLoader.TILE_WIDTH / 2 * dy + delta);
 
             // Selection color indicator
             ColorIndicator newSelectionColor = getColorIndicator();
@@ -185,7 +188,7 @@ public abstract class SelectionHandler {
         matWireBox.setColor("Color", selectionColor.getColor());
         matWireBox.getAdditionalRenderState().setLineWidth(6);
 
-        this.wireBox = new WireBox(appScaled, appScaled, appScaled);
+        this.wireBox = new WireBox(MapLoader.TILE_WIDTH, MapLoader.TILE_WIDTH, MapLoader.TILE_WIDTH);
         this.wireBox.setDynamic();
 
         this.wireBoxGeo = new Geometry("wireBox", wireBox);

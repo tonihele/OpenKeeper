@@ -17,7 +17,7 @@
 package toniarts.openkeeper.world.object;
 
 import toniarts.openkeeper.game.player.PlayerSpell;
-import toniarts.openkeeper.tools.convert.map.Object;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
@@ -30,7 +30,7 @@ public class SpellBookObjectControl extends ObjectControl {
 
     private final PlayerSpell playerSpell;
 
-    public SpellBookObjectControl(TileData tile, Object object, WorldState worldState, PlayerSpell playerSpell) {
+    public SpellBookObjectControl(TileData tile, GameObject object, WorldState worldState, PlayerSpell playerSpell) {
         super(tile, object, worldState);
 
         this.playerSpell = playerSpell;

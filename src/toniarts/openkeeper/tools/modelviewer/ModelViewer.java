@@ -62,7 +62,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
@@ -70,11 +69,11 @@ import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.TerrainLoader;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -88,7 +87,12 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     public enum Types {
 
-        MODELS("Models"), TERRAIN("Terrain"), /*OBJECTS("Objects"),*/ MAPS("Maps"), EFFECTS("Effects");
+        MODELS("Models"),
+        TERRAIN("Terrain"),
+        OBJECTS("Objects"),
+        MAPS("Maps"),
+        EFFECTS("Effects");
+
         private final String name;
 
         private Types(String name) {
@@ -100,6 +104,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             return name;
         }
     }
+    private final static float SCALE = 2;
     private static String dkIIFolder;
     private final Vector3f lightDir = new Vector3f(-1, -1, .5f).normalizeLocal();
     private DirectionalLight dl;
@@ -178,19 +183,20 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         Material mat = assetManager.loadMaterial("Materials/ModelViewer/FloorMarble.j3m");
 
         floorGeom = new Node("floorGeom");
-        Quad q = new Quad(100, 100);
-        q.scaleTextureCoordinates(new Vector2f(10, 10));
+        Quad q = new Quad(20, 20);
+        q.scaleTextureCoordinates(new Vector2f(1, 1));
         Geometry g = new Geometry("geom", q);
         g.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_X));
         g.setShadowMode(RenderQueue.ShadowMode.Receive);
         floorGeom.attachChild(g);
 
         TangentBinormalGenerator.generate(floorGeom);
-        floorGeom.setLocalTranslation(-50, 22, 60);
+        floorGeom.setLocalTranslation(-10, -0.1f, 10);
 
         floorGeom.setMaterial(mat);
         rootNode.attachChild(floorGeom);
     }
+
     private ActionListener actionListener = new ActionListener() {
         @Override
         public void onAction(String name, boolean pressed, float tpf) {
@@ -294,9 +300,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         nifty.getRenderEngine().setFont(font);
         nifty.registerMouseCursor("pointer", "Interface/Cursors/Idle.png", 4, 4);
 
-        cam.setLocation(new Vector3f(-15.445636f, 30.162927f, 60.252777f));
-        cam.setRotation(new Quaternion(0.05173137f, 0.92363626f, -0.13454558f, 0.35513034f));
-        flyCam.setMoveSpeed(30);
+        cam.setLocation(new Vector3f(0, 10, 10));
+        cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
+        flyCam.setMoveSpeed(10);
         flyCam.setDragToRotate(true);
 
         // Mouse cursor
@@ -317,13 +323,15 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
         setupLighting();
         setupFloor();
+        setupDebug();
 
         // Open a KMF model if set
         if (kmfModel != null) {
             try {
                 KmfFile kmf = new KmfFile(kmfModel);
                 KmfModelLoader loader = new KmfModelLoader();
-                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf, AssetsConverter.getEngineTexturesFile(dkIIFolder), false);
+                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf,
+                        AssetsConverter.getEngineTexturesFile(dkIIFolder), false);
                 Node node = (Node) loader.load(asset);
                 setupModel(node, false);
             } catch (Exception e) {
@@ -342,7 +350,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
      * @param directory the actual directory where the objects are get
      * @param extension the file extension of the objects wanted
      */
-    public void fillWithFiles(List<String> object, final String rootDirectory, final String directory, final String extension) {
+    public void fillWithFiles(List<String> object, final String rootDirectory,
+            final String directory, final String extension) {
+
         ListBox<String> listBox = getModelListBox();
 
         if (object == null) {
@@ -358,7 +368,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             });
             Path path = new File(rootDirectory).toPath();
             for (File file : files) {
-                String key = path.relativize(file.toPath()).toString();
+                String key = file.getName();
                 object.add(key.substring(0, key.length() - 4));
             }
         }
@@ -376,7 +386,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     private void fillObjects() {
         KwdFile kwfFile = getKwdFile();
-        Collection<toniarts.openkeeper.tools.convert.map.Object> objects = kwfFile.getObjectList();
+        Collection<GameObject> objects = kwfFile.getObjectList();
         getModelListBox().addAllItems(objects);
     }
 
@@ -401,22 +411,22 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 case MODELS: {
 
                     // Load the selected model
-                    Node spat = (Node) AssetUtils.loadModel(assetManager, ((String) selection.get(0)).concat(".j3o").replaceAll(Matcher.quoteReplacement(File.separator), "/"), false);
+                    Node spat = (Node) AssetUtils.loadAsset(assetManager, (String) selection.get(0));
                     setupModel(spat, false);
                     break;
                 }
                 case TERRAIN: {
 
                     // Load the selected terrain
-                    Node spat = (Node) new TerrainLoader().load(this.getAssetManager(), (Terrain) selection.get(0));
+                    Node spat = (Node) new TerrainsLoader().load(this.getAssetManager(), (Terrain) selection.get(0));
                     setupModel(spat, false);
                     break;
                 }
                 case MAPS: {
 
                     // Load the selected map
-                    String file = ((String) selection.get(0)).concat(".kwd").replaceAll(Matcher.quoteReplacement(File.separator), "/");
-                    KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(file)));
+                    String file = (String) selection.get(0) + ".kwd";
+                    KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder + AssetsConverter.MAPS_FOLDER + file));
                     Node spat = (Node) new MapLoader(this.getAssetManager(), kwd, new EffectManagerState(kwd, this.getAssetManager()), null, new ObjectLoader(kwdFile, null)) {
                         @Override
                         protected void updateProgress(float progress) {
@@ -426,25 +436,31 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     setupModel(spat, true);
                     break;
                 }
-//                case OBJECTS: {
-//
-//                    // Load the selected object
-//                    Node spat = (Node) new ObjectLoader().load(this.getAssetManager(), (toniarts.openkeeper.tools.convert.map.Object) selection.get(0));
-//                    setupModel(spat, false);
-//                    break;
-//                }
+                case OBJECTS: {
+
+                    // Load the selected object
+                    //Node spat = (Node) AssetUtils.loadAsset(assetManager, ((GameObject) selection.get(0)).getMeshResource().getName());
+                    Node spat = (Node) new ObjectsLoader().load(this.getAssetManager(), (GameObject) selection.get(0));
+                    setupModel(spat, false);
+                    break;
+                }
                 case EFFECTS: {
 
                     Node spat = new Node();
                     effectManagerState.setEnabled(true);
                     // Load the selected effect
                     final int selectedIndex = event.getSelectionIndices().get(0) + 1;
-                    effectManagerState.loadSingleEffect(spat, new Vector3f(10, 25, 30), selectedIndex, true);
+                    effectManagerState.loadSingleEffect(spat, new Vector3f(0, 0, 0), selectedIndex, true);
                     setupModel(spat, false);
                     break;
                 }
             }
         }
+    }
+
+    private void setupDebug() {
+        Debug.showNodeAxes(assetManager, rootNode, 10);
+        Debug.attachWireFrameDebugGrid(assetManager, rootNode, Vector3f.ZERO, 20, ColorRGBA.DarkGray);
     }
 
     @NiftyEventSubscriber(id = "typeCombo")
@@ -483,14 +499,14 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         if (!isMap) {
 
             // Reset the game translation and scale
-            for (Spatial subSpat : spat.getChildren()) {
-                subSpat.setLocalScale(1);
-                subSpat.setLocalTranslation(0, 0, 0);
-            }
+//            for (Spatial subSpat : spat.getChildren()) {
+//                subSpat.setLocalScale(1);
+//                subSpat.setLocalTranslation(0, 0, 0);
+//            }
 
             // Make it bigger and move
-            spat.scale(10);
-            spat.setLocalTranslation(10, 25, 30);
+//            spat.scale(10);
+//            spat.setLocalTranslation(10, 25, 30);
 
             // Make it rotate
             RotatorControl rotator = new RotatorControl();
@@ -517,15 +533,17 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         toggleShowNormals();
 
         // Animate!
-        if (!spat.getChildren().isEmpty()) {
-            final Spatial spatial = spat.getChild(0);
-            AnimControl animControl = (AnimControl) spatial.getControl(AnimControl.class);
-            if (animControl != null) {
-                AnimChannel channel = animControl.createChannel();
-                channel.setAnim("anim");
-                AnimationLoader.setLoopModeOnChannel(spatial, channel);
+        spat.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                AnimControl animControl = (AnimControl) spatial.getControl(AnimControl.class);
+                if (animControl != null) {
+                    AnimChannel channel = animControl.createChannel();
+                    channel.setAnim("anim");
+                    AnimationLoader.setLoopModeOnChannel(spatial, channel);
+                }
             }
-        }
+        });
     }
 
     /**
@@ -553,7 +571,8 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         getModelListBox().clear();
         switch (type) {
             case MODELS: {
-                fillWithFiles(models, AssetsConverter.getAssetsFolder(), AssetsConverter.getAssetsFolder().concat(AssetsConverter.MODELS_FOLDER).concat(File.separator), "j3o");
+                fillWithFiles(models, AssetsConverter.getAssetsFolder(), AssetsConverter.getAssetsFolder()
+                        + AssetsConverter.MODELS_FOLDER + File.separator, "j3o");
                 break;
             }
             case TERRAIN: {
@@ -564,10 +583,10 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                 fillWithFiles(maps, dkIIFolder, dkIIFolder.concat(AssetsConverter.MAPS_FOLDER), "kwd");
                 break;
             }
-//            case OBJECTS: {
-//                fillObjects();
-//                break;
-//            }
+            case OBJECTS: {
+                fillObjects();
+                break;
+            }
             case EFFECTS: {
                 fillEffects();
                 break;

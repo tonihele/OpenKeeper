@@ -42,7 +42,6 @@ import java.awt.image.FilteredImageSource;
 import java.awt.image.ImageFilter;
 import java.awt.image.ImageProducer;
 import java.awt.image.RGBImageFilter;
-import java.awt.image.RescaleOp;
 import java.io.IOException;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -63,7 +62,7 @@ public class TorchControl extends BillboardControl {
 
     private static final Logger log = Logger.getLogger(TorchControl.class.getName());
 
-    public TorchControl(KwdFile kwdFile, AssetManager assetManager) {
+    public TorchControl(KwdFile kwdFile, AssetManager assetManager, float angle) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         setAlignment(Alignment.AxialY);
@@ -92,8 +91,8 @@ public class TorchControl extends BillboardControl {
             result = new Geometry("torch flame", createMesh(0.5f, 0.5f));
             result.setMaterial(material);
             result.setQueueBucket(RenderQueue.Bucket.Translucent);
-
-            result.move(-0.05f, -0.05f, -0.05f);
+            result.move(0.14f, 0.2f, 0);
+            
         } catch (Exception e) {
             log.warning("Can`t create torch flame");
         }
@@ -131,10 +130,10 @@ public class TorchControl extends BillboardControl {
         Mesh mesh = new Mesh();
 
         mesh.setBuffer(VertexBuffer.Type.Position, 3, new float[]{
-            -width / 2f - 0.06f, -height / 2f + 0.2f, -0.05f,
-            width / 2f - 0.06f, -height / 2f + 0.2f, -0.05f,
-            width / 2f - 0.06f, height / 2f + 0.2f, -0.05f,
-            -width / 2f - 0.06f, height / 2f + 0.2f, -0.05f
+            -width / 2f, 0, 0,
+            width / 2f, 0, 0,
+            width / 2f, height, 0,
+            -width / 2f, height, 0
         });
 
         mesh.setBuffer(VertexBuffer.Type.TexCoord, 2, new float[]{0, 1,
@@ -155,9 +154,9 @@ public class TorchControl extends BillboardControl {
     private Texture createTexture() throws IOException {
         String name = "ktorch";
 
-        float[] scales = {1f, 1f, 1f, 1f};
-        float[] offsets = new float[4];
-        RescaleOp rop = new RescaleOp(scales, offsets, null);
+        //float[] scales = {1f, 1f, 1f, 1f};
+        //float[] offsets = new float[4];
+        //RescaleOp rop = new RescaleOp(scales, offsets, null);
 
         // Get the first frame, the frames need to be same size
         BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + name + "0.png"))).openStream());
@@ -195,8 +194,8 @@ public class TorchControl extends BillboardControl {
     private Material createMaterial() {
         Material result = new Material(assetManager, "MatDefs/LightingSprite.j3md");
 
-        result.setInt("NumberOfTiles", 20);
-        result.setInt("Speed", 20); // FIXME: correct value
+        result.setInt("NumberOfTiles", frames);
+        result.setInt("Speed", frames); // FIXME: correct value
 
         result.setTransparent(true);
         result.setFloat("AlphaDiscardThreshold", 0.1f);

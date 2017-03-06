@@ -18,23 +18,16 @@ package toniarts.openkeeper.world;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.math.Vector3f;
-import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
-import static toniarts.openkeeper.world.MapLoader.loadAsset;
+import toniarts.openkeeper.world.room.Quad;
 
 /**
  *
  * @author ArchDemon
  */
 public class WaterConstructor extends TileConstructor {
-
-    private final static float WATER_DEPTH = 0.3525f;
-    public final static float WATER_LEVEL = 0.075f;
 
     public WaterConstructor(KwdFile kwdFile) {
         super(kwdFile);
@@ -68,167 +61,54 @@ public class WaterConstructor extends TileConstructor {
         Spatial floor;
         int piece = -1;
         float yAngle = 0;
-        Vector3f movement = null;
 
-        //Sides
-        if (!E && S && SW && W && NW && N) {
+        if (S && SW && W && SE && N && NE && E && NW) {
+            piece = 3;
+        } else if (!E && S && SW && W && NW && N) {
             piece = 0;
             yAngle = FastMath.HALF_PI;
-            movement = new Vector3f(0, 0, -TILE_WIDTH);
         } else if (!S && W && NW && N && NE && E) {
             piece = 0;
         } else if (!W && N && NE && E && SE && S) {
             piece = 0;
             yAngle = -FastMath.HALF_PI;
-            movement = new Vector3f(-TILE_WIDTH, 0, 0);
         } else if (!N && E && SE && S && SW && W) {
             piece = 0;
-            yAngle = -FastMath.PI;
-            movement = new Vector3f(-TILE_WIDTH, 0, -TILE_WIDTH);
-        } //
-        // Just one corner
-        else if (!SW && S && SE && E && W && N && NE && NW) {
+            yAngle = FastMath.PI;
+        } else if (!SW && S && SE && E && W && N && NE && NW) {
             piece = 2;
-            yAngle = -FastMath.PI;
-            movement = new Vector3f(-TILE_WIDTH, 0, -TILE_WIDTH);
+            yAngle = FastMath.PI;
         } else if (!NE && S && SE && E && W && N && SW && NW) {
             piece = 2;
         } else if (!SE && S && SW && E && W && N && NE && NW) {
             piece = 2;
             yAngle = -FastMath.HALF_PI;
-            movement = new Vector3f(-TILE_WIDTH, 0, 0);
         } else if (!NW && S && SW && E && W && N && NE && SE) {
             piece = 2;
             yAngle = FastMath.HALF_PI;
-            movement = new Vector3f(0, 0, -TILE_WIDTH);
-        } // Land corner
-        else if (!N && !NW && !W && S && SE && E) {
+        } else if (!N && !NW && !W && S && SE && E) {
             piece = 1;
             yAngle = -FastMath.HALF_PI;
-            movement = new Vector3f(-TILE_WIDTH, 0, 0);
         } else if (!N && !NE && !E && SW && S && W) {
             piece = 1;
-            yAngle = -FastMath.PI;
-            movement = new Vector3f(-TILE_WIDTH, 0, -TILE_WIDTH);
+            yAngle = FastMath.PI;
         } else if (!S && !SE && !E && N && W && NW) {
             piece = 1;
             yAngle = FastMath.HALF_PI;
-            movement = new Vector3f(0, 0, -TILE_WIDTH);
         } else if (!S && !SW && !W && N && NE && E) {
             piece = 1;
-        }// Just a seabed
-        else if (S && SW && W && SE && N && NE && E && NW) { // Just a seabed
-            piece = 3;
-            movement = new Vector3f(0, -WATER_DEPTH, 0);
         }
         //
         if (piece != -1) {
-            floor = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + piece + ".j3o", false, true);
+            floor = loadAsset(assetManager, model + piece, true);
             if (yAngle != 0) {
                 floor.rotate(0, yAngle, 0);
             }
-            if (movement != null) {
-                floor.move(movement);
-            }
             return floor;
         }
-
-        // We have only the one tilers left, they need to be constructed similar to quads, but unfortunately not just the same
         // 2x2
-        floor = new Node();
-        for (int i = 0; i < 2; i++) {
-            for (int k = 0; k < 2; k++) {
+        floor = Quad.constructQuad(assetManager, model, 4, FastMath.PI, N, NE, E, SE, S, SW, W, NW);
 
-                piece = 7;
-                yAngle = 0;
-                movement = null;
-
-                // Determine the piece
-                if (i == 0 && k == 0) { // North west corner
-                    if (!N && W) { // Side
-                        piece = 4;
-                        yAngle = FastMath.PI;
-                    } else if (!W && N) { // Side
-                        piece = 4;
-                        yAngle = -FastMath.HALF_PI;
-                        movement = new Vector3f(0, 0, TILE_WIDTH / 2); //
-                    } else if (!NW && N && W) { // Corner surrounded by water
-                        piece = 6;
-                        yAngle = FastMath.HALF_PI;
-                        movement = new Vector3f(TILE_WIDTH / 2, 0, 0); //
-                    } else if (!N && !W) { // Corner surrounded by land
-                        piece = 5;
-                        yAngle = -FastMath.HALF_PI;
-                        movement = new Vector3f(0, 0, TILE_WIDTH / 2); //
-                    } else { // Seabed
-                        movement = new Vector3f(TILE_WIDTH / 2, 0, TILE_WIDTH / 2);
-                    }
-                } else if (i == 1 && k == 0) { // North east corner
-                    if (!N && E) { // Side
-                        piece = 4;
-                        yAngle = FastMath.PI;
-                        movement = new Vector3f(-TILE_WIDTH / 2, 0, 0); //
-                    } else if (!E && N) { // Side
-                        piece = 4;
-                        yAngle = FastMath.HALF_PI;
-                    } else if (!NE && N && E) { // Corner surrounded by water
-                        piece = 6;
-                        movement = new Vector3f(0, 0, TILE_WIDTH / 2); //
-                    } else if (!N && !E) { // Corner surrounded by land
-                        piece = 5;
-                        yAngle = -FastMath.PI;
-                        movement = new Vector3f(-TILE_WIDTH / 2, 0, 0); //
-                    } else { // Seabed
-                        movement = new Vector3f(0, 0, TILE_WIDTH / 2);
-                    }
-                } else if (i == 0 && k == 1) { // South west corner
-                    if (!S && W) { // Side
-                        piece = 4;
-                        movement = new Vector3f(TILE_WIDTH / 2, 0, 0); //
-                    } else if (!W && S) { // Side
-                        piece = 4;
-                        yAngle = -FastMath.HALF_PI;
-                    } else if (!SW && S && W) { // Corner surrounded by water
-                        piece = 6;
-                        yAngle = -FastMath.PI;
-                        movement = new Vector3f(0, 0, -TILE_WIDTH / 2); //
-                    } else if (!S && !W) { // Corner surrounded by land
-                        piece = 5;
-                        movement = new Vector3f(TILE_WIDTH / 2, 0, 0); //
-                    } else { // Seabed
-                        movement = new Vector3f(TILE_WIDTH / 2, 0, 0);
-                    }
-                } else if (i == 1 && k == 1) { // South east corner
-                    if (!S && E) { // Side
-                        piece = 4;
-                    } else if (!E && S) { // Side
-                        piece = 4;
-                        yAngle = FastMath.HALF_PI;
-                        movement = new Vector3f(0, 0, -TILE_WIDTH / 2); //
-                    } else if (!SE && S && E) { // Corner surrounded by water
-                        piece = 6;
-                        yAngle = -FastMath.HALF_PI;
-                        movement = new Vector3f(-TILE_WIDTH / 2, 0, 0); //
-                    } else if (!S && !E) { // Corner surrounded by land
-                        piece = 5;
-                        yAngle = FastMath.HALF_PI;
-                        movement = new Vector3f(0, 0, -TILE_WIDTH / 2); //
-                    }
-                }
-
-                // Load the piece
-                Spatial part = loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + piece + ".j3o", false, true);
-                if (yAngle != 0) {
-                    part.rotate(0, yAngle, 0);
-                }
-                if (movement != null) {
-                    part.move(movement);
-                }
-                part.move((i - 1) * TILE_WIDTH, -(piece == 7 ? WATER_DEPTH : 0), (k - 1) * TILE_WIDTH);
-                ((Node) floor).attachChild(part);
-            }
-        }
-        //
         return floor;
     }
 }

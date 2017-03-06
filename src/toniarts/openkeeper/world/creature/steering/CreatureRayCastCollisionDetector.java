@@ -134,7 +134,7 @@ public class CreatureRayCastCollisionDetector implements RaycastCollisionDetecto
 //            com.jme3.math.Ray ray = new com.jme3.math.Ray(start, start.subtract(inputRay.end.x, 0.25f, inputRay.end.y).normalizeLocal());
 //            ray.setLimit(0.05f);
 //            CollisionResults results = new CollisionResults();
-//            ((Node) world.getWorld().getChild("Map")).getChild("Terrain").collideWith(ray, results);
+//            ((Node) world.getWorld().getChild(MAP_NODE)).getChild(TERRAIN_NODE).collideWith(ray, results);
 //            if (results.size() > 0) {
 //                CollisionResult collission = results.getClosestCollision();
 //                if (collission.getDistance() > ray.getLimit()) {

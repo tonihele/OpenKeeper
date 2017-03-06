@@ -37,12 +37,10 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
 import static toniarts.openkeeper.Main.getDkIIFolder;
 import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
-import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.GeneralLevel;
@@ -64,6 +62,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
@@ -168,7 +167,8 @@ public class MainMenuState extends AbstractAppState {
      */
     private void loadCameraStartLocation() {
         Player player = kwdFile.getPlayer(Keeper.KEEPER1_ID);
-        startLocation = new Vector3f(MapLoader.getCameraPositionOnMapPoint(player.getStartingCameraX(), player.getStartingCameraY()));
+        startLocation = WorldUtils.pointToVector3f(player.getStartingCameraX(), player.getStartingCameraY());
+        startLocation.addLocal(0, MapLoader.FLOOR_HEIGHT, 0);
 
         // Set the actual camera location
         loadCameraStartLocation("EnginePath250");
@@ -180,7 +180,7 @@ public class MainMenuState extends AbstractAppState {
      * @param transition the transition
      */
     private void loadCameraStartLocation(String transition) {
-        CameraSweepData csd = (CameraSweepData) assetManager.loadAsset(AssetsConverter.PATHS_FOLDER.concat(File.separator).replaceAll(Pattern.quote("\\"), "/").concat(transition.concat(".").concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
+        CameraSweepData csd = AssetUtils.loadCameraSweep(assetManager, transition);
         CameraSweepDataEntry entry = csd.getEntries().get(0);
         Cinematic.applyCameraSweepEntry(app.getCamera(), startLocation, entry);
     }
@@ -525,9 +525,9 @@ public class MainMenuState extends AbstractAppState {
 
             // Generate
             try {
-                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder().concat(MAP_THUMBNAILS_FOLDER).concat(File.separator));
+                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder() + MAP_THUMBNAILS_FOLDER + File.separator);
             } catch (Exception e) {
-                logger.log(java.util.logging.Level.WARNING, "Failed to generate map file out of {0}!", kwdFile);
+                logger.log(java.util.logging.Level.WARNING, "Failed to generate map file out of {0}!", map);
                 asset = "Textures/Unique_NoTextureName.png";
             }
         }

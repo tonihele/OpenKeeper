@@ -20,10 +20,10 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
@@ -56,15 +56,12 @@ public class TrapLoader implements ILoader<Thing.Trap> {
 
         // Load
         TrapControl trapControl = new TrapControl(worldState.getMapData().getTile(posX, posY), trap, worldState, assetManager, blueprint);
-        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + trap.getMeshResource().getName() + ".j3o", false);
+        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, trap.getMeshResource().getName());
         nodeObject.addControl(trapControl);
 
         // Move to the center of the tile
-        AssetUtils.resetSpatial(nodeObject);
-        nodeObject.setLocalTranslation(
-                posX * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
-                0,
-                posY * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
+        nodeObject.setLocalTranslation(WorldUtils.pointToVector3f(posX, posY));
+        nodeObject.move(0, MapLoader.FLOOR_HEIGHT, 0);
 
         trapControl.initState();
 

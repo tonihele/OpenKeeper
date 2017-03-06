@@ -190,7 +190,7 @@ public class KmfModelLoader implements AssetLoader {
 
         //Go trough the models and add them
         for (Grop grop : kmfFile.getGrops()) {
-            String key = AssetsConverter.MODELS_FOLDER.concat("/").concat(grop.getName()).concat(".j3o");
+            String key = AssetsConverter.MODELS_FOLDER + File.separator + grop.getName() + ".j3o";
             AssetLinkNode modelLink = new AssetLinkNode(key, new ModelKey(key));
             modelLink.setLocalTranslation(new Vector3f(grop.getPos().x, -grop.getPos().z, grop.getPos().y));
             root.attachChild(modelLink);

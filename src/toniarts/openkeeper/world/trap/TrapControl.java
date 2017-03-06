@@ -20,9 +20,13 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
+import java.io.File;
 import java.util.ResourceBundle;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -56,11 +60,11 @@ public class TrapControl extends HighlightControl implements IInteractiveControl
     private int health;
     private final static ResourceBundle BUNDLE = Main.getResourceBundle("Interface/Texts/Text");
 
-    public TrapControl(TileData tile, Trap trap, WorldState worldState, AssetManager assetManager) {
+    public TrapControl(TileData tile, @Nonnull Trap trap, WorldState worldState, AssetManager assetManager) {
         this(tile, trap, worldState, assetManager, false);
     }
 
-    public TrapControl(TileData tile, Trap trap, WorldState worldState, AssetManager assetManager, boolean blueprint) {
+    public TrapControl(TileData tile, @Nonnull Trap trap, WorldState worldState, AssetManager assetManager, boolean blueprint) {
         super();
 
         this.worldState = worldState;
@@ -215,8 +219,17 @@ public class TrapControl extends HighlightControl implements IInteractiveControl
     }
 
     @Override
+    @Nullable
     public String getCenterIcon() {
-        return ConversionUtils.getCanonicalAssetKey("Textures/" + trap.getFlowerIcon().getName() + ".png");
+        // FIXME Jack In The Box have trap.getFlowerIcon() == null
+        String result = null;
+
+        if (trap.getFlowerIcon() != null) {
+            result = ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                    + File.separator + trap.getFlowerIcon().getName() + ".png");
+        }
+
+        return result;
     }
 
 }

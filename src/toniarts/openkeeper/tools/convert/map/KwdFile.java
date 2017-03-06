@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -81,28 +82,28 @@ public final class KwdFile {
     private final static short TRIGGER_ACTION = 214;
 
     private GameLevel gameLevel;
-    private Map map;
-    private java.util.Map<Short, Player> players;
-    private java.util.Map<Short, Terrain> terrainTiles;
-    private java.util.Map<Short, Door> doors;
-    private java.util.Map<Short, Trap> traps;
-    private java.util.Map<Short, Room> rooms;
-    private java.util.Map<Short, Room> roomsByTerrainId; // Maps have rooms by the terrain ID
-    private java.util.Map<Short, Creature> creatures;
-    private java.util.Map<Short, Object> objects;
-    private java.util.Map<Short, CreatureSpell> creatureSpells;
-    private java.util.Map<Integer, EffectElement> effectElements;
-    private java.util.Map<Integer, Effect> effects;
-    private java.util.Map<Short, KeeperSpell> keeperSpells;
+    private GameMap map;
+    private Map<Short, Player> players;
+    private Map<Short, Terrain> terrainTiles;
+    private Map<Short, Door> doors;
+    private Map<Short, Trap> traps;
+    private Map<Short, Room> rooms;
+    private Map<Short, Room> roomsByTerrainId; // Maps have rooms by the terrain ID
+    private Map<Short, Creature> creatures;
+    private Map<Short, GameObject> objects;
+    private Map<Short, CreatureSpell> creatureSpells;
+    private Map<Integer, EffectElement> effectElements;
+    private Map<Integer, Effect> effects;
+    private Map<Short, KeeperSpell> keeperSpells;
     private List<Thing> things;
-    private java.util.Map<Short, Shot> shots;
-    private java.util.Map<Integer, Trigger> triggers;
+    private Map<Short, Shot> shots;
+    private Map<Integer, Trigger> triggers;
     // Variables
     private List<Availability> availabilities;
-    private java.util.Map<Integer, java.util.Map<Integer, CreaturePool>> creaturePools;
-    private java.util.Map<Integer, java.util.Map<StatType, CreatureStats>> creatureStatistics;
-    private java.util.Map<Integer, java.util.Map<StatType, CreatureFirstPerson>> creatureFirstPersonStatistics;
-    private java.util.Map<MiscVariable.MiscType, MiscVariable> variables;
+    private Map<Integer, Map<Integer, CreaturePool>> creaturePools;
+    private Map<Integer, Map<StatType, CreatureStats>> creatureStatistics;
+    private Map<Integer, Map<StatType, CreatureFirstPerson>> creatureFirstPersonStatistics;
+    private Map<MiscVariable.MiscType, MiscVariable> variables;
     private Set<Sacrifice> sacrifices;
     private Set<Variable.Unknown> unknownVariables;
     //
@@ -110,7 +111,7 @@ public final class KwdFile {
     private boolean loaded = false;
     private Creature imp;
     private final String basePath;
-    private Object levelGem;
+    private GameObject levelGem;
     private static final Logger logger = Logger.getLogger(KwdFile.class.getName());
 
     /**
@@ -153,7 +154,7 @@ public final class KwdFile {
             // We need map width & height if not loaded fully, I couldn't figure out where, except the map data
             try (RandomAccessFile data = new RandomAccessFile(ConversionUtils.getRealFileName(basePath, gameLevel.getFile(MAP)), "r")) {
                 KwdHeader header = readKwdHeader(data);
-                map = new Map(header.getWidth(), header.getHeight());
+                map = new GameMap(header.getWidth(), header.getHeight());
             } catch (Exception e) {
 
                 //Fug
@@ -391,7 +392,7 @@ public final class KwdFile {
         // Read the requested MAP file
         logger.info("Reading map!");
         if (map == null) {
-            map = new Map(header.getWidth(), header.getHeight());
+            map = new GameMap(header.getWidth(), header.getHeight());
         }
         for (int y = 0; y < map.getHeight(); y++) {
             for (int x = 0; x < map.getWidth(); x++) {
@@ -930,7 +931,7 @@ public final class KwdFile {
             room.setFightEffectId(ConversionUtils.readUnsignedShort(file));
             room.setGeneralDescriptionStringId(ConversionUtils.readUnsignedShort(file));
             room.setStrengthStringId(ConversionUtils.readUnsignedShort(file));
-            room.setTorchRadius(ConversionUtils.readUnsignedShort(file) / ConversionUtils.FLOAT);
+            room.setTorchHeight(ConversionUtils.readUnsignedShort(file) / ConversionUtils.FLOAT);
             List<Integer> roomEffects = new ArrayList<>(8);
             for (int x = 0; x < 8; x++) {
                 int effectId = ConversionUtils.readUnsignedShort(file);
@@ -952,9 +953,7 @@ public final class KwdFile {
 
             room.setSoundCategory(ConversionUtils.readString(file, 32).trim());
             room.setOrderInEditor((short) file.readUnsignedByte());
-            room.setX3c3((short) file.readUnsignedByte());
-            room.setUnknown10(ConversionUtils.readUnsignedShort(file));
-            room.setUnknown11((short) file.readUnsignedByte());
+            room.setTorchRadius(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
             room.setTorch(readArtResource(file));
             room.setRecommendedSizeX((short) file.readUnsignedByte());
             room.setRecommendedSizeY((short) file.readUnsignedByte());
@@ -1055,7 +1054,7 @@ public final class KwdFile {
         for (int x = 0; x < textIntrdcOverrdId.length; x++) {
             textIntrdcOverrdId[x] = ConversionUtils.readUnsignedShort(data);
         }
-        java.util.Map<Short, Integer> introductionOverrideTextIds = new HashMap<>(8);
+        Map<Short, Integer> introductionOverrideTextIds = new HashMap<>(8);
         for (int x = 0; x < textIntrdcOverrdObj.length; x++) {
             if (textIntrdcOverrdObj[x] > 0) {
 
@@ -1510,7 +1509,7 @@ public final class KwdFile {
 
         for (int i = 0; i < header.getItemCount(); i++) {
             long offset = file.getFilePointer();
-            Object object = new Object();
+            GameObject object = new GameObject();
 
             object.setName(ConversionUtils.readString(file, 32).trim());
             object.setMeshResource(readArtResource(file));
@@ -1538,7 +1537,7 @@ public final class KwdFile {
                 unknown3[x] = (short) file.readUnsignedByte();
             }
             object.setUnknown3(unknown3);
-            object.setFlags(ConversionUtils.parseFlagValue(ConversionUtils.readUnsignedIntegerAsLong(file), Object.ObjectFlag.class));
+            object.setFlags(ConversionUtils.parseFlagValue(ConversionUtils.readUnsignedIntegerAsLong(file), GameObject.ObjectFlag.class));
             object.setHp(ConversionUtils.readUnsignedShort(file));
             object.setMaxAngle(ConversionUtils.readUnsignedShort(file));
             object.setX34c(ConversionUtils.readUnsignedShort(file));
@@ -1549,7 +1548,7 @@ public final class KwdFile {
             object.setDeathEffectId(ConversionUtils.readUnsignedShort(file));
             object.setMiscEffectId(ConversionUtils.readUnsignedShort(file));
             object.setObjectId((short) file.readUnsignedByte());
-            object.setStartState(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Object.State.class));
+            object.setStartState(ConversionUtils.parseEnum((short) file.readUnsignedByte(), GameObject.State.class));
             object.setRoomCapacity((short) file.readUnsignedByte());
             object.setPickUpPriority((short) file.readUnsignedByte());
 
@@ -1559,7 +1558,7 @@ public final class KwdFile {
             objects.put(object.getObjectId(), object);
 
             // See special objects
-            if (levelGem == null && object.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_LEVEL_GEM)) {
+            if (levelGem == null && object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_LEVEL_GEM)) {
                 levelGem = object;
             }
 
@@ -2712,7 +2711,7 @@ public final class KwdFile {
                     creaturePool.setPlayerId(ConversionUtils.readInteger(file));
 
                     // Add
-                    java.util.Map<Integer, CreaturePool> playerCreaturePool = creaturePools.get(creaturePool.getPlayerId());
+                    Map<Integer, CreaturePool> playerCreaturePool = creaturePools.get(creaturePool.getPlayerId());
                     if (playerCreaturePool == null) {
                         playerCreaturePool = new HashMap<>(12);
                         creaturePools.put(creaturePool.getPlayerId(), playerCreaturePool);
@@ -2762,7 +2761,7 @@ public final class KwdFile {
                     creatureStats.setLevel(ConversionUtils.readInteger(file));
 
                     // Add
-                    java.util.Map<StatType, CreatureStats> stats = creatureStatistics.get(creatureStats.getLevel());
+                    Map<StatType, CreatureStats> stats = creatureStatistics.get(creatureStats.getLevel());
                     if (stats == null) {
                         stats = new HashMap<>(CreatureStats.StatType.values().length);
                         creatureStatistics.put(creatureStats.getLevel(), stats);
@@ -2778,7 +2777,7 @@ public final class KwdFile {
                     creatureFirstPerson.setLevel(ConversionUtils.readInteger(file));
 
                     // Add
-                    java.util.Map<StatType, CreatureFirstPerson> firstPersonStats = creatureFirstPersonStatistics.get(creatureFirstPerson.getLevel());
+                    Map<StatType, CreatureFirstPerson> firstPersonStats = creatureFirstPersonStatistics.get(creatureFirstPerson.getLevel());
                     if (firstPersonStats == null) {
                         firstPersonStats = new HashMap<>(CreatureStats.StatType.values().length);
                         creatureFirstPersonStatistics.put(creatureFirstPerson.getLevel(), firstPersonStats);
@@ -2829,7 +2828,7 @@ public final class KwdFile {
      *
      * @return list of objects
      */
-    public Collection<Object> getObjectList() {
+    public Collection<GameObject> getObjectList() {
         return objects.values();
     }
 
@@ -2852,7 +2851,7 @@ public final class KwdFile {
         return players.get(id);
     }
 
-    public java.util.Map<Short, Player> getPlayers() {
+    public Map<Short, Player> getPlayers() {
         return players;
     }
 
@@ -2938,7 +2937,7 @@ public final class KwdFile {
         return triggers.get(id);
     }
 
-    public java.util.Map<Integer, Trigger> getTriggers() {
+    public Map<Integer, Trigger> getTriggers() {
         return triggers;
     }
 
@@ -2948,7 +2947,7 @@ public final class KwdFile {
      * @param id the id of object
      * @return the object
      */
-    public Object getObject(int id) {
+    public GameObject getObject(int id) {
         return objects.get((short) id);
     }
 
@@ -3025,7 +3024,7 @@ public final class KwdFile {
         return c;
     }
 
-    public Map getMap() {
+    public GameMap getMap() {
         return map;
     }
 
@@ -3052,7 +3051,7 @@ public final class KwdFile {
         return effects.get(effectId);
     }
 
-    public java.util.Map<Integer, Effect> getEffects() {
+    public Map<Integer, Effect> getEffects() {
         return effects;
     }
 
@@ -3060,11 +3059,11 @@ public final class KwdFile {
         return effectElements.get(effectElementId);
     }
 
-    public java.util.Map<Integer, EffectElement> getEffectElements() {
+    public Map<Integer, EffectElement> getEffectElements() {
         return effectElements;
     }
 
-    public java.util.Map<MiscVariable.MiscType, MiscVariable> getVariables() {
+    public Map<MiscVariable.MiscType, MiscVariable> getVariables() {
         return variables;
     }
 
@@ -3078,7 +3077,7 @@ public final class KwdFile {
      * @param playerId the player id
      * @return the creature pool
      */
-    public java.util.Map<Integer, CreaturePool> getCreaturePool(short playerId) {
+    public Map<Integer, CreaturePool> getCreaturePool(short playerId) {
         return creaturePools.get(Short.valueOf(playerId).intValue());
     }
 
@@ -3090,7 +3089,7 @@ public final class KwdFile {
         return getRoomById(ROOM_PORTAL_ID);
     }
 
-    public Object getLevelGem() {
+    public GameObject getLevelGem() {
         return levelGem;
     }
 
@@ -3101,7 +3100,7 @@ public final class KwdFile {
      * @param level the creature level
      * @return the creature stats on given level
      */
-    public java.util.Map<CreatureStats.StatType, CreatureStats> getCreatureStats(int level) {
+    public Map<CreatureStats.StatType, CreatureStats> getCreatureStats(int level) {
         return creatureStatistics.get(level);
     }
 

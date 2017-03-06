@@ -44,7 +44,6 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.EntityInstance;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.WaterConstructor;
 
 /**
  * Don't let the name fool you, this bad boy also handles lava construction. The
@@ -164,14 +163,23 @@ public class Water {
                 Vector2f textureCoord4 = new Vector2f(1, 1);
 
                 // Vertices
-                Vector3f vertice1 = new Vector3f(tile.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH, -WaterConstructor.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH);
-                Vector3f vertice2 = new Vector3f(tile.x * MapLoader.TILE_WIDTH, -WaterConstructor.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH);
-                Vector3f vertice3 = new Vector3f(tile.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH, -WaterConstructor.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH);
-                Vector3f vertice4 = new Vector3f(tile.x * MapLoader.TILE_WIDTH, -WaterConstructor.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH);
-                int vertice1Index = addVertice(verticeHash, vertice1, vertices, textureCoord1, textureCoordinates, normals, shareVertices);
-                int vertice2Index = addVertice(verticeHash, vertice2, vertices, textureCoord2, textureCoordinates, normals, shareVertices);
-                int vertice3Index = addVertice(verticeHash, vertice3, vertices, textureCoord3, textureCoordinates, normals, shareVertices);
-                int vertice4Index = addVertice(verticeHash, vertice4, vertices, textureCoord4, textureCoordinates, normals, shareVertices);
+                Vector3f vertice1 = new Vector3f((tile.x - 0.5f) * MapLoader.TILE_WIDTH,
+                        MapLoader.WATER_LEVEL, (tile.y - 0.5f) * MapLoader.TILE_WIDTH);
+                Vector3f vertice2 = new Vector3f((tile.x + 0.5f)* MapLoader.TILE_WIDTH,
+                        MapLoader.WATER_LEVEL, (tile.y - 0.5f) * MapLoader.TILE_WIDTH);
+                Vector3f vertice3 = new Vector3f((tile.x - 0.5f) * MapLoader.TILE_WIDTH,
+                        MapLoader.WATER_LEVEL, (tile.y + 0.5f) * MapLoader.TILE_WIDTH);
+                Vector3f vertice4 = new Vector3f((tile.x + 0.5f) * MapLoader.TILE_WIDTH,
+                        MapLoader.WATER_LEVEL, (tile.y + 0.5f) * MapLoader.TILE_WIDTH);
+
+                int vertice1Index = addVertice(verticeHash, vertice1, vertices, textureCoord1,
+                        textureCoordinates, normals, shareVertices);
+                int vertice2Index = addVertice(verticeHash, vertice2, vertices, textureCoord2,
+                        textureCoordinates, normals, shareVertices);
+                int vertice3Index = addVertice(verticeHash, vertice3, vertices, textureCoord3,
+                        textureCoordinates, normals, shareVertices);
+                int vertice4Index = addVertice(verticeHash, vertice4, vertices, textureCoord4,
+                        textureCoordinates, normals, shareVertices);
 
                 // Indexes
                 indexes.addAll(Arrays.asList(vertice3Index, vertice4Index, vertice2Index, vertice2Index, vertice1Index, vertice3Index));
@@ -184,6 +192,7 @@ public class Water {
         mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(toIntArray(indexes)));
         mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals.toArray(new Vector3f[normals.size()])));
         mesh.updateBound();
+
         return mesh;
     }
 

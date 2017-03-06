@@ -78,7 +78,7 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
 
             // Add the visuals
             if (goldPile == null) {
-                GoldObjectControl object = thingLoader.addRoomGold(p, parent.getRoomInstance().getOwnerId(), goldToStore, getObjectsPerTile());
+                GoldObjectControl object = thingLoader.addRoomGold(p, parent.getRoomInstance().getOwnerId(), goldToStore, getGoldPerObject());
                 if (goldPiles == null) {
                     goldPiles = new ArrayList<>(1);
                 }
@@ -118,7 +118,8 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
         if (!storedGoldList.isEmpty()) {
             ThingLoader thingLoader = parent.getWorldState().getThingLoader();
             for (Entry<Point, Collection<GoldObjectControl>> entry : storedGoldList) {
-                thingLoader.addLooseGold(entry.getKey(), new Vector2f(MapLoader.TILE_WIDTH / 2, MapLoader.TILE_WIDTH / 2), parent.getRoomInstance().getOwnerId(), entry.getValue().iterator().next().getGold());
+                thingLoader.addLooseGold(entry.getKey(), parent.getRoomInstance().getOwnerId(),
+                        entry.getValue().iterator().next().getGold());
             }
         }
     }

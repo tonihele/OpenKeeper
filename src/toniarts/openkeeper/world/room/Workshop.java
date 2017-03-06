@@ -18,13 +18,11 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
-import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.EnumSet;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -93,32 +91,29 @@ public class Workshop extends Normal {
             // Add a pillar
             // Face "in" diagonally
             if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, -1, 0));
-                constructPillar(node, p, quat).move(-0.15f, MapLoader.TILE_HEIGHT, -0.85f);
+                float yAngle = -FastMath.HALF_PI;
+                constructPillar(node, p, yAngle);//.move(0, MapLoader.TILE_HEIGHT, 0);
             }
             if (freeDirections.contains(WallSection.WallDirection.SOUTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI, new Vector3f(0, 1, 0));
-                constructPillar(node, p, quat).move(-0.15f, MapLoader.TILE_HEIGHT, -0.15f);
+                float yAngle = FastMath.PI;
+                constructPillar(node, p, yAngle);//.move(-0.15f, MapLoader.TILE_HEIGHT, -0.15f);
             }
             if (freeDirections.contains(WallSection.WallDirection.SOUTH) && freeDirections.contains(WallSection.WallDirection.WEST)) {
-                Quaternion quat = new Quaternion();
-                quat.fromAngleAxis(FastMath.PI / 2, new Vector3f(0, 1, 0));
-                constructPillar(node, p, quat).move(-0.85f, MapLoader.TILE_HEIGHT, -0.15f);
+                float yAngle = FastMath.HALF_PI;
+                constructPillar(node, p, yAngle);//.move(-0.85f, MapLoader.TILE_HEIGHT, -0.15f);
             }
             if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.WEST)) {
-                constructPillar(node, p, null).move(-0.85f, MapLoader.TILE_HEIGHT, -0.85f);
+                constructPillar(node, p, 0);//.move(-0.85f, MapLoader.TILE_HEIGHT, -0.85f);
             }
         }
     }
 
-    private Spatial constructPillar(Node node, Point p, Quaternion quat) {
-        Spatial part = assetManager.loadModel(getPillarResource());
-        resetAndMoveSpatial(part, new Point(0, 0), p);
+    private Spatial constructPillar(Node node, Point p, float yAngle) {
+        Spatial part = AssetUtils.loadModel(assetManager, getPillarResource());
+        moveSpatial(part, p);
 
-        if (quat != null) {
-            part.rotate(quat);
+        if (yAngle != 0) {
+            part.rotate(0, yAngle, 0);
         }
 
         node.attachChild(part);

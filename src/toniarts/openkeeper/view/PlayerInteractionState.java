@@ -54,6 +54,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.selection.SelectionArea;
@@ -362,7 +363,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             setInteractiveControl(null);
         }
 
-        Vector2f v = null;
+        Point p = null;
         if (interactiveControl != null) {
 
             // Maybe a kinda hack, but set the tooltip here
@@ -371,11 +372,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         } else if (isOnMap) {
 
             // Tile tooltip then
-            v = selectionHandler.getPointedTilePosition();
-            TileData tile = getWorldHandler().getMapData().getTile((int) v.x, (int) v.y);
+            p = selectionHandler.getPointedTileIndex();
+            TileData tile = getWorldHandler().getMapData().getTile(p);
             if (tile != null) {
                 if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                    RoomInstance roomInstance = getWorldHandler().getMapLoader().getRoomCoordinates().get(new Point((int) v.x, (int) v.y));
+                    RoomInstance roomInstance = getWorldHandler().getMapLoader().getRoomCoordinates().get(new Point((int) p.x, (int) p.y));
                     GenericRoom room = getWorldHandler().getMapLoader().getRoomActuals().get(roomInstance);
                     tooltip.setText(room.getTooltip(player.getPlayerId()));
                 } else {
@@ -389,16 +390,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         // If debug, show tile coordinate
         if (Main.isDebug() && (interactiveControl != null || isOnMap)) {
             StringBuilder sb = new StringBuilder();
-            Point p;
             if (interactiveControl != null) {
-                p = WorldState.getTileCoordinates(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation());
-            } else {
-                p = new Point((int) v.x, (int) v.y);
+                p = WorldUtils.vectorToPoint(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation());
             }
             sb.append("(");
-            sb.append(p.x);
+            sb.append(p.x + 1);  // 1-based coordinates
             sb.append(", ");
-            sb.append(p.y);
+            sb.append(p.y + 1);  // 1-based coordinates
             sb.append("): ");
             sb.append(tooltip.getText());
             tooltip.setText(sb.toString());
@@ -460,19 +458,18 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         if (isOnGui || !isOnMap) {
             return false;
         }
-        Vector2f pos = selectionHandler.getPointedTilePosition();
+        Point p = selectionHandler.getPointedTileIndex();
         return (interactionState.getType() == Type.ROOM
                 || interactionState.getType() == Type.NONE)
-                && isOnMap && getWorldHandler().isTaggable((int) pos.x, (int) pos.y);
+                && isOnMap && getWorldHandler().isTaggable(p.x, p.y);
     }
 
     private boolean isOnMap() {
         if (isOnGui) {
             return false;
         }
-        Vector2f pos = selectionHandler.getPointedTilePosition();
-        return (pos.x >= 0 && pos.x < gameState.getLevelData().getMap().getWidth()
-                && pos.y >= 0 && pos.y < gameState.getLevelData().getMap().getHeight());
+        Point p = selectionHandler.getPointedTileIndex();
+        return getWorldHandler().getMapData().getTile(p) != null;
     }
 
     protected void updateCursor() {
@@ -551,6 +548,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                                 && interactiveControl != null && !keeperHand.isFull()
                                 && interactiveControl.isPickable(player.getPlayerId())) {
                             pickupObject(interactiveControl);
+                        } else if (interactionState.getType() == Type.NONE
+                                && interactiveControl != null
+                                && interactiveControl.isInteractable(player.getPlayerId())) {
+                            interactiveControl.interact(player.getPlayerId());
                         } else {
 
                             // Selection stuff
@@ -562,8 +563,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                             if (isTaggable) {
                                 updateCursor();
                                 // The tagging sound is positional and played against the cursor change, not the action itself
-                                Vector2f pos = selectionHandler.getPointedTilePosition();
-                                getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, "/Global/dk1tag.mp2");
+                                Point pos = selectionHandler.getPointedTileIndex();
+                                getWorldHandler().playSoundAtTile(pos.x, pos.y, "/Global/dk1tag.mp2");
                             }
                         }
 
@@ -588,29 +589,29 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     }
                 } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
 
-                    Vector2f pos = selectionHandler.getPointedTilePosition();
+                    Point p = selectionHandler.getPointedTileIndex();
                     if (interactionState.getType() == Type.NONE) {
 
                         // Drop
                         if (keeperHand.getItem() != null) {
-                            TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
+                            TileData tile = getWorldHandler().getMapData().getTile(p);
                             IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
                             if (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE) {
 
                                 // Drop & update cursor
-                                keeperHand.pop().drop(tile, selectionHandler.getPointedPositionInTile(), interactiveControl);
+                                keeperHand.pop().drop(tile, selectionHandler.getActualPointedPosition(), interactiveControl);
                                 updateCursor();
                             }
                         } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
-                            getWorldHandler().playSoundAtTile((int) pos.x, (int) pos.y, KeeperHand.getSlapSound());
+                            getWorldHandler().playSoundAtTile(p.x, p.y, KeeperHand.getSlapSound());
                             interactiveControl.interact(player.getPlayerId());
                         } else if (Main.isDebug()) {
                             // taggable -> "dig"
-                            if (getWorldHandler().isTaggable((int) pos.x, (int) pos.y)) {
-                                getWorldHandler().digTile((int) pos.x, (int) pos.y);
+                            if (getWorldHandler().isTaggable(p.x, p.y)) {
+                                getWorldHandler().digTile(p.x, p.y);
                             } // ownable -> "claim"
-                            else if (getWorldHandler().isClaimable((int) pos.x, (int) pos.y, player.getPlayerId())) {
-                                getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
+                            else if (getWorldHandler().isClaimable(p.x, p.y, player.getPlayerId())) {
+                                getWorldHandler().claimTile(p.x, p.y, player.getPlayerId());
                             }
                         }
                     }
@@ -623,8 +624,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
                 } else if (evt.getButtonIndex() == MouseInput.BUTTON_MIDDLE && evt.isReleased()) {
                     if (Main.isDebug()) {
-                        Vector2f pos = selectionHandler.getPointedTilePosition();
-                        getWorldHandler().claimTile((int) pos.x, (int) pos.y, player.getPlayerId());
+                        Point p = selectionHandler.getPointedTileIndex();
+                        getWorldHandler().claimTile(p.x, p.y, player.getPlayerId());
                     }
                 }
             }

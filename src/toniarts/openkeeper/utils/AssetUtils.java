@@ -37,8 +37,10 @@ import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.awt.image.RescaleOp;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -50,6 +52,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.cinematics.CameraSweepData;
+import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -84,34 +88,83 @@ public class AssetUtils {
      * cache.
      *
      * @param assetManager the asset manager to use
-     * @param resourceName the model name, the model name is checked and fixed
+     * @param modelName the model name, the model name is checked and fixed
+     * @param useCache use cache or not
      * @param useWeakCache use weak cache, if not then permanently cache the
      * models. Use weak cache to load some models that are not often needed
      * (water bed etc.)
      * @return a cloned instance from the cache
      */
-    public static Spatial loadModel(AssetManager assetManager, String resourceName, boolean useWeakCache) {
-        ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(resourceName));
+    public static Spatial loadModel(final AssetManager assetManager, String modelName,
+            final boolean useCache, final boolean useWeakCache) {
 
-        // Set the correct asset cache
-        final AssetCache cache;
-        if (useWeakCache) {
-            cache = weakAssetCache;
+        String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
+        ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(filename));
+
+        Spatial result;
+        if (useCache) {
+            // Set the correct asset cache
+            final AssetCache cache = (useWeakCache) ? weakAssetCache : assetCache;
+
+            // Get the model from cache
+            Spatial model = cache.getFromCache(assetKey);
+            if (model == null) {
+                model = assetManager.loadModel(assetKey);
+                resetSpatial(model);
+                // Assign maps
+                assignMapsToMaterial(model, assetManager);
+
+                cache.addToCache(assetKey, model);
+            }
+            result = model.clone();
         } else {
-            cache = assetCache;
+            result = assetManager.loadModel(assetKey);
+            resetSpatial(result);
         }
 
-        // Get the model from cache
-        Spatial model = cache.getFromCache(assetKey);
-        if (model == null) {
-            model = assetManager.loadModel(assetKey);
+        return result;
+    }
 
-            // Assign maps
-            assignMapsToMaterial(model, assetManager);
+    /**
+     * Only for ModelViewer
+     * @param assetManager
+     * @param modelName
+     * @return
+     */
+    public static Spatial loadAsset(final AssetManager assetManager, String modelName) {
 
-            cache.addToCache(assetKey, model);
+        String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
+        ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(filename));
+
+        Spatial result = assetManager.loadModel(assetKey);
+
+        return result;
+    }
+
+    public static Spatial loadModel(final AssetManager assetManager, String resourceName,
+            final boolean useWeakCache) {
+
+        return loadModel(assetManager, resourceName, true, useWeakCache);
+    }
+
+    public static Spatial loadModel(final AssetManager assetManager, String resourceName) {
+        return loadModel(assetManager, resourceName, true, false);
+    }
+
+    public static CameraSweepData loadCameraSweep(final AssetManager assetManager, String resourceName) {
+        String filename = AssetsConverter.PATHS_FOLDER + File.separator + resourceName + "."
+                + CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION;
+        String assetKey = ConversionUtils.getCanonicalAssetKey(filename);
+
+        Object asset = assetManager.loadAsset(assetKey);
+
+        if (asset == null || !(asset instanceof CameraSweepData)) {
+            String msg = "Failed to load the camera sweep file " + resourceName + "!";
+            logger.severe(msg);
+            throw new RuntimeException(msg);
         }
-        return model.clone();
+
+        return (CameraSweepData) asset;
     }
 
     private static void assignMapsToMaterial(Spatial model, AssetManager assetManager) {
@@ -135,7 +188,8 @@ public class AssetUtils {
      * @param material the material to apply to
      */
     public static void assignMapsToMaterial(AssetManager assetManager, Material material) {
-        String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName(); // Unharmed texture
+        // Unharmed texture
+        String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName();
 
         assignMapToMaterial(assetManager, material, "NormalMap", getNormalMapName(diffuseTexture));
         assignMapToMaterial(assetManager, material, "SpecularMap", getSpecularMapName(diffuseTexture));
@@ -361,26 +415,26 @@ public class AssetUtils {
                                     || artResource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH
                                     || artResource.getType() == ArtResource.ArtResourceType.MESH_COLLECTION
                                     || artResource.getType() == ArtResource.ArtResourceType.PROCEDURAL_MESH) {
-                                models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + ".j3o", false));
+                                models.add(loadModel(assetManager, artResource.getName()));
                             } else if (artResource.getType() == ArtResource.ArtResourceType.TERRAIN_MESH && obj instanceof Terrain) {
 
                                 // With terrains, we need to see the contruction type
                                 Terrain terrain = (Terrain) obj;
                                 if (method.getName().startsWith("getTaggedTopResource") || method.getName().startsWith("getSideResource")) {
-                                    models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + ".j3o", false));
+                                    models.add(loadModel(assetManager, artResource.getName()));
                                 } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
                                     for (int i = 0; i < 5; i++) {
                                         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                                             for (int y = 0; y < 7; y++) {
-                                                models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + y + "_" + i + ".j3o", false));
+                                                models.add(loadModel(assetManager, artResource.getName() + y + "_" + i, true, false));
                                             }
                                         } else {
-                                            models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + i + ".j3o", false));
+                                            models.add(loadModel(assetManager, artResource.getName() + i));
                                         }
                                     }
                                 } // TODO: No water... it is done in Water.java, need to tweak somehow
                                 else if (!terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)) {
-                                    models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + ".j3o", false));
+                                    models.add(loadModel(assetManager, artResource.getName()));
                                 }
                             } else if (artResource.getType() == ArtResource.ArtResourceType.TERRAIN_MESH && obj instanceof Room) {
 
@@ -418,7 +472,7 @@ public class AssetUtils {
                                     }
                                 }
                                 for (int i = start; i < count; i++) {
-                                    models.add(loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + artResource.getName() + i + ".j3o", false));
+                                    models.add(loadModel(assetManager, artResource.getName() + i, false));
                                 }
                             }
 
@@ -462,7 +516,8 @@ public class AssetUtils {
                 }
 
                 // Don't highlight non-removables
-                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE)) || Boolean.FALSE.equals(spatial.getParent().getParent().getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))) {
+                if (Boolean.FALSE.equals(spatial.getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))
+                        || Boolean.FALSE.equals(spatial.getParent().getParent().getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))) {
                     return;
                 }
 
@@ -483,21 +538,34 @@ public class AssetUtils {
     }
 
     /**
-     * Reset the spatial scale & transform and all the first level children
+     * Reset translation of spatial and all children
      *
      * @param spatial the spatial to reset
      */
     public static void resetSpatial(Spatial spatial) {
+        /*
         if (spatial instanceof Node) {
             for (Spatial subSpat : ((Node) spatial).getChildren()) {
-                subSpat.setLocalScale(MapLoader.TILE_WIDTH);
                 subSpat.setLocalTranslation(0, 0, 0);
             }
         } else {
-            spatial.setLocalScale(MapLoader.TILE_WIDTH);
             spatial.setLocalTranslation(0, 0, 0);
         }
-        spatial.move(0, -MapLoader.TILE_HEIGHT, 0);
+        */
+        spatial.breadthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                spatial.setLocalTranslation(0, 0, 0);
+            }
+        });
+    }
+
+    public static void translateToTile(final Spatial spatial, final Point tile) {
+        spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile));
+    }
+
+    public static void scale(final Spatial spatial) {
+        spatial.scale(MapLoader.TILE_WIDTH, MapLoader.TILE_HEIGHT, MapLoader.TILE_WIDTH);
     }
 
     /**

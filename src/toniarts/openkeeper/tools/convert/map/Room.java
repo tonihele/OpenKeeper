@@ -145,7 +145,7 @@ public class Room implements Comparable<Room> {
     private int fightEffectId;
     private int generalDescriptionStringId;
     private int strengthStringId;
-    private float torchRadius; // 380
+    private float torchHeight;
     private List<Integer> effects; // 382, in editor there are just 6
     private short roomId; // 392
     private short unknown7; // 393
@@ -156,9 +156,7 @@ public class Room implements Comparable<Room> {
     private List<Short> objects; // 39a, in editor there are just 6
     private String soundCategory; // 3a2
     private short orderInEditor; // 3c2
-    private short x3c3; // 3c3
-    private int unknown10; // 3c4
-    private short unknown11; // 3c6
+    private float torchRadius;
     private ArtResource torch; // 3c7
     private short recommendedSizeX; // 41b
     private short recommendedSizeY; // 41c
@@ -340,28 +338,12 @@ public class Room implements Comparable<Room> {
         this.orderInEditor = orderInEditor;
     }
 
-    public short getX3c3() {
-        return x3c3;
+    public float getTorchHeight() {
+        return torchHeight;
     }
 
-    protected void setX3c3(short x3c3) {
-        this.x3c3 = x3c3;
-    }
-
-    public int getUnknown10() {
-        return unknown10;
-    }
-
-    protected void setUnknown10(int unknown10) {
-        this.unknown10 = unknown10;
-    }
-
-    public short getUnknown11() {
-        return unknown11;
-    }
-
-    protected void setUnknown11(short unknown11) {
-        this.unknown11 = unknown11;
+    protected void setTorchHeight(float torchHeight) {
+        this.torchHeight = torchHeight;
     }
 
     public short getRecommendedSizeX() {

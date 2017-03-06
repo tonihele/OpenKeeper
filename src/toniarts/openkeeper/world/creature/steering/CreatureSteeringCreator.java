@@ -25,6 +25,7 @@ import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import java.awt.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
@@ -46,7 +47,7 @@ public class CreatureSteeringCreator {
     }
 
     public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final PathFindable pathFindable, final CreatureControl creature, final Point p, final Point faceTarget) {
-        GraphPath<TileData> outPath = worldState.findPath(WorldState.getTileCoordinates(creature.getSpatial().getWorldTranslation()), p, pathFindable);
+        GraphPath<TileData> outPath = worldState.findPath(WorldUtils.vectorToPoint(creature.getSpatial().getWorldTranslation()), p, pathFindable);
         return navigateToPoint(outPath, faceTarget, creature, p);
     }
 
@@ -92,7 +93,8 @@ public class CreatureSteeringCreator {
 
                 // Add reach orientation
                 ReachOrientation orient = new ReachOrientation(creature,
-                        new TargetLocation(pointToVector2(faceTarget), pointToVector2(p)));
+                        new TargetLocation(WorldUtils.pointToVector2(faceTarget),
+                                WorldUtils.pointToVector2(p)));
                 orient.setDecelerationRadius(0.8f);
                 //orient.setTimeToTarget(0.001f);
                 orient.setAlignTolerance(0.2f);
@@ -108,16 +110,8 @@ public class CreatureSteeringCreator {
     private static Array<Vector2> pathToArray(GraphPath<TileData> outPath) {
         Array<Vector2> path = new Array<>(outPath.getCount());
         for (TileData tile : outPath) {
-            path.add(new Vector2(
-                    MapLoader.TILE_WIDTH * (tile.getX() - 0.5f),
-                    MapLoader.TILE_WIDTH * (tile.getY() - 0.5f)));
+            path.add(WorldUtils.pointToVector2(tile.getLocation()));
         }
         return path;
-    }
-
-    private static Vector2 pointToVector2(Point p) {
-        return new Vector2(
-                MapLoader.TILE_WIDTH * (p.x - 0.5f),
-                MapLoader.TILE_WIDTH * (p.y - 0.5f));
     }
 }

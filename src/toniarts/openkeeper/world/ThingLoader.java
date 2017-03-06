@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.creature.CreatureLoader;
 import toniarts.openkeeper.world.creature.Party;
@@ -317,7 +318,8 @@ public class ThingLoader {
      */
     public GoldObjectControl addRoomGold(Point p, short playerId, int initialAmount, int maxAmount) {
         // TODO: the room gold object id..
-        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, initialAmount, 0, (short) 3, playerId, maxAmount);
+        Spatial object = objectLoader.load(assetManager, p, 0, initialAmount, 0,
+                ObjectLoader.OBJECT_GOLD_PILE_ID, playerId, maxAmount);
         GoldObjectControl control = object.getControl(GoldObjectControl.class);
         nodeObjects.attachChild(object);
         return control;
@@ -326,20 +328,27 @@ public class ThingLoader {
     /**
      * Add loose type gold
      *
-     * @param p the point to add
      * @param coordinates coordinated inside the tile
      * @param playerId the player id, the owner
      * @param initialAmount the amount of gold
      * @return the gold object
      */
-    public GoldObjectControl addLooseGold(Point p, Vector2f coordinates, short playerId, int initialAmount) {
+    public GoldObjectControl addLooseGold(Vector2f coordinates, short playerId, int initialAmount) {
         // TODO: the gold object id..
-        Spatial object = objectLoader.load(assetManager, worldState.getMapData().getTile(p), p.x - coordinates.x, p.y - coordinates.y, 0, initialAmount, 0, (short) 1, playerId, maxLooseGoldPerPile);
+        Spatial object = objectLoader.load(assetManager, coordinates,
+                0, initialAmount, 0, ObjectLoader.OBJECT_GOLD_ID, playerId, maxLooseGoldPerPile);
         GoldObjectControl control = object.getControl(GoldObjectControl.class);
         objects.add(control);
         nodeObjects.attachChild(object);
         notifyOnObjectAdded(control);
+
         return control;
+    }
+
+    public GoldObjectControl addLooseGold(Point p, short playerId, int initialAmount) {
+        Vector2f coordinates = WorldUtils.pointToVector2f(p);
+
+        return addLooseGold(coordinates, playerId, initialAmount);
     }
 
     /**
@@ -351,7 +360,7 @@ public class ThingLoader {
      * @return the object contol
      */
     public ObjectControl addObject(Point p, short objectId, short playerId) {
-        Spatial object = objectLoader.load(assetManager, p.x, p.y, 0, 0, 0, objectId, playerId, 0);
+        Spatial object = objectLoader.load(assetManager, p, 0, 0, 0, objectId, playerId, 0);
         ObjectControl control = object.getControl(ObjectControl.class);
         nodeObjects.attachChild(object);
         return control;
@@ -367,7 +376,9 @@ public class ThingLoader {
      */
     public SpellBookObjectControl addRoomSpellBook(Point p, PlayerSpell spell, short playerId) {
         // FIXME: The object ID
-        Spatial object = objectLoader.load(assetManager, worldState.getMapData().getTile(p), p.x, p.y, spell, 0, 0, (short) 4, playerId, 0);
+        Spatial object = objectLoader.load(assetManager, p, spell, 0, 0,
+                ObjectLoader.OBJECT_SPELL_BOOK_ID, playerId, 0);
+        object.move(0, MapLoader.FLOOR_HEIGHT, 0);
         SpellBookObjectControl control = object.getControl(SpellBookObjectControl.class);
         nodeObjects.attachChild(object);
         return control;

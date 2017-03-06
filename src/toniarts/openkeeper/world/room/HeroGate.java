@@ -21,7 +21,7 @@ import com.jme3.math.FastMath;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -56,8 +56,8 @@ public class HeroGate extends GenericRoom {
             if (!N && E && W) {
                 piece = 1;
             } else if (!S && !E && !W) {
-                tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCapResource().getName() + ".j3o");
-                resetAndMoveSpatial(tile, start, p);
+                tile = AssetUtils.loadModel(assetManager, roomInstance.getRoom().getCapResource().getName(), false, true);
+                moveSpatial(tile, start, p);
                 root.attachChild(tile);
                 piece = 9;
             } else if (!W) {
@@ -67,10 +67,9 @@ public class HeroGate extends GenericRoom {
                 yAngle = - 2 * FastMath.HALF_PI;
             }
 
-            tile = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
-
+            tile = AssetUtils.loadModel(assetManager, modelName + piece, false, true);
             // Reset
-            resetAndMoveSpatial(tile, start, p);
+            moveSpatial(tile, start, p);
             if (yAngle != 0) {
                 tile.rotate(0, yAngle, 0);
             }
@@ -81,8 +80,8 @@ public class HeroGate extends GenericRoom {
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2);
-        root.scale(MapLoader.TILE_WIDTH); // Squares anyway...
+        AssetUtils.translateToTile(root, start);
+
         return root;
     }
 
@@ -100,49 +99,53 @@ public class HeroGate extends GenericRoom {
 
                 Spatial part;
                 float yAngle = 0;
-                if (section.getDirection() == WallSection.WallDirection.SOUTH) {
-                    if (section.getCoordinates().size() == 1) {
-                        piece = 6; // gate
-                    } else {
+                switch (section.getDirection()) {
+                    case SOUTH:
                         piece = (i == 1) ? 5 : 7;
-                    }
+                        break;
 
-                } else if (section.getDirection() == WallSection.WallDirection.EAST) {
-                    // FIXME if gate skip walls ???
-                    if (section.getCoordinates().size() == 1) {
-                        continue;
-                    }
-                    piece = 7;
-                    yAngle = FastMath.HALF_PI;
+                    case EAST:
+                        if (section.getCoordinates().size() == 1) {
+                            piece = 6; // outside gate
+                        } else {
+                            piece = 7;
+                            yAngle = FastMath.HALF_PI;
+                        }
+                        break;
 
-                } else if (section.getDirection() == WallSection.WallDirection.WEST) {
-                    // FIXME if gate skip walls ???
-                    if (section.getCoordinates().size() == 1) {
-                        continue;
-                    }
-                    piece = 7;
-                    yAngle = -FastMath.HALF_PI;
+                    case WEST:
+                        // FIXME if gate skip walls ???
+                        if (section.getCoordinates().size() == 1) {
+                            piece = 6; // inside gate
+                            yAngle = FastMath.PI;
+                        } else {
+                            piece = 7;
+                            yAngle = -FastMath.HALF_PI;
+                        }
+                        break;
 
-                } else { // WallSection.WallDirection.NORTH
-                    // FIXME looks good, but ... ugly code
-                    if (south == 0) {
-                        piece = 4;
-                    } else if (south == 1) {
-                        piece = 8;
-                    } else {
-                        piece = 6; // gate
-                    }
-                    south++;
-                    yAngle = FastMath.PI;
+                    default:
+                        // WallSection.WallDirection.NORTH
+                        // FIXME looks good, but ... ugly code
+                        if (south == 0) {
+                            piece = 4;
+                        } else if (south == 1) {
+                            piece = 8;
+                        } else {
+                            continue; // gate but we build it on EAST and WEST
+                        }
+                        south++;
+                        yAngle = FastMath.PI;
+                        break;
                 }
 
                 i++;
-                part = assetManager.loadModel(AssetsConverter.MODELS_FOLDER + "/" + modelName + piece + ".j3o");
+                part = AssetUtils.loadModel(assetManager, modelName + piece, false, true);
                 if (yAngle != 0) {
                     part.rotate(0, yAngle, 0);
                 }
-                resetAndMoveSpatial(part, start, new Point(start.x + p.x, start.y + p.y));
-                part.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                moveSpatial(part, p);
+                //part.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
                 root.attachChild(part);
             }
         }

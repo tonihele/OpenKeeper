@@ -45,6 +45,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
@@ -112,9 +113,7 @@ public class VisualEffect {
             switch (resource.getType()) {
                 case MESH:
                 case ANIMATING_MESH:
-                    model = AssetUtils.loadModel(assetManager,
-                                    AssetsConverter.MODELS_FOLDER + "/" + resource.getName() + ".j3o",
-                                    false);
+                    model = AssetUtils.loadModel(assetManager, resource.getName());
                     break;
 
                 case PROCEDURAL_MESH:
@@ -165,7 +164,7 @@ public class VisualEffect {
 
                 @Override
                 public void onHit(Vector3f location) {
-                    TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldState.getTileCoordinates(location));
+                    TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldUtils.vectorToPoint(location));
                     if (tile == null) {
                         logger.warning("Effect hit error");
                         return;
@@ -315,7 +314,7 @@ public class VisualEffect {
 
                     @Override
                     public void onHit(Vector3f location) {
-                        TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldState.getTileCoordinates(location));
+                        TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldUtils.vectorToPoint(location));
                         if (tile == null) {
                             logger.warning("Effect hit error");
                             return;
@@ -342,9 +341,7 @@ public class VisualEffect {
                 if (resource.getType() == ArtResourceType.PROCEDURAL_MESH) {
                     model = (Node) AssetUtils.createProceduralMesh(resource);
                 } else {
-                    model = (Node) AssetUtils.loadModel(assetManager,
-                            AssetsConverter.MODELS_FOLDER + "/" + resource.getName() + ".j3o",
-                            false);
+                    model = (Node) AssetUtils.loadModel(assetManager, resource.getName());
                 }
 
                 if (resource.getType() == ArtResourceType.MESH) {

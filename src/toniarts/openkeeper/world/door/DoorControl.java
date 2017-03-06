@@ -25,12 +25,13 @@ import com.jme3.scene.Spatial;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.animation.AnimationControl;
@@ -54,7 +55,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
     private final WorldState worldState;
     private final Door door;
-    private final toniarts.openkeeper.tools.convert.map.Object lockObject;
+    private final GameObject lockObject;
     private final Trap doorTrap;
     private final String name;
     private final AssetManager assetManager;
@@ -67,11 +68,11 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     private DoorState animatedState = DoorState.CLOSED;
     private final static ResourceBundle BUNDLE = Main.getResourceBundle("Interface/Texts/Text");
 
-    public DoorControl(TileData tile, Door door, toniarts.openkeeper.tools.convert.map.Object lockObject, Trap doorTrap, WorldState worldState, AssetManager assetManager) {
+    public DoorControl(TileData tile, Door door, GameObject lockObject, Trap doorTrap, WorldState worldState, AssetManager assetManager) {
         this(tile, door, lockObject, doorTrap, worldState, assetManager, false, false);
     }
 
-    public DoorControl(TileData tile, Door door, toniarts.openkeeper.tools.convert.map.Object lockObject, Trap doorTrap, WorldState worldState, AssetManager assetManager, boolean locked, boolean blueprint) {
+    public DoorControl(TileData tile, Door door, GameObject lockObject, Trap doorTrap, WorldState worldState, AssetManager assetManager, boolean locked, boolean blueprint) {
         super();
 
         this.worldState = worldState;
@@ -90,7 +91,19 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
     @Override
     protected void controlUpdate(float tpf) {
+        if (spatial == null) {
+            return;
+        }
 
+        if (locked || state == DoorState.BLUEPRINT) {
+            return;
+        }
+        // FIXME open if our creature is near. not enemy
+        if (state == DoorState.CLOSED && !tile.getCreatures().isEmpty()) {
+            openDoor();
+        } else if (state == DoorState.OPEN && tile.getCreatures().isEmpty()) {
+            closeDoor();
+        }
     }
 
     @Override
@@ -223,9 +236,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     protected void lockDoor() {
         locked = true;
         if (lockSpatial == null && lockObject != null) {
-            lockSpatial = AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + lockObject.getMeshResource().getName() + ".j3o", false);
-            AssetUtils.resetSpatial(lockSpatial);
-            lockSpatial.move(0, 0.75f, 0);
+            lockSpatial = AssetUtils.loadModel(assetManager, lockObject.getMeshResource().getName());
             lockSpatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
             ((Node) getSpatial()).attachChild(lockSpatial);
         }
