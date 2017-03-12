@@ -56,10 +56,10 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.network.NetworkClient;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  *
@@ -673,7 +673,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     private void populateSelectedMap(KwdFile map) {
         // The map title
         Label label = screen.findNiftyControl("mapNameTitle", Label.class);
-        label.setText(map == null ? "No maps found from " + AssetsConverter.MAPS_FOLDER : map.getGameLevel().getName());
+        label.setText(map == null ? "No maps found from " + PathUtils.DKII_MAPS_FOLDER : map.getGameLevel().getName());
         NiftyUtils.resetContraints(label);
 
         if (map != null) {

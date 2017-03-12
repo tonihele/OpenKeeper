@@ -53,7 +53,7 @@ public class Bf4Extractor {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        final String textFolder = dkIIFolder.concat(PathUtils.DKII_DATA_FOLDER).concat(File.separator).concat(PathUtils.DKII_TEXT_FOLDER).concat(File.separator).concat(PathUtils.DKII_DEFAULT_FOLDER).concat(File.separator);
+        final String textFolder = dkIIFolder + PathUtils.DKII_TEXT_DEFAULT_FOLDER;
 
         //And the destination
         String destination = PathUtils.fixFilePath(args[0]);

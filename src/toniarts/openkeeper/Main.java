@@ -557,8 +557,8 @@ public class Main extends SimpleApplication {
 
         // The intro sequence
         Queue<String> introSequence = new LinkedList<>();
-        introSequence.add(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat("BullfrogIntro.tgq")));
-        introSequence.add(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat("INTRO.TGQ")));
+        introSequence.add(getDkIIFolder() + PathUtils.DKII_MOVIES_FOLDER + "BullfrogIntro.tgq");
+        introSequence.add(getDkIIFolder() + PathUtils.DKII_MOVIES_FOLDER + "INTRO.TGQ");
         playMovie(introSequence);
     }
 

@@ -1112,12 +1112,12 @@ public final class KwdFile {
 
         // Hmm, seems that normal maps don't refer the effects nor effect elements
         if (!customOverrides) {
-            FilePath file = new FilePath(MapDataTypeEnum.EFFECTS, PathUtils.DKII_DATA_FOLDER + File.separator + PathUtils.DKII_EDITOR_FOLDER + File.separator + "Effects.kwd");
+            FilePath file = new FilePath(MapDataTypeEnum.EFFECTS, PathUtils.DKII_EDITOR_FOLDER + "Effects.kwd");
             if (!gameLevel.getPaths().contains(file)) {
                 gameLevel.getPaths().add(file);
             }
 
-            file = new FilePath(MapDataTypeEnum.EFFECT_ELEMENTS, PathUtils.DKII_DATA_FOLDER + File.separator + PathUtils.DKII_EDITOR_FOLDER + File.separator + "EffectElements.kwd");
+            file = new FilePath(MapDataTypeEnum.EFFECT_ELEMENTS, PathUtils.DKII_EDITOR_FOLDER + "EffectElements.kwd");
             if (!gameLevel.getPaths().contains(file)) {
                 gameLevel.getPaths().add(file);
             }
@@ -3020,6 +3020,17 @@ public final class KwdFile {
      */
     public List<Door> getDoors() {
         List<Door> c = new ArrayList(doors.values());
+        Collections.sort(c);
+        return c;
+    }
+
+    /**
+     * Get the list of all shots
+     *
+     * @return list of all shots
+     */
+    public List<Shot> getShots() {
+        List<Shot> c = new ArrayList(shots.values());
         Collections.sort(c);
         return c;
     }

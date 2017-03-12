@@ -59,7 +59,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -67,10 +66,15 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.world.MapLoader;
@@ -91,6 +95,11 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         TERRAIN("Terrain"),
         OBJECTS("Objects"),
         MAPS("Maps"),
+        CREATURES("Creatures"),
+        ROOMS("Rooms"),
+        DOORS("Doors"),
+        TRAPS("Traps"),
+        SHOTS("Shots"),
         EFFECTS("Effects");
 
         private final String name;
@@ -191,13 +200,13 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         floorGeom.attachChild(g);
 
         TangentBinormalGenerator.generate(floorGeom);
-        floorGeom.setLocalTranslation(-10, -0.1f, 10);
+        floorGeom.setLocalTranslation(-10, -1f, 10);
 
         floorGeom.setMaterial(mat);
         rootNode.attachChild(floorGeom);
     }
 
-    private ActionListener actionListener = new ActionListener() {
+    private final ActionListener actionListener = new ActionListener() {
         @Override
         public void onAction(String name, boolean pressed, float tpf) {
 
@@ -350,7 +359,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
      * @param directory the actual directory where the objects are get
      * @param extension the file extension of the objects wanted
      */
-    public void fillWithFiles(List<String> object, final String rootDirectory,
+    private void fillWithFiles(List<String> object, final String rootDirectory,
             final String directory, final String extension) {
 
         ListBox<String> listBox = getModelListBox();
@@ -378,6 +387,12 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         listBox.sortAllItems(String.CASE_INSENSITIVE_ORDER);
     }
 
+    private void fillCreatures() {
+        KwdFile kwfFile = getKwdFile();
+        Collection<Creature> creatures = kwfFile.getCreatureList();
+        getModelListBox().addAllItems(creatures);
+    }
+
     private void fillTerrain() {
         KwdFile kwfFile = getKwdFile();
         Collection<Terrain> terrains = kwfFile.getTerrainList();
@@ -390,15 +405,34 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         getModelListBox().addAllItems(objects);
     }
 
+    private void fillRooms() {
+        KwdFile kwfFile = getKwdFile();
+        Collection<Room> rooms = kwfFile.getRooms();
+        getModelListBox().addAllItems(rooms);
+    }
+
+    private void fillDoors() {
+        KwdFile kwfFile = getKwdFile();
+        Collection<Door> doors = kwfFile.getDoors();
+        getModelListBox().addAllItems(doors);
+    }
+
+    private void fillTraps() {
+        KwdFile kwfFile = getKwdFile();
+        Collection<Trap> traps = kwfFile.getTraps();
+        getModelListBox().addAllItems(traps);
+    }
+
+    private void fillShots() {
+        KwdFile kwfFile = getKwdFile();
+        Collection<Shot> shots = kwfFile.getShots();
+        getModelListBox().addAllItems(shots);
+    }
+
     private void fillEffects() {
         KwdFile kwfFile = getKwdFile();
-        Map<Integer, Effect> effects = kwfFile.getEffects();
-        final ArrayList<String> items = new ArrayList<>();
-        for (Map.Entry entry : effects.entrySet()) {
-            final Effect effect = (Effect) entry.getValue();
-            items.add(effect.getName());
-        }
-        getModelListBox().addAllItems(items);
+        Collection<Effect> effects = kwfFile.getEffects().values();
+        getModelListBox().addAllItems(effects);
     }
 
     @NiftyEventSubscriber(id = "modelListBox")
@@ -409,25 +443,26 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         if (selection.size() == 1) {
             switch (getTypeDropDown().getSelection()) {
                 case MODELS: {
-
                     // Load the selected model
                     Node spat = (Node) AssetUtils.loadAsset(assetManager, (String) selection.get(0));
                     setupModel(spat, false);
                     break;
                 }
                 case TERRAIN: {
-
                     // Load the selected terrain
-                    Node spat = (Node) new TerrainsLoader().load(this.getAssetManager(), (Terrain) selection.get(0));
+                    effectManagerState.setEnabled(true);
+                    Node spat = (Node) new TerrainsLoader().load(this.getAssetManager(),
+                            effectManagerState, (Terrain) selection.get(0));
                     setupModel(spat, false);
                     break;
                 }
                 case MAPS: {
-
                     // Load the selected map
                     String file = (String) selection.get(0) + ".kwd";
-                    KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder + AssetsConverter.MAPS_FOLDER + file));
-                    Node spat = (Node) new MapLoader(this.getAssetManager(), kwd, new EffectManagerState(kwd, this.getAssetManager()), null, new ObjectLoader(kwdFile, null)) {
+                    KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder + PathUtils.DKII_MAPS_FOLDER + file));
+                    Node spat = (Node) new MapLoader(this.getAssetManager(), kwd,
+                            new EffectManagerState(kwd, this.getAssetManager()), null,
+                            new ObjectLoader(kwdFile, null)) {
                         @Override
                         protected void updateProgress(float progress) {
                             // Do nothing
@@ -437,10 +472,51 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     break;
                 }
                 case OBJECTS: {
-
                     // Load the selected object
                     //Node spat = (Node) AssetUtils.loadAsset(assetManager, ((GameObject) selection.get(0)).getMeshResource().getName());
-                    Node spat = (Node) new ObjectsLoader().load(this.getAssetManager(), (GameObject) selection.get(0));
+                    effectManagerState.setEnabled(true);
+                    Node spat = (Node) new ObjectsLoader().load(this.getAssetManager(),
+                            effectManagerState, (GameObject) selection.get(0));
+                    setupModel(spat, false);
+                    break;
+                }
+                case CREATURES: {
+                    // Load the selected terrain
+                    effectManagerState.setEnabled(true);
+                    Node spat = (Node) new CreaturesLoader().load(this.getAssetManager(),
+                            effectManagerState, (Creature) selection.get(0));
+                    setupModel(spat, false);
+                    break;
+                }
+                case TRAPS: {
+                    // Load the selected trap
+                    effectManagerState.setEnabled(true);
+                    Node spat = (Node) new TrapsLoader().load(this.getAssetManager(),
+                            effectManagerState, (Trap) selection.get(0));
+                    setupModel(spat, false);
+                    break;
+                }
+                case DOORS: {
+                    // Load the selected door
+                    effectManagerState.setEnabled(true);
+                    Node spat = (Node) new DoorsLoader().load(this.getAssetManager(),
+                            effectManagerState, (Door) selection.get(0));
+                    setupModel(spat, false);
+                    break;
+                }
+                case ROOMS: {
+                    // Load the selected room
+                    effectManagerState.setEnabled(true);
+                    Node spat = (Node) new RoomsLoader().load(this.getAssetManager(),
+                            effectManagerState, (Room) selection.get(0));
+                    setupModel(spat, false);
+                    break;
+                }
+                case SHOTS: {
+                    // Load the selected shot
+                    effectManagerState.setEnabled(true);
+                    Node spat = (Node) new ShotsLoader().load(this.getAssetManager(),
+                            effectManagerState, (Shot) selection.get(0));
                     setupModel(spat, false);
                     break;
                 }
@@ -449,8 +525,8 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                     Node spat = new Node();
                     effectManagerState.setEnabled(true);
                     // Load the selected effect
-                    final int selectedIndex = event.getSelectionIndices().get(0) + 1;
-                    effectManagerState.loadSingleEffect(spat, new Vector3f(0, 0, 0), selectedIndex, true);
+                    effectManagerState.loadSingleEffect(spat, new Vector3f(0, 0, 0),
+                            ((Effect) selection.get(0)).getEffectId(), true);
                     setupModel(spat, false);
                     break;
                 }
@@ -575,16 +651,36 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
                         + AssetsConverter.MODELS_FOLDER + File.separator, "j3o");
                 break;
             }
+            case CREATURES: {
+                fillCreatures();
+                break;
+            }
             case TERRAIN: {
                 fillTerrain();
                 break;
             }
             case MAPS: {
-                fillWithFiles(maps, dkIIFolder, dkIIFolder.concat(AssetsConverter.MAPS_FOLDER), "kwd");
+                fillWithFiles(maps, dkIIFolder, dkIIFolder + PathUtils.DKII_MAPS_FOLDER, "kwd");
                 break;
             }
             case OBJECTS: {
                 fillObjects();
+                break;
+            }
+            case ROOMS: {
+                fillRooms();
+                break;
+            }
+            case DOORS: {
+                fillDoors();
+                break;
+            }
+            case TRAPS: {
+                fillTraps();
+                break;
+            }
+            case SHOTS: {
+                fillShots();
                 break;
             }
             case EFFECTS: {
@@ -618,8 +714,9 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         if (kwdFile == null) {
 
             // Read Alcatraz.kwd by default
-            kwdFile = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(PathUtils.DKII_DATA_FOLDER).concat(File.separator).concat(PathUtils.DKII_EDITOR_FOLDER).concat(File.separator).concat(PathUtils.DKII_MAPS_FOLDER).concat(File.separator).concat("Alcatraz.kwd")));
+            kwdFile = new KwdFile(dkIIFolder, new File(dkIIFolder + PathUtils.DKII_MAPS_FOLDER + "Alcatraz.kwd"));
         }
+
         return kwdFile;
     }
 }

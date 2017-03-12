@@ -51,7 +51,7 @@ public class BankMapLoader {
             dkIIFolder = PathUtils.fixFilePath(args[0]);
         }
 
-        final String soundFolder = dkIIFolder.concat(PathUtils.DKII_DATA_FOLDER).concat(File.separator).concat(PathUtils.DKII_SOUND_FOLDER).concat(File.separator).concat(PathUtils.DKII_SFX_FOLDER).concat(File.separator);
+        final String soundFolder = dkIIFolder + PathUtils.DKII_SFX_FOLDER;
 
         //Find all the bank.map files
         final List<File> bankMapFiles = new ArrayList<>();

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<nifty xmlns="http://nifty-gui.sourceforge.net/nifty-1.3.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://nifty-gui.sourceforge.net/nifty-1.3.xsd http://nifty-gui.sourceforge.net/nifty-1.3.xsd">
+<nifty xmlns="http://nifty-gui.lessvoid.com/nifty-gui" xmlns:xsi="http://www.w3.org/2001/XMLSchema">
     <useStyles filename="nifty-default-styles.xml" />
     <useControls filename="nifty-default-controls.xml" />
 
@@ -8,9 +8,11 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="start" controller="toniarts.openkeeper.tools.modelviewer.ModelViewer">
         <layer id="layer" childLayout="horizontal">
-            <panel id="panel" height="95%" width="25%" align="left" valign="center" childLayout="vertical" visibleToMouse="true">
-                <control id="typeCombo" name="dropDown" displayItems="5" />
-                <control id="modelListBox" name="listBox" forceSelection="true" vertical="on" horizontal="optional" displayItems="20" selection="Single" />
+            <panel id="panel" height="95%" width="25%" align="left" valign="center"
+                   childLayout="vertical" visibleToMouse="true">
+                <control id="typeCombo" name="dropDown" displayItems="10" />
+                <control id="modelListBox" name="listBox" forceSelection="true"
+                         vertical="on" horizontal="optional" displayItems="20" selection="Single" />
             </panel>
         </layer>
     </screen>

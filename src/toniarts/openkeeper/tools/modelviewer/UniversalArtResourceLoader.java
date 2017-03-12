@@ -50,6 +50,24 @@ public class UniversalArtResourceLoader {
                 result = AssetUtils.loadAsset(assetManager, resource.getName());
                 break;
 
+            case TERRAIN_MESH:
+                result = new Node(resource.getName());
+                int z = -2;
+                for (int i = 0; i < 20; i++) {
+                    try {
+                        Spatial part = AssetUtils.loadAsset(assetManager, resource.getName() + i);
+                        part.move((i % 4) - 2, 0, z);
+                        ((Node) result).attachChild(part);
+
+                        if (i % 4 == 0) {
+                            z++;
+                        }
+                    } catch (Exception e) {
+                        // do nothing
+                    }
+                }
+                break;
+
             case PROCEDURAL_MESH:
                 result = AssetUtils.createProceduralMesh(resource);
                 break;

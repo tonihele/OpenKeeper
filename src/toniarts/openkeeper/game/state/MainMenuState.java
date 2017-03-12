@@ -124,7 +124,7 @@ public class MainMenuState extends AbstractAppState {
     private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager, final Main app) {
 
         // Load the 3D Front end
-        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER.concat("FrontEnd3DLevel.kwd"))));
+        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd"));
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }
@@ -132,7 +132,9 @@ public class MainMenuState extends AbstractAppState {
 
         // Attach the 3D Front end
         menuNode = new Node("Main menu");
-        menuNode.attachChild(new MapLoader(assetManager, kwdFile, new EffectManagerState(kwdFile, assetManager), null, new ObjectLoader(kwdFile, null)) {
+        menuNode.attachChild(new MapLoader(assetManager, kwdFile,
+                new EffectManagerState(kwdFile, assetManager), null,
+                new ObjectLoader(kwdFile, null)) {
             @Override
             protected void updateProgress(float progress) {
                 if (loadingScreen != null) {
@@ -397,7 +399,7 @@ public class MainMenuState extends AbstractAppState {
      */
     public void playMovie(String movieFile) {
         try {
-            MovieState movieState = new MovieState(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat(movieFile + ".TGQ"))) {
+            MovieState movieState = new MovieState(getDkIIFolder() + PathUtils.DKII_MOVIES_FOLDER + movieFile + ".TGQ") {
                 @Override
                 protected void onPlayingEnd() {
                     inputManager.setCursorVisible(true);

@@ -17,11 +17,15 @@
 package toniarts.openkeeper.tools.modelviewer;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import java.util.ArrayList;
+import java.util.List;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.ILoader;
+import toniarts.openkeeper.world.effect.EffectManagerState;
 
 /**
  * Loads up terrain
@@ -37,8 +41,36 @@ public class TerrainsLoader implements ILoader<Terrain> {
         Node root = new Node(object.getName());
 
         if (object.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
+            if (object.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                for (int p = 0; p <= 6; p++) {
+                    for (int i = 0; i <= 4; i++) {
+                        Spatial s = AssetUtils.loadAsset(assetManager,
+                                object.getCompleteResource().getName() + p + "_" + i);
+                        s.move(i / 2f, p, i / 2f);
+
+                        root.attachChild(s);
+                    }
+                }
+            } else {
+                for (int i = 0; i < 4; i++) {
+                        Spatial s = AssetUtils.loadAsset(assetManager,
+                                object.getCompleteResource().getName() + i);
+
+                        root.attachChild(s);
+                    }
+            }
 
         } else if (object.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)) {
+            for (int i = 0; i <= 7; i++) {
+                Spatial s = AssetUtils.loadAsset(assetManager,
+                        object.getCompleteResource().getName() + i);
+                s.move(0, i, 0);
+
+                root.attachChild(s);
+            }
+
+        } else if (object.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            // FIXME
 
         } else {
             // Add the top
@@ -66,6 +98,25 @@ public class TerrainsLoader implements ILoader<Terrain> {
 
                 root.attachChild(s);
             }
+        }
+
+        return root;
+    }
+
+    public Spatial load(AssetManager assetManager, EffectManagerState effectManagerState, Terrain object) {
+        Spatial root = load(assetManager, object);
+
+        List<Integer> effects = new ArrayList<>();
+        effects.add(object.getDestroyedEffectId());
+        effects.add(object.getMaxHealthEffectId());
+
+        float height = 1;
+        for (Integer effectId : effects) {
+            if (effectId == 0) {
+                continue;
+            }
+
+            effectManagerState.loadSingleEffect((Node) root, new Vector3f(0, height++, 0), effectId, true);
         }
 
         return root;
