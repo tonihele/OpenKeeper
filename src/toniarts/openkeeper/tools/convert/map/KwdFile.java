@@ -568,7 +568,7 @@ public final class KwdFile {
             terrain.setLightHeight(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
             terrain.setFlags(ConversionUtils.parseFlagValue(ConversionUtils.readUnsignedIntegerAsLong(file), Terrain.TerrainFlag.class));
             terrain.setDamage(ConversionUtils.readUnsignedShort(file));
-            terrain.setUnk196(ConversionUtils.readUnsignedShort(file));
+            terrain.setEditorTextureId(ConversionUtils.readUnsignedShort(file));
             terrain.setUnk198(ConversionUtils.readUnsignedShort(file));
             terrain.setGoldValue(ConversionUtils.readUnsignedShort(file));
             terrain.setManaGain(ConversionUtils.readUnsignedShort(file));
@@ -877,8 +877,7 @@ public final class KwdFile {
             trap.setShotOffset(new Vector3f(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT,
                     ConversionUtils.readInteger(file) / ConversionUtils.FLOAT,
                     ConversionUtils.readInteger(file) / ConversionUtils.FLOAT));
-            trap.setShotDelay(ConversionUtils.readUnsignedShort(file) / ConversionUtils.FLOAT);
-            trap.setUnknown2(file.readUnsignedShort());
+            trap.setShotDelay(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
             trap.setHealthGain(ConversionUtils.readUnsignedShort(file));
 
             traps.put(trap.getTrapId(), trap);

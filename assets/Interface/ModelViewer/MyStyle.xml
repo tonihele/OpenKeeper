@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-styles xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+    <style id="nifty-scrollpanel#scrollpanel">
+        <attributes backgroundColor="#000e" />
+    </style>
+</nifty-styles>

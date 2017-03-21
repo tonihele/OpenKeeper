@@ -42,7 +42,7 @@ public class RoomsLoader implements ILoader<Room> {
         resources.add(object.getCapResource());
         resources.add(object.getCeilingResource());
         resources.add(object.getCompleteResource());
-        resources.add(object.getEditorIcon());
+        //resources.add(object.getEditorIcon());
         resources.add(object.getGuiIcon());
         resources.add(object.getInsideCornerResource());
         resources.add(object.getOutsideCornerResource());

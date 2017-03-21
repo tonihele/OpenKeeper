@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 
@@ -78,27 +77,20 @@ public class CreaturesLoader implements ILoader<Creature> {
         resources.add(new Item(object.getAnimWalk2Resource(), "AnimWalk2", new Vector3f(0, 0, 0)));
         resources.add(new Item(object.getAnimWalkResource(), "AnimWalk", new Vector3f(1, 0, 0)));
         resources.add(new Item(object.getAnimWalkbackResource(), "AnimWalkback", new Vector3f(2, 0, 0)));
-
         resources.add(new Item(object.getDrunkIdle(), "DrunkIdle", new Vector3f(3, 0, 0)));
-        resources.add(new Item(object.getFirstPersonFilterResource(), "FirstPersonFilter", new Vector3f(-3, 0, 1)));
-        resources.add(new Item(object.getFirstPersonMeleeResource(), "FirstPersonMelee", new Vector3f(-2, 0, 1)));
-        resources.add(new Item(object.getIcon1Resource(), "Icon1", new Vector3f(-1, 0, 1)));
-        resources.add(new Item(object.getIcon2Resource(), "Icon2", new Vector3f(0, 0, 1)));
-        resources.add(new Item(object.getPortraitResource(), "Portrait", new Vector3f(1, 0, 1)));
-        resources.add(new Item(object.getUniqueResource(), "Unique", new Vector3f(2, 0, 1)));
-
-        resources.add(new Item(object.getUnknown13Resource(), "Unknown13", new Vector3f(3, 0, 1)));
-        resources.add(new Item(object.getUnknown12Resource(), "Unknown12", new Vector3f(-3, 0, 2)));
-        resources.add(new Item(object.getUnknown11Resource(), "Unknown11", new Vector3f(-2, 0, 2)));
-        resources.add(new Item(object.getUnknown10Resource(), "Unknown10", new Vector3f(-1, 0, 2)));
-        resources.add(new Item(object.getUnknown9Resource(), "Unknown9", new Vector3f(0, 0, 2)));
-        resources.add(new Item(object.getUnknown8Resource(), "Unknown8", new Vector3f(1, 0, 2)));
-        resources.add(new Item(object.getUnknown7Resource(), "Unknown7", new Vector3f(2, 0, 2)));
-        resources.add(new Item(object.getUnknown6Resource(), "Unknown6", new Vector3f(3, 0, 2)));
-        resources.add(new Item(object.getUnknown5Resource(), "Unknown5", new Vector3f(-3, 0, 3)));
-        resources.add(new Item(object.getUnknown4Resource(), "Unknown4", new Vector3f(-2, 0, 3)));
-        resources.add(new Item(object.getUnknown3Resource(), "Unknown3", new Vector3f(-1, 0, 3)));
-        resources.add(new Item(object.getUnknown2Resource(), "Unknown2", new Vector3f(0, 0, 3)));
+        resources.add(new Item(object.getUnknown13Resource(), "Unknown13", new Vector3f(-3, 0, 1)));
+        resources.add(new Item(object.getUnknown12Resource(), "Unknown12", new Vector3f(-2, 0, 1)));
+        resources.add(new Item(object.getUnknown11Resource(), "Unknown11", new Vector3f(-1, 0, 1)));
+        resources.add(new Item(object.getUnknown10Resource(), "Unknown10", new Vector3f(0, 0, 1)));
+        
+        resources.add(new Item(object.getUnknown9Resource(), "Unknown9", new Vector3f(2, 0, 1)));        
+        resources.add(new Item(object.getUnknown8Resource(), "Unknown8", new Vector3f(3, 0, 1)));
+        resources.add(new Item(object.getUnknown7Resource(), "Unknown7", new Vector3f(-3, 0, 2)));
+        resources.add(new Item(object.getUnknown6Resource(), "Unknown6", new Vector3f(-2, 0, 2)));
+        resources.add(new Item(object.getUnknown5Resource(), "Unknown5", new Vector3f(-1, 0, 2)));
+        resources.add(new Item(object.getUnknown4Resource(), "Unknown4", new Vector3f(0, 0, 2)));
+        resources.add(new Item(object.getUnknown3Resource(), "Unknown3", new Vector3f(1, 0, 2)));
+        resources.add(new Item(object.getUnknown2Resource(), "Unknown2", new Vector3f(2, 0, 2)));
 
         for (Item item : resources) {
             if (item.resource == null || item.resource.getType() == ArtResource.ArtResourceType.NONE) {
@@ -110,7 +102,7 @@ public class CreaturesLoader implements ILoader<Creature> {
             part.attachChild(s);
 
             BitmapText text = new BitmapText(font, false);
-            text.setText(item.name);
+            text.setText(item.resource.getName());
             text.setSize(0.1f);
             text.move(-text.getLineWidth() / 2, 1, 0);
             BillboardControl bc = new BillboardControl();
