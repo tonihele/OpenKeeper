@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-controls xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+
+    <!-- Creature -->
+    <controlDefinition name="creature" style="nifty-panel-style"
+                       controller="toniarts.openkeeper.tools.modelviewer.nifty.CreatureControl">
+        
+        <panel childLayout="vertical" width="100%">
+
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    
+                    <text style="text" text="$title" align="center" />
+
+                    <panel childLayout="horizontal" width="100%">
+                        <panel childLayout="vertical" width="33%">
+                            <text style="text" text="Icon 1" align="center" />
+                            <image filename="$iconOne" align="center" />
+                            <text style="text" text="FP Melee" align="center" />
+                            <image filename="$fpMelee" align="center" />
+                        </panel>
+                        <panel childLayout="vertical" width="33%">
+                            <text style="text" text="Icon 2" align="center" />
+                            <image filename="$iconTwo" align="center" />
+                            <text style="text" text="Unique" align="center" />
+                            <image filename="$unique" align="center" />
+                        </panel>
+                        <panel childLayout="vertical" width="34%">
+                            <text style="text" text="Portrait" align="center" />
+                            <image filename="$portrait" align="center" />
+                            <text style="text" text="FP Filter" align="center" />
+                            <image filename="$fpFilter" align="center" />
+                        </panel>
+                    </panel>
+
+                    <text style="text" text="Description" align="center" />
+                    <text style="text" text="$description" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Tooltip" align="center" />
+                    <text style="text" text="$tooltip" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Introduction" align="center" />
+                    <text style="text" text="$introduction" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Strength" align="center" />
+                    <text style="text" text="$strength" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Unique Name" align="center" />
+                    <text style="text" text="$uniqueName" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Weakness" align="center" />
+                    <text style="text" text="$weakness" textHAlign="left" wrap="true" />
+                    <!-- Anger Section -->
+                    <text style="text" text="Anger Food" align="center" />
+                    <text style="text" text="$angerFood" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Anger General" align="center" />
+                    <text style="text" text="$angerGeneral" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Anger Hatred" align="center" />
+                    <text style="text" text="$angerHatred" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Anger Lair" align="center" />
+                    <text style="text" text="$angerLair" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Anger Lonely" align="center" />
+                    <text style="text" text="$angerLonely" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Anger Pay" align="center" />
+                    <text style="text" text="$angerPay" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Anger Slap" align="center" />
+                    <text style="text" text="$angerSlap" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Anger Torture" align="center" />
+                    <text style="text" text="$angerTorture" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Anger Work" align="center" />
+                    <text style="text" text="$angerWork" textHAlign="left" wrap="true" />
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+</nifty-controls>

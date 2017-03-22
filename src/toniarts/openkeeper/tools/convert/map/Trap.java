@@ -37,20 +37,22 @@ public class Trap implements Comparable<Trap> {
      */
     public enum TrapFlag implements IFlagEnum {
 
+        DIE_WHEN_TRIGGERED(0x00001),
         REVEAL_WHEN_FIRED(0x00002),
-        UNKNOWN1(0x00008),
+        UNKNOWN1(0x00008), // always exist?
         DISARMABLE(0x00010),
         INVISIBLE(0x00020),
         TRACK_NEAREST_TARGET(0x00080),
         REQUIRE_MANA(0x00100),
         LOOP_FIRE_ANIMATION(0x00200),
-        UNKNOWN2(0x00400),
+        UNKNOWN2(0x00400), // always exist?
         GUARD_POST(0x00800),
         OBSTACLE(0x01000),
         DOOR_TRAP(0x02000),
         IS_GOOD(0x08000),
         FIRST_PERSON_OBSTACLE(0x10000),
         SOLID_OBSTACLE(0x20000);
+
         private final long flagValue;
 
         private TrapFlag(long flagValue) {
@@ -80,13 +82,11 @@ public class Trap implements Comparable<Trap> {
         }
         private final int id;
     }
-//  char name[32];
-//  ArtResource ref[5];
-//  uint8_t data[127];
+
     private String name;
     private ArtResource meshResource;
     private ArtResource guiIcon;
-    private ArtResource editorIcon; // ??
+    private ArtResource editorIcon; // Data\editor\Graphics\TrapIcons.bmp
     private ArtResource flowerIcon;
     private ArtResource fireResource;
     private float height;
@@ -123,8 +123,7 @@ public class Trap implements Comparable<Trap> {
     private Material material;
     private short orderInEditor; // Byte
     private Vector3f shotOffset; // 4 bytes fixed point, x - y - z
-    private float shotDelay; // Short
-    private int unknown2; // Short
+    private float shotDelay; // int
     private int healthGain; // Short
 
     public String getName() {
@@ -453,14 +452,6 @@ public class Trap implements Comparable<Trap> {
 
     protected void setShotDelay(float shotDelay) {
         this.shotDelay = shotDelay;
-    }
-
-    public int getUnknown2() {
-        return unknown2;
-    }
-
-    protected void setUnknown2(int unknown2) {
-        this.unknown2 = unknown2;
     }
 
     public int getHealthGain() {

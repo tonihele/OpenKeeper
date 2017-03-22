@@ -568,7 +568,7 @@ public final class KwdFile {
             terrain.setLightHeight(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
             terrain.setFlags(ConversionUtils.parseFlagValue(ConversionUtils.readUnsignedIntegerAsLong(file), Terrain.TerrainFlag.class));
             terrain.setDamage(ConversionUtils.readUnsignedShort(file));
-            terrain.setUnk196(ConversionUtils.readUnsignedShort(file));
+            terrain.setEditorTextureId(ConversionUtils.readUnsignedShort(file));
             terrain.setUnk198(ConversionUtils.readUnsignedShort(file));
             terrain.setGoldValue(ConversionUtils.readUnsignedShort(file));
             terrain.setManaGain(ConversionUtils.readUnsignedShort(file));
@@ -877,8 +877,7 @@ public final class KwdFile {
             trap.setShotOffset(new Vector3f(ConversionUtils.readInteger(file) / ConversionUtils.FLOAT,
                     ConversionUtils.readInteger(file) / ConversionUtils.FLOAT,
                     ConversionUtils.readInteger(file) / ConversionUtils.FLOAT));
-            trap.setShotDelay(ConversionUtils.readUnsignedShort(file) / ConversionUtils.FLOAT);
-            trap.setUnknown2(file.readUnsignedShort());
+            trap.setShotDelay(ConversionUtils.readUnsignedInteger(file) / ConversionUtils.FLOAT);
             trap.setHealthGain(ConversionUtils.readUnsignedShort(file));
 
             traps.put(trap.getTrapId(), trap);
@@ -1112,12 +1111,12 @@ public final class KwdFile {
 
         // Hmm, seems that normal maps don't refer the effects nor effect elements
         if (!customOverrides) {
-            FilePath file = new FilePath(MapDataTypeEnum.EFFECTS, PathUtils.DKII_DATA_FOLDER + File.separator + PathUtils.DKII_EDITOR_FOLDER + File.separator + "Effects.kwd");
+            FilePath file = new FilePath(MapDataTypeEnum.EFFECTS, PathUtils.DKII_EDITOR_FOLDER + "Effects.kwd");
             if (!gameLevel.getPaths().contains(file)) {
                 gameLevel.getPaths().add(file);
             }
 
-            file = new FilePath(MapDataTypeEnum.EFFECT_ELEMENTS, PathUtils.DKII_DATA_FOLDER + File.separator + PathUtils.DKII_EDITOR_FOLDER + File.separator + "EffectElements.kwd");
+            file = new FilePath(MapDataTypeEnum.EFFECT_ELEMENTS, PathUtils.DKII_EDITOR_FOLDER + "EffectElements.kwd");
             if (!gameLevel.getPaths().contains(file)) {
                 gameLevel.getPaths().add(file);
             }
@@ -3020,6 +3019,17 @@ public final class KwdFile {
      */
     public List<Door> getDoors() {
         List<Door> c = new ArrayList(doors.values());
+        Collections.sort(c);
+        return c;
+    }
+
+    /**
+     * Get the list of all shots
+     *
+     * @return list of all shots
+     */
+    public List<Shot> getShots() {
+        List<Shot> c = new ArrayList(shots.values());
         Collections.sort(c);
         return c;
     }

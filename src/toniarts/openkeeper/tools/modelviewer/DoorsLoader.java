@@ -23,36 +23,28 @@ import com.jme3.scene.Spatial;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 
 /**
  *
- * @author archdemon
+ * @author ArchDemon
  */
-public class ObjectsLoader implements ILoader<GameObject> {
+public class DoorsLoader implements ILoader<Door> {
 
     @Override
-    public Spatial load(AssetManager assetManager, GameObject object) {
+    public Spatial load(AssetManager assetManager, Door object) {
         //Create a root
         Node root = new Node(object.getName());
 
-        if (object.getFlags().contains(GameObject.ObjectFlag.PILLAR)) {
-
-        }
-
-        if (object.getStartState() == GameObject.State.ACTIVATE_ANIM) {
-
-        }
-
         List<ArtResource> resources = new ArrayList<>();
-        resources.addAll(object.getAdditionalResources());
-        resources.add(object.getGuiIconResource());
-        resources.add(object.getInHandIconResource());
-        resources.add(object.getInHandMeshResource());
-        resources.add(object.getMeshResource());
-        resources.add(object.getUnknownResource());
+        resources.add(object.getMesh());
+        resources.add(object.getOpenResource());
+        resources.add(object.getCloseResource());
+        resources.add(object.getFlowerIcon());
+        resources.add(object.getGuiIcon());
+        resources.add(object.getEditorIcon());
 
         float height = 1;
         for (ArtResource resource : resources) {
@@ -61,19 +53,19 @@ public class ObjectsLoader implements ILoader<GameObject> {
             }
 
             Spatial s = UniversalArtResourceLoader.load(assetManager, resource);
-            s.move(0, height++, 0);
+            s.move(0, height, 0);
             root.attachChild(s);
+
+            height += 2;
         }
 
         return root;
     }
 
-    public Spatial load(AssetManager assetManager, EffectManagerState effectManagerState, GameObject object) {
+    public Spatial load(AssetManager assetManager, EffectManagerState effectManagerState, Door object) {
         Spatial root = load(assetManager, object);
 
         List<Integer> effects = new ArrayList<>();
-        effects.add(object.getSlapEffectId());
-        effects.add(object.getMiscEffectId());
         effects.add(object.getDeathEffectId());
 
         float height = 1;

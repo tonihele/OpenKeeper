@@ -17,20 +17,20 @@
 package toniarts.openkeeper.utils;
 
 import java.io.File;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 
 public class PathUtils {
 
-    public static final String DKII_DATA_FOLDER = "Data";
-    public static final String DKII_SOUND_FOLDER = "Sound";
-    public static final String DKII_SFX_FOLDER = "sfx";
-    public static final String DKII_MOVIES_FOLDER = "Movies";
-    public static final String DKII_TEXT_FOLDER = "Text";
-    public static final String DKII_DEFAULT_FOLDER = "Default";
-    public static final String DKII_EDITOR_FOLDER = "editor";
-    public static final String DKII_MAPS_FOLDER = "maps";
+    public static final String DKII_DATA_FOLDER = "Data" + File.separator;
+    public static final String DKII_SFX_FOLDER = DKII_DATA_FOLDER + "Sound" + File.separator
+            + "sfx" + File.separator;
+    public static final String DKII_MOVIES_FOLDER = DKII_DATA_FOLDER + "Movies" + File.separator;
+    public static final String DKII_TEXT_DEFAULT_FOLDER = DKII_DATA_FOLDER + "Text" + File.separator
+            + "Default" + File.separator;
+    public static final String DKII_EDITOR_FOLDER = DKII_DATA_FOLDER + "editor" + File.separator;
+    public static final String DKII_MAPS_FOLDER = DKII_EDITOR_FOLDER + "maps" + File.separator;
+
     private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
-    private final static String TEST_FILE = AssetsConverter.MAPS_FOLDER.concat("FrontEnd3DLevel.kwd");
+    private final static String TEST_FILE = DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd";
 
     /**
      * Get the folder of the original Dungeon Keeper 2 installation

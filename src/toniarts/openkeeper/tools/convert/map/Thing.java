@@ -302,7 +302,6 @@ public abstract class Thing {
         private EnumSet<Creature.CreatureFlag> flags; // Short, likely flags
         private int initialHealth; // Percent
         private int objectiveTargetActionPointId;
-        private int x14;
         private int triggerId;
         private short playerId; // player id
 
@@ -336,14 +335,6 @@ public abstract class Thing {
 
         protected void setObjectiveTargetActionPointId(int objectiveTargetActionPointId) {
             this.objectiveTargetActionPointId = objectiveTargetActionPointId;
-        }
-
-        public int getX14() {
-            return x14;
-        }
-
-        protected void setX14(int x14) {
-            this.x14 = x14;
         }
 
         public int getTriggerId() {
@@ -531,14 +522,14 @@ public abstract class Thing {
 
         public enum CameraFlag implements IFlagEnum {
 
-            DISABLE_CHANGE(0x80), // Never used. camera not enter and leave possession.
-            DISABLE_MOVE(0x40),
-            UNKNOWN_20(0x20),
-            UNKNOWN_10(0x10),
-            DISABLE_ZOOM(0x08),
-            DISABLE_PITCH(0x04),
+            DISABLE_YAW(0x01),
             DISABLE_ROLL(0x02),
-            DISABLE_YAW(0x01);
+            DISABLE_PITCH(0x04),
+            DISABLE_ZOOM(0x08),
+            UNKNOWN_10(0x10),
+            UNKNOWN_20(0x20),
+            DISABLE_MOVE(0x40),
+            DISABLE_CHANGE(0x80); // Never used. camera not enter and leave possession.
 
             private CameraFlag(long flagValue) {
                 this.flagValue = flagValue;

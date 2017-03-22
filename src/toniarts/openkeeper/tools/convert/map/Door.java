@@ -29,11 +29,6 @@ import toniarts.openkeeper.tools.convert.IFlagEnum;
  */
 public class Door implements Comparable<Door> {
 
-//struct DoorBlock {
-//  char name[32];
-//  ArtResource ref[5];
-//  uint8_t unk[164];
-//};
     /**
      * Door flags
      */

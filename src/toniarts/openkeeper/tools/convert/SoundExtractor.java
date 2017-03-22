@@ -54,7 +54,7 @@ public class SoundExtractor {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        final String soundFolder = dkIIFolder.concat(PathUtils.DKII_DATA_FOLDER).concat(File.separator).concat(PathUtils.DKII_SOUND_FOLDER).concat(File.separator).concat(PathUtils.DKII_SFX_FOLDER).concat(File.separator);
+        final String soundFolder = dkIIFolder + PathUtils.DKII_SFX_FOLDER;
 
         //And the destination
         String destination = PathUtils.fixFilePath(args[0]);

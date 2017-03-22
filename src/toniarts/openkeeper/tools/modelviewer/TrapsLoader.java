@@ -23,36 +23,27 @@ import com.jme3.scene.Spatial;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 
 /**
  *
- * @author archdemon
+ * @author ArchDemon
  */
-public class ObjectsLoader implements ILoader<GameObject> {
+public class TrapsLoader implements ILoader<Trap> {
 
     @Override
-    public Spatial load(AssetManager assetManager, GameObject object) {
+    public Spatial load(AssetManager assetManager, Trap object) {
         //Create a root
         Node root = new Node(object.getName());
 
-        if (object.getFlags().contains(GameObject.ObjectFlag.PILLAR)) {
-
-        }
-
-        if (object.getStartState() == GameObject.State.ACTIVATE_ANIM) {
-
-        }
-
         List<ArtResource> resources = new ArrayList<>();
-        resources.addAll(object.getAdditionalResources());
-        resources.add(object.getGuiIconResource());
-        resources.add(object.getInHandIconResource());
-        resources.add(object.getInHandMeshResource());
         resources.add(object.getMeshResource());
-        resources.add(object.getUnknownResource());
+        resources.add(object.getFireResource());
+        resources.add(object.getFlowerIcon());
+        resources.add(object.getGuiIcon());
+        resources.add(object.getEditorIcon());
 
         float height = 1;
         for (ArtResource resource : resources) {
@@ -68,12 +59,11 @@ public class ObjectsLoader implements ILoader<GameObject> {
         return root;
     }
 
-    public Spatial load(AssetManager assetManager, EffectManagerState effectManagerState, GameObject object) {
+    public Spatial load(AssetManager assetManager, EffectManagerState effectManagerState, Trap object) {
         Spatial root = load(assetManager, object);
 
         List<Integer> effects = new ArrayList<>();
-        effects.add(object.getSlapEffectId());
-        effects.add(object.getMiscEffectId());
+        effects.add(object.getPowerlessEffectId());
         effects.add(object.getDeathEffectId());
 
         float height = 1;

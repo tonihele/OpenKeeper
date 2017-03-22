@@ -24,9 +24,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Class isolate map selection
@@ -45,7 +45,7 @@ public class MapSelector {
     public MapSelector() {
         reset();
         // Get the skirmish maps
-        File f = new File(Main.getDkIIFolder().concat(AssetsConverter.MAPS_FOLDER));
+        File f = new File(Main.getDkIIFolder()+ PathUtils.DKII_MAPS_FOLDER);
         File[] files = f.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {

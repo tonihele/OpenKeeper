@@ -1,17 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<nifty xmlns="http://nifty-gui.sourceforge.net/nifty-1.3.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://nifty-gui.sourceforge.net/nifty-1.3.xsd http://nifty-gui.sourceforge.net/nifty-1.3.xsd">
+<nifty xmlns="http://nifty-gui.lessvoid.com/nifty-gui" xmlns:xsi="http://www.w3.org/2001/XMLSchema">
     <useStyles filename="nifty-default-styles.xml" />
+    <useStyles filename="Interface/ModelViewer/MyStyle.xml" />
     <useControls filename="nifty-default-controls.xml" />
+    <useControls filename="Interface/ModelViewer/MyControls.xml" />
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Main Screen for model loader -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="start" controller="toniarts.openkeeper.tools.modelviewer.ModelViewer">
-        <layer id="layer" childLayout="horizontal">
-            <panel id="panel" height="95%" width="25%" align="left" valign="center" childLayout="vertical" visibleToMouse="true">
-                <control id="typeCombo" name="dropDown" displayItems="5" />
-                <control id="modelListBox" name="listBox" forceSelection="true" vertical="on" horizontal="optional" displayItems="20" selection="Single" />
+    <screen id="start" controller="toniarts.openkeeper.tools.modelviewer.ModelViewerScreenController">
+        <layer childLayout="horizontal">
+            <panel childLayout="vertical" width="20%" valign="top" align="left" height="100%">
+                <control name="dropDown" id="types" displayItems="10"/>
+                <control name="listBox" id="items" horizontal="optional" selection="Single"
+                         vertical="on" forceSelection="true" displayItems="20"/>
             </panel>
+            <panel width="*" height="100%"/>
+            <panel id="item" childLayout="vertical" width="25%" valign="top" height="100%"/>
         </layer>
     </screen>
 </nifty>
