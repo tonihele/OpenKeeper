@@ -62,10 +62,11 @@ dependencies {
     compile "org.jmonkeyengine:jme3-bullet-native:$jmonkeyengine_version"
     compile "org.jmonkeyengine:jme3-lwjgl:$jmonkeyengine_version"
     compile "org.jmonkeyengine:jme3-niftygui:$jmonkeyengine_version"
-    compile "com.badlogicgames.gdx:gdx-ai:1.8.0"
+    compile "com.badlogicgames.gdx:gdx-ai:1.8.1"
     compile "javax.vecmath:vecmath:1.5.2"
     compile "com.simsilica:zay-es:1.2.1"
     compile "com.simsilica:zay-es-net:1.2.1"
+    compile "com.simsilica:sio2:1.1.0"
 }
 
 sourceSets {
