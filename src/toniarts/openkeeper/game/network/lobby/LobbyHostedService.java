@@ -30,14 +30,7 @@ import static java.util.stream.Collectors.toList;
 import toniarts.openkeeper.game.data.Keeper;
 
 /**
- * HostedService providing a chat server for connected players. Some time during
- * player connection setup, the game must start hosting and provide the player
- * name in order for the client to participate.
- *
- * @author Paul Speed
- */
-/**
- * Game server hosts lobby service for the game clients
+ * Game server hosts lobby service for the game clients.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
