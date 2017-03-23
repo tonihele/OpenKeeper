@@ -54,6 +54,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.network.NetworkClient;
+import toniarts.openkeeper.game.network.chat.ChatSessionListener;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -74,6 +75,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     private Nifty nifty;
     private Screen screen;
     private static final List<Cutscene> CUTSCENES = new ArrayList<>();
+    private ChatSessionListener chatSessionListener;
     private static final Logger logger = Logger.getLogger(MainMenuScreenController.class.getName());
 
     static {
@@ -381,7 +383,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                                 "", "", Integer.toString(state.client.getSystemMemory())));
                     }
 
-                    state.client.setChat(screen.findNiftyControl("multiplayerChat", Chat.class));
+                    // Add chat listener
+                    state.client.addChatSessionListener(getChatSessionListener());
 
                     Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
                     if (title != null) {
@@ -437,6 +440,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 break;
 
             case "multiplayerCreate":
+                state.client.removeChatSessionListener(getChatSessionListener());
+                chatSessionListener = null;
                 state.multiplayerReset();
                 break;
         }
@@ -508,7 +513,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             hiscoreDesc.build(nifty, screen, hiscoreList);
 
             int i = 0;
-            for (HiScores.HiScoresEntry hiscore : MainMenuState.hiscores.getEntries()) {
+            for (HiScores.HiScoresEntry hiscore : HiScores.load().getEntries()) {
                 ControlBuilder hiscoreControl = new ControlBuilder("hiscore" + i++, "hiscoreRow");
                 hiscoreControl.parameter("rank", i + "");
                 hiscoreControl.parameter("score", hiscore.getScore() + "");
@@ -787,7 +792,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.setHeight(img.getHeight());
             mainObjectiveImage.show();
         } catch (Exception e) {
-            logger.warning("Can't find image " + objectiveImage.replace("$index", "1"));
+            logger.log(java.util.logging.Level.WARNING, "Can''t find image {0}", objectiveImage.replace("$index", "1"));
             mainObjectiveImage.hide();
         }
 
@@ -815,7 +820,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     subObjectiveImage.setHeight(img.getHeight());
                     subObjectiveImage.show();
                 } catch (Exception e) {
-                    logger.warning("Can't find image " + objectiveImage.replace("$index", "1"));
+                    logger.log(java.util.logging.Level.WARNING, "Can't find image {0}", objectiveImage.replace("$index", "1"));
                     subObjectiveImage.hide();
                 }
 
@@ -827,5 +832,36 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 state.levelBriefing.play();
             }
         }
+    }
+
+    public ChatSessionListener getChatSessionListener() {
+        if (chatSessionListener == null) {
+            chatSessionListener = new ChatSessionListener() {
+
+                private final Chat chat = screen.findNiftyControl("multiplayerChat", Chat.class);
+
+                @Override
+                public void playerJoined(int clientId, String playerName) {
+                    state.app.enqueue(() -> {
+                        chat.addPlayer(playerName, null);
+                    });
+                }
+
+                @Override
+                public void newMessage(int clientId, String playerName, String message) {
+                    state.app.enqueue(() -> {
+                        chat.receivedChatLine(message, null);
+                    });
+                }
+
+                @Override
+                public void playerLeft(int clientId, String playerName) {
+                    state.app.enqueue(() -> {
+                        chat.removePlayer(playerName);
+                    });
+                }
+            };
+        }
+        return chatSessionListener;
     }
 }

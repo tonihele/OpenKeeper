@@ -19,7 +19,6 @@ package toniarts.openkeeper.game.network;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.Message;
 import com.jme3.network.MessageListener;
-import toniarts.openkeeper.game.network.message.MessageChat;
 import toniarts.openkeeper.game.network.message.MessagePlayerInfo;
 import toniarts.openkeeper.game.network.message.MessageTime;
 
@@ -38,12 +37,13 @@ public class ServerListener implements MessageListener<HostedConnection> {
 
     @Override
     public void messageReceived(HostedConnection source, Message message) {
-        if (message instanceof MessageChat) {
-            // do something with the message
-            MessageChat msg = (MessageChat) message;
-            source.getServer().broadcast(message);
-
-        } else if (message instanceof MessageTime) {
+//        if (message instanceof MessageChat) {
+//            // do something with the message
+//            MessageChat msg = (MessageChat) message;
+//            source.getServer().broadcast(message);
+//
+//        } else
+        if (message instanceof MessageTime) {
             // Send the latest game time back
             MessageTime msg = (MessageTime) message;
             long time = host.getGameTime();

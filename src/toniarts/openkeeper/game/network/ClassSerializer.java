@@ -22,24 +22,21 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.network.message.*;
 
-
 /**
  *
  * @author ArchDemon
  */
 public class ClassSerializer {
+
     private static final Logger logger = Logger.getLogger(ClassSerializer.class.getName());
 
     private static final Class[] classes = {
         MessageTime.class,
-        MessageChat.class,
         MessagePlayerInfo.class,
         MessageServerInfo.class
     };
 
-    private static final Class[] entities = {
-
-    };
+    private static final Class[] entities = {};
 
     public static void initialize() {
 
@@ -54,10 +51,10 @@ public class ClassSerializer {
         // but for now I'll do this here.
         Serializer fieldSerializer = new FieldSerializer();
         boolean error = false;
-        for( Class c : entities) {
+        for (Class c : entities) {
             try {
                 Serializer.registerClass(c, fieldSerializer);
-            } catch( Exception e ) {
+            } catch (Exception e) {
                 logger.log(Level.SEVERE, "Error registering class:" + c, e);
                 error = true;
             }

@@ -19,25 +19,32 @@ package toniarts.openkeeper.game.network;
 import com.jme3.network.Client;
 import com.jme3.network.ClientStateListener;
 import com.jme3.network.Network;
+import com.jme3.network.service.ClientService;
+import com.jme3.network.service.rmi.RmiClientService;
+import com.jme3.network.service.rpc.RpcClientService;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.client.RemoteEntityData;
 import com.simsilica.es.net.ObjectMessageDelegator;
-import de.lessvoid.nifty.controls.Chat;
 import java.io.IOException;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.network.message.MessageChat;
+import toniarts.openkeeper.game.network.chat.ChatClientService;
+import toniarts.openkeeper.game.network.chat.ChatSession;
+import toniarts.openkeeper.game.network.chat.ChatSessionListener;
+import toniarts.openkeeper.game.network.lobby.LobbyClientService;
 import toniarts.openkeeper.game.network.message.MessagePlayerInfo;
 import toniarts.openkeeper.game.network.message.MessageServerInfo;
 import toniarts.openkeeper.game.network.message.MessageTime;
+import toniarts.openkeeper.game.network.session.AccountClientService;
 import toniarts.openkeeper.utils.Utils;
 
 /**
  *
  * @author ArchDemon
  */
-public class NetworkClient {
+public class NetworkClient implements ChatSession {
 
     public enum Role {
 
@@ -49,17 +56,15 @@ public class NetworkClient {
     private final String player;
     private final Role role;
     private String gameName;
-    private int systemMemory = Utils.getSystemMemory();
+    private final int systemMemory = Utils.getSystemMemory();
 
     private RemoteEntityData ed;
     private EntityId entity;
-    //TODO change to event listener
-    private Chat chat;
 
-    private long frameDelay = 200 * 1000000L; // 200 ms
+    private final long frameDelay = 200 * 1000000L; // 200 ms
     private long renderTime;
     private long serverTimeOffset;
-    private long pingDelay = 500 * 1000000L; // 500 ms
+    private final long pingDelay = 500 * 1000000L; // 500 ms
     private long nextPing;
 
     private long lastTime;
@@ -109,12 +114,23 @@ public class NetworkClient {
 
         ObjectMessageDelegator delegator = new ObjectMessageDelegator(this, true);
         client.addMessageListener(delegator, delegator.getMessageTypes());
+        client.getServices().addServices(new RpcClientService(),
+                new RmiClientService(),
+                new AccountClientService(),
+                new LobbyClientService(),
+                new ChatClientService(0)
+        );
 
         client.addClientStateListener(new ClientStateChangeListener(this));
         logger.info("Network: Player starting");
         client.start();
 
-        client.send(new MessagePlayerInfo(player, systemMemory).setReliable(true));
+        // Try to log in
+        client.getServices().getService(AccountClientService.class).login(player, systemMemory);
+    }
+
+    public <T extends ClientService> T getService(Class<T> type) {
+        return client.getServices().getService(type);
     }
 
     public void close() {
@@ -126,6 +142,24 @@ public class NetworkClient {
         if (client != null && client.isConnected()) {
             client.close();
         }
+    }
+
+    public void addChatSessionListener(ChatSessionListener listener) {
+        client.getServices().getService(ChatClientService.class).addChatSessionListener(listener);
+    }
+
+    public void removeChatSessionListener(ChatSessionListener listener) {
+        client.getServices().getService(ChatClientService.class).removeChatSessionListener(listener);
+    }
+
+    @Override
+    public void sendMessage(String message) {
+        client.getServices().getService(ChatClientService.class).sendMessage(message);
+    }
+
+    @Override
+    public List<String> getPlayerNames() {
+        return client.getServices().getService(ChatClientService.class).getPlayerNames();
     }
 
     public String getPlayer() {
@@ -142,24 +176,6 @@ public class NetworkClient {
 
     public EntityData getEntityData() {
         return ed;
-    }
-
-    public Chat getChat() {
-        return chat;
-    }
-
-    public void setChat(Chat chat) {
-        this.chat = chat;
-    }
-
-    protected void onMessageChat(MessageChat message) {
-        if (chat != null) {
-            // FIXME bug with num lines. If more than max => crush
-            try {
-                chat.receivedChatLine(message.getData(), null, "chat");
-            } catch (Exception ex) {
-            }
-        }
     }
 
     protected void onMessageTime(MessageTime msg) {

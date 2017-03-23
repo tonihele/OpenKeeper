@@ -20,14 +20,18 @@ import com.jme3.network.HostedConnection;
 import com.jme3.network.Network;
 import com.jme3.network.Server;
 import com.jme3.network.serializing.Serializer;
+import com.jme3.network.service.rmi.RmiHostedService;
+import com.jme3.network.service.rpc.RpcHostedService;
 import com.simsilica.es.server.EntityDataHostService;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import toniarts.openkeeper.game.network.message.MessageChat;
+import toniarts.openkeeper.game.network.chat.ChatHostedService;
+import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
 import toniarts.openkeeper.game.network.message.MessagePlayerInfo;
 import toniarts.openkeeper.game.network.message.MessageServerInfo;
 import toniarts.openkeeper.game.network.message.MessageTime;
+import toniarts.openkeeper.game.network.session.AccountHostedService;
 
 /**
  *
@@ -58,7 +62,6 @@ public class NetworkServer {
 
     private void initialize() {
         server.addMessageListener(new ServerListener(this),
-                MessageChat.class,
                 MessageTime.class,
                 MessagePlayerInfo.class,
                 MessageServerInfo.class);
@@ -68,10 +71,15 @@ public class NetworkServer {
         if (server == null) {
             server = Network.createServer(GAME_NAME, PROTOCOL_VERSION, port, port);
         }
-        server.addChannel(port + 1);
 
         initialize();
         server.addConnectionListener(new ServerConnectionListener(this));
+        server.getServices().addServices(new RpcHostedService(),
+                new RmiHostedService(),
+                new AccountHostedService(name),
+                new LobbyHostedService(),
+                new ChatHostedService(0)
+        );
         server.start();
 
         start = System.nanoTime();

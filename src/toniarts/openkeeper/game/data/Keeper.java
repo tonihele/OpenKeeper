@@ -35,7 +35,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Keeper {
+public class Keeper implements Comparable<Keeper> {
 
     public final static short KEEPER1_ID = 3;
     public final static short KEEPER2_ID = 4;
@@ -97,6 +97,10 @@ public class Keeper {
 
     public boolean isReady() {
         return ready;
+    }
+
+    public void setReady(boolean ready) {
+        this.ready = ready;
     }
 
     public short getId() {
@@ -215,4 +219,35 @@ public class Keeper {
     public void breakAlliance(short playerId) {
         allies.remove(playerId);
     }
+
+    @Override
+    public int compareTo(Keeper keeper) {
+        return Short.compare(id, keeper.id);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 67 * hash + this.id;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Keeper other = (Keeper) obj;
+        if (this.id != other.id) {
+            return false;
+        }
+        return true;
+    }
+
 }

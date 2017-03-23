@@ -44,13 +44,11 @@ import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.GeneralLevel;
-import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.network.NetworkClient;
 import toniarts.openkeeper.game.network.NetworkServer;
-import toniarts.openkeeper.game.network.message.MessageChat;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -60,9 +58,9 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
@@ -94,7 +92,6 @@ public class MainMenuState extends AbstractAppState {
     private NetworkServer server = null;
     protected NetworkClient client = null;
 
-    public static HiScores hiscores = HiScores.load();
     private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
 
     /**
@@ -132,9 +129,7 @@ public class MainMenuState extends AbstractAppState {
 
         // Attach the 3D Front end
         menuNode = new Node("Main menu");
-        menuNode.attachChild(new MapLoader(assetManager, kwdFile,
-                new EffectManagerState(kwdFile, assetManager), null,
-                new ObjectLoader(kwdFile, null)) {
+        menuNode.attachChild(new MapLoader(assetManager, kwdFile, new EffectManagerState(kwdFile, assetManager), null, new ObjectLoader(kwdFile, null)) {
             @Override
             protected void updateProgress(float progress) {
                 if (loadingScreen != null) {
@@ -282,6 +277,7 @@ public class MainMenuState extends AbstractAppState {
     }
 
     public boolean multiplayerCreate(String game, int port, String player) {
+
         // Save player name & game name
         try {
             Main.getUserSettings().setSetting(Setting.PLAYER_NAME, player);
@@ -296,16 +292,17 @@ public class MainMenuState extends AbstractAppState {
             server.start();
             logger.info("Server created");
         } catch (IOException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
+            logger.log(java.util.logging.Level.SEVERE, "Failed to create a game server!", ex);
             return false;
         }
 
+        // Create us as a client also
         try {
             client = new NetworkClient(player);
             client.start(server.getHost(), server.getPort());
         } catch (IOException ex) {
             server.close();
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
+            logger.log(java.util.logging.Level.SEVERE, "Failed to create a game client!", ex);
             return false;
         }
 
@@ -320,6 +317,7 @@ public class MainMenuState extends AbstractAppState {
         try {
             client = new NetworkClient(player, NetworkClient.Role.SLAVE);
             client.start(host, port);
+
             // Save player name & last connection
             Main.getUserSettings().setSetting(Setting.PLAYER_NAME, player);
             Main.getUserSettings().setSetting(Setting.MULTIPLAYER_LAST_IP, hostAddress);
@@ -350,9 +348,7 @@ public class MainMenuState extends AbstractAppState {
             logger.warning("Network client not initialized");
             return;
         }
-        // event.getChatControl().addPlayer("ID " + client.getId(), null);
-        // event.getChatControl().receivedChatLine(event.getText(), null);
-        client.getClient().send(new MessageChat(client.getPlayer() + ": " + text));
+        client.sendMessage(text);
     }
 
     /**
