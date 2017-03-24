@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import javax.vecmath.Vector3f;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
@@ -28,6 +29,73 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class Creature implements Comparable<Creature> {
+
+    public static enum AnimationType {
+        WALK,
+        RUN,
+        BACK_OFF,
+        STAND_STILL,
+        STEALTH_WALK,
+        DEATH_POSE,
+        RECOIL_FORWARDS,
+        RECOIL_BACKWARDS,
+        FALLBACK, // FALL_OVER_AND_UP
+        MELEE_ATTACK,
+        CAST_SPELL,
+        GET_UP,
+        IDLE_1,
+        IDLE_2,
+        DIE,
+        HAPPY,
+        ANGRY,
+        STUNNED,
+        IN_HAND,
+        DANCE,
+        DRUNK,
+        ENTRANCE,
+        SLEEPING,
+        EATING,
+        RESEARCHING,
+        MANUFACTURING,
+        TRAINING,
+//        IN_PRISON,
+        DRINKING,
+        PRAYING,
+//        GAMBLING,
+        TORTURED_WHEEL,
+        TORTURED_CHAIR,
+        TORTURED_CHAIR_SKELETON,
+        SPECIAL_1,
+        SPECIAL_2,
+        DRUNKED_WALK,
+        DRUNKED_IDLE,
+//        FIGHT_VICTORY,
+//        FIGHT_IDLE,
+        DRAGGED,
+
+        DIG, // Imp
+        SWIPE,
+        IDLE_3, // Imp
+        IDLE_4, // Imp
+        IDLE_3_1, // same as IDLE_3
+        IDLE_4_1, // same as IDLE_4
+        ROAR, // ROAR in Horny, LOOT in Rogue
+        NULL_1, // always null
+        NULL_2, // always null
+        NULL_3, // always null
+        NULL_4, // always null
+    }
+
+    public static enum OffsetType {
+        PORTAL_ENTRANCE,
+        PRAYING,
+        FALL_BACK_GET_UP,
+        CORPSE,
+        OFFSET_5,
+        OFFSET_6,
+        OFFSET_7,
+        OFFSET_8,
+    }
 
     /**
      * Creature flags
@@ -90,6 +158,24 @@ public class Creature implements Comparable<Creature> {
         private final long flagValue;
 
         private CreatureFlag2(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    };
+
+    public enum CreatureFlag3 implements IFlagEnum {
+	UNK_1(1),
+	UNK_2(2),
+	UNK_4(4),
+	UNK_8(8);
+
+        private final long flagValue;
+
+        private CreatureFlag3(long flagValue) {
             this.flagValue = flagValue;
         }
 
@@ -208,7 +294,7 @@ public class Creature implements Comparable<Creature> {
             }
             return result.trim();
         }
-        private int id;
+        private final int id;
     }
 
     public enum JobClass implements IValueEnum {
@@ -294,7 +380,8 @@ public class Creature implements Comparable<Creature> {
         LEFT_SMALL_PUNCH(19),
         RIGHT_SMALL_PUNCH(20),
         LEFT_KING_FGBS_SLASH(21),
-        RIGHT_KING_FGBS_SLASH(22);
+        RIGHT_KING_FGBS_SLASH(22),
+        UNK_36(36); // FIXME
 
         private Swipe(int id) {
             this.id = id;
@@ -362,200 +449,11 @@ public class Creature implements Comparable<Creature> {
         }
         private final int id;
     }
-//    struct CreatureBlock {
-//        char name[32]; /* 0 */
-//        ArtResource ref1[39]; /* 20 */
-//        uint16_t unkcec; /* cec */
-//        uint32_t unkcee; /* cee */
-//        uint32_t unkcf2; /* cf2 */
-//        uint8_t editor_order; /* cf6 */
-//        uint16_t unk2c; /* cf7 */
-//        int32_t shot_delay; /* cf9 */
-//        uint16_t unkcfd; /* cfd */
-//        uint16_t unkcff; /* cff */
-//        uint32_t unkd01; /* d01 */
-//        uint16_t unk2d[9]; /* d05 */
-//        char unkd17[32]; /* d17 */
-//        int32_t shuffle_speed; /* d37 */
-//        uint8_t unk2e[5]; /* d3b */
-//        ArtResource ref2; /* d40 */
-//        LightBlock light; /* d94 */
-//        struct {
-//        uint32_t present; /* dac */
-//        uint32_t room_id_and_size; /* db0 */
-//        } attraction[2];
-//        uint32_t unkdbc; /* dbc */
-//        uint32_t unkdc0; /* dc0 */
-//        struct { /* bytes in these structs might be product of padding */
-//        uint32_t x00;
-//        uint32_t x04;
-//        uint32_t x08;
-//        uint8_t x0c;
-//        uint8_t x0d;
-//        uint8_t x0e;
-//        uint8_t x0f;
-//        uint32_t x10;
-//        uint8_t x14;
-//        uint8_t x15;
-//        uint8_t x16;
-//        uint8_t x17;
-//        } xdc4[3];
-//        struct {
-//        uint8_t x00;
-//        uint8_t x01;
-//        } xe0c[4];
-//        struct {
-//        uint32_t x00;
-//        uint16_t x04;
-//        uint16_t x06;
-//        uint8_t x08;
-//        uint8_t x09;
-//        uint8_t x0a;
-//        uint8_t x0b;
-//        } xe14[3], xe38[2], xe50[3];
-//        uint32_t xe74[2];
-//        struct {
-//        uint32_t x00;
-//        uint16_t x04;
-//        uint16_t x06;
-//        } xe7c[3];
-//        struct {
-//        uint32_t x00;
-//        uint32_t x04;
-//        uint32_t x08;
-//        } xe94;
-//        int32_t unkea0; /* ea0 */
-//        int32_t height; /* ea4 */
-//        uint32_t unkea8; /* ea8 */
-//        uint32_t unk3ab; /* eac */
-//        int32_t eye_height; /* eb0 */
-//        int32_t speed; /* eb4 */
-//        int32_t run_speed; /* eb8 */
-//        uint32_t unk3ac; /* ebc */
-//        uint32_t time_awake; /* ec0 */
-//        uint32_t time_sleep; /* ec4 */
-//        uint32_t unkec8; /* ec8 */
-//        uint32_t unkecc; /* ecc */
-//        uint32_t unked0; /* ed0 */
-//        uint32_t unked4; /* ed4 */
-//        uint32_t unked8; /* ed8 */
-//        int32_t slap_fearless_duration; /* edc */
-//        int32_t unkee0; /* ee0 */
-//        int32_t unkee4; /* ee4 */
-//        short possession_mana_cost; /* ee8 */
-//        short own_land_health_increase; /* eea */
-//        int32_t range; /* eec */
-//        uint32_t unkef0; /* ef0 */
-//        uint32_t unk3af; /* ef4 */
-//        int32_t melee_recharge; /* ef8 */
-//        uint32_t unkefc; /* efc */
-//        uint16_t exp_for_next_level; /* f00 */
-//        uint8_t unk3b[2]; /* f02 */
-//        uint16_t exp_per_second; /* f04 */
-//        uint16_t exp_per_second_training; /* f06 */
-//        uint16_t research_per_second; /* f08 */
-//        uint16_t manufacture_per_second; /* f0a */
-//        uint16_t hp; /* f0c */
-//        uint16_t hp_from_chicken; /* f0e */
-//        uint16_t fear; /* f10 */
-//        uint16_t threat; /* f12 */
-//        uint16_t melee_damage; /* f14 */
-//        uint16_t slap_damage; /* f16 */
-//        uint16_t mana_gen_prayer; /* f18 */
-//        uint16_t unk3cb; /* f1a */
-//        uint16_t pay; /* f1c */
-//        uint16_t max_gold_held; /* f1e */
-//        uint16_t unk3cc; /* f20 */
-//        uint16_t decompose_value; /* f22 */
-//        uint16_t unk3cd[2]; /* f24 */
-//        short anger_no_lair; /* f28 */
-//        short anger_no_food; /* f2a */
-//        short anger_no_pay; /* f2c */
-//        short anger_no_work; /* f2e */
-//        short anger_slap; /* f30 */
-//        short anger_in_hand; /* f32 */
-//        short initial_gold_held; /* f34 */
-//        uint16_t unk3ce[3]; /* f36 */
-//        uint16_t slap_effect_id; /* f3c */
-//        uint16_t death_effect_id; /* f3e */
-//        uint16_t unkf40; /* f40 */
-//        uint8_t unk3d[3]; /* f42 */
-//        uint8_t unkf45; /* f45 */
-//        uint8_t unk40[2]; /* f46 */
-//        uint8_t unkf48[3]; /* f48 */
-//        uint8_t id; /* f4b */
-//        uint8_t unk3ea[3]; /* f4c */
-//        uint8_t unhappy_threshold; /* f4f */
-//        uint8_t unk3eb[2]; /* f50 */
-//        uint8_t lair_object_id; /* f52 */
-//        uint8_t unk3f[3]; /* f53 */
-//        char xname[32]; /* f56 */
-//        uint8_t material; /* f76 */
-//        ArtResource reff77; /* f77 */
-//        uint16_t unkfcb; /* fcb */
-//        uint32_t unk4; /* fcd */
-//        ArtResource ref3; /* fd1 */
-//        uint8_t unk5[2]; /* 1025 */
-//        ArtResource ref4; /* 1027 */
-//        uint32_t unk6; /* 107b */
-//        short torture_hp_change; /* 107f */
-//        short torture_mood_change; /* 1081 */
-//        ArtResource ref5[6]; /* 1083 */
-//        struct {
-//        uint32_t x00;
-//        uint32_t x04;
-//        uint32_t x08;
-//        } unk7[7]; /* 127b */
-//        ArtResource ref6; /* 12cf */
-//        struct {
-//        uint16_t x00;
-//        uint16_t x02;
-//        } x1323[48];
-//        ArtResource ref7[3]; /* 13e3 */
-//        uint16_t unk14df;
-//        uint32_t x14e1[2]; /* 14e1 */
-//        uint32_t x14e9[2]; /* 14e9 */
-//        ArtResource ref8; /* 14f1 */
-//        uint32_t unk1545;
-//        };
+
     private String name; // 0
     private byte[] unknown1Resource;
-    private ArtResource animWalkResource;
-    private ArtResource animRunResource;
-    private ArtResource animDraggedPoseResource;
-    private ArtResource animRecoilHffResource;
-    private ArtResource animMelee1Resource;
-    private ArtResource animMagicResource;
-    private ArtResource animDieResource;
-    private ArtResource animHappyResource;
-    private ArtResource animAngryResource;
-    private ArtResource animStunnedPoseResource;
-    private ArtResource animInHandResource;
-    private ArtResource animSleepResource;
-    private ArtResource animEatResource;
-    private ArtResource animResearchResource;
-    private ArtResource unknown2Resource;
-    private ArtResource animDejectedPoseResource;
-    private ArtResource animTortureResource;
-    private ArtResource unknown3Resource;
-    private ArtResource animDrinkResource;
-    private ArtResource animIdle1Resource;
-    private ArtResource animRecoilHfbResource;
-    private ArtResource unknown4Resource;
-    private ArtResource animPrayResource;
-    private ArtResource animFallbackResource;
-    private ArtResource animElecResource;
-    private ArtResource animElectrocuteResource;
-    private ArtResource animGetUpResource;
-    private ArtResource animDanceResource;
-    private ArtResource animDrunkResource;
-    private ArtResource animEntranceResource;
-    private ArtResource animIdle2Resource;
-    private ArtResource unknown5Resource;
-    private ArtResource unknown6Resource;
-    private ArtResource animDrunk2Resource;
-    private ArtResource unknown7Resource;
-    private ArtResource unknown8Resource;
+    private final HashMap<AnimationType, ArtResource> animation = new HashMap<>(48);
+    private final Attributes attributes = new Attributes();
     private ArtResource icon1Resource;
     private ArtResource icon2Resource;
     private int unkcec; // cec
@@ -566,7 +464,6 @@ public class Creature implements Comparable<Creature> {
     private float shotDelay; // cf9
     private int olhiEffectId; // cfd, OLHI, wut?
     private int introductionStringId; // cff
-    private float perceptionRange; // d01, Fog of war
     private int angerStringIdLair;
     private int angerStringIdFood;
     private int angerStringIdPay;
@@ -577,7 +474,6 @@ public class Creature implements Comparable<Creature> {
     private int angerStringIdHatred;
     private int angerStringIdTorture;
     private String translationSoundGategory; // d17
-    private float shuffleSpeed; // d37
     private short cloneCreatureId;
     private GammaEffect firstPersonGammaEffect; // d3b
     private short firstPersonWalkCycleScale; // Movement
@@ -595,60 +491,22 @@ public class Creature implements Comparable<Creature> {
     private JobPreference angryJobs[];
     private JobType hateJobs[];
     private JobAlternative alternativeJobs[];
-    private Xe94 xe94;
     private int unkea0; // ea0
-    private float height; // ea4
-    private int unkea8; // ea8
+    private float unkea8; // ea8
     private int unk3ab; // eac
-    private float eyeHeight; // eb0
-    private float speed; // eb4
-    private float runSpeed; // eb8
-    private float hungerRate; // ebc
-    private int timeAwake; // ec0
-    private int timeSleep; // ec4
-    private float distanceCanSee; // ec8, tiles
-    private float distanceCanHear; // ecc, tiles
-    private float stunDuration; // ed0, seconds
-    private float guardDuration; // ed4, seconds
-    private float idleDuration; // ed8, seconds
-    private float slapFearlessDuration; // edc
     private int unkee0; // ee0
     private int unkee4; // ee4
-    private short possessionManaCost; // ee8
-    private short ownLandHealthIncrease; // eea
     private float meleeRange; // eec
     private int unkef0; // ef0
-    private float tortureTimeToConvert; // ef4, seconds
     private float meleeRecharge; // ef8
     private EnumSet<CreatureFlag> flags; // efc
-    private int expForNextLevel; // f00
     private JobClass jobClass; // f02
     private FightStyle fightStyle;
-    private int expPerSecond; // f04
-    private int expPerSecondTraining; // f06
-    private int researchPerSecond; // f08
-    private int manufacturePerSecond; // f0a
-    private int hp; // f0c
-    private int hpFromChicken; // f0e
-    private int fear; // f10
-    private int threat; // f12
     private int meleeDamage; // f14
-    private int slapDamage; // f16
-    private int manaGenPrayer; // f18
     private int unk3cb; // f1a
-    private int pay; // f1c
-    private int maxGoldHeld; // f1e
-    private int unk3cc; // f20
-    private int decomposeValue; // f22
+    private float unk3cc; // f20
     private int nameStringId;
     private int tooltipStringId;
-    private short angerNoLair; // f28
-    private short angerNoFood; // f2a
-    private short angerNoPay; // f2c
-    private short angerNoWork; // f2e
-    private short angerSlap; // f30
-    private short angerInHand; // f32
-    private short initialGoldHeld; // f34
     private int entranceEffectId; // f36
     private int generalDescriptionStringId; // f3c
     private int strengthStringId;
@@ -657,15 +515,13 @@ public class Creature implements Comparable<Creature> {
     private int deathEffectId; // f40
     private Swipe melee1Swipe; // f42, Swipes, 1st person attacks
     private Swipe melee2Swipe;
-    private short unk3d3;
+    private Swipe melee3Swipe;
     private Swipe spellSwipe; // f45
     private SpecialAbility firstPersonSpecialAbility1; // f46, Special abilities, 1st person
     private SpecialAbility firstPersonSpecialAbility2;
     private short unkf48[]; // f48
     private short creatureId; // f4b
     private short unk3ea[]; // f4c
-    private short hungerFill;
-    private short unhappyThreshold; // f4f
     private AttackType meleeAttackType; // f50
     private short unk3eb2;
     private short lairObjectId; // f52
@@ -677,35 +533,23 @@ public class Creature implements Comparable<Creature> {
     private ArtResource firstPersonFilterResource; // f77
     private int unkfcb; // fcb
     private int unk4; // fcd
-    private ArtResource drunkIdle; // fd1
     private Swipe special1Swipe; // 1025
     private Swipe special2Swipe;
     private ArtResource firstPersonMeleeResource; // 1027
     private int unk6; // 107b
-    private short tortureHpChange; // 107f
-    private short tortureMoodChange; // 1081
-    private ArtResource animMelee2Resource; // 1083
-    private ArtResource unknown9Resource;
-    private ArtResource unknown10Resource;
-    private ArtResource unknown11Resource;
-    private ArtResource unknown12Resource;
-    private ArtResource unknown13Resource;
-    private Unk7 unk7[]; // 127b
-    private ArtResource animWalkbackResource; // 12cf
+    private final HashMap<OffsetType, Vector3f> animationOffsets = new HashMap<>(8);
     private X1323 x1323[];
-    private ArtResource animPoseFrameResource; // 13e3
-    private ArtResource animWalk2Resource;
-    private ArtResource animDiePoseResource;
     private int uniqueNameTextId;
     private int x14e1[]; // 14e1
     private int firstPersonSpecialAbility1Count; // 14e9, available uses or something, not really sure
     private int firstPersonSpecialAbility2Count;
     private ArtResource uniqueResource; // 14f1
-    private int unk1545;
+    private EnumSet<CreatureFlag3> flags3;
     // When the file is embedded in the globals, there is some extra stuff
     private short unknownExtraBytes[]; // 80
     private EnumSet<CreatureFlag2> flags2; // ???
     private int unknown;
+    private float unknown_1;
 
     public String getName() {
         return name;
@@ -723,292 +567,180 @@ public class Creature implements Comparable<Creature> {
         this.unknown1Resource = unknown1Resource;
     }
 
+    protected void setAnimation(AnimationType type, ArtResource resource) {
+        animation.put(type, resource);
+    }
+
+    public ArtResource getAnimation(AnimationType type) {
+        return animation.get(type);
+    }
+
+    public HashMap<AnimationType, ArtResource> getAnimations() {
+        return animation;
+    }
+
+    public Attributes getAttributes() {
+        return attributes;
+    }
+
+    /**
+     * @deprecated use getAnimation(AnimationType.WALK)
+     * @return
+     */
     public ArtResource getAnimWalkResource() {
-        return animWalkResource;
+        return animation.get(AnimationType.WALK);
     }
 
-    protected void setAnimWalkResource(ArtResource animWalkResource) {
-        this.animWalkResource = animWalkResource;
-    }
-
-    public ArtResource getAnimRunResource() {
-        return animRunResource;
-    }
-
-    protected void setAnimRunResource(ArtResource animRunResource) {
-        this.animRunResource = animRunResource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.BEING_DRAGGED)
+     * @return
+     */
     public ArtResource getAnimDraggedPoseResource() {
-        return animDraggedPoseResource;
+        return animation.get(AnimationType.DRAGGED);
     }
 
-    protected void setAnimDraggedPoseResource(ArtResource animDraggedPoseResource) {
-        this.animDraggedPoseResource = animDraggedPoseResource;
-    }
-
-    public ArtResource getAnimRecoilHffResource() {
-        return animRecoilHffResource;
-    }
-
-    protected void setAnimRecoilHffResource(ArtResource animRecoilHffResource) {
-        this.animRecoilHffResource = animRecoilHffResource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.MELEE_1)
+     * @return
+     */
     public ArtResource getAnimMelee1Resource() {
-        return animMelee1Resource;
+        return animation.get(AnimationType.MELEE_ATTACK);
     }
 
-    protected void setAnimMelee1Resource(ArtResource animMelee1Resource) {
-        this.animMelee1Resource = animMelee1Resource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.CAST_SPELL)
+     * @return
+     */
     public ArtResource getAnimMagicResource() {
-        return animMagicResource;
+        return animation.get(AnimationType.CAST_SPELL);
     }
 
-    protected void setAnimMagicResource(ArtResource animMagicResource) {
-        this.animMagicResource = animMagicResource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.DIE)
+     * @return
+     */
     public ArtResource getAnimDieResource() {
-        return animDieResource;
+        return animation.get(AnimationType.DIE);
     }
 
-    protected void setAnimDieResource(ArtResource animDieResource) {
-        this.animDieResource = animDieResource;
-    }
-
-    public ArtResource getAnimHappyResource() {
-        return animHappyResource;
-    }
-
-    protected void setAnimHappyResource(ArtResource animHappyResource) {
-        this.animHappyResource = animHappyResource;
-    }
-
-    public ArtResource getAnimAngryResource() {
-        return animAngryResource;
-    }
-
-    protected void setAnimAngryResource(ArtResource animAngryResource) {
-        this.animAngryResource = animAngryResource;
-    }
-
-    public ArtResource getAnimStunnedPoseResource() {
-        return animStunnedPoseResource;
-    }
-
-    protected void setAnimStunnedPoseResource(ArtResource animStunnedPoseResource) {
-        this.animStunnedPoseResource = animStunnedPoseResource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.IN_HAND)
+     * @return
+     */
     public ArtResource getAnimInHandResource() {
-        return animInHandResource;
+        return animation.get(AnimationType.IN_HAND);
     }
 
-    protected void setAnimInHandResource(ArtResource animInHandResource) {
-        this.animInHandResource = animInHandResource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.SLEEPING)
+     * @return
+     */
     public ArtResource getAnimSleepResource() {
-        return animSleepResource;
+        return animation.get(AnimationType.SLEEPING);
     }
 
-    protected void setAnimSleepResource(ArtResource animSleepResource) {
-        this.animSleepResource = animSleepResource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.EATING)
+     * @return
+     */
     public ArtResource getAnimEatResource() {
-        return animEatResource;
+        return animation.get(AnimationType.EATING);
     }
 
-    protected void setAnimEatResource(ArtResource animEatResource) {
-        this.animEatResource = animEatResource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.RESEARCHING)
+     * @return
+     */
     public ArtResource getAnimResearchResource() {
-        return animResearchResource;
+        return animation.get(AnimationType.RESEARCHING);
     }
 
-    protected void setAnimResearchResource(ArtResource animResearchResource) {
-        this.animResearchResource = animResearchResource;
-    }
-
-    public ArtResource getUnknown2Resource() {
-        return unknown2Resource;
-    }
-
-    protected void setUnknown2Resource(ArtResource unknown2Resource) {
-        this.unknown2Resource = unknown2Resource;
-    }
-
-    public ArtResource getAnimDejectedPoseResource() {
-        return animDejectedPoseResource;
-    }
-
-    protected void setAnimDejectedPoseResource(ArtResource animDejectedPoseResource) {
-        this.animDejectedPoseResource = animDejectedPoseResource;
-    }
-
-    public ArtResource getAnimTortureResource() {
-        return animTortureResource;
-    }
-
-    protected void setAnimTortureResource(ArtResource animTortureResource) {
-        this.animTortureResource = animTortureResource;
-    }
-
-    public ArtResource getUnknown3Resource() {
-        return unknown3Resource;
-    }
-
-    protected void setUnknown3Resource(ArtResource unknown3Resource) {
-        this.unknown3Resource = unknown3Resource;
-    }
-
-    public ArtResource getAnimDrinkResource() {
-        return animDrinkResource;
-    }
-
-    protected void setAnimDrinkResource(ArtResource animDrinkResource) {
-        this.animDrinkResource = animDrinkResource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.IDLE_1)
+     * @return
+     */
     public ArtResource getAnimIdle1Resource() {
-        return animIdle1Resource;
+        return animation.get(AnimationType.IDLE_1);
     }
 
-    protected void setAnimIdle1Resource(ArtResource animIdle1Resource) {
-        this.animIdle1Resource = animIdle1Resource;
-    }
-
-    public ArtResource getAnimRecoilHfbResource() {
-        return animRecoilHfbResource;
-    }
-
-    protected void setAnimRecoilHfbResource(ArtResource animRecoilHfbResource) {
-        this.animRecoilHfbResource = animRecoilHfbResource;
-    }
-
-    public ArtResource getUnknown4Resource() {
-        return unknown4Resource;
-    }
-
-    protected void setUnknown4Resource(ArtResource unknown4Resource) {
-        this.unknown4Resource = unknown4Resource;
-    }
-
-    public ArtResource getAnimPrayResource() {
-        return animPrayResource;
-    }
-
-    protected void setAnimPrayResource(ArtResource animPrayResource) {
-        this.animPrayResource = animPrayResource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.FALL_OVER_AND_UP)
+     * @return
+     */
     public ArtResource getAnimFallbackResource() {
-        return animFallbackResource;
+        return animation.get(AnimationType.FALLBACK);
     }
 
-    protected void setAnimFallbackResource(ArtResource animFallbackResource) {
-        this.animFallbackResource = animFallbackResource;
-    }
-
-    public ArtResource getAnimElecResource() {
-        return animElecResource;
-    }
-
-    protected void setAnimElecResource(ArtResource animElecResource) {
-        this.animElecResource = animElecResource;
-    }
-
-    public ArtResource getAnimElectrocuteResource() {
-        return animElectrocuteResource;
-    }
-
-    protected void setAnimElectrocuteResource(ArtResource animElectrocuteResource) {
-        this.animElectrocuteResource = animElectrocuteResource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.GET_UP)
+     * @return
+     */
     public ArtResource getAnimGetUpResource() {
-        return animGetUpResource;
+        return animation.get(AnimationType.GET_UP);
     }
 
-    protected void setAnimGetUpResource(ArtResource animGetUpResource) {
-        this.animGetUpResource = animGetUpResource;
-    }
-
-    public ArtResource getAnimDanceResource() {
-        return animDanceResource;
-    }
-
-    protected void setAnimDanceResource(ArtResource animDanceResource) {
-        this.animDanceResource = animDanceResource;
-    }
-
-    public ArtResource getAnimDrunkResource() {
-        return animDrunkResource;
-    }
-
-    protected void setAnimDrunkResource(ArtResource animDrunkResource) {
-        this.animDrunkResource = animDrunkResource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.ENTRANCE)
+     * @return
+     */
     public ArtResource getAnimEntranceResource() {
-        return animEntranceResource;
+        return animation.get(AnimationType.ENTRANCE);
     }
 
-    protected void setAnimEntranceResource(ArtResource animEntranceResource) {
-        this.animEntranceResource = animEntranceResource;
-    }
-
+    /**
+     * @deprecated use getAnimation(AnimationType.IDLE_2)
+     * @return
+     */
     public ArtResource getAnimIdle2Resource() {
-        return animIdle2Resource;
+        return animation.get(AnimationType.IDLE_2);
+    }
+    
+    /**
+     * @deprecated use getAnimation(AnimationType.MELEE_2)
+     * @return
+     */
+    public ArtResource getAnimMelee2Resource() {
+        return animation.get(AnimationType.SWIPE);
+    }
+    
+    /**
+     * @deprecated use getAnimation(AnimationType.DRUNKED_IDLE)
+     * @return
+     */
+    public ArtResource getDrunkIdle() {
+        return animation.get(AnimationType.DRUNKED_IDLE);
     }
 
-    protected void setAnimIdle2Resource(ArtResource animIdle2Resource) {
-        this.animIdle2Resource = animIdle2Resource;
+    /**
+     * @deprecated use getAnimation(AnimationType.BACK_OFF)
+     * @return
+     */
+    public ArtResource getAnimWalkbackResource() {
+        return animation.get(AnimationType.BACK_OFF);
+    }
+    
+    /**
+     * @deprecated use getAnimation(AnimationType.STAND_STILL)
+     * @return
+     */
+    public ArtResource getAnimPoseFrameResource() {
+        return animation.get(AnimationType.STAND_STILL);
     }
 
-    public ArtResource getUnknown5Resource() {
-        return unknown5Resource;
+    /**
+     * @deprecated use getAnimation(AnimationType.STEALTH_WALK)
+     * @return
+     */
+    public ArtResource getAnimWalk2Resource() {
+        return animation.get(AnimationType.STEALTH_WALK);
     }
 
-    protected void setUnknown5Resource(ArtResource unknown5Resource) {
-        this.unknown5Resource = unknown5Resource;
-    }
-
-    public ArtResource getUnknown6Resource() {
-        return unknown6Resource;
-    }
-
-    protected void setUnknown6Resource(ArtResource unknown6Resource) {
-        this.unknown6Resource = unknown6Resource;
-    }
-
-    public ArtResource getAnimDrunk2Resource() {
-        return animDrunk2Resource;
-    }
-
-    protected void setAnimDrunk2Resource(ArtResource animDrunk2Resource) {
-        this.animDrunk2Resource = animDrunk2Resource;
-    }
-
-    public ArtResource getUnknown7Resource() {
-        return unknown7Resource;
-    }
-
-    protected void setUnknown7Resource(ArtResource unknown7Resource) {
-        this.unknown7Resource = unknown7Resource;
-    }
-
-    public ArtResource getUnknown8Resource() {
-        return unknown8Resource;
-    }
-
-    protected void setUnknown8Resource(ArtResource unknown8Resource) {
-        this.unknown8Resource = unknown8Resource;
+    /**
+     * @deprecated use getAnimation(AnimationType.DEATH_POSE)
+     * @return
+     */
+    public ArtResource getAnimDiePoseResource() {
+        return animation.get(AnimationType.DEATH_POSE);
     }
 
     public ArtResource getIcon1Resource() {
@@ -1091,14 +823,6 @@ public class Creature implements Comparable<Creature> {
         this.introductionStringId = introductionStringId;
     }
 
-    public float getPerceptionRange() {
-        return perceptionRange;
-    }
-
-    protected void setPerceptionRange(float perceptionRange) {
-        this.perceptionRange = perceptionRange;
-    }
-
     public int getAngerStringIdLair() {
         return angerStringIdLair;
     }
@@ -1177,14 +901,6 @@ public class Creature implements Comparable<Creature> {
 
     protected void setTranslationSoundGategory(String translationSoundGategory) {
         this.translationSoundGategory = translationSoundGategory;
-    }
-
-    public float getShuffleSpeed() {
-        return shuffleSpeed;
-    }
-
-    protected void setShuffleSpeed(float shuffleSpeed) {
-        this.shuffleSpeed = shuffleSpeed;
     }
 
     public short getCloneCreatureId() {
@@ -1323,14 +1039,6 @@ public class Creature implements Comparable<Creature> {
         this.alternativeJobs = alternativeJobs;
     }
 
-    public Xe94 getXe94() {
-        return xe94;
-    }
-
-    protected void setXe94(Xe94 xe94) {
-        this.xe94 = xe94;
-    }
-
     public int getUnkea0() {
         return unkea0;
     }
@@ -1339,19 +1047,11 @@ public class Creature implements Comparable<Creature> {
         this.unkea0 = unkea0;
     }
 
-    public float getHeight() {
-        return height;
-    }
-
-    protected void setHeight(float height) {
-        this.height = height;
-    }
-
-    public int getUnkea8() {
+    public float getUnkea8() {
         return unkea8;
     }
 
-    protected void setUnkea8(int unkea8) {
+    protected void setUnkea8(float unkea8) {
         this.unkea8 = unkea8;
     }
 
@@ -1361,102 +1061,6 @@ public class Creature implements Comparable<Creature> {
 
     protected void setUnk3ab(int unk3ab) {
         this.unk3ab = unk3ab;
-    }
-
-    public float getEyeHeight() {
-        return eyeHeight;
-    }
-
-    protected void setEyeHeight(float eyeHeight) {
-        this.eyeHeight = eyeHeight;
-    }
-
-    public float getSpeed() {
-        return speed;
-    }
-
-    protected void setSpeed(float speed) {
-        this.speed = speed;
-    }
-
-    public float getRunSpeed() {
-        return runSpeed;
-    }
-
-    protected void setRunSpeed(float runSpeed) {
-        this.runSpeed = runSpeed;
-    }
-
-    public float getHungerRate() {
-        return hungerRate;
-    }
-
-    protected void setHungerRate(float hungerRate) {
-        this.hungerRate = hungerRate;
-    }
-
-    public int getTimeAwake() {
-        return timeAwake;
-    }
-
-    protected void setTimeAwake(int timeAwake) {
-        this.timeAwake = timeAwake;
-    }
-
-    public int getTimeSleep() {
-        return timeSleep;
-    }
-
-    protected void setTimeSleep(int timeSleep) {
-        this.timeSleep = timeSleep;
-    }
-
-    public float getDistanceCanSee() {
-        return distanceCanSee;
-    }
-
-    protected void setDistanceCanSee(float distanceCanSee) {
-        this.distanceCanSee = distanceCanSee;
-    }
-
-    public float getDistanceCanHear() {
-        return distanceCanHear;
-    }
-
-    protected void setDistanceCanHear(float distanceCanHear) {
-        this.distanceCanHear = distanceCanHear;
-    }
-
-    public float getStunDuration() {
-        return stunDuration;
-    }
-
-    protected void setStunDuration(float stunDuration) {
-        this.stunDuration = stunDuration;
-    }
-
-    public float getGuardDuration() {
-        return guardDuration;
-    }
-
-    protected void setGuardDuration(float guardDuration) {
-        this.guardDuration = guardDuration;
-    }
-
-    public float getIdleDuration() {
-        return idleDuration;
-    }
-
-    protected void setIdleDuration(float idleDuration) {
-        this.idleDuration = idleDuration;
-    }
-
-    public float getSlapFearlessDuration() {
-        return slapFearlessDuration;
-    }
-
-    protected void setSlapFearlessDuration(float slapFearlessDuration) {
-        this.slapFearlessDuration = slapFearlessDuration;
     }
 
     public int getUnkee0() {
@@ -1475,22 +1079,6 @@ public class Creature implements Comparable<Creature> {
         this.unkee4 = unkee4;
     }
 
-    public short getPossessionManaCost() {
-        return possessionManaCost;
-    }
-
-    protected void setPossessionManaCost(short possessionManaCost) {
-        this.possessionManaCost = possessionManaCost;
-    }
-
-    public short getOwnLandHealthIncrease() {
-        return ownLandHealthIncrease;
-    }
-
-    protected void setOwnLandHealthIncrease(short ownLandHealthIncrease) {
-        this.ownLandHealthIncrease = ownLandHealthIncrease;
-    }
-
     public float getMeleeRange() {
         return meleeRange;
     }
@@ -1505,14 +1093,6 @@ public class Creature implements Comparable<Creature> {
 
     protected void setUnkef0(int unkef0) {
         this.unkef0 = unkef0;
-    }
-
-    public float getTortureTimeToConvert() {
-        return tortureTimeToConvert;
-    }
-
-    protected void setTortureTimeToConvert(float tortureTimeToConvert) {
-        this.tortureTimeToConvert = tortureTimeToConvert;
     }
 
     public float getMeleeRecharge() {
@@ -1531,14 +1111,6 @@ public class Creature implements Comparable<Creature> {
         this.flags = flags;
     }
 
-    public int getExpForNextLevel() {
-        return expForNextLevel;
-    }
-
-    protected void setExpForNextLevel(int expForNextLevel) {
-        this.expForNextLevel = expForNextLevel;
-    }
-
     public JobClass getJobClass() {
         return jobClass;
     }
@@ -1555,92 +1127,12 @@ public class Creature implements Comparable<Creature> {
         this.fightStyle = fightStyle;
     }
 
-    public int getExpPerSecond() {
-        return expPerSecond;
-    }
-
-    protected void setExpPerSecond(int expPerSecond) {
-        this.expPerSecond = expPerSecond;
-    }
-
-    public int getExpPerSecondTraining() {
-        return expPerSecondTraining;
-    }
-
-    protected void setExpPerSecondTraining(int expPerSecondTraining) {
-        this.expPerSecondTraining = expPerSecondTraining;
-    }
-
-    public int getResearchPerSecond() {
-        return researchPerSecond;
-    }
-
-    protected void setResearchPerSecond(int researchPerSecond) {
-        this.researchPerSecond = researchPerSecond;
-    }
-
-    public int getManufacturePerSecond() {
-        return manufacturePerSecond;
-    }
-
-    protected void setManufacturePerSecond(int manufacturePerSecond) {
-        this.manufacturePerSecond = manufacturePerSecond;
-    }
-
-    public int getHp() {
-        return hp;
-    }
-
-    protected void setHp(int hp) {
-        this.hp = hp;
-    }
-
-    public int getHpFromChicken() {
-        return hpFromChicken;
-    }
-
-    protected void setHpFromChicken(int hpFromChicken) {
-        this.hpFromChicken = hpFromChicken;
-    }
-
-    public int getFear() {
-        return fear;
-    }
-
-    protected void setFear(int fear) {
-        this.fear = fear;
-    }
-
-    public int getThreat() {
-        return threat;
-    }
-
-    protected void setThreat(int threat) {
-        this.threat = threat;
-    }
-
     public int getMeleeDamage() {
         return meleeDamage;
     }
 
     protected void setMeleeDamage(int meleeDamage) {
         this.meleeDamage = meleeDamage;
-    }
-
-    public int getSlapDamage() {
-        return slapDamage;
-    }
-
-    protected void setSlapDamage(int slapDamage) {
-        this.slapDamage = slapDamage;
-    }
-
-    public int getManaGenPrayer() {
-        return manaGenPrayer;
-    }
-
-    protected void setManaGenPrayer(int manaGenPrayer) {
-        this.manaGenPrayer = manaGenPrayer;
     }
 
     public int getUnk3cb() {
@@ -1651,36 +1143,12 @@ public class Creature implements Comparable<Creature> {
         this.unk3cb = unk3cb;
     }
 
-    public int getPay() {
-        return pay;
-    }
-
-    protected void setPay(int pay) {
-        this.pay = pay;
-    }
-
-    public int getMaxGoldHeld() {
-        return maxGoldHeld;
-    }
-
-    protected void setMaxGoldHeld(int maxGoldHeld) {
-        this.maxGoldHeld = maxGoldHeld;
-    }
-
-    public int getUnk3cc() {
+    public float getUnk3cc() {
         return unk3cc;
     }
 
-    protected void setUnk3cc(int unk3cc) {
+    protected void setUnk3cc(float unk3cc) {
         this.unk3cc = unk3cc;
-    }
-
-    public int getDecomposeValue() {
-        return decomposeValue;
-    }
-
-    protected void setDecomposeValue(int decomposeValue) {
-        this.decomposeValue = decomposeValue;
     }
 
     public int getNameStringId() {
@@ -1697,62 +1165,6 @@ public class Creature implements Comparable<Creature> {
 
     protected void setTooltipStringId(int tooltipStringId) {
         this.tooltipStringId = tooltipStringId;
-    }
-
-    public short getAngerNoLair() {
-        return angerNoLair;
-    }
-
-    protected void setAngerNoLair(short angerNoLair) {
-        this.angerNoLair = angerNoLair;
-    }
-
-    public short getAngerNoFood() {
-        return angerNoFood;
-    }
-
-    protected void setAngerNoFood(short angerNoFood) {
-        this.angerNoFood = angerNoFood;
-    }
-
-    public short getAngerNoPay() {
-        return angerNoPay;
-    }
-
-    protected void setAngerNoPay(short angerNoPay) {
-        this.angerNoPay = angerNoPay;
-    }
-
-    public short getAngerNoWork() {
-        return angerNoWork;
-    }
-
-    protected void setAngerNoWork(short angerNoWork) {
-        this.angerNoWork = angerNoWork;
-    }
-
-    public short getAngerSlap() {
-        return angerSlap;
-    }
-
-    protected void setAngerSlap(short angerSlap) {
-        this.angerSlap = angerSlap;
-    }
-
-    public short getAngerInHand() {
-        return angerInHand;
-    }
-
-    protected void setAngerInHand(short angerInHand) {
-        this.angerInHand = angerInHand;
-    }
-
-    public short getInitialGoldHeld() {
-        return initialGoldHeld;
-    }
-
-    protected void setInitialGoldHeld(short initialGoldHeld) {
-        this.initialGoldHeld = initialGoldHeld;
     }
 
     public int getEntranceEffectId() {
@@ -1819,12 +1231,12 @@ public class Creature implements Comparable<Creature> {
         this.melee2Swipe = melee2Swipe;
     }
 
-    public short getUnk3d3() {
-        return unk3d3;
+    public Swipe getMelee3Swipe() {
+        return melee3Swipe;
     }
 
-    protected void setUnk3d3(short unk3d3) {
-        this.unk3d3 = unk3d3;
+    protected void setMelee3Swipe(Swipe melee3Swipe) {
+        this.melee3Swipe = melee3Swipe;
     }
 
     public Swipe getSpellSwipe() {
@@ -1873,22 +1285,6 @@ public class Creature implements Comparable<Creature> {
 
     protected void setUnk3ea(short[] unk3ea) {
         this.unk3ea = unk3ea;
-    }
-
-    public short getHungerFill() {
-        return hungerFill;
-    }
-
-    protected void setHungerFill(short hungerFill) {
-        this.hungerFill = hungerFill;
-    }
-
-    public short getUnhappyThreshold() {
-        return unhappyThreshold;
-    }
-
-    protected void setUnhappyThreshold(short unhappyThreshold) {
-        this.unhappyThreshold = unhappyThreshold;
     }
 
     public AttackType getMeleeAttackType() {
@@ -1979,14 +1375,6 @@ public class Creature implements Comparable<Creature> {
         this.unk4 = unk4;
     }
 
-    public ArtResource getDrunkIdle() {
-        return drunkIdle;
-    }
-
-    protected void setDrunkIdle(ArtResource drunkIdle) {
-        this.drunkIdle = drunkIdle;
-    }
-
     public Swipe getSpecial1Swipe() {
         return special1Swipe;
     }
@@ -2019,84 +1407,12 @@ public class Creature implements Comparable<Creature> {
         this.unk6 = unk6;
     }
 
-    public short getTortureHpChange() {
-        return tortureHpChange;
+    public Vector3f getAnimationOffsets(OffsetType type) {
+        return animationOffsets.get(type);
     }
 
-    protected void setTortureHpChange(short tortureHpChange) {
-        this.tortureHpChange = tortureHpChange;
-    }
-
-    public short getTortureMoodChange() {
-        return tortureMoodChange;
-    }
-
-    protected void setTortureMoodChange(short tortureMoodChange) {
-        this.tortureMoodChange = tortureMoodChange;
-    }
-
-    public ArtResource getAnimMelee2Resource() {
-        return animMelee2Resource;
-    }
-
-    protected void setAnimMelee2Resource(ArtResource animMelee2Resource) {
-        this.animMelee2Resource = animMelee2Resource;
-    }
-
-    public ArtResource getUnknown9Resource() {
-        return unknown9Resource;
-    }
-
-    protected void setUnknown9Resource(ArtResource unknown9Resource) {
-        this.unknown9Resource = unknown9Resource;
-    }
-
-    public ArtResource getUnknown10Resource() {
-        return unknown10Resource;
-    }
-
-    protected void setUnknown10Resource(ArtResource unknown10Resource) {
-        this.unknown10Resource = unknown10Resource;
-    }
-
-    public ArtResource getUnknown11Resource() {
-        return unknown11Resource;
-    }
-
-    protected void setUnknown11Resource(ArtResource unknown11Resource) {
-        this.unknown11Resource = unknown11Resource;
-    }
-
-    public ArtResource getUnknown12Resource() {
-        return unknown12Resource;
-    }
-
-    protected void setUnknown12Resource(ArtResource unknown12Resource) {
-        this.unknown12Resource = unknown12Resource;
-    }
-
-    public ArtResource getUnknown13Resource() {
-        return unknown13Resource;
-    }
-
-    protected void setUnknown13Resource(ArtResource unknown13Resource) {
-        this.unknown13Resource = unknown13Resource;
-    }
-
-    public Unk7[] getUnk7() {
-        return unk7;
-    }
-
-    protected void setUnk7(Unk7[] unk7) {
-        this.unk7 = unk7;
-    }
-
-    public ArtResource getAnimWalkbackResource() {
-        return animWalkbackResource;
-    }
-
-    protected void setAnimWalkbackResource(ArtResource animWalkbackResource) {
-        this.animWalkbackResource = animWalkbackResource;
+    protected void setAnimationOffsets(OffsetType type, float x, float y, float z) {
+        this.animationOffsets.put(type, new Vector3f(x, y, z));
     }
 
     public X1323[] getX1323() {
@@ -2105,30 +1421,6 @@ public class Creature implements Comparable<Creature> {
 
     protected void setX1323(X1323[] x1323) {
         this.x1323 = x1323;
-    }
-
-    public ArtResource getAnimPoseFrameResource() {
-        return animPoseFrameResource;
-    }
-
-    protected void setAnimPoseFrameResource(ArtResource animPoseFrameResource) {
-        this.animPoseFrameResource = animPoseFrameResource;
-    }
-
-    public ArtResource getAnimWalk2Resource() {
-        return animWalk2Resource;
-    }
-
-    protected void setAnimWalk2Resource(ArtResource animWalk2Resource) {
-        this.animWalk2Resource = animWalk2Resource;
-    }
-
-    public ArtResource getAnimDiePoseResource() {
-        return animDiePoseResource;
-    }
-
-    protected void setAnimDiePoseResource(ArtResource animDiePoseResource) {
-        this.animDiePoseResource = animDiePoseResource;
     }
 
     public int getUniqueNameTextId() {
@@ -2171,12 +1463,12 @@ public class Creature implements Comparable<Creature> {
         this.uniqueResource = uniqueResource;
     }
 
-    public int getUnk1545() {
-        return unk1545;
+    public EnumSet<CreatureFlag3> getFlags3() {
+        return flags3;
     }
 
-    protected void setUnk1545(int unk1545) {
-        this.unk1545 = unk1545;
+    protected void setFlags3(EnumSet<CreatureFlag3> flags3) {
+        this.flags3 = flags3;
     }
 
     public short[] getUnknownExtraBytes() {
@@ -2202,6 +1494,15 @@ public class Creature implements Comparable<Creature> {
     protected void setUnknown(int unknown) {
         this.unknown = unknown;
     }
+
+    public float getUnknown_1() {
+        return unknown_1;
+    }
+
+    protected void setUnknown_1(float unknown) {
+        this.unknown_1 = unknown;
+    }
+
 
     @Override
     public String toString() {
@@ -2283,8 +1584,8 @@ public class Creature implements Comparable<Creature> {
             return shotOffset;
         }
 
-        protected void setShotOffset(Vector3f shotOffset) {
-            this.shotOffset = shotOffset;
+        protected void setShotOffset(float x, float y, float z) {
+            this.shotOffset = new Vector3f(x, y, z);
         }
 
         public short getX0c() {
@@ -2480,68 +1781,6 @@ public class Creature implements Comparable<Creature> {
         }
     }
 
-    public class Xe94 {
-
-        private long x00;
-        private int x04;
-        private int x08;
-
-        public long getX00() {
-            return x00;
-        }
-
-        protected void setX00(long x00) {
-            this.x00 = x00;
-        }
-
-        public int getX04() {
-            return x04;
-        }
-
-        protected void setX04(int x04) {
-            this.x04 = x04;
-        }
-
-        public int getX08() {
-            return x08;
-        }
-
-        protected void setX08(int x08) {
-            this.x08 = x08;
-        }
-    }
-
-    public class Unk7 {
-
-        private int x00;
-        private long x04;
-        private int x08;
-
-        public int getX00() {
-            return x00;
-        }
-
-        protected void setX00(int x00) {
-            this.x00 = x00;
-        }
-
-        public long getX04() {
-            return x04;
-        }
-
-        protected void setX04(long x04) {
-            this.x04 = x04;
-        }
-
-        public int getX08() {
-            return x08;
-        }
-
-        protected void setX08(int x08) {
-            this.x08 = x08;
-        }
-    }
-
     public class X1323 {
 
         private int x00;
@@ -2561,6 +1800,399 @@ public class Creature implements Comparable<Creature> {
 
         protected void setX02(int x02) {
             this.x02 = x02;
+        }
+    }
+
+    public class Attributes {
+        private int expForNextLevel; // f00
+        private int expPerSecond; // f04
+        private int expPerSecondTraining; // f06
+        private int researchPerSecond; // researchPointsPerSecond
+        private int manufacturePerSecond; // manufacturePointsPerSecond
+        private float height; // Tiles
+        private float eyeHeight; // Tiles
+        private int hp; // health
+        private int hpFromChicken; // healthFromChicken
+        private int fear; // f10
+        private int threat; // f12
+        private int manaGenPrayer; // manaGeneratedByPrayer
+        private int pay; // f1c
+        private int maxGoldHeld; // f1e
+        private float speed; // Tiles Per Second
+        private float runSpeed; // Tiles Per Second
+        private float shuffleSpeed; // d37
+        private float distanceCanSee; // Tiles
+        private float distanceCanHear; // Tiles
+        private int slapDamage; // f16
+        private float hungerRate; // ebc
+        private short hungerFill;
+        private int timeAwake; // Seconds
+        private int timeSleep; // sleepDuration Seconds ?
+        private short unhappyThreshold; // moodUnhappyThreshold
+        private int decomposeValue; // f22
+
+        private short angerNoLair; // f28
+        private short angerNoFood; // f2a
+        private short angerNoPay; // f2c
+        private short angerNoWork; // f2e
+        private short angerSlap; // f30
+        private short angerInHand; // f32
+        private short initialGoldHeld; // f34
+        private float tortureTimeToConvert; // Seconds
+
+        private float stunDuration; // Seconds
+        private float guardDuration; // Seconds
+        private float idleDuration; // Seconds
+        private float slapFearlessDuration; // Seconds
+
+        private short possessionManaCost; // Per Second
+        private short ownLandHealthIncrease; // Per Second
+        private short tortureHpChange; // Per Second
+        private short tortureMoodChange; // Per Second
+        private float perceptionRange; // Fog Of War
+
+        public float getPerceptionRange() {
+            return perceptionRange;
+        }
+
+        protected void setPerceptionRange(float perceptionRange) {
+            this.perceptionRange = perceptionRange;
+        }
+
+        public float getShuffleSpeed() {
+            return shuffleSpeed;
+        }
+
+        protected void setShuffleSpeed(float shuffleSpeed) {
+            this.shuffleSpeed = shuffleSpeed;
+        }
+
+        public float getHeight() {
+            return height;
+        }
+
+        protected void setHeight(float height) {
+            this.height = height;
+        }
+
+        public float getEyeHeight() {
+            return eyeHeight;
+        }
+
+        protected void setEyeHeight(float eyeHeight) {
+            this.eyeHeight = eyeHeight;
+        }
+
+        public float getSpeed() {
+            return speed;
+        }
+
+        protected void setSpeed(float speed) {
+            this.speed = speed;
+        }
+
+        public float getRunSpeed() {
+            return runSpeed;
+        }
+
+        protected void setRunSpeed(float runSpeed) {
+            this.runSpeed = runSpeed;
+        }
+
+        public float getHungerRate() {
+            return hungerRate;
+        }
+
+        protected void setHungerRate(float hungerRate) {
+            this.hungerRate = hungerRate;
+        }
+
+        public int getTimeAwake() {
+            return timeAwake;
+        }
+
+        protected void setTimeAwake(int timeAwake) {
+            this.timeAwake = timeAwake;
+        }
+
+        public int getTimeSleep() {
+            return timeSleep;
+        }
+
+        protected void setTimeSleep(int timeSleep) {
+            this.timeSleep = timeSleep;
+        }
+
+        public float getDistanceCanSee() {
+            return distanceCanSee;
+        }
+
+        protected void setDistanceCanSee(float distanceCanSee) {
+            this.distanceCanSee = distanceCanSee;
+        }
+
+        public float getDistanceCanHear() {
+            return distanceCanHear;
+        }
+
+        protected void setDistanceCanHear(float distanceCanHear) {
+            this.distanceCanHear = distanceCanHear;
+        }
+
+        public float getStunDuration() {
+            return stunDuration;
+        }
+
+        protected void setStunDuration(float stunDuration) {
+            this.stunDuration = stunDuration;
+        }
+
+        public float getGuardDuration() {
+            return guardDuration;
+        }
+
+        protected void setGuardDuration(float guardDuration) {
+            this.guardDuration = guardDuration;
+        }
+
+        public float getIdleDuration() {
+            return idleDuration;
+        }
+
+        protected void setIdleDuration(float idleDuration) {
+            this.idleDuration = idleDuration;
+        }
+
+        public float getSlapFearlessDuration() {
+            return slapFearlessDuration;
+        }
+
+        protected void setSlapFearlessDuration(float slapFearlessDuration) {
+            this.slapFearlessDuration = slapFearlessDuration;
+        }
+
+        public short getPossessionManaCost() {
+            return possessionManaCost;
+        }
+
+        protected void setPossessionManaCost(short possessionManaCost) {
+            this.possessionManaCost = possessionManaCost;
+        }
+
+        public short getOwnLandHealthIncrease() {
+            return ownLandHealthIncrease;
+        }
+
+        protected void setOwnLandHealthIncrease(short ownLandHealthIncrease) {
+            this.ownLandHealthIncrease = ownLandHealthIncrease;
+        }
+
+        public float getTortureTimeToConvert() {
+            return tortureTimeToConvert;
+        }
+
+        protected void setTortureTimeToConvert(float tortureTimeToConvert) {
+            this.tortureTimeToConvert = tortureTimeToConvert;
+        }
+
+        public int getExpForNextLevel() {
+            return expForNextLevel;
+        }
+
+        protected void setExpForNextLevel(int expForNextLevel) {
+            this.expForNextLevel = expForNextLevel;
+        }
+
+        public int getExpPerSecond() {
+            return expPerSecond;
+        }
+
+        protected void setExpPerSecond(int expPerSecond) {
+            this.expPerSecond = expPerSecond;
+        }
+
+        public int getExpPerSecondTraining() {
+            return expPerSecondTraining;
+        }
+
+        protected void setExpPerSecondTraining(int expPerSecondTraining) {
+            this.expPerSecondTraining = expPerSecondTraining;
+        }
+
+        public int getResearchPerSecond() {
+            return researchPerSecond;
+        }
+
+        protected void setResearchPerSecond(int researchPerSecond) {
+            this.researchPerSecond = researchPerSecond;
+        }
+
+        public int getManufacturePerSecond() {
+            return manufacturePerSecond;
+        }
+
+        protected void setManufacturePerSecond(int manufacturePerSecond) {
+            this.manufacturePerSecond = manufacturePerSecond;
+        }
+
+        public int getHp() {
+            return hp;
+        }
+
+        protected void setHp(int hp) {
+            this.hp = hp;
+        }
+
+        public int getHpFromChicken() {
+            return hpFromChicken;
+        }
+
+        protected void setHpFromChicken(int hpFromChicken) {
+            this.hpFromChicken = hpFromChicken;
+        }
+
+        public int getFear() {
+            return fear;
+        }
+
+        protected void setFear(int fear) {
+            this.fear = fear;
+        }
+
+        public int getThreat() {
+            return threat;
+        }
+
+        protected void setThreat(int threat) {
+            this.threat = threat;
+        }
+
+        public int getSlapDamage() {
+            return slapDamage;
+        }
+
+        protected void setSlapDamage(int slapDamage) {
+            this.slapDamage = slapDamage;
+        }
+
+        public int getManaGenPrayer() {
+            return manaGenPrayer;
+        }
+
+        protected void setManaGenPrayer(int manaGenPrayer) {
+            this.manaGenPrayer = manaGenPrayer;
+        }
+
+        public int getPay() {
+            return pay;
+        }
+
+        protected void setPay(int pay) {
+            this.pay = pay;
+        }
+
+        public int getMaxGoldHeld() {
+            return maxGoldHeld;
+        }
+
+        protected void setMaxGoldHeld(int maxGoldHeld) {
+            this.maxGoldHeld = maxGoldHeld;
+        }
+
+        public int getDecomposeValue() {
+            return decomposeValue;
+        }
+
+        protected void setDecomposeValue(int decomposeValue) {
+            this.decomposeValue = decomposeValue;
+        }
+
+        public short getAngerNoLair() {
+            return angerNoLair;
+        }
+
+        protected void setAngerNoLair(short angerNoLair) {
+            this.angerNoLair = angerNoLair;
+        }
+
+        public short getAngerNoFood() {
+            return angerNoFood;
+        }
+
+        protected void setAngerNoFood(short angerNoFood) {
+            this.angerNoFood = angerNoFood;
+        }
+
+        public short getAngerNoPay() {
+            return angerNoPay;
+        }
+
+        protected void setAngerNoPay(short angerNoPay) {
+            this.angerNoPay = angerNoPay;
+        }
+
+        public short getAngerNoWork() {
+            return angerNoWork;
+        }
+
+        protected void setAngerNoWork(short angerNoWork) {
+            this.angerNoWork = angerNoWork;
+        }
+
+        public short getAngerSlap() {
+            return angerSlap;
+        }
+
+        protected void setAngerSlap(short angerSlap) {
+            this.angerSlap = angerSlap;
+        }
+
+        public short getAngerInHand() {
+            return angerInHand;
+        }
+
+        protected void setAngerInHand(short angerInHand) {
+            this.angerInHand = angerInHand;
+        }
+
+        public short getInitialGoldHeld() {
+            return initialGoldHeld;
+        }
+
+        protected void setInitialGoldHeld(short initialGoldHeld) {
+            this.initialGoldHeld = initialGoldHeld;
+        }
+
+        public short getHungerFill() {
+            return hungerFill;
+        }
+
+        protected void setHungerFill(short hungerFill) {
+            this.hungerFill = hungerFill;
+        }
+
+        public short getUnhappyThreshold() {
+            return unhappyThreshold;
+        }
+
+        protected void setUnhappyThreshold(short unhappyThreshold) {
+            this.unhappyThreshold = unhappyThreshold;
+        }
+
+        public short getTortureHpChange() {
+            return tortureHpChange;
+        }
+
+        protected void setTortureHpChange(short tortureHpChange) {
+            this.tortureHpChange = tortureHpChange;
+        }
+
+        public short getTortureMoodChange() {
+            return tortureMoodChange;
+        }
+
+        protected void setTortureMoodChange(short tortureMoodChange) {
+            this.tortureMoodChange = tortureMoodChange;
         }
     }
 }

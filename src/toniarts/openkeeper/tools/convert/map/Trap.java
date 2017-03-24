@@ -114,7 +114,7 @@ public class Trap implements Comparable<Trap> {
     private short unknown4[]; // 2
     private int tooltipStringId;
     private int nameStringId;
-    private short unknown5;
+    private short editorIconId;
     private TriggerType triggerType;
     private short trapId;
     private short shotTypeId;
@@ -374,12 +374,12 @@ public class Trap implements Comparable<Trap> {
         this.nameStringId = nameStringId;
     }
 
-    public short getUnknown5() {
-        return unknown5;
+    public short getEditorIconId() {
+        return editorIconId;
     }
 
-    protected void setUnknown5(short unknown5) {
-        this.unknown5 = unknown5;
+    protected void setEditorIconId(short editorIconId) {
+        this.editorIconId = editorIconId;
     }
 
     public TriggerType getTriggerType() {
@@ -442,8 +442,8 @@ public class Trap implements Comparable<Trap> {
         return shotOffset;
     }
 
-    protected void setShotOffset(Vector3f shotOffset) {
-        this.shotOffset = shotOffset;
+    protected void setShotOffset(float x, float y, float z) {
+        this.shotOffset = new Vector3f(x, y, z);
     }
 
     public float getShotDelay() {

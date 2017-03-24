@@ -48,6 +48,7 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.CursorFactory.CursorType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.Attributes;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -351,7 +352,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public boolean idleTimeExceeded() {
-        return ((creature.getIdleDuration() < 0.1f ? 1f : creature.getIdleDuration()) < timeInState);
+        return ((creature.getAttributes().getIdleDuration() < 0.1f ? 1f : creature.getAttributes().getIdleDuration()) < timeInState);
     }
 
     public StateMachine<CreatureControl, CreatureState> getStateMachine() {
@@ -490,7 +491,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 }
             } else if (stateMachine.isInState(CreatureState.STUNNED)) {
                 if (playingAnimationType != AnimationType.STUNNED) {
-                    playAnimation(creature.getAnimDieResource());
+                    playAnimation(creature.getAnimation(Creature.AnimationType.STUNNED));
                     playingAnimationType = AnimationType.STUNNED;
                 }
             } else if (stateMachine.isInState(CreatureState.DRAGGED)) {
@@ -595,7 +596,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             stateMachine.changeState(CreatureState.SLAPPED);
             steeringBehavior = null;
             idleAnimationPlayCount = 0;
-            if (!applyDamage(creature.getSlapDamage())) {
+            if (!applyDamage(creature.getAttributes().getSlapDamage())) {
                 playAnimation(creature.getAnimFallbackResource());
                 playingAnimationType = AnimationType.OTHER;
             }
@@ -656,7 +657,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 health += ownLandHealthIncrease; // FIXME, need to detect prev & current pos ??
                 health = Math.min(health, maxHealth);
             } else if (stateMachine.isInState(CreatureState.TORTURED)) {
-                applyDamage(Math.abs(creature.getTortureHpChange()));
+                applyDamage(Math.abs(creature.getAttributes().getTortureHpChange()));
             } else if (stateMachine.isInState(CreatureState.IMPRISONED)) {
                 applyDamage((int) Math.abs(worldState.getLevelVariable(Variable.MiscVariable.MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND)));
             } else if (stateMachine.isInState(CreatureState.SLEEPING) || stateMachine.isInState(CreatureState.RECUPERATING)) {
@@ -668,7 +669,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         // Dying counter :)
         if (stateMachine.isInState(CreatureState.UNCONSCIOUS) && timeInState > worldState.getLevelVariable(Variable.MiscVariable.MiscType.DEAD_BODY_DIES_AFTER_SECONDS)) {
             stateMachine.changeState(CreatureState.DEAD);
-        } else if (stateMachine.isInState(CreatureState.STUNNED) && timeInState > creature.getStunDuration()) {
+        } else if (stateMachine.isInState(CreatureState.STUNNED) && timeInState > creature.getAttributes().getStunDuration()) {
             stateMachine.changeState(CreatureState.IDLE);
         }
 
@@ -689,29 +690,32 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     private void setAttributesByLevel() {
         Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = worldState.getLevelData().getCreatureStats(level);
-        height = creature.getHeight() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEIGHT_TILES).getValue() : 100) / 100);
+        Attributes attributes = creature.getAttributes();
+        height = attributes.getHeight() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEIGHT_TILES).getValue() : 100) / 100);
         int prevMaxHealth = maxHealth;
-        maxHealth = creature.getHp() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEALTH).getValue() : 100) / 100);
+        maxHealth = attributes.getHp() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEALTH).getValue() : 100) / 100);
         health += Math.abs(maxHealth - prevMaxHealth); // Abs for some weird level configs :)
-        fear = creature.getFear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.FEAR).getValue() : 100) / 100);
-        threat = creature.getThreat() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.THREAT).getValue() : 100) / 100);
+        fear = attributes.getFear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.FEAR).getValue() : 100) / 100);
+        threat = attributes.getThreat() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.THREAT).getValue() : 100) / 100);
+        pay = attributes.getPay() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.PAY).getValue() : 100) / 100);
+        maxGoldHeld = attributes.getMaxGoldHeld() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MAX_GOLD_HELD).getValue() : 100) / 100);
+        hungerFill = attributes.getHungerFill() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HUNGER_FILL_CHICKENS).getValue() : 100) / 100);
+        manaGenPrayer = attributes.getManaGenPrayer() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MANA_GENERATED_BY_PRAYER_PER_SECOND).getValue() : 100) / 100);
+        experienceToNextLevel = attributes.getExpForNextLevel() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FOR_NEXT_LEVEL).getValue() : 100) / 100);
+        experiencePerSecond = attributes.getExpPerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND).getValue() : 100) / 100);
+        experiencePerSecondTraining = attributes.getExpPerSecondTraining() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND).getValue() : 100) / 100);
+        researchPerSecond = attributes.getResearchPerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND).getValue() : 100) / 100);
+        manufacturePerSecond = attributes.getManufacturePerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND).getValue() : 100) / 100);
+        decomposeValue = attributes.getDecomposeValue() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.DECOMPOSE_VALUE).getValue() : 100) / 100);
+        speed = attributes.getSpeed() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND).getValue() : 100) / 100);
+        runSpeed = attributes.getRunSpeed() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.RUN_SPEED_TILES_PER_SECOND).getValue() : 100) / 100);
+        tortureTimeToConvert = attributes.getTortureTimeToConvert() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.TORTURE_TIME_TO_CONVERT_SECONDS).getValue() : 100) / 100);
+        posessionManaCost = attributes.getPossessionManaCost() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.POSSESSION_MANA_COST_PER_SECOND).getValue() : 100) / 100);
+        ownLandHealthIncrease = attributes.getOwnLandHealthIncrease() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.OWN_LAND_HEALTH_INCREASE_PER_SECOND).getValue() : 100) / 100);
+        distanceCanHear = attributes.getDistanceCanHear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.DISTANCE_CAN_HEAR_TILES).getValue() : 100) / 100);
+        // TODO initialGoldHeld = attributes.getInitialGoldHeld() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.INITIAL_GOLD_HELD).getValue() : 100) / 100);
+        
         meleeDamage = creature.getMeleeDamage() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_DAMAGE).getValue() : 100) / 100);
-        pay = creature.getPay() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.PAY).getValue() : 100) / 100);
-        maxGoldHeld = creature.getMaxGoldHeld() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MAX_GOLD_HELD).getValue() : 100) / 100);
-        hungerFill = creature.getHungerFill() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HUNGER_FILL_CHICKENS).getValue() : 100) / 100);
-        manaGenPrayer = creature.getManaGenPrayer() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MANA_GENERATED_BY_PRAYER_PER_SECOND).getValue() : 100) / 100);
-        experienceToNextLevel = creature.getExpForNextLevel() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FOR_NEXT_LEVEL).getValue() : 100) / 100);
-        experiencePerSecond = creature.getExpPerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND).getValue() : 100) / 100);
-        experiencePerSecondTraining = creature.getExpPerSecondTraining() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND).getValue() : 100) / 100);
-        researchPerSecond = creature.getResearchPerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND).getValue() : 100) / 100);
-        manufacturePerSecond = creature.getManufacturePerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND).getValue() : 100) / 100);
-        decomposeValue = creature.getDecomposeValue() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.DECOMPOSE_VALUE).getValue() : 100) / 100);
-        speed = creature.getSpeed() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND).getValue() : 100) / 100);
-        runSpeed = creature.getRunSpeed() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.RUN_SPEED_TILES_PER_SECOND).getValue() : 100) / 100);
-        tortureTimeToConvert = creature.getTortureTimeToConvert() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.TORTURE_TIME_TO_CONVERT_SECONDS).getValue() : 100) / 100);
-        posessionManaCost = creature.getPossessionManaCost() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.POSSESSION_MANA_COST_PER_SECOND).getValue() : 100) / 100);
-        ownLandHealthIncrease = creature.getOwnLandHealthIncrease() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.OWN_LAND_HEALTH_INCREASE_PER_SECOND).getValue() : 100) / 100);
-        distanceCanHear = creature.getDistanceCanHear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.DISTANCE_CAN_HEAR_TILES).getValue() : 100) / 100);
         meleeRecharge = creature.getMeleeRecharge() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_RECHARGE_TIME_SECONDS).getValue() : 100) / 100);
 
         // FIXME: We should know when we run and when we walk and set the speed
@@ -956,7 +960,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return needs a lair
      */
     public boolean needsLair() {
-        return creature.getTimeSleep() > 0;
+        return creature.getAttributes().getTimeSleep() > 0;
     }
 
     /**
@@ -1195,7 +1199,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
                 @Override
                 public void onLanded() {
-                    if (creature.getStunDuration() > 0) {
+                    if (creature.getAttributes().getStunDuration() > 0) {
                         stateMachine.changeState(CreatureState.STUNNED);
                     } else {
                         stateMachine.changeState(CreatureState.IDLE);
@@ -1242,7 +1246,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             TileData tile = worldState.getMapData().getTile(currentPoint);
             if (tile != null) {
                 visibilityList.addAll(tile.getCreatures());
-                addVisibleCreatures(currentPoint, (int) creature.getDistanceCanHear());
+                addVisibleCreatures(currentPoint, (int) creature.getAttributes().getDistanceCanHear());
             }
             visibilityList.remove(this);
             visibilityListUpdated = true;
@@ -1812,7 +1816,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return should we wake up
      */
     public boolean isEnoughSleep() {
-        return timeInState >= creature.getTimeSleep() && isFullHealth();
+        return timeInState >= creature.getAttributes().getTimeSleep() && isFullHealth();
     }
 
     /**
@@ -1821,7 +1825,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return should we go to sleep
      */
     public boolean isNeedForSleep() {
-        return needsLair() && (timeAwake >= creature.getTimeAwake() || worldState.getLevelVariable(Variable.MiscVariable.MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH) > getHealthPercentage());
+        return needsLair() && (timeAwake >= creature.getAttributes().getTimeAwake()
+                || worldState.getLevelVariable(Variable.MiscVariable.MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH) > getHealthPercentage());
     }
 
     /**

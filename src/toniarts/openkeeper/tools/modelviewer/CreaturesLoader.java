@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 
@@ -42,77 +43,33 @@ public class CreaturesLoader implements ILoader<Creature> {
         //Create a root
         Node root = new Node(object.getName());
 
-        List<Item> resources = new ArrayList<>();
-        resources.add(new Item(object.getAnimAngryResource(), "AnimAngry", new Vector3f(-3, 0, -4)));
-        resources.add(new Item(object.getAnimDanceResource(), "AnimDance", new Vector3f(-2, 0, -4)));
-        resources.add(new Item(object.getAnimDejectedPoseResource(), "AnimDejected", new Vector3f(-1, 0, -4)));
-        resources.add(new Item(object.getAnimDiePoseResource(), "AnimDiePose", new Vector3f(0, 0, -4)));
-        resources.add(new Item(object.getAnimDieResource(), "AnimDie", new Vector3f(1, 0, -4)));
-        resources.add(new Item(object.getAnimDraggedPoseResource(), "AnimDraggedPose", new Vector3f(2, 0, -4)));
-        resources.add(new Item(object.getAnimDrinkResource(), "AnimDrink", new Vector3f(3, 0, -4)));
-        resources.add(new Item(object.getAnimDrunk2Resource(), "AnimDrunk2", new Vector3f(-3, 0, -3)));
-        resources.add(new Item(object.getAnimDrunkResource(), "AnimDrunk", new Vector3f(-2, 0, -3)));
-        resources.add(new Item(object.getAnimEatResource(), "AnimEat", new Vector3f(-1, 0, -3)));
-        resources.add(new Item(object.getAnimElecResource(), "AnimElec", new Vector3f(0, 0, -3)));
-        resources.add(new Item(object.getAnimElectrocuteResource(), "AnimElectrocute", new Vector3f(1, 0, -3)));
-        resources.add(new Item(object.getAnimEntranceResource(), "AnimEntrance", new Vector3f(2, 0, -3)));
-        resources.add(new Item(object.getAnimFallbackResource(), "AnimFallback", new Vector3f(3, 0, -3)));
-        resources.add(new Item(object.getAnimGetUpResource(), "AnimGetUp", new Vector3f(-3, 0, -2)));
-        resources.add(new Item(object.getAnimHappyResource(), "AnimHappy", new Vector3f(-2, 0, -2)));
-        resources.add(new Item(object.getAnimIdle1Resource(), "AnimIdle1", new Vector3f(-1, 0, -2)));
-        resources.add(new Item(object.getAnimIdle2Resource(), "AnimIdle2", new Vector3f(0, 0, -2)));
-        resources.add(new Item(object.getAnimInHandResource(), "AnimInHand", new Vector3f(1, 0, -2)));
-        resources.add(new Item(object.getAnimMagicResource(), "AnimMagic", new Vector3f(2, 0, -2)));
-        resources.add(new Item(object.getAnimMelee1Resource(), "AnimMelee1", new Vector3f(3, 0, -2)));
-        resources.add(new Item(object.getAnimMelee2Resource(), "AnimMelee2", new Vector3f(-3, 0, -1)));
-        resources.add(new Item(object.getAnimPoseFrameResource(), "AnimPoseFrame", new Vector3f(-2, 0, -1)));
-        resources.add(new Item(object.getAnimPrayResource(), "AnimPray", new Vector3f(-1, 0, -1)));
-        resources.add(new Item(object.getAnimRecoilHfbResource(), "AnimRecoilHfb", new Vector3f(0, 0, -1)));
-        resources.add(new Item(object.getAnimRecoilHffResource(), "AnimRecoilHff", new Vector3f(1, 0, -1)));
-        resources.add(new Item(object.getAnimResearchResource(), "AnimResearch", new Vector3f(2, 0, -1)));
-        resources.add(new Item(object.getAnimRunResource(), "AnimRun", new Vector3f(3, 0, -1)));
-        resources.add(new Item(object.getAnimSleepResource(), "AnimSleep", new Vector3f(-3, 0, 0)));
-        resources.add(new Item(object.getAnimStunnedPoseResource(), "AnimStunnedPose", new Vector3f(-2, 0, 0)));
-        resources.add(new Item(object.getAnimTortureResource(), "AnimTorture", new Vector3f(-1, 0, 0)));
-        resources.add(new Item(object.getAnimWalk2Resource(), "AnimWalk2", new Vector3f(0, 0, 0)));
-        resources.add(new Item(object.getAnimWalkResource(), "AnimWalk", new Vector3f(1, 0, 0)));
-        resources.add(new Item(object.getAnimWalkbackResource(), "AnimWalkback", new Vector3f(2, 0, 0)));
-        resources.add(new Item(object.getDrunkIdle(), "DrunkIdle", new Vector3f(3, 0, 0)));
-        resources.add(new Item(object.getUnknown13Resource(), "Unknown13", new Vector3f(-3, 0, 1)));
-        resources.add(new Item(object.getUnknown12Resource(), "Unknown12", new Vector3f(-2, 0, 1)));
-        resources.add(new Item(object.getUnknown11Resource(), "Unknown11", new Vector3f(-1, 0, 1)));
-        resources.add(new Item(object.getUnknown10Resource(), "Unknown10", new Vector3f(0, 0, 1)));
-        
-        resources.add(new Item(object.getUnknown9Resource(), "Unknown9", new Vector3f(2, 0, 1)));        
-        resources.add(new Item(object.getUnknown8Resource(), "Unknown8", new Vector3f(3, 0, 1)));
-        resources.add(new Item(object.getUnknown7Resource(), "Unknown7", new Vector3f(-3, 0, 2)));
-        resources.add(new Item(object.getUnknown6Resource(), "Unknown6", new Vector3f(-2, 0, 2)));
-        resources.add(new Item(object.getUnknown5Resource(), "Unknown5", new Vector3f(-1, 0, 2)));
-        resources.add(new Item(object.getUnknown4Resource(), "Unknown4", new Vector3f(0, 0, 2)));
-        resources.add(new Item(object.getUnknown3Resource(), "Unknown3", new Vector3f(1, 0, 2)));
-        resources.add(new Item(object.getUnknown2Resource(), "Unknown2", new Vector3f(2, 0, 2)));
+        float x = -5;
+        float z = -5;
+        for (AnimationType type : AnimationType.values()) {
 
-        for (Item item : resources) {
-            if (item.resource == null || item.resource.getType() == ArtResource.ArtResourceType.NONE) {
-                continue;
+            ArtResource animation = object.getAnimation(type);
+            if (animation != null && animation.getType() != ArtResource.ArtResourceType.NONE) {
+                Node part = new Node(type.toString());
+                Spatial s = UniversalArtResourceLoader.load(assetManager, animation);
+                part.attachChild(s);
+
+                BitmapText text = new BitmapText(font, false);
+                text.setText(type.toString() + "\n" + animation.getName());
+                text.setSize(0.1f);
+                text.move(-text.getLineWidth() / 2, 1, 0);
+    //            BillboardControl bc = new BillboardControl();
+    //            bc.setAlignment(BillboardControl.Alignment.Camera);
+    //            text.addControl(bc);
+                part.attachChild(text);
+                part.setLocalTranslation(x, 0, z);
+                root.attachChild(part);
             }
 
-            Node part = new Node(item.name);
-            Spatial s = UniversalArtResourceLoader.load(assetManager, item.resource);
-            part.attachChild(s);
-
-            BitmapText text = new BitmapText(font, false);
-            text.setText(item.resource.getName());
-            text.setSize(0.1f);
-            text.move(-text.getLineWidth() / 2, 1, 0);
-            BillboardControl bc = new BillboardControl();
-            bc.setAlignment(BillboardControl.Alignment.Camera);
-            text.addControl(bc);
-            part.attachChild(text);
-
-            part.setLocalTranslation(item.position);
-
-            root.attachChild(part);
+            x += 1.5f;
+            if (x > 5) {
+                z += 1.5f;
+                x = -5;
+            }
         }
 
         return root;
@@ -134,21 +91,9 @@ public class CreaturesLoader implements ILoader<Creature> {
                 continue;
             }
 
-            effectManagerState.loadSingleEffect((Node) root, new Vector3f(1, height++, 1), effectId, true);
+            effectManagerState.loadSingleEffect((Node) root, new Vector3f(0, height++, 0), effectId, true);
         }
 
         return root;
-    }
-
-    private class Item {
-        public ArtResource resource;
-        public String name;
-        public Vector3f position;
-
-        public Item(ArtResource resource, String name, Vector3f position) {
-            this.resource = resource;
-            this.name = name;
-            this.position = position;
-        }
     }
 }
