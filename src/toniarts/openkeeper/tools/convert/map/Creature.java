@@ -102,38 +102,38 @@ public class Creature implements Comparable<Creature> {
      */
     public enum CreatureFlag implements IFlagEnum {
 
-        IS_WORKER(1),
-        CAN_BE_PICKED_UP(2),
-        CAN_BE_SLAPPED(4),
-        ALWAYS_FLEE(8),
-        CAN_WALK_ON_WATER(16),
-        CAN_WALK_ON_LAVA(32),
-        UNKNOWN_1(0x40), // FIXME unknown flag. In Troll
-        IS_EVIL(128), // Obviously otherwise it is good
-        UNKNOWN_2(256), // FIXME unknown flag
-        IS_IMMUNE_TO_TURNCOAT(512),
-        AVAILABLE_VIA_PORTAL(1024),
+        IS_WORKER(0x1),
+        CAN_BE_PICKED_UP(0x2),
+        CAN_BE_SLAPPED(0x4),
+        ALWAYS_FLEE(0x8),
+        CAN_WALK_ON_WATER(0x10),
+        CAN_WALK_ON_LAVA(0x20),
+        CAN_DISARM_TRAPS(0x40),
+        IS_EVIL(0x80), // Obviously otherwise it is good
+        UNKNOWN_2(0x100), // FIXME unknown flag
+        IS_IMMUNE_TO_TURNCOAT(0x200),
+        AVAILABLE_VIA_PORTAL(0x400),
         UNKNOWN_3(0x800), // FIXME unknown flag. In Imp
         UNKNOWN_4(0x1000), // FIXME unknown flag
-        CAN_FLY(8192),
-        IS_HORNY(16384),
-        GENERATE_DEAD_BODY(32768),
-        CAN_BE_HYPNOTIZED(65536),
-        IS_IMMUNE_TO_CHICKEN(131072),
-        IS_FEARLESS(262144),
-        CAN_BE_ELECTROCUTED(524288),
-        NEED_BODY_FOR_FIGHT_IDLE(1048576),
-        TRAIN_WHEN_IDLE(2097152),
-        ONLY_ATTACKABLE_BY_HORNY(4194304),
-        CAN_BE_RESURECTED(8388608),
-        DOESNT_GET_ANGRY_WITH_ENEMIES(16777216),
-        FREES_FRIENDS_ON_JAILBREAK(33554432),
-        REVEALS_ADJACENT_TRAPS(67108864),
-        IS_UNIQUE(134217728),
-        CAMERA_ROLLS_WHEN_TURNING(268435456), // 1st person movement flag
+        CAN_FLY(0x2000),
+        IS_HORNY(0x4000),
+        GENERATE_DEAD_BODY(0x8000),
+        CAN_BE_HYPNOTIZED(0x10000),
+        IS_IMMUNE_TO_CHICKEN(0x20000),
+        IS_FEARLESS(0x40000),
+        CAN_BE_ELECTROCUTED(0x80000),
+        NEED_BODY_FOR_FIGHT_IDLE(0x100000),
+        NOT_TRAIN_WHEN_IDLE(0x200000), // inverse value
+        ONLY_ATTACKABLE_BY_HORNY(0x400000),
+        CAN_BE_RESURECTED(0x800000),
+        DOESNT_GET_ANGRY_WITH_ENEMIES(0x1000000),
+        FREES_FRIENDS_ON_JAILBREAK(0x2000000),
+        REVEALS_ADJACENT_TRAPS(0x4000000),
+        IS_UNIQUE(0x8000000),
+        CAMERA_ROLLS_WHEN_TURNING(0x10000000), // 1st person movement flag
         UNKNOWN_5(0x20000000), // FIXME unknown flag. In Imp
-        MPD_RANDOM_INVADER(1073741824), // My Pet Dungeon?
-        IS_MALE(2147483648l);  // Obviously otherwise it is female
+        MPD_RANDOM_INVADER(0x40000000), // My Pet Dungeon?
+        IS_MALE(0x80000000);  // Obviously otherwise it is female
         private final long flagValue;
 
         private CreatureFlag(long flagValue) {
@@ -532,7 +532,7 @@ public class Creature implements Comparable<Creature> {
     private Material material; // f76, armour type
     private ArtResource firstPersonFilterResource; // f77
     private int unkfcb; // fcb
-    private int unk4; // fcd
+    private float unk4; // fcd
     private Swipe special1Swipe; // 1025
     private Swipe special2Swipe;
     private ArtResource firstPersonMeleeResource; // 1027
@@ -694,7 +694,7 @@ public class Creature implements Comparable<Creature> {
     public ArtResource getAnimIdle2Resource() {
         return animation.get(AnimationType.IDLE_2);
     }
-    
+
     /**
      * @deprecated use getAnimation(AnimationType.MELEE_2)
      * @return
@@ -702,7 +702,7 @@ public class Creature implements Comparable<Creature> {
     public ArtResource getAnimMelee2Resource() {
         return animation.get(AnimationType.SWIPE);
     }
-    
+
     /**
      * @deprecated use getAnimation(AnimationType.DRUNKED_IDLE)
      * @return
@@ -718,7 +718,7 @@ public class Creature implements Comparable<Creature> {
     public ArtResource getAnimWalkbackResource() {
         return animation.get(AnimationType.BACK_OFF);
     }
-    
+
     /**
      * @deprecated use getAnimation(AnimationType.STAND_STILL)
      * @return
@@ -1367,11 +1367,11 @@ public class Creature implements Comparable<Creature> {
         this.unkfcb = unkfcb;
     }
 
-    public int getUnk4() {
+    public float getUnk4() {
         return unk4;
     }
 
-    protected void setUnk4(int unk4) {
+    protected void setUnk4(float unk4) {
         this.unk4 = unk4;
     }
 

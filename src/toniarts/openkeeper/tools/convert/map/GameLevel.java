@@ -64,8 +64,8 @@ public class GameLevel {
     //        char x063e3[32];
     //        uint8_t x06403;
     //        uint8_t x06404;
-    //        uint8_t x06405;
-    //        uint8_t x06406;
+    //        uint8_t rewardPrevious5;
+    //        uint8_t rewardNext5;
     //        uint16_t x06407;
     //        uint16_t x06409[5];
     //        ucs2le_t x06413[32];
@@ -265,8 +265,6 @@ public class GameLevel {
     protected String terrainPath;
     protected short oneShotHornyLev;
     protected short playerCount;
-    protected short x06405; // rewardPrev[4]??
-    protected short x06406; // rewardNext[4]??
     protected int speechHornyId;
     protected int speechPrelvlId;
     protected int speechPostlvlWin;
@@ -400,16 +398,20 @@ public class GameLevel {
         return rewardPrev;
     }
 
-    protected void setRewardPrev(List<LevelReward> rewardPrev) {
-        this.rewardPrev = rewardPrev;
+    protected void addRewardPrev(LevelReward reward) {
+        if (reward != null && !reward.equals(LevelReward.NONE)) {
+            this.rewardPrev.add(reward);
+        }
     }
 
     public List<LevelReward> getRewardNext() {
         return rewardNext;
     }
 
-    protected void setRewardNext(List<LevelReward> rewardNext) {
-        this.rewardNext = rewardNext;
+    protected void addRewardNext(LevelReward reward) {
+        if (reward != null && !reward.equals(LevelReward.NONE)) {
+            this.rewardNext.add(reward);
+        }
     }
 
     public short getSoundTrack() {
@@ -522,22 +524,6 @@ public class GameLevel {
 
     protected void setOneShotHornyLev(short oneShotHornyLev) {
         this.oneShotHornyLev = oneShotHornyLev;
-    }
-
-    public short getX06405() {
-        return x06405;
-    }
-
-    protected void setX06405(short x06405) {
-        this.x06405 = x06405;
-    }
-
-    public short getX06406() {
-        return x06406;
-    }
-
-    protected void setX06406(short x06406) {
-        this.x06406 = x06406;
     }
 
     public int getSpeechHornyId() {
@@ -706,7 +692,7 @@ public class GameLevel {
     }
 
     public boolean hasBriefing() {
-        return this.getResourceBundle().keySet().size() != 0;
+        return !this.getResourceBundle().keySet().isEmpty();
     }
 
     @Override

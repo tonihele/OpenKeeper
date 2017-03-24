@@ -39,13 +39,13 @@ public class Trap implements Comparable<Trap> {
 
         DIE_WHEN_TRIGGERED(0x00001),
         REVEAL_WHEN_FIRED(0x00002),
-        UNKNOWN1(0x00008), // always exist?
+        UNKNOWN1(0x00008), // always exist
         DISARMABLE(0x00010),
         INVISIBLE(0x00020),
         TRACK_NEAREST_TARGET(0x00080),
         REQUIRE_MANA(0x00100),
         LOOP_FIRE_ANIMATION(0x00200),
-        UNKNOWN2(0x00400), // always exist?
+        UNKNOWN2(0x00400), // always exist
         GUARD_POST(0x00800),
         OBSTACLE(0x01000),
         DOOR_TRAP(0x02000),
@@ -98,7 +98,7 @@ public class Trap implements Comparable<Trap> {
     private int triggerData; // 2 bytes maybe enough, but 4 bytes is safe as well
     private int shotData1; // 2 bytes maybe enough, but 4 bytes is safe as well
     private int shotData2; // 2 bytes maybe enough, but 4 bytes is safe as well
-    private short unknown3[]; // 2
+    private int researchTime; // 2
     private int threat; // Short
     private EnumSet<TrapFlag> flags; // 4-bytes
     private int health; // Short
@@ -111,10 +111,10 @@ public class Trap implements Comparable<Trap> {
     private int strengthStringId;
     private int weaknessStringId;
     private int manaUsage; // Short
-    private short unknown4[]; // 2
+    private short unknown4[]; // 246,255; 0,0
     private int tooltipStringId;
     private int nameStringId;
-    private short editorIconId;
+    private short shotsWhenArmed;
     private TriggerType triggerType;
     private short trapId;
     private short shotTypeId;
@@ -246,12 +246,12 @@ public class Trap implements Comparable<Trap> {
         this.shotData2 = shotData2;
     }
 
-    public short[] getUnknown3() {
-        return unknown3;
+    public int getResearchTime() {
+        return researchTime;
     }
 
-    protected void setUnknown3(short[] unknown3) {
-        this.unknown3 = unknown3;
+    protected void setResearchTime(int researchTime) {
+        this.researchTime = researchTime;
     }
 
     public int getThreat() {
@@ -350,6 +350,10 @@ public class Trap implements Comparable<Trap> {
         this.manaUsage = manaUsage;
     }
 
+    /**
+     *
+     * @return 246,255; 0,0
+     */
     public short[] getUnknown4() {
         return unknown4;
     }
@@ -374,12 +378,12 @@ public class Trap implements Comparable<Trap> {
         this.nameStringId = nameStringId;
     }
 
-    public short getEditorIconId() {
-        return editorIconId;
+    public short getShotsWhenArmed() {
+        return shotsWhenArmed;
     }
 
-    protected void setEditorIconId(short editorIconId) {
-        this.editorIconId = editorIconId;
+    protected void setShotsWhenArmed(short shotsWhenArmed) {
+        this.shotsWhenArmed = shotsWhenArmed;
     }
 
     public TriggerType getTriggerType() {

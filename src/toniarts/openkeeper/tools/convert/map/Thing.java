@@ -491,13 +491,13 @@ public abstract class Thing {
 
         public enum CameraFlag implements IFlagEnum {
 
-            DISABLE_YAW(0x01),
-            DISABLE_ROLL(0x02),
-            DISABLE_PITCH(0x04),
+            DISABLE_YAW(0x01), // fixed angleXY ?
+            DISABLE_ROLL(0x02), // fixed angleYZ ?
+            DISABLE_PITCH(0x04), // fixed angleXZ ?
             DISABLE_ZOOM(0x08),
-            UNKNOWN_10(0x10), // ViewDistance, Lens
-            UNKNOWN_20(0x20), // ViewDistance, Lens
-            DISABLE_MOVE(0x40),
+            UNKNOWN_10(0x10), // fixed ViewDistance, Lens
+            UNKNOWN_20(0x20), // fixed ViewDistance, Lens
+            DISABLE_MOVE(0x40), // fixed Position
             DISABLE_CHANGE(0x80); // Never used. camera not enter and leave possession.
 
             private CameraFlag(long flagValue) {
