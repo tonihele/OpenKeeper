@@ -437,7 +437,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 break;
 
             case "multiplayerCreate":
-//                state.client.removeChatSessionListener(getChatSessionListener());
+
+                state.getChatService().removeChatSessionListener(getChatSessionListener());
+                state.getConnectionState().getService(LobbyClientService.class).removeLobbySessionListener(getLobbySessionListener());
                 chatSessionListener = null;
                 lobbySessionListener = null;
                 state.shutdownMultiplayer(); // TODO: TEMP!
