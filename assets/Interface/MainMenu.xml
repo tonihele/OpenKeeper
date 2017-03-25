@@ -632,7 +632,7 @@
             <panel width="95%" childLayout="horizontal" align="center" valign="center" paddingTop="10px">
 
                 <panel width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
-                    <panel width="100%" childLayout="horizontal">
+                    <panel width="100%" childLayout="horizontal" id="multiplayerPlayerControl">
                         <panel width="50%" childLayout="vertical">
                             <text style="menuText" text="${menu.270}" align="left">
                                 <!--<interact onClick="kickPlayer()" />-->
@@ -661,7 +661,7 @@
 
                     </panel>
                 </panel>
-                <panel width="*" childLayout="vertical" align="center" valign="top">
+                <panel width="*" childLayout="vertical" align="center" valign="top" id="multiplayerMapControl">
                     <text style="menuText" text="${menu.1495}" align="center">
                         <interact onClick="goToScreen(skirmishMapSelect)" />
                     </text>
