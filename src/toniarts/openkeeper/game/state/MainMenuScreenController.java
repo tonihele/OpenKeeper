@@ -53,8 +53,9 @@ import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
-import toniarts.openkeeper.game.network.NetworkClient;
 import toniarts.openkeeper.game.network.chat.ChatSessionListener;
+import toniarts.openkeeper.game.network.lobby.LobbyClientService;
+import toniarts.openkeeper.game.network.lobby.LobbySessionListener;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -76,6 +77,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     private Screen screen;
     private static final List<Cutscene> CUTSCENES = new ArrayList<>();
     private ChatSessionListener chatSessionListener;
+    private LobbySessionListener lobbySessionListener;
     private static final Logger logger = Logger.getLogger(MainMenuScreenController.class.getName());
 
     static {
@@ -164,11 +166,11 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         TextField game = screen.findNiftyControl("gameName", TextField.class);
         TextField port = screen.findNiftyControl("gamePort", TextField.class);
 
-        boolean result = state.multiplayerCreate(game.getRealText(),
+        state.multiplayerCreate(game.getRealText(),
                 Integer.valueOf(port.getRealText()),
                 player.getRealText());
 
-        goToScreen(result ? "multiplayerCreate" : "multiplayerLocal");
+        // TODO: Some overlay that says connecting?
     }
 
     @Override
@@ -190,11 +192,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             return;
         }
 
-        boolean result = state.multiplayerConnect(hostAddress.getRealText(), player.getRealText());
+        state.multiplayerConnect(hostAddress.getRealText(), player.getRealText());
 
-        if (result) {
-            goToScreen("multiplayerCreate");
-        }
+        // TODO: Some overlay that says connecting?
     }
 
     @Override
@@ -375,29 +375,26 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 state.mapSelector.setSkirmish(false);
                 populateSelectedMap(state.mapSelector.getMap());
 
-                if (state.client != null) {
-                    ListBox<TableRow> players = screen.findNiftyControl("playersTable", ListBox.class);
-                    if (players != null) {
-                        players.clear();
-                        players.addItem(new TableRow(players.itemCount(), state.client.getPlayer(),
-                                "", "", Integer.toString(state.client.getSystemMemory())));
-                    }
+                ConnectionState connectionState = state.getConnectionState();
+                if (connectionState != null) {
+                    refreshPlayerList(connectionState.getService(LobbyClientService.class).getPlayers());
 
                     // Add chat listener
-                    state.client.addChatSessionListener(getChatSessionListener());
+                    state.getChatService().addChatSessionListener(getChatSessionListener());
+
+                    // Add player listener
+                    connectionState.getService(LobbyClientService.class).addLobbySessionListener(getLobbySessionListener());
 
                     Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
                     if (title != null) {
-                        title.setText(state.client.getGameName());
+                        title.setText(connectionState.getServerInfo());
                     }
-
-                    if (state.client.getRole() == NetworkClient.Role.SLAVE) {
-                        // TODO disable map change, add, kick players and other stuf
-                        Element element = screen.findElementById("skirmishGameControl");
+                    if (!connectionState.isGameHost()) {
+                        Element element = screen.findElementById("multiplayerMapControl");
                         if (element != null) {
                             element.hide();
                         }
-                        element = screen.findElementById("skirmishPlayerControl");
+                        element = screen.findElementById("multiplayerPlayerControl");
                         if (element != null) {
                             element.hide();
                         }
@@ -440,9 +437,10 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 break;
 
             case "multiplayerCreate":
-                state.client.removeChatSessionListener(getChatSessionListener());
+//                state.client.removeChatSessionListener(getChatSessionListener());
                 chatSessionListener = null;
-                state.multiplayerReset();
+                lobbySessionListener = null;
+                state.shutdownMultiplayer(); // TODO: TEMP!
                 break;
         }
     }
@@ -740,6 +738,71 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         }
     }
 
+    private LobbySessionListener getLobbySessionListener() {
+        if (lobbySessionListener == null) {
+            lobbySessionListener = new LobbySessionListener() {
+
+                @Override
+                public void onPlayerListChanged(List<Keeper> players) {
+                    state.app.enqueue(() -> {
+                        refreshPlayerList(players);
+                    });
+                }
+
+                @Override
+                public void onMapChanged(String mapName) {
+                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                }
+            };
+        }
+        return lobbySessionListener;
+    }
+
+    private void refreshPlayerList(List<Keeper> players) {
+        ListBox<TableRow> playersList = screen.findNiftyControl("playersTable", ListBox.class);
+        if (playersList != null) {
+            playersList.clear();
+
+            // Get players may take some time on the network...
+            for (Keeper keeper : players) {
+                playersList.addItem(new TableRow(playersList.itemCount(), keeper.getName(),
+                        "", "", Integer.toString(0)
+                ));
+            }
+        }
+    }
+
+    public ChatSessionListener getChatSessionListener() {
+        if (chatSessionListener == null) {
+            chatSessionListener = new ChatSessionListener() {
+
+                private final Chat chat = screen.findNiftyControl("multiplayerChat", Chat.class);
+
+                @Override
+                public void playerJoined(int clientId, String playerName) {
+                    state.app.enqueue(() -> {
+                        chat.addPlayer(playerName, null);
+                    });
+                }
+
+                @Override
+                public void newMessage(int clientId, String playerName, String message) {
+                    state.app.enqueue(() -> {
+                        chat.receivedChatLine(message, null);
+                    });
+                }
+
+                @Override
+                public void playerLeft(int clientId, String playerName) {
+                    state.app.enqueue(() -> {
+                        chat.removePlayer(playerName);
+                    });
+                }
+            };
+        }
+        return chatSessionListener;
+    }
+
     public static class Cutscene {
 
         protected String image;
@@ -834,34 +897,4 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         }
     }
 
-    public ChatSessionListener getChatSessionListener() {
-        if (chatSessionListener == null) {
-            chatSessionListener = new ChatSessionListener() {
-
-                private final Chat chat = screen.findNiftyControl("multiplayerChat", Chat.class);
-
-                @Override
-                public void playerJoined(int clientId, String playerName) {
-                    state.app.enqueue(() -> {
-                        chat.addPlayer(playerName, null);
-                    });
-                }
-
-                @Override
-                public void newMessage(int clientId, String playerName, String message) {
-                    state.app.enqueue(() -> {
-                        chat.receivedChatLine(message, null);
-                    });
-                }
-
-                @Override
-                public void playerLeft(int clientId, String playerName) {
-                    state.app.enqueue(() -> {
-                        chat.removePlayer(playerName);
-                    });
-                }
-            };
-        }
-        return chatSessionListener;
-    }
 }

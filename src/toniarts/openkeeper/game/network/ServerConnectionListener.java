@@ -38,6 +38,7 @@ public class ServerConnectionListener implements ConnectionListener {
         //server.broadcast(new MessageServerInfo(host.getName()));
 //        getService(ChatHostedService.class).startHostingOnConnection(conn., name);
 //host
+        server.getGameName();
     }
 
     @Override

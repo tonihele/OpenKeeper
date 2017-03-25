@@ -47,8 +47,7 @@ import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
-import toniarts.openkeeper.game.network.NetworkClient;
-import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.chat.ChatClientService;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -88,9 +87,6 @@ public class MainMenuState extends AbstractAppState {
     private Vector3f startLocation;
     protected MapSelector mapSelector;
     protected final List<Keeper> skirmishPlayers = new ArrayList<>(4);
-
-    private NetworkServer server = null;
-    protected NetworkClient client = null;
 
     private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
 
@@ -194,13 +190,7 @@ public class MainMenuState extends AbstractAppState {
             menuNode = null;
         }
 
-        if (server != null) {
-            server.close();
-        }
-
-        if (client != null) {
-            client.close();
-        }
+        shutdownMultiplayer();
 
         super.cleanup();
     }
@@ -276,7 +266,20 @@ public class MainMenuState extends AbstractAppState {
         }
     }
 
-    public boolean multiplayerCreate(String game, int port, String player) {
+    public void multiplayerCreate(String game, int port, String player) {
+
+        // Create connector
+        ConnectionState connectionState = new ConnectionState(null, port, player, true, game) {
+            @Override
+            protected void onLoggedOn(boolean loggedIn) {
+                super.onLoggedOn(loggedIn);
+
+                app.enqueue(() -> {
+                    screen.goToScreen("multiplayerCreate");
+                });
+            }
+        };
+        stateManager.attach(connectionState);
 
         // Save player name & game name
         try {
@@ -284,39 +287,30 @@ public class MainMenuState extends AbstractAppState {
             Main.getUserSettings().setSetting(Setting.GAME_NAME, game);
             Main.getUserSettings().save();
         } catch (IOException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
+            logger.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
         }
-
-        try {
-            server = new NetworkServer(game, port);
-            server.start();
-            logger.info("Server created");
-        } catch (IOException ex) {
-            logger.log(java.util.logging.Level.SEVERE, "Failed to create a game server!", ex);
-            return false;
-        }
-
-        // Create us as a client also
-        try {
-            client = new NetworkClient(player);
-            client.start(server.getHost(), server.getPort());
-        } catch (IOException ex) {
-            server.close();
-            logger.log(java.util.logging.Level.SEVERE, "Failed to create a game client!", ex);
-            return false;
-        }
-
-        return true;
     }
 
-    public boolean multiplayerConnect(String hostAddress, String player) {
+    public void multiplayerConnect(String hostAddress, String player) {
         String[] address = hostAddress.split(":");
         String host = address[0];
         Integer port = (address.length == 2) ? Integer.valueOf(address[1]) : Main.getUserSettings().getSettingInteger(Setting.MULTIPLAYER_LAST_PORT);
 
+        // Connect, connection is lazy
+        ConnectionState connectionState = new ConnectionState(host, port, player) {
+            @Override
+            protected void onLoggedOn(boolean loggedIn) {
+                super.onLoggedOn(loggedIn);
+
+                app.enqueue(() -> {
+                    screen.goToScreen("multiplayerCreate");
+                });
+            }
+
+        };
+        stateManager.attach(connectionState);
+
         try {
-            client = new NetworkClient(player, NetworkClient.Role.SLAVE);
-            client.start(host, port);
 
             // Save player name & last connection
             Main.getUserSettings().setSetting(Setting.PLAYER_NAME, player);
@@ -324,31 +318,45 @@ public class MainMenuState extends AbstractAppState {
             Main.getUserSettings().save();
 
         } catch (IOException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
-            return false;
+            logger.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
         }
-
-        return true;
     }
 
-    public void multiplayerReset() {
-        if (client != null) {
-            client.close();
-            client = null;
-        }
-
-        if (server != null) {
-            server.close();
-            server = null;
+    public void shutdownMultiplayer() {
+        ConnectionState connectionState = stateManager.getState(ConnectionState.class);
+        if (connectionState != null) {
+            stateManager.detach(connectionState);
         }
     }
 
     public void chatTextSend(final String text) {
-        if (client == null) {
-            logger.warning("Network client not initialized");
-            return;
+        ChatClientService chatService = getChatService();
+        if (chatService != null) {
+            chatService.sendMessage(text);
         }
-        client.sendMessage(text);
+        else {
+            logger.warning("Connection not initialized!");
+        }
+    }
+
+    public ChatClientService getChatService() {
+        ConnectionState connectionState = getConnectionState();
+        if (connectionState != null) {
+            return connectionState.getService(ChatClientService.class);
+        }
+        return null;
+    }
+
+    public boolean isHosting() {
+        ConnectionState connectionState = getConnectionState();
+        if (connectionState != null) {
+            return connectionState.isGameHost();
+        }
+        return false;
+    }
+
+    public ConnectionState getConnectionState() {
+        return stateManager.getState(ConnectionState.class);
     }
 
     /**

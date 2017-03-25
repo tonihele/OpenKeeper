@@ -36,7 +36,6 @@
 package toniarts.openkeeper.game.network.chat;
 
 import com.jme3.network.HostedConnection;
-import com.jme3.network.MessageConnection;
 import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
@@ -45,6 +44,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.network.NetworkServer;
 
 /**
  * HostedService providing a chat server for connected players. Some time during
@@ -60,25 +60,14 @@ public class ChatHostedService extends AbstractHostedConnectionService {
     private static final String ATTRIBUTE_SESSION = "chat.session";
 
     private RmiHostedService rmiService;
-    private final int channel;
 
     private List<ChatSessionImpl> players = new CopyOnWriteArrayList<>();
-
-    /**
-     * Creates a new chat service that will use the default reliable channel for
-     * reliable communication.
-     */
-    public ChatHostedService() {
-        this(MessageConnection.CHANNEL_DEFAULT_RELIABLE);
-    }
-
     /**
      * Creates a new chat service that will use the specified channel for
      * reliable communication.
      */
-    public ChatHostedService(int channel) {
+    public ChatHostedService() {
         super(false);
-        this.channel = channel;
     }
 
     private ChatSessionImpl getChatSession(HostedConnection conn) {
@@ -108,7 +97,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
 
         // Expose the session as an RMI resource to the client
         RmiRegistry rmi = rmiService.getRmiRegistry(conn);
-        rmi.share((byte) channel, session, ChatSession.class);
+        rmi.share(NetworkServer.CHAT_CHANNEL, session, ChatSession.class);
 
         players.add(session);
 

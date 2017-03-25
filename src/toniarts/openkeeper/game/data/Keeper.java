@@ -47,17 +47,24 @@ public class Keeper implements Comparable<Keeper> {
     private String name;
     private boolean ready = false;
     private Player player;
-    private final short id;
+    private short id;
     private int initialGold = 0;
-    private final PlayerGoldControl goldControl = new PlayerGoldControl();
-    private final PlayerCreatureControl creatureControl;
-    private final PlayerSpellControl spellControl;
-    private final PlayerStatsControl statsControl = new PlayerStatsControl();
-    private final PlayerRoomControl roomControl;
-    private PlayerTriggerControl triggerControl;
-    private PlayerManaControl manaControl;
+//    private PlayerGoldControl goldControl = new PlayerGoldControl();
+//    private PlayerCreatureControl creatureControl;
+//    private PlayerSpellControl spellControl;
+//    private PlayerStatsControl statsControl = new PlayerStatsControl();
+//    private PlayerRoomControl roomControl;
+//    private PlayerTriggerControl triggerControl;
+//    private PlayerManaControl manaControl;
     private boolean destroyed = false;
     private final Set<Short> allies = new HashSet<>(4);
+
+    public Keeper() {
+//        this.id = 0;
+//        this.creatureControl = null;
+//        this.spellControl = null;
+//        this.roomControl = null;
+    }
 
     public Keeper(boolean ai, String name, short id, final Application app) {
         this.ai = ai;
@@ -67,9 +74,9 @@ public class Keeper implements Comparable<Keeper> {
         // AI is always ready
         ready = ai;
 
-        creatureControl = new PlayerCreatureControl(app);
-        roomControl = new PlayerRoomControl(app);
-        spellControl = new PlayerSpellControl(app);
+//        creatureControl = new PlayerCreatureControl(app);
+//        roomControl = new PlayerRoomControl(app);
+//        spellControl = new PlayerSpellControl(app);
     }
 
     public Keeper(Player player, final Application app) {
@@ -77,21 +84,21 @@ public class Keeper implements Comparable<Keeper> {
         this.id = player.getPlayerId();
         initialGold = player.getStartingGold();
 
-        creatureControl = new PlayerCreatureControl(app);
-        roomControl = new PlayerRoomControl(app);
-        spellControl = new PlayerSpellControl(app);
+//        creatureControl = new PlayerCreatureControl(app);
+//        roomControl = new PlayerRoomControl(app);
+//        spellControl = new PlayerSpellControl(app);
     }
 
     public void initialize(final AppStateManager stateManager, final Application app) {
         int triggerId = player.getTriggerId();
         if (triggerId != 0) {
-            triggerControl = new PlayerTriggerControl(stateManager, triggerId);
-            triggerControl.setPlayer(id);
+//            triggerControl = new PlayerTriggerControl(stateManager, triggerId);
+//            triggerControl.setPlayer(id);
         }
 
         // Don't create mana control for neutral nor good player
         if (id != Player.GOOD_PLAYER_ID && id != Player.NEUTRAL_PLAYER_ID) {
-            manaControl = new PlayerManaControl(id, stateManager);
+//            manaControl = new PlayerManaControl(id, stateManager);
         }
     }
 
@@ -115,42 +122,46 @@ public class Keeper implements Comparable<Keeper> {
         return player;
     }
 
+    public String getName() {
+        return name;
+    }
+
     public PlayerGoldControl getGoldControl() {
-        return goldControl;
+        return null;
     }
 
     public PlayerCreatureControl getCreatureControl() {
-        return creatureControl;
+        return null;
     }
 
     public PlayerStatsControl getStatsControl() {
-        return statsControl;
+        return null;
     }
 
     public PlayerRoomControl getRoomControl() {
-        return roomControl;
+        return null;
     }
 
     public PlayerTriggerControl getTriggerControl() {
-        return triggerControl;
+        return null;
     }
 
     public PlayerManaControl getManaControl() {
-        return manaControl;
+        return null;
     }
 
     public PlayerSpellControl getSpellControl() {
-        return spellControl;
+        return null;
     }
 
     public void update(float tpf) {
-        if (triggerControl != null) {
-            triggerControl.update(tpf);
-        }
-
-        if (manaControl != null) {
-            manaControl.update(tpf);
-        }
+//        if (triggerControl != null) {
+//            triggerControl.update(tpf);
+//        }
+//
+//        if (manaControl != null) {
+//            manaControl.update(tpf);
+//        }
     }
 
     public void setPlayer(Player player) {

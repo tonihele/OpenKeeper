@@ -42,6 +42,9 @@ import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rmi.RmiRegistry;
 import com.simsilica.event.EventBus;
 import java.util.logging.Level;
+import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.chat.ChatHostedService;
+import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
 
 /**
  * Provides super-basic account services like logging in. This could be expanded
@@ -91,7 +94,7 @@ public class AccountHostedService extends AbstractHostedConnectionService {
 
         // Expose the session as an RMI resource to the client
         RmiRegistry rmi = rmiService.getRmiRegistry(conn);
-        rmi.share(session, AccountSession.class);
+        rmi.share(NetworkServer.LOBBY_CHANNEL, session, AccountSession.class);
     }
 
     @Override
@@ -142,12 +145,17 @@ public class AccountHostedService extends AbstractHostedConnectionService {
             conn.setAttribute(ATTRIBUTE_PLAYER_NAME, playerName);
             conn.setAttribute(ATTRIBUTE_SYSTEM_MEMORY, systemMemory);
 
+            // Start the services for the client
+            getService(LobbyHostedService.class).startHostingOnConnection(conn, playerName);
+            getService(ChatHostedService.class).startHostingOnConnection(conn, playerName);
+
             // And let them know they were successful
             getCallback().notifyLoginStatus(true);
 
-            logger.log(Level.FINER, "publishing playerLoggedOn event for:{0}", conn);
+            logger.log(Level.FINER, "publishing playerLoggedOn event for: {0}", conn);
+
             // Notify 'logged in' only after we've told the player themselves
-            EventBus.publish(AccountEvent.playerLoggedOn, new AccountEvent(conn, playerName));
+           // EventBus.publish(AccountEvent.playerLoggedOn, new AccountEvent(conn, playerName));
         }
     }
 }

@@ -20,17 +20,16 @@ import com.jme3.network.HostedConnection;
 import com.jme3.network.Network;
 import com.jme3.network.Server;
 import com.jme3.network.serializing.Serializer;
+import com.jme3.network.serializing.serializers.FieldSerializer;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rpc.RpcHostedService;
 import com.simsilica.es.server.EntityDataHostService;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
-import toniarts.openkeeper.game.network.message.MessagePlayerInfo;
-import toniarts.openkeeper.game.network.message.MessageServerInfo;
-import toniarts.openkeeper.game.network.message.MessageTime;
 import toniarts.openkeeper.game.network.session.AccountHostedService;
 
 /**
@@ -42,6 +41,9 @@ public class NetworkServer {
     public final static int PROTOCOL_VERSION = 1;
     public final static String GAME_NAME = "OpenKeeper";
 
+    public final static byte LOBBY_CHANNEL = 0;
+    public final static byte CHAT_CHANNEL = 1;
+
     private final String host;
     private final int port;
     private String name;
@@ -51,7 +53,9 @@ public class NetworkServer {
     private long start = System.nanoTime();
 
     static {
-        ClassSerializer.initialize();
+//        ClassSerializer.initialize();
+
+//        Serializer.registerClasses(Keeper.class);
     }
 
     public NetworkServer(String name, int port) throws UnknownHostException {
@@ -61,16 +65,19 @@ public class NetworkServer {
     }
 
     private void initialize() {
-        server.addMessageListener(new ServerListener(this),
-                MessageTime.class,
-                MessagePlayerInfo.class,
-                MessageServerInfo.class);
+//        server.addMessageListener(new ServerListener(this),
+//                MessageTime.class,
+//                MessagePlayerInfo.class,
+//                MessageServerInfo.class);
+        Serializer.registerClass(Keeper.class, new FieldSerializer());
     }
 
     public void start() throws IOException {
         if (server == null) {
             server = Network.createServer(GAME_NAME, PROTOCOL_VERSION, port, port);
         }
+        server.addChannel(port + 1); // Lobby
+        server.addChannel(port + 2); // Chat
 
         initialize();
         server.addConnectionListener(new ServerConnectionListener(this));
@@ -78,7 +85,7 @@ public class NetworkServer {
                 new RmiHostedService(),
                 new AccountHostedService(name),
                 new LobbyHostedService(),
-                new ChatHostedService(0)
+                new ChatHostedService()
         );
         server.start();
 

@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.network.lobby;
 
-import com.jme3.network.MessageConnection;
 import com.jme3.network.service.AbstractClientService;
 import com.jme3.network.service.ClientServiceManager;
 import com.jme3.network.service.rmi.RmiClientService;
@@ -26,6 +25,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.network.NetworkServer;
 
 /**
  * Client side service for the game lobby services
@@ -38,19 +38,10 @@ public class LobbyClientService extends AbstractClientService
     private static final Logger logger = Logger.getLogger(LobbyClientService.class.getName());
 
     private RmiClientService rmiService;
-    private final int channel;
     private LobbySession delegate;
 
     private final LobbySessionCallback sessionCallback = new LobbySessionCallback();
     private final List<LobbySessionListener> listeners = new CopyOnWriteArrayList<>();
-
-    /**
-     * Creates a new lobby service that will use the default channel for any
-     * reliable communication.
-     */
-    public LobbyClientService() {
-        this.channel = MessageConnection.CHANNEL_DEFAULT_RELIABLE;
-    }
 
     @Override
     public void setReady(boolean ready) {
@@ -80,10 +71,10 @@ public class LobbyClientService extends AbstractClientService
         logger.log(Level.FINER, "onInitialize({0})", s);
         this.rmiService = getService(RmiClientService.class);
         if (rmiService == null) {
-            throw new RuntimeException("ChatClientService requires RMI service");
+            throw new RuntimeException("LobbyClientService requires RMI service");
         }
         logger.finer("Sharing session callback.");
-        rmiService.share((byte) channel, sessionCallback, LobbySessionListener.class);
+        rmiService.share(NetworkServer.LOBBY_CHANNEL, sessionCallback, LobbySessionListener.class);
     }
 
     /**

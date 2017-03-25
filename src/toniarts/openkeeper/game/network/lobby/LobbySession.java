@@ -40,7 +40,6 @@ public interface LobbySession {
      *
      * @return the players
      */
-    @Asynchronous
     public List<Keeper> getPlayers();
 
 }

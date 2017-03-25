@@ -25,7 +25,6 @@ import com.jme3.network.service.rpc.RpcClientService;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.client.RemoteEntityData;
-import com.simsilica.es.net.ObjectMessageDelegator;
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
@@ -38,7 +37,6 @@ import toniarts.openkeeper.game.network.message.MessagePlayerInfo;
 import toniarts.openkeeper.game.network.message.MessageServerInfo;
 import toniarts.openkeeper.game.network.message.MessageTime;
 import toniarts.openkeeper.game.network.session.AccountClientService;
-import toniarts.openkeeper.utils.Utils;
 
 /**
  *
@@ -46,17 +44,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class NetworkClient implements ChatSession {
 
-    public enum Role {
-
-        MASTER,
-        SLAVE
-    }
-
     private Client client;
-    private final String player;
-    private final Role role;
-    private String gameName;
-    private final int systemMemory = Utils.getSystemMemory();
 
     private RemoteEntityData ed;
     private EntityId entity;
@@ -70,17 +58,21 @@ public class NetworkClient implements ChatSession {
     private long lastTime;
     private static final Logger logger = Logger.getLogger(NetworkClient.class.getName());
 
-    static {
-        ClassSerializer.initialize();
-    }
+    public NetworkClient(String host, int port) throws IOException {
+        client = Network.connectToServer(NetworkServer.GAME_NAME, NetworkServer.PROTOCOL_VERSION, host, port);
 
-    public NetworkClient(String player, Role role) {
-        this.player = player;
-        this.role = role;
-    }
+        client.addClientStateListener(new ClientStateChangeListener(this));
 
-    public NetworkClient(String player) {
-        this(player, Role.MASTER);
+        //this.ed = new RemoteEntityData(client, 0);
+
+        //ObjectMessageDelegator delegator = new ObjectMessageDelegator(this, true);
+        // client.addMessageListener(delegator, delegator.getMessageTypes());
+        client.getServices().addServices(new RpcClientService(),
+                new RmiClientService(),
+                new AccountClientService(),
+                new LobbyClientService(),
+                new ChatClientService()
+        );
     }
 
     public final long getGameTime() {
@@ -106,27 +98,12 @@ public class NetworkClient implements ChatSession {
         client.send(new MessageTime(getGameTime()).setReliable(true));
     }
 
-    public void start(String ip, int port) throws IOException {
-        if (client == null) {
-            client = Network.connectToServer(NetworkServer.GAME_NAME, NetworkServer.PROTOCOL_VERSION, ip, port);
-        }
-        this.ed = new RemoteEntityData(client, 0);
-
-        ObjectMessageDelegator delegator = new ObjectMessageDelegator(this, true);
-        client.addMessageListener(delegator, delegator.getMessageTypes());
-        client.getServices().addServices(new RpcClientService(),
-                new RmiClientService(),
-                new AccountClientService(),
-                new LobbyClientService(),
-                new ChatClientService(0)
-        );
-
-        client.addClientStateListener(new ClientStateChangeListener(this));
+    public void start() throws IOException {
         logger.info("Network: Player starting");
         client.start();
 
         // Try to log in
-        client.getServices().getService(AccountClientService.class).login(player, systemMemory);
+        //client.getServices().getService(AccountClientService.class).login(player, systemMemory);
     }
 
     public <T extends ClientService> T getService(Class<T> type) {
@@ -162,16 +139,8 @@ public class NetworkClient implements ChatSession {
         return client.getServices().getService(ChatClientService.class).getPlayerNames();
     }
 
-    public String getPlayer() {
-        return player;
-    }
-
     public Client getClient() {
         return client;
-    }
-
-    public Role getRole() {
-        return role;
     }
 
     public EntityData getEntityData() {
@@ -205,7 +174,6 @@ public class NetworkClient implements ChatSession {
 
     protected void onMessageServerInfo(MessageServerInfo msg) {
         logger.log(Level.INFO, "Network: server info {0}", msg);
-        gameName = msg.getName();
     }
 
     protected void onConnected() {
@@ -216,12 +184,5 @@ public class NetworkClient implements ChatSession {
         logger.log(Level.INFO, "Network: player disconnected {0}", di);
     }
 
-    public String getGameName() {
-        return gameName;
-    }
-
-    public int getSystemMemory() {
-        return systemMemory;
-    }
 
 }

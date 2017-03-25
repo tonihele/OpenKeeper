@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.network.lobby;
 
 import com.jme3.network.HostedConnection;
-import com.jme3.network.MessageConnection;
 import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
@@ -28,6 +27,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import static java.util.stream.Collectors.toList;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.network.NetworkServer;
 
 /**
  * Game server hosts lobby service for the game clients.
@@ -39,10 +39,10 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
     private static final Logger logger = Logger.getLogger(LobbyHostedService.class.getName());
 
     private static final String ATTRIBUTE_SESSION = "lobby.session";
+    private static final String ATTRIBUTE_PLAYER_ID = "lobby.playerID";
     private static final int MAX_PLAYERS = 4;
 
     private RmiHostedService rmiService;
-    private final int channel;
 
     private final Object playerLock = new Object();
     private final Map<Keeper, AbstractLobbySessionImpl> players = new ConcurrentHashMap<>(MAX_PLAYERS, 0.75f, 5);
@@ -53,7 +53,6 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
      */
     public LobbyHostedService() {
         super(false);
-        this.channel = MessageConnection.CHANNEL_DEFAULT_RELIABLE;
     }
 
     private LobbySessionImpl getLobbySession(HostedConnection conn) {
@@ -86,10 +85,11 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
                     LobbySessionImpl session = new LobbySessionImpl(conn, keeper);
                     conn.setAttribute(ATTRIBUTE_SESSION, session);
+                    conn.setAttribute(ATTRIBUTE_PLAYER_ID, keeper.getId());
 
                     // Expose the session as an RMI resource to the client
                     RmiRegistry rmi = rmiService.getRmiRegistry(conn);
-                    rmi.share((byte) channel, session, LobbySession.class);
+                    rmi.share(NetworkServer.LOBBY_CHANNEL, session, LobbySession.class);
 
                     players.put(keeper, session);
                     playerAdded = true;
