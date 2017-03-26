@@ -35,15 +35,16 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class MapSelector {
 
-    private List<KwdFile> skirmishMaps;
-    private List<KwdFile> multiplayerMaps;
-    private List<KwdFile> mpdMaps;
-    private KwdFile map;
+    private List<GameMapContainer> skirmishMaps;
+    private List<GameMapContainer> multiplayerMaps;
+    private List<GameMapContainer> mpdMaps;
+    private GameMapContainer map;
     private boolean skirmish;
     private boolean mpd;
 
     public MapSelector() {
         reset();
+
         // Get the skirmish maps
         File f = new File(Main.getDkIIFolder()+ PathUtils.DKII_MAPS_FOLDER);
         File[] files = f.listFiles(new FilenameFilter() {
@@ -59,32 +60,28 @@ public class MapSelector {
         mpdMaps = new ArrayList<>(files.length);
         for (File file : files) {
             KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
+            GameMapContainer gameMapContainer = new GameMapContainer(kwd, kwd.getGameLevel().getName());
             if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)) {
-                skirmishMaps.add(kwd);
+                skirmishMaps.add(gameMapContainer);
             }
             if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
-                multiplayerMaps.add(kwd);
+                multiplayerMaps.add(gameMapContainer);
             }
             if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MY_PET_DUNGEON_LEVEL)) {
-                mpdMaps.add(kwd);
+                mpdMaps.add(gameMapContainer);
             }
         }
 
         // Sort them
-        Comparator c = new Comparator<KwdFile>() {
-            @Override
-            public int compare(KwdFile o1, KwdFile o2) {
-                return o1.getGameLevel().getName().compareToIgnoreCase(o2.getGameLevel().getName());
-            }
-        };
+        Comparator c = new MapComparator();
         Collections.sort(skirmishMaps, c);
         Collections.sort(multiplayerMaps, c);
         Collections.sort(mpdMaps, c);
     }
 
     public void random() {
-        KwdFile current;
-        List<KwdFile> maps = skirmish ? skirmishMaps : multiplayerMaps;
+        GameMapContainer current;
+        List<GameMapContainer> maps = skirmish ? skirmishMaps : multiplayerMaps;
 
         if (maps.isEmpty()) {
             current = null;
@@ -105,7 +102,7 @@ public class MapSelector {
         mpd = false;
     }
 
-    public KwdFile getMap() {
+    public GameMapContainer getMap() {
         if (map == null) {
             random();
         }
@@ -122,7 +119,7 @@ public class MapSelector {
         }
     }
 
-    public List<KwdFile> getMaps() {
+    public List<GameMapContainer> getMaps() {
         if (skirmish) {
             return skirmishMaps;
         } else if (mpd) {
@@ -154,5 +151,64 @@ public class MapSelector {
         }
 
         this.mpd = mpd;
+    }
+
+    /**
+     * Get a map by name
+     *
+     * @param map the map name
+     * @return the map, or {@code null} if not found
+     */
+    public GameMapContainer getMap(String map) {
+        if (skirmish) {
+            return getMap(skirmishMaps, map);
+        } else if (mpd) {
+            return getMap(mpdMaps, map);
+        } else {
+            return getMap(multiplayerMaps, map);
+        }
+    }
+
+    private GameMapContainer getMap(List<GameMapContainer> mapList, String map) {
+        int index = Collections.binarySearch(skirmishMaps, new GameMapContainer(null, map), new MapComparator());
+        if (index >= 0) {
+            return mapList.get(index);
+        }
+        return null;
+    }
+
+    /**
+     * Compares the maps by their name
+     */
+    private class MapComparator implements Comparator<GameMapContainer> {
+
+        @Override
+        public int compare(GameMapContainer o1, GameMapContainer o2) {
+            return o1.getMapName().compareToIgnoreCase(o2.getMapName());
+        }
+
+    }
+
+    /**
+     * Small container class that holds the actual map data and the name
+     */
+    public class GameMapContainer {
+
+        private final KwdFile map;
+        private final String mapName;
+
+        public GameMapContainer(KwdFile map, String mapName) {
+            this.map = map;
+            this.mapName = mapName;
+        }
+
+        public KwdFile getMap() {
+            return map;
+        }
+
+        public String getMapName() {
+            return mapName;
+        }
+
     }
 }

@@ -275,6 +275,11 @@ public class MainMenuState extends AbstractAppState {
                 super.onLoggedOn(loggedIn);
 
                 app.enqueue(() -> {
+                    mapSelector.setSkirmish(false);
+
+                    // We as the host should set the initial map
+                    getLobbyService().setMap(mapSelector.getMap().getMapName());
+
                     screen.goToScreen("multiplayerCreate");
                 });
             }
@@ -303,6 +308,7 @@ public class MainMenuState extends AbstractAppState {
                 super.onLoggedOn(loggedIn);
 
                 app.enqueue(() -> {
+                    mapSelector.setSkirmish(false);
                     screen.goToScreen("multiplayerCreate");
                 });
             }
@@ -376,7 +382,7 @@ public class MainMenuState extends AbstractAppState {
                 logger.warning("Skirmish map not selected");
                 return;
             }
-            gameState = new GameState(mapSelector.getMap(), skirmishPlayers);
+            gameState = new GameState(mapSelector.getMap().getMap(), skirmishPlayers);
         } else if ("multiplayer".equals(type.toLowerCase())) {
             if (mapSelector.getMap() == null) {
                 logger.warning("Multiplayer map not selected");
@@ -384,7 +390,7 @@ public class MainMenuState extends AbstractAppState {
             }
 
             //TODO make true multiplayer start
-            gameState = new GameState(mapSelector.getMap(), new ArrayList<>());
+            gameState = new GameState(mapSelector.getMap().getMap(), new ArrayList<>());
 
         } else {
             logger.log(Level.WARNING, "Unknown type of Level {0}", type);

@@ -53,6 +53,11 @@ public class LobbyClientService extends AbstractClientService
         return getDelegate().getPlayers();
     }
 
+    @Override
+    public String getMap() {
+        return getDelegate().getMap();
+    }
+
     /**
      * Adds a listener that will be notified about account-related events. Note
      * that these listeners are called on the networking thread and as such are
@@ -98,7 +103,7 @@ public class LobbyClientService extends AbstractClientService
             this.delegate = rmiService.getRemoteObject(LobbySession.class);
             logger.log(Level.FINER, "delegate:{0}", delegate);
             if (delegate == null) {
-                throw new RuntimeException("No chat session found");
+                throw new RuntimeException("No lobby session found");
             }
         }
         return delegate;

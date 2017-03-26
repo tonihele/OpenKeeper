@@ -42,4 +42,11 @@ public interface LobbySession {
      */
     public List<Keeper> getPlayers();
 
+    /**
+     * Gets the current map selection
+     *
+     * @return the name of the map the server uses
+     */
+    public String getMap();
+
 }

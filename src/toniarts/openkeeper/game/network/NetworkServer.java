@@ -21,6 +21,7 @@ import com.jme3.network.Network;
 import com.jme3.network.Server;
 import com.jme3.network.serializing.Serializer;
 import com.jme3.network.serializing.serializers.FieldSerializer;
+import com.jme3.network.service.HostedService;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rpc.RpcHostedService;
 import com.simsilica.es.server.EntityDataHostService;
@@ -65,11 +66,11 @@ public class NetworkServer {
     }
 
     private void initialize() {
-//        server.addMessageListener(new ServerListener(this),
-//                MessageTime.class,
-//                MessagePlayerInfo.class,
-//                MessageServerInfo.class);
         Serializer.registerClass(Keeper.class, new FieldSerializer());
+    }
+
+    public <T extends HostedService> T getService(Class<T> type) {
+        return server.getServices().getService(type);
     }
 
     public void start() throws IOException {

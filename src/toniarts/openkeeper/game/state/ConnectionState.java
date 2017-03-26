@@ -31,6 +31,8 @@ import java.util.logging.Level;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.network.NetworkClient;
 import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
+import toniarts.openkeeper.game.network.lobby.LobbyService;
 import toniarts.openkeeper.game.network.session.AccountClientService;
 import toniarts.openkeeper.game.network.session.AccountSessionListener;
 import toniarts.openkeeper.utils.Utils;
@@ -90,6 +92,18 @@ public class ConnectionState extends AbstractAppState {
 
     public <T extends ClientService> T getService(Class<T> type) {
         return client.getService(type);
+    }
+
+    /**
+     * If you are hosting the game, you have access to the lobby services
+     *
+     * @return the server side lobby services
+     */
+    public LobbyService getLobbyService() {
+        if (server != null) {
+            return server.getService(LobbyHostedService.class);
+        }
+        return null;
     }
 
     public void disconnect() {

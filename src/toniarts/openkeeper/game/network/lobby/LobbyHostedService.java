@@ -46,6 +46,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
     private final Object playerLock = new Object();
     private final Map<Keeper, AbstractLobbySessionImpl> players = new ConcurrentHashMap<>(MAX_PLAYERS, 0.75f, 5);
+    private String mapName;
 
     /**
      * Creates a new lobby service that will use the default reliable channel
@@ -140,6 +141,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
     @Override
     public void setMap(String mapName) {
+        this.mapName = mapName;
         for (AbstractLobbySessionImpl lobby : players.values()) {
             lobby.onMapChanged(mapName);
         }
@@ -178,6 +180,11 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
                         @Override
                         public void onMapChanged(String mapName) {
 
+                        }
+
+                        @Override
+                        public String getMap() {
+                            return null;
                         }
 
                     });
@@ -289,6 +296,11 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         @Override
         public void onPlayerListChanged(List<Keeper> players) {
             getCallback().onPlayerListChanged(players);
+        }
+
+        @Override
+        public String getMap() {
+            return mapName;
         }
 
     }

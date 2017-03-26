@@ -26,6 +26,11 @@ import toniarts.openkeeper.game.data.Keeper;
  */
 public interface LobbyService {
 
+    /**
+     * Set the map
+     *
+     * @param mapName the name of the map
+     */
     public void setMap(String mapName);
 
     /**

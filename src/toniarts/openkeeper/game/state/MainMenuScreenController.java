@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.CustomMPDLevel;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Keeper;
@@ -123,7 +124,11 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     @Override
     public void selectRandomMap() {
         state.mapSelector.random();
-        populateSelectedMap(state.mapSelector.getMap());
+        if (state.getConnectionState() == null) {
+            populateSelectedMap(state.mapSelector.getMap().getMap());
+        } else {
+            state.getConnectionState().getLobbyService().setMap(state.mapSelector.getMap().getMapName());
+        }
     }
 
     @Override
@@ -145,8 +150,12 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     public void mapSelected() {
         ListBox<TableRow> listBox = screen.findNiftyControl("mapsTable", ListBox.class);
         int selectedMapIndex = listBox.getSelectedIndices().get(0);
-
         state.mapSelector.selectMap(selectedMapIndex);
+
+        if (state.getConnectionState() != null) {
+            state.getConnectionState().getLobbyService().setMap(state.mapSelector.getMap().getMapName());
+        }
+
         if (state.mapSelector.isSkirmish()) {
             nifty.gotoScreen("skirmish");
         } else {
@@ -356,7 +365,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             case "skirmish":
                 // Init the screen
                 state.mapSelector.setSkirmish(true);
-                populateSelectedMap(state.mapSelector.getMap());
+                populateSelectedMap(state.mapSelector.getMap().getMap());
                 populateSkirmishPlayerTable();
                 break;
 
@@ -372,12 +381,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 break;
 
             case "multiplayerCreate":
-                state.mapSelector.setSkirmish(false);
-                populateSelectedMap(state.mapSelector.getMap());
 
                 ConnectionState connectionState = state.getConnectionState();
                 if (connectionState != null) {
-                    refreshPlayerList(connectionState.getService(LobbyClientService.class).getPlayers());
 
                     // Add chat listener
                     state.getChatService().addChatSessionListener(getChatSessionListener());
@@ -385,19 +391,29 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     // Add player listener
                     connectionState.getService(LobbyClientService.class).addLobbySessionListener(getLobbySessionListener());
 
+                    // Ask for players and map
+                    refreshPlayerList(connectionState.getService(LobbyClientService.class).getPlayers());
+                    populateSelectedMap(state.mapSelector.getMap(connectionState.getService(LobbyClientService.class).getMap()).getMap());
+
                     Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
                     if (title != null) {
                         title.setText(connectionState.getServerInfo());
                     }
-                    if (!connectionState.isGameHost()) {
                         Element element = screen.findElementById("multiplayerMapControl");
                         if (element != null) {
-                            element.hide();
+                            if (!connectionState.isGameHost()) {
+                                element.hide();
+                            } else {
+                                element.show();
+                            }
                         }
                         element = screen.findElementById("multiplayerPlayerControl");
                         if (element != null) {
-                            element.hide();
-                        }
+                            if (!connectionState.isGameHost()) {
+                                element.hide();
+                            } else {
+                                element.show();
+                            }
                     }
                 }
                 break;
@@ -442,7 +458,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 state.getConnectionState().getService(LobbyClientService.class).removeLobbySessionListener(getLobbySessionListener());
                 chatSessionListener = null;
                 lobbySessionListener = null;
-                state.shutdownMultiplayer(); // TODO: TEMP!
+                //state.shutdownMultiplayer(); // TODO: if cancelling the lobby
                 break;
         }
     }
@@ -485,12 +501,13 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             return;
         }
 
-        KwdFile map = state.mapSelector.getMaps().get(event.getSelectionIndices().get(0));
+        KwdFile map = state.mapSelector.getMaps().get(event.getSelectionIndices().get(0)).getMap();
         if (state.mapSelector.isMPD()) {
             // on mpd we show the briefing
             state.selectedLevel = new CustomMPDLevel(map);
             goToScreen("briefing");
         } else {
+
             // The map title
             populateSelectedMap(map);
         }
@@ -722,9 +739,10 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         ListBox<TableRow> listBox = screen.findNiftyControl("mapsTable", ListBox.class);
         int i = 0;
         listBox.clear();
-        for (KwdFile kwd : state.mapSelector.getMaps()) {
+        for (MapSelector.GameMapContainer mapContainer : state.mapSelector.getMaps()) {
 
-            String name = kwd.getGameLevel().getName();
+            String name = mapContainer.getMapName();
+            KwdFile kwd = mapContainer.getMap();
             if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MY_PET_DUNGEON_LEVEL)) {
                 // the resource tables in all the other levels are completely wrong, so we just use it for custom mpd maps
                 name = kwd.getGameLevel().getLevelName().isEmpty() ? kwd.getGameLevel().getName() : kwd.getGameLevel().getLevelName();
@@ -733,7 +751,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     String.valueOf(kwd.getGameLevel().getPlayerCount()),
                     String.format("%s x %s", kwd.getMap().getWidth(), kwd.getMap().getHeight())));
 
-            if (selectMap && kwd.equals(state.mapSelector.getMap())) {
+            if (selectMap && kwd.equals(state.mapSelector.getMap().getMap())) {
                 listBox.selectItemByIndex(i);
             }
             i++;
@@ -753,7 +771,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
                 @Override
                 public void onMapChanged(String mapName) {
-                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    state.app.enqueue(() -> {
+                        populateSelectedMap(state.mapSelector.getMap(mapName).getMap());
+                    });
                 }
             };
         }

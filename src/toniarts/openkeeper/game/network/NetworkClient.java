@@ -101,9 +101,6 @@ public class NetworkClient implements ChatSession {
     public void start() throws IOException {
         logger.info("Network: Player starting");
         client.start();
-
-        // Try to log in
-        //client.getServices().getService(AccountClientService.class).login(player, systemMemory);
     }
 
     public <T extends ClientService> T getService(Class<T> type) {
