@@ -779,7 +779,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             // Get players may take some time on the network...
             for (Keeper keeper : players) {
                 playersList.addItem(new TableRow(playersList.itemCount(), keeper.getName(),
-                        "", "", Integer.toString(0), keeper.isReady() ? "x" : ""
+                        "", "", Integer.toString(keeper.getSystemMenory()), keeper.isReady() ? "x" : ""
                 ));
             }
         }

@@ -28,6 +28,7 @@ import java.util.logging.Logger;
 import static java.util.stream.Collectors.toList;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.network.NetworkServer;
+import static toniarts.openkeeper.game.network.session.AccountHostedService.ATTRIBUTE_SYSTEM_MEMORY;
 
 /**
  * Game server hosts lobby service for the game clients.
@@ -83,6 +84,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
             synchronized (playerLock) {
                 if (players.size() < MAX_PLAYERS) {
                     Keeper keeper = getNextKeeper(playerName);
+                    keeper.setSystemMenory(conn.getAttribute(ATTRIBUTE_SYSTEM_MEMORY));
 
                     LobbySessionImpl session = new LobbySessionImpl(conn, keeper);
                     conn.setAttribute(ATTRIBUTE_SESSION, session);

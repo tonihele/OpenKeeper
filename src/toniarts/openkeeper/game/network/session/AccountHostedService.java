@@ -60,7 +60,7 @@ public class AccountHostedService extends AbstractHostedConnectionService {
 
     private static final String ATTRIBUTE_SESSION = "account.session";
     private static final String ATTRIBUTE_PLAYER_NAME = "account.playerName";
-    private static final String ATTRIBUTE_SYSTEM_MEMORY = "account.systemMemory";
+    public static final String ATTRIBUTE_SYSTEM_MEMORY = "account.systemMemory";
 
     private RmiHostedService rmiService;
 
@@ -155,7 +155,7 @@ public class AccountHostedService extends AbstractHostedConnectionService {
             logger.log(Level.FINER, "publishing playerLoggedOn event for: {0}", conn);
 
             // Notify 'logged in' only after we've told the player themselves
-           // EventBus.publish(AccountEvent.playerLoggedOn, new AccountEvent(conn, playerName));
+            // EventBus.publish(AccountEvent.playerLoggedOn, new AccountEvent(conn, playerName));
         }
     }
 }

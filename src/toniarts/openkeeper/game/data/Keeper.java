@@ -46,24 +46,22 @@ public class Keeper implements Comparable<Keeper> {
     private AIType aiType = AIType.MASTER_KEEPER;
     private String name;
     private boolean ready = false;
-    private Player player;
+    private transient Player player;
     private short id;
     private int initialGold = 0;
-//    private PlayerGoldControl goldControl = new PlayerGoldControl();
-//    private PlayerCreatureControl creatureControl;
-//    private PlayerSpellControl spellControl;
-//    private PlayerStatsControl statsControl = new PlayerStatsControl();
-//    private PlayerRoomControl roomControl;
-//    private PlayerTriggerControl triggerControl;
-//    private PlayerManaControl manaControl;
+    private int systemMenory = 0;
+    private transient PlayerGoldControl goldControl = new PlayerGoldControl();
+    private transient PlayerCreatureControl creatureControl;
+    private transient PlayerSpellControl spellControl;
+    private transient PlayerStatsControl statsControl = new PlayerStatsControl();
+    private transient PlayerRoomControl roomControl;
+    private transient PlayerTriggerControl triggerControl;
+    private transient PlayerManaControl manaControl;
     private boolean destroyed = false;
     private final Set<Short> allies = new HashSet<>(4);
 
     public Keeper() {
-//        this.id = 0;
-//        this.creatureControl = null;
-//        this.spellControl = null;
-//        this.roomControl = null;
+
     }
 
     public Keeper(boolean ai, String name, short id, final Application app) {
@@ -74,9 +72,9 @@ public class Keeper implements Comparable<Keeper> {
         // AI is always ready
         ready = ai;
 
-//        creatureControl = new PlayerCreatureControl(app);
-//        roomControl = new PlayerRoomControl(app);
-//        spellControl = new PlayerSpellControl(app);
+        creatureControl = new PlayerCreatureControl(app);
+        roomControl = new PlayerRoomControl(app);
+        spellControl = new PlayerSpellControl(app);
     }
 
     public Keeper(Player player, final Application app) {
@@ -84,21 +82,21 @@ public class Keeper implements Comparable<Keeper> {
         this.id = player.getPlayerId();
         initialGold = player.getStartingGold();
 
-//        creatureControl = new PlayerCreatureControl(app);
-//        roomControl = new PlayerRoomControl(app);
-//        spellControl = new PlayerSpellControl(app);
+        creatureControl = new PlayerCreatureControl(app);
+        roomControl = new PlayerRoomControl(app);
+        spellControl = new PlayerSpellControl(app);
     }
 
     public void initialize(final AppStateManager stateManager, final Application app) {
         int triggerId = player.getTriggerId();
         if (triggerId != 0) {
-//            triggerControl = new PlayerTriggerControl(stateManager, triggerId);
-//            triggerControl.setPlayer(id);
+            triggerControl = new PlayerTriggerControl(stateManager, triggerId);
+            triggerControl.setPlayer(id);
         }
 
         // Don't create mana control for neutral nor good player
         if (id != Player.GOOD_PLAYER_ID && id != Player.NEUTRAL_PLAYER_ID) {
-//            manaControl = new PlayerManaControl(id, stateManager);
+            manaControl = new PlayerManaControl(id, stateManager);
         }
     }
 
@@ -155,13 +153,13 @@ public class Keeper implements Comparable<Keeper> {
     }
 
     public void update(float tpf) {
-//        if (triggerControl != null) {
-//            triggerControl.update(tpf);
-//        }
-//
-//        if (manaControl != null) {
-//            manaControl.update(tpf);
-//        }
+        if (triggerControl != null) {
+            triggerControl.update(tpf);
+        }
+
+        if (manaControl != null) {
+            manaControl.update(tpf);
+        }
     }
 
     public void setPlayer(Player player) {
@@ -169,6 +167,14 @@ public class Keeper implements Comparable<Keeper> {
 
         // Set the gold
         initialGold = player.getStartingGold();
+    }
+
+    public void setSystemMenory(int systemMenory) {
+        this.systemMenory = systemMenory;
+    }
+
+    public int getSystemMenory() {
+        return systemMenory;
     }
 
     @Override
