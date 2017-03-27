@@ -801,19 +801,19 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 private final Chat chat = screen.findNiftyControl("multiplayerChat", Chat.class);
 
                 @Override
-                public void playerJoined(int clientId, String playerName) {
+                public void playerJoined(Short playerId, String playerName) {
                     chat.addPlayer(playerName, null);
                 }
 
                 @Override
-                public void newMessage(int clientId, String playerName, String message) {
+                public void newMessage(Short playerId, String playerName, String message) {
                     state.app.enqueue(() -> {
                         chat.receivedChatLine(message, null, "chat");
                     });
                 }
 
                 @Override
-                public void playerLeft(int clientId, String playerName) {
+                public void playerLeft(Short playerId, String playerName) {
                     chat.removePlayer(playerName);
                 }
             };

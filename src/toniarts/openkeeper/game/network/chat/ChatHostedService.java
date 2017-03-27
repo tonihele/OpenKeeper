@@ -45,6 +45,7 @@ import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.network.NetworkServer;
+import static toniarts.openkeeper.game.network.lobby.LobbyHostedService.ATTRIBUTE_PLAYER_ID;
 
 /**
  * HostedService providing a chat server for connected players. Some time during
@@ -62,6 +63,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
     private RmiHostedService rmiService;
 
     private List<ChatSessionImpl> players = new CopyOnWriteArrayList<>();
+
     /**
      * Creates a new chat service that will use the specified channel for
      * reliable communication.
@@ -107,7 +109,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
                 // Don't send our enter event to ourselves
                 continue;
             }
-            chatter.playerJoined(conn.getId(), playerName);
+            chatter.playerJoined(conn.getAttribute(ATTRIBUTE_PLAYER_ID), playerName);
         }
     }
 
@@ -141,7 +143,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
                     // Don't send our enter event to ourselves
                     continue;
                 }
-                chatter.playerLeft(player.conn.getId(), player.name);
+                chatter.playerLeft(conn.getAttribute(ATTRIBUTE_PLAYER_ID), player.name);
             }
         }
     }
@@ -149,7 +151,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
     protected void postMessage(ChatSessionImpl from, String message) {
         logger.log(Level.INFO, "chat> {0} said:{1}", new Object[]{from.name, message});
         for (ChatSessionImpl chatter : players) {
-            chatter.newMessage(from.conn.getId(), from.name, message);
+            chatter.newMessage(from.conn.getAttribute(ATTRIBUTE_PLAYER_ID), from.name, message);
         }
     }
 
@@ -199,18 +201,18 @@ public class ChatHostedService extends AbstractHostedConnectionService {
         }
 
         @Override
-        public void playerJoined(int clientId, String playerName) {
-            getCallback().playerJoined(clientId, playerName);
+        public void playerJoined(Short playerId, String playerName) {
+            getCallback().playerJoined(playerId, playerName);
         }
 
         @Override
-        public void newMessage(int clientId, String playerName, String message) {
-            getCallback().newMessage(clientId, playerName, message);
+        public void newMessage(Short playerId, String playerName, String message) {
+            getCallback().newMessage(playerId, playerName, message);
         }
 
         @Override
-        public void playerLeft(int clientId, String playerName) {
-            getCallback().playerLeft(clientId, playerName);
+        public void playerLeft(Short playerId, String playerName) {
+            getCallback().playerLeft(playerId, playerName);
         }
     }
 }

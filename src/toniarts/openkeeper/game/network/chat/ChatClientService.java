@@ -128,26 +128,26 @@ public class ChatClientService extends AbstractClientService
     private class ChatSessionCallback implements ChatSessionListener {
 
         @Override
-        public void playerJoined(int clientId, String playerName) {
-            logger.log(Level.FINEST, "playerJoined({0}, {1})", new Object[]{clientId, playerName});
+        public void playerJoined(Short playerId, String playerName) {
+            logger.log(Level.FINEST, "playerJoined({0}, {1})", new Object[]{playerId, playerName});
             for (ChatSessionListener l : listeners) {
-                l.playerJoined(clientId, playerName);
+                l.playerJoined(playerId, playerName);
             }
         }
 
         @Override
-        public void newMessage(int clientId, String playerName, String message) {
-            logger.log(Level.FINEST, "newMessage({0}, {1}, {2})", new Object[]{clientId, playerName, message});
+        public void newMessage(Short playerId, String playerName, String message) {
+            logger.log(Level.FINEST, "newMessage({0}, {1}, {2})", new Object[]{playerId, playerName, message});
             for (ChatSessionListener l : listeners) {
-                l.newMessage(clientId, playerName, message);
+                l.newMessage(playerId, playerName, message);
             }
         }
 
         @Override
-        public void playerLeft(int clientId, String playerName) {
-            logger.log(Level.FINEST, "playerLeft({0}, {1})", new Object[]{clientId, playerName});
+        public void playerLeft(Short playerId, String playerName) {
+            logger.log(Level.FINEST, "playerLeft({0}, {1})", new Object[]{playerId, playerName});
             for (ChatSessionListener l : listeners) {
-                l.playerLeft(clientId, playerName);
+                l.playerLeft(playerId, playerName);
             }
         }
     }

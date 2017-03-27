@@ -39,7 +39,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
     private static final Logger logger = Logger.getLogger(LobbyHostedService.class.getName());
 
     private static final String ATTRIBUTE_SESSION = "lobby.session";
-    private static final String ATTRIBUTE_PLAYER_ID = "lobby.playerID";
+    public static final String ATTRIBUTE_PLAYER_ID = "lobby.playerID";
     private static final int MAX_PLAYERS = 4;
 
     private RmiHostedService rmiService;
