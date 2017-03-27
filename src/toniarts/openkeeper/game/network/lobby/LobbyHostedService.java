@@ -273,7 +273,9 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         @Override
         public void setReady(boolean ready) {
             getKeeper().setReady(ready);
-            getCallback().onPlayerListChanged(getPlayers());
+            for (AbstractLobbySessionImpl lobby : players.values()) {
+                lobby.onPlayerListChanged(getPlayers());
+            }
         }
 
         @Override

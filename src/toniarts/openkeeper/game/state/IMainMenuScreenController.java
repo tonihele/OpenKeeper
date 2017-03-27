@@ -40,14 +40,21 @@ public interface IMainMenuScreenController extends ScreenController {
      * @param number the level number as a string
      */
     public void selectMPDLevel(String number);
+
     //// screen id="skirmishMapSelect" ////
     public void cancelMapSelection();
+
     public void mapSelected();
+
     //// screen id="multiplayerLocal" ////
     public void connectToServer();
+
     public void multiplayerCreate();
+
     public void multiplayerConnect();
+
     public void multiplayerRefresh();
+
     //// screen id="extras" ////
     public void playMovie(String movieFile);
 
@@ -56,8 +63,10 @@ public interface IMainMenuScreenController extends ScreenController {
      * Save the graphics settings
      */
     public void applyGraphicsSettings();
+
     //// screen id="campaign" ////
     public void startLevel(String type);
+
     /**
      * Cancel level selection and go back to the campaign map selection
      */
@@ -65,8 +74,8 @@ public interface IMainMenuScreenController extends ScreenController {
 
     //// see CreditsControl.xml ////
     /**
-     * TODO name of fuction set to a variable
-     * Called by the gui to restart the autoscroll effect
+     * TODO name of fuction set to a variable Called by the gui to restart the
+     * autoscroll effect
      */
     public void restartCredits();
 
@@ -90,4 +99,9 @@ public interface IMainMenuScreenController extends ScreenController {
      * all the transitions return perfectly so this is a workaround
      */
     public void doTransition(String transition, String screen, String transitionStatic);
+
+    /**
+     * Cancel multiplayer lobby
+     */
+    public void cancelMultiplayer();
 }

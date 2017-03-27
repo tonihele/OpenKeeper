@@ -48,6 +48,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
+import toniarts.openkeeper.game.network.lobby.LobbyClientService;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -339,8 +340,7 @@ public class MainMenuState extends AbstractAppState {
         ChatClientService chatService = getChatService();
         if (chatService != null) {
             chatService.sendMessage(text);
-        }
-        else {
+        } else {
             logger.warning("Connection not initialized!");
         }
     }
@@ -384,6 +384,13 @@ public class MainMenuState extends AbstractAppState {
             }
             gameState = new GameState(mapSelector.getMap().getMap(), skirmishPlayers);
         } else if ("multiplayer".equals(type.toLowerCase())) {
+
+            // If we are not the host, we are merely signaling readyness
+            if (!getConnectionState().isGameHost()) {
+                getConnectionState().getService(LobbyClientService.class).setReady(true);
+                return;
+            }
+
             if (mapSelector.getMap() == null) {
                 logger.warning("Multiplayer map not selected");
                 return;

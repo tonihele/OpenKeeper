@@ -679,7 +679,7 @@
 
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control name="okButton" click="startLevel(multiplayer)" />
-                <control name="cancelButton" click="goToScreen(multiplayerLocal)" />
+                <control name="cancelButton" click="cancelMultiplayer()" />
             </panel>
         </layer>
     </screen>

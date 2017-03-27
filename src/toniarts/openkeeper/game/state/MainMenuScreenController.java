@@ -451,15 +451,6 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             case "briefing":
                 state.clearLevelBriefingNarration();
                 break;
-
-            case "multiplayerCreate":
-
-                state.getChatService().removeChatSessionListener(getChatSessionListener());
-                state.getConnectionState().getService(LobbyClientService.class).removeLobbySessionListener(getLobbySessionListener());
-                chatSessionListener = null;
-                lobbySessionListener = null;
-                //state.shutdownMultiplayer(); // TODO: if cancelling the lobby
-                break;
         }
     }
 
@@ -788,10 +779,24 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             // Get players may take some time on the network...
             for (Keeper keeper : players) {
                 playersList.addItem(new TableRow(playersList.itemCount(), keeper.getName(),
-                        "", "", Integer.toString(0)
+                        "", "", Integer.toString(0), keeper.isReady() ? "x" : ""
                 ));
             }
         }
+    }
+
+    @Override
+    public void cancelMultiplayer() {
+
+        // Disconnect and dismantle
+        state.getChatService().removeChatSessionListener(getChatSessionListener());
+        state.getConnectionState().getService(LobbyClientService.class).removeLobbySessionListener(getLobbySessionListener());
+        chatSessionListener = null;
+        lobbySessionListener = null;
+        state.shutdownMultiplayer();
+
+        // TODO: See which screen to go back to
+        goToScreen("multiplayerLocal");
     }
 
     public ChatSessionListener getChatSessionListener() {
@@ -803,6 +808,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 @Override
                 public void playerJoined(Short playerId, String playerName) {
                     chat.addPlayer(playerName, null);
+                    state.app.enqueue(() -> {
+                        chat.receivedChatLine(playerName + " joined...", null, "chat");
+                    });
                 }
 
                 @Override
@@ -815,6 +823,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 @Override
                 public void playerLeft(Short playerId, String playerName) {
                     chat.removePlayer(playerName);
+                    state.app.enqueue(() -> {
+                        chat.receivedChatLine(playerName + " left...", null, "chat");
+                    });
                 }
             };
         }
