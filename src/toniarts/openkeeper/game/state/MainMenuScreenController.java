@@ -399,21 +399,21 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     if (title != null) {
                         title.setText(connectionState.getServerInfo());
                     }
-                        Element element = screen.findElementById("multiplayerMapControl");
-                        if (element != null) {
-                            if (!connectionState.isGameHost()) {
-                                element.hide();
-                            } else {
-                                element.show();
-                            }
+                    Element element = screen.findElementById("multiplayerMapControl");
+                    if (element != null) {
+                        if (!connectionState.isGameHost()) {
+                            element.hide();
+                        } else {
+                            element.show();
                         }
-                        element = screen.findElementById("multiplayerPlayerControl");
-                        if (element != null) {
-                            if (!connectionState.isGameHost()) {
-                                element.hide();
-                            } else {
-                                element.show();
-                            }
+                    }
+                    element = screen.findElementById("multiplayerPlayerControl");
+                    if (element != null) {
+                        if (!connectionState.isGameHost()) {
+                            element.hide();
+                        } else {
+                            element.show();
+                        }
                     }
                 }
                 break;
@@ -802,23 +802,19 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
                 @Override
                 public void playerJoined(int clientId, String playerName) {
-                    state.app.enqueue(() -> {
-                        chat.addPlayer(playerName, null);
-                    });
+                    chat.addPlayer(playerName, null);
                 }
 
                 @Override
                 public void newMessage(int clientId, String playerName, String message) {
                     state.app.enqueue(() -> {
-                        chat.receivedChatLine(message, null);
+                        chat.receivedChatLine(message, null, "chat");
                     });
                 }
 
                 @Override
                 public void playerLeft(int clientId, String playerName) {
-                    state.app.enqueue(() -> {
-                        chat.removePlayer(playerName);
-                    });
+                    chat.removePlayer(playerName);
                 }
             };
         }
