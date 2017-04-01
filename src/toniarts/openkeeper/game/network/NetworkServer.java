@@ -21,7 +21,9 @@ import com.jme3.network.Network;
 import com.jme3.network.Server;
 import com.jme3.network.serializing.Serializer;
 import com.jme3.network.serializing.serializers.FieldSerializer;
+import com.jme3.network.service.AbstractHostedService;
 import com.jme3.network.service.HostedService;
+import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rpc.RpcHostedService;
 import com.simsilica.es.server.EntityDataHostService;
@@ -82,6 +84,14 @@ public class NetworkServer {
 
         initialize();
         server.addConnectionListener(new ServerConnectionListener(this));
+
+        // Adding a delay for the connectionAdded right after the serializer registration
+        // service gets to run let's the client get a small break in the buffer that should
+        // generally prevent the RpcCall messages from coming too quickly and getting processed
+        // before the SerializerRegistrationMessage has had a chance to process.
+        // This "feature" happens with Linux almost all the time
+        server.getServices().addService(new DelayService());
+
         server.getServices().addServices(new RpcHostedService(),
                 new RmiHostedService(),
                 new AccountHostedService(name),
@@ -131,5 +141,39 @@ public class NetworkServer {
 
     public long getGameTime() {
         return System.nanoTime() - start;
+    }
+
+    private class DelayService extends AbstractHostedService {
+
+        private void safeSleep(long ms) {
+            try {
+                Thread.sleep(ms);
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Checked exceptions are lame", e);
+            }
+        }
+
+        @Override
+        protected void onInitialize(HostedServiceManager serviceManager) {
+            System.out.println("DelayService.onInitialize()");
+            //safeSleep(2000);
+            //System.out.println("DelayService.delay done");
+        }
+
+        @Override
+        public void start() {
+            System.out.println("DelayService.start()");
+            //safeSleep(2000);
+            //System.out.println("DelayService.delay done");
+        }
+
+        @Override
+        public void connectionAdded(Server server, HostedConnection hc) {
+            // Just in case
+            super.connectionAdded(server, hc);
+            System.out.println("DelayService.connectionAdded(" + hc + ")");
+            safeSleep(500);
+            System.out.println("DelayService.delay done");
+        }
     }
 }
