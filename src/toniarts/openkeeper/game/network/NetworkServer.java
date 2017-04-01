@@ -143,6 +143,11 @@ public class NetworkServer {
         return System.nanoTime() - start;
     }
 
+    /**
+     * A known feature
+     *
+     * https://hub.jmonkeyengine.org/t/simethereal-questions/36899/51
+     */
     private class DelayService extends AbstractHostedService {
 
         private void safeSleep(long ms) {
