@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Enumeration;
@@ -248,8 +249,8 @@ public class GameLevel {
     protected EnumSet<LevFlag> lvlFlags;
     protected String speechStr;
     protected short talismanPieces;
-    protected List<LevelReward> rewardPrev;
-    protected List<LevelReward> rewardNext;
+    protected List<LevelReward> rewardPrev = new ArrayList<>();
+    protected List<LevelReward> rewardNext = new ArrayList<>();
     protected short soundTrack;
     protected TextTable textTableId;
     protected int textTitleId;
@@ -261,7 +262,7 @@ public class GameLevel {
     protected int textSubobjctvId2;
     protected int textSubobjctvId3;
     protected int speclvlIdx;
-    protected java.util.Map<Short, Integer> introductionOverrideTextIds; // Creature ID, TextID
+    protected Map<Short, Integer> introductionOverrideTextIds; // Creature ID, TextID
     protected String terrainPath;
     protected short oneShotHornyLev;
     protected short playerCount;
