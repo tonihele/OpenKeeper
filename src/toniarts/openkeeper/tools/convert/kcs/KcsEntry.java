@@ -30,15 +30,15 @@ public class KcsEntry {
     private Vector3f direction;
     private Vector3f left;
     private Vector3f up;
-    private float fov;
+    private float lens;
     private float near;
 
     public Vector3f getPosition() {
         return position;
     }
 
-    protected void setPosition(Vector3f position) {
-        this.position = position;
+    protected void setPosition(float x, float y, float z) {
+        this.position = new Vector3f(x, y, z);
     }
 
     /**
@@ -50,8 +50,8 @@ public class KcsEntry {
         return direction;
     }
 
-    protected void setDirection(Vector3f direction) {
-        this.direction = direction;
+    protected void setDirection(float x, float y, float z) {
+        this.direction = new Vector3f(x, y, z);
     }
 
     /**
@@ -63,8 +63,8 @@ public class KcsEntry {
         return left;
     }
 
-    protected void setLeft(Vector3f left) {
-        this.left = left;
+    protected void setLeft(float x, float y, float z) {
+        this.left = new Vector3f(x, y, z);
     }
 
     /**
@@ -76,8 +76,8 @@ public class KcsEntry {
         return up;
     }
 
-    protected void setUp(Vector3f up) {
-        this.up = up;
+    protected void setUp(float x, float y, float z) {
+        this.up = new Vector3f(x, y, z);
     }
 
     /**
@@ -85,12 +85,12 @@ public class KcsEntry {
      *
      * @return Field of view
      */
-    public float getFov() {
-        return fov;
+    public float getLens() {
+        return lens;
     }
 
-    protected void setFov(float fov) {
-        this.fov = fov;
+    protected void setLens(float lens) {
+        this.lens = lens;
     }
 
     /**

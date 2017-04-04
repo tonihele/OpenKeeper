@@ -57,7 +57,9 @@ public class Door implements Comparable<Door> {
     private ArtResource closeResource;
     private float height; // Fixed point
     private int healthGain;
-    private short[] unknown2; // 8
+    private int unk_1; // 99 always
+    private int unk_2; // 22 always
+    private int researchTime;
     private Material material;
     private short trapTypeId;
     private EnumSet<DoorFlag> flags;
@@ -150,12 +152,36 @@ public class Door implements Comparable<Door> {
         this.healthGain = healthGain;
     }
 
-    public short[] getUnknown2() {
-        return unknown2;
+    public int getResearchTime() {
+        return researchTime;
     }
 
-    protected void setUnknown2(short[] unknown2) {
-        this.unknown2 = unknown2;
+    protected void setResearchTime(int researchTime) {
+        this.researchTime = researchTime;
+    }
+
+    /**
+     * 
+     * @return 99 always
+     */
+    public int getUnknown1() {
+        return unk_1;
+    }
+
+    protected void setUnknown1(int unk_1) {
+        this.unk_1 = unk_1;
+    }
+
+    /**
+     * 
+     * @return 22 always
+     */
+    public int getUnknown2() {
+        return unk_2;
+    }
+
+    protected void setUnknown2(int unk_2) {
+        this.unk_2 = unk_2;
     }
 
     public Material getMaterial() {

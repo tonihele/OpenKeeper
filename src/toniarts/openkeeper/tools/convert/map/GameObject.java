@@ -167,7 +167,7 @@ public class GameObject implements Comparable<GameObject> {
 //        uint16_t hp; /* 348 */
 //        uint16_t unk4;
 //        uint16_t x34c;
-//        uint16_t x34e;
+//        uint16_t manaValue;
 //        uint16_t x350;
 //        uint16_t x352; /* 34a */
 //        uint16_t slap_effect; /* 354 */
@@ -184,8 +184,7 @@ public class GameObject implements Comparable<GameObject> {
     private ArtResource guiIconResource; // 74
     private ArtResource inHandIconResource; // c8
     private ArtResource inHandMeshResource; // 11c
-    // gui\spells\call_to_arms
-    private ArtResource unknownResource; // 170
+    private ArtResource unknownResource; // gui\spells\call_to_arms in Call To Arms only
     private List<ArtResource> additionalResources; // 1c4
     private Light light; // 314
     private float width; // 32c fixed 0x1000
@@ -194,12 +193,12 @@ public class GameObject implements Comparable<GameObject> {
     private float speed; // 338
     private float airFriction; // 33c
     private Material material; // 340
-    private short unknown3[]; // 341
+    private short unknown3[];  // always 49,145,0
     private EnumSet<ObjectFlag> flags; // 344
     private int hp; // 348
     private int maxAngle;
-    private int x34c;
-    private int x34e;
+    private int x34c;  // always 0
+    private int manaValue;
     private int tooltipStringId;
     private int nameStringId; // 34a
     private int slapEffectId; // 354
@@ -363,12 +362,12 @@ public class GameObject implements Comparable<GameObject> {
         this.x34c = x34c;
     }
 
-    public int getX34e() {
-        return x34e;
+    public int getManaValue() {
+        return manaValue;
     }
 
-    protected void setX34e(int x34e) {
-        this.x34e = x34e;
+    protected void setManaValue(int manaValue) {
+        this.manaValue = manaValue;
     }
 
     public int getTooltipStringId() {

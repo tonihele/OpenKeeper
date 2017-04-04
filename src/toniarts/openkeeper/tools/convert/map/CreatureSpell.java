@@ -82,7 +82,7 @@ public class CreatureSpell implements Comparable<CreatureSpell> {
     private int shotData2; // uint32 ?
     private float range;
     private EnumSet<CreatureSpellFlag> flags;
-    private short[] data2; // 6
+    private int combatPoints; // 6
     private int soundEvent;
     private int nameStringId;
     private int tooltipStringId;
@@ -95,7 +95,7 @@ public class CreatureSpell implements Comparable<CreatureSpell> {
     private short alternativeRoomId;
     private float rechargeTime;
     private AlternativeShot alternativeShot; // When creature flag is on, this plays some part
-    private short[] data3;
+    private short[] unused;
 
     public String getName() {
         return name;
@@ -153,12 +153,12 @@ public class CreatureSpell implements Comparable<CreatureSpell> {
         this.flags = flags;
     }
 
-    public short[] getData2() {
-        return data2;
+    public int getCombatPoints() {
+        return combatPoints;
     }
 
-    protected void setData2(short[] data2) {
-        this.data2 = data2;
+    protected void setCombatPoints(int combatPoints) {
+        this.combatPoints = combatPoints;
     }
 
     public int getSoundEvent() {
@@ -257,12 +257,12 @@ public class CreatureSpell implements Comparable<CreatureSpell> {
         this.alternativeShot = alternativeShot;
     }
 
-    public short[] getData3() {
-        return data3;
+    public short[] getUnused() {
+        return unused;
     }
 
-    protected void setData3(short[] data3) {
-        this.data3 = data3;
+    protected void setUnused(short[] unused) {
+        this.unused = unused;
     }
 
     @Override

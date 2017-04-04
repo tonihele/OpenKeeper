@@ -134,7 +134,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
              cam.setLocation(storedCamera.getLocation().clone());
              cam.setRotation(storedCamera.getRotation().clone());
              //cam.setAxes(storedCamera.getLeft(), storedCamera.getUp(), storedCamera.getDirection());
-             //camera.setHeight(storedCamera.getLocation().y);
+             //camera.setZoomValue(storedCamera.getLocation().y);
              camera.setLookAt(cam.getLocation());
              //cameraRestore();
              }*/

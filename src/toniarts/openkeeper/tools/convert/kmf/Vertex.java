@@ -40,7 +40,7 @@ public abstract class Vertex {
         return normal;
     }
 
-    protected void setNormal(Vector3f normal) {
-        this.normal = normal;
+    protected void setNormal(float x, float y, float z) {
+        this.normal = new Vector3f(x, y, z);
     }
 }

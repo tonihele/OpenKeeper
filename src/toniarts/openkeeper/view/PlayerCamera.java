@@ -55,9 +55,9 @@ public class PlayerCamera {
                 FastMath.PI * (0 + presets.getAngleRoll() / 1024f));
 
         cam.setRotation(q);
-        cam.setLocation(new Vector3f(0, presets.getHeight(), 0));
+        cam.setLocation(new Vector3f(0, presets.getZoomValue(), 0));
         // FIXME fov maybe have another formula. Need correct?
-        cam.setFrustumPerspective(presets.getFov() * FastMath.RAD_TO_DEG / 4, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
+        cam.setFrustumPerspective(presets.getLensValue() * FastMath.RAD_TO_DEG / 4, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
     }
 
     protected void zoom(float value) {
@@ -71,10 +71,10 @@ public class PlayerCamera {
         vel.multLocal(value);
         pos.addLocal(vel);
 
-        if (pos.y < presets.getHeightMin()) {
+        if (pos.y < presets.getZoomValueMin()) {
             //pos.setY(presets.getHeightMin());
             return;
-        } else if (pos.y > presets.getHeightMax()) {
+        } else if (pos.y > presets.getZoomValueMax()) {
             //pos.setY(presets.getHeightMax());
             return;
         }
