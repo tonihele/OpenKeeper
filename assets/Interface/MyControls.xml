@@ -32,31 +32,33 @@
     </controlDefinition>
 
     <!--The worker amount & status-->
-    <controlDefinition style="nifty-panel-style" name="workerAmount" controller="de.lessvoid.nifty.controls.DefaultController">
-        <panel marginLeft="3px" valign="center" childLayout="horizontal" id="tab-workers" visible="true">
-            <image filename="Textures/GUI/Tabs/t-cp-imp.png" valign="center" childLayout="vertical" padding="6px" width="32px" height="128px">
-                <panel id="#totalImps" height="25%" width="100%" visibleToMouse="true">
+    <controlDefinition style="nifty-panel-style" name="workerAmount"
+                       controller="toniarts.openkeeper.gui.nifty.WorkerAmountControl">
+        <panel marginLeft="3px" valign="center" childLayout="horizontal">
+            <image filename="Textures/GUI/Tabs/t-cp-imp.png" valign="center"
+                   childLayout="vertical" padding="6px" width="32px" height="128px">
+                <panel height="25%" width="100%" visibleToMouse="true">
                     <effect>
                         <onHover name="hint" hintText="${menu.2308}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2309}" targetElement="tooltip" />
                         <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </panel>
-                <panel id="#idleImps" height="25%" width="100%" visibleToMouse="true">
+                <panel height="25%" width="100%" visibleToMouse="true">
                     <effect>
                         <onHover name="hint" hintText="${menu.2310}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2311}" targetElement="tooltip" />
                         <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </panel>
-                <panel id="#busyImps" height="25%" width="100%" visibleToMouse="true">
+                <panel height="25%" width="100%" visibleToMouse="true">
                     <effect>
                         <onHover name="hint" hintText="${menu.2312}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2313}" targetElement="tooltip" />
                         <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </panel>
-                <panel id="#combatImps" height="25%" width="100%" visibleToMouse="true">
+                <panel height="25%" width="100%" visibleToMouse="true">
                     <effect>
                         <onHover name="hint" hintText="${menu.2314}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2315}" targetElement="tooltip" />
@@ -66,78 +68,104 @@
             </image>
             <image filename="Textures/GUI/Creatures/Evil/imp-bg.png" valign="center" childLayout="vertical"
                    padding="6px,6px,6px,0px" width="64px" height="128px">
-                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#amount" height="25%" width="100%">
+                <control name="label" text="?" textHAlign="center" textVAlign="center"
+                         style="text" id="#workerTotal" height="25%" width="100%">
                     <interact onSecondaryClick="zoomToImp(null)" />
+                    <interact onPrimaryClick="pickUpImp(null)" />
                     <effect>
-                        <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                        <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                 post="true" neverStopRendering="true" overlay="true" />
                         <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
                         <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </control>
-                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#idle" height="25%" width="100%">
-                    <interact onSecondaryClick="zoomToImp(IDLE)" />
+                <control name="label" text="?" textHAlign="center" textVAlign="center" style="text"
+                         id="#workerIdle" height="25%" width="100%">
+                    <interact onSecondaryClick="zoomToImp(idle)" />
+                    <interact onPrimaryClick="pickUpImp(idle)" />
                     <effect>
-                        <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                        <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                 post="true" neverStopRendering="true" overlay="true" />
                         <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
                         <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </control>
-                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#busy" height="25%" width="100%">
-                    <interact onSecondaryClick="zoomToImp(BUSY)" />
+                <control name="label" text="?" textHAlign="center" textVAlign="center" style="text"
+                         id="#workerBusy" height="25%" width="100%">
+                    <interact onSecondaryClick="zoomToImp(busy)" />
+                    <interact onPrimaryClick="pickUpImp(busy)" />
                     <effect>
-                        <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                        <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                 post="true" neverStopRendering="true" overlay="true" />
                         <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
                         <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </control>
-                <control name="label" text="0" textHAlign="center" textVAlign="center" style="text" id="#fighting" height="25%" width="100%">
-                    <interact onSecondaryClick="zoomToImp(FIGHTING)" />
+                <control name="label" text="?" textHAlign="center" textVAlign="center" style="text"
+                         id="#workerFight" height="25%" width="100%">
+                    <interact onSecondaryClick="zoomToImp(fight)" />
+                    <interact onPrimaryClick="pickUpImp(fight)" />
                     <effect>
-                        <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png" post="true" neverStopRendering="true" overlay="true" />
+                        <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                 post="true" neverStopRendering="true" overlay="true" />
                         <onHover name="hint" hintText="${menu.2346}" hintDelay="200" />
                         <onHover name="simpleHint" hintText="${menu.2347}" targetElement="tooltip" />
                         <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                     </effect>
                 </control>
             </image>
-            <image id="attributes" filename="Textures/GUI/Tabs/t-creature_panel-0.png" valign="center" marginLeft="3px"
-                   childLayout="vertical" padding="6px" width="32px" height="128px">
-                <panel id="#total" height="25%" width="100%" backgroundImage="Textures/GUI/Tabs/t-cp-hilight.png"><!-- need button with custom style -->
-                    <interact onClick="workersAmount(total)" />
-                    <effect>
-                        <onHover name="hint" hintText="${menu.2316}" hintDelay="200" />
-                        <onHover name="simpleHint" hintText="${menu.2317}" targetElement="tooltip" />
-                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
-                    </effect>
-                </panel>
-                <panel id="#jobs" height="25%" width="100%" >
-                    <interact onClick="workersAmount(jobs)" />
-                    <effect>
-                        <onHover name="hint" hintText="${menu.2318}" hintDelay="200" />
-                        <onHover name="simpleHint" hintText="${menu.2319}" targetElement="tooltip" />
-                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
-                    </effect>
-                </panel>
-                <panel id="#combat" height="25%" width="100%" >
-                    <interact onClick="workersAmount(combat)" />
-                    <effect>
-                        <onHover name="hint" hintText="${menu.2320}" hintDelay="200" />
-                        <onHover name="simpleHint" hintText="${menu.2321}" targetElement="tooltip" />
-                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
-                    </effect>
-                </panel>
-                <panel id="#moods" height="25%" width="100%" >
-                    <interact onClick="workersAmount(moods)" />
-                    <effect>
-                        <onHover name="hint" hintText="${menu.2322}" hintDelay="200" />
-                        <onHover name="simpleHint" hintText="${menu.2323}" targetElement="tooltip" />
-                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
-                    </effect>
-                </panel>
-            </image>
+            <panel childLayout="center" width="32px" height="128px">
+                <image id="#t-creature_panel" filename="Textures/GUI/Tabs/t-creature_panel.png"
+                       valign="center" marginLeft="3px" childLayout="vertical" padding="6px">
+                    <!-- need button with custom style -->
+                    <panel id="#total" width="100%">
+                        <interact onClick="workersAmount(total)" />
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Tabs/t-cp-hilight.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                            <onHover name="hint" hintText="${menu.2316}" hintDelay="200" />
+                            <onHover name="simpleHint" hintText="${menu.2317}" targetElement="tooltip" />
+                            <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                        </effect>
+                    </panel>
+                    <panel height="5px" />
+                    <panel id="#jobs" width="100%" >
+                        <interact onClick="workersAmount(jobs)" />
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Tabs/t-cp-hilight.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                            <onHover name="hint" hintText="${menu.2318}" hintDelay="200" />
+                            <onHover name="simpleHint" hintText="${menu.2319}" targetElement="tooltip" />
+                            <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                        </effect>
+                    </panel>
+                    <panel height="5px" />
+                    <panel id="#combat" width="100%" >
+                        <interact onClick="workersAmount(fights)" />
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Tabs/t-cp-hilight.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                            <onHover name="hint" hintText="${menu.2320}" hintDelay="200" />
+                            <onHover name="simpleHint" hintText="${menu.2321}" targetElement="tooltip" />
+                            <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                        </effect>
+                    </panel>
+                    <panel height="5px" />
+                    <panel id="#moods" width="100%" >
+                        <interact onClick="workersAmount(moods)" />
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Tabs/t-cp-hilight.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                            <onHover name="hint" hintText="${menu.2322}" hintDelay="200" />
+                            <onHover name="simpleHint" hintText="${menu.2323}" targetElement="tooltip" />
+                            <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                        </effect>
+                    </panel>
+                </image>
+            </panel>
         </panel>
     </controlDefinition>
 
@@ -158,23 +186,126 @@
     </controlDefinition>
 
     <!--The =, shown for creatures-->
-    <controlDefinition style="nifty-panel-style" name="workerEqual" controller="de.lessvoid.nifty.controls.DefaultController">
-        <panel marginLeft="3px" valign="center" childLayout="horizontal" id="tab-workers-equal" visible="true">
-            <image filename="Textures/GUI/Tabs/t-cp-total.png" valign="center" />
-            <!-- <image filename="Textures/GUI/Tabs/t-cp-jobs.png" valign="center" /> -->
-            <!-- <image filename="Textures/GUI/Tabs/t-cp-fights.png" valign="center" /> -->
-            <!-- <image filename="Textures/GUI/Tabs/t-cp-moods.png" valign="center" /> -->
+    <controlDefinition style="nifty-panel-style" name="workerEqual"
+                       controller="toniarts.openkeeper.gui.nifty.WorkerEqualControl">
+        <panel childLayout="center" marginLeft="3px" valign="center">
+            <image filename="Textures/GUI/Tabs/t-cp-total.png" valign="center" id="#equal" />
+            <!--
+            <image filename="Textures/GUI/Tabs/t-cp-total.png" valign="center" id="#total" visible="false" />
+            <image filename="Textures/GUI/Tabs/t-cp-jobs.png" valign="center" id="#jobs" visible="false" />
+            <image filename="Textures/GUI/Tabs/t-cp-fights.png" valign="center" id="#fights" visible="false" />
+            <image filename="Textures/GUI/Tabs/t-cp-moods.png" valign="center" id="#moods" visible="false" />
+            -->
         </panel>
     </controlDefinition>
 
     <!--Players creature -->
-    <controlDefinition style="nifty-panel-style" name="creature" controller="de.lessvoid.nifty.controls.DefaultController">
-        <panel marginLeft="3px" valign="center" childLayout="center" visibleToMouse="true">
-            <image filename="$filename" valign="center" ></image>
-            <control name="label" id="#total" text="$total" style="text" textHAlign="center" textVAlign="center" />
-            <effect>
-                <onHover name="imageOverlay" filename="Textures/GUI/Icons/selected_group.png" post="true" neverStopRendering="true" overlay="true" />
-            </effect>
+    <controlDefinition style="nifty-panel-style" name="creature"
+                       controller="toniarts.openkeeper.gui.nifty.CreatureCardControl">
+        <panel marginLeft="3px" valign="center" childLayout="center" width="64px" height="128px">
+            <image filename="$filename" valign="center" />
+            <panel childLayout="center" id="#tab-creature-card">
+                <panel childLayout="vertical" id="#tab-total" visible="false"
+                       height="100%" padding="6px">
+                    <control name="label" id="#total" text="?" style="text" height="100%"
+                             textHAlign="center" textVAlign="center" width="100%">
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                        </effect>
+                        <interact onSecondaryClick="zoomTo(null)"  onPrimaryClick="pickUp(null)" />
+                    </control>
+                </panel>
+                <panel childLayout="vertical" id="#tab-jobs" visible="false"
+                       height="100%" padding="6px">
+                    <control name="label" id="#idle" text="?" style="text" height="25%"
+                             textHAlign="center" textVAlign="center" width="100%">
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                        </effect>
+                        <interact onSecondaryClick="zoomTo(idle)" onPrimaryClick="pickUp(idle)" />
+                    </control>
+                    <control name="label" id="#work" text="?" style="text" height="25%"
+                             textHAlign="center" textVAlign="center" width="100%">
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                        </effect>
+                        <interact onSecondaryClick="zoomTo(work)" onPrimaryClick="pickUp(work)" />
+                    </control>
+                    <control name="label" id="#fight" text="?" style="text" height="25%"
+                             textHAlign="center" textVAlign="center" width="100%">
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                 post="true" neverStopRendering="true" overlay="true" />
+                        </effect>
+                        <interact onSecondaryClick="zoomTo(fight)" onPrimaryClick="pickUp(fight)" />
+                    </control>
+                    <control name="label" id="#busy" text="?" style="text" height="25%"
+                             textHAlign="center" textVAlign="center" width="100%">
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                        </effect>
+                        <interact onSecondaryClick="zoomTo(busy)" onPrimaryClick="pickUpCreature(busy)" />
+                    </control>
+                </panel>
+                <panel childLayout="vertical" id="#tab-fights" visible="false"
+                       height="100%" padding="6px">
+                    <control name="label" id="#fight" text="?" style="text" height="33%"
+                             textHAlign="center" textVAlign="center" width="100%">
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                        </effect>
+                        <interact onSecondaryClick="zoomTo(fight)" onPrimaryClick="pickUp(fight)" />
+                    </control>
+                    <control name="label" id="#defence" text="?" style="text" height="33%"
+                             textHAlign="center" textVAlign="center" width="100%">
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                        </effect>
+                        <interact onSecondaryClick="zoomTo(defence)" onPrimaryClick="pickUp(defence)" />
+                    </control>
+                    <control name="label" id="#busy" text="?" style="text" height="34%"
+                             textHAlign="center" textVAlign="center" width="100%">
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                        </effect>
+                        <interact onSecondaryClick="zoomTo(busy)" onPrimaryClick="pickUp(busy)" />
+                    </control>
+                </panel>
+                <panel childLayout="vertical" id="#tab-moods" visible="false"
+                       height="100%" padding="6px">
+                    <control name="label" id="#happy" text="?" style="text" height="33%"
+                             textHAlign="center" textVAlign="center" width="100%">
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                        </effect>
+                        <interact onSecondaryClick="zoomTo(happy)" onPrimaryClick="pickUp(happy)" />
+                    </control>
+                    <control name="label" id="#unhappy" text="?" style="text" height="33%"
+                             textHAlign="center" textVAlign="center" width="100%">
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                        </effect>
+                        <interact onSecondaryClick="zoomTo(unhappy)" onPrimaryClick="pickUp(unhappy)" />
+                    </control>
+                    <control name="label" id="#angry" text="?" style="text" height="34%"
+                         textHAlign="center" textVAlign="center" width="100%">
+                        <effect>
+                            <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
+                                     post="true" neverStopRendering="true" overlay="true" />
+                        </effect>
+                        <interact onSecondaryClick="zoomTo(angry)" onPrimaryClick="pickUp(angry)" />
+                    </control>
+                </panel>
+            </panel>
         </panel>
     </controlDefinition>
 

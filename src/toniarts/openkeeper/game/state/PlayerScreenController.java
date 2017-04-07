@@ -36,6 +36,8 @@ import de.lessvoid.nifty.controls.TabSelectedEvent;
 import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
+import de.lessvoid.nifty.elements.events.NiftyMousePrimaryClickedEvent;
+import de.lessvoid.nifty.elements.events.NiftyMouseSecondaryClickedEvent;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
 import de.lessvoid.nifty.elements.render.PanelRenderer;
 import de.lessvoid.nifty.render.NiftyImage;
@@ -59,11 +61,15 @@ import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
+import toniarts.openkeeper.game.player.PlayerCreatureControl.CreatureUIState;
 import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.game.player.PlayerRoomControl;
 import toniarts.openkeeper.game.player.PlayerSpell;
 import toniarts.openkeeper.game.player.PlayerSpellListener;
+import toniarts.openkeeper.gui.nifty.CreatureCardControl;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
+import toniarts.openkeeper.gui.nifty.WorkerAmountControl;
+import toniarts.openkeeper.gui.nifty.WorkerEqualControl;
 import toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -227,20 +233,47 @@ public class PlayerScreenController implements IPlayerScreenController {
     }
 
     @Override
-    public void zoomToCreature(String creatureId) {
-        state.zoomToCreature(creatureId);
+    public void zoomToCreature(String creatureId, String uiState) {
+        state.zoomToCreature(Short.parseShort(creatureId),
+                "null".equals(uiState) ? null : CreatureUIState.valueOf(uiState.toUpperCase()));
     }
 
     @Override
     public void zoomToImp(String uiState) {
-        CreatureControl creature;
-        if ("null".equals(uiState)) {
-            creature = state.getCreatureControl().getNextImp();
-        } else {
-            creature = state.getCreatureControl().getNextImp(PlayerCreatureControl.CreatureUIState.valueOf(uiState));
-        }
-        state.cameraState.setCameraLookAt(creature.getSpatial());
+        short creatureId = state.getCreatureControl().getImp().getCreatureId();
+        zoomToCreature(String.valueOf(creatureId), uiState);
     }
+
+    @Override
+    public void pickUpCreature(String creatureId, String uiState) {
+        state.pickUpCreature(Short.parseShort(creatureId),
+                "null".equals(uiState) ? null : CreatureUIState.valueOf(uiState.toUpperCase()));
+    }
+
+    @Override
+    public void pickUpImp(String uiState) {
+        short creatureId = state.getCreatureControl().getImp().getCreatureId();
+        pickUpCreature(String.valueOf(creatureId),uiState);
+    }
+
+    @Override
+    public void workersAmount(String uiState) {
+        WorkerAmountControl.State controlState = WorkerAmountControl.State.valueOf(uiState.toUpperCase());
+        if (controlState != null) {
+            Screen s = nifty.getScreen(HUD_SCREEN_ID);
+            WorkerAmountControl cAmount = s.findNiftyControl("tab-workers", WorkerAmountControl.class);
+            cAmount.setState(controlState);
+
+            WorkerEqualControl cEqual = s.findNiftyControl("tab-workers-equal", WorkerEqualControl.class);
+            cEqual.setState(controlState);
+
+            Element e = s.findElementById("tab-creature-content");
+            for (Element element : e.getChildren()) {
+                element.getControl(CreatureCardControl.class).setState(controlState);
+            }
+        }
+    }
+
 
     @Override
     public void quitToMainMenu() {
@@ -502,40 +535,50 @@ public class PlayerScreenController implements IPlayerScreenController {
         final Element creaturePanel = creatureTab.findElementById("tab-creature-content");
         removeAllChildElements(creaturePanel);
         for (final Map.Entry<Creature, Set<CreatureControl>> entry : state.getCreatureControl().getCreatures().entrySet()) {
-            createPlayerCreatureIcon(entry.getKey(), entry.getValue().size(), nifty, hud, creaturePanel);
+            createPlayerCreatureIcon(entry.getKey(), hud, creaturePanel);
         }
         state.getCreatureControl().addCreatureListener(new CreatureListener() {
 
             @Override
             public void onSpawn(CreatureControl creature) {
-                int amount = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
-                Element creatureCard = creaturePanel.findElementById("creature_" + creature.getCreature().getCreatureId());
-                if (creatureCard == null) {
-                    createPlayerCreatureIcon(creature.getCreature(), amount, nifty, hud, creaturePanel);// Create
-                } else {
-                    Label totalLabel = creatureCard.findNiftyControl("#total", Label.class);
-                    totalLabel.setText(Integer.toString(amount));
+                int total = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
+                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
+                        CreatureCardControl.class);
+                if (card == null) {
+                    card = createPlayerCreatureIcon(creature.getCreature(), hud, creaturePanel);// Create
                 }
+                card.setTotal(total);
             }
 
             @Override
             public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
-                // TODO:
+                if (newState == CreatureState.PICKED_UP || oldState == CreatureState.PICKED_UP) {
+                    int total = 0;
+                    Set<CreatureControl> c = state.getCreatureControl().getCreatures().get(creature.getCreature());
+                    for (CreatureControl creatureControl : c) {
+                        if (creatureControl.getStateMachine().getCurrentState() != CreatureState.PICKED_UP) {
+                            total++;
+                        }
+                    }
+                    CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
+                        CreatureCardControl.class);
+                    card.setTotal(total);
+                }
             }
 
             @Override
             public void onDie(CreatureControl creature) {
-                int amount = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
-                Element creatureCard = creaturePanel.findElementById("creature_" + creature.getCreature().getCreatureId());
-                if (amount == 0) {
-                    creatureCard.markForRemoval(); // Remove
-                } else {
-                    Label totalLabel = creatureCard.findNiftyControl("#total", Label.class);
-                    totalLabel.setText(Integer.toString(amount));
+                int total = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
+                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
+                        CreatureCardControl.class);
+                card.setTotal(total);
+                if (total == 0) {
+                    card.getElement().markForRemoval(); // Remove
                 }
             }
         });
-        state.getCreatureControl().addWorkerListener(creatureTab.findNiftyControl("tab-workers#amount", Label.class), creatureTab.findNiftyControl("tab-workers#idle", Label.class), creatureTab.findNiftyControl("tab-workers#busy", Label.class), creatureTab.findNiftyControl("tab-workers#fighting", Label.class));
+        state.getCreatureControl().addWorkerListener(creatureTab.findControl("tab-workers",
+                WorkerAmountControl.class));
 
         // Rooms
         state.getRoomControl().addRoomAvailabilityListener(new PlayerRoomControl.IRoomAvailabilityListener() {
@@ -720,7 +763,8 @@ public class PlayerScreenController implements IPlayerScreenController {
                 marginRight("6px");
                 focusable(true);
                 id("creature-ability_" + index);
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + name + ".png"));
+                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                        + File.separator + name + ".png"));
                 valignCenter();
                 onFocusEffect(new EffectBuilder("imageOverlay") {
                     {
@@ -736,7 +780,8 @@ public class PlayerScreenController implements IPlayerScreenController {
     private ImageBuilder createCreatureIcon(final String name) {
         return new ImageBuilder() {
             {
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + name + ".png"));
+                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                        + File.separator + name + ".png"));
                 valignCenter();
             }
         };
@@ -745,7 +790,8 @@ public class PlayerScreenController implements IPlayerScreenController {
     private ImageBuilder createCreatureMeleeIcon(final String name) {
         return new ImageBuilder() {
             {
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + name + ".png"));
+                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                        + File.separator + name + ".png"));
                 valignCenter();
                 marginLeft("6px");
                 focusable(true);
@@ -764,7 +810,8 @@ public class PlayerScreenController implements IPlayerScreenController {
     private ImageBuilder createCreatureSpellIcon(final CreatureSpell cs, final int index) {
         return new ImageBuilder() {
             {
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + cs.getGuiIcon().getName() + ".png"));
+                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                        + File.separator + cs.getGuiIcon().getName() + ".png"));
                 valignCenter();
                 marginLeft("6px");
                 focusable(true);
@@ -780,16 +827,18 @@ public class PlayerScreenController implements IPlayerScreenController {
         };
     }
 
-    private void createPlayerCreatureIcon(Creature creature, int creatureAmount, Nifty nifty, Screen hud, Element parent) {
+    private CreatureCardControl createPlayerCreatureIcon(Creature creature, Screen hud, Element parent) {
         ControlBuilder cb = new ControlBuilder("creature") {
             {
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + creature.getPortraitResource().getName() + ".png"));
-                parameter("total", Integer.toString(creatureAmount));
+                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                        + File.separator + creature.getPortraitResource().getName() + ".png"));
+                parameter("creatureId", Integer.toString(creature.getCreatureId()));
                 id("creature_" + creature.getCreatureId());
             }
         };
         Element element = cb.build(nifty, hud, parent);
-        element.getElementInteraction().getSecondary().setOnClickMethod(new NiftyMethodInvoker(nifty, "zoomToCreature(" + creature.getCreatureId() + ")", this));
+
+        return element.getControl(CreatureCardControl.class);
     }
 
     private ControlBuilder createRoomIcon(final Room room) {
@@ -797,7 +846,8 @@ public class PlayerScreenController implements IPlayerScreenController {
         final String hint = Utils.getMainTextResourceBundle().getString("1783")
                 .replace("%1", name)
                 .replace("%2", room.getCost() + "");
-        return createIcon(room.getRoomId(), "room", room.getGuiIcon(), room.getGeneralDescriptionStringId(), hint.replace("%21", room.getCost() + ""), true);
+        return createIcon(room.getRoomId(), "room", room.getGuiIcon(), room.getGeneralDescriptionStringId(),
+                hint.replace("%21", room.getCost() + ""), true);
     }
 
     private ControlBuilder createSpellIcon(final PlayerSpell spell) {
@@ -809,7 +859,8 @@ public class PlayerScreenController implements IPlayerScreenController {
                     .replace("%3", spell.isUpgraded() ? "2" : "1");
             return createIcon(spell.getKeeperSpell().getKeeperSpellId(), "spell", spell.isUpgraded() ? spell.getKeeperSpell().getGuiIcon().getName() + "-2" : spell.getKeeperSpell().getGuiIcon().getName(), spell.getKeeperSpell().getGeneralDescriptionStringId(), hint, true);
         }
-        return createIcon(spell.getKeeperSpell().getKeeperSpellId(), "spell", "gui\\spells\\s-tba", null, null, false);
+        return createIcon(spell.getKeeperSpell().getKeeperSpellId(),
+                "spell", "gui\\spells\\s-tba", null, null, false);
     }
 
     private ControlBuilder createDoorIcon(final Door door) {

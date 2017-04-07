@@ -28,12 +28,14 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
+import toniarts.openkeeper.game.player.PlayerCreatureControl.CreatureUIState;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerRoomControl;
 import toniarts.openkeeper.game.player.PlayerSpellControl;
 import toniarts.openkeeper.game.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -341,10 +343,11 @@ public class PlayerState extends AbstractAppState {
         app.stop();
     }
 
-    public void zoomToCreature(String creatureId) {
-        GameState gs = stateManager.getState(GameState.class);
-        CreatureControl creature = getCreatureControl().getNextCreature(gs.getLevelData().getCreature(Short.parseShort(creatureId)));
-        zoomToCreature(creature);
+    public void zoomToCreature(short creatureId, CreatureUIState uiState) {
+        Creature creature = stateManager.getState(GameState.class).getLevelData().getCreature(creatureId);
+        CreatureControl creatureControl = getCreatureControl().getNextCreature(creature, uiState);
+
+        zoomToCreature(creatureControl);
     }
 
     /**
@@ -354,6 +357,13 @@ public class PlayerState extends AbstractAppState {
      */
     public void zoomToCreature(CreatureControl creature) {
         cameraState.setCameraLookAt(creature.getSpatial());
+    }
+
+    void pickUpCreature(short creatureId, CreatureUIState uiState) {
+        Creature creature = stateManager.getState(GameState.class).getLevelData().getCreature(creatureId);
+        CreatureControl creatureControl = getCreatureControl().getCreature(creature, uiState);
+
+        interactionState.pickupObject(creatureControl);
     }
 
     public short getPlayerId() {

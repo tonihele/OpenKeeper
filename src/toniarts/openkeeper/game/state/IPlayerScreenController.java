@@ -39,11 +39,17 @@ public interface IPlayerScreenController extends ScreenController {
     public void pauseMenuNavigate(String menu, String backMenu,
             String confirmationTitle, String confirmMethod);
 
-    public void zoomToCreature(String creatureId);
+    public void zoomToCreature(String creatureId, String uiState);
+
+    public void pickUpCreature(String creatureId, String uiState);
+
+    public void workersAmount(String uiState);
 
     // TODO move method to own controller or in parameter
 
     public void zoomToImp(String state);
+
+    public void pickUpImp(String state);
 
     public void grabGold();
 
