@@ -1131,10 +1131,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     @Override
     public boolean isPickable(short playerId) {
-        return (playerId == ownerId
-                && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP)
-                && !isIncapacitated() && isOnOwnLand())
-                || ((stateMachine.isInState(CreatureState.IMPRISONED) || stateMachine.isInState(CreatureState.TORTURED)) && worldState.getMapData().getTile(getCreatureCoordinates()).getPlayerId() == playerId);
+        return (playerId == ownerId && !isIncapacitated()
+                && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP))
+                || ((stateMachine.isInState(CreatureState.IMPRISONED)
+                    || stateMachine.isInState(CreatureState.TORTURED))
+                    && worldState.getMapData().getTile(getCreatureCoordinates()).getPlayerId() == playerId);
     }
 
     @Override
