@@ -67,6 +67,14 @@ public class ConversionUtils {
         return ConversionUtils.readInteger(file) & 0xFFFFFFFFL;
     }
 
+    public static float readIntegerAsFloat(RandomAccessFile file) throws IOException {
+        return readInteger(file) / ConversionUtils.FLOAT;
+    }
+
+    public static float readIntegerAsDouble(RandomAccessFile file) throws IOException {
+        return readInteger(file) / ConversionUtils.DOUBLE;
+    }
+
     /**
      * Reads 4 bytes and converts it to JAVA int from LITTLE ENDIAN unsigned int
      *
@@ -163,6 +171,10 @@ public class ConversionUtils {
         byte[] signedShort = new byte[2];
         file.read(signedShort);
         return toShort(signedShort);
+    }
+
+    public static float readShortAsFloat(RandomAccessFile file) throws IOException {
+        return readShort(file) / ConversionUtils.FLOAT;
     }
 
     /**

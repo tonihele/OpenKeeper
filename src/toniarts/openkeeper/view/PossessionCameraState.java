@@ -112,12 +112,12 @@ public class PossessionCameraState extends AbstractPauseAwareState implements Ac
 
         if (enabled) {
             // The camera
-            camera = new PossessionCamera(app.getCamera(), creature.getSpeed(), creature.getFirstPersonOscillateScale());
+            camera = new PossessionCamera(app.getCamera(), creature.getAttributes().getSpeed(), creature.getFirstPersonOscillateScale());
             loadCameraStartLocation();
 
             FunnyCameraContol fcc = new FunnyCameraContol(app.getCamera(), target.getSpatial());
-            fcc.setLookAtOffset(new Vector3f(0, creature.getEyeHeight(), 0));
-            fcc.setHeight(creature.getHeight());
+            fcc.setLookAtOffset(new Vector3f(0, creature.getAttributes().getEyeHeight(), 0));
+            fcc.setHeight(creature.getAttributes().getHeight());
             fcc.setDistance(1.5f);
 
             // The controls
@@ -136,7 +136,7 @@ public class PossessionCameraState extends AbstractPauseAwareState implements Ac
         Point p = target.getCreatureCoordinates();
         Vector3f startLocation = new Vector3f(p.x, target.getHeight(), p.y);
         Camera cam = app.getCamera();
-        cam.setLocation(startLocation.addLocal(0, creature.getEyeHeight(), 0));
+        cam.setLocation(startLocation.addLocal(0, creature.getAttributes().getEyeHeight(), 0));
         //cam.setFrustumPerspective(45, cam.getWidth() / cam.getHeight(), 0.1f, creature.getDistanceCanSee() * 10);
         cam.setAxes(Vector3f.UNIT_X, Vector3f.UNIT_Y, Vector3f.UNIT_Z);
     }
@@ -177,15 +177,15 @@ public class PossessionCameraState extends AbstractPauseAwareState implements Ac
 
         if (name.equals(Settings.Setting.POSSESSED_RUN.name())) {
             if (isPressed) {
-                camera.setSpeed(creature.getRunSpeed());
+                camera.setSpeed(creature.getAttributes().getRunSpeed());
             } else {
-                camera.setSpeed(creature.getSpeed());
+                camera.setSpeed(creature.getAttributes().getSpeed());
             }
         } else if (name.equals(Settings.Setting.POSSESSED_CREEP.name())) {
             if (isPressed) {
-                camera.setSpeed(creature.getShuffleSpeed());
+                camera.setSpeed(creature.getAttributes().getShuffleSpeed());
             } else {
-                camera.setSpeed(creature.getSpeed());
+                camera.setSpeed(creature.getAttributes().getSpeed());
             }
         }
     }

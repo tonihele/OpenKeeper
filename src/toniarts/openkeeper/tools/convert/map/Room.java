@@ -130,13 +130,13 @@ public class Room implements Comparable<Room> {
     private ArtResource completeResource; // c8
     private ArtResource straightResource; // 11c
     private ArtResource insideCornerResource;
-    private ArtResource unknownResource;
+    private ArtResource unknownResource; // always null
     private ArtResource outsideCornerResource;
     private ArtResource wallResource;
     private ArtResource capResource; // Capture?
     private ArtResource ceilingResource;
     private float ceilingHeight; // 368 - very likely flags
-    private int unknown2; // 36c
+    private int researchTime; // 36c
     private int torchIntensity; // 36e
     private EnumSet<RoomFlag> flags; // 370
     private int tooltipStringId;
@@ -148,7 +148,7 @@ public class Room implements Comparable<Room> {
     private float torchHeight;
     private List<Integer> effects; // 382, in editor there are just 6
     private short roomId; // 392
-    private short unknown7; // 393
+    private short returnPercentage; // 393
     private short terrainId; // 394
     private TileConstruction tileConstruction; // 395
     private short createdCreatureId; // 396
@@ -178,12 +178,16 @@ public class Room implements Comparable<Room> {
         this.ceilingHeight = ceilingHeight;
     }
 
-    public int getUnknown2() {
-        return unknown2;
+    /**
+     *
+     * @return maybe. Not changed in editor
+     */
+    public int getResearchTime() {
+        return researchTime;
     }
 
-    protected void setUnknown2(int unknown2) {
-        this.unknown2 = unknown2;
+    protected void setResearchTime(int researchTime) {
+        this.researchTime = researchTime;
     }
 
     public int getTorchIntensity() {
@@ -274,12 +278,12 @@ public class Room implements Comparable<Room> {
         this.roomId = roomId;
     }
 
-    public short getUnknown7() {
-        return unknown7;
+    public short getReturnPercentage() {
+        return returnPercentage;
     }
 
-    protected void setUnknown7(short unknown7) {
-        this.unknown7 = unknown7;
+    protected void setReturnPercentage(short returnPercentage) {
+        this.returnPercentage = returnPercentage;
     }
 
     public short getTerrainId() {
@@ -410,6 +414,10 @@ public class Room implements Comparable<Room> {
         this.insideCornerResource = insideCornerResource;
     }
 
+    /**
+     *
+     * @return always null
+     */
     public ArtResource getUnknownResource() {
         return unknownResource;
     }

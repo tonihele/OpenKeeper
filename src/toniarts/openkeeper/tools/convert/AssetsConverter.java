@@ -354,7 +354,7 @@ public abstract class AssetsConverter {
                         public KmfFile setValue(KmfFile value) {
                             throw new UnsupportedOperationException("Plz, don't do this!");
                         }
-                    }, destination);
+                    }, destination, engineTexturesFile);
 
                     // We can delete the file straight
                     f.delete();
@@ -373,7 +373,7 @@ public abstract class AssetsConverter {
         // And the groups (now they can be linked)
         for (Entry<String, KmfFile> entry : kmfs.entrySet()) {
             updateStatus(i, total, ConvertProcess.MODELS);
-            convertModel(assetManager, entry, destination);
+            convertModel(assetManager, entry, destination, engineTexturesFile);
             i++;
         }
     }
@@ -386,7 +386,7 @@ public abstract class AssetsConverter {
      * @param destination destination directory
      * @throws RuntimeException May fail
      */
-    private void convertModel(AssetManager assetManager, Entry<String, KmfFile> entry, String destination) throws RuntimeException {
+    private void convertModel(AssetManager assetManager, Entry<String, KmfFile> entry, String destination, EngineTexturesFile engineTexturesFile) throws RuntimeException {
 
         //Remove the file extension from the file
         KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(entry.getKey()), entry.getValue(), true);
@@ -691,7 +691,7 @@ public abstract class AssetsConverter {
                         mat.setColumn(2, new Vector3f(-up.x, up.y, up.z));
 
                         entries.add(new CameraSweepDataEntry(ConversionUtils.convertVector(kcsEntry.getPosition()),
-                                new Quaternion().fromRotationMatrix(mat), FastMath.RAD_TO_DEG * kcsEntry.getFov(),
+                                new Quaternion().fromRotationMatrix(mat), FastMath.RAD_TO_DEG * kcsEntry.getLens(),
                                 kcsEntry.getNear()));
                     }
                     CameraSweepData cameraSweepData = new CameraSweepData(entries);

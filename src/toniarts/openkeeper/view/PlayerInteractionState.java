@@ -667,10 +667,16 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      * Picks up an object, places it in Keeper's hand
      *
      * @param object the object to pickup
+     * @return picked or not
      */
-    public void pickupObject(IInteractiveControl object) {
+    public boolean pickupObject(IInteractiveControl object) {
+        if (object == null || keeperHand.isFull() || !object.isPickable(player.getPlayerId())) {
+            return false;
+        }
+
         keeperHand.push(object.pickUp(player.getPlayerId()));
         updateCursor();
+        return true;
     }
 
     /**
