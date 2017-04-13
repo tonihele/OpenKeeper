@@ -20,7 +20,6 @@ import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import java.io.InputStream;
-import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 
 /**
@@ -32,14 +31,12 @@ import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 public class KmfAssetInfo extends AssetInfo {
 
     private final KmfFile kmfFile;
-    private final EngineTexturesFile engineTexturesFile;
     private final boolean generateMaterialFile;
 
-    public KmfAssetInfo(AssetManager manager, AssetKey key, KmfFile kmfFile, EngineTexturesFile engineTexturesFile, boolean generateMaterialFile) {
+    public KmfAssetInfo(AssetManager manager, AssetKey key, KmfFile kmfFile, boolean generateMaterialFile) {
         super(manager, key);
 
         this.kmfFile = kmfFile;
-        this.engineTexturesFile = engineTexturesFile;
         this.generateMaterialFile = generateMaterialFile;
     }
 
@@ -50,10 +47,6 @@ public class KmfAssetInfo extends AssetInfo {
 
     public KmfFile getKmfFile() {
         return kmfFile;
-    }
-
-    public EngineTexturesFile getEngineTexturesFile() {
-        return engineTexturesFile;
     }
 
     public boolean isGenerateMaterialFile() {

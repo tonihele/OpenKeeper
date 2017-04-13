@@ -92,7 +92,7 @@ public abstract class AssetsConverter {
     public enum ConvertProcess {
 
         TEXTURES(4),
-        MODELS(5),
+        MODELS(6),
         MOUSE_CURSORS(3),
         MUSIC_AND_SOUNDS(3),
         INTERFACE_TEXTS(2),
@@ -354,7 +354,7 @@ public abstract class AssetsConverter {
                         public KmfFile setValue(KmfFile value) {
                             throw new UnsupportedOperationException("Plz, don't do this!");
                         }
-                    }, destination, engineTexturesFile);
+                    }, destination);
 
                     // We can delete the file straight
                     f.delete();
@@ -373,7 +373,7 @@ public abstract class AssetsConverter {
         // And the groups (now they can be linked)
         for (Entry<String, KmfFile> entry : kmfs.entrySet()) {
             updateStatus(i, total, ConvertProcess.MODELS);
-            convertModel(assetManager, entry, destination, engineTexturesFile);
+            convertModel(assetManager, entry, destination);
             i++;
         }
     }
@@ -386,10 +386,10 @@ public abstract class AssetsConverter {
      * @param destination destination directory
      * @throws RuntimeException May fail
      */
-    private void convertModel(AssetManager assetManager, Entry<String, KmfFile> entry, String destination, EngineTexturesFile engineTexturesFile) throws RuntimeException {
+    private void convertModel(AssetManager assetManager, Entry<String, KmfFile> entry, String destination) throws RuntimeException {
 
         //Remove the file extension from the file
-        KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(entry.getKey()), entry.getValue(), engineTexturesFile, true);
+        KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(entry.getKey()), entry.getValue(), true);
         KmfModelLoader kmfModelLoader = new KmfModelLoader();
         try {
             Node n = (Node) kmfModelLoader.load(ai);
