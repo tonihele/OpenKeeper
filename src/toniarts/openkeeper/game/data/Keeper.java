@@ -71,23 +71,19 @@ public class Keeper implements Comparable<Keeper> {
 
         // AI is always ready
         ready = ai;
-
-        creatureControl = new PlayerCreatureControl(app);
-        roomControl = new PlayerRoomControl(app);
-        spellControl = new PlayerSpellControl(app);
     }
 
     public Keeper(Player player, final Application app) {
         this.player = player;
         this.id = player.getPlayerId();
         initialGold = player.getStartingGold();
-
-        creatureControl = new PlayerCreatureControl(app);
-        roomControl = new PlayerRoomControl(app);
-        spellControl = new PlayerSpellControl(app);
     }
 
     public void initialize(final AppStateManager stateManager, final Application app) {
+        creatureControl = new PlayerCreatureControl(app);
+        roomControl = new PlayerRoomControl(app);
+        spellControl = new PlayerSpellControl(app);
+
         int triggerId = player.getTriggerId();
         if (triggerId != 0) {
             triggerControl = new PlayerTriggerControl(stateManager, triggerId);
@@ -125,31 +121,31 @@ public class Keeper implements Comparable<Keeper> {
     }
 
     public PlayerGoldControl getGoldControl() {
-        return null;
+        return goldControl;
     }
 
     public PlayerCreatureControl getCreatureControl() {
-        return null;
+        return creatureControl;
     }
 
     public PlayerStatsControl getStatsControl() {
-        return null;
+        return statsControl;
     }
 
     public PlayerRoomControl getRoomControl() {
-        return null;
+        return roomControl;
     }
 
     public PlayerTriggerControl getTriggerControl() {
-        return null;
+        return triggerControl;
     }
 
     public PlayerManaControl getManaControl() {
-        return null;
+        return manaControl;
     }
 
     public PlayerSpellControl getSpellControl() {
-        return null;
+        return spellControl;
     }
 
     public void update(float tpf) {
