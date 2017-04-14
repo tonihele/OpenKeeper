@@ -569,6 +569,7 @@
     </screen>
 
     <screen id="multiplayerWatch" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
+
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.2729}" />
@@ -598,6 +599,21 @@
             </panel>
         </layer>
     </screen>
+
+    <!-- A popup that says connecting... -->
+    <popup id="connectingLayer" childLayout="center" backgroundColor="#000a">
+        <text style="menuTitleText" text="${menu.2070}" />
+    </popup>
+
+    <!-- Error message, TODO: beautify... -->
+    <popup id="errorMessage" childLayout="center" backgroundColor="#000a">
+        <layer childLayout="vertical">
+            <panel childLayout="center" height="*" align="center" valign="center">
+                <control name="label" style="menuTitleText" id="title" text="" />
+                <control name="label" id="message" style="menuTextSmall" />
+            </panel>
+        </layer>
+    </popup>
 
     <screen id="multiplayerCreate" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
