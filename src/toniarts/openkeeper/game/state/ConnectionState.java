@@ -27,6 +27,8 @@ import com.jme3.network.service.ClientService;
 import com.simsilica.ethereal.EtherealClient;
 import com.simsilica.ethereal.TimeSource;
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.network.NetworkClient;
@@ -57,6 +59,7 @@ public class ConnectionState extends AbstractAppState {
     private final String playerName;
     private final ConnectionObserver connectionObserver = new ConnectionObserver();
     private Connector connector;
+    private final List<ConnectionErrorListener> connectionErrorListeners = new CopyOnWriteArrayList<>();
 
     private volatile boolean closing;
 
@@ -148,12 +151,24 @@ public class ConnectionState extends AbstractAppState {
         }
     }
 
-    protected void showError(final String title, final Throwable e, final boolean fatal) {
+    private void showError(final String title, final Throwable e, final boolean fatal) {
         showError(title, null, e, fatal);
     }
 
-    protected void showError(final String title, final String message, final Throwable e, final boolean fatal) {
+    private void showError(final String title, final String message, final Throwable e, final boolean fatal) {
+        if (!connectionErrorListeners.isEmpty()) {
+            for (ConnectionErrorListener listener : connectionErrorListeners) {
+                listener.showError(title, message, e, fatal);
+            }
+        }
+    }
 
+    public void addConnectionErrorListener(ConnectionErrorListener listener) {
+        connectionErrorListeners.add(listener);
+    }
+
+    public void removeConnectionErrorListener(ConnectionErrorListener listener) {
+        connectionErrorListeners.remove(listener);
     }
 
     protected void onConnected() {
@@ -215,6 +230,11 @@ public class ConnectionState extends AbstractAppState {
         }
     }
 
+    public interface ConnectionErrorListener {
+
+        public void showError(final String title, final String message, final Throwable e, final boolean fatal);
+    }
+
     private class Connector extends Thread {
 
         public Connector() {
@@ -249,10 +269,11 @@ public class ConnectionState extends AbstractAppState {
                 client.start();
                 logger.info("Client started.");
             } catch (IOException e) {
-                disconnect();
                 if (closing) {
+                    disconnect();
                     return;
                 }
+                disconnect();
                 showError("Error Connecting", e, true);
             }
         }

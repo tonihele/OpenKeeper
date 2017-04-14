@@ -79,6 +79,11 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     private static final List<Cutscene> CUTSCENES = new ArrayList<>();
     private ChatSessionListener chatSessionListener;
     private LobbySessionListener lobbySessionListener;
+
+    /**
+     * A popup instance if some screen should need one
+     */
+    private Element popupElement;
     private static final Logger logger = Logger.getLogger(MainMenuScreenController.class.getName());
 
     static {
@@ -179,7 +184,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 Integer.valueOf(port.getRealText()),
                 player.getRealText());
 
-        // TODO: Some overlay that says connecting?
+        // Overlay
+        popupElement = nifty.createPopup("connectingLayer");
+        nifty.showPopup(nifty.getCurrentScreen(), popupElement.getId(), null);
     }
 
     @Override
@@ -203,7 +210,22 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
         state.multiplayerConnect(hostAddress.getRealText(), player.getRealText());
 
-        // TODO: Some overlay that says connecting?
+        // Overlay
+        popupElement = nifty.createPopup("connectingLayer");
+        nifty.showPopup(nifty.getCurrentScreen(), popupElement.getId(), null);
+    }
+
+    protected void showError(String title, String message) {
+        closePopup();
+
+        // Open message
+        popupElement = nifty.createPopup("errorMessage");
+        nifty.showPopup(nifty.getCurrentScreen(), popupElement.getId(), null);
+
+        Label titleLabel = screen.findNiftyControl("title", Label.class);
+        //titleLabel.setText(title);
+        //Label messageLabel = screen.findNiftyControl("message", Label.class);
+        //messageLabel.setText(message);
     }
 
     @Override
@@ -443,6 +465,10 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     @Override
     public void onEndScreen() {
+
+        // Close any possible popups, otherwise they stay on the screen they were opened on...
+        closePopup();
+
         switch (nifty.getCurrentScreen().getScreenId()) {
             case "selectCampaignLevel":
                 state.inputManager.removeRawInputListener(state.listener);
@@ -451,6 +477,13 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             case "briefing":
                 state.clearLevelBriefingNarration();
                 break;
+        }
+    }
+
+    private void closePopup() {
+        if (popupElement != null) {
+            nifty.closePopup(popupElement.getId());
+            popupElement = null;
         }
     }
 

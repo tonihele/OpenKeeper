@@ -315,6 +315,15 @@ public class MainMenuState extends AbstractAppState {
             }
 
         };
+        connectionState.addConnectionErrorListener(new ConnectionState.ConnectionErrorListener() {
+
+            @Override
+            public void showError(String title, String message, Throwable e, boolean fatal) {
+                app.enqueue(() -> {
+                    screen.showError(title, message);
+                });
+            }
+        });
         stateManager.attach(connectionState);
 
         try {
