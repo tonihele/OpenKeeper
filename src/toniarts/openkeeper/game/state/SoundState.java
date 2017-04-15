@@ -27,6 +27,7 @@ import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * This state plays different sounds
@@ -69,7 +70,7 @@ public class SoundState extends AbstractPauseAwareState {
      */
     public void attachLevelSpeech(int speechId) {
         String file = String.format("Sounds/%s/lvlspe%02d.mp2", stateManager.getState(GameState.class).getLevelData().getGameLevel().getSpeechStr().toLowerCase(), speechId);
-        speechQueue.add(file);
+        speechQueue.add(ConversionUtils.getCanonicalAssetKey(file));
     }
 
     /**
@@ -80,7 +81,7 @@ public class SoundState extends AbstractPauseAwareState {
      */
     public void attachMentorSpeech(String audioFile) {
         String file = String.format("Sounds/speech_mentor/%s.mp2", audioFile);
-        speechQueue.add(file);
+        speechQueue.add(ConversionUtils.getCanonicalAssetKey(file));
     }
 
     private void playSpeech(String file) {
@@ -158,7 +159,8 @@ public class SoundState extends AbstractPauseAwareState {
                 third = random.nextInt(23) + 1;
             }
 
-            return String.format("Sounds/Global/%dpt%d-%03d.mp2", first, second, third);
+            final String formatted = String.format("Sounds/Global/%dpt%d-%03d.mp2", first, second, third);
+            return ConversionUtils.getCanonicalAssetKey(formatted);
         }
     }
 
