@@ -607,12 +607,13 @@
 
     <!-- Error message, TODO: beautify... -->
     <popup id="errorMessage" childLayout="center" backgroundColor="#000a">
-        <layer childLayout="vertical">
-            <panel childLayout="center" height="*" align="center" valign="center">
+        <panel childLayout="center" height="*" align="center" valign="center">
+            <panel childLayout="vertical" align="center" valign="center" visibleToMouse="true">
                 <control name="label" style="menuTitleText" id="title" text="" />
                 <control name="label" id="message" style="menuTextSmall" />
+                <control name="okButton" align="right" click="closeErrorMessage()" />
             </panel>
-        </layer>
+        </panel>
     </popup>
 
     <screen id="multiplayerCreate" controller="toniarts.openkeeper.game.state.MainMenuScreenController">

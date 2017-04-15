@@ -54,6 +54,7 @@ import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.network.chat.ChatClientService;
 import toniarts.openkeeper.game.network.chat.ChatSessionListener;
 import toniarts.openkeeper.game.network.lobby.LobbyClientService;
 import toniarts.openkeeper.game.network.lobby.LobbySessionListener;
@@ -222,10 +223,11 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         popupElement = nifty.createPopup("errorMessage");
         nifty.showPopup(nifty.getCurrentScreen(), popupElement.getId(), null);
 
-        Label titleLabel = screen.findNiftyControl("title", Label.class);
-        //titleLabel.setText(title);
-        //Label messageLabel = screen.findNiftyControl("message", Label.class);
-        //messageLabel.setText(message);
+        // Set message text
+        Label titleLabel = popupElement.findNiftyControl("title", Label.class);
+        titleLabel.setText(title);
+        Label messageLabel = popupElement.findNiftyControl("message", Label.class);
+        messageLabel.setText(message);
     }
 
     @Override
@@ -822,14 +824,34 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     public void cancelMultiplayer() {
 
         // Disconnect and dismantle
-        state.getChatService().removeChatSessionListener(getChatSessionListener());
-        state.getConnectionState().getService(LobbyClientService.class).removeLobbySessionListener(getLobbySessionListener());
+        if (chatSessionListener != null) {
+        ChatClientService ccs = state.getChatService();
+        if (ccs != null) {
+            ccs.removeChatSessionListener(getChatSessionListener());
+            }
+        }
+        if (lobbySessionListener != null) {
+        ConnectionState cs = state.getConnectionState();
+            if (cs != null) {
+                LobbyClientService lcs = cs.getService(LobbyClientService.class);
+                if (lcs != null) {
+                    lcs.removeLobbySessionListener(getLobbySessionListener());
+                }
+            }
+        }
         chatSessionListener = null;
         lobbySessionListener = null;
         state.shutdownMultiplayer();
 
         // TODO: See which screen to go back to
         goToScreen("multiplayerLocal");
+    }
+
+    public void closeErrorMessage() {
+        closePopup();
+
+        // This is really now just used for MP error messages
+        cancelMultiplayer();
     }
 
     public ChatSessionListener getChatSessionListener() {
