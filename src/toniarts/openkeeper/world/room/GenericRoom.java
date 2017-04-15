@@ -93,6 +93,25 @@ public abstract class GenericRoom {
     private final Set<ObjectControl> floorFurniture = new HashSet<>();
     private final Set<ObjectControl> wallFurniture = new HashSet<>();
 
+    // FIXME we need todo something
+    private static final Map<Integer, String> temp = new HashMap<>();
+    static {
+        temp.put(3, "%44"); // Portal
+        temp.put(2, "%45"); // Lairs
+        temp.put(4, "%46"); // Hatchery
+        temp.put(1, "%47"); // Treasure
+        temp.put(6, "%48"); // Library
+        temp.put(7, "%49"); // Training Room
+        temp.put(10, "%50"); // Workshop
+        temp.put(9, "%51"); // Guard Rooms
+        temp.put(16, "%53"); // Combat Pit
+        temp.put(12, "%54"); // Torture
+        temp.put(11, "%58"); // Prison
+        temp.put(14, "%61"); // Graveyard
+        temp.put(13, "%62"); // Temple
+        temp.put(15, "%63"); // Casino
+    }
+
     public GenericRoom(AssetManager assetManager,
             RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         this.assetManager = assetManager;
@@ -609,28 +628,13 @@ public abstract class GenericRoom {
 
     @Nullable
     private RoomCount getRoomCount() {
-        Map<Integer, String> temp = new HashMap<>();
-        temp.put(3, "%44"); // Portal
-        temp.put(2, "%45"); // Lairs
-        temp.put(4, "%46"); // Hatchery
-        temp.put(1, "%47"); // Treasure
-        temp.put(6, "%48"); // Library
-        temp.put(7, "%49"); // Training Room
-        temp.put(10, "%50"); // Workshop
-        temp.put(9, "%51"); // Guard Rooms
-        temp.put(16, "%53"); // Combat Pit
-        temp.put(12, "%54"); // Torture
-        temp.put(11, "%58"); // Prison
-        temp.put(14, "%61"); // Graveyard
-        temp.put(13, "%62"); // Temple
-        temp.put(15, "%63"); // Casino
 
         int roomId = roomInstance.getRoom().getRoomId();
         if (!temp.containsKey(roomId)) {
             return null;
         }
 
-        Keeper player =worldState.getGameState().getPlayer(roomInstance.getOwnerId());
+        Keeper player = worldState.getGameState().getPlayer(roomInstance.getOwnerId());
         int total = player.getRoomControl().getTypeCount(roomInstance.getRoom());
 
         return new RoomCount(temp.get(roomId), total);
