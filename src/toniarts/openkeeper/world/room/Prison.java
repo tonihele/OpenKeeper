@@ -161,4 +161,12 @@ public class Prison extends DoubleQuad {
         return coordinates;
     }
 
+    @Override
+    public String getTooltip(short playerId) {
+        String result = super.getTooltip(playerId);
+
+        return result;//.replaceAll("%55", ) // TODO Skeleton Animated
+                //.replaceAll("%56", ) // TODO Skeleton Animated Max
+                //.replaceAll("%56", ) // TODO Prison status
+    }
 }

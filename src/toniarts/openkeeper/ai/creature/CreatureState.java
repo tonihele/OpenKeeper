@@ -89,7 +89,7 @@ public enum CreatureState implements State<CreatureControl> {
                 return;
             }
 
-            if (!findStuffToDo(entity) && entity.getIdleAnimationPlayCount() > 0 && entity.isStopped()) {
+            if (!findStuffToDo(entity) && entity.isStopped()) {
                 entity.navigateToRandomPoint();
             }
         }
@@ -222,10 +222,6 @@ public enum CreatureState implements State<CreatureControl> {
         @Override
         public void enter(CreatureControl entity) {
             entity.unassingCurrentTask();
-            CreatureControl attackTarget = entity.getAttackTarget();
-            if (attackTarget != null && !entity.isWithinAttackDistance(attackTarget)) {
-                entity.navigateToAttackTarget(attackTarget);
-            }
         }
 
         @Override
@@ -242,7 +238,7 @@ public enum CreatureState implements State<CreatureControl> {
                 // Attack!!
                 entity.stop();
                 entity.executeAttack(attackTarget);
-            } else {
+            } else if (entity.isStopped()) {
                 entity.navigateToAttackTarget(attackTarget);
             }
         }
@@ -261,7 +257,7 @@ public enum CreatureState implements State<CreatureControl> {
 
         @Override
         public void enter(CreatureControl entity) {
-            entity.followTarget(entity.getFollowTarget());
+            //entity.followTarget(entity.getFollowTarget());
         }
 
         @Override
@@ -285,9 +281,7 @@ public enum CreatureState implements State<CreatureControl> {
             }
 
             // Don't let the target wander too far off
-            if (entity.isStopped() && !entity.getFollowTarget().isStopped() && entity.getDistanceToCreature(entity.getFollowTarget()) > 2.5f) {
-                entity.followTarget(entity);
-            } else if (entity.isStopped()) {
+            if (entity.isStopped() && entity.getDistanceToCreature(entity.getFollowTarget()) > 2.5f) {
                 entity.navigateToRandomPointAroundTarget(entity.getFollowTarget(), 2);
             }
         }

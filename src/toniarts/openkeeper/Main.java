@@ -59,7 +59,6 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
-import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.MainMenuState;
@@ -70,6 +69,7 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
@@ -372,7 +372,7 @@ public class Main extends SimpleApplication {
 
                     // Initialize persistent app states
                     MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager, Main.this);
-                    PlayerState playerState = new PlayerState(Keeper.KEEPER1_ID, false);
+                    PlayerState playerState = new PlayerState(Player.KEEPER1_ID, false);
 
                     stateManager.attach(mainMenuState);
                     stateManager.attach(playerState);

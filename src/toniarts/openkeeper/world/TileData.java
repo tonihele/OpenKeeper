@@ -205,8 +205,8 @@ public final class TileData extends Tile {
      * @return true if the tile is "dead"
      */
     public boolean applyDamage(int damage) {
-        health -= damage;
-        return (health <= 0);
+        health = Math.max(0, health - damage);
+        return (health == 0);
     }
 
     /**
@@ -216,7 +216,7 @@ public final class TileData extends Tile {
      * @return true if the tile is at max
      */
     public boolean applyHealing(int healing) {
-        health = Math.min(getTerrain().getMaxHealth(), health + healing);
+        health = (int) Math.min(getTerrain().getMaxHealth(), (long) health + healing);
         return (health == getTerrain().getMaxHealth());
     }
 

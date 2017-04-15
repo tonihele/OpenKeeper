@@ -569,10 +569,10 @@ public abstract class WorldState extends AbstractAppState {
         }
 
         // FIXME: this is just a debug stuff, remove when the imps can carry the gold
-        addPlayerGold(Keeper.KEEPER1_ID, terrain.getGoldValue());
+        addPlayerGold(Player.KEEPER1_ID, terrain.getGoldValue());
 
         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-        tile.setSelected(false, Keeper.KEEPER1_ID);
+        tile.setSelected(false, Player.KEEPER1_ID);
         tile.setFlashed(false);
 
         // See if room walls are allowed and does this touch any rooms
@@ -882,8 +882,8 @@ public abstract class WorldState extends AbstractAppState {
      */
     public Point findRandomAccessibleTile(Point start, int radius, CreatureControl creature) {
         List<Point> tiles = new ArrayList<>(radius * radius - 1);
-        for (int y = start.y - radius / 2; y < start.y + radius / 2; y++) {
-            for (int x = start.x - radius / 2; x < start.x + radius / 2; x++) {
+        for (int y = start.y - radius; y <= start.y + radius; y++) {
+            for (int x = start.x - radius; x <= start.x + radius; x++) {
 
                 // Skip start tile
                 if (x == start.x && y == start.y) {

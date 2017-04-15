@@ -36,4 +36,11 @@ public class GuardRoom extends Normal {
     protected boolean hasPillars() {
         return false;
     }
+
+    @Override
+    public String getTooltip(short playerId) {
+        String result = super.getTooltip(playerId);
+
+        return result;//.replaceAll("%52", ) // TODO Guard Rooms Patrol Routes
+    }
 }

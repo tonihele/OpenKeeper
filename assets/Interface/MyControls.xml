@@ -70,8 +70,7 @@
                    padding="6px,6px,6px,0px" width="64px" height="128px">
                 <control name="label" text="?" textHAlign="center" textVAlign="center"
                          style="text" id="#workerTotal" height="25%" width="100%">
-                    <interact onPrimaryClick="pickUpImp(null)" />
-                    <interact onSecondaryClick="zoomToImp(null)" />
+                    <interact onSecondaryClick="zoomToImp(null)" onPrimaryClick="pickUpImp(null)" />
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
                                  post="true" neverStopRendering="true" overlay="true" />
@@ -82,8 +81,7 @@
                 </control>
                 <control name="label" text="?" textHAlign="center" textVAlign="center" style="text"
                          id="#workerIdle" height="25%" width="100%">
-                    <interact onPrimaryClick="pickUpImp(idle)" />
-                    <interact onSecondaryClick="zoomToImp(idle)" />
+                    <interact onSecondaryClick="zoomToImp(idle)" onPrimaryClick="pickUpImp(idle)" />
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
                                  post="true" neverStopRendering="true" overlay="true" />
@@ -94,8 +92,7 @@
                 </control>
                 <control name="label" text="?" textHAlign="center" textVAlign="center" style="text"
                          id="#workerBusy" height="25%" width="100%">
-                    <interact onPrimaryClick="pickUpImp(busy)" />
-                    <interact onSecondaryClick="zoomToImp(busy)" />
+                    <interact onSecondaryClick="zoomToImp(busy)" onPrimaryClick="pickUpImp(busy)" />
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
                                  post="true" neverStopRendering="true" overlay="true" />
@@ -106,8 +103,7 @@
                 </control>
                 <control name="label" text="?" textHAlign="center" textVAlign="center" style="text"
                          id="#workerFight" height="25%" width="100%">
-                    <interact onPrimaryClick="pickUpImp(fight)" />
-                    <interact onSecondaryClick="zoomToImp(fight)" />
+                    <interact onSecondaryClick="zoomToImp(fight)" onPrimaryClick="pickUpImp(fight)" />
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
                                  post="true" neverStopRendering="true" overlay="true" />
@@ -238,7 +234,7 @@
                              textHAlign="center" textVAlign="center" width="100%">
                         <effect>
                             <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
-                                     post="true" neverStopRendering="true" overlay="true" />
+                                 post="true" neverStopRendering="true" overlay="true" />
                         </effect>
                         <interact onSecondaryClick="zoomTo(fight)" onPrimaryClick="pickUp(fight)" />
                     </control>
@@ -297,7 +293,7 @@
                         <interact onSecondaryClick="zoomTo(unhappy)" onPrimaryClick="pickUp(unhappy)" />
                     </control>
                     <control name="label" id="#angry" text="?" style="text" height="34%"
-                             textHAlign="center" textVAlign="center" width="100%">
+                         textHAlign="center" textVAlign="center" width="100%">
                         <effect>
                             <onHover name="imageOverlay" filename="Textures/GUI/Icons/Hilight-Creature.png"
                                      post="true" neverStopRendering="true" overlay="true" />

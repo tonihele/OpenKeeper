@@ -30,6 +30,10 @@ public class Player implements Comparable<Player>, ITriggerable {
 
     public static final short GOOD_PLAYER_ID = 1;
     public static final short NEUTRAL_PLAYER_ID = 2;
+    public final static short KEEPER1_ID = 3;
+    public final static short KEEPER2_ID = 4;
+    public final static short KEEPER3_ID = 5;
+    public final static short KEEPER4_ID = 6;
 
     //
     // struct Player

@@ -37,11 +37,6 @@ import toniarts.openkeeper.tools.convert.map.Player;
  */
 public class Keeper implements Comparable<Keeper>, IIndexable {
 
-    public final static short KEEPER1_ID = 3;
-    public final static short KEEPER2_ID = 4;
-    public final static short KEEPER3_ID = 5;
-    public final static short KEEPER4_ID = 6;
-
     private boolean ai;
     private AIType aiType = AIType.MASTER_KEEPER;
     private transient Player player;

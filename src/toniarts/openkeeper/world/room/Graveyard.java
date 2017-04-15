@@ -36,4 +36,12 @@ public class Graveyard extends Normal {
     protected String getPillarResource() {
         return "Graveyard_Pillar";
     }
+
+    @Override
+    public String getTooltip(short playerId) {
+        String result = super.getTooltip(playerId);
+
+        return result;//.replaceAll("%59", ) // TODO Vampires Attracted
+                //.replaceAll("%60", ) // TODO Vampires Attracted Max
+    }
 }

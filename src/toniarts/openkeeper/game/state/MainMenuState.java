@@ -167,7 +167,7 @@ public class MainMenuState extends AbstractAppState {
      * Load the initial main menu camera position
      */
     private void loadCameraStartLocation() {
-        Player player = kwdFile.getPlayer(Keeper.KEEPER1_ID);
+        Player player = kwdFile.getPlayer(Player.KEEPER1_ID);
         startLocation = WorldUtils.pointToVector3f(player.getStartingCameraX(), player.getStartingCameraY());
         startLocation.addLocal(0, MapLoader.FLOOR_HEIGHT, 0);
 
@@ -516,6 +516,18 @@ public class MainMenuState extends AbstractAppState {
         }
 
         return displayModes;
+    }
+
+    /**
+     * Init skirmish players
+     */
+    protected void initSkirmishPlayers() {
+        skirmishPlayers.clear();
+
+        Keeper keeper = new Keeper(false, "Player", Player.KEEPER1_ID, app);
+        skirmishPlayers.add(keeper);
+        keeper = new Keeper(true, null, Player.KEEPER2_ID, app);
+        skirmishPlayers.add(keeper);
     }
 
     public void doDebriefing(GameResult result) {
