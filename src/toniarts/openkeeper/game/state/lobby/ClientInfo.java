@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.state.lobby;
 
+import java.util.Objects;
 import toniarts.openkeeper.game.data.Keeper;
 
 /**
@@ -83,4 +84,30 @@ public class ClientInfo {
     public void setReady(boolean ready) {
         this.ready = ready;
     }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 97 * hash + Objects.hashCode(this.keeper);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final ClientInfo other = (ClientInfo) obj;
+        if (!Objects.equals(this.keeper, other.keeper)) {
+            return false;
+        }
+        return true;
+    }
+
 }
