@@ -21,6 +21,8 @@ import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rmi.RmiRegistry;
+import com.simsilica.ethereal.EtherealHost;
+import com.simsilica.ethereal.NetworkStateListener;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Level;
@@ -46,7 +48,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
     private RmiHostedService rmiService;
 
     private final Object playerLock = new Object();
-    private final Map<Keeper, AbstractLobbySessionImpl> players = new ConcurrentHashMap<>(MAX_PLAYERS, 0.75f, 5);
+    private final Map<ClientInfo, AbstractLobbySessionImpl> players = new ConcurrentHashMap<>(MAX_PLAYERS, 0.75f, 5);
     private String mapName;
 
     /**
@@ -84,9 +86,10 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
             synchronized (playerLock) {
                 if (players.size() < MAX_PLAYERS) {
                     Keeper keeper = getNextKeeper(playerName);
-                    keeper.setSystemMenory(conn.getAttribute(ATTRIBUTE_SYSTEM_MEMORY));
+                    ClientInfo clientInfo = new ClientInfo(conn.getAttribute(ATTRIBUTE_SYSTEM_MEMORY), conn.getAddress());
+                    clientInfo.setKeeper(keeper);
 
-                    LobbySessionImpl session = new LobbySessionImpl(conn, keeper);
+                    LobbySessionImpl session = new LobbySessionImpl(conn, clientInfo);
                     conn.setAttribute(ATTRIBUTE_SESSION, session);
                     conn.setAttribute(ATTRIBUTE_PLAYER_ID, keeper.getId());
 
@@ -94,7 +97,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
                     RmiRegistry rmi = rmiService.getRmiRegistry(conn);
                     rmi.share(NetworkServer.LOBBY_CHANNEL, session, LobbySession.class);
 
-                    players.put(keeper, session);
+                    players.put(clientInfo, session);
                     playerAdded = true;
                 }
             }
@@ -134,7 +137,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
             conn.setAttribute(ATTRIBUTE_SESSION, null);
 
             // Remove player session from the active sessions list
-            players.remove(player.getKeeper());
+            players.remove(player.getClientInfo());
 
             // Notify players
             notifyPlayersChange();
@@ -157,7 +160,9 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
             synchronized (playerLock) {
                 if (players.size() < MAX_PLAYERS) {
                     Keeper keeper = getNextKeeper(null);
-                    players.put(keeper, new AbstractLobbySessionImpl(keeper) {
+                    ClientInfo clientInfo = new ClientInfo(0, null);
+                    clientInfo.setKeeper(keeper);
+                    AbstractLobbySessionImpl session = new AbstractLobbySessionImpl(clientInfo) {
 
                         @Override
                         protected HostedConnection getHostedConnection() {
@@ -170,12 +175,12 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
                         }
 
                         @Override
-                        public List<Keeper> getPlayers() {
+                        public List<ClientInfo> getPlayers() {
                             return Collections.emptyList();
                         }
 
                         @Override
-                        public void onPlayerListChanged(List<Keeper> players) {
+                        public void onPlayerListChanged(List<ClientInfo> players) {
 
                         }
 
@@ -189,7 +194,8 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
                             return null;
                         }
 
-                    });
+                    };
+                    players.put(clientInfo, session);
                 }
             }
         }
@@ -199,11 +205,14 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
     }
 
     @Override
-    public void removePlayer(Keeper keeper) {
-        AbstractLobbySessionImpl lobbySessionImpl = players.remove(keeper);
+    public void removePlayer(ClientInfo keeper) {
+        AbstractLobbySessionImpl lobbySessionImpl;
+        synchronized (playerLock) {
+            lobbySessionImpl = players.remove(keeper);
+        }
 
         // Disconnect player
-        if (lobbySessionImpl != null) {
+        if (lobbySessionImpl.getHostedConnection() != null) {
             lobbySessionImpl.getHostedConnection().close("You have been kicked from the game!");
         }
 
@@ -219,7 +228,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
     private Keeper getNextKeeper(String playerName) {
         short id = Keeper.KEEPER1_ID;
-        List<Short> keepers = players.keySet().stream().map(Keeper::getId).collect(toList());
+        List<Short> keepers = players.keySet().stream().map(c -> c.getKeeper().getId()).collect(toList());
         Collections.sort(keepers);
         while (Collections.binarySearch(keepers, id) >= 0) {
             id++;
@@ -229,14 +238,14 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
     private abstract class AbstractLobbySessionImpl implements LobbySession, LobbySessionListener {
 
-        private final Keeper keeper;
+        private final ClientInfo clientInfo;
 
-        public AbstractLobbySessionImpl(Keeper keeper) {
-            this.keeper = keeper;
+        public AbstractLobbySessionImpl(ClientInfo clientInfo) {
+            this.clientInfo = clientInfo;
         }
 
-        public Keeper getKeeper() {
-            return keeper;
+        protected ClientInfo getClientInfo() {
+            return clientInfo;
         }
 
         protected abstract HostedConnection getHostedConnection();
@@ -253,8 +262,8 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         private final HostedConnection conn;
         private LobbySessionListener callback;
 
-        public LobbySessionImpl(HostedConnection conn, Keeper keeper) {
-            super(keeper);
+        public LobbySessionImpl(HostedConnection conn, ClientInfo clientInfo) {
+            super(clientInfo);
             this.conn = conn;
 
             // Note: at this point we won't be able to look up the callback
@@ -274,7 +283,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
         @Override
         public void setReady(boolean ready) {
-            getKeeper().setReady(ready);
+            getClientInfo().getKeeper().setReady(ready);
             for (AbstractLobbySessionImpl lobby : players.values()) {
                 lobby.onPlayerListChanged(getPlayers());
             }
@@ -291,14 +300,28 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         }
 
         @Override
-        public List<Keeper> getPlayers() {
-            List<Keeper> keepers = new ArrayList<>(players.keySet());
-            Collections.sort(keepers);
+        public List<ClientInfo> getPlayers() {
+            List<ClientInfo> keepers = new ArrayList<>(players.keySet());
+            Collections.sort(keepers, (ClientInfo o1, ClientInfo o2) -> Short.compare(o1.getKeeper().getId(), o2.getKeeper().getId()));
+
+            // Update pings
+            EtherealHost etherealHost = getService(EtherealHost.class);
+            for (ClientInfo clientInfo : keepers) {
+                AbstractLobbySessionImpl lobby = players.get(clientInfo);
+
+                if (lobby != null && lobby.getHostedConnection() != null) {
+                    NetworkStateListener networkStateListener = etherealHost.getStateListener(lobby.getHostedConnection());
+                    if (networkStateListener != null) {
+                        clientInfo.setPing(networkStateListener.getConnectionStats().getAveragePingTime());
+                    }
+                }
+            }
+
             return keepers;
         }
 
         @Override
-        public void onPlayerListChanged(List<Keeper> players) {
+        public void onPlayerListChanged(List<ClientInfo> players) {
             getCallback().onPlayerListChanged(players);
         }
 

@@ -25,6 +25,7 @@ import com.jme3.network.service.rpc.RpcClientService;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.client.RemoteEntityData;
+import com.simsilica.ethereal.EtherealClient;
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
@@ -71,8 +72,9 @@ public class NetworkClient implements ChatSession {
                 new RmiClientService(),
                 new AccountClientService(),
                 new LobbyClientService(),
-                new ChatClientService()
-        );
+                new ChatClientService(), new EtherealClient(NetworkServer.OBJECT_PROTOCOL,
+                        NetworkServer.ZONE_GRID,
+                        NetworkServer.ZONE_RADIUS)                );
     }
 
     public final long getGameTime() {

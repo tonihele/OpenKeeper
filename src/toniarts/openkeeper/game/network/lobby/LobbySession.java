@@ -18,7 +18,6 @@ package toniarts.openkeeper.game.network.lobby;
 
 import com.jme3.network.service.rmi.Asynchronous;
 import java.util.List;
-import toniarts.openkeeper.game.data.Keeper;
 
 /**
  * Clients view on game lobby service
@@ -40,7 +39,7 @@ public interface LobbySession {
      *
      * @return the players
      */
-    public List<Keeper> getPlayers();
+    public List<ClientInfo> getPlayers();
 
     /**
      * Gets the current map selection

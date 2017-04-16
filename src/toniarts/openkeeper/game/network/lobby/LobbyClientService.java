@@ -24,7 +24,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.network.NetworkServer;
 
 /**
@@ -49,7 +48,7 @@ public class LobbyClientService extends AbstractClientService
     }
 
     @Override
-    public List<Keeper> getPlayers() {
+    public List<ClientInfo> getPlayers() {
         return getDelegate().getPlayers();
     }
 
@@ -124,7 +123,7 @@ public class LobbyClientService extends AbstractClientService
         }
 
         @Override
-        public void onPlayerListChanged(List<Keeper> players) {
+        public void onPlayerListChanged(List<ClientInfo> players) {
             logger.log(Level.FINEST, "onPlayerListChanged({0})", new Object[]{players.stream().map(Object::toString)
                 .collect(Collectors.joining(", "))});
             for (LobbySessionListener l : listeners) {

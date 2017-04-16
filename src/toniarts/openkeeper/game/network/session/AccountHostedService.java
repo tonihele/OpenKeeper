@@ -40,6 +40,7 @@ import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rmi.RmiRegistry;
+import com.simsilica.ethereal.EtherealHost;
 import com.simsilica.event.EventBus;
 import java.util.logging.Level;
 import toniarts.openkeeper.game.network.NetworkServer;
@@ -148,6 +149,7 @@ public class AccountHostedService extends AbstractHostedConnectionService {
             // Start the services for the client
             getService(LobbyHostedService.class).startHostingOnConnection(conn, playerName);
             getService(ChatHostedService.class).startHostingOnConnection(conn, playerName);
+            getService(EtherealHost.class).startHostingOnConnection(conn);
 
             // And let them know they were successful
             getCallback().notifyLoginStatus(true);

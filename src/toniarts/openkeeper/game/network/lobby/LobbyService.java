@@ -16,8 +16,6 @@
  */
 package toniarts.openkeeper.game.network.lobby;
 
-import toniarts.openkeeper.game.data.Keeper;
-
 /**
  * This is server's perspective of lobby things. The services we offer our
  * clients. You can implement this and make a local lobby etc.
@@ -43,6 +41,6 @@ public interface LobbyService {
      *
      * @param keeper the player to remove
      */
-    public void removePlayer(Keeper keeper);
+    public void removePlayer(ClientInfo keeper);
 
 }

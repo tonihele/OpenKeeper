@@ -56,6 +56,7 @@ import toniarts.openkeeper.game.data.Level;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
 import toniarts.openkeeper.game.network.chat.ChatSessionListener;
+import toniarts.openkeeper.game.network.lobby.ClientInfo;
 import toniarts.openkeeper.game.network.lobby.LobbyClientService;
 import toniarts.openkeeper.game.network.lobby.LobbySessionListener;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
@@ -789,7 +790,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             lobbySessionListener = new LobbySessionListener() {
 
                 @Override
-                public void onPlayerListChanged(List<Keeper> players) {
+                public void onPlayerListChanged(List<ClientInfo> players) {
                     state.app.enqueue(() -> {
                         refreshPlayerList(players);
                     });
@@ -806,15 +807,15 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         return lobbySessionListener;
     }
 
-    private void refreshPlayerList(List<Keeper> players) {
+    private void refreshPlayerList(List<ClientInfo> players) {
         ListBox<TableRow> playersList = screen.findNiftyControl("playersTable", ListBox.class);
         if (playersList != null) {
             playersList.clear();
 
             // Get players may take some time on the network...
-            for (Keeper keeper : players) {
-                playersList.addItem(new TableRow(playersList.itemCount(), keeper.getName(),
-                        "", "", Integer.toString(keeper.getSystemMenory()), keeper.isReady() ? "x" : ""
+            for (ClientInfo clientInfo : players) {
+                playersList.addItem(new TableRow(playersList.itemCount(), clientInfo.getKeeper().getName(),
+                        "", Long.toString(clientInfo.getPing()), Integer.toString(clientInfo.getSystemMemory()), clientInfo.getKeeper().isReady() ? "x" : ""
                 ));
             }
         }

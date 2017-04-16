@@ -18,7 +18,6 @@ package toniarts.openkeeper.game.network.lobby;
 
 import com.jme3.network.service.rmi.Asynchronous;
 import java.util.List;
-import toniarts.openkeeper.game.data.Keeper;
 
 /**
  * The lobby callbacks the server sends to the client
@@ -31,7 +30,7 @@ public interface LobbySessionListener {
      * Called when the player list needs refreshing
      */
     @Asynchronous
-    public void onPlayerListChanged(List<Keeper> players);
+    public void onPlayerListChanged(List<ClientInfo> players);
 
     /**
      * Called when the server has changed the map

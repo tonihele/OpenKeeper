@@ -49,7 +49,6 @@ public class Keeper implements Comparable<Keeper> {
     private transient Player player;
     private short id;
     private int initialGold = 0;
-    private int systemMenory = 0;
     private transient PlayerGoldControl goldControl = new PlayerGoldControl();
     private transient PlayerCreatureControl creatureControl;
     private transient PlayerSpellControl spellControl;
@@ -163,14 +162,6 @@ public class Keeper implements Comparable<Keeper> {
 
         // Set the gold
         initialGold = player.getStartingGold();
-    }
-
-    public void setSystemMenory(int systemMenory) {
-        this.systemMenory = systemMenory;
-    }
-
-    public int getSystemMenory() {
-        return systemMenory;
     }
 
     @Override
