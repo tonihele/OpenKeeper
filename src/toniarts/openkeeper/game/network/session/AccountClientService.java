@@ -41,7 +41,7 @@ import com.jme3.network.service.rmi.RmiClientService;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
-import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.NetworkConstants;
 
 /**
  * Provides super-basic account services like logging in. This could be expanded
@@ -93,7 +93,7 @@ public class AccountClientService extends AbstractClientService
             throw new RuntimeException("AccountClientService requires RMI service");
         }
         logger.finer("Sharing session callback.");
-        rmiService.share(NetworkServer.LOBBY_CHANNEL, sessionCallback, AccountSessionListener.class);
+        rmiService.share(NetworkConstants.LOBBY_CHANNEL, sessionCallback, AccountSessionListener.class);
     }
 
     /**

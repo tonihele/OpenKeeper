@@ -60,7 +60,7 @@ public class NetworkClient implements ChatSession {
     private static final Logger logger = Logger.getLogger(NetworkClient.class.getName());
 
     public NetworkClient(String host, int port) throws IOException {
-        client = Network.connectToServer(NetworkServer.GAME_NAME, NetworkServer.PROTOCOL_VERSION, host, port);
+        client = Network.connectToServer(NetworkConstants.GAME_NAME, NetworkConstants.PROTOCOL_VERSION, host, port);
 
         client.addClientStateListener(new ClientStateChangeListener(this));
 
@@ -72,9 +72,9 @@ public class NetworkClient implements ChatSession {
                 new RmiClientService(),
                 new AccountClientService(),
                 new LobbyClientService(),
-                new ChatClientService(), new EtherealClient(NetworkServer.OBJECT_PROTOCOL,
-                        NetworkServer.ZONE_GRID,
-                        NetworkServer.ZONE_RADIUS)                );
+                new ChatClientService(), new EtherealClient(NetworkConstants.OBJECT_PROTOCOL,
+                        NetworkConstants.ZONE_GRID,
+                        NetworkConstants.ZONE_RADIUS));
     }
 
     public final long getGameTime() {

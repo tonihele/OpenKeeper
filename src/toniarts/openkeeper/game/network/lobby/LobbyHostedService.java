@@ -16,10 +16,6 @@
  */
 package toniarts.openkeeper.game.network.lobby;
 
-import toniarts.openkeeper.game.state.lobby.ClientInfo;
-import toniarts.openkeeper.game.state.lobby.LobbyService;
-import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
-import toniarts.openkeeper.game.state.lobby.LobbySession;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
@@ -33,8 +29,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import static java.util.stream.Collectors.toList;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.NetworkConstants;
 import static toniarts.openkeeper.game.network.session.AccountHostedService.ATTRIBUTE_SYSTEM_MEMORY;
+import toniarts.openkeeper.game.state.lobby.ClientInfo;
+import toniarts.openkeeper.game.state.lobby.LobbyService;
+import toniarts.openkeeper.game.state.lobby.LobbySession;
+import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
 
 /**
  * Game server hosts lobby service for the game clients.
@@ -100,7 +100,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
                     // Expose the session as an RMI resource to the client
                     RmiRegistry rmi = rmiService.getRmiRegistry(conn);
-                    rmi.share(NetworkServer.LOBBY_CHANNEL, session, LobbySession.class);
+                    rmi.share(NetworkConstants.LOBBY_CHANNEL, session, LobbySession.class);
 
                     players.put(clientInfo, session);
                     playerAdded = true;

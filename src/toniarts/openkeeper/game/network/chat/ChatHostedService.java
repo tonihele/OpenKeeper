@@ -44,7 +44,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.NetworkConstants;
 import static toniarts.openkeeper.game.network.lobby.LobbyHostedService.ATTRIBUTE_PLAYER_ID;
 
 /**
@@ -99,7 +99,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
 
         // Expose the session as an RMI resource to the client
         RmiRegistry rmi = rmiService.getRmiRegistry(conn);
-        rmi.share(NetworkServer.CHAT_CHANNEL, session, ChatSession.class);
+        rmi.share(NetworkConstants.CHAT_CHANNEL, session, ChatSession.class);
 
         players.add(session);
 

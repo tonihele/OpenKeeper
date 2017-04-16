@@ -24,7 +24,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
@@ -60,11 +60,6 @@ public class LobbyClientService extends AbstractClientService
         return getDelegate().getMap();
     }
 
-    /**
-     * Adds a listener that will be notified about account-related events. Note
-     * that these listeners are called on the networking thread and as such are
-     * not suitable for modifying the visualization directly.
-     */
     @Override
     public void addLobbySessionListener(LobbySessionListener l) {
         listeners.add(l);
@@ -83,7 +78,7 @@ public class LobbyClientService extends AbstractClientService
             throw new RuntimeException("LobbyClientService requires RMI service");
         }
         logger.finer("Sharing session callback.");
-        rmiService.share(NetworkServer.LOBBY_CHANNEL, sessionCallback, LobbySessionListener.class);
+        rmiService.share(NetworkConstants.LOBBY_CHANNEL, sessionCallback, LobbySessionListener.class);
     }
 
     /**

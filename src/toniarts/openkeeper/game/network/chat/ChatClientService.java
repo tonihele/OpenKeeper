@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.NetworkConstants;
 
 /**
  * Client-side service providing access to the chat server.
@@ -91,7 +91,7 @@ public class ChatClientService extends AbstractClientService
             throw new RuntimeException("ChatClientService requires RMI service");
         }
         logger.finer("Sharing session callback.");
-        rmiService.share(NetworkServer.CHAT_CHANNEL, sessionCallback, ChatSessionListener.class);
+        rmiService.share(NetworkConstants.CHAT_CHANNEL, sessionCallback, ChatSessionListener.class);
     }
 
     /**

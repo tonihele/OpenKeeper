@@ -43,7 +43,7 @@ import com.jme3.network.service.rmi.RmiRegistry;
 import com.simsilica.ethereal.EtherealHost;
 import com.simsilica.event.EventBus;
 import java.util.logging.Level;
-import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
 
@@ -95,7 +95,7 @@ public class AccountHostedService extends AbstractHostedConnectionService {
 
         // Expose the session as an RMI resource to the client
         RmiRegistry rmi = rmiService.getRmiRegistry(conn);
-        rmi.share(NetworkServer.LOBBY_CHANNEL, session, AccountSession.class);
+        rmi.share(NetworkConstants.LOBBY_CHANNEL, session, AccountSession.class);
     }
 
     @Override
