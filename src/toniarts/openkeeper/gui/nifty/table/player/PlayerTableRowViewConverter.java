@@ -14,44 +14,34 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.gui.nifty.table;
+package toniarts.openkeeper.gui.nifty.table.player;
 
-import de.lessvoid.nifty.controls.ListBox;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.TextRenderer;
+import de.lessvoid.nifty.tools.Color;
+import toniarts.openkeeper.gui.nifty.table.*;
+import toniarts.openkeeper.world.MapThumbnailGenerator;
 
 /**
- * Converts table row to Nifty listbox item
+ * Gives the player the coloring it deserves
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
- * @param <T> the table row class
  */
-public class TableRowViewConverter<T extends TableRow> implements ListBox.ListBoxViewConverter<T> {
+public class PlayerTableRowViewConverter extends TableRowViewConverter<PlayerTableRow> {
 
     @Override
-    public void display(final Element listBoxItem, final TableRow item) {
+    public void display(final Element listBoxItem, final PlayerTableRow item) {
         int i = 0;
         for (String s : item.getData()) {
 
             // Get the text element for the row
             Element textElement = listBoxItem.findElementById("#col-" + String.valueOf(i));
-            textElement.getRenderer(TextRenderer.class).setText(s);
+            TextRenderer renderer = textElement.getRenderer(TextRenderer.class);
+            renderer.setText(s);
+            java.awt.Color c = MapThumbnailGenerator.getPlayerColor(item.getClientInfo().getKeeper().getId());
+            renderer.setColor(new Color(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f, 1f));
             i++;
         }
     }
 
-    @Override
-    public int getWidth(final Element listBoxItem, final TableRow item) {
-        int width = 0;
-        int i = 0;
-        for (String s : item.getData()) {
-            if (s == null) {
-                s = "";
-            }
-            TextRenderer renderer = listBoxItem.findElementById("#col-" + String.valueOf(i)).getRenderer(TextRenderer.class);
-            width += renderer.getFont().getWidth(s);
-            i++;
-        }
-        return width;
-    }
 }

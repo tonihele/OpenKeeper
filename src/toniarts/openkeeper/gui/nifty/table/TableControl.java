@@ -40,8 +40,9 @@ import java.util.logging.Logger;
  * https://github.com/void256/nifty-gui/tree/1.3/nifty-examples/src/main/java/de/lessvoid/nifty/examples/table
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
+ * @param <T> The table row class
  */
-public class TableControl<T> extends ListBoxControl<T> {
+public class TableControl<T extends TableRow> extends ListBoxControl<T> {
 
     private List<TableColumn> tableColumns;
     private Element headers;

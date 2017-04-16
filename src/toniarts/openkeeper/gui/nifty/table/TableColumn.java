@@ -65,9 +65,9 @@ public class TableColumn {
         sb.append(";");
         sb.append(width);
         sb.append(";");
-        sb.append(type);
+        sb.append(type.getName());
         sb.append(";");
-        sb.append(color);
+        sb.append(color.getColorString());
         return sb.toString();
     }
 }
