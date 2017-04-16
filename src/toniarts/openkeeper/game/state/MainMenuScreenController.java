@@ -937,6 +937,11 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         }
     }
 
+    @Override
+    public void setPlayerReady() {
+        state.getLobbyState().getLobbySession().setReady(true);
+    }
+
     public static class Cutscene {
 
         protected String image;

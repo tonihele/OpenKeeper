@@ -31,6 +31,8 @@ public interface IMainMenuScreenController extends ScreenController {
     //public void changeAI();
     public void kickPlayer();
 
+    public void setPlayerReady();
+
     //public void gameSettings();
     public void selectRandomMap();
 
