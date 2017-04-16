@@ -44,8 +44,6 @@ public class Keeper implements Comparable<Keeper> {
 
     private boolean ai;
     private AIType aiType = AIType.MASTER_KEEPER;
-    private String name;
-    private boolean ready = false;
     private transient Player player;
     private short id;
     private int initialGold = 0;
@@ -63,13 +61,9 @@ public class Keeper implements Comparable<Keeper> {
 
     }
 
-    public Keeper(boolean ai, String name, short id, final Application app) {
+    public Keeper(boolean ai, short id, final Application app) {
         this.ai = ai;
-        this.name = name;
         this.id = id;
-
-        // AI is always ready
-        ready = ai;
     }
 
     public Keeper(Player player, final Application app) {
@@ -95,14 +89,6 @@ public class Keeper implements Comparable<Keeper> {
         }
     }
 
-    public boolean isReady() {
-        return ready;
-    }
-
-    public void setReady(boolean ready) {
-        this.ready = ready;
-    }
-
     public short getId() {
         return id;
     }
@@ -113,10 +99,6 @@ public class Keeper implements Comparable<Keeper> {
 
     public Player getPlayer() {
         return player;
-    }
-
-    public String getName() {
-        return name;
     }
 
     public PlayerGoldControl getGoldControl() {
@@ -166,7 +148,7 @@ public class Keeper implements Comparable<Keeper> {
 
     @Override
     public String toString() {
-        return (ai ? aiType.toString() : name);
+        return Short.toString(id);
     }
 
     /**
@@ -176,6 +158,18 @@ public class Keeper implements Comparable<Keeper> {
      */
     public boolean isDestroyed() {
         return destroyed;
+    }
+
+    public AIType getAiType() {
+        return aiType;
+    }
+
+    public void setAiType(AIType aiType) {
+        this.aiType = aiType;
+    }
+
+    public boolean isAi() {
+        return ai;
     }
 
     /**

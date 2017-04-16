@@ -14,33 +14,17 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.network.lobby;
+package toniarts.openkeeper.game.state.lobby;
 
 /**
- * This is server's perspective of lobby things. The services we offer our
- * clients. You can implement this and make a local lobby etc.
+ * A generous game lobby client services for the esteemed guests!
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface LobbyService {
+public interface LobbyClientService extends LobbySession {
 
-    /**
-     * Set the map
-     *
-     * @param mapName the name of the map
-     */
-    public void setMap(String mapName);
+    public void addLobbySessionListener(LobbySessionListener l);
 
-    /**
-     * Add a computer player to the game
-     */
-    public void addPlayer();
-
-    /**
-     * Remove an AI player from the game, or kick an human player out
-     *
-     * @param keeper the player to remove
-     */
-    public void removePlayer(ClientInfo keeper);
+    public void removeLobbySessionListener(LobbySessionListener l);
 
 }

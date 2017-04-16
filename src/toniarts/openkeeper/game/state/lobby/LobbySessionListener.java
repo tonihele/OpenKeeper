@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.network.lobby;
+package toniarts.openkeeper.game.state.lobby;
 
 import com.jme3.network.service.rmi.Asynchronous;
 import java.util.List;

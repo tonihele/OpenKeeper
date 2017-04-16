@@ -33,10 +33,11 @@ import java.util.logging.Level;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.network.NetworkClient;
 import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.lobby.LobbyClientService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
-import toniarts.openkeeper.game.network.lobby.LobbyService;
 import toniarts.openkeeper.game.network.session.AccountClientService;
 import toniarts.openkeeper.game.network.session.AccountSessionListener;
+import toniarts.openkeeper.game.state.lobby.LobbyService;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -107,6 +108,15 @@ public class ConnectionState extends AbstractAppState {
             return server.getService(LobbyHostedService.class);
         }
         return null;
+    }
+
+    /**
+     * The client side lobby services, you should always be welcome to use these
+     *
+     * @return the client side lobby services
+     */
+    public LobbyClientService getLobbyClientService() {
+        return client.getService(LobbyClientService.class);
     }
 
     public void disconnect() {
@@ -199,15 +209,6 @@ public class ConnectionState extends AbstractAppState {
         } else {
             showError("Disconnected", "Unknown error", null, true);
         }
-    }
-
-    /**
-     * Gets our current IP address
-     *
-     * @return
-     */
-    public String getIPAddress() {
-        return Utils.getLocalIPAddress();
     }
 
     private class ConnectionObserver implements ClientStateListener, ErrorListener<Client> {

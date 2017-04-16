@@ -33,6 +33,11 @@ public interface IMainMenuScreenController extends ScreenController {
     //public void gameSettings();
     public void selectRandomMap();
 
+    /**
+     * Start local multiplayer
+     */
+    public void startSkirmish();
+
     //// screen id="myPetDungeon" ////
     /**
      * Select a my pet dungeon level

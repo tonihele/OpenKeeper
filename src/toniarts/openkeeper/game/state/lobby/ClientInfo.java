@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.network.lobby;
+package toniarts.openkeeper.game.state.lobby;
 
 import toniarts.openkeeper.game.data.Keeper;
 
@@ -29,6 +29,8 @@ public class ClientInfo {
     private long ping;
     private String address;
     private Keeper keeper;
+    private String name;
+    private boolean ready = false;
 
     public ClientInfo() {
 
@@ -43,7 +45,7 @@ public class ClientInfo {
         return ping;
     }
 
-    protected void setPing(long ping) {
+    public void setPing(long ping) {
         this.ping = ping;
     }
 
@@ -55,7 +57,7 @@ public class ClientInfo {
         return keeper;
     }
 
-    protected void setKeeper(Keeper keeper) {
+    public void setKeeper(Keeper keeper) {
         this.keeper = keeper;
     }
 
@@ -63,4 +65,22 @@ public class ClientInfo {
         return systemMemory;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        if (keeper.isAi()) {
+            return keeper.getAiType().toString();
+        }
+        return name;
+    }
+
+    public boolean isReady() {
+        return ready;
+    }
+
+    public void setReady(boolean ready) {
+        this.ready = ready;
+    }
 }

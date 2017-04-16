@@ -25,6 +25,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.state.lobby.ClientInfo;
+import toniarts.openkeeper.game.state.lobby.LobbySession;
+import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
 
 /**
  * Client side service for the game lobby services
@@ -32,7 +35,7 @@ import toniarts.openkeeper.game.network.NetworkServer;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class LobbyClientService extends AbstractClientService
-        implements LobbySession {
+        implements toniarts.openkeeper.game.state.lobby.LobbyClientService {
 
     private static final Logger logger = Logger.getLogger(LobbyClientService.class.getName());
 
@@ -62,10 +65,12 @@ public class LobbyClientService extends AbstractClientService
      * that these listeners are called on the networking thread and as such are
      * not suitable for modifying the visualization directly.
      */
+    @Override
     public void addLobbySessionListener(LobbySessionListener l) {
         listeners.add(l);
     }
 
+    @Override
     public void removeLobbySessionListener(LobbySessionListener l) {
         listeners.remove(l);
     }

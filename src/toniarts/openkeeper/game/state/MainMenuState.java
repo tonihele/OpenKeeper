@@ -48,8 +48,10 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
-import toniarts.openkeeper.game.network.lobby.LobbyClientService;
+import toniarts.openkeeper.game.state.ConnectionState.ConnectionErrorListener;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
+import toniarts.openkeeper.game.state.lobby.LobbyState;
+import toniarts.openkeeper.game.state.lobby.LocalLobby;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.MAP_THUMBNAILS_FOLDER;
@@ -87,7 +89,7 @@ public class MainMenuState extends AbstractAppState {
     protected final MainMenuInteraction listener;
     private Vector3f startLocation;
     protected MapSelector mapSelector;
-    protected final List<Keeper> skirmishPlayers = new ArrayList<>(4);
+    private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
 
     private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
 
@@ -267,6 +269,16 @@ public class MainMenuState extends AbstractAppState {
         }
     }
 
+    protected void createLocalLobby() {
+        LocalLobby localLobby = new LocalLobby();
+        LobbyState lobbyState = new LobbyState(false, null, localLobby, localLobby);
+        stateManager.attach(lobbyState);
+        mapSelector.setSkirmish(true);
+
+        // We as the host should set the initial map
+        lobbyState.getLobbyService().setMap(mapSelector.getMap().getMapName());
+    }
+
     public void multiplayerCreate(String game, int port, String player) {
 
         // Create connector
@@ -275,13 +287,16 @@ public class MainMenuState extends AbstractAppState {
             protected void onLoggedOn(boolean loggedIn) {
                 super.onLoggedOn(loggedIn);
 
+                // Create and attach the lobby services
+                LobbyState lobbyState = new LobbyState(true, getServerInfo(), getLobbyService(), getLobbyClientService());
+                stateManager.attach(lobbyState);
+                mapSelector.setSkirmish(false);
+
+                // We as the host should set the initial map
+                lobbyState.getLobbyService().setMap(mapSelector.getMap().getMapName());
+
                 app.enqueue(() -> {
-                    mapSelector.setSkirmish(false);
-
-                    // We as the host should set the initial map
-                    getLobbyService().setMap(mapSelector.getMap().getMapName());
-
-                    screen.goToScreen("multiplayerCreate");
+                    screen.goToScreen("skirmishLobby");
                 });
             }
         };
@@ -308,22 +323,17 @@ public class MainMenuState extends AbstractAppState {
             protected void onLoggedOn(boolean loggedIn) {
                 super.onLoggedOn(loggedIn);
 
+                // Create and attach the lobby services
+                LobbyState lobbyState = new LobbyState(true, getServerInfo(), getLobbyService(), getLobbyClientService());
+                stateManager.attach(lobbyState);
+                mapSelector.setSkirmish(false);
+
                 app.enqueue(() -> {
-                    mapSelector.setSkirmish(false);
-                    screen.goToScreen("multiplayerCreate");
+                    screen.goToScreen("skirmishLobby");
                 });
             }
-
         };
-        connectionState.addConnectionErrorListener(new ConnectionState.ConnectionErrorListener() {
-
-            @Override
-            public void showError(String title, String message, Throwable e, boolean fatal) {
-                app.enqueue(() -> {
-                    screen.showError(title, message);
-                });
-            }
-        });
+        connectionState.addConnectionErrorListener(connectionErrorListener);
         stateManager.attach(connectionState);
 
         try {
@@ -341,7 +351,12 @@ public class MainMenuState extends AbstractAppState {
     public void shutdownMultiplayer() {
         ConnectionState connectionState = stateManager.getState(ConnectionState.class);
         if (connectionState != null) {
+            connectionState.addConnectionErrorListener(connectionErrorListener);
             stateManager.detach(connectionState);
+        }
+        LobbyState lobbyState = stateManager.getState(LobbyState.class);
+        if (lobbyState != null) {
+            stateManager.detach(lobbyState);
         }
     }
 
@@ -363,15 +378,19 @@ public class MainMenuState extends AbstractAppState {
     }
 
     public boolean isHosting() {
-        ConnectionState connectionState = getConnectionState();
-        if (connectionState != null) {
-            return connectionState.isGameHost();
+        LobbyState lobbyState = stateManager.getState(LobbyState.class);
+        if (lobbyState != null) {
+            return lobbyState.isHosting();
         }
         return false;
     }
 
-    public ConnectionState getConnectionState() {
+    private ConnectionState getConnectionState() {
         return stateManager.getState(ConnectionState.class);
+    }
+
+    public LobbyState getLobbyState() {
+        return stateManager.getState(LobbyState.class);
     }
 
     /**
@@ -386,29 +405,30 @@ public class MainMenuState extends AbstractAppState {
 
             // Create the level state
             gameState = new GameState(selectedLevel);
-        } else if ("skirmish".equals(type.toLowerCase())) {
-            if (mapSelector.getMap() == null) {
-                logger.warning("Skirmish map not selected");
-                return;
-            }
-            gameState = new GameState(mapSelector.getMap().getMap(), skirmishPlayers);
-        } else if ("multiplayer".equals(type.toLowerCase())) {
-
-            // If we are not the host, we are merely signaling readyness
-            if (!getConnectionState().isGameHost()) {
-                getConnectionState().getService(LobbyClientService.class).setReady(true);
-                return;
-            }
-
-            if (mapSelector.getMap() == null) {
-                logger.warning("Multiplayer map not selected");
-                return;
-            }
-
-            //TODO make true multiplayer start
-            gameState = new GameState(mapSelector.getMap().getMap(), new ArrayList<>());
-
-        } else {
+        } //        else if ("skirmish".equals(type.toLowerCase())) {
+        //            if (mapSelector.getMap() == null) {
+        //                logger.warning("Skirmish map not selected");
+        //                return;
+        //            }
+        //            gameState = new GameState(mapSelector.getMap().getMap(), skirmishPlayers);
+        //        } else if ("multiplayer".equals(type.toLowerCase())) {
+        //
+        //            // If we are not the host, we are merely signaling readyness
+        //            if (!getConnectionState().isGameHost()) {
+        //                getConnectionState().getService(LobbyClientService.class).setReady(true);
+        //                return;
+        //            }
+        //
+        //            if (mapSelector.getMap() == null) {
+        //                logger.warning("Multiplayer map not selected");
+        //                return;
+        //            }
+        //
+        //            //TODO make true multiplayer start
+        //            gameState = new GameState(mapSelector.getMap().getMap(), new ArrayList<>());
+        //
+        //        }
+        else {
             logger.log(Level.WARNING, "Unknown type of Level {0}", type);
             return;
         }
@@ -528,18 +548,6 @@ public class MainMenuState extends AbstractAppState {
     }
 
     /**
-     * Init skirmish players
-     */
-    protected void initSkirmishPlayers() {
-        skirmishPlayers.clear();
-
-        Keeper keeper = new Keeper(false, "Player", Keeper.KEEPER1_ID, app);
-        skirmishPlayers.add(keeper);
-        keeper = new Keeper(true, null, Keeper.KEEPER2_ID, app);
-        skirmishPlayers.add(keeper);
-    }
-
-    /**
      * See if the map thumbnail exist, otherwise create one TODO maybe move to
      * KwdFile class ???
      *
@@ -560,5 +568,16 @@ public class MainMenuState extends AbstractAppState {
             }
         }
         return asset;
+    }
+
+    private class MainMenuConnectionErrorListener implements ConnectionErrorListener {
+
+        @Override
+        public void showError(String title, String message, Throwable e, boolean fatal) {
+            app.enqueue(() -> {
+                screen.showError(title, message);
+            });
+        }
+
     }
 }

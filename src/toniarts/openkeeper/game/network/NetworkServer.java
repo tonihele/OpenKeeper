@@ -38,7 +38,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
-import toniarts.openkeeper.game.network.lobby.ClientInfo;
+import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
 import toniarts.openkeeper.game.network.session.AccountHostedService;
 

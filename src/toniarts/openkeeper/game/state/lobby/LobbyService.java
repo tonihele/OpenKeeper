@@ -14,38 +14,33 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.network.lobby;
-
-import com.jme3.network.service.rmi.Asynchronous;
-import java.util.List;
+package toniarts.openkeeper.game.state.lobby;
 
 /**
- * Clients view on game lobby service
+ * This is server's perspective of lobby things. The services we offer our
+ * clients. You can implement this and make a local lobby etc.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface LobbySession {
+public interface LobbyService {
 
     /**
-     * Set us ready, or unready
+     * Set the map
      *
-     * @param ready whether we are ready or not
+     * @param mapName the name of the map
      */
-    @Asynchronous
-    public void setReady(boolean ready);
+    public void setMap(String mapName);
 
     /**
-     * Gets the current list of players
-     *
-     * @return the players
+     * Add a computer player to the game
      */
-    public List<ClientInfo> getPlayers();
+    public void addPlayer();
 
     /**
-     * Gets the current map selection
+     * Remove an AI player from the game, or kick an human player out
      *
-     * @return the name of the map the server uses
+     * @param keeper the player to remove
      */
-    public String getMap();
+    public void removePlayer(ClientInfo keeper);
 
 }
