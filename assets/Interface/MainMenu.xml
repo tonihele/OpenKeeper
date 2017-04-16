@@ -625,13 +625,16 @@
             <!--Two panels, left the game stuff, right the map selection stuff-->
             <panel width="95%" childLayout="horizontal" align="center" valign="center">
                 <panel width="66%" childLayout="vertical" align="center" valign="top" paddingRight="5%">
+                    <panel backgroundColor="#80808030" id="ipPanel" childLayout="horizontal" marginBottom="8px">
+                        <control name="label" id="ip" style="menuTextSmall" />
+                    </panel>
                     <control id="playersTable" name="table" vertical="optional" displayItems="4" selection="Single"
                              colCount="5"
                              col0="${menu.1688};34;java.lang.String;#32050c30"
                              col1="${menu.263};33;java.lang.String;#32050c30"
                              col2="${menu.195};11;java.lang.String;#00752430"
                              col3="${menu.1499};11;java.lang.String;#00779e30"
-                             col4=";11;java.lang.String;#00752430"
+                             col4="x;11;java.lang.String;#00752430"
                     />
                 </panel>
                 <panel width="*" childLayout="vertical" align="center" valign="top">

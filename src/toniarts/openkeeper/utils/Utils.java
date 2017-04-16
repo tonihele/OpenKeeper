@@ -17,6 +17,11 @@
 package toniarts.openkeeper.utils;
 
 import java.lang.management.ManagementFactory;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Random;
 import java.util.ResourceBundle;
@@ -167,5 +172,31 @@ public class Utils {
             logger.log(Level.WARNING, "Failed to get system memory!", e);
         }
         return 0;
+    }
+
+    /**
+     * Tries to get the local public IP address
+     *
+     * @return the IP address
+     */
+    public static String getLocalIPAddress() {
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                if (!networkInterface.isLoopback() && networkInterface.isUp()) {
+                    Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
+                    while (inetAddresses.hasMoreElements()) {
+                        InetAddress inetAddress = inetAddresses.nextElement();
+                        if (inetAddress instanceof Inet4Address) {
+                            return inetAddress.getHostAddress();
+                        }
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            logger.log(Level.WARNING, "Failed to get local IP address!", e);
+        }
+        return null;
     }
 }

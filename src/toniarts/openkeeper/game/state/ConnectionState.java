@@ -201,6 +201,15 @@ public class ConnectionState extends AbstractAppState {
         }
     }
 
+    /**
+     * Gets our current IP address
+     *
+     * @return
+     */
+    public String getIPAddress() {
+        return Utils.getLocalIPAddress();
+    }
+
     private class ConnectionObserver implements ClientStateListener, ErrorListener<Client> {
 
         @Override

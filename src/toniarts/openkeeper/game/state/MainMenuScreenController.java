@@ -440,6 +440,13 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                             element.show();
                         }
                     }
+
+                    // Set the IP, is is really always our IP, not the servers?
+                    Label ip = screen.findNiftyControl("ip", Label.class);
+                    ip.setText("IP: " + connectionState.getIPAddress());
+                    TextRenderer renderer = ip.getElement().getRenderer(TextRenderer.class);
+                    ip.setWidth(new SizeValue(renderer.getTextWidth() + "px"));
+                    ip.getElement().getParent().layoutElements();
                 }
                 break;
 
