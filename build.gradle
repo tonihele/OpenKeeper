@@ -67,7 +67,7 @@ dependencies {
     compile "com.simsilica:zay-es:1.2.1"
     compile "com.simsilica:zay-es-net:1.2.1"
     compile "com.simsilica:sio2:1.1.0"
-    compile "com.simsilica:sim-ethereal:1.1.1"
+    compile "com.simsilica:sim-ethereal:1.2.1"
 }
 
 sourceSets {
