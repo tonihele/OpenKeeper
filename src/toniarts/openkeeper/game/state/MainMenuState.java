@@ -271,12 +271,8 @@ public class MainMenuState extends AbstractAppState {
 
     protected void createLocalLobby() {
         LocalLobby localLobby = new LocalLobby();
-        LobbyState lobbyState = new LobbyState(false, null, localLobby, localLobby);
+        LobbyState lobbyState = new LobbyState(false, null, localLobby, localLobby, mapSelector);
         stateManager.attach(lobbyState);
-        mapSelector.setSkirmish(true);
-
-        // We as the host should set the initial map
-        lobbyState.getLobbyService().setMap(mapSelector.getMap().getMapName());
     }
 
     public void multiplayerCreate(String game, int port, String player) {
@@ -288,12 +284,8 @@ public class MainMenuState extends AbstractAppState {
                 super.onLoggedOn(loggedIn);
 
                 // Create and attach the lobby services
-                LobbyState lobbyState = new LobbyState(true, getServerInfo(), getLobbyService(), getLobbyClientService());
+                LobbyState lobbyState = new LobbyState(true, getServerInfo(), getLobbyService(), getLobbyClientService(), mapSelector);
                 stateManager.attach(lobbyState);
-                mapSelector.setSkirmish(false);
-
-                // We as the host should set the initial map
-                lobbyState.getLobbyService().setMap(mapSelector.getMap().getMapName());
 
                 app.enqueue(() -> {
                     screen.goToScreen("skirmishLobby");
@@ -324,9 +316,8 @@ public class MainMenuState extends AbstractAppState {
                 super.onLoggedOn(loggedIn);
 
                 // Create and attach the lobby services
-                LobbyState lobbyState = new LobbyState(true, getServerInfo(), getLobbyService(), getLobbyClientService());
+                LobbyState lobbyState = new LobbyState(true, getServerInfo(), getLobbyService(), getLobbyClientService(), mapSelector);
                 stateManager.attach(lobbyState);
-                mapSelector.setSkirmish(false);
 
                 app.enqueue(() -> {
                     screen.goToScreen("skirmishLobby");

@@ -25,11 +25,12 @@ import de.lessvoid.nifty.screen.ScreenController;
 public interface IMainMenuScreenController extends ScreenController {
     //// screen id="multiplayerCreate"  ////
     //public void multiplayerSend()
-    //public void addComputerPlayer();
+    public void addComputerPlayer();
 
     //// screen id="skirmish" and id="multiplayerCreate" ////
     //public void changeAI();
-    //public void kickPlayer();
+    public void kickPlayer();
+
     //public void gameSettings();
     public void selectRandomMap();
 

@@ -22,6 +22,7 @@ import com.jme3.app.state.AppStateManager;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -38,8 +39,9 @@ public class LobbyState extends AbstractAppState {
     private final Map<LobbySessionListener, SafeLobbySessionListener> listeners = new HashMap<>();
     private final String gameName;
     private Thread renderThread;
+    private final MapSelector mapSelector;
 
-    public LobbyState(boolean online, String gameName, LobbyService lobbyService, LobbyClientService lobbyClientService) {
+    public LobbyState(boolean online, String gameName, LobbyService lobbyService, LobbyClientService lobbyClientService, MapSelector mapSelector) {
         this.online = online;
         this.lobbyService = lobbyService;
         this.lobbyClientService = lobbyClientService;
@@ -47,6 +49,15 @@ public class LobbyState extends AbstractAppState {
             this.gameName = gameName;
         } else {
             this.gameName = Utils.getMainTextResourceBundle().getString("141");
+        }
+        this.mapSelector = mapSelector;
+
+        // Set the map
+        mapSelector.setSkirmish(!online);
+
+        // We as the host should set the initial map
+        if (lobbyService != null) {
+            lobbyService.setMap(mapSelector.getMap().getMapName());
         }
     }
 

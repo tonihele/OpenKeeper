@@ -40,6 +40,7 @@ import de.lessvoid.nifty.elements.render.ImageRenderer;
 import de.lessvoid.nifty.elements.render.TextRenderer;
 import de.lessvoid.nifty.render.NiftyImage;
 import de.lessvoid.nifty.screen.Screen;
+import de.lessvoid.nifty.tools.Color;
 import de.lessvoid.nifty.tools.SizeValue;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
@@ -59,7 +60,11 @@ import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
 import toniarts.openkeeper.game.state.lobby.LobbyState;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
+import toniarts.openkeeper.gui.nifty.table.TableColumn;
+import toniarts.openkeeper.gui.nifty.table.TableControl;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
+import toniarts.openkeeper.gui.nifty.table.player.PlayerTableBuilder;
+import toniarts.openkeeper.gui.nifty.table.player.PlayerTableRow;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -387,12 +392,14 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
                 LobbyState lobbyState = state.getLobbyState();
 
+                // Set up the players table
+                setupPlayersTable(lobbyState);
+
                 // Add chat listener
                 if (lobbyState.isOnline()) {
                     state.getChatService().addChatSessionListener(getChatSessionListener());
                 }
                 screen.findElementById("chatPanel").setVisible(lobbyState.isOnline());
-
 
                 // Add player listener
                 lobbyState.addLobbySessionListener(getLobbySessionListener());
@@ -431,7 +438,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 }
                 TextRenderer renderer = ip.getElement().getRenderer(TextRenderer.class);
                 ip.setWidth(new SizeValue(renderer.getTextWidth() + "px"));
-                ip.getElement().getParent().layoutElements();
+
+                screen.layoutLayers();
 
                 break;
 
@@ -472,6 +480,15 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
             case "briefing":
                 state.clearLevelBriefingNarration();
+                break;
+
+            case "skirmishLobby":
+
+                // Remove the old players table, a bit of a hax
+                TableControl playersTable = screen.findControl("playersTable", TableControl.class);
+                if (playersTable != null) {
+                    playersTable.getElement().markForRemoval();
+                }
                 break;
         }
     }
@@ -793,14 +810,15 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     }
 
     private void refreshPlayerList(List<ClientInfo> players) {
-        ListBox<TableRow> playersList = screen.findNiftyControl("playersTable", ListBox.class);
+        TableControl playersList = screen.findNiftyControl("playersTable", TableControl.class);
         if (playersList != null) {
             playersList.clear();
+            LobbyState lobbyState = state.getLobbyState();
 
-            // Get players may take some time on the network...
+            // Populate the players list
             for (ClientInfo clientInfo : players) {
-                playersList.addItem(new TableRow(playersList.itemCount(), clientInfo.getName(),
-                        "", Long.toString(clientInfo.getPing()), Integer.toString(clientInfo.getSystemMemory()), clientInfo.isReady() ? "x" : ""
+                playersList.addItem(new PlayerTableRow(clientInfo, playersList.itemCount(), clientInfo.getName(),
+                        "", lobbyState.isOnline() ? Long.toString(clientInfo.getPing()) : "", lobbyState.isOnline() ? Integer.toString(clientInfo.getSystemMemory()) : "", clientInfo.isReady() ? "x" : ""
                 ));
             }
         }
@@ -884,6 +902,39 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
         // Go to screen
         doTransition("271", "skirmishLobby", "273");
+    }
+
+    private void setupPlayersTable(LobbyState lobbyState) {
+        Element playersPanel = screen.findElementById("playersPanel");
+
+        // Build a new one
+        PlayerTableBuilder cb = new PlayerTableBuilder("playersTable",
+                new TableColumn("${menu.1688}", 34, String.class, new Color("#32050c30")),
+                new TableColumn(lobbyState.isOnline() ? "${menu.263}" : "", 33, String.class, new Color("#32050c30")),
+                new TableColumn(lobbyState.isOnline() ? "${menu.195}" : "", 11, String.class, new Color("#00752430")),
+                new TableColumn(lobbyState.isOnline() ? "${menu.1499}" : "", 11, String.class, new Color("#00779e30")),
+                new TableColumn("x", 11, String.class, new Color("#00752430"))
+        ) {
+            {
+                selectionModeSingle();
+                displayItems(4);
+                optionalVerticalScrollbar();
+            }
+        };
+        cb.build(nifty, screen, playersPanel);
+    }
+
+    @Override
+    public void addComputerPlayer() {
+        state.getLobbyState().getLobbyService().addPlayer();
+    }
+
+    @Override
+    public void kickPlayer() {
+        TableControl<PlayerTableRow> playersList = screen.findNiftyControl("playersTable", TableControl.class);
+        if (playersList != null && !playersList.getSelection().isEmpty()) {
+            state.getLobbyState().getLobbyService().removePlayer(playersList.getSelection().get(0).getClientInfo());
+        }
     }
 
     public static class Cutscene {
