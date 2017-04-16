@@ -307,7 +307,7 @@ public enum CreatureState implements State<CreatureControl> {
 
         @Override
         public void update(CreatureControl entity) {
-            entity.getStateMachine().changeState(IDLE);
+
         }
 
         @Override

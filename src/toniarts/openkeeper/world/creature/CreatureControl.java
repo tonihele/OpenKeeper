@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.gui.CursorFactory.CursorType;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.Attributes;
@@ -414,11 +415,16 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         if (steeringBehavior != null && !steeringBehavior.isEnabled()) {
             steeringBehavior.setEnabled(true);
         }
+        if (stateMachine.getCurrentState() == CreatureState.ENTERING_DUNGEON) {
+            Vector3f offset = ConversionUtils.convertVector(creature.getAnimationOffsets(Creature.OffsetType.PORTAL_ENTRANCE));
+            spatial.move(offset);
+            stateMachine.changeState(CreatureState.IDLE);
 
-        if (stateMachine.getCurrentState() == CreatureState.SLAPPED) {
-
+        } else if (stateMachine.getCurrentState() == CreatureState.SLAPPED) {
+            playAnimation(creature.getAnimation(Creature.AnimationType.GET_UP));
+            playingAnimationType = AnimationType.OTHER;
             // Return to previous state
-            //stateMachine.revertToPreviousState();
+            stateMachine.revertToPreviousState();
         } else if (playingAnimationType == AnimationType.DYING) {
 
             // TODO: should show the pose for awhile I guess
@@ -463,8 +469,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                     onAnimationCycleDone();
                 }
             } else if (stateMachine.getCurrentState() == CreatureState.ENTERING_DUNGEON) {
-                loadEffect(creature.getEntranceEffectId());
                 playAnimation(creature.getAnimEntranceResource());
+                playingAnimationType = AnimationType.OTHER;
             } else if (stateMachine.getCurrentState() == CreatureState.FIGHT) {
                 CreatureAttack executeAttack = executingAttack;
                 if (executeAttack != null && executeAttack.isPlayAnimation()) {
@@ -486,7 +492,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                     }
                 }
                 playingAnimationType = AnimationType.ATTACK;
-            } else if (stateMachine.getCurrentState() == CreatureState.DEAD || stateMachine.getCurrentState() == CreatureState.UNCONSCIOUS) {
+            } else if (stateMachine.getCurrentState() == CreatureState.DEAD
+                    || stateMachine.getCurrentState() == CreatureState.UNCONSCIOUS) {
 
                 //TODO: Dying direction
                 if (playingAnimationType != AnimationType.DYING) {
@@ -518,7 +525,6 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 }
                 playAnimation(idleAnim);
                 playingAnimationType = AnimationType.IDLE;
-                return;
             }
 
         }
@@ -598,10 +604,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     private boolean slap(short playerId) {
         // TODO: Direction & sound
         if (isSlappable(playerId)) {
-            stateMachine.changeState(CreatureState.SLAPPED);
             steeringBehavior = null;
             if (!applyDamage(creature.getAttributes().getSlapDamage())) {
-                playAnimation(creature.getAnimFallbackResource());
+                stateMachine.changeState(CreatureState.SLAPPED);
+                playAnimation(creature.getAnimation(Creature.AnimationType.FALLBACK));
                 playingAnimationType = AnimationType.OTHER;
             }
 
@@ -1443,11 +1449,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void navigateToAttackTarget(CreatureControl target) {
-        Point pTarget = WorldUtils.vectorToPoint(target.getSpatial().getWorldTranslation());
-        Point p = worldState.findRandomAccessibleTile(pTarget, 1, this);
+        Point p = WorldUtils.vectorToPoint(target.getSpatial().getWorldTranslation());
+        //Point p = worldState.findRandomAccessibleTile(pTarget, 0, this);
         if (p != null) {
 
-            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, p, pTarget);
+            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, p);
             if (steering != null) {
                 steering.setEnabled(!isAnimationPlaying());
                 setSteeringBehavior(steering);
@@ -1892,9 +1898,4 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             setAttributesByLevel();
         }
     }
-
-    private void loadEffect(int id) {
-        if (id != 0) {
-            worldState.getEffectManager().load((Node) spatial, spatial.getLocalTranslation(), id, false);
-        }
-    }}
+}

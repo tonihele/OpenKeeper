@@ -1102,9 +1102,15 @@ public abstract class WorldState extends AbstractAppState {
                         WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
                         terrain.getMaxHealthEffectId(), false);
             }
-            if (terrain.getMaxHealthTypeTerrainId() > 0) {
+            if (terrain.getMaxHealthTypeTerrainId() != 0) {
                 tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());
                 tile.setPlayerId(playerId);
+                terrain = tile.getTerrain();
+                if (tile.isAtFullHealth()) {
+                    effectManager.load(worldNode,
+                            WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                            terrain.getMaxHealthEffectId(), false);
+                }
             }
 
             updateRoomWalls(tile);
@@ -1217,7 +1223,7 @@ public abstract class WorldState extends AbstractAppState {
         // Calculate the damage
         int damage;
         short owner = tile.getPlayerId();
-        if (owner == 0) {
+        if (owner == Player.NEUTRAL_PLAYER_ID) {
             damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.CONVERT_ROOM_HEALTH);
         } else {
             damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_ROOM_HEALTH);
@@ -1238,7 +1244,16 @@ public abstract class WorldState extends AbstractAppState {
                 for (Point p2 : roomTiles) {
                     roomTile = getMapData().getTile(p2);
                     roomTile.setPlayerId(playerId); // Claimed!
-                    roomTile.applyHealing(Integer.MAX_VALUE);
+                    roomTile.applyHealing(tile.getTerrain().getMaxHealth());
+
+                    effectManager.load(worldNode,
+                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                        tile.getTerrain().getMaxHealthEffectId(), false);
+
+                    // FIXME ROOM_CLAIM_ID is realy claim effect?
+                    effectManager.load(worldNode,
+                            WorldUtils.pointToVector3f(p2).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                            room.getRoom().getEffects().get(EffectManagerState.ROOM_CLAIM_ID), false);
 
                     // TODO: Claimed room wall tiles lose the claiming I think?
                     notifyTileChange(p2);

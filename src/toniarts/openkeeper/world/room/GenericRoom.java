@@ -81,12 +81,12 @@ public abstract class GenericRoom {
     protected final WorldState worldState;
     private final static int[] wallIndexes = new int[]{7, 8};
     private Node root;
-    private final String tooltip;
+    protected String tooltip;
     private static String notOwnedTooltip = null;
     protected final EffectManagerState effectManager;
     private ObjectType defaultObjectType;
     private final Map<ObjectType, RoomObjectControl> objectControls = new HashMap<>();
-    private boolean destroyed = false;
+    protected boolean destroyed = false;
     protected boolean[][] map;
     protected Point start;
     protected final ObjectLoader objectLoader;

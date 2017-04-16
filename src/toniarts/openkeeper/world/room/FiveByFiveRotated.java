@@ -29,7 +29,11 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ResourceBundle;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
+import toniarts.openkeeper.game.player.PlayerManaControl;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapLoader;
@@ -47,16 +51,17 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance {
+public class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance {
 
     private static final short OBJECT_HEART_ID = 13;
     private static final short OBJECT_ARCHES_ID = 86;
     private static final short OBJECT_BIG_STEPS_ID = 88;
     private static final short OBJECT_PLUG_ID = 96;
+    private static final String TOOLTIP_STRING_ID = String.valueOf(2579);
 
     private final List<CreatureControl> attractedCreatures = new ArrayList<>();
+    private Integer goldPerTile;
     private int centreDecay = -1;
-    private boolean destroyed = false;
     private boolean created = false;
 
     public FiveByFiveRotated(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
@@ -75,9 +80,18 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
             }
 
         });
+        // override Jelly
+        ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
+        tooltip = bundle.getString(TOOLTIP_STRING_ID);
     }
 
-    protected abstract int getGoldPerTile();
+    protected int getGoldPerTile() {
+        if (goldPerTile == null) {
+            goldPerTile = (int) worldState.getLevelVariable(MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE);
+        }
+
+        return goldPerTile;
+    }
 
     @Override
     protected BatchNode constructFloor() {
@@ -363,6 +377,19 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
         }
 
         return Utils.getRandomItem(points);
+    }
+
+    @Override
+    public String getTooltip(short playerId) {
+        String result = super.getTooltip(playerId);
+
+        if (playerId == roomInstance.getOwnerId()) {
+            PlayerManaControl pmc = worldState.getGameState().getPlayer(playerId).getManaControl();
+            result = result.replaceAll("%40", String.valueOf(pmc.getMana())) // mana held
+                .replaceAll("%41", String.valueOf(pmc.getManaMax())); // max mana held
+        }
+
+        return result;
     }
 
     @Override

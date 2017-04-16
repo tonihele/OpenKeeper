@@ -233,32 +233,38 @@ public class AnimationLoader {
         }
         attachResource(root, root.getControl(AnimationControl.class), anim, assetManager);
 
-        // Get the anim node
-        String animNodeName = anim.getName();
-        if (anim.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
-            animNodeName = START_ANIMATION_NAME;
-        }
-        Spatial spat = root.getChild(animNodeName);
-        if (spat != null) {
-
-            // Hide all
-            hideAllNodes(root);
-
-            // Show the anim
-            AnimControl animControl = spat.getControl(AnimControl.class);
-            spat.setCullHint(Spatial.CullHint.Inherit);
-            if (animControl != null) { // Not all are anims
-                AnimChannel channel = animControl.getChannel(0);
-                LoopMode loopMode = channel.getLoopMode();
-                channel.setAnim(ANIM_NAME, 0);
-                if (loopMode != null) {
-                    channel.setLoopMode(loopMode);
-                }
-                if (endFrame) {
-                    channel.setTime(Integer.MAX_VALUE);
-                }
-                animControl.setEnabled(true);
+        try {
+            // Get the anim node
+            String animNodeName = anim.getName();
+            if (anim.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
+                animNodeName = START_ANIMATION_NAME;
             }
+            Spatial spat = root.getChild(animNodeName);
+            if (spat != null) {
+
+                // Hide all
+                hideAllNodes(root);
+
+                // Show the anim
+                AnimControl animControl = spat.getControl(AnimControl.class);
+                spat.setCullHint(Spatial.CullHint.Inherit);
+                if (animControl != null) { // Not all are anims
+                    AnimChannel channel = animControl.getChannel(0);
+                    LoopMode loopMode = channel.getLoopMode();
+                    channel.setAnim(ANIM_NAME, 0);
+                    if (loopMode != null) {
+                        channel.setLoopMode(loopMode);
+                    }
+                    if (endFrame) {
+                        channel.setTime(Integer.MAX_VALUE);
+                    }
+                    animControl.setEnabled(true);
+                }
+            }
+        } catch (Exception e) {
+            // FIXME sometimes NPE in CreatureControl.java
+            // line: playAnimation(creature.getAnimEntranceResource());
+            logger.log(Level.SEVERE, "Creature animation playing error: {0}", e.toString());
         }
     }
 
