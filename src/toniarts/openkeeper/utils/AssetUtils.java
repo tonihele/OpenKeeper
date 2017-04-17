@@ -611,4 +611,37 @@ public class AssetUtils {
 
         return new Node();
     }
+
+    /**
+     * Deletes a file or a folder
+     *
+     * @param file
+     * @return true if the file or folder was deleted
+     */
+    public static boolean deleteFolder(final File file) {
+        File[] fileList = null;
+
+        if (file == null) {
+            return false;
+        }
+
+        if (file.isFile()) {
+            return file.delete();
+        }
+
+        if (!file.isDirectory()) {
+            return false;
+        }
+
+        fileList = file.listFiles();
+        if (fileList != null && fileList.length > 0) {
+            for (File f : fileList) {
+                if (!deleteFolder(f)) {
+                    return false;
+                }
+            }
+        }
+
+        return file.delete();
+    }
 }

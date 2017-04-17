@@ -70,6 +70,7 @@ import toniarts.openkeeper.tools.convert.str.StrFile;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.textures.loadingscreens.LoadingScreenFile;
 import toniarts.openkeeper.tools.convert.wad.WadFile;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.world.MapThumbnailGenerator;
 
@@ -142,11 +143,12 @@ public abstract class AssetsConverter {
     public static final String MATERIALS_FOLDER = "Materials";
     public static final String MODELS_FOLDER = "Models";
     public static final String TEXTURES_FOLDER = "Textures";
-    public static final String MAP_THUMBNAILS_FOLDER = TEXTURES_FOLDER + File.separator + "Thumbnails";
-    public static final String MOUSE_CURSORS_FOLDER = "Interface" + File.separator + "Cursors";
-    public static final String FONTS_FOLDER = "Interface" + File.separator + "Fonts";
-    public static final String TEXTS_FOLDER = "Interface" + File.separator + "Texts";
-    public static final String PATHS_FOLDER = "Interface" + File.separator + "Paths";
+    public static final String MAP_THUMBNAILS_FOLDER = "Thumbnails";
+    public static final String INTERFACE_FOLDER = "Interface" + File.separator;
+    public static final String MOUSE_CURSORS_FOLDER = INTERFACE_FOLDER + "Cursors";
+    public static final String FONTS_FOLDER = INTERFACE_FOLDER + "Fonts";
+    public static final String TEXTS_FOLDER = INTERFACE_FOLDER + "Texts";
+    public static final String PATHS_FOLDER = INTERFACE_FOLDER + "Paths";
 
     private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
 
@@ -245,6 +247,7 @@ public abstract class AssetsConverter {
         }
         logger.log(Level.INFO, "Extracting textures to: {0}", destination);
         updateStatus(null, null, ConvertProcess.TEXTURES);
+        AssetUtils.deleteFolder(new File(destination));
         EngineTexturesFile etFile = getEngineTexturesFile(dungeonKeeperFolder);
         Pattern pattern = Pattern.compile("(?<name>\\w+)MM(?<mipmaplevel>\\d{1})");
         WadFile frontEnd;
@@ -305,9 +308,12 @@ public abstract class AssetsConverter {
         }
         logger.log(Level.INFO, "Extracting models to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MODELS);
+        AssetUtils.deleteFolder(new File(destination));
 
         // Create the materials folder or else the material file saving fails
-        new File(getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER)).mkdirs();
+        File materialFolder = new File(getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER));
+        AssetUtils.deleteFolder(materialFolder);
+        materialFolder.mkdirs();
 
         // Get the engine textures catalog
         EngineTexturesFile engineTexturesFile = getEngineTexturesFile(dungeonKeeperFolder);
@@ -417,6 +423,7 @@ public abstract class AssetsConverter {
         }
         logger.log(Level.INFO, "Extracting mouse cursors to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MOUSE_CURSORS);
+        AssetUtils.deleteFolder(new File(destination));
 
         //Mouse cursors are PNG files in the Sprite.WAD
         WadFile wadFile = new WadFile(new File(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER + "Sprite.WAD"));
@@ -456,6 +463,7 @@ public abstract class AssetsConverter {
         }
         logger.log(Level.INFO, "Extracting sounds to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MUSIC_AND_SOUNDS);
+        AssetUtils.deleteFolder(new File(destination));
         String dataDirectory = PathUtils.DKII_SFX_FOLDER;
 
         //Find all the sound files
@@ -553,6 +561,7 @@ public abstract class AssetsConverter {
         }
         logger.log(Level.INFO, "Extracting texts to: {0}", destination);
         updateStatus(null, null, ConvertProcess.INTERFACE_TEXTS);
+        AssetUtils.deleteFolder(new File(destination));
         String dataDirectory = dungeonKeeperFolder + PathUtils.DKII_TEXT_DEFAULT_FOLDER;
 
         //Find all the STR files
@@ -655,6 +664,7 @@ public abstract class AssetsConverter {
         }
         logger.log(Level.INFO, "Extracting paths to: {0}", destination);
         updateStatus(null, null, ConvertProcess.PATHS);
+        AssetUtils.deleteFolder(new File(destination));
 
         //Paths are in the data folder, access the packed file
         WadFile wad = new WadFile(new File(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER + "Paths.WAD"));
@@ -754,6 +764,7 @@ public abstract class AssetsConverter {
         }
         logger.log(Level.INFO, "Extracting fonts to: {0}", destination);
         updateStatus(null, null, ConvertProcess.FONTS);
+        AssetUtils.deleteFolder(new File(destination));
 
         try {
 
@@ -840,6 +851,10 @@ public abstract class AssetsConverter {
         }
         logger.log(Level.INFO, "Generating map thumbnails to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MAP_THUMBNAILS);
+        File destFolder = new File(destination);
+        AssetUtils.deleteFolder(destFolder);
+        // Make sure it exists
+        destFolder.mkdirs();
         try {
 
             // Get the skirmish/mp maps
