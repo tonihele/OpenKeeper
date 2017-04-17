@@ -100,7 +100,7 @@ public abstract class AssetsConverter {
         PATHS(4),
         HI_SCORES(2),
         FONTS(3),
-        MAP_THUMBNAILS(2);
+        MAP_THUMBNAILS(3);
 
         private ConvertProcess(int version) {
             this.version = version;
