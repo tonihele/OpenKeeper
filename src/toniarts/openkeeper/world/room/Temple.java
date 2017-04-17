@@ -21,6 +21,8 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+
+import toniarts.openkeeper.utils.RoomUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -44,11 +46,13 @@ public class Temple extends DoubleQuad {
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
         //Point start = roomInstance.getCoordinates().get(0);
         // Hand
-        // FIXME need check room min size to load hand
-        Point centre = roomInstance.getCenter();
-        Spatial part = objectLoader.load(assetManager, centre.x, centre.y, OBJECT_TEMPLE_HAND_ID, roomInstance.getOwnerId());
-        part.move(0, - 3 * MapLoader.FLOOR_HEIGHT / 2, MapLoader.TILE_WIDTH / 4);
-        root.attachChild(part);
+        boolean drawHand = RoomUtils.matrixContainsASquareWithSideLength(roomInstance.getCoordinatesAsMatrix(), 5);
+        if(drawHand) {
+            Point centre = roomInstance.getCenter();
+            Spatial part = objectLoader.load(assetManager, centre.x, centre.y, OBJECT_TEMPLE_HAND_ID, roomInstance.getOwnerId());
+            part.move(0, -3 * MapLoader.FLOOR_HEIGHT / 2, MapLoader.TILE_WIDTH / 4);
+            root.attachChild(part);
+        }
 
         for (Point p : roomInstance.getCoordinates()) {
             // Figure out which peace by seeing the neighbours
