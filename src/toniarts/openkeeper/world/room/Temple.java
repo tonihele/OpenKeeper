@@ -46,7 +46,7 @@ public class Temple extends DoubleQuad {
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
         //Point start = roomInstance.getCoordinates().get(0);
         // Hand
-        boolean drawHand = RoomUtils.matrixContainsASquareWithSideLength(roomInstance.getCoordinatesAsMatrix(), 5);
+        boolean drawHand = RoomUtils.matrixContainsSquare(roomInstance.getCoordinatesAsMatrix(), 5);
         if(drawHand) {
             Point centre = roomInstance.getCenter();
             Spatial part = objectLoader.load(assetManager, centre.x, centre.y, OBJECT_TEMPLE_HAND_ID, roomInstance.getOwnerId());
