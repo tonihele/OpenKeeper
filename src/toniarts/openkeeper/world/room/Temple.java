@@ -45,10 +45,29 @@ public class Temple extends DoubleQuad {
         BatchNode root = new BatchNode();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
         //Point start = roomInstance.getCoordinates().get(0);
+        // Water
+        boolean[][] waterArea = RoomUtils.calculateWaterArea(roomInstance.getCoordinatesAsMatrix());
+
+
         // Hand
         boolean drawHand = RoomUtils.matrixContainsSquare(roomInstance.getCoordinatesAsMatrix(), 5);
         if(drawHand) {
-            Point centre = roomInstance.getCenter();
+
+            final Point topLeft = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
+            final Point bottomRight = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
+
+            for(int i = 0; i < waterArea.length; ++i) {
+                for(int j = 0; j < waterArea[0].length; ++j) {
+                    if(waterArea[i][j]) {
+                        topLeft.x = Math.min(i, topLeft.x);
+                        topLeft.y = Math.min(j, topLeft.y);
+                        bottomRight.x = Math.max(i, bottomRight.x);
+                        bottomRight.y = Math.max(j, bottomRight.y);
+                    }
+                }
+            }
+
+            Point centre = new Point((topLeft.x + bottomRight.x) / 2, (topLeft.y + bottomRight.y) / 2);
             Spatial part = objectLoader.load(assetManager, centre.x, centre.y, OBJECT_TEMPLE_HAND_ID, roomInstance.getOwnerId());
             part.move(0, -3 * MapLoader.FLOOR_HEIGHT / 2, MapLoader.TILE_WIDTH / 4);
             root.attachChild(part);
