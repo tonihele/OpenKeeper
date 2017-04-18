@@ -94,7 +94,7 @@ public abstract class AssetsConverter {
 
         TEXTURES(4),
         MODELS(6),
-        MOUSE_CURSORS(3),
+        MOUSE_CURSORS(4),
         MUSIC_AND_SOUNDS(3),
         INTERFACE_TEXTS(2),
         PATHS(4),
@@ -143,6 +143,7 @@ public abstract class AssetsConverter {
     public static final String MATERIALS_FOLDER = "Materials";
     public static final String MODELS_FOLDER = "Models";
     public static final String TEXTURES_FOLDER = "Textures";
+    public static final String SPRITES_FOLDER = "Sprites";
     public static final String MAP_THUMBNAILS_FOLDER = "Thumbnails";
     public static final String INTERFACE_FOLDER = "Interface" + File.separator;
     public static final String MOUSE_CURSORS_FOLDER = INTERFACE_FOLDER + "Cursors";
@@ -429,7 +430,8 @@ public abstract class AssetsConverter {
         WadFile wadFile = new WadFile(new File(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER + "Sprite.WAD"));
         int i = 0;
         int total = wadFile.getWadFileEntryCount();
-        File destinationFolder = new File(getAssetsFolder().concat(TEXTURES_FOLDER).concat(File.separator).concat("Sprites/"));
+        File destinationFolder = new File(getAssetsFolder().concat(SPRITES_FOLDER).concat(File.separator));
+        AssetUtils.deleteFolder(destinationFolder);
         destinationFolder.mkdirs();
 
         for (String fileName : wadFile.getWadFileEntries()) {
