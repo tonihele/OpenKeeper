@@ -145,7 +145,7 @@ public abstract class AssetsConverter {
     public static final String TEXTURES_FOLDER = "Textures";
     public static final String SPRITES_FOLDER = "Sprites";
     public static final String MAP_THUMBNAILS_FOLDER = "Thumbnails";
-    public static final String INTERFACE_FOLDER = "Interface" + File.separator;
+    private static final String INTERFACE_FOLDER = "Interface" + File.separator;
     public static final String MOUSE_CURSORS_FOLDER = INTERFACE_FOLDER + "Cursors";
     public static final String FONTS_FOLDER = INTERFACE_FOLDER + "Fonts";
     public static final String TEXTS_FOLDER = INTERFACE_FOLDER + "Texts";
