@@ -81,8 +81,8 @@ public class Temple extends DoubleQuad {
         }
 
         int count = 0;
-        final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>();
 
+        List<EntityInstance<Terrain>> instances = new ArrayList<>();
 
         for (Point p : roomInstance.getCoordinates()) {
             // Figure out which piece by seeing the neighbours
@@ -102,19 +102,18 @@ public class Temple extends DoubleQuad {
             int i = count / waterArea[0].length;
             int j = count % waterArea[0].length;
 
-//            if(waterArea[i][j]) {
-//                Terrain terrainAtPoint = roomInstance.getTerrainAtPoint(p);
-//                terrainAtPoint.getFlags().add(Terrain.TerrainFlag.WATER);
-//                EntityInstance<Terrain> entityInstance = new EntityInstance<>(terrainAtPoint);
-//
-//                waterBatches.add(entityInstance);
-//            }
+            if(waterArea[i][j]) {
+                EntityInstance<Terrain> ent = new EntityInstance<>(getWorldState().getGameState().getLevelData().getMap().getWater());
+                ent.addCoordinate(p);
+                instances.add(ent);
+            }
 
             count++;
         }
 
-        if(!waterBatches.isEmpty()) {
-            Spatial waterTiles = Water.construct(assetManager, waterBatches);
+        if(!instances.isEmpty()) {
+            Spatial waterTiles = Water.construct(assetManager, instances);
+
             root.attachChild(waterTiles);
         }
 
