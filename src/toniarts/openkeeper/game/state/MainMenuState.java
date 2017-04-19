@@ -54,15 +54,14 @@ import toniarts.openkeeper.game.network.message.MessageChat;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import static toniarts.openkeeper.tools.convert.AssetsConverter.MAP_THUMBNAILS_FOLDER;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
@@ -522,12 +521,12 @@ public class MainMenuState extends AbstractAppState {
      */
     protected String getMapThumbnail(KwdFile map) {
         // See if the map thumbnail exist, otherwise create one
-        String asset = "Textures/Thumbnails/" + ConversionUtils.stripFileName(map.getGameLevel().getName()) + ".png";
+        String asset = AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator + ConversionUtils.stripFileName(map.getGameLevel().getName()) + ".png";
         if (assetManager.locateAsset(new TextureKey(asset)) == null) {
 
             // Generate
             try {
-                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder() + MAP_THUMBNAILS_FOLDER + File.separator);
+                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder() + AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator);
             } catch (Exception e) {
                 logger.log(java.util.logging.Level.WARNING, "Failed to generate map file out of {0}!", map);
                 asset = "Textures/Unique_NoTextureName.png";
