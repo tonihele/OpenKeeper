@@ -21,12 +21,17 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import java.util.ArrayList;
+import java.util.List;
 
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.RoomUtils;
+import toniarts.openkeeper.world.EntityInstance;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
+import toniarts.openkeeper.world.terrain.Water;
 
 /**
  *
@@ -44,7 +49,7 @@ public class Temple extends DoubleQuad {
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
-        //Point start = roomInstance.getCoordinates().get(0);
+        Point start = roomInstance.getMatrixStartPoint();
         // Water
         boolean[][] waterArea = RoomUtils.calculateWaterArea(roomInstance.getCoordinatesAsMatrix());
 
@@ -67,14 +72,20 @@ public class Temple extends DoubleQuad {
                 }
             }
 
-            Point centre = new Point((topLeft.x + bottomRight.x) / 2, (topLeft.y + bottomRight.y) / 2);
+
+
+            Point centre = new Point( start.x + (topLeft.x + bottomRight.x) / 2, start.y +(topLeft.y + bottomRight.y) / 2);
             Spatial part = objectLoader.load(assetManager, centre.x, centre.y, OBJECT_TEMPLE_HAND_ID, roomInstance.getOwnerId());
             part.move(0, -3 * MapLoader.FLOOR_HEIGHT / 2, MapLoader.TILE_WIDTH / 4);
             root.attachChild(part);
         }
 
+        int count = 0;
+        final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>();
+
+
         for (Point p : roomInstance.getCoordinates()) {
-            // Figure out which peace by seeing the neighbours
+            // Figure out which piece by seeing the neighbours
             boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
             boolean NE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
             boolean E = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
@@ -87,6 +98,24 @@ public class Temple extends DoubleQuad {
             Node model = DoubleQuad.constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
             moveSpatial(model, p);
             root.attachChild(model);
+
+            int i = count / waterArea[0].length;
+            int j = count % waterArea[0].length;
+
+//            if(waterArea[i][j]) {
+//                Terrain terrainAtPoint = roomInstance.getTerrainAtPoint(p);
+//                terrainAtPoint.getFlags().add(Terrain.TerrainFlag.WATER);
+//                EntityInstance<Terrain> entityInstance = new EntityInstance<>(terrainAtPoint);
+//
+//                waterBatches.add(entityInstance);
+//            }
+
+            count++;
+        }
+
+        if(!waterBatches.isEmpty()) {
+            Spatial waterTiles = Water.construct(assetManager, waterBatches);
+            root.attachChild(waterTiles);
         }
 
         return root;
