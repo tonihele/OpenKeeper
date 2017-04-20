@@ -56,7 +56,6 @@ public class ConsoleState extends AbstractPauseAwareState {
 
         PlayerInteractionState pis = app.getStateManager().getState(PlayerInteractionState.class);
         if (pis != null && pis.isInitialized()) {
-            app.getInputManager().setCursorVisible(!enabled);
             app.getStateManager().getState(PlayerInteractionState.class).setEnabled(!enabled);
             console.setVisible(enabled);
         }
