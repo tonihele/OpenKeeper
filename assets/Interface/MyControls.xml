@@ -250,9 +250,9 @@
     </controlDefinition>
 
     <!--Table, copied from Nifty Listbox, doesn't really support horizontal scrollbars-->
-    <controlDefinition name="table" style="nifty-listbox" childRootId="#child-root"
+    <controlDefinition name="table" style="nifty-listbox" childRootId="#child-root" horizontal="off"
                        controller="toniarts.openkeeper.gui.nifty.table.TableControl"
-                       horizontal="off" viewConverterClass="toniarts.openkeeper.gui.nifty.table.TableRowViewConverter">
+                       viewConverterClass="toniarts.openkeeper.gui.nifty.table.TableRowViewConverter">
         <panel childLayout="vertical">
 
             <!--Our custom headers-->
@@ -262,7 +262,9 @@
             <!--End of headers-->
 
             <panel id="#scrollpanel" childLayout="horizontal" style="nifty-scrollpanel">
-                <panel id="#panel" childLayout="absolute" childClip="true" style="#scrollpanel" controller="de.lessvoid.nifty.controls.listbox.ListBoxPanel" inputMapping="de.lessvoid.nifty.input.mapping.MenuInputMapping">
+                <panel id="#panel" childLayout="absolute" childClip="true" style="#scrollpanel"
+                       controller="de.lessvoid.nifty.controls.listbox.ListBoxPanel"
+                       inputMapping="de.lessvoid.nifty.input.mapping.MenuInputMapping">
                     <panel id="#child-root" width="100%" childLayout="vertical" visibleToMouse="true">
                         <interact onMouseWheel="mouseWheel()" />
 

@@ -217,6 +217,113 @@
     </screen>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Campaign level debriefing -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="debriefing" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
+        <layer childLayout="vertical">
+            <panel childLayout="center" align="center" valign="center" height="14%">
+                <text style="menuTitleText" text="${menu.1478}" align="center" />
+            </panel>
+
+            <panel childLayout="center" align="center" valign="center">
+                <control name="label" id="dLevelTitle" style="menuSubTitleText" align="center" />
+            </panel>
+
+            <panel height="26px" />
+            <!--Main objectives-->
+            <panel childLayout="horizontal" width="100%" align="center" valign="center">
+                <panel childLayout="center" width="160px" align="center" valign="center">
+                    <image align="center" valign="top" id="dMainObjectiveImage" width="144px" />
+                </panel>
+                <panel childLayout="vertical" width="*" align="left" valign="top">
+                    <panel childLayout="vertical" backgroundColor="#f508" width="100%" paddingLeft="10px" >
+                        <text text="${menu.2898}" style="menuSubTitleText" align="left" />
+                    </panel>
+                    <panel childLayout="horizontal" backgroundColor="#0008" marginTop="4px">
+                        <panel childLayout="vertical" width="70%" paddingLeft="10px">
+                            <text text="${menu.1641}" align="left" style="menuTextSmall" />
+                            <text text="${menu.1637}" align="left" style="menuTextSmall" />
+                            <text text="${menu.1638}" align="left" style="menuTextSmall" />
+                        </panel>
+                        <panel childLayout="vertical" width="*">
+                            <control name="label" id="totalEvilRating" text="?" style="menuTextSmall"
+                                     textHAlign="left" textVAlign="top" />
+                            <control name="label" id="overallTotalEvilRating" text="?" style="menuTextSmall"
+                                     textHAlign="left" textVAlign="top" />
+                            <control name="label" id="specialsFound" text="?/?" style="menuTextSmall"
+                                     textHAlign="left" textVAlign="top" />
+                        </panel>
+                    </panel>
+                </panel>
+            </panel>
+
+            <panel height="10px" />
+            <!--Subobjectives-->
+            <panel childLayout="horizontal" width="100%" align="center" valign="center">
+                <panel childLayout="center" width="160px" align="center" valign="center">
+                    <image align="center" valign="top" id="dSubObjectiveImage" width="144px"/>
+                </panel>
+                <panel childLayout="overlay" width="*" align="left" valign="top" backgroundColor="#f508">
+                    <control name="scrollPanel" horizontal="false" stepSizeY="30">
+                        <!-- TODO maybe use Table ? -->
+                        <panel childLayout="horizontal" width="100%">
+                            <panel childLayout="vertical" width="70%" paddingLeft="10px">
+                                <text text="${menu.1516}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1410}" align="left" style="menuTextSmall" /> <!-- or 987 -->
+                                <text text="${menu.1413}" align="left" style="menuTextSmall" /> <!-- or 988 -->
+                                <text text="${menu.1509}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1510}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1511}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1411}" align="left" style="menuTextSmall" /> <!-- or 994 -->
+                                <text text="${menu.1512}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1513}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1514}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1429}" align="left" style="menuTextSmall" /> <!-- or 1002 -->
+                                <text text="${menu.1515}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1636}" align="left" style="menuTextSmall" />
+                            </panel>
+                            <panel childLayout="vertical" width="*" paddingRight="30px">
+                                <control name="label" id="levelWon" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="timeTaken" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="enemyCreaturesKilled" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="heroesDestroyed" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="roomsCaptured" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="landOwned" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="GoldMined" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="ManaStored" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="itemsManufactured" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="creaturesCommanded" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="creaturesConverted" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="creatureTraning" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="AttemptsAtLevel" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                            </panel>
+                        </panel>
+                    </control>
+                </panel>
+            </panel>
+
+            <panel height="*" />
+
+            <panel childLayout="horizontal" align="right" valign="bottom">
+                <control name="okButton" click="cancelLevelSelect()" />
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Options, main selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="optionsMain" controller="toniarts.openkeeper.game.state.MainMenuScreenController">

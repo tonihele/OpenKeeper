@@ -31,9 +31,11 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
@@ -91,6 +93,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private final List<GameTimer> timers = new ArrayList<>(LEVEL_TIMER_MAX_COUNT);
     private int levelScore = 0;
 
+    private GameResult gameResult = null;
+    private float timeTaken = 0;
     private Float timeLimit = null;
     private TaskManager taskManager;
     private final Map<Short, Keeper> players = new TreeMap<>();
@@ -380,6 +384,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         if (actionPointState != null) {
             actionPointState.updateControls(tpf);
         }
+        timeTaken += tpf;
     }
 
     @Override
@@ -464,6 +469,10 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     }
 
     public void setEnd(boolean win) {
+
+        gameResult = new GameResult();
+        gameResult.setData(GameResult.ResultType.LEVEL_WON, win);
+        gameResult.setData(GameResult.ResultType.TIME_TAKEN, timeTaken);
 
         // Enable the end game state
         stateManager.getState(PlayerState.class).endGame(win);
@@ -567,6 +576,11 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     public void breakAlliance(short playerOneId, short playerTwoId) {
         getPlayer(playerOneId).breakAlliance(playerTwoId);
         getPlayer(playerTwoId).breakAlliance(playerOneId);
+    }
+
+    @Nullable
+    public GameResult getGameResult() {
+        return gameResult;
     }
 
 }

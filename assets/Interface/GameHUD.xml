@@ -21,6 +21,9 @@
     <style id="textNormal">
         <attributes font="Interface/Fonts/Ingame28.fnt" color="#bbbcbb" />
     </style>
+        <style id="textGold">
+        <attributes font="Interface/Fonts/Ingame28.fnt" color="#ffdd33" />
+    </style>
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- HUD -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
@@ -47,13 +50,14 @@
                             <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-01.png" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
-                            <panel backgroundImage="Textures/GUI/Windows/heart-hp.png" childLayout="center" valign="center" visibleToMouse="true">
+                            <panel backgroundImage="Textures/GUI/Windows/heart-hp.png" childLayout="center" valign="center">
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2139}" hintDelay="200" />
-                                    <onHover name="simpleHint" hintText="${menu.2140}" targetElement="tooltip" />
+                                    <onHover name="simpleHint" hintText="${CALL.getTooltipText(2140)}" targetElement="tooltip" />
                                     <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
                                 <image filename="Textures/GUI/Windows/heart-bg.png" align="left" valign="center">
+                                    <interact onSecondaryClick="zoomToDungeon()" />
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Windows/heart-alarm.png" post="true" neverStopRendering="true" />
                                     </effect>
@@ -81,10 +85,10 @@
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
-                            <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center" visibleToMouse="true">
+                            <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center">
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2143}" hintDelay="200" />
-                                    <onHover name="simpleHint" hintText="${menu.2144}" targetElement="tooltip" />
+                                    <onHover name="simpleHint" hintText="${CALL.getTooltipText(2144)}" targetElement="tooltip" />
                                     <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
                                 <image filename="Textures/GUI/Windows/payday-BG.png" align="left" valign="center" />
@@ -103,6 +107,30 @@
             </panel>
             <!-- center -->
             <panel childLayout="absolute-inside" height="*" width="100%" id="middle">
+                <!-- Objective window -->
+                <panel childLayout="vertical" x="0" y="0" id="objective" visible="false" width="100%"
+                       height="100%" valign="top" backgroundColor="#0008" padding="10px">
+
+                    <text id="mainObjectivesTitle" text="${menu.1408}" style="textGold" align="left" />
+                    <panel childLayout="vertical" padding="10px">
+                        <control name="label" id="mainObjective" style="text"
+                                 textHAlign="left" textVAlign="top" wrap="true" />
+                    </panel>
+
+                    <text id="subObjectivesTitle" text="${menu.1409}" style="textGold" align="left" />
+                    <panel childLayout="vertical" padding="10px">
+                        <control name="label" id="subObjective1" style="text"
+                                 textHAlign="left" wrap="true" />
+                        <control name="label" id="subObjective2" style="text"
+                                 textHAlign="left" wrap="true" />
+                        <control name="label" id="subObjective3" style="text"
+                                 textHAlign="left" wrap="true" />
+                    </panel>
+                    <panel height="*" />
+                    <control name="iconText" icon="Textures/GUI/Options/i-accept.png"
+                             text="${menu.11}" click="toggleObjective()" />
+                </panel>
+
                 <panel id="statistics" x="5%" y="5%" height="90%" width="90%" align="left" valign="top" childLayout="vertical" visible="false">
                     <panel childLayout="horizontal" height="80px" padding="10px">
                         <panel width="*" />
@@ -165,7 +193,7 @@
                 <control x="45%" y="50%" name="messageBox" width="450px" height="250px" valign="bottom" paddingRight="20px" paddingBottom="20px" visible="false"/>
             </panel>
             <!--The bottom panel-->
-            <panel height="220px" width="100%" align="left" valign="bottom" childLayout="overlay">
+            <panel id="bottomPanel" height="220px" width="100%" align="left" valign="bottom" childLayout="overlay">
                 <!-- first bottom layer -->
                 <panel childLayout="vertical" width="100%" align="left" valign="top">
                     <!--The top bar-->
@@ -244,6 +272,7 @@
                             <panel childLayout="horizontal" height="64px">
                                 <!-- Show/Hide Panel -->
                                 <image valign="center" filename="Textures/GUI/Icons/i-mise.png" height="64px" width="64px" filter="true" visibleToMouse="true">
+                                    <interact onClick="togglePanel()" />
                                     <effect>
                                         <onHover name="hint" hintText="${menu.2161}" hintDelay="200" />
                                         <onHover name="simpleHint" hintText="${menu.2162}" targetElement="tooltip" />
@@ -252,6 +281,7 @@
                                 </image>
                                 <!-- Objective -->
                                 <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-objective-00.png" visibleToMouse="true">
+                                    <interact onClick="toggleObjective()" />
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-objective-01.png" post="true"/>
                                         <onHover name="hint" hintText="${menu.2163}" hintDelay="200" />
