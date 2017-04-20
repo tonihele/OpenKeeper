@@ -82,8 +82,9 @@ public class Temple extends DoubleQuad {
 
         int count = 0;
 
-        List<EntityInstance<Terrain>> instances = new ArrayList<>();
-
+        List<EntityInstance<Terrain>> instances = new ArrayList<>(1);
+        EntityInstance<Terrain> ent = new EntityInstance<>(getWorldState().getGameState().getLevelData().getMap().getWater());
+        instances.add(ent);
         for (Point p : roomInstance.getCoordinates()) {
             // Figure out which piece by seeing the neighbours
             boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
@@ -103,9 +104,7 @@ public class Temple extends DoubleQuad {
             int j = count % waterArea[0].length;
 
             if(waterArea[i][j]) {
-                EntityInstance<Terrain> ent = new EntityInstance<>(getWorldState().getGameState().getLevelData().getMap().getWater());
                 ent.addCoordinate(p);
-                instances.add(ent);
             }
 
             count++;
