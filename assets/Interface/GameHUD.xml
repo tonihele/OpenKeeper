@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <nifty xmlns="http://nifty-gui.lessvoid.com/nifty-gui" xmlns:xsi="http://www.w3.org/2001/XMLSchema">
+    <!-- styles -->
     <useStyles filename="nifty-default-styles.xml" />
-    <useStyles filename="Interface/ScrollbarSmallStyle.xml" />
-    <useStyles filename="Interface/ScrollpanelStyle.xml" />
+    <useStyles filename="Interface/ConsoleStyle.xml" />
     <useStyles filename="Interface/CustomTabStyle.xml" />
     <useStyles filename="Interface/HintStyle.xml" />
+    <useStyles filename="Interface/ScrollbarSmallStyle.xml" />
+    <useStyles filename="Interface/ScrollpanelStyle.xml" />
+    <!-- controls -->
     <useControls filename="nifty-default-controls.xml" />
-    <useControls filename="Interface/MyControls.xml" />
     <useControls filename="Interface/CustomTabControl.xml" />
+    <useControls filename="Interface/MyControls.xml" />
     <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
     <style id="textManaChange">
         <attributes font="Interface/Fonts/Ingame10.fnt" />
@@ -327,7 +330,7 @@
         </layer>
         <!-- console layer-->
         <layer childLayout="vertical">
-            <control id="console" name="nifty-console" lines="25" visible="false">
+            <control id="console" name="nifty-console" style="custom-console" lines="25" visible="false">
                 <effect>
                     <onShow name="move" neverStopRendering="true" length="200" mode="in" direction="top" />
                     <onHide name="move" length="200" mode="out" direction="top" />
