@@ -22,8 +22,11 @@ import de.lessvoid.nifty.controls.Console;
 import de.lessvoid.nifty.controls.ConsoleCommands;
 import de.lessvoid.nifty.controls.ConsoleCommands.ConsoleCommand;
 import de.lessvoid.nifty.tools.Color;
+import java.util.Collection;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.room.ICreatureEntrance;
@@ -39,6 +42,7 @@ public class GameConsole {
     private final Color messageOutputColor = new Color("#bbbbbbff");
     private final AppStateManager stateManager;
     private final Keeper keeper;
+    private Collection<Creature> creatures;
 
     /**
      * These Commands need at least one parameter to work
@@ -69,12 +73,21 @@ public class GameConsole {
 
     private void initialize() {
         consoleCommands = new ConsoleCommands(console.getElement().getNifty(), console);
+        creatures = stateManager.getState(GameState.class).getLevelData().getCreatureList();
 
         ConsoleCommand parameterCommand = new ParameterCommand();
 
         for (ParameterCommands parameterCmd : ParameterCommands.values()) {
-            consoleCommands.registerCommand(parameterCmd.toString().toLowerCase(), parameterCommand);
+            if (parameterCmd.equals(ParameterCommands.SPAWN_CREATURE)) {
+                // make it easier to spawn them by creating an autocompletion
+                creatures.forEach(creature -> {
+                    consoleCommands.registerCommand(parameterCmd.toString().toLowerCase() + " " + creature.getName().toLowerCase().replace(" ", "_"), parameterCommand);
+                });
+            } else {
+                consoleCommands.registerCommand(parameterCmd.toString().toLowerCase(), parameterCommand);
+            }
         }
+
 
         ConsoleCommand simpleCommand = new SimpleCommand();
         for (SimpleCommands simpleCmd : SimpleCommands.values()) {
@@ -160,11 +173,26 @@ public class GameConsole {
                     }
                     break;
                 case SPAWN_CREATURE:
-                    try {
-                        short amount = Short.parseShort(args[1]);
-                        spawnCreature(amount, (short) 1);
-                    } catch (NumberFormatException e) {
-                        console.outputError("First parameter must be the creature id!");
+                    final String name = args[1].replace("_", " ");
+                    short id = 1;
+                    short level = 1;
+                    boolean found = false;
+                    if (args.length > 2) {
+                        try {
+                            level = Short.parseShort(args[2]);
+                        } catch (NumberFormatException e) {
+                            console.outputError("Second parameter must be the creature level!");
+                        }
+                    }
+                    for (Creature creature : creatures) {
+                        if (creature.getName().equalsIgnoreCase(name)) {
+                            spawnCreature(id, level < 10 ? level : 10);
+                            found = true;
+                        }
+                        id++;
+                    }
+                    if (!found) {
+                        console.outputError("Creature " + name + " doesn't exist");
                     }
                     break;
                 default:
