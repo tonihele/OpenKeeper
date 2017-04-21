@@ -23,7 +23,6 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.RoomUtils;
