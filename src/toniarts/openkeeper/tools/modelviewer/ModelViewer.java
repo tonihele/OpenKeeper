@@ -20,6 +20,7 @@ import com.jme3.animation.AnimChannel;
 import com.jme3.animation.AnimControl;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.plugins.FileLocator;
+import com.jme3.audio.AudioNode;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
@@ -52,9 +53,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.audio.plugins.MP2Loader;
+import toniarts.openkeeper.game.sound.SoundGroup;
+import toniarts.openkeeper.game.sound.SoundCategory;
+import toniarts.openkeeper.game.sound.SoundFile;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
@@ -121,6 +127,7 @@ public class ModelViewer extends SimpleApplication {
     private List<String> maps;
     private KwdFile kwdFile;
     private Node floorGeom;
+    //private SoundsLoader soundLoader;
     /**
      * The node name for the model (that is attached to the root)
      */
@@ -184,12 +191,14 @@ public class ModelViewer extends SimpleApplication {
     public void simpleInitApp() {
 
         // Distribution locator
-        getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
+        assetManager.registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
+        assetManager.registerLoader(MP2Loader.class, "mp2");
 
         //Effects manager
         this.effectManagerState = new EffectManagerState(getKwdFile(), assetManager);
         stateManager.attach(effectManagerState);
-
+        // init sound loader
+        //soundLoader = new SoundsLoader(assetManager);
 
         Nifty nifty = getNifty();
         screen = new ModelViewerScreenController(this);
@@ -413,13 +422,24 @@ public class ModelViewer extends SimpleApplication {
                 break;
             }
             case CREATURES: {
-                // Load the selected terrain
+                // Load the selected creature
+                Creature creature = (Creature) selection;
                 effectManagerState.setEnabled(true);
                 Node spat = (Node) new CreaturesLoader().load(this.getAssetManager(),
-                        effectManagerState, (Creature) selection);
+                        effectManagerState, creature);
                 setupModel(spat, false);
-                
-                screen.setupItem((Creature) selection);
+                // Load sounds
+                List<SoundFile> sounds = new ArrayList<>();
+                String soundCategory = creature.getSoundGategory();
+                SoundCategory sc = SoundsLoader.load(soundCategory);
+                if (sc != null) {
+                    for (SoundGroup sa : sc.getGroups().values()) {
+                        sounds.addAll(sa.getFiles());
+                    }
+                }
+
+                Collections.sort(sounds);
+                screen.setupItem(creature, sounds);
                 break;
             }
             case TRAPS: {
@@ -656,5 +676,12 @@ public class ModelViewer extends SimpleApplication {
         }
 
         return kwdFile;
+    }
+
+    void onSoundChanged(SoundFile soundFile) {
+        AudioNode node = SoundsLoader.getAudioNode(assetManager, soundFile);
+        node.setLooping(false);
+        node.setPositional(false);
+        node.play();
     }
 }

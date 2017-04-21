@@ -81,7 +81,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
     }
 
     private void playSound(boolean enabled) {
-        String file = String.format("Sounds/Global/ms_1ft0%s.mp2", enabled ? "1" : "2");
+        String file = String.format("Sounds/Global/MistressHW/ms_1ft0%s.mp2", enabled ? "1" : "2");
         AudioNode sound = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
         sound.setLooping(false);
         sound.setPositional(false);

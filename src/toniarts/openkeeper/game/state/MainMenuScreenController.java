@@ -820,7 +820,11 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 }
 
                 // Play some tunes!!
-                state.levelBriefing = new AudioNode(state.assetManager, ConversionUtils.getCanonicalAssetKey("Sounds/speech_mentor/lev" + String.format("%02d", ((Level) state.selectedLevel).getLevel()) + "001.mp2"), AudioData.DataType.Buffer);
+                String speech = String.format("Sounds/speech_mentor/speech_mentorHD/lev%02d001.mp2",
+                                ((Level) state.selectedLevel).getLevel());
+                state.levelBriefing = new AudioNode(state.assetManager,
+                        ConversionUtils.getCanonicalAssetKey(speech),
+                        AudioData.DataType.Buffer);
                 state.levelBriefing.setLooping(false);
                 state.levelBriefing.setDirectional(false);
                 state.levelBriefing.setPositional(false);

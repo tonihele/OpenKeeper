@@ -862,7 +862,9 @@ public abstract class WorldState extends AbstractAppState {
 
         // We might cache these per file? Then they would be persistent, just move them, does it matter?
         // Since creation of new objects and all, I don't know if they stay in the scene graph..
-        AudioNode audio = new AudioNode(assetManager, ConversionUtils.getCanonicalAssetKey(AssetsConverter.SOUNDS_FOLDER + soundFile), AudioData.DataType.Buffer);
+        AudioNode audio = new AudioNode(assetManager,
+                ConversionUtils.getCanonicalAssetKey(AssetsConverter.SOUNDS_FOLDER + soundFile),
+                AudioData.DataType.Buffer);
         audio.setPositional(true);
         audio.setReverbEnabled(false);
         audio.setLocalTranslation(x, 0, y);

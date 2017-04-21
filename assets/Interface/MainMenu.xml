@@ -13,8 +13,8 @@
     <useControls filename="Interface/CreditsControl.xml" />
     <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
 
-    <registerSound id="buttonClick" filename="Sounds/Global/FE3D CLICK ON T.mp2" />
-    <registerSound id="menuClick" filename="Sounds/Global/FE BUTTON BIG 5.mp2" />
+    <registerSound id="buttonClick" filename="Sounds/Global/GuiHD/FE3D CLICK ON T.mp2" />
+    <registerSound id="menuClick" filename="Sounds/Global/FrontEndHD/FE BUTTON BIG 5.mp2" />
 
     <style id="text">
         <attributes font="Interface/Fonts/Frontend14.fnt" color="#bbbcbb" />

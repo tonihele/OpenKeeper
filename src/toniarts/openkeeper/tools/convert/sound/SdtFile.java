@@ -22,10 +22,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -42,12 +38,12 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class SdtFile {
 
-    private static final Pattern fileExtensionPattern = Pattern.compile("([^\\s]+(\\.(?i)(mp2|wav))$)");
+    private static final Pattern FILE_EXTENSION_PATTERN = Pattern.compile("([^\\s]+(\\.(?i)(mp2|wav))$)");
 
     private final File file;
     private final int count;
     private final int[] entriesOffsets;
-    private final Map<String, SdtFileEntry> entries;
+    private final SdtFileEntry[] entries;
 
     /**
      * Constructs a new Sdt file reader<br>
@@ -70,8 +66,8 @@ public class SdtFile {
                 entriesOffsets[i] = ConversionUtils.readUnsignedInteger(rawSdt);
             }
 
-            entries = new HashMap<>(count);
-            for (int i = 0; i < count; i++) {
+            entries = new SdtFileEntry[count];
+            for (int i = 0; i < entries.length; i++) {
 
                 SdtFileEntry entry = new SdtFileEntry();
                 entry.setHeaderSize(ConversionUtils.readUnsignedInteger(rawSdt));
@@ -91,11 +87,7 @@ public class SdtFile {
                     continue;
                 }
 
-                //Fix file extension
-                String filename = fixFileExtension(entry,
-                        ConversionUtils.convertFileSeparators(entry.getName()));
-
-                entries.put(filename, entry);
+                entries[i] = entry;
 
                 //Skip to next one (or to end of file)
                 rawSdt.skipBytes(entry.getDataSize());
@@ -116,12 +108,13 @@ public class SdtFile {
 
         //Open the SDT for extraction
         try (RandomAccessFile rawSdt = new RandomAccessFile(file, "r")) {
-
-            for (String fileName : entries.keySet()) {
-                extractFileData(fileName, destination, rawSdt);
+            for (SdtFileEntry entry : entries) {
+                if (entry == null) {
+                    continue;
+                }
+                extractFileData(entry, destination, rawSdt);
             }
         } catch (Exception e) {
-
             //Fug
             throw new RuntimeException("Faile to read the WAD file!", e);
         }
@@ -134,17 +127,20 @@ public class SdtFile {
      * @param destination destination directory
      * @param rawSdt the opened SDT file
      */
-    private void extractFileData(String fileName, String destination, RandomAccessFile rawSdt) {
+    private void extractFileData(SdtFileEntry entry, String destination, RandomAccessFile rawSdt) {
 
+        //Fix file extension
+        String filename = fixFileExtension(entry);
         //See that the destination is formatted correctly and create it if it does not exist
         String dest = PathUtils.fixFilePath(destination);
         File destinationFolder = new File(dest);
         destinationFolder.mkdirs();
-        dest = dest.concat(fileName);
+
+        dest = dest.concat(filename);
 
         //Write to the file
         try (OutputStream outputStream = new FileOutputStream(dest)) {
-            getFileData(fileName, rawSdt).writeTo(outputStream);
+            getFileData(entry, rawSdt).writeTo(outputStream);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write to " + dest + "!", e);
         }
@@ -157,13 +153,12 @@ public class SdtFile {
      * @param rawSdt the opened SDT file
      * @return the file data
      */
-    private ByteArrayOutputStream getFileData(String fileName, RandomAccessFile rawSdt) {
+    private ByteArrayOutputStream getFileData(SdtFileEntry fileEntry, RandomAccessFile rawSdt) {
         ByteArrayOutputStream result = null;
 
         //Get the file
-        SdtFileEntry fileEntry = entries.get(fileName);
         if (fileEntry == null) {
-            throw new RuntimeException("File " + fileName + " not found from the SDT archive!");
+            throw new RuntimeException("File " + fileEntry.getName() + " not found from the SDT archive!");
         }
 
         try {
@@ -193,11 +188,11 @@ public class SdtFile {
      * broken extensions
      *
      * @param entry the SDT entry
-     * @param filename the file name to fix
      * @return fixed file name
      */
-    private String fixFileExtension(SdtFileEntry entry, String filename) {
-        Matcher m = fileExtensionPattern.matcher(filename.toLowerCase());
+    public static String fixFileExtension(SdtFileEntry entry) {
+        String filename = ConversionUtils.convertFileSeparators(entry.getName());
+        Matcher m = FILE_EXTENSION_PATTERN.matcher(filename.toLowerCase());
         if (!m.find()) {
             int index = filename.lastIndexOf(".");
             if (index > -1) {
@@ -249,12 +244,16 @@ public class SdtFile {
     }
 
     /**
-     * Get list of different objects
+     * Get array of entires
      *
-     * @return list of objects
+     * @return array of entires
      */
-    public List<String> getFileNamesList() {
-        return Arrays.asList(entries.keySet().toArray(new String[entries.size()]));
+    public SdtFileEntry[] getEntires() {
+        return entries;
+    }
+
+    public File getFile() {
+        return file;
     }
 
     @Override

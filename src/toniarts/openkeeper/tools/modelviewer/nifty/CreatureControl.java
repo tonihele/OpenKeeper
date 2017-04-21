@@ -31,22 +31,22 @@ public class CreatureControl implements Controller {
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Parameters parameter) {
-        
+
     }
 
     @Override
     public void init(Parameters parameter) {
-        
+
     }
 
     @Override
     public void onStartScreen() {
-        
+
     }
 
     @Override
     public void onFocus(boolean getFocus) {
-        
+
     }
 
     @Override
@@ -56,7 +56,7 @@ public class CreatureControl implements Controller {
 
     @Override
     public void onEndScreen() {
-        
+
     }
-    
+
 }

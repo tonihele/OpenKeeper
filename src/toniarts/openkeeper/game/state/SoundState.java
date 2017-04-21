@@ -69,7 +69,8 @@ public class SoundState extends AbstractPauseAwareState {
      * @param speechId
      */
     public void attachLevelSpeech(int speechId) {
-        String file = String.format("Sounds/%s/lvlspe%02d.mp2", stateManager.getState(GameState.class).getLevelData().getGameLevel().getSpeechStr().toLowerCase(), speechId);
+        String speech = stateManager.getState(GameState.class).getLevelData().getGameLevel().getSpeechStr().toLowerCase();
+        String file = String.format("Sounds/%s/%sHD/lvlspe%02d.mp2", speech, speech, speechId);
         speechQueue.add(ConversionUtils.getCanonicalAssetKey(file));
     }
 
@@ -80,7 +81,7 @@ public class SoundState extends AbstractPauseAwareState {
      * without extension!
      */
     public void attachMentorSpeech(String audioFile) {
-        String file = String.format("Sounds/speech_mentor/%s.mp2", audioFile);
+        String file = String.format("Sounds/speech_mentor/speech_mentorHD/%s.mp2", audioFile);
         speechQueue.add(ConversionUtils.getCanonicalAssetKey(file));
     }
 
@@ -159,7 +160,8 @@ public class SoundState extends AbstractPauseAwareState {
                 third = random.nextInt(23) + 1;
             }
 
-            final String formatted = String.format("Sounds/Global/%dpt%d-%03d.mp2", first, second, third);
+            final String formatted = String.format("Sounds/Global/Track_%d_%dHD/%dpt%d-%03d.mp2",
+                    first, second, first, second, third);
             return ConversionUtils.getCanonicalAssetKey(formatted);
         }
     }

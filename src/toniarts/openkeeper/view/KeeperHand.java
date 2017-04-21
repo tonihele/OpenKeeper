@@ -47,8 +47,12 @@ import toniarts.openkeeper.world.control.IInteractiveControl;
  */
 public class KeeperHand {
 
-    private static final List<String> SLAP_SOUNDS = Arrays.asList(new String[]{"/Global/Slap_1.mp2",
-        "/Global/slap_2.mp2", "/Global/Slap_3.mp2", "/Global/Slap_4.mp2"});
+    private static final List<String> SLAP_SOUNDS = Arrays.asList(new String[]{
+        "/Global/GuiHD/Slap_1.mp2",
+        "/Global/GuiHD/slap_2.mp2",
+        "/Global/GuiHD/Slap_3.mp2",
+        "/Global/GuiHD/Slap_4.mp2"
+    });
     private static final String MORE_CREATURES = "GUI/Creatures/more_creatures";
 
     //FIXME: 8 in original but two lines by 4

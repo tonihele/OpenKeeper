@@ -4,12 +4,12 @@
     <!-- Creature -->
     <controlDefinition name="creature" style="nifty-panel-style"
                        controller="toniarts.openkeeper.tools.modelviewer.nifty.CreatureControl">
-        
+
         <panel childLayout="vertical" width="100%">
 
             <control name="scrollPanel" horizontal="false" stepSizeY="20">
                 <panel childLayout="vertical" width="100%">
-                    
+
                     <text style="text" text="$title" align="center" />
 
                     <panel childLayout="horizontal" width="100%">
@@ -32,6 +32,9 @@
                             <image filename="$fpFilter" align="center" />
                         </panel>
                     </panel>
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
 
                     <text style="text" text="Description" align="center" />
                     <text style="text" text="$description" textHAlign="left" wrap="true" />

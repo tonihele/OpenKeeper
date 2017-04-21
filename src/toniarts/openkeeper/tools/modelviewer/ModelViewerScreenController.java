@@ -30,6 +30,7 @@ import de.lessvoid.nifty.spi.render.RenderFont;
 import java.io.File;
 import java.util.List;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.sound.SoundFile;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -47,6 +48,7 @@ public class ModelViewerScreenController implements ScreenController {
     private final static String ID_ITEMS = "items";
     private final static String ID_TYPES = "types";
     private final static String ID_ITEM = "item";
+    private final static String ID_SOUNDS = "sounds";
 
     private final ModelViewer app;
     private final Nifty nifty;
@@ -98,6 +100,11 @@ public class ModelViewerScreenController implements ScreenController {
         app.fillList(event.getSelection());
     }
 
+    @NiftyEventSubscriber(id = ID_SOUNDS)
+    public void onSoundSelectionChanged(final String id, final DropDownSelectionChangedEvent<SoundFile> event) {
+        app.onSoundChanged(event.getSelection());
+    }
+
     /**
      * Get the listbox holding the models
      *
@@ -124,7 +131,7 @@ public class ModelViewerScreenController implements ScreenController {
         nifty.gotoScreen(screen);
     }
 
-    protected void setupItem(Object item) {
+    protected void setupItem(Object item, List<SoundFile> audio) {
         Element panel = screen.findElementById(ID_ITEM);
         for (Element element : panel.getChildren()) {
             element.markForRemoval();
@@ -134,6 +141,9 @@ public class ModelViewerScreenController implements ScreenController {
             ControlBuilder cb = createCreatureControl((Creature) item);
 
             Element el = cb.build(nifty, screen, panel);
+            DropDown<SoundFile> dropDown = (DropDown<SoundFile>) el.findNiftyControl(ID_SOUNDS, DropDown.class);
+            dropDown.clear();
+            dropDown.addAllItems(audio);
 
             //panel.addChild(el);
             panel.layoutElements();
@@ -147,7 +157,7 @@ public class ModelViewerScreenController implements ScreenController {
         ControlBuilder result = new ControlBuilder(name, "creature") {
             {
                 parameter("title", name);
-                
+
                 parameter("iconOne", getResourceImageName(creature.getIcon1Resource()));
                 parameter("iconTwo", getResourceImageName(creature.getIcon2Resource()));
                 parameter("portrait", getResourceImageName(creature.getPortraitResource()));
@@ -157,12 +167,12 @@ public class ModelViewerScreenController implements ScreenController {
 
                 parameter("description", getResourceString(creature.getGeneralDescriptionStringId()));
                 parameter("tooltip", getResourceString(creature.getTooltipStringId()));
-                
+
                 parameter("introduction", getResourceString(creature.getIntroductionStringId()));
                 parameter("strength", getResourceString(creature.getStrengthStringId()));
                 parameter("uniqueName", getResourceString(creature.getUniqueNameTextId()));
                 parameter("weakness", getResourceString(creature.getWeaknessStringId()));
-                
+
                 parameter("angerFood", getResourceString(creature.getAngerStringIdFood()));
                 parameter("angerGeneral", getResourceString(creature.getAngerStringIdGeneral()));
                 parameter("angerHatred", getResourceString(creature.getAngerStringIdHatred()));
@@ -181,7 +191,7 @@ public class ModelViewerScreenController implements ScreenController {
 
     private String getResourceImageName(ArtResource resource) {
         String result = (resource != null) ? resource.getName() + ".png" : "&mask&transparent.png";
-        
+
         return ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                 + File.separator + result);
     }

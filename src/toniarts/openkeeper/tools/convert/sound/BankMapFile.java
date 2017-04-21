@@ -90,7 +90,7 @@ public class BankMapFile {
             for (BankMapFileEntry entry : entries) {
                 // 4 bytes = length of the name (including the null terminator)
                 int length = ConversionUtils.readUnsignedInteger(rawMap);
-                entry.setArchive(ConversionUtils.readString(rawMap, length).trim());
+                entry.setName(ConversionUtils.readString(rawMap, length).trim());
             }
 
         } catch (IOException e) {
@@ -98,6 +98,10 @@ public class BankMapFile {
             //Fug
             throw new RuntimeException("Failed to open the file " + file + "!", e);
         }
+    }
+
+    public BankMapFileEntry[] getEntries() {
+        return entries;
     }
 
     @Override
