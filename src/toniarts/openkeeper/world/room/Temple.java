@@ -97,7 +97,7 @@ public class Temple extends DoubleQuad {
             root.attachChild(model);
 
             Point localPoint = roomInstance.worldCoordinateToLocalCoordinate(p.x, p.y);
-            if(waterArea[localPoint.x][localPoint.y]) {
+            if(waterArea[localPoint.x][localPoint.y] || NE || SE || SW || NW) {
                 ent.addCoordinate(p);
             }
         }
