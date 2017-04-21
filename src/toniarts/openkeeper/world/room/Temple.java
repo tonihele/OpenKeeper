@@ -23,6 +23,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.RoomUtils;
@@ -50,9 +51,9 @@ public class Temple extends DoubleQuad {
         BatchNode root = new BatchNode();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
         Point start = roomInstance.getMatrixStartPoint();
+
         // Water
         boolean[][] waterArea = RoomUtils.calculateWaterArea(roomInstance.getCoordinatesAsMatrix());
-
 
         // Hand
         boolean drawHand = RoomUtils.matrixContainsSquare(roomInstance.getCoordinatesAsMatrix(), 5);
@@ -72,18 +73,14 @@ public class Temple extends DoubleQuad {
                 }
             }
 
-
-
             Point centre = new Point( start.x + (topLeft.x + bottomRight.x) / 2, start.y +(topLeft.y + bottomRight.y) / 2);
             Spatial part = objectLoader.load(assetManager, centre.x, centre.y, OBJECT_TEMPLE_HAND_ID, roomInstance.getOwnerId());
             part.move(0, -3 * MapLoader.FLOOR_HEIGHT / 2, MapLoader.TILE_WIDTH / 4);
             root.attachChild(part);
         }
 
-        int count = 0;
-
-        List<EntityInstance<Terrain>> instances = new ArrayList<>(1);
-        EntityInstance<Terrain> ent = new EntityInstance<>(getWorldState().getGameState().getLevelData().getMap().getWater());
+        final List<EntityInstance<Terrain>> instances = new ArrayList<>(1);
+        final EntityInstance<Terrain> ent = new EntityInstance<>(getWorldState().getGameState().getLevelData().getMap().getWater());
         instances.add(ent);
         for (Point p : roomInstance.getCoordinates()) {
             // Figure out which piece by seeing the neighbours
@@ -100,19 +97,14 @@ public class Temple extends DoubleQuad {
             moveSpatial(model, p);
             root.attachChild(model);
 
-            int i = count / waterArea[0].length;
-            int j = count % waterArea[0].length;
-
-            if(waterArea[i][j]) {
+            Point localPoint = roomInstance.worldCoordinateToLocalCoordinate(p.x, p.y);
+            if(waterArea[localPoint.x][localPoint.y]) {
                 ent.addCoordinate(p);
             }
-
-            count++;
         }
 
         if(!instances.isEmpty()) {
             Spatial waterTiles = Water.construct(assetManager, instances);
-
             root.attachChild(waterTiles);
         }
 
