@@ -69,7 +69,7 @@ public class SoundState extends AbstractPauseAwareState {
      * @param speechId
      */
     public void attachLevelSpeech(int speechId) {
-        String speech = stateManager.getState(GameState.class).getLevelData().getGameLevel().getSpeechStr().toLowerCase();
+        String speech = stateManager.getState(GameState.class).getLevelData().getGameLevel().getSoundCategory().toLowerCase();
         String file = String.format("Sounds/%s/%sHD/lvlspe%02d.mp2", speech, speech, speechId);
         speechQueue.add(ConversionUtils.getCanonicalAssetKey(file));
     }

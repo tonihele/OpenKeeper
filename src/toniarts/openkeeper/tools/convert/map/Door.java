@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 
 /**
@@ -27,7 +28,7 @@ import toniarts.openkeeper.tools.convert.IFlagEnum;
  *
  * Thank you https://github.com/werkt
  */
-public class Door implements Comparable<Door> {
+public class Door implements Comparable<Door>, ISoundable {
 
     /**
      * Door flags
@@ -78,7 +79,7 @@ public class Door implements Comparable<Door> {
     private short orderInEditor; // introductionIndex in editor
     private short manufCrateObjectId;
     private short keyObjectId;
-    private String soundGategory;
+    private String soundCategory;
 
     public String getName() {
         return name;
@@ -161,7 +162,7 @@ public class Door implements Comparable<Door> {
     }
 
     /**
-     * 
+     *
      * @return 99 always
      */
     public int getUnknown1() {
@@ -173,7 +174,7 @@ public class Door implements Comparable<Door> {
     }
 
     /**
-     * 
+     *
      * @return 22 always
      */
     public int getUnknown2() {
@@ -328,12 +329,13 @@ public class Door implements Comparable<Door> {
         this.keyObjectId = keyObjectId;
     }
 
-    public String getSoundGategory() {
-        return soundGategory;
+    @Override
+    public String getSoundCategory() {
+        return soundCategory;
     }
 
-    protected void setSoundGategory(String soundGategory) {
-        this.soundGategory = soundGategory;
+    protected void setSoundCategory(String soundGategory) {
+        this.soundCategory = soundGategory;
     }
 
     @Override

@@ -20,13 +20,14 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
 import java.util.List;
+import toniarts.openkeeper.game.data.ISoundable;
 
 /**
  * Container class for Objects.kwd
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameObject implements Comparable<GameObject> {
+public class GameObject implements Comparable<GameObject>, ISoundable {
 
     /**
      * Object flags
@@ -442,6 +443,7 @@ public class GameObject implements Comparable<GameObject> {
         this.pickUpPriority = pickUpPriority;
     }
 
+    @Override
     public String getSoundCategory() {
         return soundCategory;
     }

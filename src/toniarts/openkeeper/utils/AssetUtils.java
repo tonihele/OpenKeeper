@@ -400,7 +400,7 @@ public class AssetUtils {
         Method[] methods = clazz.getMethods();
         List<Method> methodsToScan = new ArrayList<>();
         for (Method method : methods) {
-            if (method.getReturnType().equals(ArtResource.class)) {
+            if (method.getReturnType().equals(ArtResource.class) && method.getParameterCount() == 0) {
                 methodsToScan.add(method);
             }
         }
@@ -410,7 +410,7 @@ public class AssetUtils {
         if (!methodsToScan.isEmpty()) {
             for (Object obj : objects) {
                 for (Method method : methodsToScan) {
-                    ArtResource artResource = (ArtResource) method.invoke(obj, (Object[]) null);
+                    ArtResource artResource = (ArtResource) method.invoke(obj);
                     if (artResource != null && artResource.getFlags().contains(ArtResource.ArtResourceFlag.PRELOAD)) {
 
                         try {

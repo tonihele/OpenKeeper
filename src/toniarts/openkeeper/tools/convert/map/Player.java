@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import toniarts.openkeeper.game.data.ITriggerable;
+
 /**
  * Container class for the mapnamePlayer.kld
  *
@@ -24,7 +26,7 @@ package toniarts.openkeeper.tools.convert.map;
  *
  * Thank you https://github.com/werkt
  */
-public class Player implements Comparable<Player> {
+public class Player implements Comparable<Player>, ITriggerable {
 
     public static final short GOOD_PLAYER_ID = 1;
     public static final short NEUTRAL_PLAYER_ID = 2;
@@ -66,6 +68,7 @@ public class Player implements Comparable<Player> {
         this.ai = ai;
     }
 
+    @Override
     public int getTriggerId() {
         return triggerId;
     }

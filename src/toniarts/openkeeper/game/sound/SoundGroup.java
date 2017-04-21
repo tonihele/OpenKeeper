@@ -34,61 +34,76 @@ import toniarts.openkeeper.utils.PathUtils;
 public class SoundGroup {
 
     public enum SoundType {
-        PICKED_UP(195),
-        DROPPED(196),
-        SLAP(197),
-        STUNNED(199),
-        TICKLED(200),
-        IN_HAND(201),
-        HAPPY(202),
-        UNHAPPY(203),
-        ANGRY(204),
-        EAT(205),
-        SLEEP(206),
-        TORTURE_GENERAL(207), // FIXME maybe not. TORTURE_WHEEL
-        IMPRISON(208),
-        TRAIN(211),
-        PRAY(212),
-        GAMBLE(213),
-        CHARGE(214),
-        ATTKSP(217),
-        DIE(218),
-        HIT_OR_MELEE(219),
-        FLEE(220),
-        MELEE_1(221),
-        SULK(222),
-        MELEE_2(224), // drop
-        DRINK(225),
-        SACRIFICE(226),
-        HELLO(228),
-        FALL(230),
-        FALL_DOOR(246), // sound like door is locked. heavylump, land
-        KEEP_1(265),
-        CLAIM_1(266),
-        CLAIM_2(267),
-        REPAIR(268),
-        DRAG(269),
-        TORTURE_WHEEL(342),
-        REPORT(762),
-        CHAT(786),
-        FT_1(788),
-        FT_2(789),
-        TORTURE_FIRE(795),
-        TORTURE_ELEC(796), // TORTURE_WATER
-        TRAPS_OR_CRATES_1(806),
-        DOORS_WOOD(807),
-        TRAPS_OR_CRATES_2(808),
-        FT_3(818), // drag
-        FT_4(819),
-        KEEP_2(820),
-        IMPENETRABLE(821),
-        STINKY(822),
-        WATER_SWIM(823),
-        REINFORCE(829),
-        TORCH_LOOP(832),
-        TELEPORT_IN(834),
-        TELEPORT_OUT(835),
-        LEVEL_UP(841);
+        OBJECT_RESEARCH_1(49),
+        OBJECT_RESEARCH_2(50),
+        OBJECT_RESEARCH_3(51),
+        OBJECT_RESEARCH_4(52),
+        PICKED_UP(195), // creature or object
+        DROPPED(196), // creature or object
+        CREATURE_SLAP(197),
+        CREATURE_STUNNED(199),
+        CREATURE_TICKLED(200),
+        CREATURE_IN_HAND(201),
+        CREATURE_HAPPY(202),
+        CREATURE_UNHAPPY(203),
+        CREATURE_ANGRY(204),
+        CREATURE_EAT(205),
+        CREATURE_SLEEP(206),
+        CREATURE_TORTURE_GENERAL(207), // FIXME maybe not. TORTURE_WHEEL
+        CREATURE_IMPRISON(208),
+        CREATURE_TRAIN(211),
+        CREATURE_PRAY(212),
+        CREATURE_GAMBLE(213),
+        CREATURE_CHARGE(214),
+        CREATURE_ATTKSP(217),
+        CREATURE_DIE(218),
+        CREATURE_HIT_OR_MELEE(219),
+        CREATURE_FLEE(220),
+        CREATURE_MELEE_1(221),
+        CREATURE_SULK(222),
+        CREATURE_MELEE_2(224), // drop
+        CREATURE_DRINK(225),
+        CREATURE_SACRIFICE(226),
+        CREATURE_HELLO(228),
+        CREATURE_FALL(230),
+        OBJECT_BED(241), // chicken sound
+        OBJECT_RAT_SQUEAK(242), // or bat fly
+        DESTROYED(244), // terrain and object
+        CREATURE_FALL_DOOR(246), // sound like door is locked. heavylump, land
+        OBJECT_TORTURE_WHEEL(251),
+        CREATURE_KEEP_1(265),
+        CREATURE_CLAIM_1(266),
+        CREATURE_CLAIM_2(267),
+        REINFORCE(268), // REPAIR creature or terrain
+        CREATURE_DRAG(269),
+        OBJECT_CHICKEN(272),
+        OBJECT_CHICKEN_FLAP(273),
+        OBJECT_FORGE_HIT(274),
+        CREATURE_TORTURE_WHEEL(342),
+        AMBIENCE(746), // terrain or room. E.g. water wave sound
+        ROOM_HERO_GATE_BIRDIE(747),
+        CREATURE_REPORT(762),
+        OBJECT_TRAIN_MECH(785),
+        CREATURE_CHAT(786),
+        CREATURE_FT_1(788),
+        CREATURE_FT_2(789),
+        TERRAIN_GENSPELL(793),
+        TORTURE_FIRE(795), // creature or object
+        CREATURE_TORTURE_ELEC(796), // TORTURE_WATER
+        CREATURE_TRAPS_OR_CRATES_1(806),
+        CREATURE_DOORS_WOOD(807),
+        CREATURE_TRAPS_OR_CRATES_2(808),
+        CREATURE_FT_3(818), // drag
+        CREATURE_FT_4(819),
+        CREATURE_KEEP_2(820),
+        CREATURE_IMPENETRABLE(821),
+        CREATURE_STINKY(822),
+        CREATURE_WATER_SWIM(823),
+        CREATURE_REINFORCE(829),
+        CREATURE_TORCH_LOOP(832),
+        CREATURE_TELEPORT_IN(834),
+        CREATURE_TELEPORT_OUT(835),
+        CREATURE_LEVEL_UP(841);
 
         private SoundType(int value) {
             this.value = value;
@@ -151,5 +166,10 @@ public class SoundGroup {
                 files.add(sf);
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "SoundGroup{" + "typeId=" + entry.getTypeId() + '}';
     }
 }

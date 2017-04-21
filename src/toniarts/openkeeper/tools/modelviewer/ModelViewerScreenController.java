@@ -35,6 +35,14 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.Effect;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
+import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Shot;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -137,52 +145,176 @@ public class ModelViewerScreenController implements ScreenController {
             element.markForRemoval();
         }
 
+        Element el = null;
         if (item instanceof Creature) {
             ControlBuilder cb = createCreatureControl((Creature) item);
-
-            Element el = cb.build(nifty, screen, panel);
-            DropDown<SoundFile> dropDown = (DropDown<SoundFile>) el.findNiftyControl(ID_SOUNDS, DropDown.class);
-            dropDown.clear();
-            dropDown.addAllItems(audio);
-
-            //panel.addChild(el);
-            panel.layoutElements();
-            panel.reactivate();
+            el = cb.build(nifty, screen, panel);
+        } else if (item instanceof Room) {
+            ControlBuilder cb = createRoomControl((Room) item);
+            el = cb.build(nifty, screen, panel);
+        } else if (item instanceof Terrain) {
+            ControlBuilder cb = createTerrainControl((Terrain) item);
+            el = cb.build(nifty, screen, panel);
+        } else if (item instanceof Shot) {
+            ControlBuilder cb = createShotControl((Shot) item);
+            el = cb.build(nifty, screen, panel);
+        } else if (item instanceof GameLevel) {
+            ControlBuilder cb = createGameLevelControl((GameLevel) item);
+            el = cb.build(nifty, screen, panel);
+        } else if (item instanceof GameObject) {
+            ControlBuilder cb = createObjectControl((GameObject) item);
+            el = cb.build(nifty, screen, panel);
+        } else if (item instanceof Trap) {
+            ControlBuilder cb = createTrapControl((Trap) item);
+            el = cb.build(nifty, screen, panel);
+        } else if (item instanceof Door) {
+            ControlBuilder cb = createDoorControl((Door) item);
+            el = cb.build(nifty, screen, panel);
+        } else if (item instanceof Effect) {
+            ControlBuilder cb = createEffectControl((Effect) item);
+            el = cb.build(nifty, screen, panel);
         }
+
+        if (el != null) {
+            DropDown<SoundFile> dropDown = (DropDown<SoundFile>) el.findNiftyControl(ID_SOUNDS, DropDown.class);
+            if (dropDown != null) {
+                dropDown.clear();
+                dropDown.addAllItems(audio);
+            }
+        }
+        //panel.addChild(el);
+        panel.layoutElements();
+        panel.reactivate();
     }
 
-    private ControlBuilder createCreatureControl(final Creature creature) {
-        String name = getResourceString(creature.getNameStringId());
+    private ControlBuilder createCreatureControl(final Creature item) {
+        String name = getResourceString(item.getNameStringId());
 
         ControlBuilder result = new ControlBuilder(name, "creature") {
             {
                 parameter("title", name);
 
-                parameter("iconOne", getResourceImageName(creature.getIcon1Resource()));
-                parameter("iconTwo", getResourceImageName(creature.getIcon2Resource()));
-                parameter("portrait", getResourceImageName(creature.getPortraitResource()));
-                parameter("unique", getResourceImageName(creature.getUniqueResource()));
-                parameter("fpMelee", getResourceImageName(creature.getFirstPersonMeleeResource()));
-                parameter("fpFilter", getResourceImageName(creature.getFirstPersonFilterResource()));
+                parameter("iconOne", getResourceImageName(item.getIcon1Resource()));
+                parameter("iconTwo", getResourceImageName(item.getIcon2Resource()));
+                parameter("portrait", getResourceImageName(item.getPortraitResource()));
+                parameter("unique", getResourceImageName(item.getUniqueResource()));
+                parameter("fpMelee", getResourceImageName(item.getFirstPersonMeleeResource()));
+                parameter("fpFilter", getResourceImageName(item.getFirstPersonFilterResource()));
 
-                parameter("description", getResourceString(creature.getGeneralDescriptionStringId()));
-                parameter("tooltip", getResourceString(creature.getTooltipStringId()));
+                parameter("description", getResourceString(item.getGeneralDescriptionStringId()));
+                parameter("tooltip", getResourceString(item.getTooltipStringId()));
 
-                parameter("introduction", getResourceString(creature.getIntroductionStringId()));
-                parameter("strength", getResourceString(creature.getStrengthStringId()));
-                parameter("uniqueName", getResourceString(creature.getUniqueNameTextId()));
-                parameter("weakness", getResourceString(creature.getWeaknessStringId()));
+                parameter("introduction", getResourceString(item.getIntroductionStringId()));
+                parameter("strength", getResourceString(item.getStrengthStringId()));
+                parameter("uniqueName", getResourceString(item.getUniqueNameTextId()));
+                parameter("weakness", getResourceString(item.getWeaknessStringId()));
 
-                parameter("angerFood", getResourceString(creature.getAngerStringIdFood()));
-                parameter("angerGeneral", getResourceString(creature.getAngerStringIdGeneral()));
-                parameter("angerHatred", getResourceString(creature.getAngerStringIdHatred()));
-                parameter("angerHeld", getResourceString(creature.getAngerStringIdHeld()));
-                parameter("angerLair", getResourceString(creature.getAngerStringIdLair()));
-                parameter("angerLonely", getResourceString(creature.getAngerStringIdLonely()));
-                parameter("angerPay", getResourceString(creature.getAngerStringIdPay()));
-                parameter("angerSlap", getResourceString(creature.getAngerStringIdSlap()));
-                parameter("angerTorture", getResourceString(creature.getAngerStringIdTorture()));
-                parameter("angerWork", getResourceString(creature.getAngerStringIdWork()));
+                parameter("angerFood", getResourceString(item.getAngerStringIdFood()));
+                parameter("angerGeneral", getResourceString(item.getAngerStringIdGeneral()));
+                parameter("angerHatred", getResourceString(item.getAngerStringIdHatred()));
+                parameter("angerHeld", getResourceString(item.getAngerStringIdHeld()));
+                parameter("angerLair", getResourceString(item.getAngerStringIdLair()));
+                parameter("angerLonely", getResourceString(item.getAngerStringIdLonely()));
+                parameter("angerPay", getResourceString(item.getAngerStringIdPay()));
+                parameter("angerSlap", getResourceString(item.getAngerStringIdSlap()));
+                parameter("angerTorture", getResourceString(item.getAngerStringIdTorture()));
+                parameter("angerWork", getResourceString(item.getAngerStringIdWork()));
+            }
+        };
+
+        return result;
+    }
+
+    private ControlBuilder createRoomControl(final Room item) {
+        String name = getResourceString(item.getNameStringId());
+
+        ControlBuilder result = new ControlBuilder(name, "room") {
+            {
+                parameter("title", name);
+            }
+        };
+
+        return result;
+    }
+
+    private ControlBuilder createTerrainControl(final Terrain item) {
+        String name = getResourceString(item.getNameStringId());
+
+        ControlBuilder result = new ControlBuilder(name, "terrain") {
+            {
+                parameter("title", name);
+            }
+        };
+
+        return result;
+    }
+
+    private ControlBuilder createShotControl(final Shot item) {
+        String name = item.getName();
+
+        ControlBuilder result = new ControlBuilder(name, "shot") {
+            {
+                parameter("title", name);
+            }
+        };
+
+        return result;
+    }
+
+    private ControlBuilder createGameLevelControl(final GameLevel item) {
+        String name = item.getLevelName();
+
+        ControlBuilder result = new ControlBuilder(name, "level") {
+            {
+                parameter("title", name);
+            }
+        };
+
+        return result;
+    }
+
+    private ControlBuilder createObjectControl(final GameObject item) {
+        String name = getResourceString(item.getNameStringId());
+
+        ControlBuilder result = new ControlBuilder(name, "object") {
+            {
+                parameter("title", name);
+            }
+        };
+
+        return result;
+    }
+
+    private ControlBuilder createTrapControl(Trap item) {
+        String name = getResourceString(item.getNameStringId());
+
+        ControlBuilder result = new ControlBuilder(name, "trap") {
+            {
+                parameter("title", name);
+            }
+        };
+
+        return result;
+    }
+
+    private ControlBuilder createDoorControl(Door item) {
+        String name = getResourceString(item.getNameStringId());
+
+        ControlBuilder result = new ControlBuilder(name, "door") {
+            {
+                parameter("title", name);
+            }
+        };
+
+        return result;
+    }
+
+    private ControlBuilder createEffectControl(Effect item) {
+        String name = item.getName();
+
+        ControlBuilder result = new ControlBuilder(name, "effect") {
+            {
+                parameter("title", name);
             }
         };
 

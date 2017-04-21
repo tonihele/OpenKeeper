@@ -6,7 +6,6 @@
                        controller="toniarts.openkeeper.tools.modelviewer.nifty.CreatureControl">
 
         <panel childLayout="vertical" width="100%">
-
             <control name="scrollPanel" horizontal="false" stepSizeY="20">
                 <panel childLayout="vertical" width="100%">
 
@@ -80,6 +79,115 @@
 
                     <text style="text" text="Anger Work" align="center" />
                     <text style="text" text="$angerWork" textHAlign="left" wrap="true" />
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="room" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="trap" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="door" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="shot" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="terrain" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="object" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="level" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="effect" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
                 </panel>
             </control>
         </panel>

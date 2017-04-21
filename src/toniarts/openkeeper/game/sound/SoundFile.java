@@ -22,17 +22,17 @@ package toniarts.openkeeper.game.sound;
  */
 public class SoundFile implements Comparable<SoundFile> {
     private final int id;
-    private final SoundGroup action;
+    private final SoundGroup group;
     private final String filename;
 
     public SoundFile(SoundGroup action, int id, String filename) {
-        this.action = action;
+        this.group = action;
         this.id = id;
         this.filename = filename;
     }
 
-    public SoundGroup getAction() {
-        return action;
+    public SoundGroup getGroup() {
+        return group;
     }
 
     public String getFilename() {
@@ -43,7 +43,7 @@ public class SoundFile implements Comparable<SoundFile> {
     public int hashCode() {
         int hash = 5;
         hash = 97 * hash + this.id;
-        hash = 97 * hash + this.action.getId();
+        hash = 97 * hash + this.group.getId();
         return hash;
     }
 
@@ -62,7 +62,7 @@ public class SoundFile implements Comparable<SoundFile> {
         if (this.id != other.id) {
             return false;
         }
-        if (this.action.getId() != other.action.getId()) {
+        if (this.group.getId() != other.group.getId()) {
             return false;
         }
         return true;
@@ -71,15 +71,15 @@ public class SoundFile implements Comparable<SoundFile> {
 
     @Override
     public String toString() {
-        return String.format("%s", filename);
-        //return String.format("%d %d %s", action.getId(), id, filename);
+        //return String.format("%s", filename);
+        return String.format("%d %d %s", group.getId(), id, filename);
     }
 
     @Override
     public int compareTo(SoundFile o) {
-        if (action.getId() == o.action.getId()) {
+        if (group.getId() == o.group.getId()) {
             return (id - o.id);
         }
-        return (action.getId() - o.action.getId());
+        return (group.getId() - o.group.getId());
     }
 }

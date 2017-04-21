@@ -19,13 +19,14 @@ package toniarts.openkeeper.tools.convert.map;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
+import toniarts.openkeeper.game.data.ISoundable;
 
 /**
  * Container class for Shots.kwd<br>
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Shot implements Comparable<Shot> {
+public class Shot implements Comparable<Shot>, ISoundable {
 
     /**
      * Shot flags
@@ -483,6 +484,7 @@ public class Shot implements Comparable<Shot> {
         this.attackCategory = attackCategory;
     }
 
+    @Override
     public String getSoundCategory() {
         return soundCategory;
     }

@@ -35,7 +35,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Keeper {
+public class Keeper implements IIndexable {
 
     public final static short KEEPER1_ID = 3;
     public final static short KEEPER2_ID = 4;
@@ -99,6 +99,7 @@ public class Keeper {
         return ready;
     }
 
+    @Override
     public short getId() {
         return id;
     }

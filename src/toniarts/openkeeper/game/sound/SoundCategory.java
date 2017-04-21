@@ -123,4 +123,9 @@ public class SoundCategory {
             }
         }
     }
+
+    @Override
+    public String toString() {
+        return "SoundCategory{" + "folder=" + folder + ", name=" + name + '}';
+    }
 }

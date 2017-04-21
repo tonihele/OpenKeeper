@@ -793,7 +793,7 @@ public final class KwdFile {
             door.setManufCrateObjectId((short) file.readUnsignedByte());
             door.setKeyObjectId((short) file.readUnsignedByte());
 
-            door.setSoundGategory(ConversionUtils.readString(file, 32).trim());
+            door.setSoundCategory(ConversionUtils.readString(file, 32).trim());
 
             doors.put(door.getDoorId(), door);
 
@@ -1007,7 +1007,7 @@ public final class KwdFile {
         gameLevel.setMessages(messages);
 
         gameLevel.setLvlFlags(ConversionUtils.parseFlagValue(ConversionUtils.readUnsignedShort(data), LevFlag.class));
-        gameLevel.setSpeechStr(ConversionUtils.readString(data, 32).trim());
+        gameLevel.setSoundCategory(ConversionUtils.readString(data, 32).trim());
         gameLevel.setTalismanPieces((short) data.readUnsignedByte());
 
         for (int x = 0; x < 4; x++) {
@@ -1371,7 +1371,7 @@ public final class KwdFile {
                     Creature.DeathFallDirection.class));
             creature.setUnk3f2((short) file.readUnsignedByte());
 
-            creature.setSoundGategory(ConversionUtils.readString(file, 32).trim());
+            creature.setSoundCategory(ConversionUtils.readString(file, 32).trim());
             creature.setMaterial(ConversionUtils.parseEnum(file.readUnsignedByte(), Material.class));
             creature.setFirstPersonFilterResource(readArtResource(file));
             creature.setUnkfcb(ConversionUtils.readUnsignedShort(file));
@@ -1811,7 +1811,7 @@ public final class KwdFile {
             keeperSpell.setCastRule(ConversionUtils.parseEnum((short) file.readUnsignedByte(), KeeperSpell.CastRule.class));
             keeperSpell.setShotTypeId((short) file.readUnsignedByte());
 
-            keeperSpell.setSoundGategory(ConversionUtils.readString(file, 32).trim());
+            keeperSpell.setSoundCategory(ConversionUtils.readString(file, 32).trim());
             keeperSpell.setBonusRTime(ConversionUtils.readUnsignedShort(file));
             keeperSpell.setBonusShotTypeId((short) file.readUnsignedByte());
             keeperSpell.setBonusShotData1(ConversionUtils.readInteger(file));
@@ -1819,7 +1819,7 @@ public final class KwdFile {
             keeperSpell.setManaCost(ConversionUtils.readInteger(file));
             keeperSpell.setBonusIcon(readArtResource(file));
 
-            keeperSpell.setSoundGategoryGui(ConversionUtils.readString(file, 32).trim());
+            keeperSpell.setSoundCategoryGui(ConversionUtils.readString(file, 32).trim());
             keeperSpell.setHandAnimId(ConversionUtils.parseEnum((short) file.readUnsignedByte(),
                     KeeperSpell.HandAnimId.class));
             keeperSpell.setNoGoHandAnimId(ConversionUtils.parseEnum((short) file.readUnsignedByte(),

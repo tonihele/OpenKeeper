@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.state;
 
+import com.badlogic.gdx.assets.loaders.SoundLoader;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
@@ -57,6 +58,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -123,11 +125,14 @@ public class MainMenuState extends AbstractAppState {
     private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager, final Main app) {
 
         // Load the 3D Front end
-        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd"));
+        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder()
+                + PathUtils.DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd"));
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }
         AssetUtils.prewarmAssets(kwdFile, assetManager, app);
+        // load 3D Front end sound
+        SoundsLoader.load(kwdFile.getGameLevel().getSoundCategory());
 
         // Attach the 3D Front end
         menuNode = new Node("Main menu");

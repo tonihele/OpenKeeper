@@ -19,6 +19,8 @@ package toniarts.openkeeper.tools.convert.map;
 import java.util.EnumSet;
 import java.util.List;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.game.data.IIndexable;
+import toniarts.openkeeper.game.data.ITriggerable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.map.Thing.HeroParty.Objective;
@@ -41,7 +43,7 @@ public abstract class Thing {
 //        uint8_t x17;
 //        char name[32]; /* 18 */
 //        };
-    public static class ActionPoint extends Thing implements Comparable<ActionPoint> {
+    public static class ActionPoint extends Thing implements Comparable<ActionPoint>, ITriggerable, IIndexable {
 
         /**
          * ActionPoint flags
@@ -125,6 +127,7 @@ public abstract class Thing {
             this.flags = flags;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }
@@ -133,6 +136,7 @@ public abstract class Thing {
             this.triggerId = triggerId;
         }
 
+        @Override
         public short getId() {
             return id;
         }
@@ -159,7 +163,9 @@ public abstract class Thing {
 
         @Override
         public String toString() {
-            return "[ID " + id + "] Action Point " + id + " [" + (startX + 1) + "," + (startY + 1) + "] - [" + (endX + 1) + "," + (endY + 1) + "]";
+            return "[ID " + id + "] Action Point " + id
+                    + " [" + (startX + 1) + "," + (startY + 1)
+                    + "] - [" + (endX + 1) + "," + (endY + 1) + "]";
         }
 
         @Override
@@ -285,7 +291,7 @@ public abstract class Thing {
         }
     }
 
-    public static class KeeperCreature extends Creature {
+    public static class KeeperCreature extends Creature implements ITriggerable {
 
         private short level;
         private EnumSet<Creature.CreatureFlag> flags; // Short, likely flags
@@ -326,6 +332,7 @@ public abstract class Thing {
             this.objectiveTargetActionPointId = objectiveTargetActionPointId;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }
@@ -700,7 +707,7 @@ public abstract class Thing {
 //    int32_t x27;
 //    HeroPartyData x2b[16];
 //    };
-    public static class HeroParty extends Thing implements Comparable<HeroParty> {
+    public static class HeroParty extends Thing implements Comparable<HeroParty>, ITriggerable, IIndexable {
 
         /**
          * This is really a subset of
@@ -748,6 +755,7 @@ public abstract class Thing {
             this.name = name;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }
@@ -756,6 +764,7 @@ public abstract class Thing {
             this.triggerId = triggerId;
         }
 
+        @Override
         public short getId() {
             return id;
         }
@@ -840,7 +849,7 @@ public abstract class Thing {
         /**
          * Represents the party members
          */
-        public class HeroPartyData {
+        public class HeroPartyData implements ITriggerable {
 
             private int x00;
             private int x04;
@@ -922,6 +931,7 @@ public abstract class Thing {
                 this.initialHealth = initialHealth;
             }
 
+            @Override
             public int getTriggerId() {
                 return triggerId;
             }
@@ -1099,7 +1109,7 @@ public abstract class Thing {
         }
     }
 
-    public static class NeutralCreature extends Creature {
+    public static class NeutralCreature extends Creature implements ITriggerable {
 
         private short level; // level
         private EnumSet<CreatureFlag> flags; // Short, likely flags
@@ -1131,6 +1141,7 @@ public abstract class Thing {
             this.initialHealth = initialHealth;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }
@@ -1148,7 +1159,7 @@ public abstract class Thing {
         }
     }
 
-    public static class Door extends Thing {
+    public static class Door extends Thing implements ITriggerable {
 
         public enum DoorFlag implements IValueEnum {
 
@@ -1199,6 +1210,7 @@ public abstract class Thing {
             this.unknown1 = unknown1;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }
@@ -1240,7 +1252,7 @@ public abstract class Thing {
         }
     }
 
-    public static class Object extends Thing {
+    public static class Object extends Thing implements ITriggerable {
 
         private int posX; // 0-based coordinate
         private int posY; // 0-based coordinate
@@ -1291,6 +1303,7 @@ public abstract class Thing {
             this.moneyAmount = moneyAmount;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }
@@ -1383,7 +1396,7 @@ public abstract class Thing {
         }
     }
 
-    public static class GoodCreature extends Creature {
+    public static class GoodCreature extends Creature implements ITriggerable {
 
         private short level; // level
         private EnumSet<CreatureFlag> flags; // Short, likely flags
@@ -1427,6 +1440,7 @@ public abstract class Thing {
             this.initialHealth = initialHealth;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }

@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 
@@ -29,7 +30,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Creature implements Comparable<Creature> {
+public class Creature implements Comparable<Creature>, ISoundable {
 
     public static enum AnimationType {
         WALK,
@@ -529,7 +530,7 @@ public class Creature implements Comparable<Creature> {
     private short unk3f1; // f53
     private DeathFallDirection deathFallDirection;
     private short unk3f2;
-    private String soundGategory; // f56
+    private String soundCategory; // f56
     private Material material; // f76, armour type
     private ArtResource firstPersonFilterResource; // f77
     private int unkfcb; // fcb
@@ -1336,12 +1337,13 @@ public class Creature implements Comparable<Creature> {
         this.unk3f2 = unk3f2;
     }
 
-    public String getSoundGategory() {
-        return soundGategory;
+    @Override
+    public String getSoundCategory() {
+        return soundCategory;
     }
 
-    protected void setSoundGategory(String soundGategory) {
-        this.soundGategory = soundGategory;
+    protected void setSoundCategory(String soundGategory) {
+        this.soundCategory = soundGategory;
     }
 
     public Material getMaterial() {
