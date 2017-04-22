@@ -735,7 +735,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         Label label = screen.findNiftyControl("mapNameTitle", Label.class);
         label.setText(map == null ? "No maps found from " + PathUtils.DKII_MAPS_FOLDER : map.getGameLevel().getName());
         NiftyUtils.resetContraints(label);
-        
+
         if (map != null) {
 
             // Player count
@@ -753,16 +753,6 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
         // Re-populate
         screen.layoutLayers();
-    }
-
-    private void populateSkirmishPlayerTable() {
-//        ListBox<TableRow> listBox = screen.findNiftyControl("playersTable", ListBox.class);
-//        listBox.clear();
-//        int i = 0;
-//        for (Keeper keeper : state.skirmishPlayers) {
-//            listBox.addItem(new TableRow(i, keeper.toString(), "", "", "", keeper.isReady() + ""));
-//            i++;
-//        }
     }
 
     /**
@@ -818,7 +808,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             // Populate the players list
             for (ClientInfo clientInfo : players) {
                 playersList.addItem(new PlayerTableRow(clientInfo, playersList.itemCount(), clientInfo.getName(),
-                        "", lobbyState.isOnline() ? Long.toString(clientInfo.getPing()) : "", lobbyState.isOnline() ? Integer.toString(clientInfo.getSystemMemory()) : "", clientInfo.isReady() ? "x" : ""
+                        "", lobbyState.isOnline() ? Long.toString(clientInfo.getPing()) : "", lobbyState.isOnline() ? Integer.toString(clientInfo.getSystemMemory()) : "", clientInfo.isReady()
                 ));
             }
         }
@@ -829,9 +819,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
         // Disconnect and dismantle
         if (chatSessionListener != null) {
-        ChatClientService ccs = state.getChatService();
-        if (ccs != null) {
-            ccs.removeChatSessionListener(getChatSessionListener());
+            ChatClientService ccs = state.getChatService();
+            if (ccs != null) {
+                ccs.removeChatSessionListener(getChatSessionListener());
             }
         }
         LobbyState ls = state.getLobbyState();
@@ -913,7 +903,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 new TableColumn(lobbyState.isOnline() ? "${menu.263}" : "", 33, String.class, new Color("#32050c30")),
                 new TableColumn(lobbyState.isOnline() ? "${menu.195}" : "", 11, String.class, new Color("#00752430")),
                 new TableColumn(lobbyState.isOnline() ? "${menu.1499}" : "", 11, String.class, new Color("#00779e30")),
-                new TableColumn("x", 11, String.class, new Color("#00752430"))
+                new TableColumn(null, 11, Boolean.class, new Color("#00752430"))
         ) {
             {
                 selectionModeSingle();
