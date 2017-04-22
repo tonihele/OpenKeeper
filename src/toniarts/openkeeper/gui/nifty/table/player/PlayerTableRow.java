@@ -28,7 +28,7 @@ public class PlayerTableRow extends TableRow {
 
     private final ClientInfo clientInfo;
 
-    public PlayerTableRow(ClientInfo clientInfo, int index, String... param) {
+    public PlayerTableRow(ClientInfo clientInfo, int index, Object... param) {
         super(index, param);
 
         this.clientInfo = clientInfo;

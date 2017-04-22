@@ -19,6 +19,7 @@ package toniarts.openkeeper.gui.nifty.table;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.HoverEffectBuilder;
+import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
 import de.lessvoid.nifty.builder.TextBuilder;
 import de.lessvoid.nifty.controls.Parameters;
@@ -97,6 +98,14 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
                                     style("menuTextSmall");
                                 }
                             });
+                        } else {
+
+                            // Boolean
+                            image(new ImageBuilder("#headerCol-" + i) {
+                                {
+                                    filename("Textures/Tick-0.png");
+                                }
+                            });
                         }
                     }
                 });
@@ -172,6 +181,13 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
                             text(new TextBuilder("#col-" + i) {
                                 {
                                     style("menuTextSmall");
+                                }
+                            });
+                        } else {
+
+                            // Boolean
+                            image(new ImageBuilder("#col-" + i) {
+                                {
                                 }
                             });
                         }

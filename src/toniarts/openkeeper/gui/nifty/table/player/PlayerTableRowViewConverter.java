@@ -30,18 +30,11 @@ import toniarts.openkeeper.world.MapThumbnailGenerator;
 public class PlayerTableRowViewConverter extends TableRowViewConverter<PlayerTableRow> {
 
     @Override
-    public void display(final Element listBoxItem, final PlayerTableRow item) {
-        int i = 0;
-        for (String s : item.getData()) {
-
-            // Get the text element for the row
-            Element textElement = listBoxItem.findElementById("#col-" + String.valueOf(i));
-            TextRenderer renderer = textElement.getRenderer(TextRenderer.class);
-            renderer.setText(s);
-            java.awt.Color c = MapThumbnailGenerator.getPlayerColor(item.getClientInfo().getKeeper().getId());
-            renderer.setColor(new Color(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f, 1f));
-            i++;
-        }
+    protected void displayString(Element element, PlayerTableRow item, String itemData) {
+        TextRenderer renderer = element.getRenderer(TextRenderer.class);
+        renderer.setText(itemData);
+        java.awt.Color c = MapThumbnailGenerator.getPlayerColor(item.getClientInfo().getKeeper().getId());
+        renderer.setColor(new Color(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f, 1f));
     }
 
 }

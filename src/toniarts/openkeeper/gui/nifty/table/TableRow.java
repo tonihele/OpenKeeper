@@ -26,15 +26,15 @@ import java.util.List;
  */
 public class TableRow {
 
-    private final List<String> data;
+    private final List<Object> data;
     private final int index;
 
-    public TableRow(final int index, final String... param) {
+    public TableRow(final int index, final Object... param) {
         this.index = index;
         data = Arrays.asList(param);
     }
 
-    public List<String> getData() {
+    public List<Object> getData() {
         return data;
     }
 
