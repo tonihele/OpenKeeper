@@ -17,10 +17,13 @@
 package toniarts.openkeeper.game.sound;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.tools.convert.sound.sfx.SfxGroupEntry;
@@ -103,15 +106,20 @@ public class SoundCategory {
      */
     @Nullable
     public static SdtFile getSdtFile(String archiveFilename) {
-
-        for (String part : new String[] {"HD.sdt", "HD.SDT", "HW.sdt", "HW.SDT"}) {
-            File f = new File(PathUtils.getDKIIFolder() + PathUtils.DKII_SFX_FOLDER
-                    + archiveFilename + part);
-            if (f.exists()) {
-                return new SdtFile(f);
+        // FIXME I don`t know what better HD or HW, but quantity HW less than HD, but size HW more than HD
+        for (String part : new String[] {"HD.sdt", "HW.sdt"}) {
+            try {
+                File f = new File(ConversionUtils.getRealFileName(PathUtils.getDKIIFolder(),
+                        PathUtils.DKII_SFX_FOLDER + archiveFilename + part));
+                if (f.exists()) {
+                    return new SdtFile(f);
+                }
+            } catch (Exception ex) {
+                // nop
             }
         }
 
+        LOGGER.log(Level.WARNING, "SDT File archive {0} not found", archiveFilename);
         return null;
     }
 
