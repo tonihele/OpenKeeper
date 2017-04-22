@@ -18,11 +18,18 @@ package toniarts.openkeeper.game;
 
 import com.jme3.math.FastMath;
 import java.io.File;
-import java.io.FilenameFilter;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -35,29 +42,30 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class MapSelector {
 
-    private List<GameMapContainer> skirmishMaps;
-    private List<GameMapContainer> multiplayerMaps;
-    private List<GameMapContainer> mpdMaps;
+    private final List<GameMapContainer> skirmishMaps;
+    private final List<GameMapContainer> multiplayerMaps;
+    private final List<GameMapContainer> mpdMaps;
     private GameMapContainer map;
     private boolean skirmish;
     private boolean mpd;
 
     public MapSelector() {
-        reset();
 
-        // Get the skirmish maps
-        File f = new File(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER);
-        File[] files = f.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.toLowerCase().endsWith(".kwd");
+        // Get the maps
+        List<File> files = new LinkedList<>();
+        DirectoryStream.Filter<Path> filter = (Path entry) -> !Files.isDirectory(entry) && entry.getFileName().toString().toLowerCase().endsWith(".kwd");
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER), filter)) {
+            for (Path file : stream) {
+                files.add(file.toFile());
             }
-        });
+        } catch (IOException ex) {
+            Logger.getLogger(MapSelector.class.getName()).log(Level.SEVERE, "Failed to load the maps!", ex);
+        }
 
         // Read them
-        multiplayerMaps = new ArrayList<>(files.length);
-        skirmishMaps = new ArrayList<>(files.length);
-        mpdMaps = new ArrayList<>(files.length);
+        multiplayerMaps = new ArrayList<>(files.size());
+        skirmishMaps = new ArrayList<>(files.size());
+        mpdMaps = new ArrayList<>(files.size());
         for (File file : files) {
             KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
             GameMapContainer gameMapContainer = new GameMapContainer(kwd, kwd.getGameLevel().getName());
@@ -81,7 +89,7 @@ public class MapSelector {
 
     public void random() {
         GameMapContainer current;
-        List<GameMapContainer> maps = skirmish ? skirmishMaps : multiplayerMaps;
+        List<GameMapContainer> maps = getMaps();
 
         if (maps.isEmpty()) {
             current = null;
@@ -110,13 +118,7 @@ public class MapSelector {
     }
 
     public void selectMap(int index) {
-        if (skirmish) {
-            map = skirmishMaps.get(index);
-        } else if (mpd) {
-            map = mpdMaps.get(index);
-        } else {
-            map = multiplayerMaps.get(index);
-        }
+        map = getMaps().get(index);
     }
 
     public List<GameMapContainer> getMaps() {
