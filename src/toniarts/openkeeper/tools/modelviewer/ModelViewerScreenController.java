@@ -29,6 +29,7 @@ import de.lessvoid.nifty.screen.ScreenController;
 import de.lessvoid.nifty.spi.render.RenderFont;
 import java.io.File;
 import java.util.List;
+import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.sound.SoundFile;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -188,7 +189,7 @@ public class ModelViewerScreenController implements ScreenController {
     }
 
     private ControlBuilder createCreatureControl(final Creature item) {
-        String name = getResourceString(item.getNameStringId());
+        String name = item.getName();
 
         ControlBuilder result = new ControlBuilder(name, "creature") {
             {
@@ -201,6 +202,7 @@ public class ModelViewerScreenController implements ScreenController {
                 parameter("fpMelee", getResourceImageName(item.getFirstPersonMeleeResource()));
                 parameter("fpFilter", getResourceImageName(item.getFirstPersonFilterResource()));
 
+                parameter("namestring", getResourceString(item.getNameStringId()));
                 parameter("description", getResourceString(item.getGeneralDescriptionStringId()));
                 parameter("tooltip", getResourceString(item.getTooltipStringId()));
 
@@ -226,11 +228,26 @@ public class ModelViewerScreenController implements ScreenController {
     }
 
     private ControlBuilder createRoomControl(final Room item) {
-        String name = getResourceString(item.getNameStringId());
+        String name = item.getName();
 
         ControlBuilder result = new ControlBuilder(name, "room") {
             {
                 parameter("title", name);
+                parameter("iconGui", getResourceImageName(item.getGuiIcon()));
+
+                parameter("namestring", getResourceString(item.getNameStringId()));
+                parameter("genDesk", getResourceString(item.getGeneralDescriptionStringId()));
+                parameter("strength", getResourceString(item.getStrengthStringId()));
+                parameter("tooltip", getResourceString(item.getTooltipStringId()));
+                parameter("construction", item.getTileConstruction().toString());
+
+                parameter("ceilingHeight", String.valueOf(item.getCeilingHeight()));
+                parameter("cost", String.valueOf(item.getCost()));
+                parameter("createdCreatureId", String.valueOf(item.getCreatedCreatureId()));
+                parameter("healthGain", String.valueOf(item.getHealthGain()));
+                parameter("size", item.getRecommendedSizeX() + " x " + item.getRecommendedSizeY());
+                parameter("researchTime", String.valueOf(item.getResearchTime()));
+                parameter("returnPercentage", String.valueOf(item.getReturnPercentage()));
             }
         };
 
@@ -238,11 +255,26 @@ public class ModelViewerScreenController implements ScreenController {
     }
 
     private ControlBuilder createTerrainControl(final Terrain item) {
-        String name = getResourceString(item.getNameStringId());
+        String name = item.getName();
 
         ControlBuilder result = new ControlBuilder(name, "terrain") {
             {
                 parameter("title", name);
+
+                parameter("namestring", getResourceString(item.getNameStringId()));
+                parameter("genDesk", getResourceString(item.getGeneralDescriptionStringId()));
+                parameter("strength", getResourceString(item.getStrengthStringId()));
+                parameter("tooltip", getResourceString(item.getTooltipStringId()));
+
+                parameter("damage", String.valueOf(item.getDamage()));
+                parameter("depth", String.valueOf(item.getDepth()));
+                parameter("goldValue", String.valueOf(item.getGoldValue()));
+                parameter("lightHeight", String.valueOf(item.getLightHeight()));
+                parameter("manaGain", String.valueOf(item.getManaGain()));
+                parameter("maxHealth", String.valueOf(item.getMaxHealth()));
+                parameter("maxManaGain", String.valueOf(item.getMaxManaGain()));
+                parameter("startingHealth", String.valueOf(item.getStartingHealth()));
+                parameter("textureFrames", String.valueOf(item.getTextureFrames()));
             }
         };
 
@@ -255,6 +287,21 @@ public class ModelViewerScreenController implements ScreenController {
         ControlBuilder result = new ControlBuilder(name, "shot") {
             {
                 parameter("title", name);
+
+                parameter("airFriction", String.valueOf(item.getAirFriction()));
+                parameter("radius", String.valueOf(item.getRadius()));
+                parameter("speed", String.valueOf(item.getSpeed()));
+                parameter("threat", String.valueOf(item.getThreat()));
+                parameter("timedDelay", String.valueOf(item.getTimedDelay()));
+                parameter("burnDuration", String.valueOf(item.getBurnDuration()));
+                parameter("health", String.valueOf(item.getHealth()));
+                parameter("mass", String.valueOf(item.getMass()));
+
+                parameter("attackCategory", item.getAttackCategory().toString());
+                parameter("collideType", item.getCollideType().toString());
+                parameter("damageType", item.getDamageType().toString());
+                parameter("processType", item.getProcessType().toString());
+
             }
         };
 
@@ -263,10 +310,16 @@ public class ModelViewerScreenController implements ScreenController {
 
     private ControlBuilder createGameLevelControl(final GameLevel item) {
         String name = item.getLevelName();
+        ResourceBundle bundle = item.getResourceBundle();
 
         ControlBuilder result = new ControlBuilder(name, "level") {
             {
                 parameter("title", name);
+
+                parameter("author", item.getAuthor());
+                parameter("description", item.getDescription());
+                parameter("email", item.getEmail());
+                parameter("titlestring", item.getTitle());
             }
         };
 
@@ -279,6 +332,9 @@ public class ModelViewerScreenController implements ScreenController {
         ControlBuilder result = new ControlBuilder(name, "object") {
             {
                 parameter("title", name);
+
+                parameter("iconGui", getResourceImageName(item.getGuiIconResource()));
+                parameter("iconInHand", getResourceImageName(item.getInHandIconResource()));
             }
         };
 
@@ -291,6 +347,10 @@ public class ModelViewerScreenController implements ScreenController {
         ControlBuilder result = new ControlBuilder(name, "trap") {
             {
                 parameter("title", name);
+
+                parameter("iconGui", getResourceImageName(item.getGuiIcon()));
+                parameter("iconFlower", getResourceImageName(item.getFlowerIcon()));
+                parameter("iconEditor", getResourceImageName(item.getEditorIcon()));
             }
         };
 
@@ -303,6 +363,10 @@ public class ModelViewerScreenController implements ScreenController {
         ControlBuilder result = new ControlBuilder(name, "door") {
             {
                 parameter("title", name);
+
+                parameter("iconGui", getResourceImageName(item.getGuiIcon()));
+                parameter("iconFlower", getResourceImageName(item.getFlowerIcon()));
+                parameter("iconEditor", getResourceImageName(item.getEditorIcon()));
             }
         };
 
@@ -315,6 +379,32 @@ public class ModelViewerScreenController implements ScreenController {
         ControlBuilder result = new ControlBuilder(name, "effect") {
             {
                 parameter("title", name);
+
+                parameter("airFriction", String.valueOf(item.getAirFriction()));
+                parameter("circularPathRate", String.valueOf(item.getCircularPathRate()));
+                parameter("directionalSpread", String.valueOf(item.getDirectionalSpread()));
+
+                parameter("elasticity", String.valueOf(item.getElasticity()));
+                parameter("elementsPerTurn", String.valueOf(item.getElementsPerTurn()));
+                parameter("fadeDuration", String.valueOf(item.getFadeDuration()));
+                parameter("generateRandomness", String.valueOf(item.getGenerateRandomness()));
+                parameter("originRange", item.getInnerOriginRange() + " - " + item.getOuterOriginRange());
+                parameter("heightLimit", item.getLowerHeightLimit() + " - " + item.getUpperHeightLimit());
+                parameter("mass", String.valueOf(item.getMass()));
+
+                parameter("generationType", item.getGenerationType().toString());
+
+                parameter("hp", item.getMinHp() + " - " + item.getMaxHp());
+                parameter("scale", item.getMinScale() + " - " + item.getMaxScale());
+                parameter("speedXy", item.getMinSpeedXy() + " - " + item.getMaxSpeedXy());
+                parameter("speedYz", item.getMinSpeedYz() + " - " + item.getMaxSpeedYz());
+
+                parameter("misc2", String.valueOf(item.getMisc2()));
+                parameter("misc3", String.valueOf(item.getMisc3()));
+                parameter("orientationRange", String.valueOf(item.getOrientationRange()));
+                parameter("radius", String.valueOf(item.getRadius()));
+                parameter("spriteSpinRateRange", String.valueOf(item.getSpriteSpinRateRange()));
+                parameter("whirlpoolRate", String.valueOf(item.getWhirlpoolRate()));
             }
         };
 

@@ -41,9 +41,9 @@ public class TrapsLoader implements ILoader<Trap> {
         List<ArtResource> resources = new ArrayList<>();
         resources.add(object.getMeshResource());
         resources.add(object.getFireResource());
-        resources.add(object.getFlowerIcon());
-        resources.add(object.getGuiIcon());
-        resources.add(object.getEditorIcon());
+        //resources.add(object.getFlowerIcon());
+        //resources.add(object.getGuiIcon());
+        //resources.add(object.getEditorIcon());
 
         float height = 1;
         for (ArtResource resource : resources) {

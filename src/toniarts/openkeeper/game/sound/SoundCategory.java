@@ -33,21 +33,26 @@ import toniarts.openkeeper.utils.PathUtils;
  * @author archdemon
  */
 public class SoundCategory {
+    // default sounds categories
+    public static final String SPEECH_MENTOR = "SPEECH_MENTOR";
+    public static final String SPEECH_MULTIPLAYER = "SPEECH_MULTIPLAYER";
+    public static final String SPEECH_HORNY = "SPEECH_HORNY";
+    // TODO need to add some GUI sounds categories
     private final String folder;
     private final String name;
     private final Map<Integer, SoundGroup> groups = new HashMap<>();
 
     private static final Logger LOGGER = Logger.getLogger(SoundCategory.class.getName());
 
-    public SoundCategory(String folder, String name) {
+    public SoundCategory(String name, boolean useGlobal) {
         if (name == null || name.isEmpty()) {
             throw new RuntimeException("Sound category is empty");
         }
 
-        if (folder == null || folder.isEmpty()) {
+        if (useGlobal) {
             this.folder = PathUtils.DKII_SFX_GLOBAL_FOLDER;
         } else {
-            this.folder = PathUtils.DKII_SFX_FOLDER + folder + File.separator;
+            this.folder = PathUtils.DKII_SFX_FOLDER + name.toLowerCase() + File.separator;
         }
 
         this.name = name;
@@ -64,6 +69,10 @@ public class SoundCategory {
 
     public SoundGroup getGroup(int id) {
         return groups.get(id);
+    }
+
+    public SoundGroup getGroup(SoundGroup.SoundType type) {
+        return groups.get(type.getValue());
     }
 
     public SfxMapFile getSfxMapFile() {

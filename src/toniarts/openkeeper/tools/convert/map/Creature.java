@@ -135,7 +135,8 @@ public class Creature implements Comparable<Creature>, ISoundable {
         CAMERA_ROLLS_WHEN_TURNING(0x10000000), // 1st person movement flag
         UNKNOWN_5(0x20000000), // FIXME unknown flag. In Imp
         MPD_RANDOM_INVADER(0x40000000), // My Pet Dungeon?
-        IS_MALE(0x80000000);  // Obviously otherwise it is female
+        IS_MALE(0x80000000L);  // Obviously otherwise it is female
+
         private final long flagValue;
 
         private CreatureFlag(long flagValue) {

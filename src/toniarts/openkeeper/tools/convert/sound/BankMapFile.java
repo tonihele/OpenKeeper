@@ -39,7 +39,7 @@ public class BankMapFile {
     };
     // Header
     private final int unknown1; // 0 or 1 // not used
-    private final int unknown2; // 0, 32769, 0xFFFFFFFF // not used
+    private final long unknown2; // 0, 32769, 0xFFFFFFFF // not used
     //
     private final File file;
     private final BankMapFileEntry[] entries;
@@ -68,7 +68,7 @@ public class BankMapFile {
             }
 
             unknown1 = ConversionUtils.readUnsignedInteger(rawMap);
-            unknown2 = ConversionUtils.readUnsignedInteger(rawMap);
+            unknown2 = ConversionUtils.readUnsignedIntegerAsLong(rawMap);
             int count = ConversionUtils.readUnsignedInteger(rawMap);
 
             //Read the entries

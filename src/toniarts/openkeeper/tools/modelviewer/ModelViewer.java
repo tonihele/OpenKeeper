@@ -388,6 +388,8 @@ public class ModelViewer extends SimpleApplication {
             case MODELS: {
                 // Load the selected model
                 Node spat = (Node) AssetUtils.loadAsset(assetManager, (String) selection);
+
+                screen.setupItem(null, null);
                 setupModel(spat, false);
                 break;
             }
@@ -416,7 +418,7 @@ public class ModelViewer extends SimpleApplication {
                 }.load(this.getAssetManager(), kwd);
 
                 GameLevel gameLevel = kwd.getGameLevel();
-                screen.setupItem(gameLevel, loadSoundCategory(gameLevel));
+                screen.setupItem(gameLevel, loadSoundCategory(gameLevel, false));
                 setupModel(spat, true);
                 break;
             }
@@ -489,11 +491,14 @@ public class ModelViewer extends SimpleApplication {
             case EFFECTS: {
                 // Load the selected effect
                 Node spat = new Node();
+                Effect effect = (Effect) selection;
                 effectManagerState.setEnabled(true);
                 // Load the selected effect
                 effectManagerState.loadSingleEffect(spat, new Vector3f(0, 0, 0),
-                        ((Effect) selection).getEffectId(), true);
+                        effect.getEffectId(), true);
                 setupModel(spat, false);
+
+                screen.setupItem(effect, null);
                 break;
             }
         }
@@ -698,10 +703,14 @@ public class ModelViewer extends SimpleApplication {
     }
 
     public List<SoundFile> loadSoundCategory(ISoundable item) {
+        return loadSoundCategory(item, true);
+    }
+
+    public List<SoundFile> loadSoundCategory(ISoundable item, boolean useGlobal) {
         List<SoundFile> result = new ArrayList<>();
 
         String soundCategory = item.getSoundCategory();
-        SoundCategory sc = SoundsLoader.load(soundCategory);
+        SoundCategory sc = SoundsLoader.load(soundCategory, useGlobal);
         if (sc != null) {
             for (SoundGroup sa : sc.getGroups().values()) {
                 result.addAll(sa.getFiles());

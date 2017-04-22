@@ -208,7 +208,7 @@ public abstract class WorldState extends AbstractAppState {
                         } else {
                             // default entrance message
                             message = "${speech.376}";
-                            stateManager.getState(SoundState.class).attachMentorSpeech("portl003");
+                            stateManager.getState(SoundState.class).attachMentorSpeech(376);
                         }
 
                         stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.CREATURE, message);

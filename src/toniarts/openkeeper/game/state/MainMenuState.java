@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.state;
 
-import com.badlogic.gdx.assets.loaders.SoundLoader;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
@@ -132,7 +131,7 @@ public class MainMenuState extends AbstractAppState {
         }
         AssetUtils.prewarmAssets(kwdFile, assetManager, app);
         // load 3D Front end sound
-        SoundsLoader.load(kwdFile.getGameLevel().getSoundCategory());
+        SoundsLoader.load(kwdFile.getGameLevel().getSoundCategory(), false);
 
         // Attach the 3D Front end
         menuNode = new Node("Main menu");

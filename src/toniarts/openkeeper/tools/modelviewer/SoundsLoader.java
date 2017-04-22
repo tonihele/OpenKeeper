@@ -44,18 +44,18 @@ public class SoundsLoader {
 
     @Nullable
     public static SoundCategory load(String soundCategory) {
-        return load(null, soundCategory);
+        return load(soundCategory, true);
     }
 
     @Nullable
-    public static SoundCategory load(String folder, String soundCategory) {
+    public static SoundCategory load(String soundCategory, boolean useGlobal) {
 
-        if (cache.containsKey(soundCategory)) {
+        if (soundCategory != null && !soundCategory.isEmpty() && cache.containsKey(soundCategory)) {
             return cache.get(soundCategory);
         }
 
         try {
-            SoundCategory result = new SoundCategory(folder, soundCategory);
+            SoundCategory result = new SoundCategory(soundCategory, useGlobal);
             cache.put(soundCategory, result);
             return result;
         } catch (Exception e) {

@@ -27,20 +27,27 @@ public class SdtFileEntry {
 
     public enum SoundType implements IValueEnum {
 
-        NONE(0),
-        WAV(2),
-        MP2_MONO(36),
-        MP2_STEREO(37);
+        NONE(0, ""),
+        WAV_MONO(2, "wav"),
+        WAV_STEREO(3, "wav"), // FIXME really stereo not mono ?
+        MP2_MONO(36, "mp2"),
+        MP2_STEREO(37, "mp2");
 
         private final int type;
+        private final String extension;
 
-        private SoundType(int type) {
+        private SoundType(int type, String extension) {
             this.type = type;
+            this.extension = extension;
         }
 
         @Override
         public int getValue() {
             return this.type;
+        }
+
+        public String getExtension() {
+            return extension;
         }
     }
 

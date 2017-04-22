@@ -34,6 +34,7 @@ import toniarts.openkeeper.utils.PathUtils;
 public class SoundGroup {
 
     public enum SoundType {
+        // 1 - 60 level speech
         OBJECT_RESEARCH_1(49),
         OBJECT_RESEARCH_2(50),
         OBJECT_RESEARCH_3(51),
@@ -66,9 +67,15 @@ public class SoundGroup {
         CREATURE_SACRIFICE(226),
         CREATURE_HELLO(228),
         CREATURE_FALL(230),
-        OBJECT_BED(241), // chicken sound
+        DOOR_OPEN(231),
+        DOOR_CLOSE(231),
+        DOOR_LOCK(233),
+        DOOR_UNLOCK(234),
+        TRAP_ATTACK(235),
+        CREATE(241), // chicken sound, room create
         OBJECT_RAT_SQUEAK(242), // or bat fly
         DESTROYED(244), // terrain and object
+        ROOM_SELL(245),
         CREATURE_FALL_DOOR(246), // sound like door is locked. heavylump, land
         OBJECT_TORTURE_WHEEL(251),
         CREATURE_KEEP_1(265),
@@ -76,12 +83,24 @@ public class SoundGroup {
         CREATURE_CLAIM_2(267),
         REINFORCE(268), // REPAIR creature or terrain
         CREATURE_DRAG(269),
+        MANUFACTURED(271), // door or trap
         OBJECT_CHICKEN(272),
         OBJECT_CHICKEN_FLAP(273),
         OBJECT_FORGE_HIT(274),
+        TRAP_SENTURE_EXPLOSE_1(276),
+        BOULDER_HIT_WALL(329),
+        BOULDER_HIT_WOOD_DOOR(330),
+        BOULDER_INTO_WATER(331),
+        BOULDER_INTO_LAVA(332),
+        BOULDER_HIT_CREATURE(333),
+        BOULDER_KILL_CREATURE(334),
+        BOULDER_ROLL(335),
         CREATURE_TORTURE_WHEEL(342),
+        BOULDER_HIT_DOOR(346),
+        TRAP_SENTURE_EXPLOSE_2(443),
         AMBIENCE(746), // terrain or room. E.g. water wave sound
-        ROOM_HERO_GATE_BIRDIE(747),
+        ROOM_HERO_GATE_BIRDIE(747), // AMBIENCE_2
+        ROOM_LAY_TILE(760),
         CREATURE_REPORT(762),
         OBJECT_TRAIN_MECH(785),
         CREATURE_CHAT(786),

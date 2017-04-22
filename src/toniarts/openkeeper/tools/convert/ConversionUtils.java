@@ -538,7 +538,7 @@ public class ConversionUtils {
             long flagValue = e.getFlagValue();
             if ((flagValue & flag) == flagValue) {
                 set.add(e);
-                leftOver = leftOver - flagValue;
+                leftOver -= flagValue;
             }
         }
         if (leftOver > 0) {
@@ -546,7 +546,7 @@ public class ConversionUtils {
             // Check the values not defined (there must be a better way to do this but me and numbers...)
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < 64; i++) {
-                long val = (int) Math.pow(2, i);
+                long val = (long) Math.pow(2, i);
                 if (val > leftOver) {
                     break;
                 } else if ((val & leftOver) == val) {
