@@ -46,7 +46,7 @@ public class MapSelector {
         reset();
 
         // Get the skirmish maps
-        File f = new File(Main.getDkIIFolder()+ PathUtils.DKII_MAPS_FOLDER);
+        File f = new File(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER);
         File[] files = f.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
@@ -160,19 +160,9 @@ public class MapSelector {
      * @return the map, or {@code null} if not found
      */
     public GameMapContainer getMap(String map) {
-        if (skirmish) {
-            return getMap(skirmishMaps, map);
-        } else if (mpd) {
-            return getMap(mpdMaps, map);
-        } else {
-            return getMap(multiplayerMaps, map);
-        }
-    }
-
-    private GameMapContainer getMap(List<GameMapContainer> mapList, String map) {
-        int index = Collections.binarySearch(skirmishMaps, new GameMapContainer(null, map), new MapComparator());
+        int index = Collections.binarySearch(getMaps(), new GameMapContainer(null, map), new MapComparator());
         if (index >= 0) {
-            return mapList.get(index);
+            return getMaps().get(index);
         }
         return null;
     }
