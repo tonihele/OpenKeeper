@@ -46,6 +46,7 @@ import java.awt.GraphicsEnvironment;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.CustomMPDLevel;
@@ -832,12 +833,12 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     }
 
     public void showDebriefing(GameResult result) {
-        goToScreen(SCREEN_DEBRIEFING_ID);
+        Screen deScreen = nifty.getScreen(SCREEN_DEBRIEFING_ID);
 
-        Label levelTitle = screen.findNiftyControl("dLevelTitle", Label.class);
+        Label levelTitle = deScreen.findNiftyControl("dLevelTitle", Label.class);
 
-        Element mainObjectiveImage = screen.findElementById("dMainObjectiveImage");
-        Element subObjectiveImage = screen.findElementById("dSubObjectiveImage");
+        Element mainObjectiveImage = deScreen.findElementById("dMainObjectiveImage");
+        Element subObjectiveImage = deScreen.findElementById("dSubObjectiveImage");
 
         String objectiveImage = String.format("Textures/Obj_Shots/%s-$index.png", state.selectedLevel.getFileName());
         NiftyImage img = null;
@@ -855,9 +856,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.hide();
         }
 
-        Label totalEvilRating = screen.findNiftyControl("totalEvilRating", Label.class);
-        Label overallTotalEvilRating = screen.findNiftyControl("overallTotalEvilRating", Label.class);
-        Label specialsFound = screen.findNiftyControl("specialsFound", Label.class);
+        Label totalEvilRating = deScreen.findNiftyControl("totalEvilRating", Label.class);
+        Label overallTotalEvilRating = deScreen.findNiftyControl("overallTotalEvilRating", Label.class);
+        Label specialsFound = deScreen.findNiftyControl("specialsFound", Label.class);
 
         subObjectiveImage.hide();
         if (state.selectedLevel instanceof Level
@@ -875,30 +876,32 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         }
 
         boolean levelWon = result.getData(GameResult.ResultType.LEVEL_WON);
-        screen.findNiftyControl("levelWon", Label.class).setText(levelWon ? "${menu.21}" : "${menu.22}");
-        int timeTaken = (int) result.getData(GameResult.ResultType.TIME_TAKEN);
-        screen.findNiftyControl("timeTaken", Label.class).setText(timeToString(timeTaken));
+        deScreen.findNiftyControl("levelWon", Label.class).setText(levelWon ? "${menu.21}" : "${menu.22}");
+        int timeTaken = Math.round(result.getData(GameResult.ResultType.TIME_TAKEN));
+        deScreen.findNiftyControl("timeTaken", Label.class).setText(timeToString(timeTaken));
+
+        goToScreen(SCREEN_DEBRIEFING_ID);
     }
 
     private String timeToString(int time) {
         String result = "";
         int days = time / 86400;
         if (days != 0) {
-            time -= days * 3600;
+            time -= days * 86400;
             result += days;
         }
         int hours = time / 3600;
         if (days != 0 || hours != 0) {
             time -= hours * 3600;
-            result +=  " " + hours;
+            result += String.format(" %02d", hours);
         }
         int minutes = time / 60;
         if (days != 0 || hours != 0 || minutes != 0) {
             time -= minutes * 60;
-            result += ":" + minutes;
+            result += String.format(":%02d", minutes);
         }
         int seconds = time;
-        result += ":" + seconds;
+        result += String.format(":%02d", seconds);
 
         return result.trim();
     }
