@@ -832,15 +832,17 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         lobbySessionListener = null;
         state.shutdownMultiplayer();
 
-        // Go back to where we were
-        if (ls.isOnline()) {
-            if (ls.isHosting()) {
-                goToScreen("multiplayerLocal");
+        // Go back to where we were, if we ever left...
+        if (ls != null) {
+            if (ls.isOnline()) {
+                if (ls.isHosting()) {
+                    goToScreen("multiplayerLocal");
+                } else {
+                    goToScreen("multiplayerWatch");
+                }
             } else {
-                goToScreen("multiplayerWatch");
+                doTransition("272", "singlePlayer", "274");
             }
-        } else {
-            doTransition("272", "singlePlayer", "274");
         }
     }
 
