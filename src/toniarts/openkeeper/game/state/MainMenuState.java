@@ -292,6 +292,7 @@ public class MainMenuState extends AbstractAppState {
                 });
             }
         };
+        connectionState.addConnectionErrorListener(connectionErrorListener);
         stateManager.attach(connectionState);
 
         // Save player name & game name

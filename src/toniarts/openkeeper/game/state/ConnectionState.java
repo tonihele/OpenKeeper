@@ -26,7 +26,6 @@ import com.jme3.network.ErrorListener;
 import com.jme3.network.service.ClientService;
 import com.simsilica.ethereal.EtherealClient;
 import com.simsilica.ethereal.TimeSource;
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
@@ -278,7 +277,7 @@ public class ConnectionState extends AbstractAppState {
                 logger.info("Starting client...");
                 client.start();
                 logger.info("Client started.");
-            } catch (IOException e) {
+            } catch (Exception e) {
                 if (closing) {
                     disconnect();
                     return;
