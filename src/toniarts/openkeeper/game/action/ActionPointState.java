@@ -89,7 +89,7 @@ public class ActionPointState extends AbstractAppState {
         if (!isEnabled() || !isInitialized()) {
             return;
         }
-
+        // FIXME java.util.ConcurrentModificationException
         for (ActionPoint actionPoint : actionPoints.values()) {
             actionPoint.update(tpf);
         }

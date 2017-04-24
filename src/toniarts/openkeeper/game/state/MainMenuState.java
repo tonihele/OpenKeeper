@@ -43,6 +43,7 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Keeper;
@@ -512,9 +513,18 @@ public class MainMenuState extends AbstractAppState {
         skirmishPlayers.add(keeper);
     }
 
+    public void doDebriefing(GameResult result) {
+        setEnabled(true);
+        if (selectedLevel != null && result != null) {
+            screen.showDebriefing(result);
+        } else {
+            screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
+        }
+    }
+
     /**
-     * See if the map thumbnail exist, otherwise create one TODO maybe move to
-     * KwdFile class ???
+     * See if the map thumbnail exist, otherwise create one
+     * TODO maybe move to KwdFile class or Util* class ???
      *
      * @param map
      * @return path to map thumbnail file

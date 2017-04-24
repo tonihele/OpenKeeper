@@ -31,6 +31,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Spatial;
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -194,6 +195,11 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
 
     public void setCameraLookAt(ActionPoint point) {
         Vector3f location = WorldUtils.ActionPointToVector3f(point);
+        camera.setLookAt(location);
+    }
+
+    public void setCameraLookAt(Point point) {
+        Vector3f location = WorldUtils.pointToVector3f(point);
         camera.setLookAt(location);
     }
 

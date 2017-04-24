@@ -26,7 +26,6 @@ import com.jme3.texture.plugins.AWTLoader;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.NiftyIdCreator;
-import de.lessvoid.nifty.NiftyMethodInvoker;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
@@ -36,15 +35,16 @@ import de.lessvoid.nifty.controls.TabSelectedEvent;
 import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
-import de.lessvoid.nifty.elements.events.NiftyMousePrimaryClickedEvent;
-import de.lessvoid.nifty.elements.events.NiftyMouseSecondaryClickedEvent;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
 import de.lessvoid.nifty.elements.render.PanelRenderer;
+import de.lessvoid.nifty.elements.render.TextRenderer;
 import de.lessvoid.nifty.render.NiftyImage;
 import de.lessvoid.nifty.render.image.ImageModeFactory;
 import de.lessvoid.nifty.render.image.ImageModeHelper;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.tools.Color;
+import de.lessvoid.nifty.tools.SizeValue;
+import de.lessvoid.nifty.tools.SizeValueType;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -60,7 +60,6 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
-import toniarts.openkeeper.game.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.player.PlayerCreatureControl.CreatureUIState;
 import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.game.player.PlayerRoomControl;
@@ -78,6 +77,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell;
 import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -124,6 +124,48 @@ public class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void select(String iState, String id) {
         state.interactionState.setInteractionState(PlayerInteractionState.InteractionState.Type.valueOf(iState.toUpperCase()), Integer.valueOf(id));
+    }
+
+    @Override
+    public void togglePanel() {
+        // FIXME work but not properly. Map should not move with other things. Need HUD redesign
+        Element element  = nifty.getScreen(HUD_SCREEN_ID).findElementById("bottomPanel");
+
+        if (!element.getUserDataKeys().contains("toggle")) {
+            element.setUserData("toggle", false);
+        }
+
+        boolean toggled = element.getUserData("toggle");
+        if (toggled) {
+            element.setMarginTop(new SizeValue(0, SizeValueType.Pixel));
+        } else {
+            element.setMarginTop(new SizeValue(156, SizeValueType.Pixel));
+        }
+        element.setUserData("toggle", !toggled);
+        element.getParent().layoutElements();
+    }
+
+    @Override
+    public void toggleObjective() {
+        Element element = nifty.getScreen(HUD_SCREEN_ID).findElementById("objective");
+        if (element.isVisible()) {
+            element.hide();
+        } else {
+            GameLevel gameLevel = state.stateManager.getState(GameState.class).getLevelData().getGameLevel();
+
+            Label mainObjective = element.findNiftyControl("mainObjective", Label.class);
+            mainObjective.setText(gameLevel.getMainObjective());
+
+            Label subObjective1 = element.findNiftyControl("subObjective1", Label.class);
+            subObjective1.setText(gameLevel.getSubObjective1());
+            Label subObjective2 = element.findNiftyControl("subObjective2", Label.class);
+            subObjective2.setText(gameLevel.getSubObjective2());
+            Label subObjective3 = element.findNiftyControl("subObjective3", Label.class);
+            subObjective3.setText(gameLevel.getSubObjective3());
+
+            element.layoutElements();
+            element.show();
+        }
     }
 
     @Override
@@ -230,6 +272,18 @@ public class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void grabGold() {
         state.grabGold(100);
+    }
+
+    @Override
+    public void zoomToDungeon() {
+        state.zoomToDungeon();
+    }
+
+    @Override
+    public String getTooltipText(String bundleId) {
+        String result = Utils.getMainTextResourceBundle().getString(bundleId);
+
+        return state.getTooltipText(result);
     }
 
     @Override

@@ -46,9 +46,11 @@ import java.awt.GraphicsEnvironment;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.CustomMPDLevel;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Level;
@@ -69,6 +71,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     public final static String SCREEN_EMPTY_ID = "empty";
     public final static String SCREEN_START_ID = "start";
+    public final static String SCREEN_DEBRIEFING_ID = "debriefing";
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -787,7 +790,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.setHeight(img.getHeight());
             mainObjectiveImage.show();
         } catch (Exception e) {
-            logger.warning("Can't find image " + objectiveImage.replace("$index", "1"));
+            logger.warning("Can't find image " + objectiveImage.replace("$index", "0"));
             mainObjectiveImage.hide();
         }
 
@@ -827,5 +830,79 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 state.levelBriefing.play();
             }
         }
+    }
+
+    public void showDebriefing(GameResult result) {
+        Screen deScreen = nifty.getScreen(SCREEN_DEBRIEFING_ID);
+
+        Label levelTitle = deScreen.findNiftyControl("dLevelTitle", Label.class);
+
+        Element mainObjectiveImage = deScreen.findElementById("dMainObjectiveImage");
+        Element subObjectiveImage = deScreen.findElementById("dSubObjectiveImage");
+
+        String objectiveImage = String.format("Textures/Obj_Shots/%s-$index.png", state.selectedLevel.getFileName());
+        NiftyImage img = null;
+        GameLevel gameLevel = state.selectedLevel.getKwdFile().getGameLevel();
+        levelTitle.setText(gameLevel.getTitle());
+
+        try {
+            img = nifty.createImage(objectiveImage.replace("$index", "0"), false);
+            mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
+            mainObjectiveImage.setWidth(img.getWidth());
+            mainObjectiveImage.setHeight(img.getHeight());
+            mainObjectiveImage.show();
+        } catch (Exception e) {
+            logger.warning("Can't find image " + objectiveImage.replace("$index", "0"));
+            mainObjectiveImage.hide();
+        }
+
+        Label totalEvilRating = deScreen.findNiftyControl("totalEvilRating", Label.class);
+        Label overallTotalEvilRating = deScreen.findNiftyControl("overallTotalEvilRating", Label.class);
+        Label specialsFound = deScreen.findNiftyControl("specialsFound", Label.class);
+
+        subObjectiveImage.hide();
+        if (state.selectedLevel instanceof Level
+                && ((Level) state.selectedLevel).getType().equals(Level.LevelType.Level)) {
+            try {
+                img = nifty.createImage(objectiveImage.replace("$index", "1"), false);
+                subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
+                subObjectiveImage.setWidth(img.getWidth());
+                subObjectiveImage.setHeight(img.getHeight());
+                subObjectiveImage.show();
+            } catch (Exception e) {
+                logger.warning("Can't find image " + objectiveImage.replace("$index", "1"));
+                subObjectiveImage.hide();
+            }
+        }
+
+        boolean levelWon = result.getData(GameResult.ResultType.LEVEL_WON);
+        deScreen.findNiftyControl("levelWon", Label.class).setText(levelWon ? "${menu.21}" : "${menu.22}");
+        int timeTaken = Math.round(result.getData(GameResult.ResultType.TIME_TAKEN));
+        deScreen.findNiftyControl("timeTaken", Label.class).setText(timeToString(timeTaken));
+
+        goToScreen(SCREEN_DEBRIEFING_ID);
+    }
+
+    private String timeToString(int time) {
+        String result = "";
+        int days = time / 86400;
+        if (days != 0) {
+            time -= days * 86400;
+            result += days;
+        }
+        int hours = time / 3600;
+        if (days != 0 || hours != 0) {
+            time -= hours * 3600;
+            result += String.format(" %02d", hours);
+        }
+        int minutes = time / 60;
+        if (days != 0 || hours != 0 || minutes != 0) {
+            time -= minutes * 60;
+            result += String.format(":%02d", minutes);
+        }
+        int seconds = time;
+        result += String.format(":%02d", seconds);
+
+        return result.trim();
     }
 }
