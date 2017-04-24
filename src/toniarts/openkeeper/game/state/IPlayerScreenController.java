@@ -34,10 +34,16 @@ public interface IPlayerScreenController extends ScreenController {
      */
     public void select(String iState, String id);
 
+    public void togglePanel();
+
+    public void toggleObjective();
+
     public void pauseMenu();
 
     public void pauseMenuNavigate(String menu, String backMenu,
             String confirmationTitle, String confirmMethod);
+
+    public void zoomToDungeon();
 
     public void zoomToCreature(String creatureId, String uiState);
 
@@ -52,6 +58,8 @@ public interface IPlayerScreenController extends ScreenController {
     public void pickUpImp(String state);
 
     public void grabGold();
+
+    public String getTooltipText(String bundleId);
 
     public void quitToMainMenu();
 
