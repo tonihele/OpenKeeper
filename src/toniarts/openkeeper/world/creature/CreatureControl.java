@@ -1850,4 +1850,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public void levelUp() {
         experience = experienceToNextLevel;
     }
+
+    public void levelMax() {
+        if (level < MAX_CREATURE_LEVEL) {
+            level = MAX_CREATURE_LEVEL;
+            setAttributesByLevel();
+        }
+    }
 }

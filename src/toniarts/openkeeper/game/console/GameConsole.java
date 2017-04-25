@@ -63,7 +63,7 @@ public class GameConsole {
         EXIT,
         HELP,
         LOOSE_LEVEL,
-        LEVEL_UP,
+        LEVEL_MAX,
         SPAWN_IMP,
         UNLOCK_ROOMS,
         UNLOCK_SPELLS,
@@ -142,7 +142,7 @@ public class GameConsole {
                 case EXIT:
                     stateManager.getState(ConsoleState.class).setEnabled(false);
                     break;
-                case LEVEL_UP:
+                case LEVEL_MAX:
                 case UNLOCK_ROOMS:
                 case UNLOCK_SPELLS:
                 case UNLOCK_ROOMS_TRAPS:

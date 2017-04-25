@@ -46,7 +46,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
 
         MONEY("show me the money"),
         MANA("ha ha thisaway ha ha thataway"),
-        LEVEL_UP("feel the power"),
+        LEVEL_MAX("feel the power"),
         UNLOCK_ROOMS("this is my church"),
         UNLOCK_SPELLS("i believe its magic"),
         UNLOCK_ROOMS_TRAPS("fit the best"),
