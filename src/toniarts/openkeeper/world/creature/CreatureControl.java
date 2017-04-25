@@ -1847,4 +1847,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         stateMachine.changeState(CreatureState.IMPRISONED);
     }
 
+    public void levelUp() {
+        experience = experienceToNextLevel;
+    }
 }

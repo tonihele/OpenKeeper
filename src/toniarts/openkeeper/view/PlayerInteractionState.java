@@ -38,6 +38,8 @@ import com.jme3.scene.control.AbstractControl;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import java.awt.Point;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -50,6 +52,7 @@ import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -209,6 +212,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         break;
                     case MANA:
                         gameState.getPlayer(player.getPlayerId()).getManaControl().addMana(100000);
+                        break;
+                    case LEVEL_UP:
+                        Map<Creature, Set<CreatureControl>> creatureMap = stateManager.getState(PlayerState.class).getCreatureControl().getAllCreatures();
+                        creatureMap.values().stream().forEach((creatureControlSet) -> {
+                            creatureControlSet.stream().forEach((creatureControl) -> {
+                                creatureControl.levelUp();
+                            });
+                        });
+                        break;
+                    case WIN_LEVEL:
+                        gameState.setEnd(true);
                         break;
                     default:
                         logger.log(Level.WARNING, "Cheat {0} not implemented yet!", cheat.toString());

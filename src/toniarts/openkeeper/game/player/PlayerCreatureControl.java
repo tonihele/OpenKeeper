@@ -132,12 +132,22 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<C
     }
 
     /**
+     * Get all creatures
+     *
+     * @return the creatures
+     */
+    public Map<Creature, Set<CreatureControl>> getAllCreatures() {
+        Map<Creature, Set<CreatureControl>> map = new LinkedHashMap<>(types);
+        return map;
+    }
+
+    /**
      * Get creatures, minus the imps
      *
      * @return the creatures
      */
     public Map<Creature, Set<CreatureControl>> getCreatures() {
-        Map<Creature, Set<CreatureControl>> map = new LinkedHashMap<>(types);
+        Map<Creature, Set<CreatureControl>> map = getAllCreatures();
         map.remove(imp);
         return map;
     }
