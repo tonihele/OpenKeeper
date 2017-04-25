@@ -24,6 +24,7 @@ import de.lessvoid.nifty.controls.ConsoleCommands.ConsoleCommand;
 import de.lessvoid.nifty.tools.Color;
 import java.util.Collection;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -59,9 +60,16 @@ public class GameConsole {
      */
     private enum SimpleCommands {
         CLEAR,
+        EXIT,
         HELP,
+        LOOSE_LEVEL,
+        LEVEL_UP,
         SPAWN_IMP,
-        EXIT;
+        UNLOCK_ROOMS,
+        UNLOCK_SPELLS,
+        UNLOCK_ROOMS_TRAPS,
+        REMOVE_FOW,
+        WIN_LEVEL;
     };
 
     GameConsole(AppStateManager stateManager) {
@@ -125,11 +133,22 @@ public class GameConsole {
                 case HELP:
                     showHelpMessage();
                     break;
+                case LOOSE_LEVEL:
+                    stateManager.getState(GameState.class).setEnd(false);
+                    break;
                 case SPAWN_IMP:
                     spawnImp();
                     break;
                 case EXIT:
                     stateManager.getState(ConsoleState.class).setEnabled(false);
+                    break;
+                case LEVEL_UP:
+                case UNLOCK_ROOMS:
+                case UNLOCK_SPELLS:
+                case UNLOCK_ROOMS_TRAPS:
+                case REMOVE_FOW:
+                case WIN_LEVEL:
+                    stateManager.getState(CheatState.class).executeCheat(CheatState.CheatType.valueOf(command));
                     break;
                 default:
                     console.outputError("Not supported");
@@ -220,6 +239,7 @@ public class GameConsole {
         StringBuilder outputText = new StringBuilder();
         outputText.append("##########################################\n");
         outputText.append("### You can use the following commands ###\n");
+        outputText.append("###      Use TAB for autocomplete      ###\n");
         outputText.append("##########################################\n");
         ConsoleCommand simpleCommand = new SimpleCommand();
         for (SimpleCommands simpleCmd : SimpleCommands.values()) {
