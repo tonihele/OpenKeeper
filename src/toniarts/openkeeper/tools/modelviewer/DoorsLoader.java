@@ -42,9 +42,9 @@ public class DoorsLoader implements ILoader<Door> {
         resources.add(object.getMesh());
         resources.add(object.getOpenResource());
         resources.add(object.getCloseResource());
-        resources.add(object.getFlowerIcon());
-        resources.add(object.getGuiIcon());
-        resources.add(object.getEditorIcon());
+        //resources.add(object.getFlowerIcon());
+        //resources.add(object.getGuiIcon());
+        //resources.add(object.getEditorIcon());
 
         float height = 1;
         for (ArtResource resource : resources) {

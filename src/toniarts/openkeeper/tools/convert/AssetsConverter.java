@@ -95,7 +95,7 @@ public abstract class AssetsConverter {
         TEXTURES(4),
         MODELS(6),
         MOUSE_CURSORS(4),
-        MUSIC_AND_SOUNDS(3),
+        MUSIC_AND_SOUNDS(4),
         INTERFACE_TEXTS(2),
         PATHS(4),
         HI_SCORES(2),
@@ -503,12 +503,13 @@ public abstract class AssetsConverter {
             SdtFile sdt = new SdtFile(file);
 
             //Get a relative path
-            Path relative = dataDir.toPath().relativize(file.toPath());
+            String path = file.toString().substring(0, file.toString().length() - 4);
+            Path relative = dataDir.toPath().relativize(new File(path).toPath());
             String dest = destination;
             dest += relative.toString();
 
             //Remove the actual file name
-            dest = dest.substring(0, dest.length() - file.toPath().getFileName().toString().length());
+            //dest = dest.substring(0, dest.length() - file.toPath().getFileName().toString().length());
 
             //Extract
             sdt.extractFileData(dest);

@@ -4,12 +4,11 @@
     <!-- Creature -->
     <controlDefinition name="creature" style="nifty-panel-style"
                        controller="toniarts.openkeeper.tools.modelviewer.nifty.CreatureControl">
-        
-        <panel childLayout="vertical" width="100%">
 
+        <panel childLayout="vertical" width="100%">
             <control name="scrollPanel" horizontal="false" stepSizeY="20">
                 <panel childLayout="vertical" width="100%">
-                    
+
                     <text style="text" text="$title" align="center" />
 
                     <panel childLayout="horizontal" width="100%">
@@ -32,6 +31,12 @@
                             <image filename="$fpFilter" align="center" />
                         </panel>
                     </panel>
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+
+                    <text style="text" text="Name" align="center" />
+                    <text style="text" text="$namestring" textHAlign="left" wrap="true" />
 
                     <text style="text" text="Description" align="center" />
                     <text style="text" text="$description" textHAlign="left" wrap="true" />
@@ -77,6 +82,355 @@
 
                     <text style="text" text="Anger Work" align="center" />
                     <text style="text" text="$angerWork" textHAlign="left" wrap="true" />
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="room" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <panel childLayout="horizontal" width="100%">
+                        <text style="text" text="Gui icon" align="center" />
+                        <image filename="$iconGui" align="center" />
+                    </panel>
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+
+                    <text style="text" text="Name" align="center" />
+                    <text style="text" text="$namestring" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="General Description" align="center" />
+                    <text style="text" text="$genDesc" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Strength" align="center" />
+                    <text style="text" text="$strength" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Tooltip" align="center" />
+                    <text style="text" text="$tooltip" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Construction" align="center" />
+                    <text style="text" text="$construction" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Ceiling Height" align="center" />
+                    <text style="text" text="$ceilingHeight" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Cost" align="center" />
+                    <text style="text" text="$cost" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Created Creature Id" align="center" />
+                    <text style="text" text="$createdCreatureId" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Health Gain" align="center" />
+                    <text style="text" text="$healthGain" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Recommended Size" align="center" />
+                    <text style="text" text="$size" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Research Time" align="center" />
+                    <text style="text" text="$researchTime" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Return Percentage" align="center" />
+                    <text style="text" text="$returnPercentage" textHAlign="left" wrap="true" />
+
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="trap" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <panel childLayout="horizontal" width="100%">
+                        <panel childLayout="vertical" width="33%">
+                            <text style="text" text="Icon Gui" align="center" />
+                            <image filename="$iconGui" align="center" />
+                        </panel>
+                        <panel childLayout="vertical" width="33%">
+                            <text style="text" text="Icon Flower" align="center" />
+                            <image filename="$iconFlower" align="center" />
+                        </panel>
+                        <panel childLayout="vertical" width="33%">
+                            <text style="text" text="Icon Editor" align="center" />
+                            <image filename="$iconEditor" align="center" />
+                        </panel>
+                    </panel>
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="door" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <panel childLayout="horizontal" width="100%">
+                        <panel childLayout="vertical" width="33%">
+                            <text style="text" text="Icon Gui" align="center" />
+                            <image filename="$iconGui" align="center" />
+                        </panel>
+                        <panel childLayout="vertical" width="33%">
+                            <text style="text" text="Icon Flower" align="center" />
+                            <image filename="$iconFlower" align="center" />
+                        </panel>
+                        <panel childLayout="vertical" width="33%">
+                            <text style="text" text="Icon Editor" align="center" />
+                            <image filename="$iconEditor" align="center" />
+                        </panel>
+                    </panel>
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="shot" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+
+                    <text style="text" text="Air Friction" align="center" />
+                    <text style="text" text="$airFriction" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Radius" align="center" />
+                    <text style="text" text="$radius" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Speed" align="center" />
+                    <text style="text" text="$speed" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Threat" align="center" />
+                    <text style="text" text="$threat" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Timed Delay" align="center" />
+                    <text style="text" text="$timedDelay" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Burn Duration" align="center" />
+                    <text style="text" text="$burnDuration" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Health" align="center" />
+                    <text style="text" text="$health" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Mass" align="center" />
+                    <text style="text" text="$mass" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Attack Category" align="center" />
+                    <text style="text" text="$attackCategory" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Collide Type" align="center" />
+                    <text style="text" text="$collideType" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Damage Type" align="center" />
+                    <text style="text" text="$damageType" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Process Type" align="center" />
+                    <text style="text" text="$processType" textHAlign="left" wrap="true" />
+
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="terrain" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+
+                    <text style="text" text="Name" align="center" />
+                    <text style="text" text="$namestring" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="General Description" align="center" />
+                    <text style="text" text="$genDesc" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Strength" align="center" />
+                    <text style="text" text="$strength" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Tooltip" align="center" />
+                    <text style="text" text="$tooltip" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Damage" align="center" />
+                    <text style="text" text="$damage" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Depth" align="center" />
+                    <text style="text" text="$depth" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Gold Value" align="center" />
+                    <text style="text" text="$goldValue" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Light Height" align="center" />
+                    <text style="text" text="$lightHeight" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Mana Gain" align="center" />
+                    <text style="text" text="$manaGain" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Max Health" align="center" />
+                    <text style="text" text="$maxHealth" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Max Mana Gain" align="center" />
+                    <text style="text" text="$maxManaGain" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Starting Health" align="center" />
+                    <text style="text" text="$startingHealth" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Texture Frames" align="center" />
+                    <text style="text" text="$textureFrames" textHAlign="left" wrap="true" />
+
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="object" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <panel childLayout="horizontal" width="100%">
+                        <panel childLayout="vertical" width="33%">
+                            <text style="text" text="Icon Gui" align="center" />
+                            <image filename="$iconGui" align="center" />
+                        </panel>
+                        <panel childLayout="vertical" width="33%">
+                            <text style="text" text="Icon In Hand" align="center" />
+                            <image filename="$iconInHand" align="center" />
+                        </panel>
+                    </panel>
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="level" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <text style="text" text="Sound" align="center" />
+                    <control name="dropDown" id="sounds" displayItems="10"/>
+
+                    <text style="text" text="Title" align="center" />
+                    <text style="text" text="$titlestring" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Author" align="center" />
+                    <text style="text" text="$author" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Description" align="center" />
+                    <text style="text" text="$description" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Email" align="center" />
+                    <text style="text" text="$email" textHAlign="left" wrap="true" />
+
+                </panel>
+            </control>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="effect" style="nifty-panel-style"
+                       controller="de.lessvoid.nifty.controls.DefaultController">
+        <panel childLayout="vertical" width="100%">
+            <control name="scrollPanel" horizontal="false" stepSizeY="20">
+                <panel childLayout="vertical" width="100%">
+                    <text style="text" text="$title" align="center" />
+
+                    <text style="text" text="Air Friction" align="center" />
+                    <text style="text" text="$airFriction" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Circular Path Rate" align="center" />
+                    <text style="text" text="$circularPathRate" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Directional Spread" align="center" />
+                    <text style="text" text="$directionalSpread" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Elasticity" align="center" />
+                    <text style="text" text="$elasticity" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Elements PerTurn" align="center" />
+                    <text style="text" text="$elementsPerTurn" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Fade Duration" align="center" />
+                    <text style="text" text="$fadeDuration" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Generate Randomness" align="center" />
+                    <text style="text" text="$generateRandomness" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Origin Range" align="center" />
+                    <text style="text" text="$originRange" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Height Limit" align="center" />
+                    <text style="text" text="$heightLimit" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Mass" align="center" />
+                    <text style="text" text="$mass" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Generation Type" align="center" />
+                    <text style="text" text="$generationType" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="HP" align="center" />
+                    <text style="text" text="$hp" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Scale" align="center" />
+                    <text style="text" text="$scale" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Speed XY" align="center" />
+                    <text style="text" text="$speedXy" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Speed YZ" align="center" />
+                    <text style="text" text="$speedYz" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Misc 2" align="center" />
+                    <text style="text" text="$misc2" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Misc 3" align="center" />
+                    <text style="text" text="$misc3" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Orientation Range" align="center" />
+                    <text style="text" text="$orientationRange" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Outer Origin Range" align="center" />
+                    <text style="text" text="$outerOriginRange" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Radius" align="center" />
+                    <text style="text" text="$radius" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Sprite Spin Rate Range" align="center" />
+                    <text style="text" text="$spriteSpinRateRange" textHAlign="left" wrap="true" />
+
+                    <text style="text" text="Whirlpool Rate" align="center" />
+                    <text style="text" text="$whirlpoolRate" textHAlign="left" wrap="true" />
+
                 </panel>
             </control>
         </panel>

@@ -43,7 +43,7 @@ public class RoomsLoader implements ILoader<Room> {
         resources.add(object.getCeilingResource());
         resources.add(object.getCompleteResource());
         //resources.add(object.getEditorIcon());
-        resources.add(object.getGuiIcon());
+        //resources.add(object.getGuiIcon());
         resources.add(object.getInsideCornerResource());
         resources.add(object.getOutsideCornerResource());
         resources.add(object.getStraightResource());
@@ -56,7 +56,6 @@ public class RoomsLoader implements ILoader<Room> {
             if (resource == null || resource.getType() == ArtResource.ArtResourceType.NONE) {
                 continue;
             }
-
 
             Spatial s = UniversalArtResourceLoader.load(assetManager, resource);
             s.move(0, height++, 0);

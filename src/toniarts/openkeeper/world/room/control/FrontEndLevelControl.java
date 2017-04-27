@@ -66,7 +66,7 @@ public class FrontEndLevelControl extends AbstractControl {
 
                     // If the spatial starts in the base location, play the sound
                     if (getSpatial().getLocalTranslation().equals(baseLocation)) {
-                        AudioNode fx = new AudioNode(assetManager, "Sounds/Global/RockRise nl.mp2", DataType.Buffer);
+                        AudioNode fx = new AudioNode(assetManager, "Sounds/Global/GuiHD/RockRise nl.mp2", DataType.Buffer);
                         fx.setLooping(false);
                         fx.setPositional(true);
                         fx.play();

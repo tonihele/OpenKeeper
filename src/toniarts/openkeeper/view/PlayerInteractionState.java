@@ -578,7 +578,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                                 updateCursor();
                                 // The tagging sound is positional and played against the cursor change, not the action itself
                                 Point pos = selectionHandler.getPointedTileIndex();
-                                getWorldHandler().playSoundAtTile(pos.x, pos.y, "/Global/dk1tag.mp2");
+                                getWorldHandler().playSoundAtTile(pos.x, pos.y, "/Global/GuiHD/dk1tag.mp2");
                             }
                         }
 

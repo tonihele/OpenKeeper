@@ -22,13 +22,14 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import toniarts.openkeeper.game.control.Container;
+import toniarts.openkeeper.game.data.ITriggerable;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
  *
  * @author ArchDemon
  */
-public class ActionPoint extends Container {
+public class ActionPoint extends Container implements ITriggerable {
 
     private final int id;
     private ActionPointState parent;
@@ -69,6 +70,7 @@ public class ActionPoint extends Container {
         this.parent = parent;
     }
 
+    @Override
     public int getTriggerId() {
         return triggerId;
     }

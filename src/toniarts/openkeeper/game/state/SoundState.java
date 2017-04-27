@@ -21,13 +21,17 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
+import java.io.File;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.sound.SoundCategory;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 
 /**
  * This state plays different sounds
@@ -69,19 +73,32 @@ public class SoundState extends AbstractPauseAwareState {
      * @param speechId
      */
     public void attachLevelSpeech(int speechId) {
-        String file = String.format("Sounds/%s/lvlspe%02d.mp2", stateManager.getState(GameState.class).getLevelData().getGameLevel().getSpeechStr().toLowerCase(), speechId);
-        speechQueue.add(ConversionUtils.getCanonicalAssetKey(file));
+        String soundCategory = stateManager.getState(GameState.class).getLevelData().getGameLevel().getSoundCategory();
+        attachSpeech(soundCategory, speechId);
     }
 
     /**
      * Plays general mentor speeches
      *
-     * @param audioFile Name of the audio file in the speech_mentor folder,
-     * without extension!
+     * @param speechId
      */
-    public void attachMentorSpeech(String audioFile) {
-        String file = String.format("Sounds/speech_mentor/%s.mp2", audioFile);
-        speechQueue.add(ConversionUtils.getCanonicalAssetKey(file));
+    public void attachMentorSpeech(int speechId) {
+        attachSpeech(SoundCategory.SPEECH_MENTOR, speechId);
+    }
+
+    private void attachSpeech(String soundCategory, int speechId) {
+        try {
+            SoundCategory sc = SoundsLoader.load(soundCategory, false);
+            if (sc == null) {
+                throw new RuntimeException("Sound category " + soundCategory + " not found");
+            }
+
+            String file = AssetsConverter.SOUNDS_FOLDER + File.separator
+                    + sc.getGroup(speechId).getFiles().get(0).getFilename();
+            speechQueue.add(file);
+        } catch (Exception e) {
+            logger.log(Level.WARNING, e.getLocalizedMessage());
+        }
     }
 
     private void playSpeech(String file) {
@@ -159,7 +176,8 @@ public class SoundState extends AbstractPauseAwareState {
                 third = random.nextInt(23) + 1;
             }
 
-            final String formatted = String.format("Sounds/Global/%dpt%d-%03d.mp2", first, second, third);
+            final String formatted = String.format("Sounds/Global/Track_%d_%dHD/%dpt%d-%03d.mp2",
+                    first, second, first, second, third);
             return ConversionUtils.getCanonicalAssetKey(formatted);
         }
     }

@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.ISoundable;
+import toniarts.openkeeper.game.data.ITriggerable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 
@@ -32,7 +34,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author ArchDemon
  */
-public class GameLevel {
+public class GameLevel implements ISoundable, ITriggerable {
     // KWD data
     //    struct LevelInfoBlock {
     //        ucs2le_t m_wsName[64]; /* 134 */
@@ -242,12 +244,12 @@ public class GameLevel {
     protected String author;
     protected String email;
     protected String information;
-    protected int triggerId; // Associated trigger
+    protected int triggerId;
     protected int ticksPerSec;
     protected short x01184[];
     protected List<String> messages;
     protected EnumSet<LevFlag> lvlFlags;
-    protected String speechStr;
+    protected String soundCategory;
     protected short talismanPieces;
     protected List<LevelReward> rewardPrev = new ArrayList<>();
     protected List<LevelReward> rewardNext = new ArrayList<>();
@@ -347,6 +349,11 @@ public class GameLevel {
         this.playerCount = playerCount;
     }
 
+    /**
+     * Associated trigger
+     * @return
+     */
+    @Override
     public int getTriggerId() {
         return triggerId;
     }
@@ -379,12 +386,13 @@ public class GameLevel {
         this.messages = messages;
     }
 
-    public String getSpeechStr() {
-        return speechStr;
+    @Override
+    public String getSoundCategory() {
+        return soundCategory;
     }
 
-    protected void setSpeechStr(String speechStr) {
-        this.speechStr = speechStr;
+    protected void setSoundCategory(String soundCategory) {
+        this.soundCategory = soundCategory;
     }
 
     public short getTalismanPieces() {

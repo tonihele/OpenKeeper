@@ -39,7 +39,7 @@ public class BankMapFile {
     };
     // Header
     private final int unknown1; // 0 or 1 // not used
-    private final int unknown2; // 0, 32769, 0xFFFFFFFF // not used
+    private final long unknown2; // 0, 32769, 0xFFFFFFFF // not used
     //
     private final File file;
     private final BankMapFileEntry[] entries;
@@ -68,7 +68,7 @@ public class BankMapFile {
             }
 
             unknown1 = ConversionUtils.readUnsignedInteger(rawMap);
-            unknown2 = ConversionUtils.readUnsignedInteger(rawMap);
+            unknown2 = ConversionUtils.readUnsignedIntegerAsLong(rawMap);
             int count = ConversionUtils.readUnsignedInteger(rawMap);
 
             //Read the entries
@@ -90,7 +90,7 @@ public class BankMapFile {
             for (BankMapFileEntry entry : entries) {
                 // 4 bytes = length of the name (including the null terminator)
                 int length = ConversionUtils.readUnsignedInteger(rawMap);
-                entry.setArchive(ConversionUtils.readString(rawMap, length).trim());
+                entry.setName(ConversionUtils.readString(rawMap, length).trim());
             }
 
         } catch (IOException e) {
@@ -98,6 +98,10 @@ public class BankMapFile {
             //Fug
             throw new RuntimeException("Failed to open the file " + file + "!", e);
         }
+    }
+
+    public BankMapFileEntry[] getEntries() {
+        return entries;
     }
 
     @Override

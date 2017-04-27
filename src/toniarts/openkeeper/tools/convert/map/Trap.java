@@ -20,6 +20,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.game.data.ISoundable;
 
 /**
  * Container class for the Trap
@@ -30,7 +31,7 @@ import javax.vecmath.Vector3f;
  *
  * Thank you https://github.com/werkt
  */
-public class Trap implements Comparable<Trap> {
+public class Trap implements Comparable<Trap>, ISoundable {
 
     /**
      * Trap flags
@@ -418,6 +419,7 @@ public class Trap implements Comparable<Trap> {
         this.manufCrateObjectId = manufCrateObjectId;
     }
 
+    @Override
     public String getSoundCategory() {
         return soundCategory;
     }

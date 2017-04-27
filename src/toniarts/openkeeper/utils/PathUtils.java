@@ -23,6 +23,7 @@ public class PathUtils {
     public static final String DKII_DATA_FOLDER = "Data" + File.separator;
     public static final String DKII_SFX_FOLDER = DKII_DATA_FOLDER + "Sound" + File.separator
             + "sfx" + File.separator;
+    public static final String DKII_SFX_GLOBAL_FOLDER = DKII_SFX_FOLDER + "Global" + File.separator;
     public static final String DKII_MOVIES_FOLDER = DKII_DATA_FOLDER + "Movies" + File.separator;
     public static final String DKII_TEXT_DEFAULT_FOLDER = DKII_DATA_FOLDER + "Text" + File.separator
             + "Default" + File.separator;
