@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
+import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
+
 /**
  *
  * @author ArchDemon
@@ -77,7 +79,7 @@ public class Temple extends DoubleQuad {
 
             Point centre = new Point( start.x + (topLeft.x + bottomRight.x) / 2, start.y +(topLeft.y + bottomRight.y) / 2);
             Spatial part = objectLoader.load(assetManager, centre.x, centre.y, OBJECT_TEMPLE_HAND_ID, roomInstance.getOwnerId());
-            part.move(0, -3 * MapLoader.FLOOR_HEIGHT / 2, MapLoader.TILE_WIDTH / 4);
+            part.move(0, -3 * MapLoader.FLOOR_HEIGHT / 2, TILE_WIDTH / 4);
             root.attachChild(part);
         }
 
@@ -139,20 +141,25 @@ public class Temple extends DoubleQuad {
 //             We may have up to 4 pillars in the same tile even, every corner gets one, no need to check anything else
 //             Add a pillar
 //             Face "in" diagonally
+            float offset = MapLoader.TILE_WIDTH / 4;
             if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
                 float yAngle = -FastMath.HALF_PI;
-                constructCandle(node, p, yAngle);//.move(0, MapLoader.TILE_HEIGHT, 0);
+                Spatial candle = constructCandle(node, p, yAngle);//.move(0, MapLoader.TILE_HEIGHT, 0);
+                candle.move(offset, 0, -offset);
             }
             if (freeDirections.contains(WallSection.WallDirection.SOUTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
                 float yAngle = FastMath.PI;
-                constructCandle(node, p, yAngle);//.move(-0.15f, MapLoader.TILE_HEIGHT, -0.15f);
+                Spatial candle = constructCandle(node, p, yAngle);//.move(-0.15f, MapLoader.TILE_HEIGHT, -0.15f);
+                candle.move(offset, 0, offset);
             }
             if (freeDirections.contains(WallSection.WallDirection.SOUTH) && freeDirections.contains(WallSection.WallDirection.WEST)) {
                 float yAngle = FastMath.HALF_PI;
-                constructCandle(node, p, yAngle);//.move(-0.85f, MapLoader.TILE_HEIGHT, -0.15f);
+                Spatial candle = constructCandle(node, p, yAngle);//.move(-0.85f, MapLoader.TILE_HEIGHT, -0.15f);
+                candle.move(-offset, 0, offset);
             }
             if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.WEST)) {
-                constructCandle(node, p, 0);//.move(-0.85f, MapLoader.TILE_HEIGHT, -0.85f);
+                Spatial candle = constructCandle(node, p, 0);//.move(-0.85f, MapLoader.TILE_HEIGHT, -0.85f);
+                candle.move(-offset, 0, -offset);
             }
 
 
