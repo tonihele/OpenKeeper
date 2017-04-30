@@ -20,12 +20,13 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.awt.Point;
-import java.util.EnumSet;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
+
+import java.awt.*;
+import java.util.EnumSet;
 
 /**
  * The workshop
@@ -66,7 +67,7 @@ public class Workshop extends Normal {
     }
 
     @Override
-    protected void contructPillars(Node node) {
+    protected void constructPillars(Node node) {
 
         // We have very different logic than the normal
         // Go through all the points and see if they are fit for pillar placement

@@ -22,16 +22,16 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.awt.Point;
-import java.util.Arrays;
-import java.util.EnumSet;
-import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.WallSection.WallDirection;
+
+import java.awt.*;
+import java.util.Arrays;
+import java.util.EnumSet;
 
 /**
  * Constructs "normal" rooms
@@ -51,7 +51,7 @@ public class Normal extends GenericRoom {
         // Pillars
         if (hasPillars()) {
             BatchNode pillarsNode = new BatchNode("Pillars");
-            contructPillars(pillarsNode);
+            constructPillars(pillarsNode);
             if (!pillarsNode.getChildren().isEmpty()) {
                 pillarsNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
                 pillarsNode.batch();
@@ -120,7 +120,7 @@ public class Normal extends GenericRoom {
      *
      * @param node the pillar node
      */
-    protected void contructPillars(Node node) {
+    protected void constructPillars(Node node) {
 
         // NOTE: I don't understand how the pillars are referenced, they are neither in Terrain nor Room, but they are listed in the Objects. Even Lair has pillars, but I've never seem the in-game
         // Pillars go into all at least 3x3 corners, there can be more than 4 pillars per room

@@ -17,13 +17,10 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.math.FastMath;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.awt.Point;
-import java.util.ArrayList;
-import java.util.List;
-
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.RoomUtils;
 import toniarts.openkeeper.world.EntityInstance;
@@ -33,6 +30,11 @@ import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.terrain.Water;
 
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+
 /**
  *
  * @author ArchDemon
@@ -40,6 +42,7 @@ import toniarts.openkeeper.world.terrain.Water;
 public class Temple extends DoubleQuad {
 
     private static final short OBJECT_TEMPLE_HAND_ID = 66;
+    private static final short OBJECT_TEMPLE_CANDLESTICK_ID = 111;
 
     public Temple(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         super(assetManager, roomInstance, objectLoader, worldState, effectManager);
@@ -107,6 +110,64 @@ public class Temple extends DoubleQuad {
             root.attachChild(waterTiles);
         }
 
+        constructCandles(root);
+
         return root;
     }
+
+    protected void constructCandles(Node node) {
+
+        // We have very different logic than the normal
+        // Go through all the points and see if they are fit for pillar placement
+        for (Point p : roomInstance.getCoordinates()) {
+
+            // See that we have 2 "free" neigbouring tiles
+            EnumSet<WallSection.WallDirection> freeDirections = EnumSet.noneOf(WallSection.WallDirection.class);
+            if (!hasSameTile(map, p.x - start.x, p.y - start.y - 1)) { // North
+                freeDirections.add(WallSection.WallDirection.NORTH);
+            }
+            if (!hasSameTile(map, p.x - start.x, p.y - start.y + 1)) { // South
+                freeDirections.add(WallSection.WallDirection.SOUTH);
+            }
+            if (!hasSameTile(map, p.x - start.x + 1, p.y - start.y)) { // East
+                freeDirections.add(WallSection.WallDirection.EAST);
+            }
+            if (!hasSameTile(map, p.x - start.x - 1, p.y - start.y)) { // West
+                freeDirections.add(WallSection.WallDirection.WEST);
+            }
+
+//             We may have up to 4 pillars in the same tile even, every corner gets one, no need to check anything else
+//             Add a pillar
+//             Face "in" diagonally
+            if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
+                float yAngle = -FastMath.HALF_PI;
+                constructCandle(node, p, yAngle);//.move(0, MapLoader.TILE_HEIGHT, 0);
+            }
+            if (freeDirections.contains(WallSection.WallDirection.SOUTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
+                float yAngle = FastMath.PI;
+                constructCandle(node, p, yAngle);//.move(-0.15f, MapLoader.TILE_HEIGHT, -0.15f);
+            }
+            if (freeDirections.contains(WallSection.WallDirection.SOUTH) && freeDirections.contains(WallSection.WallDirection.WEST)) {
+                float yAngle = FastMath.HALF_PI;
+                constructCandle(node, p, yAngle);//.move(-0.85f, MapLoader.TILE_HEIGHT, -0.15f);
+            }
+            if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.WEST)) {
+                constructCandle(node, p, 0);//.move(-0.85f, MapLoader.TILE_HEIGHT, -0.85f);
+            }
+
+
+        }
+    }
+
+    private Spatial constructCandle(Node node, Point p, float yAngle) {
+        Spatial part = objectLoader.load(assetManager, p.x, p.y, OBJECT_TEMPLE_CANDLESTICK_ID, roomInstance.getOwnerId());
+
+        if (yAngle != 0) {
+            part.rotate(0, yAngle, 0);
+        }
+
+        node.attachChild(part);
+        return part;
+    }
+
 }
