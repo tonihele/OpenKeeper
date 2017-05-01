@@ -445,12 +445,22 @@ public class ConversionUtils {
      * @return fully qualified and working asset key
      */
     public static String getCanonicalAssetKey(String asset) {
-        String assetsFolder = AssetsConverter.getAssetsFolder();
+        return getCanonicalRelativePath(AssetsConverter.getAssetsFolder(), asset).replaceAll(QUOTED_FILE_SEPARATOR, "/");
+    }
+
+    /**
+     * Returns case sensitive and valid relative path
+     *
+     * @param rootPath the working start path, used to relativize the path
+     * @param path the unknown path to fix
+     * @return fully qualified and working relative path
+     */
+    public static String getCanonicalRelativePath(String rootPath, String path) {
         try {
-            return getRealFileName(assetsFolder, asset).substring(assetsFolder.length()).replaceAll(QUOTED_FILE_SEPARATOR, "/");
+            return getRealFileName(rootPath, path).substring(rootPath.length());
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Can not locate asset " + asset + "!", e);
-            return asset;
+            LOGGER.log(Level.WARNING, "Can not locate path " + path + " from " + rootPath + "!", e);
+            return path;
         }
     }
 
@@ -492,9 +502,8 @@ public class ConversionUtils {
                 // If it exists as such, that is super!
                 Path testFile = Paths.get(fileName);
                 if (Files.exists(testFile)) {
-                    testFile = testFile.toRealPath();
-                    FILENAME_CACHE.put(fileKey, testFile.toString());
-                    cachedName = testFile.toString();
+                    cachedName = testFile.toRealPath().toString();
+                    FILENAME_CACHE.put(fileKey, cachedName);
                 } else {
 
                     // Otherwise we need to do a recursive search
