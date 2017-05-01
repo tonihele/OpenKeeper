@@ -26,6 +26,7 @@ import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -47,9 +49,10 @@ import java.util.regex.Pattern;
  */
 public class ConversionUtils {
 
-    private static final Logger logger = Logger.getLogger(ConversionUtils.class.getName());
-    private static final HashMap<String, String> fileNameCache = new HashMap<>();
-    private static final Object fileNameLock = new Object();
+    private static final Logger LOGGER = Logger.getLogger(ConversionUtils.class.getName());
+    private static final Map<String, String> FILENAME_CACHE = new HashMap<>();
+    private static final Object FILENAME_LOCK = new Object();
+    private static final String QUOTED_FILE_SEPARATOR = Matcher.quoteReplacement(File.separator);
 
     public static final float FLOAT = 4096f; // or DIVIDER_FLOAT Fixed Point Single Precision Divider
     public static final float DOUBLE = 65536f; // or DIVIDER_DOUBLE Fixed Point Double Precision Divider
@@ -95,7 +98,7 @@ public class ConversionUtils {
 
             // Yes, this should be long, however, in our purpose this might be sufficient as int
             // Safety measure
-            logger.warning("This unsigned integer doesn't fit to JAVA integer! Use a different method!");
+            LOGGER.warning("This unsigned integer doesn't fit to JAVA integer! Use a different method!");
         }
         return result;
     }
@@ -331,7 +334,7 @@ public class ConversionUtils {
         file.read(bytes);
         for (byte b : bytes) {
             if (b != 0) {
-                logger.log(Level.WARNING, "Value not 0! Was {0}!", b);
+                LOGGER.log(Level.WARNING, "Value not 0! Was {0}!", b);
             }
         }
     }
@@ -445,10 +448,9 @@ public class ConversionUtils {
     public static String getCanonicalAssetKey(String asset) {
         String assetsFolder = AssetsConverter.getAssetsFolder();
         try {
-            File file = new File(getRealFileName(assetsFolder, asset)).getCanonicalFile();
-            return file.getPath().substring(assetsFolder.length()).replaceAll(Pattern.quote(File.separator), "/");
+            return getRealFileName(assetsFolder, asset).substring(assetsFolder.length()).replaceAll(Pattern.quote(File.separator), "/");
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Can not locate asset " + asset + "!", e);
+            LOGGER.log(Level.WARNING, "Can not locate asset " + asset + "!", e);
             return asset;
         }
     }
@@ -460,7 +462,7 @@ public class ConversionUtils {
      * @return the file name with native file separators
      */
     public static String convertFileSeparators(String fileName) {
-        return fileName.replaceAll("[/\\\\]", Matcher.quoteReplacement(File.separator));
+        return fileName.replaceAll("[/\\\\]", QUOTED_FILE_SEPARATOR);
     }
 
     /**
@@ -484,23 +486,24 @@ public class ConversionUtils {
         String fileKey = fileName.toLowerCase();
 
         // See cache
-        String cachedName = fileNameCache.get(fileKey);
+        String cachedName = FILENAME_CACHE.get(fileKey);
         if (cachedName == null) {
-            synchronized (fileNameLock) {
+            synchronized (FILENAME_LOCK) {
 
                 // If it exists as such, that is super!
-                File testFile = new File(fileName);
-                if (testFile.exists()) {
-                    fileNameCache.put(fileKey, testFile.getCanonicalPath());
-                    cachedName = testFile.getCanonicalPath();
+                Path testFile = Paths.get(fileName);
+                if (Files.exists(testFile)) {
+                    testFile = testFile.toRealPath();
+                    FILENAME_CACHE.put(fileKey, testFile.toString());
+                    cachedName = testFile.toString();
                 } else {
 
                     // Otherwise we need to do a recursive search
-                    final String[] path = uncertainPath.split(Matcher.quoteReplacement(File.separator));
-                    final Path realPathAsPath = new File(realPath).toPath();
+                    final String[] path = uncertainPath.split(QUOTED_FILE_SEPARATOR);
+                    final Path realPathAsPath = Paths.get(realPath);
                     FileFinder fileFinder = new FileFinder(realPathAsPath, path);
                     Files.walkFileTree(realPathAsPath, fileFinder);
-                    fileNameCache.put(fileKey, fileFinder.file);
+                    FILENAME_CACHE.put(fileKey, fileFinder.file);
                     cachedName = fileFinder.file;
                     if (fileFinder.file == null) {
                         throw new IOException("File not found " + testFile + "!");
@@ -544,7 +547,7 @@ public class ConversionUtils {
                     sb.append(val);
                 }
             }
-            logger.log(Level.WARNING, "Value(s) {0} not specified for enum set class {1}!", new java.lang.Object[]{sb.toString(), enumeration.getName()});
+            LOGGER.log(Level.WARNING, "Value(s) {0} not specified for enum set class {1}!", new java.lang.Object[]{sb.toString(), enumeration.getName()});
         }
         return set;
     }
@@ -563,7 +566,7 @@ public class ConversionUtils {
                 return e;
             }
         }
-        logger.log(Level.WARNING, "Value {0} not specified for enum class {1}!", new java.lang.Object[]{value, enumeration.getName()});
+        LOGGER.log(Level.WARNING, "Value {0} not specified for enum class {1}!", new java.lang.Object[]{value, enumeration.getName()});
         return null;
 
     }
@@ -594,7 +597,7 @@ public class ConversionUtils {
                 } else {
 
                     // We are looking for a directory and we found it
-                    this.file = dir.toFile().getCanonicalPath().concat(File.separator);
+                    this.file = dir.toRealPath().toString().concat(File.separator);
                     return FileVisitResult.TERMINATE;
                 }
             }
@@ -606,7 +609,7 @@ public class ConversionUtils {
 
             // See if this is the file we are looking for
             if (level == path.length - 1 && file.getName(file.getNameCount() - 1).toString().equalsIgnoreCase(path[level])) {
-                this.file = file.toFile().getCanonicalPath();
+                this.file = file.toRealPath().toString();
                 return FileVisitResult.TERMINATE;
             }
 
