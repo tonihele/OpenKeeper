@@ -53,7 +53,7 @@ public class MapSelector {
 
         // Get the maps
         List<File> files = new LinkedList<>();
-        DirectoryStream.Filter<Path> filter = (Path entry) -> !Files.isDirectory(entry) && entry.getFileName().toString().toLowerCase().endsWith(".kwd");
+        DirectoryStream.Filter<Path> filter = (Path entry) -> entry.getFileName().toString().toLowerCase().endsWith(".kwd") && !Files.isDirectory(entry);
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER), filter)) {
             for (Path file : stream) {
                 files.add(file.toFile());
