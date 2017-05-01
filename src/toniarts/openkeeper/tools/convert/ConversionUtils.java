@@ -649,8 +649,17 @@ public class ConversionUtils {
         }
     }
 
+    /**
+     * Represents a simple path tree cache, with unlimited number of roots.
+     * Offers some methods to manage the tree.
+     */
     private static class PathTree extends HashMap<String, PathNode> {
 
+        /**
+         * Add the path to cache from KNOWN file
+         *
+         * @param file the known and existing file
+         */
         public void setPathToCache(String file) {
             List<String> paths = new ArrayList<>(Arrays.asList(file.split(QUOTED_FILE_SEPARATOR)));
             if (!paths.isEmpty()) {
@@ -674,12 +683,22 @@ public class ConversionUtils {
             }
             PathNode result = leaf.get(key);
             if (result == null && add) {
-                result = new PathNode(folder, (node != null ? node.level : 0), node);
+                result = new PathNode(folder, (node != null ? node.level + 1 : 0), node);
                 leaf.put(key, result);
             }
             return result;
         }
 
+        /**
+         * Get certain path from cache
+         *
+         * @param fileName the file name we aim to find, if folder, we expect
+         * path separator at the end
+         * @param defaultPath the default path we know that exists, we'll return
+         * it if no cached path found
+         * @return the cached known path, quaranteed to be exactly the default
+         * path or deeper
+         */
         public String getCertainPath(String fileName, String defaultPath) {
             List<String> paths = new ArrayList<>(Arrays.asList(fileName.split(QUOTED_FILE_SEPARATOR)));
             if (!paths.isEmpty()) {
@@ -706,6 +725,9 @@ public class ConversionUtils {
 
     }
 
+    /**
+     * Path node that represents a single folder
+     */
     private static class PathNode {
 
         private final String path;
@@ -776,7 +798,6 @@ public class ConversionUtils {
             }
             return true;
         }
-
 
     }
 }
