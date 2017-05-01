@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game;
 
 import com.jme3.math.FastMath;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -26,7 +25,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,9 +40,9 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class MapSelector {
 
-    private final List<GameMapContainer> skirmishMaps;
-    private final List<GameMapContainer> multiplayerMaps;
-    private final List<GameMapContainer> mpdMaps;
+    private final List<GameMapContainer> skirmishMaps = new ArrayList<>();
+    private final List<GameMapContainer> multiplayerMaps = new ArrayList<>();
+    private final List<GameMapContainer> mpdMaps = new ArrayList<>();
     private GameMapContainer map;
     private boolean skirmish;
     private boolean mpd;
@@ -52,32 +50,25 @@ public class MapSelector {
     public MapSelector() {
 
         // Get the maps
-        List<File> files = new LinkedList<>();
         DirectoryStream.Filter<Path> filter = (Path entry) -> entry.getFileName().toString().toLowerCase().endsWith(".kwd") && !Files.isDirectory(entry);
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER), filter)) {
             for (Path file : stream) {
-                files.add(file.toFile());
+
+                // Read the map
+                KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file.toFile(), false);
+                GameMapContainer gameMapContainer = new GameMapContainer(kwd, kwd.getGameLevel().getName());
+                if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)) {
+                    skirmishMaps.add(gameMapContainer);
+                }
+                if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
+                    multiplayerMaps.add(gameMapContainer);
+                }
+                if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MY_PET_DUNGEON_LEVEL)) {
+                    mpdMaps.add(gameMapContainer);
+                }
             }
         } catch (IOException ex) {
             Logger.getLogger(MapSelector.class.getName()).log(Level.SEVERE, "Failed to load the maps!", ex);
-        }
-
-        // Read them
-        multiplayerMaps = new ArrayList<>(files.size());
-        skirmishMaps = new ArrayList<>(files.size());
-        mpdMaps = new ArrayList<>(files.size());
-        for (File file : files) {
-            KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
-            GameMapContainer gameMapContainer = new GameMapContainer(kwd, kwd.getGameLevel().getName());
-            if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)) {
-                skirmishMaps.add(gameMapContainer);
-            }
-            if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
-                multiplayerMaps.add(gameMapContainer);
-            }
-            if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MY_PET_DUNGEON_LEVEL)) {
-                mpdMaps.add(gameMapContainer);
-            }
         }
 
         // Sort them
