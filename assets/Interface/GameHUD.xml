@@ -24,7 +24,7 @@
     <style id="textNormal">
         <attributes font="Interface/Fonts/Ingame28.fnt" color="#bbbcbb" />
     </style>
-        <style id="textGold">
+    <style id="textGold">
         <attributes font="Interface/Fonts/Ingame28.fnt" color="#ffdd33" />
     </style>
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
@@ -308,19 +308,18 @@
                         <!--The rest-->
                         <control name="customTabGroup" height="100%" width="100%" valign="top" id="tabs-hud">
 
-                            <control name="customTab" id="tab-creature" image="Textures/GUI/Tabs/t-creatures.png"
-                                     active="Textures/GUI/Icons/selected-creature.png" hintText="${menu.2153}" tooltip="${menu.2154}">
+                            <control name="customTab" id="tab-creature"
+                                     image="Textures/GUI/Tabs/t-creatures.png"
+                                     active="Textures/GUI/Icons/selected-creature.png"
+                                     hintText="${menu.2153}" tooltip="${menu.2154}">
                                 <panel childLayout="horizontal" align="left">
                                     <!--The worker amount & status-->
-                                    <control name="workerAmount"  />
+                                    <control name="workerAmount" id="tab-workers" />
                                     <!--The tab contents scroll-->
                                     <control name="tabScroll" />
                                     <!--The =, shown for creatures-->
-                                    <control name="workerEqual" />
-                                    <panel width="*" childLayout="horizontal" id="tab-creature-content">
-                                        <control name="creature" filename="Textures/GUI/Creatures/Evil/firefly-bg.png" total="0"/>
-                                        <control name="creature" filename="Textures/GUI/Creatures/Good/dwarf-bg.png" total="0"/>
-                                    </panel>
+                                    <control name="workerEqual" id="tab-workers-equal" />
+                                    <panel width="*" childLayout="horizontal" id="tab-creature-content" />
                                 </panel>
                             </control>
 
