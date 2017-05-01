@@ -512,6 +512,18 @@ public class ConversionUtils {
                     // Otherwise we need to do a recursive search
                     String certainPath = PATH_CACHE.getCertainPath(fileName, realPath);
                     final String[] path = fileName.substring(certainPath.length()).split(QUOTED_FILE_SEPARATOR);
+
+                    // If the path length is 1, lets try, maybe it was just the file name
+                    if (path.length == 1 && !certainPath.equalsIgnoreCase(realPath)) {
+                        Path p = Paths.get(certainPath, path[0]);
+                        if (Files.exists(p)) {
+                            cachedName = p.toRealPath().toString();
+                            FILENAME_CACHE.put(fileKey, cachedName);
+                            return cachedName;
+                        }
+                    }
+
+                    // Find the file
                     final Path realPathAsPath = Paths.get(certainPath);
                     FileFinder fileFinder = new FileFinder(realPathAsPath, path);
                     Files.walkFileTree(realPathAsPath, fileFinder);
@@ -674,21 +686,19 @@ public class ConversionUtils {
                 if (!fileName.endsWith(File.separator)) {
                     paths.remove(paths.size() - 1);
                 }
-                StringBuilder sb = new StringBuilder(fileName.length());
                 PathNode node = null;
                 for (String folder : paths) {
-                    node = getPath(folder, node, false);
-                    if (node != null) {
-                        sb.append(node.path);
-                        sb.append(File.separator);
+                    PathNode nextNode = getPath(folder, node, false);
+                    if (nextNode != null) {
+                        node = nextNode;
                     } else {
                         break;
                     }
                 }
 
                 // Return if we have longer path
-                if (sb.length() > defaultPath.length()) {
-                    return sb.toString();
+                if (node != null && node.path.length() > defaultPath.length()) {
+                    return node.path;
                 }
             }
             return defaultPath;
@@ -699,18 +709,27 @@ public class ConversionUtils {
     private static class PathNode {
 
         private final String path;
+        private final String name;
         private final int level;
         private final PathNode parent;
         private final Map<String, PathNode> children = new HashMap<>();
 
-        public PathNode(String path, int level, PathNode parent) {
-            this.path = path;
+        public PathNode(String name, int level, PathNode parent) {
+            this.name = name;
             this.level = level;
             this.parent = parent;
+
+            StringBuilder sb = new StringBuilder();
+            if (parent != null) {
+                sb.append(parent.path);
+            }
+            sb.append(name);
+            sb.append(File.separator);
+            path = sb.toString();
         }
 
-        public String getPath() {
-            return path;
+        public String getName() {
+            return name;
         }
 
         public int getLevel() {
@@ -725,11 +744,15 @@ public class ConversionUtils {
             return children;
         }
 
+        public String getPath() {
+            return path;
+        }
+
         @Override
         public int hashCode() {
-            int hash = 7;
-            hash = 29 * hash + Objects.hashCode(this.path);
-            hash = 29 * hash + this.level;
+            int hash = 3;
+            hash = 67 * hash + Objects.hashCode(this.name);
+            hash = 67 * hash + this.level;
             return hash;
         }
 
@@ -748,11 +771,12 @@ public class ConversionUtils {
             if (this.level != other.level) {
                 return false;
             }
-            if (!Objects.equals(this.path, other.path)) {
+            if (!Objects.equals(this.name, other.name)) {
                 return false;
             }
             return true;
         }
+
 
     }
 }
