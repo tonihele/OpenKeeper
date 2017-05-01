@@ -40,7 +40,6 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Contains static helper methods
@@ -448,7 +447,7 @@ public class ConversionUtils {
     public static String getCanonicalAssetKey(String asset) {
         String assetsFolder = AssetsConverter.getAssetsFolder();
         try {
-            return getRealFileName(assetsFolder, asset).substring(assetsFolder.length()).replaceAll(Pattern.quote(File.separator), "/");
+            return getRealFileName(assetsFolder, asset).substring(assetsFolder.length()).replaceAll(QUOTED_FILE_SEPARATOR, "/");
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Can not locate asset " + asset + "!", e);
             return asset;
