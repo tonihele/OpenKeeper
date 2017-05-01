@@ -23,14 +23,14 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 public class PathUtils {
 
-    public static final String DKII_DATA_FOLDER = getRealDKIIRelativeFolder("Data");
+    public static final String DKII_DATA_FOLDER = getRealDKIIRelativeFolder("Data" + File.separator);
     public static final String DKII_SFX_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Sound" + File.separator
-            + "sfx");
-    public static final String DKII_MOVIES_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Movies");
+            + "sfx" + File.separator);
+    public static final String DKII_MOVIES_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Movies" + File.separator);
     public static final String DKII_TEXT_DEFAULT_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Text" + File.separator
-            + "Default");
-    public static final String DKII_EDITOR_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "editor");
-    public static final String DKII_MAPS_FOLDER = getRealDKIIRelativeFolder(DKII_EDITOR_FOLDER + "maps");
+            + "Default" + File.separator);
+    public static final String DKII_EDITOR_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "editor" + File.separator);
+    public static final String DKII_MAPS_FOLDER = getRealDKIIRelativeFolder(DKII_EDITOR_FOLDER + "maps" + File.separator);
 
     private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
     private final static String TEST_FILE = DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd";

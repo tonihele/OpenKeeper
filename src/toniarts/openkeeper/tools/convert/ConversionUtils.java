@@ -30,12 +30,14 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,6 +52,7 @@ public class ConversionUtils {
 
     private static final Logger LOGGER = Logger.getLogger(ConversionUtils.class.getName());
     private static final Map<String, String> FILENAME_CACHE = new HashMap<>();
+    private static final PathTree PATH_CACHE = new PathTree();
     private static final Object FILENAME_LOCK = new Object();
     private static final String QUOTED_FILE_SEPARATOR = Matcher.quoteReplacement(File.separator);
 
@@ -507,8 +510,9 @@ public class ConversionUtils {
                 } else {
 
                     // Otherwise we need to do a recursive search
-                    final String[] path = uncertainPath.split(QUOTED_FILE_SEPARATOR);
-                    final Path realPathAsPath = Paths.get(realPath);
+                    String certainPath = PATH_CACHE.getCertainPath(fileName, realPath);
+                    final String[] path = fileName.substring(certainPath.length()).split(QUOTED_FILE_SEPARATOR);
+                    final Path realPathAsPath = Paths.get(certainPath);
                     FileFinder fileFinder = new FileFinder(realPathAsPath, path);
                     Files.walkFileTree(realPathAsPath, fileFinder);
                     FILENAME_CACHE.put(fileKey, fileFinder.file);
@@ -516,6 +520,9 @@ public class ConversionUtils {
                     if (fileFinder.file == null) {
                         throw new IOException("File not found " + testFile + "!");
                     }
+
+                    // Cache the known path
+                    PATH_CACHE.setPathToCache(fileFinder.file);
                 }
             }
         }
@@ -628,5 +635,124 @@ public class ConversionUtils {
         public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
             return FileVisitResult.TERMINATE; // We already missed our window here
         }
+    }
+
+    private static class PathTree extends HashMap<String, PathNode> {
+
+        public void setPathToCache(String file) {
+            List<String> paths = new ArrayList<>(Arrays.asList(file.split(QUOTED_FILE_SEPARATOR)));
+            if (!paths.isEmpty()) {
+                if (!file.endsWith(File.separator)) {
+                    paths.remove(paths.size() - 1);
+                }
+                PathNode node = null;
+                for (String folder : paths) {
+                    node = getPath(folder, node, true);
+                }
+            }
+        }
+
+        private PathNode getPath(String folder, PathNode node, boolean add) {
+            String key = folder.toLowerCase();
+            Map<String, PathNode> leaf;
+            if (node != null) {
+                leaf = node.children;
+            } else {
+                leaf = this;
+            }
+            PathNode result = leaf.get(key);
+            if (result == null && add) {
+                result = new PathNode(folder, (node != null ? node.level : 0), node);
+                leaf.put(key, result);
+            }
+            return result;
+        }
+
+        public String getCertainPath(String fileName, String defaultPath) {
+            List<String> paths = new ArrayList<>(Arrays.asList(fileName.split(QUOTED_FILE_SEPARATOR)));
+            if (!paths.isEmpty()) {
+                if (!fileName.endsWith(File.separator)) {
+                    paths.remove(paths.size() - 1);
+                }
+                StringBuilder sb = new StringBuilder(fileName.length());
+                PathNode node = null;
+                for (String folder : paths) {
+                    node = getPath(folder, node, false);
+                    if (node != null) {
+                        sb.append(node.path);
+                        sb.append(File.separator);
+                    } else {
+                        break;
+                    }
+                }
+
+                // Return if we have longer path
+                if (sb.length() > defaultPath.length()) {
+                    return sb.toString();
+                }
+            }
+            return defaultPath;
+        }
+
+    }
+
+    private static class PathNode {
+
+        private final String path;
+        private final int level;
+        private final PathNode parent;
+        private final Map<String, PathNode> children = new HashMap<>();
+
+        public PathNode(String path, int level, PathNode parent) {
+            this.path = path;
+            this.level = level;
+            this.parent = parent;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public int getLevel() {
+            return level;
+        }
+
+        public PathNode getParent() {
+            return parent;
+        }
+
+        public Map<String, PathNode> getChildren() {
+            return children;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 29 * hash + Objects.hashCode(this.path);
+            hash = 29 * hash + this.level;
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final PathNode other = (PathNode) obj;
+            if (this.level != other.level) {
+                return false;
+            }
+            if (!Objects.equals(this.path, other.path)) {
+                return false;
+            }
+            return true;
+        }
+
     }
 }
