@@ -32,6 +32,8 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Quad;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.video.tgq.TgqFrame;
 
@@ -51,7 +53,7 @@ public abstract class MovieState extends AbstractAppState {
     private TgqPlayer player;
 
     public MovieState(String movie) throws FileNotFoundException {
-        if (!new File(movie).exists()) {
+        if (!Files.exists(Paths.get(movie))) {
             throw new FileNotFoundException("Movie file not found!");
         }
         this.movie = movie;
