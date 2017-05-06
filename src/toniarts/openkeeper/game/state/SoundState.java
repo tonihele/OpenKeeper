@@ -21,7 +21,7 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
-import java.util.LinkedList;
+import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.Random;
 import java.util.logging.Level;
@@ -39,7 +39,7 @@ public class SoundState extends AbstractPauseAwareState {
     private AppStateManager stateManager;
     private AudioNode speech = null;
     private AudioNode background = null;
-    private final Queue<String> speechQueue = new LinkedList<>();
+    private final Queue<String> speechQueue = new ArrayDeque<>();
     private static final Logger logger = Logger.getLogger(SoundState.class.getName());
 
     public SoundState() {

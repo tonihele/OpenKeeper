@@ -44,9 +44,9 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -556,7 +556,7 @@ public class Main extends SimpleApplication {
     private void playIntro() {
 
         // The intro sequence
-        Queue<String> introSequence = new LinkedList<>();
+        Queue<String> introSequence = new ArrayDeque<>(2);
         introSequence.add(getDkIIFolder() + PathUtils.DKII_MOVIES_FOLDER + "BullfrogIntro.tgq");
         introSequence.add(getDkIIFolder() + PathUtils.DKII_MOVIES_FOLDER + "INTRO.TGQ");
         playMovie(introSequence);
