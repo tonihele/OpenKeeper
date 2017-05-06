@@ -43,6 +43,7 @@ import de.lessvoid.nifty.tools.SizeValue;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
@@ -66,6 +67,7 @@ import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.gui.nifty.table.player.PlayerTableBuilder;
 import toniarts.openkeeper.gui.nifty.table.player.PlayerTableRow;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.PathUtils;
@@ -86,6 +88,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     private static final List<Cutscene> CUTSCENES = new ArrayList<>();
     private ChatSessionListener chatSessionListener;
     private LobbySessionListener lobbySessionListener;
+
+    // Hmm, cache the readyness state here, maybe should cache to lobby client...
+    private boolean playerReady = false;
 
     /**
      * A popup instance if some screen should need one
@@ -391,6 +396,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             case "skirmishLobby":
 
                 LobbyState lobbyState = state.getLobbyState();
+                playerReady = false;
 
                 // Set up the players table
                 setupPlayersTable(lobbyState);
@@ -800,16 +806,34 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     }
 
     private void refreshPlayerList(List<ClientInfo> players) {
-        TableControl playersList = screen.findNiftyControl("playersTable", TableControl.class);
+        TableControl<PlayerTableRow> playersList = screen.findNiftyControl("playersTable", TableControl.class);
         if (playersList != null) {
+
+            // Get the selection, so that we can restore it possibly
+            ClientInfo selectedClient = null;
+            if (!playersList.getSelection().isEmpty()) {
+                selectedClient = playersList.getSelection().get(0).getClientInfo();
+            }
+
             playersList.clear();
             LobbyState lobbyState = state.getLobbyState();
 
             // Populate the players list
+            int index = -1;
+            int i = 0;
             for (ClientInfo clientInfo : players) {
+                if (clientInfo.equals(selectedClient)) {
+                    index = i;
+                }
                 playersList.addItem(new PlayerTableRow(clientInfo, playersList.itemCount(), clientInfo.getName(),
                         "", lobbyState.isOnline() ? Long.toString(clientInfo.getPing()) : "", lobbyState.isOnline() ? Integer.toString(clientInfo.getSystemMemory()) : "", clientInfo.isReady()
                 ));
+                i++;
+            }
+
+            // Restore selection
+            if (index > -1) {
+                playersList.selectItemByIndex(index);
             }
         }
     }
@@ -923,13 +947,34 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     public void kickPlayer() {
         TableControl<PlayerTableRow> playersList = screen.findNiftyControl("playersTable", TableControl.class);
         if (playersList != null && !playersList.getSelection().isEmpty()) {
-            state.getLobbyState().getLobbyService().removePlayer(playersList.getSelection().get(0).getClientInfo());
+            ClientInfo clientInfo = playersList.getSelection().get(0).getClientInfo();
+
+            // See that we wont kick ourselves out
+            //if((!state.getLobbyState().isOnline() && clientInfo.getId() == Keeper.KEEPER1_ID) ||
+            //        (state.getLobbyState().isOnline() && clientInfo.getId() == ))
+            state.getLobbyState().getLobbyService().removePlayer(clientInfo);
         }
     }
 
     @Override
     public void setPlayerReady() {
-        state.getLobbyState().getLobbySession().setReady(true);
+        playerReady = !playerReady;
+        state.getLobbyState().getLobbySession().setReady(playerReady);
+    }
+
+    @Override
+    public void changeAI() {
+        TableControl<PlayerTableRow> playersList = screen.findNiftyControl("playersTable", TableControl.class);
+        if (playersList != null && !playersList.getSelection().isEmpty()) {
+            ClientInfo clientInfo = playersList.getSelection().get(0).getClientInfo();
+            if (clientInfo.getKeeper() != null && clientInfo.getKeeper().isAi()) {
+
+                // Get "next"
+                List<AI.AIType> types = Arrays.asList(AI.AIType.values());
+                int index = types.indexOf(clientInfo.getKeeper().getAiType());
+                state.getLobbyState().getLobbyService().changeAIType(clientInfo, index + 1 == types.size() ? types.get(0) : types.get(index + 1));
+            }
+        }
     }
 
     public static class Cutscene {

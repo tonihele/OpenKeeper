@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -97,6 +98,11 @@ public class LocalLobby implements LobbyService, LobbyClientService {
     @Override
     public void removeLobbySessionListener(LobbySessionListener l) {
         listeners.remove(l);
+    }
+
+    @Override
+    public void changeAIType(ClientInfo keeper, AI.AIType type) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }

@@ -23,12 +23,14 @@ import de.lessvoid.nifty.screen.ScreenController;
  * @author ArchDemon
  */
 public interface IMainMenuScreenController extends ScreenController {
+
     //// screen id="multiplayerCreate"  ////
     //public void multiplayerSend()
     public void addComputerPlayer();
 
     //// screen id="skirmish" and id="multiplayerCreate" ////
-    //public void changeAI();
+    public void changeAI();
+
     public void kickPlayer();
 
     public void setPlayerReady();

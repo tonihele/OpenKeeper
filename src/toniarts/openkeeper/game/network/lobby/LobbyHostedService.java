@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbyService;
 import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
+import toniarts.openkeeper.tools.convert.map.AI;
 
 /**
  * Game server hosts lobby service for the game clients.
@@ -230,6 +231,15 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         if (lobbySessionImpl.getHostedConnection() != null) {
             lobbySessionImpl.getHostedConnection().close("You have been kicked from the game!");
         }
+
+        // Notify players
+        notifyPlayersChange();
+    }
+
+    @Override
+    public void changeAIType(ClientInfo keeper, AI.AIType type) {
+        AbstractLobbySessionImpl lobbySessionImpl = players.get(keeper);
+        lobbySessionImpl.getClientInfo().getKeeper().setAiType(type);
 
         // Notify players
         notifyPlayersChange();

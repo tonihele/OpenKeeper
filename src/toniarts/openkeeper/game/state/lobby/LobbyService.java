@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.state.lobby;
 
+import toniarts.openkeeper.tools.convert.map.AI;
+
 /**
  * This is server's perspective of lobby things. The services we offer our
  * clients. You can implement this and make a local lobby etc.
@@ -42,5 +44,13 @@ public interface LobbyService {
      * @param keeper the player to remove
      */
     public void removePlayer(ClientInfo keeper);
+
+    /**
+     * Change an AI player type
+     *
+     * @param keeper the player to change
+     * @param type the new AI type
+     */
+    public void changeAIType(ClientInfo keeper, AI.AIType type);
 
 }
