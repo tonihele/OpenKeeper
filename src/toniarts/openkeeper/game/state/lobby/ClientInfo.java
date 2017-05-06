@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.state.lobby;
 
-import java.util.Objects;
 import toniarts.openkeeper.game.data.Keeper;
 
 /**
@@ -32,14 +31,16 @@ public class ClientInfo {
     private Keeper keeper;
     private String name;
     private boolean ready = false;
+    private int id;
 
     public ClientInfo() {
 
     }
 
-    public ClientInfo(int systemMemory, String address) {
+    public ClientInfo(int systemMemory, String address, int id) {
         this.systemMemory = systemMemory;
         this.address = address;
+        this.id = id;
     }
 
     public long getPing() {
@@ -85,10 +86,18 @@ public class ClientInfo {
         this.ready = ready;
     }
 
+    public int getId() {
+        return id;
+    }
+
+    protected void setId(int id) {
+        this.id = id;
+    }
+
     @Override
     public int hashCode() {
-        int hash = 3;
-        hash = 97 * hash + Objects.hashCode(this.keeper);
+        int hash = 7;
+        hash = 17 * hash + this.id;
         return hash;
     }
 
@@ -104,7 +113,7 @@ public class ClientInfo {
             return false;
         }
         final ClientInfo other = (ClientInfo) obj;
-        if (!Objects.equals(this.keeper, other.keeper)) {
+        if (this.id != other.id) {
             return false;
         }
         return true;

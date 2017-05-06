@@ -45,7 +45,7 @@ import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.network.NetworkConstants;
-import static toniarts.openkeeper.game.network.lobby.LobbyHostedService.ATTRIBUTE_PLAYER_ID;
+import static toniarts.openkeeper.game.network.lobby.LobbyHostedService.ATTRIBUTE_KEEPER_ID;
 
 /**
  * HostedService providing a chat server for connected players. Some time during
@@ -109,7 +109,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
                 // Don't send our enter event to ourselves
                 continue;
             }
-            chatter.playerJoined(conn.getAttribute(ATTRIBUTE_PLAYER_ID), playerName);
+            chatter.playerJoined(conn.getId(), playerName);
         }
     }
 
@@ -143,7 +143,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
                     // Don't send our enter event to ourselves
                     continue;
                 }
-                chatter.playerLeft(conn.getAttribute(ATTRIBUTE_PLAYER_ID), player.name);
+                chatter.playerLeft(conn.getId(), player.name);
             }
         }
     }
@@ -151,7 +151,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
     protected void postMessage(ChatSessionImpl from, String message) {
         logger.log(Level.INFO, "chat> {0} said:{1}", new Object[]{from.name, message});
         for (ChatSessionImpl chatter : players) {
-            chatter.newMessage(from.conn.getAttribute(ATTRIBUTE_PLAYER_ID), from.name, message);
+            chatter.newMessage(from.conn.getId(), from.conn.getAttribute(ATTRIBUTE_KEEPER_ID), from.name, message);
         }
     }
 
@@ -201,17 +201,17 @@ public class ChatHostedService extends AbstractHostedConnectionService {
         }
 
         @Override
-        public void playerJoined(Short playerId, String playerName) {
+        public void playerJoined(int playerId, String playerName) {
             getCallback().playerJoined(playerId, playerName);
         }
 
         @Override
-        public void newMessage(Short playerId, String playerName, String message) {
-            getCallback().newMessage(playerId, playerName, message);
+        public void newMessage(int playerId, Short keeperId, String playerName, String message) {
+            getCallback().newMessage(playerId, keeperId, playerName, message);
         }
 
         @Override
-        public void playerLeft(Short playerId, String playerName) {
+        public void playerLeft(int playerId, String playerName) {
             getCallback().playerLeft(playerId, playerName);
         }
     }

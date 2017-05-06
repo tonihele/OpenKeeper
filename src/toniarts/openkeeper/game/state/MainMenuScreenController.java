@@ -23,8 +23,6 @@ import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.builder.ControlBuilder;
-import de.lessvoid.nifty.controls.Chat;
-import de.lessvoid.nifty.controls.ChatTextSendEvent;
 import de.lessvoid.nifty.controls.CheckBox;
 import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
 import de.lessvoid.nifty.controls.DropDown;
@@ -60,6 +58,8 @@ import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
 import toniarts.openkeeper.game.state.lobby.LobbyState;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
+import toniarts.openkeeper.gui.nifty.chat.Chat;
+import toniarts.openkeeper.gui.nifty.chat.event.ChatTextSendEvent;
 import toniarts.openkeeper.gui.nifty.table.TableColumn;
 import toniarts.openkeeper.gui.nifty.table.TableControl;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
@@ -860,25 +860,23 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 private final Chat chat = screen.findNiftyControl("multiplayerChat", Chat.class);
 
                 @Override
-                public void playerJoined(Short playerId, String playerName) {
-                    chat.addPlayer(playerName, null);
+                public void playerJoined(int playerId, String playerName) {
                     state.app.enqueue(() -> {
-                        chat.receivedChatLine(playerName + " joined...", null, "chat");
+                        chat.receivedChatLine(playerName + " joined...", playerId, (short) 0);
                     });
                 }
 
                 @Override
-                public void newMessage(Short playerId, String playerName, String message) {
+                public void newMessage(int playerId, Short keeperId, String playerName, String message) {
                     state.app.enqueue(() -> {
-                        chat.receivedChatLine(message, null, "chat");
+                        chat.receivedChatLine(playerName + ": " + message, playerId, (keeperId != null ? keeperId : 0));
                     });
                 }
 
                 @Override
-                public void playerLeft(Short playerId, String playerName) {
-                    chat.removePlayer(playerName);
+                public void playerLeft(int playerId, String playerName) {
                     state.app.enqueue(() -> {
-                        chat.receivedChatLine(playerName + " left...", null, "chat");
+                        chat.receivedChatLine(playerName + " left...", playerId, (short) 0);
                     });
                 }
             };

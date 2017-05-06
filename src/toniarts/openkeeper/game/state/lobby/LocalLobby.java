@@ -42,7 +42,7 @@ public class LocalLobby implements LobbyService, LobbyClientService {
     }
 
     private ClientInfo createClientInfo(Keeper keeper, String name) {
-        ClientInfo clientInfo = new ClientInfo(0, null);
+        ClientInfo clientInfo = new ClientInfo(0, null, keeper.getId());
         clientInfo.setName(name);
         clientInfo.setKeeper(keeper);
         clientInfo.setReady(keeper.isAi());

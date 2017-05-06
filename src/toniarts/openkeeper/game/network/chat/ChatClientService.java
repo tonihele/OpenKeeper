@@ -128,7 +128,7 @@ public class ChatClientService extends AbstractClientService
     private class ChatSessionCallback implements ChatSessionListener {
 
         @Override
-        public void playerJoined(Short playerId, String playerName) {
+        public void playerJoined(int playerId, String playerName) {
             logger.log(Level.FINEST, "playerJoined({0}, {1})", new Object[]{playerId, playerName});
             for (ChatSessionListener l : listeners) {
                 l.playerJoined(playerId, playerName);
@@ -136,15 +136,15 @@ public class ChatClientService extends AbstractClientService
         }
 
         @Override
-        public void newMessage(Short playerId, String playerName, String message) {
+        public void newMessage(int playerId, Short keeperId, String playerName, String message) {
             logger.log(Level.FINEST, "newMessage({0}, {1}, {2})", new Object[]{playerId, playerName, message});
             for (ChatSessionListener l : listeners) {
-                l.newMessage(playerId, playerName, message);
+                l.newMessage(playerId, keeperId, playerName, message);
             }
         }
 
         @Override
-        public void playerLeft(Short playerId, String playerName) {
+        public void playerLeft(int playerId, String playerName) {
             logger.log(Level.FINEST, "playerLeft({0}, {1})", new Object[]{playerId, playerName});
             for (ChatSessionListener l : listeners) {
                 l.playerLeft(playerId, playerName);

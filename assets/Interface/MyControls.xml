@@ -397,4 +397,34 @@
             </image>
         </panel>
     </controlDefinition>
+
+    <!-- This is our version of the Nifty chat example, slightly simpler and tailored for our needs -->
+    <controlDefinition name="chat" style="nifty-chat-control"
+                       controller="toniarts.openkeeper.gui.nifty.chat.ChatControl" lines="5"
+                       chatLineHeight="34px">
+        <panel style="#mainPanel">
+            <panel style="#chatPanel">
+                <panel style="#chatArea">
+                    <control id="#chatBox" name="listBox" vertical="optional" horizontal="off" selection="Disabled"
+                             displayItems="$lines"
+                             viewConverterClass="toniarts.openkeeper.gui.nifty.chat.ChatBoxViewConverter">
+                        <control name="nifty-chat-line" chatLineHeight="$chatLineHeight"/>
+                    </control>
+                </panel>
+            </panel>
+            <panel style="#spacer"/>
+            <panel style="#chatTextArea">
+                <control id="#chat-text-input" name="textfield"/>
+            </panel>
+        </panel>
+    </controlDefinition>
+
+    <!-- Single text line for the chat, basically this lets us wrap the text -->
+    <controlDefinition name="nifty-chat-line">
+        <panel childLayout="horizontal" width="100%" align="center">
+            <control id="#chat-line-text" style="menuTextSmall" name="label" align="left" textHAlign="left" height="$chatLineHeight"
+                     wrap="true"/>
+        </panel>
+    </controlDefinition>
+
 </nifty-controls>

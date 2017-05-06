@@ -46,8 +46,9 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
     private static final Logger logger = Logger.getLogger(LobbyHostedService.class.getName());
 
     private static final String ATTRIBUTE_SESSION = "lobby.session";
-    public static final String ATTRIBUTE_PLAYER_ID = "lobby.playerID";
+    public static final String ATTRIBUTE_KEEPER_ID = "lobby.keeperID";
     private static final int MAX_PLAYERS = 4;
+    private int aiPlayerIdCounter = 0;
 
     private RmiHostedService rmiService;
 
@@ -90,13 +91,13 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
             synchronized (playerLock) {
                 if (players.size() < MAX_PLAYERS) {
                     Keeper keeper = getNextKeeper(false);
-                    ClientInfo clientInfo = new ClientInfo(conn.getAttribute(ATTRIBUTE_SYSTEM_MEMORY), conn.getAddress());
+                    ClientInfo clientInfo = new ClientInfo(conn.getAttribute(ATTRIBUTE_SYSTEM_MEMORY), conn.getAddress(), conn.getId());
                     clientInfo.setName(playerName);
                     clientInfo.setKeeper(keeper);
 
                     LobbySessionImpl session = new LobbySessionImpl(conn, clientInfo);
                     conn.setAttribute(ATTRIBUTE_SESSION, session);
-                    conn.setAttribute(ATTRIBUTE_PLAYER_ID, keeper.getId());
+                    conn.setAttribute(ATTRIBUTE_KEEPER_ID, keeper.getId());
 
                     // Expose the session as an RMI resource to the client
                     RmiRegistry rmi = rmiService.getRmiRegistry(conn);
@@ -164,8 +165,15 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         if (players.size() < MAX_PLAYERS) {
             synchronized (playerLock) {
                 if (players.size() < MAX_PLAYERS) {
+                    aiPlayerIdCounter--;
+                    if (aiPlayerIdCounter > 0) {
+
+                        // LOL, ain't nobody gonna overflow this ever
+                        aiPlayerIdCounter = -1;
+                    }
+
                     Keeper keeper = getNextKeeper(true);
-                    ClientInfo clientInfo = new ClientInfo(0, null);
+                    ClientInfo clientInfo = new ClientInfo(0, null, aiPlayerIdCounter);
                     clientInfo.setKeeper(keeper);
                     clientInfo.setReady(true);
                     clientInfo.setName(keeper.getAiType().toString());

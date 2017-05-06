@@ -664,17 +664,7 @@
                         </panel>
                     </panel>
                     <panel id="chatPanel" height="*" align="center" valign="bottom" childLayout="center" visibleToMouse="true">
-                        <!-- TODO Use chat control or custom ?
-                        <control id="#chatBox" name="listBox" vertical="optional" horizontal="optional" selection="Disabled"
-                             displayItems="5" />
-                        <control id="multiplayerChatText" name="textfield" />
-                        <control id="multiplayerChatSend" name="button" width="" label="Send">
-                            <interact onClick="multiplayerSend()"/>
-                        </control>
-                        -->
-                        <!-- TODO sendLabel="Send Message" -->
-                        <control id="multiplayerChat" name="nifty-chat" width="100%" height="100%" lines="5" />
-
+                        <control id="multiplayerChat" name="chat" width="100%" height="100%" lines="5" />
                     </panel>
                 </panel>
                 <panel width="*" childLayout="vertical" align="center" valign="top" id="multiplayerMapControl">
