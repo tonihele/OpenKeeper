@@ -150,11 +150,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     @Override
     public void cancelMapSelection() {
-        if (state.mapSelector.isSkirmish()) {
-            nifty.gotoScreen("skirmish");
-        } else {
-            nifty.gotoScreen("multiplayerCreate");
-        }
+        nifty.gotoScreen("skirmishLobby");
     }
 
     @Override
