@@ -46,7 +46,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -396,7 +395,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 setupPlayersTable(lobbyState);
 
                 // Add chat listener
-                if (lobbyState.isOnline()) {
+                if (lobbyState.isOnline() && chatSessionListener == null) {
+                    Chat chat = screen.findNiftyControl("multiplayerChat", Chat.class);
+                    chat.clear();
                     state.getChatService().addChatSessionListener(getChatSessionListener());
                 }
                 screen.findElementById("chatPanel").setVisible(lobbyState.isOnline());
@@ -1076,7 +1077,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
                 // Play some tunes!!
                 String speech = String.format("Sounds/speech_mentor/speech_mentorHD/lev%02d001.mp2",
-                                ((Level) state.selectedLevel).getLevel());
+                        ((Level) state.selectedLevel).getLevel());
                 state.levelBriefing = new AudioNode(state.assetManager,
                         ConversionUtils.getCanonicalAssetKey(speech),
                         AudioData.DataType.Buffer);

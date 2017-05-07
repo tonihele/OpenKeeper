@@ -168,4 +168,9 @@ public class ChatControl extends AbstractController implements KeyInputHandler, 
         }
     }
 
+    @Override
+    public void clear() {
+        getListBox(CHAT_BOX).clear();
+    }
+
 }

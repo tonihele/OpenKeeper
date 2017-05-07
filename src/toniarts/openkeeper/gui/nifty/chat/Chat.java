@@ -41,4 +41,9 @@ public interface Chat extends NiftyControl {
      */
     List<ChatEntry> getLines();
 
+    /**
+     * Clear the chat
+     */
+    public void clear();
+
 }
