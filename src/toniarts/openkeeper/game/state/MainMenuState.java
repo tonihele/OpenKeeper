@@ -34,7 +34,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -211,16 +210,13 @@ public class MainMenuState extends AbstractAppState {
     private void initializeMainMenu() {
 
         // Set the processors & scene
-        app.enqueue(new Callable() {
-            @Override
-            public Object call() throws Exception {
-                MainMenuState.this.app.setViewProcessors();
-                rootNode.attachChild(menuNode);
+        app.enqueue(() -> {
+            MainMenuState.this.app.setViewProcessors();
+            rootNode.attachChild(menuNode);
 
-                // Start screen, do this here since another state may have just changed to empty screen -> have to do it like this, delayed
-                MainMenuState.this.screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
-                return null;
-            }
+            // Start screen, do this here since another state may have just changed to empty screen -> have to do it like this, delayed
+            MainMenuState.this.screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
+            return null;
         });
 
         // Enable cursor
@@ -403,30 +399,7 @@ public class MainMenuState extends AbstractAppState {
 
             // Create the level state
             gameState = new GameState(selectedLevel);
-        } //        else if ("skirmish".equals(type.toLowerCase())) {
-        //            if (mapSelector.getMap() == null) {
-        //                logger.warning("Skirmish map not selected");
-        //                return;
-        //            }
-        //            gameState = new GameState(mapSelector.getMap().getMap(), skirmishPlayers);
-        //        } else if ("multiplayer".equals(type.toLowerCase())) {
-        //
-        //            // If we are not the host, we are merely signaling readyness
-        //            if (!getConnectionState().isGameHost()) {
-        //                getConnectionState().getService(LobbyClientService.class).setReady(true);
-        //                return;
-        //            }
-        //
-        //            if (mapSelector.getMap() == null) {
-        //                logger.warning("Multiplayer map not selected");
-        //                return;
-        //            }
-        //
-        //            //TODO make true multiplayer start
-        //            gameState = new GameState(mapSelector.getMap().getMap(), new ArrayList<>());
-        //
-        //        }
-        else {
+        } else {
             logger.log(Level.WARNING, "Unknown type of Level {0}", type);
             return;
         }
