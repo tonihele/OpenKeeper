@@ -104,6 +104,16 @@ public class LobbyState extends AbstractAppState {
         return Thread.currentThread() == renderThread;
     }
 
+    public void setRandomMap() {
+        mapSelector.random();
+        lobbyService.setMap(mapSelector.getMap().getMapName(), mapSelector.getMap().getMap().getGameLevel().getPlayerCount());
+    }
+
+    public void setMap(int selectedMapIndex) {
+        mapSelector.selectMap(selectedMapIndex);
+        lobbyService.setMap(mapSelector.getMap().getMapName(), mapSelector.getMap().getMap().getGameLevel().getPlayerCount());
+    }
+
     /**
      * Small class to filter all the notifications to the render thread
      */

@@ -48,7 +48,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
     private static final String ATTRIBUTE_SESSION = "lobby.session";
     public static final String ATTRIBUTE_KEEPER_ID = "lobby.keeperID";
-    private int maxPlayers = 0;
+    private int maxPlayers = 1;
     private int aiPlayerIdCounter = 0;
 
     private RmiHostedService rmiService;

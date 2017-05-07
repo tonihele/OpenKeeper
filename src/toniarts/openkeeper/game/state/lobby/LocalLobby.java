@@ -35,19 +35,20 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class LocalLobby implements LobbyService, LobbyClientService {
 
-    private final Map<ClientInfo, ClientInfo> players = new HashMap<>(4);
+    private final Map<Integer, ClientInfo> players = new HashMap<>(4);
     private final List<LobbySessionListener> listeners = new ArrayList<>();
     private String map;
     private int maxPlayers = 0;
     private int idCounter = 0;
+    private boolean ready = false;
 
     public LocalLobby() {
         Keeper keeper = new Keeper(false, Keeper.KEEPER1_ID, null);
         ClientInfo clientInfo = createClientInfo(keeper, Utils.getMainTextResourceBundle().getString("58"));
-        players.put(clientInfo, clientInfo);
+        players.put(clientInfo.getId(), clientInfo);
         keeper = new Keeper(true, Keeper.KEEPER2_ID, null);
         clientInfo = createClientInfo(keeper, null);
-        players.put(clientInfo, clientInfo);
+        players.put(clientInfo.getId(), clientInfo);
     }
 
     private ClientInfo createClientInfo(Keeper keeper, String name) {
@@ -63,8 +64,8 @@ public class LocalLobby implements LobbyService, LobbyClientService {
     public void setMap(String mapName, int maxPlayers) {
         this.map = mapName;
         this.maxPlayers = maxPlayers;
-        for (ClientInfo clientInfo : compactPlayers(players.keySet(), maxPlayers)) {
-            players.remove(clientInfo);
+        for (ClientInfo clientInfo : compactPlayers(new HashSet<>(players.values()), maxPlayers)) {
+            players.remove(clientInfo.getId());
         }
         for (LobbySessionListener l : listeners) {
             l.onMapChanged(mapName);
@@ -75,15 +76,15 @@ public class LocalLobby implements LobbyService, LobbyClientService {
     @Override
     public void addPlayer() {
         if (players.size() < maxPlayers) {
-            ClientInfo clientInfo = createClientInfo(getNextKeeper(true, players.keySet()), Utils.getMainTextResourceBundle().getString("58"));
-            players.put(clientInfo, clientInfo);
+            ClientInfo clientInfo = createClientInfo(getNextKeeper(true, new HashSet<>(players.values())), Utils.getMainTextResourceBundle().getString("58"));
+            players.put(clientInfo.getId(), clientInfo);
             notifyPlayerListChange();
         }
     }
 
     @Override
     public void removePlayer(ClientInfo keeper) {
-        players.remove(keeper);
+        players.remove(keeper.getId());
         notifyPlayerListChange();
     }
 
@@ -95,13 +96,13 @@ public class LocalLobby implements LobbyService, LobbyClientService {
 
     @Override
     public void setReady(boolean ready) {
-
-        // We should start the game
+        this.ready = ready;
+        players.get(getPlayerId()).setReady(true);
     }
 
     @Override
     public List<ClientInfo> getPlayers() {
-        List<ClientInfo> keepers = new ArrayList<>(players.keySet());
+        List<ClientInfo> keepers = new ArrayList<>(players.values());
         Collections.sort(keepers, (ClientInfo o1, ClientInfo o2) -> Short.compare(o1.getKeeper().getId(), o2.getKeeper().getId()));
         return keepers;
     }
@@ -123,18 +124,18 @@ public class LocalLobby implements LobbyService, LobbyClientService {
 
     @Override
     public void changeAIType(ClientInfo keeper, AI.AIType type) {
-        players.get(keeper).getKeeper().setAiType(type);
+        players.get(keeper.getId()).getKeeper().setAiType(type);
         notifyPlayerListChange();
     }
 
     @Override
     public boolean isReady() {
-        return false;
+        return ready;
     }
 
     @Override
     public int getPlayerId() {
-        return idCounter;
+        return 0;
     }
 
     /**

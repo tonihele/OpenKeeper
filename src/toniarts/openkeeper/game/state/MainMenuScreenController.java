@@ -140,8 +140,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     @Override
     public void selectRandomMap() {
-        state.mapSelector.random();
-        state.getLobbyState().getLobbyService().setMap(state.mapSelector.getMap().getMapName(), state.mapSelector.getMap().getMap().getGameLevel().getPlayerCount());
+        state.getLobbyState().setRandomMap();
     }
 
     @Override
@@ -159,10 +158,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     public void mapSelected() {
         ListBox<TableRow> listBox = screen.findNiftyControl("mapsTable", ListBox.class);
         int selectedMapIndex = listBox.getSelectedIndices().get(0);
-        state.mapSelector.selectMap(selectedMapIndex);
-
-        state.getLobbyState().getLobbyService().setMap(state.mapSelector.getMap().getMapName(), state.mapSelector.getMap().getMap().getGameLevel().getPlayerCount());
-
+        state.getLobbyState().setMap(selectedMapIndex);
         nifty.gotoScreen("skirmishLobby");
     }
 

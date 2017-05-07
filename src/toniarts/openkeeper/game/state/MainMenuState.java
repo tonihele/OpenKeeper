@@ -50,6 +50,8 @@ import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
 import toniarts.openkeeper.game.state.ConnectionState.ConnectionErrorListener;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
+import toniarts.openkeeper.game.state.lobby.LobbyClientService;
+import toniarts.openkeeper.game.state.lobby.LobbyService;
 import toniarts.openkeeper.game.state.lobby.LobbyState;
 import toniarts.openkeeper.game.state.lobby.LocalLobby;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -271,8 +273,7 @@ public class MainMenuState extends AbstractAppState {
 
     protected void createLocalLobby() {
         LocalLobby localLobby = new LocalLobby();
-        LobbyState lobbyState = new LobbyState(false, null, localLobby, localLobby, mapSelector);
-        stateManager.attach(lobbyState);
+        initLobby(false, null, localLobby, localLobby, false);
     }
 
     public void multiplayerCreate(String game, int port, String player) {
@@ -283,13 +284,7 @@ public class MainMenuState extends AbstractAppState {
             protected void onLoggedOn(boolean loggedIn) {
                 super.onLoggedOn(loggedIn);
 
-                // Create and attach the lobby services
-                LobbyState lobbyState = new LobbyState(true, getServerInfo(), getLobbyService(), getLobbyClientService(), mapSelector);
-                stateManager.attach(lobbyState);
-
-                app.enqueue(() -> {
-                    screen.goToScreen("skirmishLobby");
-                });
+                initLobby(true, getServerInfo(), getLobbyService(), getLobbyClientService(), true);
             }
         };
         connectionState.addConnectionErrorListener(connectionErrorListener);
@@ -316,13 +311,7 @@ public class MainMenuState extends AbstractAppState {
             protected void onLoggedOn(boolean loggedIn) {
                 super.onLoggedOn(loggedIn);
 
-                // Create and attach the lobby services
-                LobbyState lobbyState = new LobbyState(true, getServerInfo(), getLobbyService(), getLobbyClientService(), mapSelector);
-                stateManager.attach(lobbyState);
-
-                app.enqueue(() -> {
-                    screen.goToScreen("skirmishLobby");
-                });
+                initLobby(true, getServerInfo(), getLobbyService(), getLobbyClientService(), true);
             }
         };
         connectionState.addConnectionErrorListener(connectionErrorListener);
@@ -337,6 +326,19 @@ public class MainMenuState extends AbstractAppState {
 
         } catch (IOException ex) {
             logger.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
+        }
+    }
+
+    private void initLobby(boolean online, String serverInfo, LobbyService lobbyService, LobbyClientService lobbyClientService, boolean doTransition) {
+
+        // Create and attach the lobby services
+        LobbyState lobbyState = new LobbyState(online, serverInfo, lobbyService, lobbyClientService, mapSelector);
+        stateManager.attach(lobbyState);
+
+        if (doTransition) {
+            app.enqueue(() -> {
+                screen.goToScreen("skirmishLobby");
+            });
         }
     }
 
