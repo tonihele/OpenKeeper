@@ -35,6 +35,20 @@ public interface LobbySession {
     public void setReady(boolean ready);
 
     /**
+     * Check whether we are ready or not
+     *
+     * @return are we ready
+     */
+    public boolean isReady();
+
+    /**
+     * Get our unique player ID
+     *
+     * @return our ID
+     */
+    public int getPlayerId();
+
+    /**
      * Gets the current list of players
      *
      * @return the players

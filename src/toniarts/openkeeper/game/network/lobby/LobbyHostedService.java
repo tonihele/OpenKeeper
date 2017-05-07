@@ -174,7 +174,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
                     }
 
                     Keeper keeper = getNextKeeper(true);
-                    ClientInfo clientInfo = new ClientInfo(0, null, aiPlayerIdCounter);
+                    final ClientInfo clientInfo = new ClientInfo(0, null, aiPlayerIdCounter);
                     clientInfo.setKeeper(keeper);
                     clientInfo.setReady(true);
                     clientInfo.setName(keeper.getAiType().toString());
@@ -208,6 +208,16 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
                         @Override
                         public String getMap() {
                             return null;
+                        }
+
+                        @Override
+                        public boolean isReady() {
+                            return true;
+                        }
+
+                        @Override
+                        public int getPlayerId() {
+                            return clientInfo.getId();
                         }
 
                     };
@@ -353,6 +363,16 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         @Override
         public String getMap() {
             return mapName;
+        }
+
+        @Override
+        public boolean isReady() {
+            throw new UnsupportedOperationException("You should cache these locally!");
+        }
+
+        @Override
+        public int getPlayerId() {
+            throw new UnsupportedOperationException("You should cache these locally!");
         }
 
     }

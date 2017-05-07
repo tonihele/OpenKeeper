@@ -56,6 +56,7 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
 import toniarts.openkeeper.game.network.chat.ChatSessionListener;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
+import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
 import toniarts.openkeeper.game.state.lobby.LobbyState;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
@@ -88,9 +89,6 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     private static final List<Cutscene> CUTSCENES = new ArrayList<>();
     private ChatSessionListener chatSessionListener;
     private LobbySessionListener lobbySessionListener;
-
-    // Hmm, cache the readyness state here, maybe should cache to lobby client...
-    private boolean playerReady = false;
 
     /**
      * A popup instance if some screen should need one
@@ -396,7 +394,6 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             case "skirmishLobby":
 
                 LobbyState lobbyState = state.getLobbyState();
-                playerReady = false;
 
                 // Set up the players table
                 setupPlayersTable(lobbyState);
@@ -950,16 +947,16 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             ClientInfo clientInfo = playersList.getSelection().get(0).getClientInfo();
 
             // See that we wont kick ourselves out
-            //if((!state.getLobbyState().isOnline() && clientInfo.getId() == Keeper.KEEPER1_ID) ||
-            //        (state.getLobbyState().isOnline() && clientInfo.getId() == ))
-            state.getLobbyState().getLobbyService().removePlayer(clientInfo);
+            if (state.getLobbyState().getLobbySession().getPlayerId() != clientInfo.getId()) {
+                state.getLobbyState().getLobbyService().removePlayer(clientInfo);
+            }
         }
     }
 
     @Override
     public void setPlayerReady() {
-        playerReady = !playerReady;
-        state.getLobbyState().getLobbySession().setReady(playerReady);
+        LobbySession lobbySession = state.getLobbyState().getLobbySession();
+        lobbySession.setReady(!lobbySession.isReady());
     }
 
     @Override

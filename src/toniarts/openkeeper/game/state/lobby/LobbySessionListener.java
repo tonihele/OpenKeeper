@@ -28,12 +28,16 @@ public interface LobbySessionListener {
 
     /**
      * Called when the player list needs refreshing
+     *
+     * @param players the list of players
      */
     @Asynchronous
     public void onPlayerListChanged(List<ClientInfo> players);
 
     /**
      * Called when the server has changed the map
+     *
+     * @param mapName the currently selected map
      */
     @Asynchronous
     public void onMapChanged(String mapName);

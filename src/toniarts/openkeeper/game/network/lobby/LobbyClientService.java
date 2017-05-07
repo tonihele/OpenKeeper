@@ -41,12 +41,14 @@ public class LobbyClientService extends AbstractClientService
 
     private RmiClientService rmiService;
     private LobbySession delegate;
+    private boolean ready = false;
 
     private final LobbySessionCallback sessionCallback = new LobbySessionCallback();
     private final List<LobbySessionListener> listeners = new CopyOnWriteArrayList<>();
 
     @Override
     public void setReady(boolean ready) {
+        this.ready = ready;
         getDelegate().setReady(ready);
     }
 
@@ -58,6 +60,16 @@ public class LobbyClientService extends AbstractClientService
     @Override
     public String getMap() {
         return getDelegate().getMap();
+    }
+
+    @Override
+    public boolean isReady() {
+        return ready;
+    }
+
+    @Override
+    public int getPlayerId() {
+        return getClient().getId();
     }
 
     @Override

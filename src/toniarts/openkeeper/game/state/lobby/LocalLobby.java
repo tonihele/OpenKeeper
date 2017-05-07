@@ -105,4 +105,14 @@ public class LocalLobby implements LobbyService, LobbyClientService {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
+    @Override
+    public boolean isReady() {
+        return false;
+    }
+
+    @Override
+    public int getPlayerId() {
+        return Keeper.KEEPER1_ID;
+    }
+
 }
