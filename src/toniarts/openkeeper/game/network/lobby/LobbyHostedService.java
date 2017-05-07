@@ -27,7 +27,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import static java.util.stream.Collectors.toList;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import static toniarts.openkeeper.game.network.session.AccountHostedService.ATTRIBUTE_SYSTEM_MEMORY;
@@ -35,6 +34,7 @@ import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbyService;
 import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
+import toniarts.openkeeper.game.state.lobby.LocalLobby;
 import toniarts.openkeeper.tools.convert.map.AI;
 
 /**
@@ -48,13 +48,13 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
     private static final String ATTRIBUTE_SESSION = "lobby.session";
     public static final String ATTRIBUTE_KEEPER_ID = "lobby.keeperID";
-    private static final int MAX_PLAYERS = 4;
+    private int maxPlayers = 0;
     private int aiPlayerIdCounter = 0;
 
     private RmiHostedService rmiService;
 
     private final Object playerLock = new Object();
-    private final Map<ClientInfo, AbstractLobbySessionImpl> players = new ConcurrentHashMap<>(MAX_PLAYERS, 0.75f, 5);
+    private final Map<ClientInfo, AbstractLobbySessionImpl> players = new ConcurrentHashMap<>(4, 0.75f, 5);
     private String mapName;
 
     /**
@@ -88,10 +88,10 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         logger.log(Level.FINER, "startHostingOnConnection({0})", conn);
 
         boolean playerAdded = false;
-        if (players.size() < MAX_PLAYERS) {
+        if (players.size() < maxPlayers) {
             synchronized (playerLock) {
-                if (players.size() < MAX_PLAYERS) {
-                    Keeper keeper = getNextKeeper(false);
+                if (players.size() < maxPlayers) {
+                    Keeper keeper = LocalLobby.getNextKeeper(false, players.keySet());
                     ClientInfo clientInfo = new ClientInfo(conn.getAttribute(ATTRIBUTE_SYSTEM_MEMORY), conn.getAddress(), conn.getId());
                     clientInfo.setName(playerName);
                     clientInfo.setKeeper(keeper);
@@ -152,8 +152,9 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
     }
 
     @Override
-    public void setMap(String mapName) {
+    public void setMap(String mapName, int maxPlayers) {
         this.mapName = mapName;
+        this.maxPlayers = maxPlayers;
         for (AbstractLobbySessionImpl lobby : players.values()) {
             lobby.onMapChanged(mapName);
         }
@@ -163,9 +164,9 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
     public void addPlayer() {
 
         // Add a computer player, create a NOP LobbySessionImpl for it
-        if (players.size() < MAX_PLAYERS) {
+        if (players.size() < maxPlayers) {
             synchronized (playerLock) {
-                if (players.size() < MAX_PLAYERS) {
+                if (players.size() < maxPlayers) {
                     aiPlayerIdCounter--;
                     if (aiPlayerIdCounter > 0) {
 
@@ -173,7 +174,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
                         aiPlayerIdCounter = -1;
                     }
 
-                    Keeper keeper = getNextKeeper(true);
+                    Keeper keeper = LocalLobby.getNextKeeper(true, players.keySet());
                     final ClientInfo clientInfo = new ClientInfo(0, null, aiPlayerIdCounter);
                     clientInfo.setKeeper(keeper);
                     clientInfo.setReady(true);
@@ -259,16 +260,6 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         for (AbstractLobbySessionImpl lobby : players.values()) {
             lobby.onPlayerListChanged(lobby.getPlayers());
         }
-    }
-
-    private Keeper getNextKeeper(boolean ai) {
-        short id = Keeper.KEEPER1_ID;
-        List<Short> keepers = players.keySet().stream().map(c -> c.getKeeper().getId()).collect(toList());
-        Collections.sort(keepers);
-        while (Collections.binarySearch(keepers, id) >= 0) {
-            id++;
-        }
-        return new Keeper(ai, id, null);
     }
 
     private abstract class AbstractLobbySessionImpl implements LobbySession, LobbySessionListener {

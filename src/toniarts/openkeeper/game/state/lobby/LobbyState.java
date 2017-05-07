@@ -57,7 +57,7 @@ public class LobbyState extends AbstractAppState {
 
         // We as the host should set the initial map
         if (lobbyService != null) {
-            lobbyService.setMap(mapSelector.getMap().getMapName());
+            lobbyService.setMap(mapSelector.getMap().getMapName(), mapSelector.getMap().getMap().getGameLevel().getPlayerCount());
         }
     }
 

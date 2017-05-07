@@ -30,8 +30,9 @@ public interface LobbyService {
      * Set the map
      *
      * @param mapName the name of the map
+     * @param maxPlayers the maximum amount of players on this map
      */
-    public void setMap(String mapName);
+    public void setMap(String mapName, int maxPlayers);
 
     /**
      * Add a computer player to the game

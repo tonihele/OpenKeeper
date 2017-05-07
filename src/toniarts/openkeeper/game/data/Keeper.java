@@ -93,6 +93,10 @@ public class Keeper implements Comparable<Keeper> {
         return id;
     }
 
+    public void setId(short id) {
+        this.id = id;
+    }
+
     public int getInitialGold() {
         return initialGold;
     }
