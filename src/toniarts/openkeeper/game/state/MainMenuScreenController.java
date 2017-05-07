@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.MapSelector;
@@ -82,6 +83,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     public final static String SCREEN_EMPTY_ID = "empty";
     public final static String SCREEN_START_ID = "start";
+    private final static String PLAYER_LIST_ID = "playersTable";
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -484,7 +486,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             case "skirmishLobby":
 
                 // Remove the old players table, a bit of a hax
-                TableControl playersTable = screen.findControl("playersTable", TableControl.class);
+                TableControl playersTable = screen.findControl(PLAYER_LIST_ID, TableControl.class);
                 if (playersTable != null) {
                     playersTable.getElement().markForRemoval();
                 }
@@ -615,7 +617,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
      * Set ups a sub objective text
      *
      * @param id the element ID
-     * @param textId the text ID in the resource bundle
+     * @param caption the text
      * @return returns the element
      */
     private Label setupSubObjectiveLabel(String id, String caption) {
@@ -799,7 +801,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     }
 
     private void refreshPlayerList(List<ClientInfo> players) {
-        TableControl<PlayerTableRow> playersList = screen.findNiftyControl("playersTable", TableControl.class);
+        TableControl<PlayerTableRow> playersList = screen.findNiftyControl(PLAYER_LIST_ID, TableControl.class);
         if (playersList != null) {
 
             // Get the selection, so that we can restore it possibly
@@ -818,7 +820,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 if (clientInfo.equals(selectedClient)) {
                     index = i;
                 }
-                playersList.addItem(new PlayerTableRow(clientInfo, playersList.itemCount(), clientInfo.getName(),
+                playersList.addItem(new PlayerTableRow(clientInfo, playersList.itemCount(), clientInfo.getKeeper().isAi() ? Utils.getMainTextResourceBundle().getString(clientInfo.getKeeper().getAiType().getTranslationKey()) : clientInfo.getName(),
                         "", lobbyState.isOnline() ? Long.toString(clientInfo.getPing()) : "", lobbyState.isOnline() ? Integer.toString(clientInfo.getSystemMemory()) : "", clientInfo.isReady()
                 ));
                 i++;
@@ -828,6 +830,25 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             if (index > -1) {
                 playersList.selectItemByIndex(index);
             }
+        }
+    }
+
+    @NiftyEventSubscriber(id = PLAYER_LIST_ID)
+    public void onPlayerListSelectionChanged(final String id, final ListBoxSelectionChangedEvent<PlayerTableRow> event) {
+        List<PlayerTableRow> selection = event.getSelection();
+        Element element = screen.findElementById("changeAi");
+        if (selection.isEmpty() || !selection.get(0).getClientInfo().getKeeper().isAi()) {
+            element.hide();
+        } else {
+            TextRenderer textRenderer = element.getRenderer(TextRenderer.class);
+            ResourceBundle rb = Utils.getMainTextResourceBundle();
+            String text = rb.getString("2121") + ": " + rb.getString(selection.get(0).getClientInfo().getKeeper().getAiType().getTranslationKey());
+            textRenderer.setText(text);
+            element.setConstraintWidth(new SizeValue(textRenderer.getFont().getWidth(text) + "px"));
+            element.show();
+
+            // Recalculate
+            element.getParent().layoutElements();
         }
     }
 
@@ -915,7 +936,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         Element playersPanel = screen.findElementById("playersPanel");
 
         // Build a new one
-        PlayerTableBuilder cb = new PlayerTableBuilder("playersTable",
+        PlayerTableBuilder cb = new PlayerTableBuilder(PLAYER_LIST_ID,
                 new TableColumn("${menu.1688}", 34, String.class, new Color("#32050c30")),
                 new TableColumn(lobbyState.isOnline() ? "${menu.263}" : "", 33, String.class, new Color("#32050c30")),
                 new TableColumn(lobbyState.isOnline() ? "${menu.195}" : "", 11, String.class, new Color("#00752430")),
@@ -938,7 +959,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     @Override
     public void kickPlayer() {
-        TableControl<PlayerTableRow> playersList = screen.findNiftyControl("playersTable", TableControl.class);
+        TableControl<PlayerTableRow> playersList = screen.findNiftyControl(PLAYER_LIST_ID, TableControl.class);
         if (playersList != null && !playersList.getSelection().isEmpty()) {
             ClientInfo clientInfo = playersList.getSelection().get(0).getClientInfo();
 
@@ -957,7 +978,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     @Override
     public void changeAI() {
-        TableControl<PlayerTableRow> playersList = screen.findNiftyControl("playersTable", TableControl.class);
+        TableControl<PlayerTableRow> playersList = screen.findNiftyControl(PLAYER_LIST_ID, TableControl.class);
         if (playersList != null && !playersList.getSelection().isEmpty()) {
             ClientInfo clientInfo = playersList.getSelection().get(0).getClientInfo();
             if (clientInfo.getKeeper() != null && clientInfo.getKeeper().isAi()) {

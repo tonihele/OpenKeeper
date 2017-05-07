@@ -36,7 +36,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Table control, build on top of the Nifty ListBox<br/>
+ * Table control, build on top of the Nifty ListBox<br>
  * With help from:
  * https://github.com/void256/nifty-gui/tree/1.3/nifty-examples/src/main/java/de/lessvoid/nifty/examples/table
  *
