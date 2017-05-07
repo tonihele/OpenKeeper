@@ -153,10 +153,30 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
     @Override
     public void setMap(String mapName, int maxPlayers) {
-        this.mapName = mapName;
-        this.maxPlayers = maxPlayers;
-        for (AbstractLobbySessionImpl lobby : players.values()) {
-            lobby.onMapChanged(mapName);
+
+        // In multiplayer, we only allow to change to maps that are equal or bigger than the current amount of connected human players
+        int humanPlayers = 0;
+        for (ClientInfo clientInfo : players.keySet()) {
+            if (!clientInfo.getKeeper().isAi()) {
+                humanPlayers++;
+            }
+        }
+
+        // Change map only so that we don't kick anyone out
+        if (humanPlayers <= maxPlayers) {
+            this.mapName = mapName;
+            this.maxPlayers = maxPlayers;
+            synchronized (playerLock) {
+                for (ClientInfo clientInfo : LocalLobby.compactPlayers(players.keySet(), maxPlayers)) {
+
+                    // These are AI players only...
+                    players.remove(clientInfo);
+                }
+                for (AbstractLobbySessionImpl lobby : players.values()) {
+                    lobby.onMapChanged(mapName);
+                }
+            }
+            notifyPlayersChange();
         }
     }
 
@@ -259,6 +279,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
     private void notifyPlayersChange() {
         for (AbstractLobbySessionImpl lobby : players.values()) {
             lobby.onPlayerListChanged(lobby.getPlayers());
+
         }
     }
 
