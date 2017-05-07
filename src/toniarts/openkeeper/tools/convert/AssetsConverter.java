@@ -138,6 +138,7 @@ public abstract class AssetsConverter {
     private final AssetManager assetManager;
     private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
     private static final String ASSETS_FOLDER = "assets" + File.separator + "Converted";
+    private static final String ABSOLUTE_ASSETS_FOLDER = getCurrentFolder() + ASSETS_FOLDER + File.separator;
 
     public static final String SOUNDS_FOLDER = "Sounds";
     public static final String MATERIALS_FOLDER = "Materials";
@@ -510,7 +511,6 @@ public abstract class AssetsConverter {
 
             //Remove the actual file name
             //dest = dest.substring(0, dest.length() - file.toPath().getFileName().toString().length());
-
             //Extract
             sdt.extractFileData(dest);
         }
@@ -532,7 +532,7 @@ public abstract class AssetsConverter {
      * @return the assets folder
      */
     public static String getAssetsFolder() {
-        return getCurrentFolder() + ASSETS_FOLDER + File.separator;
+        return ABSOLUTE_ASSETS_FOLDER;
     }
 
     /**

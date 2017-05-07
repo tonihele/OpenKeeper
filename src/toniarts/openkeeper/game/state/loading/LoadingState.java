@@ -86,8 +86,8 @@ public abstract class LoadingState extends AbstractAppState {
         int imgWidth = tex.getImage().getWidth();
         int imgHeight = tex.getImage().getHeight();
         float imageRatio = imgWidth / (float) imgHeight;
-        int height = app.getUserSettings().getAppSettings().getHeight();
-        int width = app.getUserSettings().getAppSettings().getWidth();
+        int height = Main.getUserSettings().getAppSettings().getHeight();
+        int width = Main.getUserSettings().getAppSettings().getWidth();
         imageWidth = (int) (height * imageRatio);
         imageHeight = (int) (width / imageRatio);
         if (width / (float) height > imageRatio) {

@@ -17,18 +17,21 @@
 package toniarts.openkeeper.utils;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 public class PathUtils {
 
-    public static final String DKII_DATA_FOLDER = "Data" + File.separator;
-    public static final String DKII_SFX_FOLDER = DKII_DATA_FOLDER + "Sound" + File.separator
-            + "sfx" + File.separator;
-    public static final String DKII_SFX_GLOBAL_FOLDER = DKII_SFX_FOLDER + "Global" + File.separator;
-    public static final String DKII_MOVIES_FOLDER = DKII_DATA_FOLDER + "Movies" + File.separator;
-    public static final String DKII_TEXT_DEFAULT_FOLDER = DKII_DATA_FOLDER + "Text" + File.separator
-            + "Default" + File.separator;
-    public static final String DKII_EDITOR_FOLDER = DKII_DATA_FOLDER + "editor" + File.separator;
-    public static final String DKII_MAPS_FOLDER = DKII_EDITOR_FOLDER + "maps" + File.separator;
+    public static final String DKII_DATA_FOLDER = getRealDKIIRelativeFolder("Data" + File.separator);
+    public static final String DKII_SFX_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Sound" + File.separator
+            + "sfx" + File.separator);
+    public static final String DKII_MOVIES_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Movies" + File.separator);
+    public static final String DKII_TEXT_DEFAULT_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Text" + File.separator
+            + "Default" + File.separator);
+    public static final String DKII_EDITOR_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "editor" + File.separator);
+    public static final String DKII_MAPS_FOLDER = getRealDKIIRelativeFolder(DKII_EDITOR_FOLDER + "maps" + File.separator);
+    public static final String DKII_SFX_GLOBAL_FOLDER = getRealDKIIRelativeFolder(DKII_SFX_FOLDER + "Global" + File.separator);
 
     private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
     private final static String TEST_FILE = DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd";
@@ -58,10 +61,10 @@ public class PathUtils {
      * @return true if the folder is valid
      */
     public static boolean checkDkFolder(String folder) {
+
         // Throw a simple test to the folder, try to find a test file
-        if (folder != null && !folder.isEmpty() && new File(folder).exists()) {
-            File testFile = new File(PathUtils.fixFilePath(folder).concat(TEST_FILE));
-            return testFile.exists();
+        if (folder != null && !folder.isEmpty()) {
+            return Files.exists(Paths.get(PathUtils.fixFilePath(folder).concat(TEST_FILE)));
         }
 
         // Better luck next time
@@ -79,5 +82,19 @@ public class PathUtils {
             return folderPath.concat(File.separator);
         }
         return folderPath;
+    }
+
+    /**
+     * Get the relative folder that has been fixed for case sensitivity
+     *
+     * @param folder the path to fix
+     * @return fixed path relative to the DKII folder
+     */
+    public static String getRealDKIIRelativeFolder(final String folder) {
+        String rootFolder = getDKIIFolder();
+        if (rootFolder != null && !rootFolder.isEmpty()) {
+            return fixFilePath(ConversionUtils.getCanonicalRelativePath(rootFolder, folder));
+        }
+        return fixFilePath(folder);
     }
 }

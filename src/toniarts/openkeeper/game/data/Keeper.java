@@ -35,7 +35,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Keeper implements IIndexable {
+public class Keeper implements Comparable<Keeper>, IIndexable {
 
     public final static short KEEPER1_ID = 3;
     public final static short KEEPER2_ID = 4;
@@ -44,45 +44,39 @@ public class Keeper implements IIndexable {
 
     private boolean ai;
     private AIType aiType = AIType.MASTER_KEEPER;
-    private String name;
-    private boolean ready = false;
-    private Player player;
-    private final short id;
+    private transient Player player;
+    private short id;
     private int initialGold = 0;
-    private final PlayerGoldControl goldControl = new PlayerGoldControl();
-    private final PlayerCreatureControl creatureControl;
-    private final PlayerSpellControl spellControl;
-    private final PlayerStatsControl statsControl = new PlayerStatsControl();
-    private final PlayerRoomControl roomControl;
-    private PlayerTriggerControl triggerControl;
-    private PlayerManaControl manaControl;
+    private transient PlayerGoldControl goldControl = new PlayerGoldControl();
+    private transient PlayerCreatureControl creatureControl;
+    private transient PlayerSpellControl spellControl;
+    private transient PlayerStatsControl statsControl = new PlayerStatsControl();
+    private transient PlayerRoomControl roomControl;
+    private transient PlayerTriggerControl triggerControl;
+    private transient PlayerManaControl manaControl;
     private boolean destroyed = false;
     private final Set<Short> allies = new HashSet<>(4);
 
-    public Keeper(boolean ai, String name, short id, final Application app) {
+    public Keeper() {
+
+    }
+
+    public Keeper(boolean ai, short id, final Application app) {
         this.ai = ai;
-        this.name = name;
         this.id = id;
-
-        // AI is always ready
-        ready = ai;
-
-        creatureControl = new PlayerCreatureControl(app);
-        roomControl = new PlayerRoomControl(app);
-        spellControl = new PlayerSpellControl(app);
     }
 
     public Keeper(Player player, final Application app) {
         this.player = player;
         this.id = player.getPlayerId();
         initialGold = player.getStartingGold();
-
-        creatureControl = new PlayerCreatureControl(app);
-        roomControl = new PlayerRoomControl(app);
-        spellControl = new PlayerSpellControl(app);
     }
 
     public void initialize(final AppStateManager stateManager, final Application app) {
+        creatureControl = new PlayerCreatureControl(app);
+        roomControl = new PlayerRoomControl(app);
+        spellControl = new PlayerSpellControl(app);
+
         int triggerId = player.getTriggerId();
         if (triggerId != 0) {
             triggerControl = new PlayerTriggerControl(stateManager, triggerId);
@@ -95,13 +89,12 @@ public class Keeper implements IIndexable {
         }
     }
 
-    public boolean isReady() {
-        return ready;
-    }
-
-    @Override
     public short getId() {
         return id;
+    }
+
+    public void setId(short id) {
+        this.id = id;
     }
 
     public int getInitialGold() {
@@ -159,7 +152,7 @@ public class Keeper implements IIndexable {
 
     @Override
     public String toString() {
-        return (ai ? aiType.toString() : name);
+        return Short.toString(id);
     }
 
     /**
@@ -169,6 +162,18 @@ public class Keeper implements IIndexable {
      */
     public boolean isDestroyed() {
         return destroyed;
+    }
+
+    public AIType getAiType() {
+        return aiType;
+    }
+
+    public void setAiType(AIType aiType) {
+        this.aiType = aiType;
+    }
+
+    public boolean isAi() {
+        return ai;
     }
 
     /**
@@ -216,4 +221,35 @@ public class Keeper implements IIndexable {
     public void breakAlliance(short playerId) {
         allies.remove(playerId);
     }
+
+    @Override
+    public int compareTo(Keeper keeper) {
+        return Short.compare(id, keeper.id);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 67 * hash + this.id;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Keeper other = (Keeper) obj;
+        if (this.id != other.id) {
+            return false;
+        }
+        return true;
+    }
+
 }

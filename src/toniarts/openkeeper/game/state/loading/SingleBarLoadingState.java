@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
@@ -106,16 +105,13 @@ public abstract class SingleBarLoadingState extends LoadingState {
     public void setProgress(final float progress) {
 
         // Since this method is called from another thread, we enqueue the changes to the progressbar to the update loop thread
-        app.enqueue(new Callable() {
-            @Override
-            public Object call() throws Exception {
+        app.enqueue(() -> {
 
-                // Adjust the progress bar
-                Quad q = (Quad) progressBar.getMesh();
-                q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
+            // Adjust the progress bar
+            Quad q = (Quad) progressBar.getMesh();
+            q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
 
-                return null;
-            }
+            return null;
         });
 
     }

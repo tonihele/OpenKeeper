@@ -34,7 +34,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -45,14 +44,16 @@ import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GeneralLevel;
-import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
-import toniarts.openkeeper.game.network.NetworkClient;
-import toniarts.openkeeper.game.network.NetworkServer;
-import toniarts.openkeeper.game.network.message.MessageChat;
+import toniarts.openkeeper.game.network.chat.ChatClientService;
+import toniarts.openkeeper.game.state.ConnectionState.ConnectionErrorListener;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
+import toniarts.openkeeper.game.state.lobby.LobbyClientService;
+import toniarts.openkeeper.game.state.lobby.LobbyService;
+import toniarts.openkeeper.game.state.lobby.LobbyState;
+import toniarts.openkeeper.game.state.lobby.LocalLobby;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -90,12 +91,8 @@ public class MainMenuState extends AbstractAppState {
     protected final MainMenuInteraction listener;
     private Vector3f startLocation;
     protected MapSelector mapSelector;
-    protected final List<Keeper> skirmishPlayers = new ArrayList<>(4);
+    private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
 
-    private NetworkServer server = null;
-    protected NetworkClient client = null;
-
-    public static HiScores hiscores = HiScores.load();
     private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
 
     /**
@@ -136,9 +133,7 @@ public class MainMenuState extends AbstractAppState {
 
         // Attach the 3D Front end
         menuNode = new Node("Main menu");
-        menuNode.attachChild(new MapLoader(assetManager, kwdFile,
-                new EffectManagerState(kwdFile, assetManager), null,
-                new ObjectLoader(kwdFile, null)) {
+        menuNode.attachChild(new MapLoader(assetManager, kwdFile, new EffectManagerState(kwdFile, assetManager), null, new ObjectLoader(kwdFile, null)) {
             @Override
             protected void updateProgress(float progress) {
                 if (loadingScreen != null) {
@@ -203,13 +198,7 @@ public class MainMenuState extends AbstractAppState {
             menuNode = null;
         }
 
-        if (server != null) {
-            server.close();
-        }
-
-        if (client != null) {
-            client.close();
-        }
+        shutdownMultiplayer();
 
         super.cleanup();
     }
@@ -221,16 +210,13 @@ public class MainMenuState extends AbstractAppState {
     private void initializeMainMenu() {
 
         // Set the processors & scene
-        app.enqueue(new Callable() {
-            @Override
-            public Object call() throws Exception {
-                MainMenuState.this.app.setViewProcessors();
-                rootNode.attachChild(menuNode);
+        app.enqueue(() -> {
+            MainMenuState.this.app.setViewProcessors();
+            rootNode.attachChild(menuNode);
 
-                // Start screen, do this here since another state may have just changed to empty screen -> have to do it like this, delayed
-                MainMenuState.this.screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
-                return null;
-            }
+            // Start screen, do this here since another state may have just changed to empty screen -> have to do it like this, delayed
+            MainMenuState.this.screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
+            return null;
         });
 
         // Enable cursor
@@ -285,78 +271,120 @@ public class MainMenuState extends AbstractAppState {
         }
     }
 
-    public boolean multiplayerCreate(String game, int port, String player) {
+    protected void createLocalLobby() {
+        LocalLobby localLobby = new LocalLobby();
+        initLobby(false, null, localLobby, localLobby, false);
+    }
+
+    public void multiplayerCreate(String game, int port, String player) {
+
+        // Create connector
+        ConnectionState connectionState = new ConnectionState(null, port, player, true, game) {
+            @Override
+            protected void onLoggedOn(boolean loggedIn) {
+                super.onLoggedOn(loggedIn);
+
+                initLobby(true, getServerInfo(), getLobbyService(), getLobbyClientService(), true);
+            }
+        };
+        connectionState.addConnectionErrorListener(connectionErrorListener);
+        stateManager.attach(connectionState);
+
         // Save player name & game name
         try {
             Main.getUserSettings().setSetting(Setting.PLAYER_NAME, player);
             Main.getUserSettings().setSetting(Setting.GAME_NAME, game);
             Main.getUserSettings().save();
         } catch (IOException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
+            logger.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
         }
-
-        try {
-            server = new NetworkServer(game, port);
-            server.start();
-            logger.info("Server created");
-        } catch (IOException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
-            return false;
-        }
-
-        try {
-            client = new NetworkClient(player);
-            client.start(server.getHost(), server.getPort());
-        } catch (IOException ex) {
-            server.close();
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
-            return false;
-        }
-
-        return true;
     }
 
-    public boolean multiplayerConnect(String hostAddress, String player) {
+    public void multiplayerConnect(String hostAddress, String player) {
         String[] address = hostAddress.split(":");
         String host = address[0];
         Integer port = (address.length == 2) ? Integer.valueOf(address[1]) : Main.getUserSettings().getSettingInteger(Setting.MULTIPLAYER_LAST_PORT);
 
+        // Connect, connection is lazy
+        ConnectionState connectionState = new ConnectionState(host, port, player) {
+            @Override
+            protected void onLoggedOn(boolean loggedIn) {
+                super.onLoggedOn(loggedIn);
+
+                initLobby(true, getServerInfo(), getLobbyService(), getLobbyClientService(), true);
+            }
+        };
+        connectionState.addConnectionErrorListener(connectionErrorListener);
+        stateManager.attach(connectionState);
+
         try {
-            client = new NetworkClient(player, NetworkClient.Role.SLAVE);
-            client.start(host, port);
+
             // Save player name & last connection
             Main.getUserSettings().setSetting(Setting.PLAYER_NAME, player);
             Main.getUserSettings().setSetting(Setting.MULTIPLAYER_LAST_IP, hostAddress);
             Main.getUserSettings().save();
 
         } catch (IOException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
-            return false;
+            logger.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
         }
-
-        return true;
     }
 
-    public void multiplayerReset() {
-        if (client != null) {
-            client.close();
-            client = null;
-        }
+    private void initLobby(boolean online, String serverInfo, LobbyService lobbyService, LobbyClientService lobbyClientService, boolean doTransition) {
 
-        if (server != null) {
-            server.close();
-            server = null;
+        // Create and attach the lobby services
+        LobbyState lobbyState = new LobbyState(online, serverInfo, lobbyService, lobbyClientService, mapSelector);
+        stateManager.attach(lobbyState);
+
+        if (doTransition) {
+            app.enqueue(() -> {
+                screen.goToScreen("skirmishLobby");
+            });
+        }
+    }
+
+    public void shutdownMultiplayer() {
+        ConnectionState connectionState = stateManager.getState(ConnectionState.class);
+        if (connectionState != null) {
+            connectionState.addConnectionErrorListener(connectionErrorListener);
+            stateManager.detach(connectionState);
+        }
+        LobbyState lobbyState = stateManager.getState(LobbyState.class);
+        if (lobbyState != null) {
+            stateManager.detach(lobbyState);
         }
     }
 
     public void chatTextSend(final String text) {
-        if (client == null) {
-            logger.warning("Network client not initialized");
-            return;
+        ChatClientService chatService = getChatService();
+        if (chatService != null) {
+            chatService.sendMessage(text);
+        } else {
+            logger.warning("Connection not initialized!");
         }
-        // event.getChatControl().addPlayer("ID " + client.getId(), null);
-        // event.getChatControl().receivedChatLine(event.getText(), null);
-        client.getClient().send(new MessageChat(client.getPlayer() + ": " + text));
+    }
+
+    public ChatClientService getChatService() {
+        ConnectionState connectionState = getConnectionState();
+        if (connectionState != null) {
+            return connectionState.getService(ChatClientService.class);
+        }
+        return null;
+    }
+
+    public boolean isHosting() {
+        LobbyState lobbyState = stateManager.getState(LobbyState.class);
+        if (lobbyState != null) {
+            return lobbyState.isHosting();
+        }
+        return false;
+    }
+
+    private ConnectionState getConnectionState() {
+        return stateManager.getState(ConnectionState.class);
+    }
+
+    public LobbyState getLobbyState() {
+        return stateManager.getState(LobbyState.class);
     }
 
     /**
@@ -371,21 +399,6 @@ public class MainMenuState extends AbstractAppState {
 
             // Create the level state
             gameState = new GameState(selectedLevel);
-        } else if ("skirmish".equals(type.toLowerCase())) {
-            if (mapSelector.getMap() == null) {
-                logger.warning("Skirmish map not selected");
-                return;
-            }
-            gameState = new GameState(mapSelector.getMap(), skirmishPlayers);
-        } else if ("multiplayer".equals(type.toLowerCase())) {
-            if (mapSelector.getMap() == null) {
-                logger.warning("Multiplayer map not selected");
-                return;
-            }
-
-            //TODO make true multiplayer start
-            gameState = new GameState(mapSelector.getMap(), new ArrayList<>());
-
         } else {
             logger.log(Level.WARNING, "Unknown type of Level {0}", type);
             return;
@@ -505,18 +518,6 @@ public class MainMenuState extends AbstractAppState {
         return displayModes;
     }
 
-    /**
-     * Init skirmish players
-     */
-    protected void initSkirmishPlayers() {
-        skirmishPlayers.clear();
-
-        Keeper keeper = new Keeper(false, "Player", Keeper.KEEPER1_ID, app);
-        skirmishPlayers.add(keeper);
-        keeper = new Keeper(true, null, Keeper.KEEPER2_ID, app);
-        skirmishPlayers.add(keeper);
-    }
-
     public void doDebriefing(GameResult result) {
         setEnabled(true);
         if (selectedLevel != null && result != null) {
@@ -527,13 +528,14 @@ public class MainMenuState extends AbstractAppState {
     }
 
     /**
-     * See if the map thumbnail exist, otherwise create one
-     * TODO maybe move to KwdFile class or Util* class ???
+     * See if the map thumbnail exist, otherwise create one TODO maybe move to
+     * KwdFile class ???
      *
      * @param map
      * @return path to map thumbnail file
      */
     protected String getMapThumbnail(KwdFile map) {
+
         // See if the map thumbnail exist, otherwise create one
         String asset = AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator + ConversionUtils.stripFileName(map.getGameLevel().getName()) + ".png";
         if (assetManager.locateAsset(new TextureKey(asset)) == null) {
@@ -547,5 +549,16 @@ public class MainMenuState extends AbstractAppState {
             }
         }
         return asset;
+    }
+
+    private class MainMenuConnectionErrorListener implements ConnectionErrorListener {
+
+        @Override
+        public void showError(String title, String message, Throwable e, boolean fatal) {
+            app.enqueue(() -> {
+                screen.showError(title, message);
+            });
+        }
+
     }
 }

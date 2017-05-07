@@ -49,7 +49,7 @@ public class TableBuilder extends ControlBuilder {
         set("selectionMode", "Single");
     }
 
-    public void selectionModeMutliple() {
+    public void selectionModeMultiple() {
         set("selectionMode", "Multiple");
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 OpenKeeper
+ * Copyright (C) 2014-2017 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,22 +14,28 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.network.message;
+package toniarts.openkeeper.gui.nifty.table.player;
 
-import com.jme3.network.AbstractMessage;
-import com.jme3.network.serializing.Serializable;
+import toniarts.openkeeper.game.state.lobby.ClientInfo;
+import toniarts.openkeeper.gui.nifty.table.TableRow;
 
 /**
+ * A table row that holds player
  *
- * @author ArchDemon
+ * @author Toni Helenius <helenius.toni@gmail.com>
  */
-@Serializable
-public class MessageChat extends AbstractMessage {
-    private String data;       // custom message data
-    public MessageChat() {}    // empty constructor
-    public MessageChat(String s) { data = s; } // custom constructor
+public class PlayerTableRow extends TableRow {
 
-    public String getData() {
-        return data;
+    private final ClientInfo clientInfo;
+
+    public PlayerTableRow(ClientInfo clientInfo, int index, Object... param) {
+        super(index, param);
+
+        this.clientInfo = clientInfo;
     }
+
+    public ClientInfo getClientInfo() {
+        return clientInfo;
+    }
+
 }
