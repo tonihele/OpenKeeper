@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -66,8 +67,6 @@ import toniarts.openkeeper.tools.convert.kmf.MeshSprite;
 import toniarts.openkeeper.tools.convert.kmf.MeshVertex;
 import toniarts.openkeeper.tools.convert.kmf.Triangle;
 import toniarts.openkeeper.tools.convert.kmf.Uv;
-import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTextureEntry;
-import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.modelviewer.ModelViewer;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.TangentBinormalGenerator;
@@ -82,11 +81,11 @@ import toniarts.openkeeper.utils.TangentBinormalGenerator;
 public class KmfModelLoader implements AssetLoader {
 
     /* Some textures are broken */
-    private final static HashMap<String, String> textureFixes;
+    private final static Map<String, String> textureFixes;
     private static String dkIIFolder;
 
     static {
-        textureFixes = new HashMap<>();
+        textureFixes = new HashMap<>(2);
         textureFixes.put("Goblinbak", "GoblinBack");
         textureFixes.put("Goblin2", "GoblinFront");
     }
@@ -104,15 +103,14 @@ public class KmfModelLoader implements AssetLoader {
     public static final String FRAME_FACTOR_FUNCTION = "FrameFactorFunction";
     private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
     /* Already saved materials are stored here */
-    private static final HashMap<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
+    private static final Map<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
 
     public static void main(final String[] args) throws IOException {
 
         //Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 2 || !new File(args[1]).exists()) {
             dkIIFolder = PathUtils.getDKIIFolder();
-            if (dkIIFolder == null)
-            {
+            if (dkIIFolder == null) {
                 throw new RuntimeException("Please provide file path to the model as a first parameter! Second parameter is the Dungeon Keeper II main folder (optional)");
             }
         } else {
@@ -120,23 +118,23 @@ public class KmfModelLoader implements AssetLoader {
         }
 
         AssetInfo ai = new AssetInfo(/*main.getAssetManager()*/null, null) {
-                    @Override
-                    public InputStream openStream() {
-                        try {
-                            final File file = new File(dkIIFolder);
-                            key = new AssetKey() {
-                                @Override
-                                public String getName() {
-                                    return file.toPath().getFileName().toString();
-                                }
-                            };
-                            return new FileInputStream(file);
-                        } catch (FileNotFoundException ex) {
-                            logger.log(Level.SEVERE, null, ex);
+            @Override
+            public InputStream openStream() {
+                try {
+                    final File file = new File(dkIIFolder);
+                    key = new AssetKey() {
+                        @Override
+                        public String getName() {
+                            return file.toPath().getFileName().toString();
                         }
-                        return null;
-                    }
-                };
+                    };
+                    return new FileInputStream(file);
+                } catch (FileNotFoundException ex) {
+                    logger.log(Level.SEVERE, null, ex);
+                }
+                return null;
+            }
+        };
 
         ModelViewer app = new ModelViewer(new File(args[0]), dkIIFolder);
         app.start();
@@ -146,11 +144,9 @@ public class KmfModelLoader implements AssetLoader {
     public Object load(AssetInfo assetInfo) throws IOException {
 
         KmfFile kmfFile;
-        EngineTexturesFile engineTextureFile = null;
         boolean generateMaterialFile = false;
         if (assetInfo instanceof KmfAssetInfo) {
             kmfFile = ((KmfAssetInfo) assetInfo).getKmfFile();
-            engineTextureFile = ((KmfAssetInfo) assetInfo).getEngineTexturesFile();
             generateMaterialFile = ((KmfAssetInfo) assetInfo).isGenerateMaterialFile();
         } else {
             kmfFile = new KmfFile(inputStreamToFile(assetInfo.openStream(), assetInfo.getKey().getName()));
@@ -162,7 +158,7 @@ public class KmfModelLoader implements AssetLoader {
         if (kmfFile.getType() == KmfFile.Type.MESH || kmfFile.getType() == KmfFile.Type.ANIM) {
 
             // Get the materials first
-            HashMap<Integer, List<Material>> materials = getMaterials(kmfFile, generateMaterialFile, assetInfo, engineTextureFile);
+            Map<Integer, List<Material>> materials = getMaterials(kmfFile, generateMaterialFile, assetInfo);
 
             //
             // The meshes
@@ -231,7 +227,7 @@ public class KmfModelLoader implements AssetLoader {
      * @param materials materials map
      * @param root the root node
      */
-    private void handleMesh(toniarts.openkeeper.tools.convert.kmf.Mesh sourceMesh, HashMap<Integer, List<Material>> materials, Node root) {
+    private void handleMesh(toniarts.openkeeper.tools.convert.kmf.Mesh sourceMesh, Map<Integer, List<Material>> materials, Node root) {
 
         //Source mesh is node
         Node node = new Node(sourceMesh.getName());
@@ -295,7 +291,7 @@ public class KmfModelLoader implements AssetLoader {
      * @param materials materials map
      * @param root the root node
      */
-    private void handleAnim(Anim anim, HashMap<Integer, List<Material>> materials, Node root) {
+    private void handleAnim(Anim anim, Map<Integer, List<Material>> materials, Node root) {
 
         //Source mesh is node
         Node node = new Node(anim.getName());
@@ -317,14 +313,14 @@ public class KmfModelLoader implements AssetLoader {
             // Animation
             // Poses for each key frame (aproximate that every 1/3 is a key frame, pessimistic)
             // Note that a key frame may not have all the vertices
-            HashMap<Integer, HashMap<KmfModelLoader.FrameInfo, Pose>> poses = new HashMap<>(anim.getFrames() / 3);
+            Map<Integer, Map<KmfModelLoader.FrameInfo, Pose>> poses = new HashMap<>(anim.getFrames() / 3);
 
             // Pose indices and indice offsets for each pose
-            HashMap<Integer, HashMap<KmfModelLoader.FrameInfo, List<Integer>>> frameIndices = new HashMap<>(anim.getFrames() / 3);
-            HashMap<Integer, HashMap<KmfModelLoader.FrameInfo, List<Vector3f>>> frameOffsets = new HashMap<>(anim.getFrames() / 3);
+            Map<Integer, Map<KmfModelLoader.FrameInfo, List<Integer>>> frameIndices = new HashMap<>(anim.getFrames() / 3);
+            Map<Integer, Map<KmfModelLoader.FrameInfo, List<Vector3f>>> frameOffsets = new HashMap<>(anim.getFrames() / 3);
 
             // For each frame, we need the previous key frame (pose) and the next, and the weights, for the pose frames
-            HashMap<Integer, List<KmfModelLoader.FrameInfo>> frameInfos = new HashMap<>(anim.getFrames());
+            Map<Integer, List<KmfModelLoader.FrameInfo>> frameInfos = new HashMap<>(anim.getFrames());
 
             //
             //Each sprite represents a geometry (+ mesh) since they each have their own material
@@ -527,7 +523,7 @@ public class KmfModelLoader implements AssetLoader {
         root.attachChild(node);
     }
 
-    private VertexBuffer[] createIndices(final HashMap<Integer, List<Triangle>> trianglesMap) {
+    private VertexBuffer[] createIndices(final Map<Integer, List<Triangle>> trianglesMap) {
 
         // Triangles are not in order, sometimes they are very random, many missing etc.
         // For JME 3.0 this was somehow ok, but JME 3.1 doesn't do some automatic organizing etc.
@@ -567,14 +563,14 @@ public class KmfModelLoader implements AssetLoader {
      * Creates a geometry from the given mesh, applies material and LOD control
      * to it
      *
-     * @param index         mesh index (just for naming)
-     * @param name          the name, just for logging
+     * @param index mesh index (just for naming)
+     * @param name the name, just for logging
      * @param mesh the mesh
      * @param materials list of materials
      * @param materialIndex the material index
      * @return
      */
-    private Geometry createGeometry(int index, String name, Mesh mesh, HashMap<Integer, List<Material>> materials, int materialIndex) {
+    private Geometry createGeometry(int index, String name, Mesh mesh, Map<Integer, List<Material>> materials, int materialIndex) {
 
         //Create geometry
         Geometry geom = new Geometry(index + "", mesh);
@@ -616,24 +612,13 @@ public class KmfModelLoader implements AssetLoader {
      * Set some flags on the material that do not get saved
      *
      * @param material material to modify
-     * @param engineTextureFile EngineTexturesFile entry to extract some info
+     * @param kmfMaterial the KMF material entry
      */
-    private void setMaterialFlags(Material material, EngineTexturesFile engineTextureFile, String texture) {
-        material.setReceivesShadows(true);
+    private void setMaterialFlags(Material material, toniarts.openkeeper.tools.convert.kmf.Material kmfMaterial) {
 
-        // If we have an instance of engine texture file, check the alpha
-        if (engineTextureFile != null) {
-            String textureEntry = texture.concat("MM0");
-            EngineTextureEntry engineTextureEntry = engineTextureFile.getEntry(textureEntry);
-            if (engineTextureEntry != null && engineTextureEntry.isAlphaFlag()) {
-                material.setTransparent(true);
-
-                // There are some hints on the rendering on the texture names (ie. #add#FalloffMM0)
-                if (textureEntry.toLowerCase().contains("#add#")) {
-                    material.setReceivesShadows(false);
-                }
-            }
-        }
+        // Shadows thing is just a guess, like, they seem to be small light sources
+        material.setReceivesShadows(!kmfMaterial.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.ALPHA_ADDITIVE));
+        material.setTransparent(kmfMaterial.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.HAS_ALPHA) || kmfMaterial.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.ALPHA_ADDITIVE));
     }
 
     /**
@@ -647,12 +632,12 @@ public class KmfModelLoader implements AssetLoader {
      * @return returns materials by the material index
      * @throws IOException may fail
      */
-    private HashMap<Integer, List<Material>> getMaterials(KmfFile kmfFile, boolean generateMaterialFile, AssetInfo assetInfo, EngineTexturesFile engineTextureFile) throws IOException {
+    private Map<Integer, List<Material>> getMaterials(KmfFile kmfFile, boolean generateMaterialFile, AssetInfo assetInfo) throws IOException {
 
         //
         // Create the materials
         //
-        HashMap<Integer, List<Material>> materials = new HashMap(kmfFile.getMaterials().size());
+        Map<Integer, List<Material>> materials = new HashMap(kmfFile.getMaterials().size());
         int i = 0;
         for (toniarts.openkeeper.tools.convert.kmf.Material mat : kmfFile.getMaterials()) {
             Material material = null;
@@ -674,7 +659,7 @@ public class KmfModelLoader implements AssetLoader {
                 materialKey = materialCache.get(mat);
                 if (materialKey != null) {
                     material = assetInfo.getManager().loadMaterial(materialKey);
-                    setMaterialFlags(material, engineTextureFile, texture);
+                    setMaterialFlags(material, mat);
                     List<Material> materialList = new ArrayList<>(mat.getTextures().size());
                     materialList.add(material);
 
@@ -726,27 +711,17 @@ public class KmfModelLoader implements AssetLoader {
             material.setFloat("Shininess", 128 * mat.getBrightness()); // Use the brightness as shininess... Experimental
 
             // Set some flags
-            setMaterialFlags(material, engineTextureFile, texture);
+            setMaterialFlags(material, mat);
 
-            // If we have an instance of engine texture file, check the alpha
-            if (engineTextureFile != null) {
-                String textureEntry = texture.concat("MM0");
-                EngineTextureEntry engineTextureEntry = engineTextureFile.getEntry(textureEntry);
-                if (engineTextureEntry != null && engineTextureEntry.isAlphaFlag()) {
-                    material.setFloat("AlphaDiscardThreshold", 0.1f);
-                    material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
-
-                    // There are some hints on the rendering on the texture names (ie. #add#FalloffMM0)
-                    if (textureEntry.toLowerCase().contains("#add#")) {
-                        material.getAdditionalRenderState().setDepthWrite(false);
-                        material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.AlphaAdditive);
-                    }
-                    logger.log(Level.INFO, "Texture entry {0} has alpha!", textureEntry);
-                } else if (engineTextureEntry == null) {
-
-                    // Just log
-                    logger.log(Level.WARNING, "Texture entry {0} not found from the engine textures!", textureEntry);
-                }
+            // Read the flags & stuff
+            if (mat.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.HAS_ALPHA)) {
+                material.setFloat("AlphaDiscardThreshold", 0.1f);
+                material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+            }
+            if (mat.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.ALPHA_ADDITIVE)) {
+                material.setFloat("AlphaDiscardThreshold", 0.1f);
+                material.getAdditionalRenderState().setDepthWrite(false);
+                material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.AlphaAdditive);
             }
 
             // Add material to list and create the possible alternatives

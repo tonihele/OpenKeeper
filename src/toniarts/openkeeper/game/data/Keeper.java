@@ -35,7 +35,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Keeper implements Comparable<Keeper> {
+public class Keeper implements Comparable<Keeper>, IIndexable {
 
     public final static short KEEPER1_ID = 3;
     public final static short KEEPER2_ID = 4;

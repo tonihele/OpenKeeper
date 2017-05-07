@@ -497,11 +497,13 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             // if room get room torch
             if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
                 RoomInstance roomInstance = roomCoordinates.get(tile.getLocation());
-                ArtResource torch = roomInstance.getRoom().getTorch();
-                if (torch == null) {
-                    return;
+                if (roomInstance != null) {
+                    ArtResource torch = roomInstance.getRoom().getTorch();
+                    if (torch == null) {
+                        return;
+                    }
+                    name = torch.getName();
                 }
-                name = torch.getName();
             }
             Spatial spatial = AssetUtils.loadModel(assetManager, name);
             spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));

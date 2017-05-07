@@ -43,6 +43,7 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
@@ -56,10 +57,10 @@ import toniarts.openkeeper.game.state.lobby.LobbyState;
 import toniarts.openkeeper.game.state.lobby.LocalLobby;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import static toniarts.openkeeper.tools.convert.AssetsConverter.MAP_THUMBNAILS_FOLDER;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -122,11 +123,14 @@ public class MainMenuState extends AbstractAppState {
     private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager, final Main app) {
 
         // Load the 3D Front end
-        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd"));
+        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder()
+                + PathUtils.DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd"));
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }
         AssetUtils.prewarmAssets(kwdFile, assetManager, app);
+        // load 3D Front end sound
+        SoundsLoader.load(kwdFile.getGameLevel().getSoundCategory(), false);
 
         // Attach the 3D Front end
         menuNode = new Node("Main menu");
@@ -541,6 +545,15 @@ public class MainMenuState extends AbstractAppState {
         return displayModes;
     }
 
+    public void doDebriefing(GameResult result) {
+        setEnabled(true);
+        if (selectedLevel != null && result != null) {
+            screen.showDebriefing(result);
+        } else {
+            screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
+        }
+    }
+
     /**
      * See if the map thumbnail exist, otherwise create one TODO maybe move to
      * KwdFile class ???
@@ -549,13 +562,14 @@ public class MainMenuState extends AbstractAppState {
      * @return path to map thumbnail file
      */
     protected String getMapThumbnail(KwdFile map) {
+
         // See if the map thumbnail exist, otherwise create one
-        String asset = "Textures/Thumbnails/" + ConversionUtils.stripFileName(map.getGameLevel().getName()) + ".png";
+        String asset = AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator + ConversionUtils.stripFileName(map.getGameLevel().getName()) + ".png";
         if (assetManager.locateAsset(new TextureKey(asset)) == null) {
 
             // Generate
             try {
-                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder() + MAP_THUMBNAILS_FOLDER + File.separator);
+                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder() + AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator);
             } catch (Exception e) {
                 logger.log(java.util.logging.Level.WARNING, "Failed to generate map file out of {0}!", map);
                 asset = "Textures/Unique_NoTextureName.png";

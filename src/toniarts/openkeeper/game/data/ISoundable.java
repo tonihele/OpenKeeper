@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 OpenKeeper
+ * Copyright (C) 2014-2017 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,22 +14,12 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.network.message;
-
-import com.jme3.network.AbstractMessage;
-import com.jme3.network.serializing.Serializable;
+package toniarts.openkeeper.game.data;
 
 /**
  *
- * @author ArchDemon
+ * @author archdemon
  */
-@Serializable
-public class MessageChat extends AbstractMessage {
-    private String data;       // custom message data
-    public MessageChat() {}    // empty constructor
-    public MessageChat(String s) { data = s; } // custom constructor
-
-    public String getData() {
-        return data;
-    }
+public interface ISoundable {
+    public String getSoundCategory();
 }

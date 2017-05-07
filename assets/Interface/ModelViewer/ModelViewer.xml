@@ -16,7 +16,7 @@
                          vertical="on" forceSelection="true" displayItems="20"/>
             </panel>
             <panel width="*" height="100%"/>
-            <panel id="item" childLayout="vertical" width="25%" valign="top" height="100%"/>
+            <panel id="item" childLayout="vertical" width="30%" valign="top" height="100%"/>
         </layer>
     </screen>
 </nifty>

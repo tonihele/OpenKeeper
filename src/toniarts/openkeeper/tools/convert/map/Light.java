@@ -66,8 +66,8 @@ public class Light {
         return mKPos;
     }
 
-    protected void setmKPos(Vector3f mKPos) {
-        this.mKPos = mKPos;
+    protected void setmKPos(float x, float y, float z) {
+        this.mKPos = new Vector3f(x, y, z);
     }
 
     public float getRadius() {
@@ -90,7 +90,7 @@ public class Light {
         return color;
     }
 
-    protected void setColor(Color color) {
-        this.color = color;
+    protected void setColor(int r, int g, int b, int a) {
+        this.color = new Color(r, g, b, a);
     }
 }

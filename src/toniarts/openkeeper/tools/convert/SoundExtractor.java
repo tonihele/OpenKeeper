@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.tools.convert.sound.SFFile;
 
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
-import toniarts.openkeeper.tools.convert.sound.SfxMapFile;
+import toniarts.openkeeper.tools.convert.sound.sfx.SfxMapFile;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**

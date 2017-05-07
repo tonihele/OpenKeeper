@@ -20,6 +20,7 @@ import com.jme3.animation.AnimChannel;
 import com.jme3.animation.AnimControl;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.plugins.FileLocator;
+import com.jme3.audio.AudioNode;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
@@ -52,10 +53,15 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.state.MainMenuScreenController;
+import toniarts.openkeeper.audio.plugins.MP2Loader;
+import toniarts.openkeeper.game.data.ISoundable;
+import toniarts.openkeeper.game.sound.SoundGroup;
+import toniarts.openkeeper.game.sound.SoundCategory;
+import toniarts.openkeeper.game.sound.SoundFile;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
@@ -64,8 +70,9 @@ import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Effect;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -122,6 +129,7 @@ public class ModelViewer extends SimpleApplication {
     private List<String> maps;
     private KwdFile kwdFile;
     private Node floorGeom;
+    //private SoundsLoader soundLoader;
     /**
      * The node name for the model (that is attached to the root)
      */
@@ -185,12 +193,14 @@ public class ModelViewer extends SimpleApplication {
     public void simpleInitApp() {
 
         // Distribution locator
-        getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
+        assetManager.registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
+        assetManager.registerLoader(MP2Loader.class, "mp2");
 
         //Effects manager
         this.effectManagerState = new EffectManagerState(getKwdFile(), assetManager);
         stateManager.attach(effectManagerState);
-
+        // init sound loader
+        //soundLoader = new SoundsLoader(assetManager);
 
         Nifty nifty = getNifty();
         screen = new ModelViewerScreenController(this);
@@ -236,8 +246,7 @@ public class ModelViewer extends SimpleApplication {
             try {
                 KmfFile kmf = new KmfFile(kmfModel);
                 KmfModelLoader loader = new KmfModelLoader();
-                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf,
-                        AssetsConverter.getEngineTexturesFile(dkIIFolder), false);
+                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf, false);
                 Node node = (Node) loader.load(asset);
                 setupModel(node, false);
             } catch (Exception e) {
@@ -379,15 +388,20 @@ public class ModelViewer extends SimpleApplication {
             case MODELS: {
                 // Load the selected model
                 Node spat = (Node) AssetUtils.loadAsset(assetManager, (String) selection);
+
+                screen.setupItem(null, null);
                 setupModel(spat, false);
                 break;
             }
             case TERRAIN: {
                 // Load the selected terrain
+                Terrain terrain = (Terrain) selection;
                 effectManagerState.setEnabled(true);
                 Node spat = (Node) new TerrainsLoader().load(this.getAssetManager(),
-                        effectManagerState, (Terrain) selection);
+                        effectManagerState, terrain);
                 setupModel(spat, false);
+
+                screen.setupItem(terrain, loadSoundCategory(terrain));
                 break;
             }
             case MAPS: {
@@ -396,74 +410,95 @@ public class ModelViewer extends SimpleApplication {
                 KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder + PathUtils.DKII_MAPS_FOLDER + file));
                 Node spat = (Node) new MapLoader(this.getAssetManager(), kwd,
                         new EffectManagerState(kwd, this.getAssetManager()), null,
-                        new ObjectLoader(kwdFile, null)) {
+                        new ObjectLoader(kwd, null)) {
                     @Override
                     protected void updateProgress(float progress) {
                         // Do nothing
                     }
                 }.load(this.getAssetManager(), kwd);
+
+                GameLevel gameLevel = kwd.getGameLevel();
+                screen.setupItem(gameLevel, loadSoundCategory(gameLevel, false));
                 setupModel(spat, true);
                 break;
             }
             case OBJECTS: {
                 // Load the selected object
-                //Node spat = (Node) AssetUtils.loadAsset(assetManager, ((GameObject) selection.get(0)).getMeshResource().getName());
+                GameObject object = (GameObject) selection;
                 effectManagerState.setEnabled(true);
                 Node spat = (Node) new ObjectsLoader().load(this.getAssetManager(),
-                        effectManagerState, (GameObject) selection);
+                        effectManagerState, object);
                 setupModel(spat, false);
+
+                screen.setupItem(object, loadSoundCategory(object));
                 break;
             }
             case CREATURES: {
-                // Load the selected terrain
+                // Load the selected creature
+                Creature creature = (Creature) selection;
                 effectManagerState.setEnabled(true);
                 Node spat = (Node) new CreaturesLoader().load(this.getAssetManager(),
-                        effectManagerState, (Creature) selection);
+                        effectManagerState, creature);
                 setupModel(spat, false);
-                
-                screen.setupItem((Creature) selection);
+
+                screen.setupItem(creature, loadSoundCategory(creature));
                 break;
             }
             case TRAPS: {
                 // Load the selected trap
+                Trap trap = (Trap) selection;
                 effectManagerState.setEnabled(true);
                 Node spat = (Node) new TrapsLoader().load(this.getAssetManager(),
-                        effectManagerState, (Trap) selection);
+                        effectManagerState, trap);
                 setupModel(spat, false);
+
+                screen.setupItem(trap, loadSoundCategory(trap));
                 break;
             }
             case DOORS: {
                 // Load the selected door
+                Door door = (Door) selection;
                 effectManagerState.setEnabled(true);
                 Node spat = (Node) new DoorsLoader().load(this.getAssetManager(),
-                        effectManagerState, (Door) selection);
+                        effectManagerState, door);
                 setupModel(spat, false);
+
+                screen.setupItem(door, loadSoundCategory(door));
                 break;
             }
             case ROOMS: {
                 // Load the selected room
+                Room room = (Room) selection;
                 effectManagerState.setEnabled(true);
                 Node spat = (Node) new RoomsLoader().load(this.getAssetManager(),
-                        effectManagerState, (Room) selection);
+                        effectManagerState, room);
                 setupModel(spat, false);
+
+                screen.setupItem(room, loadSoundCategory(room));
                 break;
             }
             case SHOTS: {
                 // Load the selected shot
+                Shot shot = (Shot) selection;
                 effectManagerState.setEnabled(true);
                 Node spat = (Node) new ShotsLoader().load(this.getAssetManager(),
-                        effectManagerState, (Shot) selection);
+                        effectManagerState, shot);
                 setupModel(spat, false);
+
+                screen.setupItem(shot, loadSoundCategory(shot));
                 break;
             }
             case EFFECTS: {
                 // Load the selected effect
                 Node spat = new Node();
+                Effect effect = (Effect) selection;
                 effectManagerState.setEnabled(true);
                 // Load the selected effect
                 effectManagerState.loadSingleEffect(spat, new Vector3f(0, 0, 0),
-                        ((Effect) selection).getEffectId(), true);
+                        effect.getEffectId(), true);
                 setupModel(spat, false);
+
+                screen.setupItem(effect, null);
                 break;
             }
         }
@@ -658,5 +693,31 @@ public class ModelViewer extends SimpleApplication {
         }
 
         return kwdFile;
+    }
+
+    public void onSoundChanged(SoundFile soundFile) {
+        AudioNode node = SoundsLoader.getAudioNode(assetManager, soundFile);
+        node.setLooping(false);
+        node.setPositional(false);
+        node.play();
+    }
+
+    public List<SoundFile> loadSoundCategory(ISoundable item) {
+        return loadSoundCategory(item, true);
+    }
+
+    public List<SoundFile> loadSoundCategory(ISoundable item, boolean useGlobal) {
+        List<SoundFile> result = new ArrayList<>();
+
+        String soundCategory = item.getSoundCategory();
+        SoundCategory sc = SoundsLoader.load(soundCategory, useGlobal);
+        if (sc != null) {
+            for (SoundGroup sa : sc.getGroups().values()) {
+                result.addAll(sa.getFiles());
+            }
+        }
+        Collections.sort(result);
+
+        return result;
     }
 }

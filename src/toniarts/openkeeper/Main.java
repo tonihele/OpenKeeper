@@ -50,6 +50,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Queue;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -356,6 +357,8 @@ public class Main extends SimpleApplication {
 
                     // Nifty
                     Nifty nifty = getNifty();
+                    nifty.setGlobalProperties(new Properties());
+                    nifty.getGlobalProperties().setProperty("MULTI_CLICK_TIME", "1");
 
                     // Validate the XML, great for debuging purposes
                     List<String> guiXMLs = Arrays.asList("Interface/MainMenu.xml", "Interface/GameHUD.xml");

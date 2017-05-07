@@ -21,17 +21,13 @@ package toniarts.openkeeper.tools.convert.sound;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-class BankMapFileEntry {
+public class BankMapFileEntry {
 
-    private long unknown1; // 0xFFFFFFFF in all files. resets to 0
+    private long unknown1; // 0xFFFFFFFF in all files. resets to 0 in DK2 source
     private int unknown2; // 6746904, 6746032, 6746020, 6683824
-    private int unknown3;
-    private short unknown4;
-    private String archive;
-
-    public long getUnknown1() {
-        return unknown1;
-    }
+    private int unknown3; // 8539, 8795
+    private short unknown4; // 115
+    private String name;
 
     protected void setUnknown1(long unknown1) {
         this.unknown1 = unknown1;
@@ -61,11 +57,17 @@ class BankMapFileEntry {
         this.unknown4 = unknown4;
     }
 
-    public String getArchive() {
-        return archive;
+    /**
+     * Part of filename from "Sfx" directory
+     * Without quality "HD" or "HW" and without extension "sdt"
+     *
+     * @return filename
+     */
+    public String getName() {
+        return name;
     }
 
-    public void setArchive(String archive) {
-        this.archive = archive;
+    protected void setName(String name) {
+        this.name = name;
     }
 }

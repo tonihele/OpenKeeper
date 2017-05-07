@@ -102,7 +102,7 @@ public class EndGameState extends AbstractAppState implements RawInputListener {
 
                 // FIXME: Space to debriefing & ESC to continue
                 stateManager.detach(this);
-                stateManager.getState(PlayerState.class).quitToMainMenu();
+                playerState.quitToDebriefing();
             }
         }
     }

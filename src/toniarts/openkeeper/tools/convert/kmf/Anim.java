@@ -78,8 +78,8 @@ public class Anim {
         return pos;
     }
 
-    protected void setPos(Vector3f pos) {
-        this.pos = pos;
+    protected void setPos(float x, float y, float z) {
+        this.pos = new Vector3f(x, y, z);
     }
 
     /**

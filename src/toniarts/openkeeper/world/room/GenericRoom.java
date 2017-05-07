@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
@@ -98,6 +99,9 @@ public abstract class GenericRoom {
         this.effectManager = effectManager;
         this.objectLoader = objectLoader;
         this.worldState = worldState;
+
+        // sounds
+        SoundsLoader.load(roomInstance.getRoom().getSoundCategory());
 
         // Strings
         ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");

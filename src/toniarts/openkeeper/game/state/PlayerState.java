@@ -23,17 +23,21 @@ import com.jme3.asset.AssetManager;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.player.PlayerCreatureControl;
+import toniarts.openkeeper.game.player.PlayerCreatureControl.CreatureUIState;
 import toniarts.openkeeper.game.player.PlayerGoldControl;
 import toniarts.openkeeper.game.player.PlayerRoomControl;
 import toniarts.openkeeper.game.player.PlayerSpellControl;
 import toniarts.openkeeper.game.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -43,9 +47,12 @@ import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PossessionCameraState;
 import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.GoldObjectControl;
+import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.world.room.RoomInstance;
 
 /**
  * The player state! GUI, camera, etc. Player interactions
@@ -337,14 +344,36 @@ public class PlayerState extends AbstractAppState {
         stateManager.getState(MainMenuState.class).setEnabled(true);
     }
 
+    public void quitToDebriefing() {
+        // TODO copy results of game from GameState
+        GameState gs = stateManager.getState(GameState.class);
+        GameResult result = gs.getGameResult();
+        gs.detach();
+        setEnabled(false);
+        stateManager.getState(MainMenuState.class).doDebriefing(result);
+    }
+
     public void quitToOS() {
         app.stop();
     }
 
-    public void zoomToCreature(String creatureId) {
-        GameState gs = stateManager.getState(GameState.class);
-        CreatureControl creature = getCreatureControl().getNextCreature(gs.getLevelData().getCreature(Short.parseShort(creatureId)));
-        zoomToCreature(creature);
+    public void zoomToDungeon() {
+        MapLoader mapLoader = stateManager.getState(WorldState.class).getMapLoader();
+        for (Map.Entry<RoomInstance, GenericRoom> en : mapLoader.getRoomActuals().entrySet()) {
+            RoomInstance key = en.getKey();
+            GenericRoom value = en.getValue();
+            if (value.isDungeonHeart() && key.getOwnerId() == playerId) {
+                cameraState.setCameraLookAt(key.getCenter());
+                break;
+            }
+        }
+    }
+
+    public void zoomToCreature(short creatureId, CreatureUIState uiState) {
+        Creature creature = stateManager.getState(GameState.class).getLevelData().getCreature(creatureId);
+        CreatureControl creatureControl = getCreatureControl().getNextCreature(creature, uiState);
+
+        zoomToCreature(creatureControl);
     }
 
     /**
@@ -354,6 +383,13 @@ public class PlayerState extends AbstractAppState {
      */
     public void zoomToCreature(CreatureControl creature) {
         cameraState.setCameraLookAt(creature.getSpatial());
+    }
+
+    void pickUpCreature(short creatureId, CreatureUIState uiState) {
+        Creature creature = stateManager.getState(GameState.class).getLevelData().getCreature(creatureId);
+        CreatureControl creatureControl = getCreatureControl().getCreature(creature, uiState);
+
+        interactionState.pickupObject(creatureControl);
     }
 
     public short getPlayerId() {
@@ -390,5 +426,22 @@ public class PlayerState extends AbstractAppState {
         // Disable us to get rid of all interaction
         setEnabled(false);
         stateManager.attach(new EndGameState(this));
+    }
+
+    String getTooltipText(String text) {
+        int dungeonHealth = 0;
+        int paydayCost = 0;
+        MapLoader mapLoader = stateManager.getState(WorldState.class).getMapLoader();
+        for (Map.Entry<RoomInstance, GenericRoom> en : mapLoader.getRoomActuals().entrySet()) {
+            RoomInstance key = en.getKey();
+            GenericRoom value = en.getValue();
+            if (value.isDungeonHeart() && key.getOwnerId() == playerId) {
+                dungeonHealth = key.getHealthPercentage();
+                break;
+            }
+        }
+        // TODO payday cost calculator
+        return text.replaceAll("%19%", String.valueOf(dungeonHealth))
+                .replaceAll("%20", String.valueOf(paydayCost));
     }
 }

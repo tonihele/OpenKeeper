@@ -303,6 +303,7 @@ public class AssetUtils {
     }
 
     private static Texture createArtResourceTexture(ArtResource resource, AssetManager assetManager) throws IOException {
+        String assetFolder = AssetsConverter.TEXTURES_FOLDER + File.separator;
 
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
 
@@ -314,7 +315,7 @@ public class AssetUtils {
             }
 
             // Get the first frame, the frames need to be same size
-            BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + resource.getName() + "0.png"))).openStream());
+            BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + "0.png"))).openStream());
 
             // Create image big enough to fit all the frames
             int frames = resource.getData("frames");
@@ -323,7 +324,7 @@ public class AssetUtils {
             Graphics2D g = text.createGraphics();
             g.drawImage(img, rop, 0, 0);
             for (int x = 1; x < frames; x++) {
-                AssetInfo asset = assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + resource.getName() + x + ".png")));
+                AssetInfo asset = assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + x + ".png")));
                 if (asset != null) {
                     img = ImageIO.read(asset.openStream());
                 } else {
@@ -339,9 +340,13 @@ public class AssetUtils {
             Texture tex = new Texture2D(loader.load(text, false));
             return tex;
         } else {
+            if (resource.getType().equals(ArtResource.ArtResourceType.SPRITE) && resource.getData("width").intValue() > 1) {
+                // only the unused sprites have a size of bigger than one
+                assetFolder = AssetsConverter.SPRITES_FOLDER + File.separator;
+            }
 
             // A regular texture
-            TextureKey key = new TextureKey(ConversionUtils.getCanonicalAssetKey("Textures/" + resource.getName() + ".png"), false);
+            TextureKey key = new TextureKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + ".png"), false);
             return assetManager.loadTexture(key);
         }
     }
@@ -395,7 +400,7 @@ public class AssetUtils {
         Method[] methods = clazz.getMethods();
         List<Method> methodsToScan = new ArrayList<>();
         for (Method method : methods) {
-            if (method.getReturnType().equals(ArtResource.class)) {
+            if (method.getReturnType().equals(ArtResource.class) && method.getParameterCount() == 0) {
                 methodsToScan.add(method);
             }
         }
@@ -405,7 +410,7 @@ public class AssetUtils {
         if (!methodsToScan.isEmpty()) {
             for (Object obj : objects) {
                 for (Method method : methodsToScan) {
-                    ArtResource artResource = (ArtResource) method.invoke(obj, (Object[]) null);
+                    ArtResource artResource = (ArtResource) method.invoke(obj);
                     if (artResource != null && artResource.getFlags().contains(ArtResource.ArtResourceFlag.PRELOAD)) {
 
                         try {
@@ -610,5 +615,38 @@ public class AssetUtils {
         int id = resource.getData("id");
 
         return new Node();
+    }
+
+    /**
+     * Deletes a file or a folder
+     *
+     * @param file
+     * @return true if the file or folder was deleted
+     */
+    public static boolean deleteFolder(final File file) {
+        File[] fileList = null;
+
+        if (file == null) {
+            return false;
+        }
+
+        if (file.isFile()) {
+            return file.delete();
+        }
+
+        if (!file.isDirectory()) {
+            return false;
+        }
+
+        fileList = file.listFiles();
+        if (fileList != null && fileList.length > 0) {
+            for (File f : fileList) {
+                if (!deleteFolder(f)) {
+                    return false;
+                }
+            }
+        }
+
+        return file.delete();
     }
 }

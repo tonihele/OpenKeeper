@@ -19,13 +19,14 @@ package toniarts.openkeeper.tools.convert.map;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
+import toniarts.openkeeper.game.data.ISoundable;
 
 /**
  * Container class for KeeperSpells.kwd
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KeeperSpell implements Comparable<KeeperSpell> {
+public class KeeperSpell implements Comparable<KeeperSpell>, ISoundable {
 
     /**
      * Keeper spell flags
@@ -158,7 +159,7 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
     private short keeperSpellId; // ee
     private CastRule castRule;
     private short shotTypeId; // Shot
-    private String soundGategory; // xf1
+    private String soundCategory; // xf1
     // Bonus update
     private int bonusRTime;
     private short bonusShotTypeId; // Shot
@@ -166,7 +167,7 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
     private int bonusShotData2;
     private int manaCost;
     private ArtResource bonusIcon; // 120
-    private String soundGategoryGui; // 174
+    private String soundCategoryGui; // 174
     private HandAnimId handAnimId;
     private HandAnimId noGoHandAnimId;
 
@@ -338,12 +339,13 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
         this.shotTypeId = shotTypeId;
     }
 
-    public String getSoundGategory() {
-        return soundGategory;
+    @Override
+    public String getSoundCategory() {
+        return soundCategory;
     }
 
-    protected void setSoundGategory(String soundGategory) {
-        this.soundGategory = soundGategory;
+    protected void setSoundCategory(String soundGategory) {
+        this.soundCategory = soundGategory;
     }
 
     public int getBonusRTime() {
@@ -394,12 +396,12 @@ public class KeeperSpell implements Comparable<KeeperSpell> {
         this.bonusIcon = bonusIcon;
     }
 
-    public String getSoundGategoryGui() {
-        return soundGategoryGui;
+    public String getSoundCategoryGui() {
+        return soundCategoryGui;
     }
 
-    protected void setSoundGategoryGui(String soundGategoryGui) {
-        this.soundGategoryGui = soundGategoryGui;
+    protected void setSoundCategoryGui(String soundGategoryGui) {
+        this.soundCategoryGui = soundGategoryGui;
     }
 
     public HandAnimId getHandAnimId() {

@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
-import javax.vecmath.Vector3f;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
@@ -61,11 +60,19 @@ public class KcsFile {
 
                 //Entries have 56 bytes in them
                 KcsEntry entry = new KcsEntry();
-                entry.setPosition(new Vector3f(ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs)));
-                entry.setDirection(new Vector3f(ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs)));
-                entry.setLeft(new Vector3f(ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs)));
-                entry.setUp(new Vector3f(ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs), ConversionUtils.readFloat(rawKcs)));
-                entry.setFov(ConversionUtils.readFloat(rawKcs));
+                entry.setPosition(ConversionUtils.readFloat(rawKcs),
+                        ConversionUtils.readFloat(rawKcs),
+                        ConversionUtils.readFloat(rawKcs));
+                entry.setDirection(ConversionUtils.readFloat(rawKcs),
+                        ConversionUtils.readFloat(rawKcs),
+                        ConversionUtils.readFloat(rawKcs));
+                entry.setLeft(ConversionUtils.readFloat(rawKcs),
+                        ConversionUtils.readFloat(rawKcs),
+                        ConversionUtils.readFloat(rawKcs));
+                entry.setUp(ConversionUtils.readFloat(rawKcs),
+                        ConversionUtils.readFloat(rawKcs),
+                        ConversionUtils.readFloat(rawKcs));
+                entry.setLens(ConversionUtils.readFloat(rawKcs));
                 entry.setNear(ConversionUtils.readFloat(rawKcs));
                 kcsEntries.add(entry);
             }
