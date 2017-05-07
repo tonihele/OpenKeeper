@@ -97,7 +97,8 @@ public class LocalLobby implements LobbyService, LobbyClientService {
     @Override
     public void setReady(boolean ready) {
         this.ready = ready;
-        players.get(getPlayerId()).setReady(true);
+        players.get(getPlayerId()).setReady(ready);
+        notifyPlayerListChange();
     }
 
     @Override

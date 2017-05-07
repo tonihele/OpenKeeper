@@ -22,7 +22,10 @@ import com.jme3.app.state.AppStateManager;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import static java.util.stream.Collectors.toList;
 import toniarts.openkeeper.game.MapSelector;
+import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -33,6 +36,7 @@ import toniarts.openkeeper.utils.Utils;
 public class LobbyState extends AbstractAppState {
 
     private Application app;
+    private AppStateManager stateManager;
     private final boolean online;
     private final LobbyService lobbyService;
     private final LobbyClientService lobbyClientService;
@@ -65,6 +69,7 @@ public class LobbyState extends AbstractAppState {
     public void initialize(AppStateManager stateManager, Application app) {
         super.initialize(stateManager, app);
         this.app = app;
+        this.stateManager = stateManager;
 
         renderThread = Thread.currentThread();
     }
@@ -114,6 +119,22 @@ public class LobbyState extends AbstractAppState {
         lobbyService.setMap(mapSelector.getMap().getMapName(), mapSelector.getMap().getMap().getGameLevel().getPlayerCount());
     }
 
+    private void startGame(List<ClientInfo> players) {
+
+        // TODO: I don't really know how, but at least now to allow the skirmish to work
+        GameState gameState = new GameState(mapSelector.getMap().getMap(), players.stream().map(ClientInfo::getKeeper).collect(toList()));
+        if (isRenderThread()) {
+            stateManager.getState(MainMenuState.class).setEnabled(false);
+        } else {
+            app.enqueue(() -> {
+                stateManager.getState(MainMenuState.class).setEnabled(false);
+            });
+        }
+        stateManager.getState(MainMenuState.class).setEnabled(false);
+        stateManager.attach(gameState);
+        stateManager.detach(this);
+    }
+
     /**
      * Small class to filter all the notifications to the render thread
      */
@@ -136,6 +157,14 @@ public class LobbyState extends AbstractAppState {
                     listener.onPlayerListChanged(players);
                 });
             }
+
+            // Start game if we are all ready
+            for (ClientInfo clientInfo : players) {
+                if (!clientInfo.isReady()) {
+                    return;
+                }
+            }
+            lobbyState.startGame(players);
         }
 
         @Override
