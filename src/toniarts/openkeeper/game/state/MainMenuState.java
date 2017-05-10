@@ -44,7 +44,6 @@ import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GeneralLevel;
-import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
@@ -516,18 +515,6 @@ public class MainMenuState extends AbstractAppState {
         }
 
         return displayModes;
-    }
-
-    /**
-     * Init skirmish players
-     */
-    protected void initSkirmishPlayers() {
-        skirmishPlayers.clear();
-
-        Keeper keeper = new Keeper(false, "Player", Player.KEEPER1_ID, app);
-        skirmishPlayers.add(keeper);
-        keeper = new Keeper(true, null, Player.KEEPER2_ID, app);
-        skirmishPlayers.add(keeper);
     }
 
     public void doDebriefing(GameResult result) {
