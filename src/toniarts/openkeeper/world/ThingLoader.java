@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.player.PlayerSpell;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
@@ -274,7 +275,7 @@ public class ThingLoader {
         }
         CreatureControl creatureControl = creature.getControl(CreatureControl.class);
         if (entrance) {
-            creatureControl.getStateMachine().setInitialState(CreatureState.ENTERING_DUNGEON);
+            creatureControl.getStateMachine().changeState(CreatureState.ENTERING_DUNGEON);
         }
         creatures.add(creatureControl);
 
@@ -316,7 +317,11 @@ public class ThingLoader {
      * @param maxAmount the max gold amount
      * @return the gold object
      */
+    @Nullable
     public GoldObjectControl addRoomGold(Point p, short playerId, int initialAmount, int maxAmount) {
+        if (initialAmount == 0) {
+            return null;
+        }
         // TODO: the room gold object id..
         Spatial object = objectLoader.load(assetManager, p, 0, initialAmount, 0,
                 ObjectLoader.OBJECT_GOLD_PILE_ID, playerId, maxAmount);

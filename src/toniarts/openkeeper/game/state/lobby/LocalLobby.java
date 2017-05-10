@@ -26,6 +26,7 @@ import java.util.Set;
 import static java.util.stream.Collectors.toList;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.AI;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -43,10 +44,10 @@ public class LocalLobby implements LobbyService, LobbyClientService {
     private boolean ready = false;
 
     public LocalLobby() {
-        Keeper keeper = new Keeper(false, Keeper.KEEPER1_ID, null);
+        Keeper keeper = new Keeper(false, Player.KEEPER1_ID, null);
         ClientInfo clientInfo = createClientInfo(keeper, Utils.getMainTextResourceBundle().getString("58"));
         players.put(clientInfo.getId(), clientInfo);
-        keeper = new Keeper(true, Keeper.KEEPER2_ID, null);
+        keeper = new Keeper(true, Player.KEEPER2_ID, null);
         clientInfo = createClientInfo(keeper, null);
         players.put(clientInfo.getId(), clientInfo);
     }
@@ -147,7 +148,7 @@ public class LocalLobby implements LobbyService, LobbyClientService {
      * @return the next available Keeper
      */
     public static Keeper getNextKeeper(boolean ai, Set<ClientInfo> players) {
-        short id = Keeper.KEEPER1_ID;
+        short id = Player.KEEPER1_ID;
         List<Short> keepers = players.stream().map(c -> c.getKeeper().getId()).collect(toList());
         Collections.sort(keepers);
         while (Collections.binarySearch(keepers, id) >= 0) {
@@ -188,7 +189,7 @@ public class LocalLobby implements LobbyService, LobbyClientService {
         // Compact the keeper IDs
         List<ClientInfo> keepers = new ArrayList<>(players);
         Collections.sort(keepers, (ClientInfo o1, ClientInfo o2) -> Short.compare(o1.getKeeper().getId(), o2.getKeeper().getId()));
-        short id = Keeper.KEEPER1_ID;
+        short id = Player.KEEPER1_ID;
         for (ClientInfo keeper : keepers) {
             if (!kickedPlayers.contains(keeper)) {
                 keeper.getKeeper().setId(id);

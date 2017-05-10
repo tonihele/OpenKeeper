@@ -78,13 +78,16 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
 
             // Add the visuals
             if (goldPile == null) {
-                GoldObjectControl object = thingLoader.addRoomGold(p, parent.getRoomInstance().getOwnerId(), goldToStore, getGoldPerObject());
+                GoldObjectControl object = thingLoader.addRoomGold(p,
+                        parent.getRoomInstance().getOwnerId(), goldToStore, getGoldPerObject());
                 if (goldPiles == null) {
                     goldPiles = new ArrayList<>(1);
                 }
-                goldPiles.add(object);
-                objectsByCoordinate.put(p, goldPiles);
-                object.setRoomObjectControl(this);
+                if (object != null) {
+                    goldPiles.add(object);
+                    objectsByCoordinate.put(p, goldPiles);
+                    object.setRoomObjectControl(this);
+                }
             } else {
 
                 // Adjust the gold sum

@@ -36,6 +36,8 @@ import toniarts.openkeeper.world.WorldState;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class EffectManagerState extends AbstractAppState {
+    
+    public static int ROOM_CLAIM_ID = 2;
 
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
@@ -53,7 +55,6 @@ public class EffectManagerState extends AbstractAppState {
         super.initialize(stateManager, app);
         this.stateManager = stateManager;
     }
-
 
     @Override
     public void update(float tpf) {
@@ -79,10 +80,9 @@ public class EffectManagerState extends AbstractAppState {
      */
     public void loadSingleEffect(Node node, Vector3f location, int effectId, boolean infinite) {
 
-        // Load the effect
-        VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite);
         clearActiveEffects();
-        activeEffects.add(visualEffect);
+        // Load the effect
+        load(node, location, effectId, infinite);
     }
 
     public void clearActiveEffects() {
@@ -107,6 +107,9 @@ public class EffectManagerState extends AbstractAppState {
     public void load(Node node, Vector3f location, int effectId, boolean infinite) {
 
         // Load the effect
+        if (effectId == 0) {
+            return;
+        }
         VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite);
         activeEffects.add(visualEffect);
     }

@@ -277,10 +277,10 @@ public class PlayerTriggerControl extends TriggerControl {
                     logger.warning("Generate creature triggered but no entrances found!");
                     break;
                 }
-                Point p = ((ICreatureEntrance) rooms.iterator().next()).getEntranceCoordinate();
-                CreatureSpawnLogicState.spawnCreature(creatureId, keeper.getId(), level,
+                ICreatureEntrance room = ((ICreatureEntrance) rooms.iterator().next());
+                room.spawnCreature(creatureId, level,
                         stateManager.getState(GameState.class).getApplication(),
-                        stateManager.getState(WorldState.class).getThingLoader(), p, true);
+                        stateManager.getState(WorldState.class).getThingLoader());
                 break;
 
             case SET_PORTAL_STATUS: // Creature part. Only for keeper x

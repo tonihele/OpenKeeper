@@ -20,7 +20,6 @@ import com.jme3.asset.AssetManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.*;
-import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -60,19 +59,7 @@ public final class RoomConstructor {
                 return new HeroGateThreeByOne(assetManager, roomInstance, objectLoader, worldState, effectManager);
 
             case _5_BY_5_ROTATED:
-                return new FiveByFiveRotated(assetManager, roomInstance, objectLoader, worldState, effectManager) {
-
-                    private Integer goldPerTile;
-
-                    @Override
-                    protected int getGoldPerTile() {
-                        if (goldPerTile == null) {
-                            goldPerTile = (int) worldState.getLevelVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE);
-                        }
-                        return goldPerTile;
-                    }
-
-                };
+                return new FiveByFiveRotated(assetManager, roomInstance, objectLoader, worldState, effectManager);
 
             case NORMAL:
                 if (roomName.equalsIgnoreCase("Lair")) {
@@ -92,19 +79,7 @@ public final class RoomConstructor {
                 } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
                     return new TortureChamber(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 } else if (roomName.equalsIgnoreCase("Treasury")) {
-                    return new Treasury(assetManager, roomInstance, objectLoader, worldState, effectManager) {
-
-                        private Integer goldPerTile;
-
-                        @Override
-                        protected int getGoldPerTile() {
-                            if (goldPerTile == null) {
-                                goldPerTile = (int) worldState.getLevelVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PER_TREASURY_TILE);
-                            }
-                            return goldPerTile;
-                        }
-
-                    };
+                    return new Treasury(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 } else if (roomName.equalsIgnoreCase("Hatchery")) {
                     return new Hatchery(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 }

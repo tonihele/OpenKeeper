@@ -411,8 +411,11 @@ public class PlayerState extends AbstractAppState {
             int goldSubstracted = amount - left;
 
             // FIXME: questionable way of creating gold
-            GoldObjectControl goc = ws.getThingLoader().addRoomGold(new Point(0, 0), playerId, goldSubstracted, goldSubstracted);
-            interactionState.pickupObject(goc);
+            GoldObjectControl goc = ws.getThingLoader().addRoomGold(new Point(0, 0),
+                    playerId, goldSubstracted, goldSubstracted);
+            if (goc != null) {
+                interactionState.pickupObject(goc);
+            }
         }
     }
 

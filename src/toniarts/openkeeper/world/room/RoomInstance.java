@@ -74,7 +74,9 @@ public class RoomInstance extends EntityInstance<Room> {
      * @return is attackable
      */
     boolean isAttackable() {
-        return mapData.getTile(getCoordinates().get(0)).getTerrain().getFlags().contains(Terrain.TerrainFlag.ATTACKABLE);
+        // FIXME what correct?
+        return getEntity().getFlags().contains(Room.RoomFlag.ATTACKABLE);
+        //return mapData.getTile(getCoordinates().get(0)).getTerrain().getFlags().contains(Terrain.TerrainFlag.ATTACKABLE);
     }
 
     /**

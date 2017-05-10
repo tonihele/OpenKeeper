@@ -16,7 +16,11 @@
  */
 package toniarts.openkeeper.world.room;
 
+import com.jme3.app.Application;
 import java.awt.Point;
+import java.util.List;
+import toniarts.openkeeper.world.ThingLoader;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Signifies that a room is an entrance for creatures
@@ -32,4 +36,14 @@ public interface ICreatureEntrance {
      */
     public Point getEntranceCoordinate();
 
+    /**
+     * Get creautures attracted on this entrance
+     * @return
+     */
+    public List<CreatureControl> getAttractedCreatures();
+
+    public CreatureControl spawnCreature(short creatureId, short level,
+            Application app, ThingLoader thingLoader);
+
+    public CreatureControl spawnCreature(short creatureId, Application app, ThingLoader thingLoader);
 }

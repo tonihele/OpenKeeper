@@ -84,8 +84,8 @@ public class CreatureSteeringCreator {
                 // Navigate
                 FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(creature,
                         new LinePath<>(pathToArray(outPath), true), 2);
-                followPath.setDecelerationRadius(0.8f);
-                followPath.setArrivalTolerance(0.2f);
+                followPath.setDecelerationRadius(0.3f);
+                followPath.setArrivalTolerance(0.1f);
                 prioritySteering.add(followPath);
             }
 
@@ -95,7 +95,7 @@ public class CreatureSteeringCreator {
                 ReachOrientation orient = new ReachOrientation(creature,
                         new TargetLocation(WorldUtils.pointToVector2(faceTarget),
                                 WorldUtils.pointToVector2(p)));
-                orient.setDecelerationRadius(0.8f);
+                orient.setDecelerationRadius(0.3f);
                 //orient.setTimeToTarget(0.001f);
                 orient.setAlignTolerance(0.2f);
                 prioritySteering.add(orient);

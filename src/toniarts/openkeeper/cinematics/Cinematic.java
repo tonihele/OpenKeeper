@@ -79,7 +79,8 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
     public Cinematic(final Main app, String cameraSweepFile, final ActionPoint ap) {
 
-        this(app.getAssetManager(), app.getCamera(), WorldUtils.ActionPointToVector3f(ap),
+        this(app.getAssetManager(), app.getCamera(),
+                WorldUtils.ActionPointToVector3f(ap).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
                 cameraSweepFile, app.getRootNode(), app.getStateManager());
     }
 
