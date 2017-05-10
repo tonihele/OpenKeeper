@@ -34,7 +34,7 @@ import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbyService;
 import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
-import toniarts.openkeeper.game.state.lobby.LocalLobby;
+import toniarts.openkeeper.game.state.lobby.LobbyUtils;
 import toniarts.openkeeper.tools.convert.map.AI;
 
 /**
@@ -91,7 +91,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         if (players.size() < maxPlayers) {
             synchronized (playerLock) {
                 if (players.size() < maxPlayers) {
-                    Keeper keeper = LocalLobby.getNextKeeper(false, players.keySet());
+                    Keeper keeper = LobbyUtils.getNextKeeper(false, players.keySet());
                     ClientInfo clientInfo = new ClientInfo(conn.getAttribute(ATTRIBUTE_SYSTEM_MEMORY), conn.getAddress(), conn.getId());
                     clientInfo.setName(playerName);
                     clientInfo.setKeeper(keeper);
@@ -167,7 +167,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
             this.mapName = mapName;
             this.maxPlayers = maxPlayers;
             synchronized (playerLock) {
-                for (ClientInfo clientInfo : LocalLobby.compactPlayers(players.keySet(), maxPlayers)) {
+                for (ClientInfo clientInfo : LobbyUtils.compactPlayers(players.keySet(), maxPlayers)) {
 
                     // These are AI players only...
                     players.remove(clientInfo);
@@ -194,7 +194,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
                         aiPlayerIdCounter = -1;
                     }
 
-                    Keeper keeper = LocalLobby.getNextKeeper(true, players.keySet());
+                    Keeper keeper = LobbyUtils.getNextKeeper(true, players.keySet());
                     final ClientInfo clientInfo = new ClientInfo(0, null, aiPlayerIdCounter);
                     clientInfo.setKeeper(keeper);
                     clientInfo.setReady(true);
