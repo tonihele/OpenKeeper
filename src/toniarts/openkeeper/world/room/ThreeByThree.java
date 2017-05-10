@@ -16,12 +16,21 @@
  */
 package toniarts.openkeeper.world.room;
 
+import com.jme3.app.Application;
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import java.util.ArrayList;
+import java.util.List;
+import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
@@ -31,6 +40,8 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
+
+    private final List<CreatureControl> attractedCreatures = new ArrayList<>();
 
     public ThreeByThree(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         super(assetManager, roomInstance, objectLoader, worldState, effectManager);
@@ -67,7 +78,40 @@ public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
     }
 
     @Override
+    public String getTooltip(short playerId) {
+        String result = super.getTooltip(playerId);
+
+        return result.replaceAll("%42", Integer.toString(attractedCreatures.size())) // Creatures attracted
+                .replaceAll("%43", Integer.toString(getMaxCapacity()));  // FIXME Creatures attracted Max;
+    }
+
+    @Override
     public Point getEntranceCoordinate() {
-        return roomInstance.getCoordinates().get(0);
+        return roomInstance.getCenter();
+    }
+
+    @Override
+    public List<CreatureControl> getAttractedCreatures() {
+        // FIXME if creature die ?
+        return attractedCreatures;
+    }
+
+    @Override
+    public CreatureControl spawnCreature(short creatureId, short level, Application app, ThingLoader thingLoader) {
+
+        CreatureControl creature = CreatureSpawnLogicState.spawnCreature(creatureId,
+                roomInstance.getOwnerId(), (short) 1, app, thingLoader, getEntranceCoordinate(), true);
+        attractedCreatures.add(creature);
+
+        Vector3f effectPos = WorldUtils.pointToVector3f(roomInstance.getCenter());
+        effectManager.load(getRootNode(), effectPos,
+                creature.getCreature().getEntranceEffectId(), false);
+
+        return creature;
+    }
+
+    @Override
+    public CreatureControl spawnCreature(short creatureId, Application app, ThingLoader thingLoader) {
+        return spawnCreature(creatureId, (short) 1, app, thingLoader);
     }
 }

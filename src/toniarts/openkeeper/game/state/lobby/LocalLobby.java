@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.AI;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -41,10 +42,10 @@ public class LocalLobby implements LobbyService, LobbyClientService {
     private boolean ready = false;
 
     public LocalLobby() {
-        Keeper keeper = new Keeper(false, Keeper.KEEPER1_ID, null);
+        Keeper keeper = new Keeper(false, Player.KEEPER1_ID, null);
         ClientInfo clientInfo = createClientInfo(keeper, Utils.getMainTextResourceBundle().getString("58"));
         players.put(clientInfo.getId(), clientInfo);
-        keeper = new Keeper(true, Keeper.KEEPER2_ID, null);
+        keeper = new Keeper(true, Player.KEEPER2_ID, null);
         clientInfo = createClientInfo(keeper, null);
         players.put(clientInfo.getId(), clientInfo);
     }

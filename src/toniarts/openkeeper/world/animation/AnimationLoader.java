@@ -25,7 +25,6 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -49,7 +48,9 @@ public class AnimationLoader {
     }
 
     private static void attachResource(final Node root, final AnimationControl animationControl, final ArtResource resource, AssetManager assetManager) {
-        if (resource != null && (resource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH || resource.getType() == ArtResource.ArtResourceType.MESH || resource.getType() == ArtResource.ArtResourceType.PROCEDURAL_MESH)) {
+        if (resource != null && (resource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH
+                || resource.getType() == ArtResource.ArtResourceType.MESH
+                || resource.getType() == ArtResource.ArtResourceType.PROCEDURAL_MESH)) {
             try {
 
                 Spatial spat = loadModel(assetManager, resource.getName(), root);
@@ -72,7 +73,7 @@ public class AnimationLoader {
 
                                 // Start the real animation
                                 Spatial spat = root.getChild(resource.getName());
-                                AnimControl animControl = (AnimControl) spat.getControl(0);
+                                AnimControl animControl = spat.getControl(AnimControl.class);
                                 spat.setCullHint(Spatial.CullHint.Inherit);
                                 AnimChannel c = animControl.getChannel(0);
                                 LoopMode loopMode = c.getLoopMode();
@@ -131,9 +132,11 @@ public class AnimationLoader {
                     animControl.setEnabled(false);
                     animControl.addListener(new AnimEventListener() {
 
+                        private int cyclesCount = 0;
+
                         @Override
                         public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
-
+                            cyclesCount++;
                             // Signal that the main animation cycle is done
                             animationControl.onAnimationCycleDone();
 
@@ -150,7 +153,7 @@ public class AnimationLoader {
                                     control.getSpatial().setCullHint(Spatial.CullHint.Always);
 
                                     Spatial spat = root.getChild(END_ANIMATION_NAME);
-                                    AnimControl animControl = (AnimControl) spat.getControl(0);
+                                    AnimControl animControl = spat.getControl(AnimControl.class);
                                     spat.setCullHint(Spatial.CullHint.Inherit);
                                     AnimChannel c = animControl.getChannel(0);
                                     LoopMode loopMode = c.getLoopMode();
@@ -230,36 +233,45 @@ public class AnimationLoader {
         }
         attachResource(root, root.getControl(AnimationControl.class), anim, assetManager);
 
-        // Get the anim node
-        String animNodeName = anim.getName();
-        if (anim.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
-            animNodeName = START_ANIMATION_NAME;
-        }
-        Spatial spat = root.getChild(animNodeName);
-        if (spat != null) {
-
-            // Hide all
-            hideAllNodes(root);
-
-            // Show the anim
-            AnimControl animControl = spat.getControl(AnimControl.class);
-            spat.setCullHint(Spatial.CullHint.Inherit);
-            if (animControl != null) { // Not all are anims
-                AnimChannel channel = animControl.getChannel(0);
-                LoopMode loopMode = channel.getLoopMode();
-                channel.setAnim(ANIM_NAME, 0);
-                if (loopMode != null) {
-                    channel.setLoopMode(loopMode);
-                }
-                if (endFrame) {
-                    channel.setTime(Integer.MAX_VALUE);
-                }
-                animControl.setEnabled(true);
+        try {
+            // Get the anim node
+            String animNodeName = anim.getName();
+            if (anim.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
+                animNodeName = START_ANIMATION_NAME;
             }
+            Spatial spat = root.getChild(animNodeName);
+            if (spat != null) {
+
+                // Hide all
+                hideAllNodes(root);
+
+                // Show the anim
+                AnimControl animControl = spat.getControl(AnimControl.class);
+                spat.setCullHint(Spatial.CullHint.Inherit);
+                if (animControl != null) { // Not all are anims
+                    AnimChannel channel = animControl.getChannel(0);
+                    LoopMode loopMode = channel.getLoopMode();
+                    channel.setAnim(ANIM_NAME, 0);
+                    if (loopMode != null) {
+                        channel.setLoopMode(loopMode);
+                    }
+                    if (endFrame) {
+                        channel.setTime(Integer.MAX_VALUE);
+                    }
+                    animControl.setEnabled(true);
+                }
+            }
+        } catch (Exception e) {
+            // FIXME sometimes NPE in CreatureControl.java
+            // line: playAnimation(creature.getAnimEntranceResource());
+            logger.log(Level.SEVERE, "Creature animation playing error: {0}", e.toString());
         }
     }
 
     /**
+     * @param spatial
+     * @param anim
+     * @param assetManager
      * @see #playAnimation(com.jme3.scene.Spatial,
      * toniarts.openkeeper.tools.convert.map.ArtResource,
      * com.jme3.asset.AssetManager, boolean)
@@ -307,7 +319,7 @@ public class AnimationLoader {
 
     private static void setAnimSpeeds(Node node, float speed) {
         for (Spatial child : node.getChildren()) {
-            AnimControl animControl = (AnimControl) child.getControl(AnimControl.class);
+            AnimControl animControl = child.getControl(AnimControl.class);
             if (animControl != null) {
                 animControl.getChannel(0).setSpeed(speed);
             }

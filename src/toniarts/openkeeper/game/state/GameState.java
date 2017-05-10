@@ -255,7 +255,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     if (players.containsKey(entry.getKey())) {
                         keeper = players.get(entry.getKey());
                         keeper.setPlayer(entry.getValue());
-                    } else if (addMissingPlayers || entry.getKey() < Keeper.KEEPER1_ID) {
+                    } else if (addMissingPlayers || entry.getKey() < Player.KEEPER1_ID) {
                         keeper = new Keeper(entry.getValue(), app);
                         players.put(entry.getKey(), keeper);
                     }

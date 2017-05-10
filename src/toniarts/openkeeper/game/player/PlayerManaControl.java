@@ -117,6 +117,10 @@ public class PlayerManaControl extends Control {
         return this.manaCurrent;
     }
 
+    public int getManaMax() {
+        return this.manaMax;
+    }
+
     public int getManaGain() {
         return this.manaGain;
     }

@@ -31,6 +31,7 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
@@ -80,17 +81,36 @@ public abstract class GenericRoom {
     protected final WorldState worldState;
     private final static int[] wallIndexes = new int[]{7, 8};
     private Node root;
-    private final String tooltip;
+    protected String tooltip;
     private static String notOwnedTooltip = null;
     protected final EffectManagerState effectManager;
     private ObjectType defaultObjectType;
     private final Map<ObjectType, RoomObjectControl> objectControls = new HashMap<>();
-    private boolean destroyed = false;
+    protected boolean destroyed = false;
     protected boolean[][] map;
     protected Point start;
     protected final ObjectLoader objectLoader;
     private final Set<ObjectControl> floorFurniture = new HashSet<>();
     private final Set<ObjectControl> wallFurniture = new HashSet<>();
+
+    // FIXME we need todo something
+    private static final Map<Integer, String> temp = new HashMap<>();
+    static {
+        temp.put(3, "%44"); // Portal
+        temp.put(2, "%45"); // Lairs
+        temp.put(4, "%46"); // Hatchery
+        temp.put(1, "%47"); // Treasure
+        temp.put(6, "%48"); // Library
+        temp.put(7, "%49"); // Training Room
+        temp.put(10, "%50"); // Workshop
+        temp.put(9, "%51"); // Guard Rooms
+        temp.put(16, "%53"); // Combat Pit
+        temp.put(12, "%54"); // Torture
+        temp.put(11, "%58"); // Prison
+        temp.put(14, "%61"); // Graveyard
+        temp.put(13, "%62"); // Temple
+        temp.put(15, "%63"); // Casino
+    }
 
     public GenericRoom(AssetManager assetManager,
             RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
@@ -396,36 +416,19 @@ public abstract class GenericRoom {
     }
 
     public String getTooltip(short playerId) {
-        if (roomInstance.getOwnerId() != playerId && roomInstance.isAttackable()) {
+        if (roomInstance.getOwnerId() != playerId) {
             return notOwnedTooltip;
         }
-        return tooltip.replaceAll("%37%", Integer.toString(roomInstance.getHealthPercentage()))
+
+        String temp = tooltip;
+        RoomCount total = getRoomCount();
+        if (total != null) {
+            temp = tooltip.replaceAll(total.placeholder, String.valueOf(total.amount));
+        }
+
+        return temp.replaceAll("%37%", Integer.toString(roomInstance.getHealthPercentage()))
                 .replaceAll("%38", Integer.toString(getUsedCapacity()))
-                .replaceAll("%39", Integer.toString(getMaxCapacity()))
-                .replaceAll("%42", Integer.toString(getUsedCapacity())) // Creatures attracted
-                .replaceAll("%43", Integer.toString(getMaxCapacity()))  // Creatures attracted Max
-                .replaceAll("%44", getOwner())  // Portal
-                .replaceAll("%45", getOwner()) // Lairs
-                .replaceAll("%46", getOwner()) // Hatchery
-                .replaceAll("%47", getOwner()) // Treasure
-                .replaceAll("%48", getOwner()) // Library
-                .replaceAll("%49", getOwner()) // Training Room
-                .replaceAll("%50", getOwner()) // Workshop
-                .replaceAll("%51", getOwner()) // Guard Rooms
-                //.replaceAll("%52", ) // TODO Guard Rooms Patrol Routes
-                .replaceAll("%53", getOwner()) // Combat Pit
-                .replaceAll("%54", getOwner()) // Torture
-                //.replaceAll("%55", ) // TODO Skeleton Animated
-                //.replaceAll("%56", ) // TODO Skeleton Animated Max
-                //.replaceAll("%56", ) // TODO Prison status
-                .replaceAll("%58", getOwner()) // Prison
-                //.replaceAll("%59", ) // TODO Vampires Attracted
-                //.replaceAll("%60", ) // TODO Vampires Attracted Max
-
-                .replaceAll("%61", getOwner()) // Graveyard
-                .replaceAll("%62", getOwner()) // Temple
-                .replaceAll("%63", getOwner()); // Casino
-
+                .replaceAll("%39", Integer.toString(getMaxCapacity()));
     }
 
     protected final Spatial loadModel(String model) {
@@ -621,5 +624,29 @@ public abstract class GenericRoom {
         }
 
         return null;
+    }
+
+    @Nullable
+    private RoomCount getRoomCount() {
+
+        int roomId = roomInstance.getRoom().getRoomId();
+        if (!temp.containsKey(roomId)) {
+            return null;
+        }
+
+        Keeper player = worldState.getGameState().getPlayer(roomInstance.getOwnerId());
+        int total = player.getRoomControl().getTypeCount(roomInstance.getRoom());
+
+        return new RoomCount(temp.get(roomId), total);
+    }
+
+    private static class RoomCount {
+        public String placeholder;
+        public int amount;
+
+        public RoomCount(String placeholder, int amount) {
+            this.placeholder = placeholder;
+            this.amount = amount;
+        }
     }
 }

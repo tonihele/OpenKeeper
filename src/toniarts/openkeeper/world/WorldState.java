@@ -569,10 +569,10 @@ public abstract class WorldState extends AbstractAppState {
         }
 
         // FIXME: this is just a debug stuff, remove when the imps can carry the gold
-        addPlayerGold(Keeper.KEEPER1_ID, terrain.getGoldValue());
+        addPlayerGold(Player.KEEPER1_ID, terrain.getGoldValue());
 
         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-        tile.setSelected(false, Keeper.KEEPER1_ID);
+        tile.setSelected(false, Player.KEEPER1_ID);
         tile.setFlashed(false);
 
         // See if room walls are allowed and does this touch any rooms
@@ -882,8 +882,8 @@ public abstract class WorldState extends AbstractAppState {
      */
     public Point findRandomAccessibleTile(Point start, int radius, CreatureControl creature) {
         List<Point> tiles = new ArrayList<>(radius * radius - 1);
-        for (int y = start.y - radius / 2; y < start.y + radius / 2; y++) {
-            for (int x = start.x - radius / 2; x < start.x + radius / 2; x++) {
+        for (int y = start.y - radius; y <= start.y + radius; y++) {
+            for (int x = start.x - radius; x <= start.x + radius; x++) {
 
                 // Skip start tile
                 if (x == start.x && y == start.y) {
@@ -1102,9 +1102,15 @@ public abstract class WorldState extends AbstractAppState {
                         WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
                         terrain.getMaxHealthEffectId(), false);
             }
-            if (terrain.getMaxHealthTypeTerrainId() > 0) {
+            if (terrain.getMaxHealthTypeTerrainId() != 0) {
                 tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());
                 tile.setPlayerId(playerId);
+                terrain = tile.getTerrain();
+                if (tile.isAtFullHealth()) {
+                    effectManager.load(worldNode,
+                            WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                            terrain.getMaxHealthEffectId(), false);
+                }
             }
 
             updateRoomWalls(tile);
@@ -1217,7 +1223,7 @@ public abstract class WorldState extends AbstractAppState {
         // Calculate the damage
         int damage;
         short owner = tile.getPlayerId();
-        if (owner == 0) {
+        if (owner == Player.NEUTRAL_PLAYER_ID) {
             damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.CONVERT_ROOM_HEALTH);
         } else {
             damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_ROOM_HEALTH);
@@ -1238,7 +1244,16 @@ public abstract class WorldState extends AbstractAppState {
                 for (Point p2 : roomTiles) {
                     roomTile = getMapData().getTile(p2);
                     roomTile.setPlayerId(playerId); // Claimed!
-                    roomTile.applyHealing(Integer.MAX_VALUE);
+                    roomTile.applyHealing(tile.getTerrain().getMaxHealth());
+
+                    effectManager.load(worldNode,
+                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                        tile.getTerrain().getMaxHealthEffectId(), false);
+
+                    // FIXME ROOM_CLAIM_ID is realy claim effect?
+                    effectManager.load(worldNode,
+                            WorldUtils.pointToVector3f(p2).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                            room.getRoom().getEffects().get(EffectManagerState.ROOM_CLAIM_ID), false);
 
                     // TODO: Claimed room wall tiles lose the claiming I think?
                     notifyTileChange(p2);

@@ -17,6 +17,7 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -27,7 +28,9 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class Treasury extends Normal {
+public class Treasury extends Normal {
+
+    private Integer goldPerTile;
 
     public Treasury(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         super(assetManager, roomInstance, objectLoader, worldState, effectManager);
@@ -47,6 +50,12 @@ public abstract class Treasury extends Normal {
         });
     }
 
-    protected abstract int getGoldPerTile();
+    protected int getGoldPerTile() {
+        if (goldPerTile == null) {
+            goldPerTile = (int) worldState.getLevelVariable(MiscType.MAX_GOLD_PER_TREASURY_TILE);
+        }
+
+        return goldPerTile;
+    }
 
 }

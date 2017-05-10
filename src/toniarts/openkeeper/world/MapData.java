@@ -84,6 +84,10 @@ public final class MapData {
      */
     @Nullable
     public TileData getTile(Point p) {
-        return getTile(p.x, p.y);
+        if (p != null) {
+            return getTile(p.x, p.y);
+        }
+
+        return null;
     }
 }

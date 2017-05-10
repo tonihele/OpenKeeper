@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import static java.util.stream.Collectors.toList;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
  * Some helper functions for game lobby management
@@ -43,7 +44,7 @@ public class LobbyUtils {
      * @return the next available Keeper
      */
     public static Keeper getNextKeeper(boolean ai, Set<ClientInfo> players) {
-        short id = Keeper.KEEPER1_ID;
+        short id = Player.KEEPER1_ID;
         List<Short> keepers = players.stream().map(c -> c.getKeeper().getId()).collect(toList());
         Collections.sort(keepers);
         while (Collections.binarySearch(keepers, id) >= 0) {
@@ -84,7 +85,7 @@ public class LobbyUtils {
         // Compact the keeper IDs
         List<ClientInfo> keepers = new ArrayList<>(players);
         Collections.sort(keepers, (ClientInfo o1, ClientInfo o2) -> Short.compare(o1.getKeeper().getId(), o2.getKeeper().getId()));
-        short id = Keeper.KEEPER1_ID;
+        short id = Player.KEEPER1_ID;
         for (ClientInfo keeper : keepers) {
             if (!kickedPlayers.contains(keeper)) {
                 keeper.getKeeper().setId(id);

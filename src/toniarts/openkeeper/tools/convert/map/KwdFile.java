@@ -1392,8 +1392,8 @@ public final class KwdFile {
             creature.setAnimation(AnimationType.IDLE_4_1, readArtResource(file));
             creature.setAnimation(AnimationType.DIG, readArtResource(file));
 
-            OffsetType[] offsetTypes = new OffsetType[] {OffsetType.PRAYING,
-                OffsetType.FALL_BACK_GET_UP, OffsetType.CORPSE, OffsetType.OFFSET_5,
+            OffsetType[] offsetTypes = new OffsetType[] {OffsetType.FALL_BACK_GET_UP,
+                OffsetType.PRAYING, OffsetType.CORPSE, OffsetType.OFFSET_5,
                 OffsetType.OFFSET_6, OffsetType.OFFSET_7, OffsetType.OFFSET_8};
             for (OffsetType type : offsetTypes) {
                 creature.setAnimationOffsets(type,
