@@ -156,4 +156,19 @@ public class RoomUtils {
                 || !coordinatesAsMatrix[row][col - 1] || !coordinatesAsMatrix[row][col + 1]
                 || !coordinatesAsMatrix[row + 1][col - 1] || !coordinatesAsMatrix[row + 1][col] || !coordinatesAsMatrix[row + 1][col + 1]);
     }
+
+    public static boolean[][] calculateBorderArea(boolean[][] coordinatesAsMatrix, boolean[][] waterArea) {
+        final int rows = coordinatesAsMatrix.length;
+        final int cols = coordinatesAsMatrix[0].length;
+
+        boolean[][] borderTiles = new boolean[rows][cols];
+
+        for(int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) {
+                borderTiles[i][j] = !waterArea[i][j] && coordinatesAsMatrix[i][j];
+
+            }
+        }
+        return borderTiles;
+    }
 }

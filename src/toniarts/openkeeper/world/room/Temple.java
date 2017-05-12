@@ -18,10 +18,12 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.RoomUtils;
 import toniarts.openkeeper.world.EntityInstance;
 import toniarts.openkeeper.world.MapLoader;
@@ -58,6 +60,8 @@ public class Temple extends DoubleQuad {
 
         // Water
         boolean[][] waterArea = RoomUtils.calculateWaterArea(roomInstance.getCoordinatesAsMatrix());
+        boolean hasWater = hasWater(waterArea);
+        boolean[][] borderArea = RoomUtils.calculateBorderArea(roomInstance.getCoordinatesAsMatrix(), waterArea);
 
         // Hand
         boolean drawHand = RoomUtils.matrixContainsSquare(roomInstance.getCoordinatesAsMatrix(), 5);
@@ -97,11 +101,12 @@ public class Temple extends DoubleQuad {
             boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
             boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
 
-            Node model = DoubleQuad.constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
+            Point localPoint = roomInstance.worldCoordinateToLocalCoordinate(p.x, p.y);
+            Node model = Temple.constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW, borderArea, localPoint, hasWater);
             moveSpatial(model, p);
             root.attachChild(model);
 
-            Point localPoint = roomInstance.worldCoordinateToLocalCoordinate(p.x, p.y);
+
             if(waterArea[localPoint.x][localPoint.y] || NE || SE || SW || NW) {
                 ent.addCoordinate(p);
             }
@@ -115,6 +120,17 @@ public class Temple extends DoubleQuad {
         constructCandles(root);
 
         return root;
+    }
+
+    private boolean hasWater(boolean[][] waterArea) {
+        for(int i = 0; i < waterArea.length; ++i) {
+            for(int j = 0; j < waterArea[0].length; ++j) {
+                if(waterArea[i][j]) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     protected void constructCandles(Node node) {
@@ -175,6 +191,147 @@ public class Temple extends DoubleQuad {
 
         node.attachChild(part);
         return part;
+    }
+
+    public static Node constructQuad(AssetManager assetManager, String modelName,
+                                     boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW, boolean[][] borderArea, Point localPoint, boolean hasWater) {
+
+
+        /*
+          1 : Quad-tile corner piece with 2 borders |_ rotate it to get the right orientation
+          0 : Quad-tile where one side has a border | rotate it to get the right orientation
+          2 : Quad-tile where no side has a border, useful to fill up inner corners where no borders ared
+         */
+
+        Node quad = new Node();
+
+        for (int i = 0; i < 2; i++) {
+            for (int k = 0; k < 2; k++) {
+                // 4 - 8 - walls
+                int piece = 0;
+                float yAngle = 0;
+                Vector3f movement;
+                // Determine the piece
+                if (i == 0 && k == 0) { // North west corner
+                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                        piece = 13;
+                    } else if (N && E && S && W && NW && !SE) {
+                        piece =  !hasWater ? 1 : isBorderTile(localPoint, borderArea) ? 12 : 1;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (N && E && SE && S && W && !NW) {
+                        piece = 2;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (!N && !W) {
+                        piece = 1;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (!S && !E && NW) {
+                        piece = !hasWater ? 0 : isBorderTile(localPoint, borderArea) ? 11 : 0;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (N && !W) {
+                        piece = 0;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (N && W && (!S || !SW)) {
+                        piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 10 : 2;
+                        yAngle = FastMath.PI;
+                    } else if (N && W && (!E || !NE)) {
+                        piece = !hasWater ? 1 : isBorderTile(localPoint, borderArea) ? 10 : 1;
+                        yAngle = -FastMath.HALF_PI;
+                    }
+                    movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
+                } else if (i == 1 && k == 0) { // North east corner
+                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                        piece = 13;
+                    } else if (N && NE && E && S && W && !SW) {
+                        piece = !hasWater ? 1 : isBorderTile(localPoint, borderArea) ? 12 : 1;
+                    } else if (N && E && S && SW && W && !NE) {
+                        piece = 2;
+                    } else if (!N && !E) {
+                        piece = 1;
+                    } else if (!S && !W && NE) {
+                        piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 11 : 2;
+                        yAngle = FastMath.PI;
+                    } else if (N && !E) {
+                        piece = 0;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (N && E && (!S || !SE)) {
+                        piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 10 : 2;
+                        yAngle = FastMath.PI;
+                    } else if (N && E && (!W || !NW)) {
+                        piece = !hasWater ? 1 : isBorderTile(localPoint, borderArea) ? 10 : 1;
+                        yAngle = FastMath.HALF_PI;
+                    }
+                    movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
+                } else if (i == 0 && k == 1) { // South west corner
+                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                        piece = 13;
+                    } else if (N && E && S && SW && W && !NE) {
+                        piece = !hasWater ? 1 : isBorderTile(localPoint, borderArea) ? 12 : 1;
+                        yAngle = FastMath.PI;
+                    } else if (N && NE && E && S && W && !SW) {
+                        piece = 2;
+                        yAngle = FastMath.PI;
+                    } else if (!S && !W) {
+                        piece = 1;
+                        yAngle = FastMath.PI;
+                    } else if (!N && !E && SW) {
+                        piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 11 : 2;
+                        yAngle = FastMath.PI;
+                    } else if (!N && !W && S) {
+                        piece = 0;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (W && !S) {
+                        piece = 0;
+                        yAngle = FastMath.PI;
+                    } else if (S && W && (!E || !SE)) {
+                        piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 10 : 2;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (S && W && (!N || !NW)) {
+                        piece = !hasWater ? 1 : isBorderTile(localPoint, borderArea) ? 10 : 1;
+                    }
+                    movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
+                } else { // South east corner  if (i == 1 && k == 1)
+                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                        piece = 13;
+                    } else if (N && E && SE && S && W && !NW) {
+                        piece = !hasWater ? 1 : isBorderTile(localPoint, borderArea) ? 12 : 1;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (N && E && S && W && NW && !SE) {
+                        piece = 2;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (!S && !E) {
+                        piece = 1;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (!N && !W && SE) {
+                        piece = !hasWater ? 0 : isBorderTile(localPoint, borderArea) ? 11 : 0;
+                        yAngle = FastMath.PI;
+                    } else if (!N && !E && S) {
+                        piece = 0;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (E && !S) {
+                        piece = 0;
+                        yAngle = FastMath.PI;
+                    } else if (E && S && (!W || !SW)) {
+                        piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 10 : 2; //done
+                        yAngle = FastMath.HALF_PI;
+                    } else if (E && S && (!N || !NE)) {
+                        piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 10 : 2;
+                    }
+                    movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
+                }
+                // Load the piece
+                Spatial part = AssetUtils.loadModel(assetManager, modelName + piece);
+                part.rotate(0, yAngle, 0);
+                part.move(movement);
+
+                quad.attachChild(part);
+            }
+        }
+
+        return quad;
+    }
+
+    private static boolean isBorderTile(Point localPoint, boolean[][] borderArea) {
+        return borderArea[localPoint.x][localPoint.y];
     }
 
 }
