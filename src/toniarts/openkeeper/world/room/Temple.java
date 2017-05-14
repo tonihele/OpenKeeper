@@ -36,6 +36,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.logging.Logger;
 
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 
@@ -45,8 +46,10 @@ import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
  */
 public class Temple extends DoubleQuad {
 
+    public enum PIECE_LOCATION {NORTH_WEST, NORTH_EAST, SOUTH_WEST, SOUTH_EAST }
     private static final short OBJECT_TEMPLE_HAND_ID = 66;
     private static final short OBJECT_TEMPLE_CANDLESTICK_ID = 111;
+    private static final Logger logger = Logger.getLogger(Temple.class.getName());
 
     public Temple(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         super(assetManager, roomInstance, objectLoader, worldState, effectManager);
@@ -117,7 +120,7 @@ public class Temple extends DoubleQuad {
             root.attachChild(waterTiles);
         }
 
-        constructCandles(root);
+        //constructCandles(root);
 
         return root;
     }
@@ -205,14 +208,15 @@ public class Temple extends DoubleQuad {
 
         Node quad = new Node();
 
-        for (int i = 0; i < 2; i++) {
-            for (int k = 0; k < 2; k++) {
-                // 4 - 8 - walls
-                int piece = 0;
-                float yAngle = 0;
-                Vector3f movement;
-                // Determine the piece
-                if (i == 0 && k == 0) { // North west corner
+        for (int i = 0; i < 4; ++i) {
+            // 4 - 8 - walls
+            int piece = 0;
+            float yAngle = 0;
+            Vector3f movement;
+            // Determine the piece
+            PIECE_LOCATION pieceLocation = PIECE_LOCATION.values()[i];
+            switch (pieceLocation) {
+                case NORTH_WEST:  // North west corner
                     if (N && NE && NW && E && SE && S && SW && W && NW) {
                         piece = 13;
                     } else if (N && E && S && W && NW && !SE) {
@@ -225,7 +229,7 @@ public class Temple extends DoubleQuad {
                         piece = 1;
                         yAngle = FastMath.HALF_PI;
                     } else if (!S && !E && NW) {
-                        piece = !hasWater ? 0 : isBorderTile(localPoint, borderArea) ? 11 : 0;
+                        piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 11 : 2;
                         yAngle = FastMath.HALF_PI;
                     } else if (N && !W) {
                         piece = 0;
@@ -238,7 +242,8 @@ public class Temple extends DoubleQuad {
                         yAngle = -FastMath.HALF_PI;
                     }
                     movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
-                } else if (i == 1 && k == 0) { // North east corner
+                    break;
+                case NORTH_EAST:  // North east corner
                     if (N && NE && NW && E && SE && S && SW && W && NW) {
                         piece = 13;
                     } else if (N && NE && E && S && W && !SW) {
@@ -249,7 +254,7 @@ public class Temple extends DoubleQuad {
                         piece = 1;
                     } else if (!S && !W && NE) {
                         piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 11 : 2;
-                        yAngle = FastMath.PI;
+                        yAngle = -FastMath.HALF_PI;
                     } else if (N && !E) {
                         piece = 0;
                         yAngle = -FastMath.HALF_PI;
@@ -261,7 +266,8 @@ public class Temple extends DoubleQuad {
                         yAngle = FastMath.HALF_PI;
                     }
                     movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
-                } else if (i == 0 && k == 1) { // South west corner
+                    break;
+                case SOUTH_WEST:  // South west corner
                     if (N && NE && NW && E && SE && S && SW && W && NW) {
                         piece = 13;
                     } else if (N && E && S && SW && W && !NE) {
@@ -274,7 +280,7 @@ public class Temple extends DoubleQuad {
                         piece = 1;
                         yAngle = FastMath.PI;
                     } else if (!N && !E && SW) {
-                        piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 11 : 2;
+                        piece = !hasWater ? 0 : isBorderTile(localPoint, borderArea) ? 11 : 0;
                         yAngle = FastMath.PI;
                     } else if (!N && !W && S) {
                         piece = 0;
@@ -289,7 +295,8 @@ public class Temple extends DoubleQuad {
                         piece = !hasWater ? 1 : isBorderTile(localPoint, borderArea) ? 10 : 1;
                     }
                     movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
-                } else { // South east corner  if (i == 1 && k == 1)
+                    break;
+                case SOUTH_EAST: // South east corner  if (i == 1 && k == 1)
                     if (N && NE && NW && E && SE && S && SW && W && NW) {
                         piece = 13;
                     } else if (N && E && SE && S && W && !NW) {
@@ -302,7 +309,7 @@ public class Temple extends DoubleQuad {
                         piece = 1;
                         yAngle = -FastMath.HALF_PI;
                     } else if (!N && !W && SE) {
-                        piece = !hasWater ? 0 : isBorderTile(localPoint, borderArea) ? 11 : 0;
+                        piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 11 : 2;
                         yAngle = FastMath.PI;
                     } else if (!N && !E && S) {
                         piece = 0;
@@ -317,14 +324,20 @@ public class Temple extends DoubleQuad {
                         piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 10 : 2;
                     }
                     movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
+                    break;
+                default:
+                    movement = new Vector3f(Vector3f.ZERO);
                 }
-                // Load the piece
-                Spatial part = AssetUtils.loadModel(assetManager, modelName + piece);
-                part.rotate(0, yAngle, 0);
-                part.move(movement);
 
-                quad.attachChild(part);
-            }
+            logger.info("Selected piece: " + piece);
+            // Load the piece
+            Spatial part = AssetUtils.loadModel(assetManager, modelName + piece);
+            part.rotate(0, yAngle, 0);
+            part.move(movement);
+
+
+            quad.attachChild(part);
+
         }
 
         return quad;

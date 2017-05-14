@@ -66,7 +66,12 @@ dependencies {
     compile "javax.vecmath:vecmath:1.5.2"
     compile "com.simsilica:zay-es:1.2.1"
     compile "com.simsilica:zay-es-net:1.2.1"
+    testCompile 'junit:junit:4.12'
+    testCompile "org.mockito:mockito-core:1.+"
+    testCompile group: 'org.powermock', name: 'powermock-mockito-release-full', version: '1.6.4'
 }
+
+
 
 sourceSets {
     main {
@@ -78,8 +83,12 @@ sourceSets {
             exclude 'Converted/**'
         }
     }
+    test {
+        java {
+            srcDir 'testsrc'
+        }
+    }
 }
-
 
 eclipse {
     classpath {
