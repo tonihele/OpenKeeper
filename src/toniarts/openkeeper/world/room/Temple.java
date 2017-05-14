@@ -217,7 +217,7 @@ public class Temple extends DoubleQuad {
             PIECE_LOCATION pieceLocation = PIECE_LOCATION.values()[i];
             switch (pieceLocation) {
                 case NORTH_WEST:  // North west corner
-                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                    if (N && NE && NW && E && SE && S && SW && W) {
                         piece = 13;
                     } else if (N && E && S && W && NW && !SE) {
                         piece =  !hasWater ? 1 : isBorderTile(localPoint, borderArea) ? 12 : 1;
@@ -244,7 +244,7 @@ public class Temple extends DoubleQuad {
                     movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
                     break;
                 case NORTH_EAST:  // North east corner
-                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                    if (N && NE && NW && E && SE && S && SW && W) {
                         piece = 13;
                     } else if (N && NE && E && S && W && !SW) {
                         piece = !hasWater ? 1 : isBorderTile(localPoint, borderArea) ? 12 : 1;
@@ -268,7 +268,7 @@ public class Temple extends DoubleQuad {
                     movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
                     break;
                 case SOUTH_WEST:  // South west corner
-                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                    if (N && NE && NW && E && SE && S && SW && W) {
                         piece = 13;
                     } else if (N && E && S && SW && W && !NE) {
                         piece = !hasWater ? 1 : isBorderTile(localPoint, borderArea) ? 12 : 1;
@@ -296,8 +296,8 @@ public class Temple extends DoubleQuad {
                     }
                     movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                     break;
-                case SOUTH_EAST: // South east corner  if (i == 1 && k == 1)
-                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                case SOUTH_EAST: // South east corner
+                    if (N && NE && NW && E && SE && S && SW && W) {
                         piece = 13;
                     } else if (N && E && SE && S && W && !NW) {
                         piece = !hasWater ? 1 : isBorderTile(localPoint, borderArea) ? 12 : 1;

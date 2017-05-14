@@ -1,6 +1,7 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import org.junit.Assert;
@@ -12,6 +13,7 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.world.MapLoader;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -66,10 +68,10 @@ public class TempleTest {
 
         final List<Vector3f> vectorsActual = captorVector.getAllValues();
         final List<Vector3f> vectorsExpected = new ArrayList<>(4);
-        vectorsExpected.add(new Vector3f(-0.25f,0,-0.25f));
-        vectorsExpected.add(new Vector3f(0.25f,0,-0.25f));
-        vectorsExpected.add(new Vector3f(-0.25f,0,0.25f));
-        vectorsExpected.add(new Vector3f(0.25f,0,0.25f));
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
 
         Assert.assertArrayEquals("Output not equal", expected.toArray(), actual.toArray());
         Assert.assertArrayEquals("Output not equal", rotationAnglesExpected.toArray(), rotationAnglesActual.toArray());
@@ -105,17 +107,17 @@ public class TempleTest {
 
         final List<Float> rotationAnglesActual = captorFloat.getAllValues();
         final List<Float> rotationAnglesExpected = new ArrayList<>(4);
-        rotationAnglesExpected.add(1.5707964f);
-        rotationAnglesExpected.add(3.1415927f);
-        rotationAnglesExpected.add(3.1415927f);
-        rotationAnglesExpected.add(3.1415927f);
+        rotationAnglesExpected.add(FastMath.HALF_PI);
+        rotationAnglesExpected.add(FastMath.PI);
+        rotationAnglesExpected.add(FastMath.PI);
+        rotationAnglesExpected.add(FastMath.PI);
 
         final List<Vector3f> vectorsActual = captorVector.getAllValues();
         final List<Vector3f> vectorsExpected = new ArrayList<>(4);
-        vectorsExpected.add(new Vector3f(-0.25f,0,-0.25f));
-        vectorsExpected.add(new Vector3f(0.25f,0,-0.25f));
-        vectorsExpected.add(new Vector3f(-0.25f,0,0.25f));
-        vectorsExpected.add(new Vector3f(0.25f,0,0.25f));
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
 
         Assert.assertArrayEquals("Output not equal", expected.toArray(), actual.toArray());
         Assert.assertArrayEquals("Output not equal", rotationAnglesExpected.toArray(), rotationAnglesActual.toArray());
@@ -151,17 +153,17 @@ public class TempleTest {
 
         final List<Float> rotationAnglesActual = captorFloat.getAllValues();
         final List<Float> rotationAnglesExpected = new ArrayList<>(4);
-        rotationAnglesExpected.add(1.5707964f);
-        rotationAnglesExpected.add(-1.5707964f);
-        rotationAnglesExpected.add(3.1415927f);
-        rotationAnglesExpected.add(3.1415927f);
+        rotationAnglesExpected.add(FastMath.HALF_PI);
+        rotationAnglesExpected.add(-FastMath.HALF_PI);
+        rotationAnglesExpected.add(FastMath.PI);
+        rotationAnglesExpected.add(FastMath.PI);
 
         final List<Vector3f> vectorsActual = captorVector.getAllValues();
         final List<Vector3f> vectorsExpected = new ArrayList<>(4);
-        vectorsExpected.add(new Vector3f(-0.25f,0,-0.25f));
-        vectorsExpected.add(new Vector3f(0.25f,0,-0.25f));
-        vectorsExpected.add(new Vector3f(-0.25f,0,0.25f));
-        vectorsExpected.add(new Vector3f(0.25f,0,0.25f));
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
 
         Assert.assertArrayEquals("Output not equal", expected.toArray(), actual.toArray());
         Assert.assertArrayEquals("Output not equal", rotationAnglesExpected.toArray(), rotationAnglesActual.toArray());
@@ -199,15 +201,15 @@ public class TempleTest {
         final List<Float> rotationAnglesExpected = new ArrayList<>(4);
         rotationAnglesExpected.add(0.0f);
         rotationAnglesExpected.add(0.0f);
-        rotationAnglesExpected.add(-1.5707964f);
-        rotationAnglesExpected.add(-1.5707964f);
+        rotationAnglesExpected.add(-FastMath.HALF_PI);
+        rotationAnglesExpected.add(-FastMath.HALF_PI);
 
         final List<Vector3f> vectorsActual = captorVector.getAllValues();
         final List<Vector3f> vectorsExpected = new ArrayList<>(4);
-        vectorsExpected.add(new Vector3f(-0.25f,0,-0.25f));
-        vectorsExpected.add(new Vector3f(0.25f,0,-0.25f));
-        vectorsExpected.add(new Vector3f(-0.25f,0,0.25f));
-        vectorsExpected.add(new Vector3f(0.25f,0,0.25f));
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
 
         Assert.assertArrayEquals("Output not equal", expected.toArray(), actual.toArray());
         Assert.assertArrayEquals("Output not equal", rotationAnglesExpected.toArray(), rotationAnglesActual.toArray());
