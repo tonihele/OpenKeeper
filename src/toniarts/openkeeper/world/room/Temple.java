@@ -46,7 +46,7 @@ import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
  */
 public class Temple extends DoubleQuad {
 
-    public enum PIECE_LOCATION {NORTH_WEST, NORTH_EAST, SOUTH_WEST, SOUTH_EAST }
+    public enum PieceLocation {NORTH_WEST, NORTH_EAST, SOUTH_WEST, SOUTH_EAST }
     private static final short OBJECT_TEMPLE_HAND_ID = 66;
     private static final short OBJECT_TEMPLE_CANDLESTICK_ID = 111;
     private static final Logger logger = Logger.getLogger(Temple.class.getName());
@@ -201,9 +201,9 @@ public class Temple extends DoubleQuad {
 
 
         /*
-          1 : Quad-tile corner piece with 2 borders |_ rotate it to get the right orientation
-          0 : Quad-tile where one side has a border | rotate it to get the right orientation
-          2 : Quad-tile where no side has a border, useful to fill up inner corners where no borders ared
+          1 : Quad-piece corner piece with 2 borders |_ rotate it to get the right orientation
+          0 : Quad-piece where one side has a border | rotate it to get the right orientation
+          2 : Quad-piece where no side has a border, useful to fill up inner corners where no borders are
          */
 
         Node quad = new Node();
@@ -214,7 +214,7 @@ public class Temple extends DoubleQuad {
             float yAngle = 0;
             Vector3f movement;
             // Determine the piece
-            PIECE_LOCATION pieceLocation = PIECE_LOCATION.values()[i];
+            PieceLocation pieceLocation = PieceLocation.values()[i];
             switch (pieceLocation) {
                 case NORTH_WEST:  // North west corner
                     if (N && NE && NW && E && SE && S && SW && W) {
