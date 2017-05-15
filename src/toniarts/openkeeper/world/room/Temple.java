@@ -128,7 +128,7 @@ public class Temple extends DoubleQuad {
         }
 
 
-        //constructCandles(root);
+        constructCandles(root);
 
         return root;
     }
@@ -238,7 +238,7 @@ public class Temple extends DoubleQuad {
                         yAngle = FastMath.HALF_PI;
                     } else if (!S && !E && NW) {
                         piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 11 : 2;
-                        yAngle = FastMath.HALF_PI;
+                        yAngle = -FastMath.HALF_PI;
                     } else if (N && !W) {
                         piece = 0;
                         yAngle = FastMath.HALF_PI;
@@ -262,7 +262,7 @@ public class Temple extends DoubleQuad {
                         piece = 1;
                     } else if (!S && !W && NE) {
                         piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 11 : 2;
-                        yAngle = -FastMath.HALF_PI;
+                        yAngle = FastMath.PI;
                     } else if (N && !E) {
                         piece = 0;
                         yAngle = -FastMath.HALF_PI;
@@ -288,8 +288,8 @@ public class Temple extends DoubleQuad {
                         piece = 1;
                         yAngle = FastMath.PI;
                     } else if (!N && !E && SW) {
-                        piece = !hasWater ? 0 : isBorderTile(localPoint, borderArea) ? 11 : 0;
-                        yAngle = FastMath.PI;
+                        piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 11 : 2;
+                        yAngle = 0;
                     } else if (!N && !W && S) {
                         piece = 0;
                         yAngle = FastMath.HALF_PI;
@@ -318,7 +318,7 @@ public class Temple extends DoubleQuad {
                         yAngle = -FastMath.HALF_PI;
                     } else if (!N && !W && SE) {
                         piece = !hasWater ? 2 : isBorderTile(localPoint, borderArea) ? 11 : 2;
-                        yAngle = FastMath.PI;
+                        yAngle = FastMath.HALF_PI;
                     } else if (!N && !E && S) {
                         piece = 0;
                         yAngle = -FastMath.HALF_PI;

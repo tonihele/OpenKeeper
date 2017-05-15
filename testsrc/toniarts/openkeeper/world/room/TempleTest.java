@@ -155,7 +155,7 @@ public class TempleTest {
         final List<Float> rotationAnglesActual = captorFloat.getAllValues();
         final List<Float> rotationAnglesExpected = new ArrayList<>(4);
         rotationAnglesExpected.add(FastMath.HALF_PI);
-        rotationAnglesExpected.add(-FastMath.HALF_PI);
+        rotationAnglesExpected.add(FastMath.PI);
         rotationAnglesExpected.add(FastMath.PI);
         rotationAnglesExpected.add(FastMath.PI);
 
@@ -468,6 +468,190 @@ public class TempleTest {
         }
 
         Assert.assertArrayEquals(borderAreaExpected,borderAreaActual);
+    }
+
+    @Test
+    public void verifyTopLeftOfThreeByThreeTempleWithWater() {
+
+        final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<Float> captorFloat = ArgumentCaptor.forClass(Float.class);
+        final ArgumentCaptor<Vector3f> captorVector = ArgumentCaptor.forClass(Vector3f.class);
+        final boolean[][] borderArea = {{true, true, true},{true, false, true},{true, true, true}};
+        final Point localPoint = new Point(0,0);
+
+        Node mockNode = Mockito.mock(Node.class);
+
+        PowerMockito.mockStatic(AssetUtils.class);
+        when(AssetUtils.loadModel(any(), captor.capture())).thenReturn(mockNode);
+        when(mockNode.rotate(anyFloat(), captorFloat.capture(), anyFloat())).thenReturn(mockNode);
+        when(mockNode.move(captorVector.capture())).thenReturn(mockNode);
+
+        Temple.constructQuad(assetManager, "Temple", false,false, true, true, true,false, false, false, borderArea, localPoint, true);
+
+        final List<String> expected = new ArrayList<>(4);
+        expected.add("Temple1");
+        expected.add("Temple0");
+        expected.add("Temple0");
+        expected.add("Temple11");
+
+        final List<String> actual = captor.getAllValues();
+
+        final List<Float> rotationAnglesActual = captorFloat.getAllValues();
+        final List<Float> rotationAnglesExpected = new ArrayList<>(4);
+        rotationAnglesExpected.add(FastMath.HALF_PI);
+        rotationAnglesExpected.add(0.0f);
+        rotationAnglesExpected.add(FastMath.HALF_PI);
+        rotationAnglesExpected.add(FastMath.HALF_PI);
+
+        final List<Vector3f> vectorsActual = captorVector.getAllValues();
+        final List<Vector3f> vectorsExpected = new ArrayList<>(4);
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
+
+        Assert.assertArrayEquals("Output not equal", expected.toArray(), actual.toArray());
+        Assert.assertArrayEquals("Output not equal", rotationAnglesExpected.toArray(), rotationAnglesActual.toArray());
+        Assert.assertArrayEquals("Output not equal", vectorsExpected.toArray(), vectorsActual.toArray());
+
+    }
+
+    @Test
+    public void verifyTopRightOfThreeByThreeTempleWithWater() {
+
+        final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<Float> captorFloat = ArgumentCaptor.forClass(Float.class);
+        final ArgumentCaptor<Vector3f> captorVector = ArgumentCaptor.forClass(Vector3f.class);
+        final boolean[][] borderArea = {{true, true, true},{true, false, true},{true, true, true}};
+        final Point localPoint = new Point(0,2);
+
+        Node mockNode = Mockito.mock(Node.class);
+
+        PowerMockito.mockStatic(AssetUtils.class);
+        when(AssetUtils.loadModel(any(), captor.capture())).thenReturn(mockNode);
+        when(mockNode.rotate(anyFloat(), captorFloat.capture(), anyFloat())).thenReturn(mockNode);
+        when(mockNode.move(captorVector.capture())).thenReturn(mockNode);
+
+        Temple.constructQuad(assetManager, "Temple", false,false, false, false, true,true, true, false, borderArea, localPoint, true);
+
+        final List<String> expected = new ArrayList<>(4);
+        expected.add("Temple0");
+        expected.add("Temple1");
+        expected.add("Temple11");
+        expected.add("Temple0");
+
+        final List<String> actual = captor.getAllValues();
+
+        final List<Float> rotationAnglesActual = captorFloat.getAllValues();
+        final List<Float> rotationAnglesExpected = new ArrayList<>(4);
+        rotationAnglesExpected.add(0.0f);
+        rotationAnglesExpected.add(0.0f);
+        rotationAnglesExpected.add(0.0f);
+        rotationAnglesExpected.add(-FastMath.HALF_PI);
+
+        final List<Vector3f> vectorsActual = captorVector.getAllValues();
+        final List<Vector3f> vectorsExpected = new ArrayList<>(4);
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
+
+        Assert.assertArrayEquals("Output not equal", expected.toArray(), actual.toArray());
+        Assert.assertArrayEquals("Output not equal", rotationAnglesExpected.toArray(), rotationAnglesActual.toArray());
+        Assert.assertArrayEquals("Output not equal", vectorsExpected.toArray(), vectorsActual.toArray());
+
+    }
+
+    @Test
+    public void verifyBottomLeftOfThreeByThreeTempleWithWater() {
+
+        final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<Float> captorFloat = ArgumentCaptor.forClass(Float.class);
+        final ArgumentCaptor<Vector3f> captorVector = ArgumentCaptor.forClass(Vector3f.class);
+        final boolean[][] borderArea = {{true, true, true},{true, false, true},{true, true, true}};
+        final Point localPoint = new Point(2,0);
+
+        Node mockNode = Mockito.mock(Node.class);
+
+        PowerMockito.mockStatic(AssetUtils.class);
+        when(AssetUtils.loadModel(any(), captor.capture())).thenReturn(mockNode);
+        when(mockNode.rotate(anyFloat(), captorFloat.capture(), anyFloat())).thenReturn(mockNode);
+        when(mockNode.move(captorVector.capture())).thenReturn(mockNode);
+
+        Temple.constructQuad(assetManager, "Temple", true,true, true, false, false,false, false, false, borderArea, localPoint, true);
+
+        final List<String> expected = new ArrayList<>(4);
+        expected.add("Temple0");
+        expected.add("Temple11");
+        expected.add("Temple1");
+        expected.add("Temple0");
+
+        final List<String> actual = captor.getAllValues();
+
+        final List<Float> rotationAnglesActual = captorFloat.getAllValues();
+        final List<Float> rotationAnglesExpected = new ArrayList<>(4);
+        rotationAnglesExpected.add(FastMath.HALF_PI);
+        rotationAnglesExpected.add(FastMath.PI);
+        rotationAnglesExpected.add(FastMath.PI);
+        rotationAnglesExpected.add(FastMath.PI);
+
+        final List<Vector3f> vectorsActual = captorVector.getAllValues();
+        final List<Vector3f> vectorsExpected = new ArrayList<>(4);
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
+
+        Assert.assertArrayEquals("Output not equal", expected.toArray(), actual.toArray());
+        Assert.assertArrayEquals("Output not equal", rotationAnglesExpected.toArray(), rotationAnglesActual.toArray());
+        Assert.assertArrayEquals("Output not equal", vectorsExpected.toArray(), vectorsActual.toArray());
+
+    }
+
+    @Test
+    public void verifyBottomRightOfThreeByThreeTempleWithWater() {
+
+        final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<Float> captorFloat = ArgumentCaptor.forClass(Float.class);
+        final ArgumentCaptor<Vector3f> captorVector = ArgumentCaptor.forClass(Vector3f.class);
+        final boolean[][] borderArea = {{true, true, true},{true, false, true},{true, true, true}};
+        final Point localPoint = new Point(2,2);
+
+        Node mockNode = Mockito.mock(Node.class);
+
+        PowerMockito.mockStatic(AssetUtils.class);
+        when(AssetUtils.loadModel(any(), captor.capture())).thenReturn(mockNode);
+        when(mockNode.rotate(anyFloat(), captorFloat.capture(), anyFloat())).thenReturn(mockNode);
+        when(mockNode.move(captorVector.capture())).thenReturn(mockNode);
+
+        Temple.constructQuad(assetManager, "Temple", true,false, false, false, false,false, true, true, borderArea, localPoint, true);
+
+        final List<String> expected = new ArrayList<>(4);
+        expected.add("Temple11");
+        expected.add("Temple0");
+        expected.add("Temple0");
+        expected.add("Temple1");
+
+        final List<String> actual = captor.getAllValues();
+
+        final List<Float> rotationAnglesActual = captorFloat.getAllValues();
+        final List<Float> rotationAnglesExpected = new ArrayList<>(4);
+        rotationAnglesExpected.add(-FastMath.HALF_PI);
+        rotationAnglesExpected.add(-FastMath.HALF_PI);
+        rotationAnglesExpected.add(FastMath.PI);
+        rotationAnglesExpected.add(-FastMath.HALF_PI);
+
+        final List<Vector3f> vectorsActual = captorVector.getAllValues();
+        final List<Vector3f> vectorsExpected = new ArrayList<>(4);
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,-MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(-MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
+        vectorsExpected.add(new Vector3f(MapLoader.TILE_WIDTH / 4,0,MapLoader.TILE_WIDTH / 4));
+
+        Assert.assertArrayEquals("Output not equal", expected.toArray(), actual.toArray());
+        Assert.assertArrayEquals("Output not equal", rotationAnglesExpected.toArray(), rotationAnglesActual.toArray());
+        Assert.assertArrayEquals("Output not equal", vectorsExpected.toArray(), vectorsActual.toArray());
+
     }
 
 }
