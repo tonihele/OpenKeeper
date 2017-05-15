@@ -68,6 +68,36 @@ public class RoomUtils {
 
     }
 
+    public static boolean matrixContainsRectangle(boolean [][] coordinatesMatrix, int rectangleSideWidth, int rectangleSideHeight) {
+        final int rows = coordinatesMatrix.length;
+        final int cols = coordinatesMatrix[0].length;
+
+        //Calculate F (1 histogram per row)
+        int[][] F = new int[rows][cols];
+        for(int i = 0; i < rows; ++i) {
+            for(int j = 0; j < cols; ++j) {
+                if(coordinatesMatrix[i][j]) {
+                    if(i > 0) {
+                        F[i][j] = 1 + F[i - 1][j];
+                    } else {
+                        F[i][j] = 1;
+                    }
+                } else if(!coordinatesMatrix[i][j])  {
+                    F[i][j] = 0;
+                }
+            }
+        }
+
+        for(int i = rows - 1; i >= 0; --i) {
+            if((maxArea(F[i]).getX() >= rectangleSideWidth && maxArea(F[i]).getY() >= rectangleSideHeight) ||
+                    (maxArea(F[i]).getX() >= rectangleSideHeight && maxArea(F[i]).getY() >= rectangleSideWidth)) {
+                return true;
+            }
+        }
+        return false;
+
+    }
+
     /**
      * @param histogram histogram detailing the amount of sequential room tiles
      * @return the x and y coordinates of the largest fitting rectangle up to this point in the matrix
@@ -133,7 +163,7 @@ public class RoomUtils {
 
         for(int i = 0; i < rows; ++i) {
             for (int j = 0; j < cols; ++j) {
-                waterTiles[i][j] = !isBorderTile(coordinatesAsMatrix, i, j, rows, cols);
+                waterTiles[i][j] = isWaterTile(coordinatesAsMatrix, i, j, rows, cols);
             }
         }
         return waterTiles;
@@ -145,16 +175,16 @@ public class RoomUtils {
      * @param col current column
      * @param rows total rows
      * @param cols total columns
-     * @return whether the current tile is a border tile or not
+     * @return whether the current tile is a water tile or not
      */
-    private static boolean isBorderTile(boolean[][] coordinatesAsMatrix, int row, int col, int rows, int cols) {
-        if(row == 0 || col == 0 || row == rows - 1 || col == cols - 1 ) {
-            return true;
+    private static boolean isWaterTile(boolean[][] coordinatesAsMatrix, int row, int col, int rows, int cols) {
+        if(row <= 0 || col <= 0 || row >= rows - 1 || col >= cols - 1 || !coordinatesAsMatrix[row][col]) {
+            return false;
         }
 
-        return (   !coordinatesAsMatrix[row - 1][col - 1] || !coordinatesAsMatrix[row - 1][col] || !coordinatesAsMatrix[row - 1][col + 1]
-                || !coordinatesAsMatrix[row][col - 1] || !coordinatesAsMatrix[row][col + 1]
-                || !coordinatesAsMatrix[row + 1][col - 1] || !coordinatesAsMatrix[row + 1][col] || !coordinatesAsMatrix[row + 1][col + 1]);
+        return  (coordinatesAsMatrix[row - 1][col - 1] && coordinatesAsMatrix[row - 1][col] && coordinatesAsMatrix[row - 1][col + 1]
+                && coordinatesAsMatrix[row][col - 1] && coordinatesAsMatrix[row][col] && coordinatesAsMatrix[row][col + 1]
+                && coordinatesAsMatrix[row + 1][col - 1] && coordinatesAsMatrix[row + 1][col] && coordinatesAsMatrix[row + 1][col + 1]);
     }
 
     public static boolean[][] calculateBorderArea(boolean[][] coordinatesAsMatrix, boolean[][] waterArea) {
@@ -163,10 +193,18 @@ public class RoomUtils {
 
         boolean[][] borderTiles = new boolean[rows][cols];
 
-        for(int i = 0; i < rows; ++i) {
-            for (int j = 0; j < cols; ++j) {
-                borderTiles[i][j] = !waterArea[i][j] && coordinatesAsMatrix[i][j];
+        for(int row = 0; row < rows; ++row) {
+            for (int col = 0; col < cols; ++col) {
+                borderTiles[row][col] = coordinatesAsMatrix[row][col] && !isWaterTile(coordinatesAsMatrix,row, col , rows, cols) && //special!
 
+                        (isWaterTile(coordinatesAsMatrix,row - 1, col - 1, rows, cols) ||                                                                               isWaterTile(coordinatesAsMatrix,row - 1, col, rows, cols) ||                                                                                        isWaterTile(coordinatesAsMatrix,row - 1, col + 1, rows, cols) ||
+
+                         isWaterTile(coordinatesAsMatrix,row, col - 1, rows, cols) ||                                                                 //                       isWaterTile(coordinatesAsMatrix,row, col, rows, cols) ||
+                         isWaterTile(coordinatesAsMatrix,row, col + 1, rows, cols) ||
+
+                        isWaterTile(coordinatesAsMatrix,row + 1, col - 1, rows, cols) ||
+                        isWaterTile(coordinatesAsMatrix,row + 1, col, rows, cols) ||
+                        isWaterTile(coordinatesAsMatrix,row + 1, col + 1, rows, cols));
             }
         }
         return borderTiles;

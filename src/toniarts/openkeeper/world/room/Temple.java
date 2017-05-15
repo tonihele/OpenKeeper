@@ -64,30 +64,37 @@ public class Temple extends DoubleQuad {
         // Water
         boolean[][] waterArea = RoomUtils.calculateWaterArea(roomInstance.getCoordinatesAsMatrix());
         boolean hasWater = hasWater(waterArea);
-        boolean[][] borderArea = RoomUtils.calculateBorderArea(roomInstance.getCoordinatesAsMatrix(), waterArea);
+        boolean[][] borderArea;
+        if(hasWater) {
 
-        // Hand
-        boolean drawHand = RoomUtils.matrixContainsSquare(roomInstance.getCoordinatesAsMatrix(), 5);
-        if(drawHand) {
 
-            final Point topLeft = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
-            final Point bottomRight = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
+            borderArea = RoomUtils.calculateBorderArea(roomInstance.getCoordinatesAsMatrix(), waterArea);
 
-            for(int i = 0; i < waterArea.length; ++i) {
-                for(int j = 0; j < waterArea[0].length; ++j) {
-                    if(waterArea[i][j]) {
-                        topLeft.x = Math.min(i, topLeft.x);
-                        topLeft.y = Math.min(j, topLeft.y);
-                        bottomRight.x = Math.max(i, bottomRight.x);
-                        bottomRight.y = Math.max(j, bottomRight.y);
+            // Hand
+            boolean drawHand = RoomUtils.matrixContainsSquare(roomInstance.getCoordinatesAsMatrix(), 5);
+            if (drawHand) {
+
+                final Point topLeft = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
+                final Point bottomRight = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
+
+                for (int i = 0; i < waterArea.length; ++i) {
+                    for (int j = 0; j < waterArea[0].length; ++j) {
+                        if (waterArea[i][j]) {
+                            topLeft.x = Math.min(i, topLeft.x);
+                            topLeft.y = Math.min(j, topLeft.y);
+                            bottomRight.x = Math.max(i, bottomRight.x);
+                            bottomRight.y = Math.max(j, bottomRight.y);
+                        }
                     }
                 }
-            }
 
-            Point centre = new Point( start.x + (topLeft.x + bottomRight.x) / 2, start.y +(topLeft.y + bottomRight.y) / 2);
-            Spatial part = objectLoader.load(assetManager, centre.x, centre.y, OBJECT_TEMPLE_HAND_ID, roomInstance.getOwnerId());
-            part.move(0, -3 * MapLoader.FLOOR_HEIGHT / 2, TILE_WIDTH / 4);
-            root.attachChild(part);
+                Point centre = new Point(start.x + (topLeft.x + bottomRight.x) / 2, start.y + (topLeft.y + bottomRight.y) / 2);
+                Spatial part = objectLoader.load(assetManager, centre.x, centre.y, OBJECT_TEMPLE_HAND_ID, roomInstance.getOwnerId());
+                part.move(0, -3 * MapLoader.FLOOR_HEIGHT / 2, TILE_WIDTH / 4);
+                root.attachChild(part);
+            }
+        } else {
+            borderArea = new boolean[roomInstance.getCoordinatesAsMatrix().length][roomInstance.getCoordinatesAsMatrix()[0].length];
         }
 
         final List<EntityInstance<Terrain>> instances = new ArrayList<>(1);
@@ -119,6 +126,7 @@ public class Temple extends DoubleQuad {
             Spatial waterTiles = Water.construct(assetManager, instances);
             root.attachChild(waterTiles);
         }
+
 
         //constructCandles(root);
 

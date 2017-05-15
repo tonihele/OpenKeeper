@@ -13,6 +13,7 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.RoomUtils;
 import toniarts.openkeeper.world.MapLoader;
 
 import java.awt.*;
@@ -215,6 +216,258 @@ public class TempleTest {
         Assert.assertArrayEquals("Output not equal", rotationAnglesExpected.toArray(), rotationAnglesActual.toArray());
         Assert.assertArrayEquals("Output not equal", vectorsExpected.toArray(), vectorsActual.toArray());
 
+    }
+
+    @Test
+    public void testLShapedTemple() {
+        boolean[][] ground = {{true, true, true, true, true, true},
+                              {true, true, true, true, true, true},
+                              {true, true, true, true, true, true},
+                              {true, true, true, false, false, false},
+                              {true, true, true, false, false, false},
+                              {true, true, true, false, false, false}};
+
+        boolean[][] waterAreaExpected = {{false, false, false, false, false, false},
+                                         {false, true, true, true, true, false},
+                                         {false, true, false, false, false, false},
+                                         {false, true, false, false, false, false},
+                                         {false, true, false, false, false, false},
+                                         {false, false, false, false, false, false}};
+
+
+
+        boolean[][] waterAreaActual = RoomUtils.calculateWaterArea(ground);
+
+        for(int i = 0; i < waterAreaActual.length; ++i ) {
+            for(int j = 0; j < waterAreaActual[0].length; ++j ) {
+                System.out.print(waterAreaActual[i][j] + " ");
+            }
+            System.out.println();
+        }
+
+        Assert.assertArrayEquals(waterAreaExpected,waterAreaActual);
+    }
+
+    @Test
+    public void testThreeByThreeSquareWithAHoleTempleHasNoWater() {
+        boolean[][] ground = {{true, true, true},
+                              {true, false, true},
+                              {true, true, true}};
+
+        boolean[][] waterAreaExpected = {{false, false, false},
+                                         {false, false, false},
+                                         {false, false, false}};
+
+
+
+        boolean[][] waterAreaActual = RoomUtils.calculateWaterArea(ground);
+
+        for(int i = 0; i < waterAreaActual.length; ++i ) {
+            for(int j = 0; j < waterAreaActual[0].length; ++j ) {
+                System.out.print(waterAreaActual[i][j] + " ");
+            }
+            System.out.println();
+        }
+
+        Assert.assertArrayEquals(waterAreaExpected,waterAreaActual);
+    }
+
+    @Test
+    public void testThreeByThreeSquareTempleHasOneWaterInTheCenter() {
+        boolean[][] ground = {{true, true, true},
+                              {true, true, true},
+                              {true, true, true}};
+
+        boolean[][] waterAreaExpected = {{false, false, false},
+                                         {false, true, false},
+                                         {false, false, false}};
+
+
+
+        boolean[][] waterAreaActual = RoomUtils.calculateWaterArea(ground);
+
+        for(int i = 0; i < waterAreaActual.length; ++i ) {
+            for(int j = 0; j < waterAreaActual[0].length; ++j ) {
+                System.out.print(waterAreaActual[i][j] + " ");
+            }
+            System.out.println();
+        }
+
+        Assert.assertArrayEquals(waterAreaExpected,waterAreaActual);
+    }
+
+    @Test
+    public void testFourByFourSquareTempleHasTwoByTwoWaterInTheCenter() {
+        boolean[][] ground = {{true, true, true, true},
+                              {true, true, true, true},
+                              {true, true, true, true},
+                              {true, true, true, true}};
+
+        boolean[][] waterAreaExpected = {{false, false, false, false},
+                                         {false, true, true, false},
+                                         {false, true, true, false},
+                                         {false, false, false, false}};
+
+
+
+        boolean[][] waterAreaActual = RoomUtils.calculateWaterArea(ground);
+
+        for(int i = 0; i < waterAreaActual.length; ++i ) {
+            for(int j = 0; j < waterAreaActual[0].length; ++j ) {
+                System.out.print(waterAreaActual[i][j] + " ");
+            }
+            System.out.println();
+        }
+
+        Assert.assertArrayEquals(waterAreaExpected,waterAreaActual);
+    }
+
+    @Test
+    public void testFourByThreeWithTwoEmptyTilesRectangleTempleHasOneByOneWater() {
+        boolean[][] ground = {{true, false, false},
+                              {true, true, true},
+                              {true, true, true},
+                              {true, true, true}};
+
+        boolean[][] waterAreaExpected = {{false, false, false},
+                                         {false, false, false},
+                                         {false, true, false},
+                                         {false, false, false}};
+
+
+
+        boolean[][] waterAreaActual = RoomUtils.calculateWaterArea(ground);
+
+        for(int i = 0; i < waterAreaActual.length; ++i ) {
+            for(int j = 0; j < waterAreaActual[0].length; ++j ) {
+                System.out.print(waterAreaActual[i][j] + " ");
+            }
+            System.out.println();
+        }
+
+        Assert.assertArrayEquals(waterAreaExpected,waterAreaActual);
+    }
+
+    @Test
+    public void testThreeByThreeSquareHasBorder() {
+        boolean[][] ground = {{true, true, true},
+                              {true, true, true},
+                              {true, true, true}};
+
+        boolean[][] waterArea = {{false, false, false},
+                                 {false, true, false},
+                                 {false, false, false}};
+
+        boolean[][] borderAreaExpected = {{true, true, true},
+                                          {true, false, true},
+                                          {true, true, true}};
+
+        boolean[][] borderAreaActual = RoomUtils.calculateBorderArea(ground, waterArea);
+
+        for(int i = 0; i < borderAreaActual.length; ++i ) {
+            for(int j = 0; j < borderAreaActual[0].length; ++j ) {
+                System.out.print(borderAreaActual[i][j] + " ");
+            }
+            System.out.println();
+        }
+
+        Assert.assertArrayEquals(borderAreaExpected,borderAreaActual);
+    }
+
+    @Test
+    public void testFourByThreeSquareHasAThreeByThreeBorder() {
+        boolean[][] ground = {{true, false, false},
+                              {true, true, true},
+                              {true, true, true},
+                              {true, true, true}};
+
+        boolean[][] waterArea = {{false, false, false},
+                                 {false, false, false},
+                                 {false, true, false},
+                                 {false, false, false}};
+
+        boolean[][] borderAreaExpected = {{false, false, false},
+                                          {true, true, true},
+                                          {true, false, true},
+                                          {true, true, true}};
+
+        boolean[][] borderAreaActual = RoomUtils.calculateBorderArea(ground, waterArea);
+
+        for(int i = 0; i < borderAreaActual.length; ++i ) {
+            for(int j = 0; j < borderAreaActual[0].length; ++j ) {
+                System.out.print(borderAreaActual[i][j] + " ");
+            }
+            System.out.println();
+        }
+
+        Assert.assertArrayEquals(borderAreaExpected,borderAreaActual);
+    }
+
+    @Test
+    public void testFourByFourSquareTempleFourByFourBorder() {
+        boolean[][] ground = {{true, true, true, true},
+                              {true, true, true, true},
+                              {true, true, true, true},
+                              {true, true, true, true}};
+
+        boolean[][] waterArea = {{false, false, false, false},
+                                 {false, true, true, false},
+                                 {false, true, true, false},
+                                 {false, false, false, false}};
+
+        boolean[][] borderAreaExpected = {{true, true, true, true},
+                                          {true, false, false, true},
+                                          {true, false, false, true},
+                                          {true, true, true, true}};
+
+
+        boolean[][] borderAreaActual = RoomUtils.calculateBorderArea(ground, waterArea);
+
+        for(int i = 0; i < borderAreaActual.length; ++i ) {
+            for(int j = 0; j < borderAreaActual[0].length; ++j ) {
+                System.out.print(borderAreaActual[i][j] + " ");
+            }
+            System.out.println();
+        }
+
+        Assert.assertArrayEquals(borderAreaExpected,borderAreaActual);
+    }
+
+    @Test
+    public void testLShapedTempleHasLShapedBorder() {
+        boolean[][] ground = {{true, true, true, true, true, true},
+                {true, true, true, true, true, true},
+                {true, true, true, true, true, true},
+                {true, true, true, false, false, false},
+                {true, true, true, false, false, false},
+                {true, true, true, false, false, false}};
+
+        boolean[][] waterArea = {{false, false, false, false, false, false},
+                {false, true, true, true, true, false},
+                {false, true, false, false, false, false},
+                {false, true, false, false, false, false},
+                {false, true, false, false, false, false},
+                {false, false, false, false, false, false}};
+
+        boolean[][] borderAreaExpected = {  {true, true, true, true, true, true},
+                                            {true, false, false, false, false, true},
+                                            {true, false, true, true, true, true},
+                                            {true, false, true, false, false, false},
+                                            {true, false, true, false, false, false},
+                                            {true, true, true, false, false, false}};
+
+
+
+        boolean[][] borderAreaActual = RoomUtils.calculateBorderArea(ground, waterArea);
+
+        for(int i = 0; i < borderAreaActual.length; ++i ) {
+            for(int j = 0; j < borderAreaActual[0].length; ++j ) {
+                System.out.print(borderAreaActual[i][j] + " ");
+            }
+            System.out.println();
+        }
+
+        Assert.assertArrayEquals(borderAreaExpected,borderAreaActual);
     }
 
 }
