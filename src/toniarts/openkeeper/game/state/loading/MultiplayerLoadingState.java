@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 OpenKeeper
+ * Copyright (C) 2014-2017 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,30 +34,32 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.world.MapThumbnailGenerator;
 
 /**
- * Loading state with a single loading bar
+ * Loading state with a multiple (4) loading bars
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class SingleBarLoadingState extends LoadingState {
+public abstract class MultiplayerLoadingState extends LoadingState {
 
-    private static final List<String> AVAILABLE_SCREENS = Arrays.asList("LoadingScreen1024x768.png",
-            "LoadingScreen1280x1024.png", "LoadingScreen1600x1200.png", "LoadingScreen400x300.png",
-            "LoadingScreen512x384.png", "LoadingScreen640x480.png", "LoadingScreen800x600.png");
+    private static final List<String> AVAILABLE_SCREENS = Arrays.asList("M-LoadingScreen1024x768.png",
+            "M-LoadingScreen1280x1024.png", "M-LoadingScreen1600x1200.png", "M-LoadingScreen400x300.png",
+            "M-LoadingScreen512x384.png", "M-LoadingScreen640x480.png", "M-LoadingScreen800x600.png");
     private static final List<Integer> AVAILABLE_WIDTHS = new ArrayList<>(AVAILABLE_SCREENS.size());
     private static final Map<Integer, String> SCREENS = new HashMap<>(AVAILABLE_SCREENS.size());
     private static final float BAR_X = 3.875f;
-    private static final float BAR_Y = 92.830f;
+    private static final float BAR_Y = 75.25f;
     private static final float BAR_WIDTH = 25.375f;
     private static final float BAR_HEIGHT = 2.5f;
-    private static final Color BAR_COLOR = new Color(237, 100, 42);
-    private Geometry progressBar;
+    private static final float BAR_MARGIN = 5.825f;
+    private final List<Geometry> progressBars = new ArrayList<>(4);
 
     static {
 
         // Select by width
-        Pattern p = Pattern.compile("LoadingScreen(?<width>\\d+)x(?<height>\\d+)\\.png");
+        Pattern p = Pattern.compile("M-LoadingScreen(?<width>\\d+)x(?<height>\\d+)\\.png");
         for (String screen : AVAILABLE_SCREENS) {
             Matcher m = p.matcher(screen);
             m.matches();
@@ -72,15 +74,24 @@ public abstract class SingleBarLoadingState extends LoadingState {
     public void initialize(AppStateManager stateManager, Application app) {
         super.initialize(stateManager, app);
 
-        // Set the loading bar
-        progressBar = new Geometry("ProgressBar", new Quad(0, imageHeight * (BAR_HEIGHT / 100)));
-        progressBar.setLocalTranslation((Main.getUserSettings().getAppSettings().getWidth() - imageWidth) / 2 + imageWidth * (BAR_X / 100),
-                imageHeight - ((Main.getUserSettings().getAppSettings().getHeight() - imageHeight) / 2 + imageHeight * (BAR_Y / 100)) - imageHeight * (BAR_HEIGHT / 100), 0);
-        Material mat = new Material(assetManager,
-                "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.setColor("Color", new ColorRGBA(BAR_COLOR.getRed() / 255f, BAR_COLOR.getGreen() / 255f, BAR_COLOR.getBlue() / 255f, BAR_COLOR.getAlpha() / 255f));
-        progressBar.setMaterial(mat);
-        this.app.getGuiNode().attachChild(progressBar);
+        for (short i = Player.KEEPER1_ID; i <= Player.KEEPER4_ID; i++) {
+            Geometry progressBar = new Geometry("ProgressBar", new Quad(0, imageHeight * (BAR_HEIGHT / 100)));
+            float margin = (i - Player.KEEPER1_ID) * BAR_MARGIN;
+            progressBar.setLocalTranslation((Main.getUserSettings().getAppSettings().getWidth() - imageWidth) / 2 + imageWidth * (BAR_X / 100),
+                    imageHeight - ((Main.getUserSettings().getAppSettings().getHeight() - imageHeight) / 2 + imageHeight * ((BAR_Y + margin) / 100)) - imageHeight * (BAR_HEIGHT / 100), 0);
+            Material mat = new Material(assetManager,
+                    "Common/MatDefs/Misc/Unshaded.j3md");
+            Color c = MapThumbnailGenerator.getPlayerColor(i);
+            mat.setColor("Color", new ColorRGBA(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f, c.getAlpha() / 255f));
+            progressBar.setMaterial(mat);
+
+            progressBars.add(progressBar);
+        }
+
+        // Attach the loading bars
+        for (Geometry progressBar : progressBars) {
+            this.app.getGuiNode().attachChild(progressBar);
+        }
     }
 
     @Override
@@ -102,14 +113,15 @@ public abstract class SingleBarLoadingState extends LoadingState {
      * Set the loading progress
      *
      * @param progress 0.0 to 1.0, 1 being complete
+     * @param playerId the player ID whose progress is updated
      */
-    public void setProgress(final float progress) {
+    public void setProgress(final float progress, final short playerId) {
 
         // Since this method is called from another thread, we enqueue the changes to the progressbar to the update loop thread
         app.enqueue(() -> {
 
             // Adjust the progress bar
-            Quad q = (Quad) progressBar.getMesh();
+            Quad q = (Quad) progressBars.get(playerId - Player.KEEPER1_ID).getMesh();
             q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
 
             return null;
@@ -121,8 +133,8 @@ public abstract class SingleBarLoadingState extends LoadingState {
     public void cleanup() {
 
         // Remove the title screen
-        if (progressBar != null) {
-            app.getGuiNode().detachChild(progressBar);
+        for (Geometry progressBar : progressBars) {
+            this.app.getGuiNode().detachChild(progressBar);
         }
 
         super.cleanup();

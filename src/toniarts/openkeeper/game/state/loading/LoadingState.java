@@ -49,7 +49,7 @@ public abstract class LoadingState extends AbstractAppState {
     private Geometry titleScreen;
     private boolean load = true;
     private Future loadFuture = null;
-    private ExecutorService exec = Executors.newSingleThreadExecutor();
+    private final ExecutorService exec = Executors.newSingleThreadExecutor();
     protected int imageWidth;
     protected int imageHeight;
 
@@ -137,12 +137,7 @@ public abstract class LoadingState extends AbstractAppState {
 
         super.cleanup();
     }
-    private final Callable<Void> loadingCallable = new Callable<Void>() {
-        @Override
-        public Void call() {
-            return onLoad();
-        }
-    };
+    private final Callable<Void> loadingCallable = () -> onLoad();
 
     /**
      * Add your loading logic here, <b>do NOT</b> manipulate the scene from
