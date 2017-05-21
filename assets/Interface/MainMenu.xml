@@ -29,6 +29,9 @@
             <onClick neverStopRendering="true" name="playSound" sound="menuClick"/>
         </effect>
     </style>
+    <style id="menuTextDisabled">
+        <attributes font="Interface/Fonts/Frontend28.fnt" color="#bbbcbb" />
+    </style>
     <style id="menuTitleText">
         <attributes font="Interface/Fonts/Frontend36.fnt" color="#ff5f00" />
     </style>
@@ -806,25 +809,15 @@
                 <text style="menuTitleText" text="${menu.1675}" />
             </panel>
 
-            <panel height="*" align="center" valign="center" childLayout="vertical">
-                <text style="menuText" text="${mpd1.0}" align="center">
+            <panel id="mpdList" height="*" align="center" valign="center" childLayout="vertical">
+                <text id="mpd1" style="menuText" text="${mpd1.0}" align="center">
                     <interact onClick="selectMPDLevel(1)" />
                 </text>
-                <text style="menuText" text="${mpd2.0}" align="center">
-                    <interact onClick="selectMPDLevel(2)" />
-                </text>
-                <text style="menuText" text="${mpd3.0}" align="center">
-                    <interact onClick="selectMPDLevel(3)" />
-                </text>
-                <text style="menuText" text="${mpd4.0}" align="center">
-                    <interact onClick="selectMPDLevel(4)" />
-                </text>
-                <text style="menuText" text="${mpd5.0}" align="center">
-                    <interact onClick="selectMPDLevel(5)" />
-                </text>
-                <text style="menuText" text="${mpd6.0}" align="center">
-                    <interact onClick="selectMPDLevel(6)" />
-                </text>
+                <text id="mpd2" style="menuTextDisabled" text="${mpd2.0}" align="center"></text>
+                <text id="mpd3" style="menuTextDisabled" text="${mpd3.0}" align="center"></text>
+                <text id="mpd4" style="menuTextDisabled" text="${mpd4.0}" align="center"></text>
+                <text id="mpd5" style="menuTextDisabled" text="${mpd5.0}" align="center"></text>
+                <text id="mpd6" style="menuTextDisabled" text="${mpd6.0}" align="center"></text>
                 <text id="mpdOther" style="menuText" text="${menu.1618}" align="center">
                     <interact onClick="goToScreen(myPetDungeonMapSelect)" />
                 </text>

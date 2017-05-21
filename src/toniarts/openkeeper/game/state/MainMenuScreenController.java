@@ -23,6 +23,8 @@ import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.builder.ElementBuilder.Align;
+import de.lessvoid.nifty.builder.TextBuilder;
 import de.lessvoid.nifty.controls.CheckBox;
 import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
 import de.lessvoid.nifty.controls.DropDown;
@@ -461,12 +463,48 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 // Populate the maps
                 populateMapSelection(true);
                 break;
+                
+            case "myPetDungeon":
+                // check unlocked levels
+                unlockMPDMaps();
+                break;
 
             case "myPetDungeonMapSelect":
                 // Populate the maps
                 state.mapSelector.setMPD(true);
                 populateMapSelection(false);
                 break;
+        }
+    }
+
+    /**
+     * Unlocks my pet dungeon levels if the preceding level was won
+     */
+    private void unlockMPDMaps() {
+        Screen mpdScreen = nifty.getScreen("myPetDungeon");
+        Element mpdList = mpdScreen.findElementById("mpdList");
+        int childCount = mpdList.getChildrenCount();
+        
+        for (int i = 2; i < childCount; i++) {
+            Element button = mpdList.findElementById("mpd" + i);
+
+            if (button.getStyle().equals("menuTextDisabled")) {
+                // the level before it must be completed
+                Level mpdLevel = new Level(LevelType.MPD, i - 1);
+                if (Settings.getInstance().getLevelStatus(mpdLevel).equals(LevelStatus.COMPLETED)) {
+                    TextBuilder unlockedLevel = new TextBuilder();
+                    unlockedLevel.style("menuText");
+                    unlockedLevel.id("mpd" + i);
+                    unlockedLevel.interactOnClick(String.format("selectMPDLevel(%s)", i));
+                    unlockedLevel.text(button.getRenderer(TextRenderer.class).getOriginalText());
+                    unlockedLevel.align(Align.Center);
+
+                    unlockedLevel.build(nifty, mpdScreen, mpdList, button);
+
+                    // remove the button
+                    button.markForRemoval();
+                }
+            }
         }
     }
 
