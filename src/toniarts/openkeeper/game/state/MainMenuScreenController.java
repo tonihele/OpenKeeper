@@ -490,7 +490,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
             if (button.getStyle().equals("menuTextDisabled")) {
                 // the level before it must be completed
-                Level mpdLevel = new Level(LevelType.MPD, i - 1, null);
+                Level mpdLevel = new Level(LevelType.MPD, i - 1);
                 if (Settings.getInstance().getLevelStatus(mpdLevel).equals(LevelStatus.COMPLETED)) {
                     TextBuilder unlockedLevel = new TextBuilder();
                     unlockedLevel.style("menuText");
