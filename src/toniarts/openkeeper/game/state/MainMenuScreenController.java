@@ -585,14 +585,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
      * Generates the movie list
      */
     private void generateMovieList() {
-        // TODO: We should only do that if the progress has changed and at the start of the game
-        Element movies = screen.findElementById("movieList");
+        Element movies = nifty.getScreen("movies").findElementById("movieList");
         if (movies == null) {
             return;
-        }
-
-        for (Element oldElement : movies.getChildren()) {
-            oldElement.markForRemoval();
         }
 
         int index = 0;
@@ -607,11 +602,34 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 action = "goToScreen(cutsceneLocked)";
             }
 
-            ControlBuilder control = new ControlBuilder("movie" + index++, "movieButton");
-            control.parameter("image", "Textures/Mov_Shots/M-" + image + "-0.png");
-            control.parameter("click", action);
-            control.parameter("moviename", cutscene.moviename);
-            control.build(nifty, screen, movies);
+            final String imagePath = "Textures/Mov_Shots/M-" + image + "-0.png";
+
+            if (movies.getChildrenCount() < CUTSCENES.size()) {
+                // initialise movie list
+                ControlBuilder control = new ControlBuilder("movie" + index, "movieButton");
+                control.parameter("image", imagePath);
+                control.parameter("click", action);
+                control.parameter("moviename", cutscene.moviename);
+                control.build(nifty, screen, movies);
+            } else {
+                // modify movie list if changed
+                Element element = movies.getChildren().get(index);
+                final String oldImagePath = element.getElementType().getAttributes().get("image");
+                
+                // has the control changed?
+                if (oldImagePath == null || !oldImagePath.contains(image)) {
+                    // insert before the old element
+                    ControlBuilder control = new ControlBuilder("movie" + index, "movieButton");
+                    control.parameter("image", imagePath);
+                    control.parameter("click", action);
+                    control.parameter("moviename", cutscene.moviename);
+                    control.build(nifty, screen, movies, element);
+                    
+                    // remove the old element
+                    element.markForRemoval();
+                }
+            }
+            index++;
         }
     }
 
