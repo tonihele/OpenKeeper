@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.data;
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -35,9 +36,14 @@ public class Level extends GeneralLevel {
     }
     private final LevelType type;
     private final int level;
-    private final String variation;
+    private String variation = null;
 
-    public Level(LevelType type, int level, String variation) {
+    public Level(LevelType type, int level) {
+        this.type = type;
+        this.level = level;
+    }
+    
+    public Level(LevelType type, int level, @Nullable String variation) {
         this.type = type;
         this.level = level;
         this.variation = variation;
@@ -57,7 +63,7 @@ public class Level extends GeneralLevel {
 
     @Override
     public String getFileName() {
-        return String.format("%s%s%s", getType(), getLevel() > 0 ? getLevel() : "", getVariation());
+        return String.format("%s%s", getType(), this.toString());
     }
 
     @Override
@@ -72,5 +78,10 @@ public class Level extends GeneralLevel {
             }
         }
         return kwdFile;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s%s", getLevel() > 0 ? getLevel() : "", getVariation());
     }
 }
