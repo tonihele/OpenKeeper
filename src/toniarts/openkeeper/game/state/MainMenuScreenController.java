@@ -613,7 +613,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 control.build(nifty, screen, movies);
             } else {
                 // modify movie list if changed
-                Element element = movies.getChildren().get(index);
+                Element element = movies.findElementById("movie" + index);
                 final String oldImagePath = element.getElementType().getAttributes().get("image");
                 
                 // has the control changed?
