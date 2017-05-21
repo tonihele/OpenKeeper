@@ -20,6 +20,7 @@ import com.jme3.network.HostedConnection;
 import com.jme3.network.Network;
 import com.jme3.network.Server;
 import com.jme3.network.serializing.Serializer;
+import com.jme3.network.serializing.serializers.EnumSerializer;
 import com.jme3.network.serializing.serializers.FieldSerializer;
 import com.jme3.network.service.AbstractHostedService;
 import com.jme3.network.service.HostedService;
@@ -28,14 +29,19 @@ import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rpc.RpcHostedService;
 import com.simsilica.es.server.EntityDataHostService;
 import com.simsilica.ethereal.EtherealHost;
+import java.awt.Point;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.map.MapData;
+import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
+import toniarts.openkeeper.game.network.game.GameHostedService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
 import toniarts.openkeeper.game.network.session.AccountHostedService;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
+import toniarts.openkeeper.tools.convert.map.Tile;
 
 /**
  *
@@ -60,6 +66,12 @@ public class NetworkServer {
     private void initialize() {
         Serializer.registerClass(ClientInfo.class, new FieldSerializer());
         Serializer.registerClass(Keeper.class, new FieldSerializer());
+
+        // Needed for the game
+        Serializer.registerClass(Point.class, new FieldSerializer());
+        Serializer.registerClass(Tile.BridgeTerrainType.class, new EnumSerializer());
+        Serializer.registerClass(MapData.class, new FieldSerializer());
+        Serializer.registerClass(MapTile.class, new FieldSerializer());
     }
 
     public <T extends HostedService> T getService(Class<T> type) {
@@ -87,7 +99,8 @@ public class NetworkServer {
                 new RmiHostedService(),
                 new AccountHostedService(name),
                 new LobbyHostedService(),
-                new ChatHostedService()
+                new ChatHostedService(),
+                new GameHostedService()
         );
 
         // Add the SimEtheral host that will serve object sync updates to

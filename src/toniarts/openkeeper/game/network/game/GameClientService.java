@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.network.lobby;
+package toniarts.openkeeper.game.network.game;
 
 import com.jme3.network.service.AbstractClientService;
 import com.jme3.network.service.ClientServiceManager;
@@ -23,62 +23,45 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
+import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.network.NetworkConstants;
-import toniarts.openkeeper.game.state.lobby.ClientInfo;
-import toniarts.openkeeper.game.state.lobby.LobbySession;
-import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
+import toniarts.openkeeper.game.state.session.GameSession;
+import toniarts.openkeeper.game.state.session.GameSessionClientService;
+import toniarts.openkeeper.game.state.session.GameSessionListener;
 
 /**
  * Client side service for the game lobby services
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class LobbyClientService extends AbstractClientService
-        implements toniarts.openkeeper.game.state.lobby.LobbyClientService {
+public class GameClientService extends AbstractClientService
+        implements GameSessionClientService {
 
-    private static final Logger logger = Logger.getLogger(LobbyClientService.class.getName());
+    private static final Logger logger = Logger.getLogger(GameClientService.class.getName());
 
     private RmiClientService rmiService;
-    private LobbySession delegate;
-    private boolean ready = false;
+    private GameSession delegate;
 
-    private final LobbySessionCallback sessionCallback = new LobbySessionCallback();
-    private final List<LobbySessionListener> listeners = new CopyOnWriteArrayList<>();
+    private final GameSessionCallback sessionCallback = new GameSessionCallback();
+    private final List<GameSessionListener> listeners = new CopyOnWriteArrayList<>();
 
     @Override
-    public void setReady(boolean ready) {
-        this.ready = ready;
-        getDelegate().setReady(ready);
+    public void loadComplete() {
+        getDelegate().loadComplete();
     }
 
     @Override
-    public List<ClientInfo> getPlayers() {
-        return getDelegate().getPlayers();
+    public void loadStatus(float progress) {
+        getDelegate().loadStatus(progress);
     }
 
     @Override
-    public String getMap() {
-        return getDelegate().getMap();
-    }
-
-    @Override
-    public boolean isReady() {
-        return ready;
-    }
-
-    @Override
-    public int getPlayerId() {
-        return getClient().getId();
-    }
-
-    @Override
-    public void addLobbySessionListener(LobbySessionListener l) {
+    public void addGameSessionListener(GameSessionListener l) {
         listeners.add(l);
     }
 
     @Override
-    public void removeLobbySessionListener(LobbySessionListener l) {
+    public void removeGameSessionListener(GameSessionListener l) {
         listeners.remove(l);
     }
 
@@ -90,7 +73,7 @@ public class LobbyClientService extends AbstractClientService
             throw new RuntimeException("LobbyClientService requires RMI service");
         }
         logger.finer("Sharing session callback.");
-        rmiService.share(NetworkConstants.LOBBY_CHANNEL, sessionCallback, LobbySessionListener.class);
+        rmiService.share(NetworkConstants.GAME_CHANNEL, sessionCallback, GameSessionListener.class);
     }
 
     /**
@@ -104,14 +87,14 @@ public class LobbyClientService extends AbstractClientService
         super.start();
     }
 
-    private LobbySession getDelegate() {
+    private GameSession getDelegate() {
         // We look up the delegate lazily to make the service more
         // flexible.  This way we don't have to know anything about the
         // connection lifecycle and can simply report an error if the
         // game is doing something screwy.
         if (delegate == null) {
             // Look it up
-            this.delegate = rmiService.getRemoteObject(LobbySession.class);
+            this.delegate = rmiService.getRemoteObject(GameSession.class);
             logger.log(Level.FINER, "delegate:{0}", delegate);
             if (delegate == null) {
                 throw new RuntimeException("No lobby session found");
@@ -124,30 +107,37 @@ public class LobbyClientService extends AbstractClientService
      * Shared with the server over RMI so that it can notify us about account
      * related stuff.
      */
-    private class LobbySessionCallback implements LobbySessionListener {
+    private class GameSessionCallback implements GameSessionListener {
 
         @Override
-        public void onMapChanged(String mapName) {
-            logger.log(Level.FINEST, "mapChanged({0})", new Object[]{mapName});
-            for (LobbySessionListener l : listeners) {
-                l.onMapChanged(mapName);
+        public void onGameDataLoaded(MapData mapData) {
+            logger.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{mapData});
+            for (GameSessionListener l : listeners) {
+                l.onGameDataLoaded(mapData);
             }
         }
 
         @Override
-        public void onPlayerListChanged(List<ClientInfo> players) {
-            logger.log(Level.FINEST, "onPlayerListChanged({0})", new Object[]{players.stream().map(Object::toString)
-                .collect(Collectors.joining(", "))});
-            for (LobbySessionListener l : listeners) {
-                l.onPlayerListChanged(players);
+        public void onGameStarted() {
+            logger.log(Level.FINEST, "onGameStarted()");
+            for (GameSessionListener l : listeners) {
+                l.onGameStarted();
             }
         }
 
         @Override
-        public void onGameStarted(String mapName, List<ClientInfo> players) {
-            logger.log(Level.FINEST, "onGameStarted({0})", new Object[]{mapName});
-            for (LobbySessionListener l : listeners) {
-                l.onGameStarted(mapName, players);
+        public void onLoadComplete(short keeperId) {
+            logger.log(Level.FINEST, "onLoadComplete({0})", new Object[]{keeperId});
+            for (GameSessionListener l : listeners) {
+                l.onLoadComplete(keeperId);
+            }
+        }
+
+        @Override
+        public void onLoadStatusUpdate(float progress, short keeperId) {
+            logger.log(Level.FINEST, "onLoadComplete({0},{1})", new Object[]{progress, keeperId});
+            for (GameSessionListener l : listeners) {
+                l.onLoadStatusUpdate(progress, keeperId);
             }
         }
     }

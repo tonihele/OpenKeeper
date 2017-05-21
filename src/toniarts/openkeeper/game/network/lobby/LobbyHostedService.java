@@ -29,6 +29,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.network.NetworkConstants;
+import toniarts.openkeeper.game.network.game.GameHostedService;
 import static toniarts.openkeeper.game.network.session.AccountHostedService.ATTRIBUTE_SYSTEM_MEMORY;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbyService;
@@ -56,6 +57,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
     private final Object playerLock = new Object();
     private final Map<ClientInfo, AbstractLobbySessionImpl> players = new ConcurrentHashMap<>(4, 0.75f, 5);
     private String mapName;
+    private boolean gameStarted = false;
 
     /**
      * Creates a new lobby service that will use the default reliable channel
@@ -88,7 +90,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         logger.log(Level.FINER, "startHostingOnConnection({0})", conn);
 
         boolean playerAdded = false;
-        if (players.size() < maxPlayers) {
+        if (players.size() < maxPlayers && !gameStarted) {
             synchronized (playerLock) {
                 if (players.size() < maxPlayers) {
                     Keeper keeper = LobbyUtils.getNextKeeper(false, players.keySet());
@@ -118,7 +120,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         } else {
 
             // Oh noes, no room, terminate
-            conn.close("Game full!");
+            conn.close(gameStarted ? "Game is already started, on the fly joining currently not supported!" : "Game full!");
         }
     }
 
@@ -241,6 +243,11 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
                             return clientInfo.getId();
                         }
 
+                        @Override
+                        public void onGameStarted(String mapName, List<ClientInfo> players) {
+
+                        }
+
                     };
                     players.put(clientInfo, session);
                 }
@@ -277,10 +284,41 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
     }
 
     private void notifyPlayersChange() {
+        List<ClientInfo> playerList = getPlayers();
         for (AbstractLobbySessionImpl lobby : players.values()) {
-            lobby.onPlayerListChanged(lobby.getPlayers());
-
+            lobby.onPlayerListChanged(playerList);
         }
+    }
+
+    @Override
+    public void startGame() {
+        gameStarted = true;
+
+        // Notify players
+        List<ClientInfo> playerList = getPlayers();
+        for (AbstractLobbySessionImpl lobby : this.players.values()) {
+            lobby.onGameStarted(mapName, playerList);
+        }
+    }
+
+    private List<ClientInfo> getPlayers() {
+        List<ClientInfo> keepers = new ArrayList<>(players.keySet());
+        Collections.sort(keepers, (ClientInfo o1, ClientInfo o2) -> Short.compare(o1.getKeeper().getId(), o2.getKeeper().getId()));
+
+        // Update pings
+        EtherealHost etherealHost = getService(EtherealHost.class);
+        for (ClientInfo clientInfo : keepers) {
+            AbstractLobbySessionImpl lobby = players.get(clientInfo);
+
+            if (lobby != null && lobby.getHostedConnection() != null) {
+                NetworkStateListener networkStateListener = etherealHost.getStateListener(lobby.getHostedConnection());
+                if (networkStateListener != null) {
+                    clientInfo.setPing(networkStateListener.getConnectionStats().getAveragePingTime());
+                }
+            }
+        }
+
+        return keepers;
     }
 
     private abstract class AbstractLobbySessionImpl implements LobbySession, LobbySessionListener {
@@ -348,28 +386,20 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
         @Override
         public List<ClientInfo> getPlayers() {
-            List<ClientInfo> keepers = new ArrayList<>(players.keySet());
-            Collections.sort(keepers, (ClientInfo o1, ClientInfo o2) -> Short.compare(o1.getKeeper().getId(), o2.getKeeper().getId()));
-
-            // Update pings
-            EtherealHost etherealHost = getService(EtherealHost.class);
-            for (ClientInfo clientInfo : keepers) {
-                AbstractLobbySessionImpl lobby = players.get(clientInfo);
-
-                if (lobby != null && lobby.getHostedConnection() != null) {
-                    NetworkStateListener networkStateListener = etherealHost.getStateListener(lobby.getHostedConnection());
-                    if (networkStateListener != null) {
-                        clientInfo.setPing(networkStateListener.getConnectionStats().getAveragePingTime());
-                    }
-                }
-            }
-
-            return keepers;
+            return LobbyHostedService.this.getPlayers();
         }
 
         @Override
         public void onPlayerListChanged(List<ClientInfo> players) {
             getCallback().onPlayerListChanged(players);
+        }
+
+        @Override
+        public void onGameStarted(String mapName, List<ClientInfo> players) {
+            getService(EtherealHost.class).startHostingOnConnection(conn);
+            getService(GameHostedService.class).startHostingOnConnection(conn);
+
+            getCallback().onGameStarted(mapName, players);
         }
 
         @Override

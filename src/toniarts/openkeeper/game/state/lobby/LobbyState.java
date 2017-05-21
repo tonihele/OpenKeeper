@@ -24,8 +24,14 @@ import java.util.List;
 import java.util.Map;
 import static java.util.stream.Collectors.toList;
 import toniarts.openkeeper.game.MapSelector;
-import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.state.ConnectionState;
+import toniarts.openkeeper.game.state.GameClientState;
+import toniarts.openkeeper.game.state.GameServerState;
 import toniarts.openkeeper.game.state.MainMenuState;
+import toniarts.openkeeper.game.state.session.GameSessionClientService;
+import toniarts.openkeeper.game.state.session.GameSessionService;
+import toniarts.openkeeper.game.state.session.LocalGameSession;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -120,9 +126,51 @@ public class LobbyState extends AbstractAppState {
     }
 
     private void startGame(List<ClientInfo> players) {
+        GameSessionService gameSessionService;
+        GameSessionClientService gameClientService;
 
-        // TODO: I don't really know how, but at least now to allow the skirmish to work
-        GameState gameState = new GameState(mapSelector.getMap().getMap(), players.stream().map(ClientInfo::getKeeper).collect(toList()));
+        // See if we can fall back to local server
+        boolean fallback = false;
+        if (isOnline()) {
+            fallback = true;
+            int humanPlayers = 0;
+            for (ClientInfo clientInfo : players) {
+                if (clientInfo.getId() >= 0) {
+                    humanPlayers++;
+                    if (humanPlayers > 1) {
+                        fallback = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (isOnline() && !fallback) {
+            gameSessionService = stateManager.getState(ConnectionState.class).getGameSessionService();
+            gameClientService = stateManager.getState(ConnectionState.class).getGameClientService();
+        } else {
+            LocalGameSession gameSession = new LocalGameSession();
+            gameSessionService = gameSession;
+            gameClientService = gameSession;
+
+            // If fall back, close the connections
+            if (fallback) {
+                stateManager.getState(ConnectionState.class).disconnect();
+            }
+        }
+        KwdFile kwdFile = mapSelector.getMap().getMap(); // This might get read twice on the hosting machine
+
+        // The client
+        GameClientState gameClientState = new GameClientState(kwdFile, gameSessionService, gameClientService);
+        stateManager.attach(gameClientState);
+
+        // The game server
+        if (isHosting()) {
+            GameServerState gameServerState = new GameServerState(kwdFile, players.stream().map(ClientInfo::getKeeper).collect(toList()), false, gameSessionService);
+            stateManager.attach(gameServerState);
+        }
+
+        // Disable the main menu and get rid of us
         if (isRenderThread()) {
             stateManager.getState(MainMenuState.class).setEnabled(false);
         } else {
@@ -130,8 +178,6 @@ public class LobbyState extends AbstractAppState {
                 stateManager.getState(MainMenuState.class).setEnabled(false);
             });
         }
-        stateManager.getState(MainMenuState.class).setEnabled(false);
-        stateManager.attach(gameState);
         stateManager.detach(this);
     }
 
@@ -150,31 +196,41 @@ public class LobbyState extends AbstractAppState {
 
         @Override
         public void onPlayerListChanged(List<ClientInfo> players) {
-            if (lobbyState.isRenderThread()) {
+            runOnRenderThread(() -> {
                 listener.onPlayerListChanged(players);
-            } else {
-                lobbyState.app.enqueue(() -> {
-                    listener.onPlayerListChanged(players);
-                });
-            }
+            });
 
             // Start game if we are all ready
-            for (ClientInfo clientInfo : players) {
-                if (!clientInfo.isReady()) {
-                    return;
+            if (lobbyState.isHosting()) {
+                for (ClientInfo clientInfo : players) {
+                    if (!clientInfo.isReady()) {
+                        return;
+                    }
                 }
+                lobbyState.getLobbyService().startGame();
             }
-            lobbyState.startGame(players);
         }
 
         @Override
         public void onMapChanged(String mapName) {
-            if (lobbyState.isRenderThread()) {
+            runOnRenderThread(() -> {
                 listener.onMapChanged(mapName);
+            });
+        }
+
+        @Override
+        public void onGameStarted(String mapName, List<ClientInfo> players) {
+            runOnRenderThread(() -> {
+                listener.onGameStarted(mapName, players);
+            });
+            lobbyState.startGame(players);
+        }
+
+        private void runOnRenderThread(Runnable runnable) {
+            if (lobbyState.isRenderThread()) {
+                runnable.run();
             } else {
-                lobbyState.app.enqueue(() -> {
-                    listener.onMapChanged(mapName);
-                });
+                lobbyState.app.enqueue(runnable);
             }
         }
     }

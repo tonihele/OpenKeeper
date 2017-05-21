@@ -33,6 +33,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
 import toniarts.openkeeper.game.network.chat.ChatSession;
 import toniarts.openkeeper.game.network.chat.ChatSessionListener;
+import toniarts.openkeeper.game.network.game.GameClientService;
 import toniarts.openkeeper.game.network.lobby.LobbyClientService;
 import toniarts.openkeeper.game.network.message.MessagePlayerInfo;
 import toniarts.openkeeper.game.network.message.MessageServerInfo;
@@ -65,7 +66,6 @@ public class NetworkClient implements ChatSession {
         client.addClientStateListener(new ClientStateChangeListener(this));
 
         //this.ed = new RemoteEntityData(client, 0);
-
         //ObjectMessageDelegator delegator = new ObjectMessageDelegator(this, true);
         // client.addMessageListener(delegator, delegator.getMessageTypes());
         client.getServices().addServices(new RpcClientService(),
@@ -74,7 +74,8 @@ public class NetworkClient implements ChatSession {
                 new LobbyClientService(),
                 new ChatClientService(), new EtherealClient(NetworkConstants.OBJECT_PROTOCOL,
                         NetworkConstants.ZONE_GRID,
-                        NetworkConstants.ZONE_RADIUS));
+                        NetworkConstants.ZONE_RADIUS),
+                new GameClientService());
     }
 
     public final long getGameTime() {
@@ -182,6 +183,5 @@ public class NetworkClient implements ChatSession {
     protected void onDisconnected(ClientStateListener.DisconnectInfo di) {
         logger.log(Level.INFO, "Network: player disconnected {0}", di);
     }
-
 
 }

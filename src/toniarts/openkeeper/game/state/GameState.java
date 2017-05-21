@@ -46,7 +46,7 @@ import toniarts.openkeeper.game.logic.GameLogicThread;
 import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.game.logic.MovementThread;
 import toniarts.openkeeper.game.logic.RoomGoldFixer;
-import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
+import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
@@ -152,7 +152,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         this.stateManager = stateManager;
 
         // Set up the loading screen
-        SingleBarLoadingState loader = new SingleBarLoadingState() {
+        MultiplayerLoadingState loader = new MultiplayerLoadingState() {
 
             @Override
             public Void onLoad() {
@@ -167,7 +167,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                         kwdFile.load();
                     }
                     AssetUtils.prewarmAssets(kwdFile, assetManager, app);
-                    setProgress(0.1f);
+                    setProgress(0.1f, Player.KEEPER1_ID);
 
                     // load sounds
                     loadSounds();
@@ -186,13 +186,16 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     doorTriggerState.initialize(stateManager, app);
                     actionPointState = new ActionPointState(true);
                     actionPointState.initialize(stateManager, app);
-                    setProgress(0.20f);
+                    setProgress(0.20f, Player.KEEPER1_ID);
+                    setProgress(0.20f, Player.KEEPER2_ID);
+                    setProgress(0.20f, Player.KEEPER3_ID);
+                    setProgress(0.20f, Player.KEEPER4_ID);
 
                     // Create the actual level
                     WorldState worldState = new WorldState(kwdFile, assetManager, GameState.this) {
                         @Override
                         protected void updateProgress(float progress) {
-                            setProgress(0.2f + progress * 0.6f);
+                            setProgress(0.2f + progress * 0.6f, Player.KEEPER1_ID);
                         }
                     };
 
@@ -202,7 +205,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     GameState.this.stateManager.attach(worldState);
 
                     GameState.this.stateManager.attach(new SoundState(false));
-                    setProgress(0.60f);
+                    setProgress(0.60f, Player.KEEPER1_ID);
 
                     // Trigger data
                     for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
@@ -216,7 +219,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     int triggerId = kwdFile.getGameLevel().getTriggerId();
                     if (triggerId != 0) {
                         triggerControl = new TriggerControl(stateManager, triggerId);
-                        setProgress(0.90f);
+                        setProgress(0.90f, Player.KEEPER1_ID);
                     }
 
                     // Game logic thread & movement
@@ -238,7 +241,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()),
                             0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
 
-                    setProgress(1.0f);
+                    setProgress(1.0f, Player.KEEPER1_ID);
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Failed to load the game!", e);
                 }

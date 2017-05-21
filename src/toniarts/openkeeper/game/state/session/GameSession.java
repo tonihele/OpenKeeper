@@ -14,42 +14,29 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.state.lobby;
+package toniarts.openkeeper.game.state.session;
 
 import com.jme3.network.service.rmi.Asynchronous;
-import java.util.List;
 
 /**
- * The lobby callbacks the server sends to the client
+ * Clients view on game service
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface LobbySessionListener {
+public interface GameSession {
 
     /**
-     * Called when the player list needs refreshing
-     *
-     * @param players the list of players
+     * Signal that we are ready and loaded up
      */
     @Asynchronous
-    public void onPlayerListChanged(List<ClientInfo> players);
+    public void loadComplete();
 
     /**
-     * Called when the server has changed the map
+     * Our game loading status update
      *
-     * @param mapName the currently selected map
+     * @param progress our current progress
      */
     @Asynchronous
-    public void onMapChanged(String mapName);
-
-    /**
-     * Called when the server wants to start the game
-     *
-     * @param mapName the map we are going to play (you should know already)
-     * @param players the player participating in the game (you should know
-     * already)
-     */
-    @Asynchronous
-    public void onGameStarted(String mapName, List<ClientInfo> players);
+    public void loadStatus(float progress);
 
 }

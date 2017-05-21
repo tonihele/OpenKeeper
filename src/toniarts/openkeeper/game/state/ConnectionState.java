@@ -32,11 +32,14 @@ import java.util.logging.Level;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.network.NetworkClient;
 import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.game.GameClientService;
+import toniarts.openkeeper.game.network.game.GameHostedService;
 import toniarts.openkeeper.game.network.lobby.LobbyClientService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
 import toniarts.openkeeper.game.network.session.AccountClientService;
 import toniarts.openkeeper.game.network.session.AccountSessionListener;
 import toniarts.openkeeper.game.state.lobby.LobbyService;
+import toniarts.openkeeper.game.state.session.GameSessionService;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -116,6 +119,28 @@ public class ConnectionState extends AbstractAppState {
      */
     public LobbyClientService getLobbyClientService() {
         return client.getService(LobbyClientService.class);
+    }
+
+    /**
+     * If you are hosting the game, you have access to the game session services
+     *
+     * @return the server side game services
+     */
+    public GameSessionService getGameSessionService() {
+        if (server != null) {
+            return server.getService(GameHostedService.class);
+        }
+        return null;
+    }
+
+    /**
+     * The client side game session services, you should always be welcome to
+     * use these
+     *
+     * @return the client side game session services
+     */
+    public GameClientService getGameClientService() {
+        return client.getService(GameClientService.class);
     }
 
     public void disconnect() {

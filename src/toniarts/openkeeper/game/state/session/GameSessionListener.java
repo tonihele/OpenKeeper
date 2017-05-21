@@ -14,42 +14,47 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.state.lobby;
+package toniarts.openkeeper.game.state.session;
 
 import com.jme3.network.service.rmi.Asynchronous;
-import java.util.List;
+import toniarts.openkeeper.game.map.MapData;
 
 /**
- * The lobby callbacks the server sends to the client
+ * The gane callbacks the server sends to the client
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface LobbySessionListener {
+public interface GameSessionListener {
 
     /**
-     * Called when the player list needs refreshing
+     * Client should start to load the game data up visually
      *
-     * @param players the list of players
+     * @param mapData the map data
      */
     @Asynchronous
-    public void onPlayerListChanged(List<ClientInfo> players);
+    public void onGameDataLoaded(MapData mapData);
 
     /**
-     * Called when the server has changed the map
+     * Signal that a player is ready and loaded up
      *
-     * @param mapName the currently selected map
+     * @param keeperId the keeper ID of the player
      */
     @Asynchronous
-    public void onMapChanged(String mapName);
+    public void onLoadComplete(short keeperId);
 
     /**
-     * Called when the server wants to start the game
+     * Game loading status update from a client
      *
-     * @param mapName the map we are going to play (you should know already)
-     * @param players the player participating in the game (you should know
-     * already)
+     * @param progress current progress of a player
+     * @param keeperId the keeper ID of the player
      */
     @Asynchronous
-    public void onGameStarted(String mapName, List<ClientInfo> players);
+    public void onLoadStatusUpdate(float progress, short keeperId);
+
+    /**
+     * Client should start the visuals
+     */
+    @Asynchronous
+    public void onGameStarted();
 
 }

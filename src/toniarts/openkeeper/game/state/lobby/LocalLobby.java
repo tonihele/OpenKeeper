@@ -137,4 +137,11 @@ public class LocalLobby implements LobbyService, LobbyClientService {
     public int getPlayerId() {
         return 0;
     }
+
+    @Override
+    public void startGame() {
+        for (LobbySessionListener l : listeners) {
+            l.onGameStarted(map, getPlayers());
+        }
+    }
 }

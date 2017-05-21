@@ -54,4 +54,9 @@ public interface LobbyService {
      */
     public void changeAIType(ClientInfo keeper, AI.AIType type);
 
+    /**
+     * Signals that the game should start
+     */
+    public void startGame();
+
 }
