@@ -42,7 +42,7 @@ import toniarts.openkeeper.world.MapThumbnailGenerator;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class MultiplayerLoadingState extends LoadingState {
+public abstract class MultiplayerLoadingState extends LoadingState implements IPlayerLoadingProgress {
 
     private static final List<String> AVAILABLE_SCREENS = Arrays.asList("M-LoadingScreen1024x768.png",
             "M-LoadingScreen1280x1024.png", "M-LoadingScreen1600x1200.png", "M-LoadingScreen400x300.png",
@@ -115,6 +115,7 @@ public abstract class MultiplayerLoadingState extends LoadingState {
      * @param progress 0.0 to 1.0, 1 being complete
      * @param playerId the player ID whose progress is updated
      */
+    @Override
     public void setProgress(final float progress, final short playerId) {
 
         // Since this method is called from another thread, we enqueue the changes to the progressbar to the update loop thread

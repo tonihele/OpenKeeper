@@ -48,6 +48,9 @@ public class LocalGameSession implements GameSessionService, GameSessionClientSe
         for (GameSessionListener listener : listeners) {
             listener.onLoadComplete(Player.KEEPER1_ID);
         }
+
+        // Only one player, start the game once everything ready
+        startGame();
     }
 
     @Override

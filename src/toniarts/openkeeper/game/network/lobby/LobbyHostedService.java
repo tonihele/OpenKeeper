@@ -397,7 +397,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         @Override
         public void onGameStarted(String mapName, List<ClientInfo> players) {
             getService(EtherealHost.class).startHostingOnConnection(conn);
-            getService(GameHostedService.class).startHostingOnConnection(conn);
+            getService(GameHostedService.class).startHostingOnConnection(conn, getClientInfo());
 
             getCallback().onGameStarted(mapName, players);
         }

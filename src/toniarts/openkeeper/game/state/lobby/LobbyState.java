@@ -135,7 +135,7 @@ public class LobbyState extends AbstractAppState {
             fallback = true;
             int humanPlayers = 0;
             for (ClientInfo clientInfo : players) {
-                if (clientInfo.getId() >= 0) {
+                if (!clientInfo.getKeeper().isAi()) {
                     humanPlayers++;
                     if (humanPlayers > 1) {
                         fallback = false;
@@ -161,7 +161,7 @@ public class LobbyState extends AbstractAppState {
         KwdFile kwdFile = mapSelector.getMap().getMap(); // This might get read twice on the hosting machine
 
         // The client
-        GameClientState gameClientState = new GameClientState(kwdFile, gameSessionService, gameClientService);
+        GameClientState gameClientState = new GameClientState(kwdFile, players.stream().filter(c -> c.getId() == lobbyClientService.getPlayerId()).findFirst().get().getKeeper().getId(), players, gameClientService);
         stateManager.attach(gameClientState);
 
         // The game server

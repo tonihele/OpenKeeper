@@ -27,7 +27,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.network.NetworkConstants;
-import static toniarts.openkeeper.game.network.lobby.LobbyHostedService.ATTRIBUTE_KEEPER_ID;
+import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.game.state.session.GameSessionService;
@@ -42,7 +42,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     private static final Logger logger = Logger.getLogger(GameHostedService.class.getName());
 
     private static final String ATTRIBUTE_SESSION = "game.session";
-    private final Map<Short, GameSessionImpl> players = new ConcurrentHashMap<>(4, 0.75f, 5);
+    private final Map<ClientInfo, GameSessionImpl> players = new ConcurrentHashMap<>(4, 0.75f, 5);
     private RmiHostedService rmiService;
 
     /**
@@ -71,17 +71,20 @@ public class GameHostedService extends AbstractHostedConnectionService implement
      * Starts hosting the chat services on the specified connection using a
      * generated player name.
      */
-    @Override
-    public void startHostingOnConnection(HostedConnection conn) {
+    public void startHostingOnConnection(HostedConnection conn, ClientInfo clientInfo) {
         logger.log(Level.FINER, "startHostingOnConnection({0})", conn);
 
-        short keeperId = conn.getAttribute(ATTRIBUTE_KEEPER_ID);
-        GameSessionImpl session = new GameSessionImpl(conn, keeperId);
-        players.put(keeperId, session);
+        GameSessionImpl session = new GameSessionImpl(conn, clientInfo);
+        players.put(clientInfo, session);
 
         // Expose the session as an RMI resource to the client
         RmiRegistry rmi = rmiService.getRmiRegistry(conn);
         rmi.share(NetworkConstants.GAME_CHANNEL, session, GameSession.class);
+    }
+
+    @Override
+    public void startHostingOnConnection(HostedConnection conn) {
+        throw new UnsupportedOperationException("You need to supply the clientInfo!");
     }
 
     @Override
@@ -97,7 +100,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
             conn.setAttribute(ATTRIBUTE_SESSION, null);
 
             // Remove player session from the active sessions list
-            players.remove(player.getKeeperId());
+            players.remove(player.clientInfo);
         }
     }
 
@@ -116,27 +119,23 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     /**
-     * The connection-specific 'host' for the LobbySession. For convenience this
-     * also implements the LobbySessionListener. Since the methods don't collide
+     * The connection-specific 'host' for the GameSession. For convenience this
+     * also implements the GameSessionListener. Since the methods don't collide
      * at all it's convenient for our other code not to have to worry about the
      * internal delegate.
      */
     private class GameSessionImpl implements GameSession, GameSessionListener {
 
         private final HostedConnection conn;
-        private final short keeperId;
+        private final ClientInfo clientInfo;
         private GameSessionListener callback;
 
-        public GameSessionImpl(HostedConnection conn, short keeperId) {
+        public GameSessionImpl(HostedConnection conn, ClientInfo clientInfo) {
             this.conn = conn;
-            this.keeperId = keeperId;
+            this.clientInfo = clientInfo;
 
             // Note: at this point we won't be able to look up the callback
             // because we haven't received the client's RMI shared objects yet.
-        }
-
-        protected short getKeeperId() {
-            return keeperId;
         }
 
         protected GameSessionListener getCallback() {
@@ -152,15 +151,26 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
         @Override
         public void loadComplete() {
+            clientInfo.setLoaded(true);
+            boolean allLoaded = true;
             for (GameSessionImpl gameSession : players.values()) {
-                gameSession.onLoadComplete(keeperId);
+                if (!gameSession.clientInfo.isLoaded()) {
+                    allLoaded = false;
+                }
+                gameSession.onLoadComplete(clientInfo.getKeeper().getId());
+            }
+
+            // Start the game if everyone has loaded
+            if (allLoaded) {
+                startGame();
             }
         }
 
         @Override
         public void loadStatus(float progress) {
+            clientInfo.setLoadingProgress(progress);
             for (GameSessionImpl gameSession : players.values()) {
-                gameSession.onLoadStatusUpdate(progress, keeperId);
+                gameSession.onLoadStatusUpdate(progress, clientInfo.getKeeper().getId());
             }
         }
 

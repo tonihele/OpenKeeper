@@ -40,7 +40,7 @@ import toniarts.openkeeper.Main;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class SingleBarLoadingState extends LoadingState {
+public abstract class SingleBarLoadingState extends LoadingState implements IPlayerLoadingProgress {
 
     private static final List<String> AVAILABLE_SCREENS = Arrays.asList("LoadingScreen1024x768.png",
             "LoadingScreen1280x1024.png", "LoadingScreen1600x1200.png", "LoadingScreen400x300.png",
@@ -118,6 +118,11 @@ public abstract class SingleBarLoadingState extends LoadingState {
     }
 
     @Override
+    public void setProgress(float progress, short playerId) {
+        setProgress(progress); // We only have one player
+    }
+
+    @Override
     public void cleanup() {
 
         // Remove the title screen
@@ -127,4 +132,5 @@ public abstract class SingleBarLoadingState extends LoadingState {
 
         super.cleanup();
     }
+
 }

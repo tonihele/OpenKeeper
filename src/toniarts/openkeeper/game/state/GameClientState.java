@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -28,10 +29,12 @@ import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.GameLogicThread;
 import toniarts.openkeeper.game.map.MapData;
+import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
+import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
+import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
-import toniarts.openkeeper.game.state.session.GameSessionService;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
@@ -80,9 +83,13 @@ public class GameClientState extends AbstractPauseAwareState {
     private volatile boolean gameStarted = false;
     private PauseableScheduledThreadPoolExecutor exec;
 
-    private final GameSessionService gameService;
+    //private final GameSessionService gameService;
+    private final Short playerId;
+    private IPlayerLoadingProgress loadingState;
     private final GameSessionClientService gameClientService;
     private final GameSessionListenerImpl gameSessionListener = new GameSessionListenerImpl();
+
+    private PlayerMapViewState playerMapViewState;
 
     private static final Logger logger = Logger.getLogger(GameClientState.class.getName());
 
@@ -92,11 +99,16 @@ public class GameClientState extends AbstractPauseAwareState {
      * @param level the level to load
      * @param players players participating in this game
      */
-    public GameClientState(KwdFile level, GameSessionService gameService, GameSessionClientService gameClientService) {
+    public GameClientState(KwdFile level, Short playerId, List<ClientInfo> players, GameSessionClientService gameClientService) {
         this.kwdFile = level;
-        this.gameService = gameService;
+        // this.gameService = gameService;
         this.gameClientService = gameClientService;
+        this.playerId = playerId;
 
+        // Create the loading state
+        loadingState = createLoadingState(players);
+
+        // Add the listener
         gameClientService.addGameSessionListener(gameSessionListener);
     }
 
@@ -105,56 +117,12 @@ public class GameClientState extends AbstractPauseAwareState {
         this.app = (Main) app;
         this.stateManager = stateManager;
 
-        // Set up the loading screen
-        MultiplayerLoadingState loader = new MultiplayerLoadingState() {
-
-            @Override
-            public Void onLoad() {
-
-                try {
-
-                    // The game is actually loaded elsewhere but for the visuals we need this
-                    synchronized (loadingObject) {
-                        if (!gameStarted) {
-                            loadingObject.wait();
-                        }
-                    }
-
-                } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Failed to load the game!", e);
-                }
-
-                return null;
+        // Attach the loading state finally
+        synchronized (loadingObject) {
+            if (!gameStarted) {
+                stateManager.attach(loadingState);
             }
-
-            @Override
-            public void onLoadComplete() {
-
-                // Prewarm the whole scene
-//                GameClientState.this.app.getRenderManager().preloadScene(rootNode);
-//
-//                // Enable player state
-//                GameClientState.this.stateManager.getState(PlayerState.class).setEnabled(true);
-//                GameClientState.this.stateManager.getState(SoundState.class).setEnabled(true);
-//
-//                // Set initialized
-//                GameClientState.this.initialized = true;
-//
-//                // Set the processors
-//                GameClientState.this.app.setViewProcessors();
-//
-//                // FIXME: this is not correct
-//                // Enqueue the thread starting to next frame so that the states are initialized
-//                app.enqueue(() -> {
-//
-//                    // Enable game logic thread
-//                    exec.resume();
-//
-//                    return null;
-//                });
-            }
-        };
-        stateManager.attach(loader);
+        }
     }
 
     @Override
@@ -208,35 +176,133 @@ public class GameClientState extends AbstractPauseAwareState {
         return true;
     }
 
+    private IPlayerLoadingProgress createLoadingState(List<ClientInfo> players) {
+
+        // See if multiplayer or not
+        boolean multiplayer = false;
+        int humanPlayers = 0;
+        for (ClientInfo clientInfo : players) {
+            if (!clientInfo.getKeeper().isAi()) {
+                humanPlayers++;
+                if (humanPlayers > 1) {
+                    multiplayer = true;
+                    break;
+                }
+            }
+        }
+
+        // Create the appropriate loaging screen
+        IPlayerLoadingProgress loader;
+        if (multiplayer) {
+            loader = new MultiplayerLoadingState() {
+
+                @Override
+                public Void onLoad() {
+
+                    return onGameLoad();
+                }
+
+                @Override
+                public void onLoadComplete() {
+
+                    onGameLoadComplete();
+                }
+            };
+        } else {
+            loader = new SingleBarLoadingState() {
+
+                @Override
+                public Void onLoad() {
+
+                    return onGameLoad();
+                }
+
+                @Override
+                public void onLoadComplete() {
+
+                    onGameLoadComplete();
+                }
+            };
+        }
+        return loader;
+    }
+
+    private void onGameLoadComplete() {
+        // Prewarm the whole scene
+//                GameClientState.this.app.getRenderManager().preloadScene(rootNode);
+//
+//                // Enable player state
+//                GameClientState.this.stateManager.getState(PlayerState.class).setEnabled(true);
+//                GameClientState.this.stateManager.getState(SoundState.class).setEnabled(true);
+//
+//                // Set initialized
+        GameClientState.this.initialized = true;
+//
+//                // Set the processors
+//                GameClientState.this.app.setViewProcessors();
+//
+//                // FIXME: this is not correct
+//                // Enqueue the thread starting to next frame so that the states are initialized
+//                app.enqueue(() -> {
+//
+//                    // Enable game logic thread
+//                    exec.resume();
+//
+//                    return null;
+//                });
+    }
+
+    private Void onGameLoad() {
+        try {
+
+            // The game is actually loaded elsewhere but for the visuals we need this
+            synchronized (loadingObject) {
+                if (!gameStarted) {
+                    loadingObject.wait();
+                }
+            }
+
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Failed to load the game!", e);
+        }
+
+        return null;
+    }
+
     private class GameSessionListenerImpl implements GameSessionListener {
 
         @Override
         public void onGameDataLoaded(MapData mapData) {
 
             // Now we have the game data, start loading the map
-            PlayerMapViewState playerMapViewState = new PlayerMapViewState(kwdFile, app.getAssetManager(), mapData) {
+            playerMapViewState = new PlayerMapViewState(kwdFile, app.getAssetManager(), mapData) {
 
                 @Override
                 protected void updateProgress(float progress) {
-//                    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    gameClientService.loadStatus(progress);
                 }
             };
+            gameClientService.loadComplete();
         }
 
         @Override
         public void onLoadComplete(short keeperId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            loadingState.setProgress(1f, keeperId);
         }
 
         @Override
         public void onLoadStatusUpdate(float progress, short keeperId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            loadingState.setProgress(progress, keeperId);
         }
 
         @Override
         public void onGameStarted() {
 
+            // Release loading state from memory
+            loadingState = null;
+
             // Release the lock and enter to the game phase
+            stateManager.attach(playerMapViewState);
             synchronized (loadingObject) {
                 gameStarted = true;
                 loadingObject.notifyAll();
