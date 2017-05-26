@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
@@ -58,8 +56,7 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
 
     private Main app;
 
-    private ExecutorService loader = Executors.newSingleThreadExecutor();
-
+    private Thread loader;
     private AppStateManager stateManager;
 
     private final String level;
@@ -108,7 +105,12 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
         }
 
         // Start loading game
-        loader.submit(new GameLoader());
+        loadGame();
+    }
+
+    private void loadGame() {
+        loader = new GameLoader();
+        loader.start();
     }
 
     @Override
@@ -334,7 +336,9 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
      * might crash.
      */
     public void detach() {
-        loader.shutdownNow();
+        if (loader != null && loader.isAlive()) {
+            loader.interrupt();
+        }
         if (exec != null) {
             exec.shutdownNow();
         }
@@ -461,6 +465,9 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
             // Load the map
             MapController mapController = new MapController(kwdFile);
             gameService.sendGameData(mapController.getMapData());
+
+            // Nullify the thread object
+            loader = null;
         }
     }
 
