@@ -111,6 +111,8 @@ public final class KwdFile {
     private Creature imp;
     private final String basePath;
     private GameObject levelGem;
+
+    private final Object loadingLock = new Object();
     private static final Logger logger = Logger.getLogger(KwdFile.class.getName());
 
     /**
@@ -184,26 +186,30 @@ public final class KwdFile {
      */
     public void load() throws RuntimeException {
         if (!loaded) {
+            synchronized (loadingLock) {
+                if (!loaded) {
 
-            // Read the map data first (we store some data to the map)
-            for (FilePath path : gameLevel.getPaths()) {
-                if (path.getId() == MapDataTypeEnum.MAP) {
-                    readFilePath(path);
-                    break;
+                    // Read the map data first (we store some data to the map)
+                    for (FilePath path : gameLevel.getPaths()) {
+                        if (path.getId() == MapDataTypeEnum.MAP) {
+                            readFilePath(path);
+                            break;
+                        }
+                    }
+
+                    // Now we have the paths, read all of those in order
+                    for (FilePath path : gameLevel.getPaths()) {
+
+                        if (path.getId() == MapDataTypeEnum.MAP) {
+                            continue;
+                        }
+
+                        // Open the file
+                        readFilePath(path);
+                    }
+                    loaded = true;
                 }
             }
-
-            // Now we have the paths, read all of those in order
-            for (FilePath path : gameLevel.getPaths()) {
-
-                if (path.getId() == MapDataTypeEnum.MAP) {
-                    continue;
-                }
-
-                // Open the file
-                readFilePath(path);
-            }
-            loaded = true;
         }
     }
 
@@ -1392,7 +1398,7 @@ public final class KwdFile {
             creature.setAnimation(AnimationType.IDLE_4_1, readArtResource(file));
             creature.setAnimation(AnimationType.DIG, readArtResource(file));
 
-            OffsetType[] offsetTypes = new OffsetType[] {OffsetType.FALL_BACK_GET_UP,
+            OffsetType[] offsetTypes = new OffsetType[]{OffsetType.FALL_BACK_GET_UP,
                 OffsetType.PRAYING, OffsetType.CORPSE, OffsetType.OFFSET_5,
                 OffsetType.OFFSET_6, OffsetType.OFFSET_7, OffsetType.OFFSET_8};
             for (OffsetType type : offsetTypes) {
