@@ -100,13 +100,11 @@ public class MapData implements Savable {
     @Override
     public void read(JmeImporter im) throws IOException {
         InputCapsule in = im.getCapsule(this);
-        Savable[][] savables = in.readSavableArray2D("tiles", new MapTile[0][0]);
-        tiles = new MapTile[savables.length][savables[0].length];
-        for (int row = 0; row < savables.length; row++) {
-            for (int column = 0; column < savables[0].length; column++) {
-                tiles[row][column] = (MapTile) savables[row][column];
-                //tiles[row][column].setIndex(row * savables.length + column);
-                //tiles[row][column].setPoint(new Point(row, column));
+        tiles = (MapTile[][]) in.readSavableArray2D("tiles", new MapTile[0][0]);
+        for (int row = 0; row < tiles.length; row++) {
+            for (int column = 0; column < tiles[0].length; column++) {
+                tiles[row][column].setIndex(row * tiles.length + column);
+                tiles[row][column].setPoint(new Point(row, column));
             }
         }
         width = tiles.length;

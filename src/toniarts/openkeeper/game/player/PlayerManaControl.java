@@ -21,6 +21,7 @@ import de.lessvoid.nifty.controls.Label;
 import java.util.HashMap;
 import java.util.Map;
 import toniarts.openkeeper.game.control.Control;
+import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.world.MapData;
@@ -55,10 +56,10 @@ public class PlayerManaControl extends Control {
         this.playerId = playerId;
         this.stateManager = stateManager;
 
-        GameState gs = this.stateManager.getState(GameState.class);
+        GameClientState gameClientState = this.stateManager.getState(GameClientState.class);
 
-        manaMax = (int) gs.getLevelVariable(MiscType.MAXIMUM_MANA_THRESHOLD);
-        manaGainBase = (int) gs.getLevelVariable(MiscType.DUNGEON_HEART_MANA_GENERATION_INCREASE_PER_SECOND);
+        manaMax = (int) gameClientState.getLevelVariable(MiscType.MAXIMUM_MANA_THRESHOLD);
+        manaGainBase = (int) gameClientState.getLevelVariable(MiscType.DUNGEON_HEART_MANA_GENERATION_INCREASE_PER_SECOND);
         // FIXME where mana lose per imp ???
         //manaLosePerImp = (int) gs.getLevelVariable(MiscType.GAME_TICKS);
     }

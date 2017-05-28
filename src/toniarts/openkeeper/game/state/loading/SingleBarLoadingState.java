@@ -106,15 +106,16 @@ public abstract class SingleBarLoadingState extends LoadingState implements IPla
     public void setProgress(final float progress) {
 
         // Since this method is called from another thread, we enqueue the changes to the progressbar to the update loop thread
-        app.enqueue(() -> {
+        if (initialized) {
+            app.enqueue(() -> {
 
-            // Adjust the progress bar
-            Quad q = (Quad) progressBar.getMesh();
-            q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
+                // Adjust the progress bar
+                Quad q = (Quad) progressBar.getMesh();
+                q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
 
-            return null;
-        });
-
+                return null;
+            });
+        }
     }
 
     @Override

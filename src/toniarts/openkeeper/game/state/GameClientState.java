@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -42,6 +43,7 @@ import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 import toniarts.openkeeper.view.PlayerMapViewState;
 
@@ -104,6 +106,9 @@ public class GameClientState extends AbstractPauseAwareState {
         // this.gameService = gameService;
         this.gameClientService = gameClientService;
         this.playerId = playerId;
+        for (ClientInfo ci : players) {
+            this.players.put(ci.getKeeper().getId(), ci.getKeeper());
+        }
 
         // Create the loading state
         loadingState = createLoadingState(players);
@@ -116,6 +121,13 @@ public class GameClientState extends AbstractPauseAwareState {
     public void initialize(final AppStateManager stateManager, final Application app) {
         this.app = (Main) app;
         this.stateManager = stateManager;
+
+        // FIXME: Super temp hax
+        kwdFile.load();
+        for (Keeper keeper : players.values()) {
+            keeper.setPlayer(kwdFile.getPlayer(keeper.getId()));
+            keeper.initialize(stateManager, app);
+        }
 
         // Attach the loading state finally
         synchronized (loadingObject) {
@@ -269,12 +281,41 @@ public class GameClientState extends AbstractPauseAwareState {
         return null;
     }
 
+    /**
+     * Get the level raw data file
+     *
+     * @return the KWD
+     */
+    public KwdFile getLevelData() {
+        return kwdFile;
+    }
+
+    public Keeper getPlayer(short playerId) {
+        return players.get(playerId);
+    }
+
+    public Collection<Keeper> getPlayers() {
+        return players.values();
+    }
+
+    /**
+     * Get level variable value
+     *
+     * @param variable the variable type
+     * @return variable value
+     */
+    public float getLevelVariable(Variable.MiscVariable.MiscType variable) {
+        // TODO: player is able to change these, so need a wrapper and store these to GameState
+        return kwdFile.getVariables().get(variable).getValue();
+    }
+
     private class GameSessionListenerImpl implements GameSessionListener {
 
         @Override
         public void onGameDataLoaded(MapData mapData) {
 
             // Now we have the game data, start loading the map
+            kwdFile.load();
             playerMapViewState = new PlayerMapViewState(kwdFile, app.getAssetManager(), mapData) {
 
                 @Override
@@ -301,8 +342,13 @@ public class GameClientState extends AbstractPauseAwareState {
             // Release loading state from memory
             loadingState = null;
 
-            // Release the lock and enter to the game phase
+            // Set the player stuff
+            PlayerState playerState = stateManager.getState(PlayerState.class);
+            playerState.setPlayerId(playerId);
+            playerState.setEnabled(true);
             stateManager.attach(playerMapViewState);
+
+            // Release the lock and enter to the game phase
             synchronized (loadingObject) {
                 gameStarted = true;
                 loadingObject.notifyAll();

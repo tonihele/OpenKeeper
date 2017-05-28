@@ -37,7 +37,6 @@ import toniarts.openkeeper.game.player.PlayerSpellControl;
 import toniarts.openkeeper.game.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -124,7 +123,7 @@ public class PlayerState extends AbstractAppState {
         if (enabled) {
 
             // Get the game state
-            final GameState gameState = stateManager.getState(GameState.class);
+            final GameClientState gameState = stateManager.getState(GameClientState.class);
             screen.initHud(gameState.getLevelData().getGameLevel().getTextTableId().getLevelDictFile());
 
             // Cursor
@@ -135,6 +134,7 @@ public class PlayerState extends AbstractAppState {
             screen.setPause(paused);
 
             stateManager.attach(new ConsoleState());
+
             // Create app states
             Player player = gameState.getLevelData().getPlayer(playerId);
 
@@ -217,7 +217,7 @@ public class PlayerState extends AbstractAppState {
      * @return this player
      */
     public Keeper getPlayer() {
-        GameState gs = stateManager.getState(GameState.class);
+        GameClientState gs = stateManager.getState(GameClientState.class);
         if (gs != null) {
             return gs.getPlayer(playerId);
         }
@@ -301,13 +301,13 @@ public class PlayerState extends AbstractAppState {
     }
 
     protected List<Door> getAvailableDoors() {
-        GameState gameState = stateManager.getState(GameState.class);
+        GameClientState gameState = stateManager.getState(GameClientState.class);
         List<Door> doors = gameState.getLevelData().getDoors();
         return doors;
     }
 
     protected List<Trap> getAvailableTraps() {
-        GameState gameState = stateManager.getState(GameState.class);
+        GameClientState gameState = stateManager.getState(GameClientState.class);
         List<Trap> traps = new ArrayList<>();
         for (Trap trap : gameState.getLevelData().getTraps()) {
             if (trap.getGuiIcon() == null) {
@@ -394,6 +394,10 @@ public class PlayerState extends AbstractAppState {
 
     public short getPlayerId() {
         return playerId;
+    }
+
+    public void setPlayerId(short playerId) {
+        this.playerId = playerId;
     }
 
     protected Creature getPossessionCreature() {

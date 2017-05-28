@@ -25,6 +25,7 @@ import de.lessvoid.nifty.tools.Color;
 import java.util.Collection;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.CheatState;
+import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -37,6 +38,7 @@ import toniarts.openkeeper.world.room.ICreatureEntrance;
  * @author ArchDemon
  */
 public class GameConsole {
+
     private final Console console;
     private ConsoleCommands consoleCommands;
     private boolean welcomeMessageShown = false;
@@ -81,7 +83,7 @@ public class GameConsole {
 
     private void initialize() {
         consoleCommands = new ConsoleCommands(console.getElement().getNifty(), console);
-        creatures = stateManager.getState(GameState.class).getLevelData().getCreatureList();
+        creatures = stateManager.getState(GameClientState.class).getLevelData().getCreatureList();
 
         ConsoleCommand parameterCommand = new ParameterCommand();
 
@@ -95,7 +97,6 @@ public class GameConsole {
                 consoleCommands.registerCommand(parameterCmd.toString().toLowerCase(), parameterCommand);
             }
         }
-
 
         ConsoleCommand simpleCommand = new SimpleCommand();
         for (SimpleCommands simpleCmd : SimpleCommands.values()) {
@@ -123,6 +124,7 @@ public class GameConsole {
     }
 
     public class SimpleCommand implements ConsoleCommand {
+
         @Override
         public void execute(final String[] args) {
             String command = args[0].toUpperCase();

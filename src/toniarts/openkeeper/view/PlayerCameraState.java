@@ -41,13 +41,12 @@ import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
-import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
+import toniarts.openkeeper.tools.convert.map.GameMap;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.MapData;
-import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -152,12 +151,12 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     }
 
     private Vector2f getCameraMapLimit() {
-        MapData md = this.stateManager.getState(WorldState.class).getMapData();
-        return new Vector2f(md.getWidth(), md.getHeight());
+        GameMap gm = this.stateManager.getState(GameClientState.class).getLevelData().getMap();
+        return new Vector2f(gm.getWidth(), gm.getHeight());
     }
 
     private Thing.Camera getCameraPresets() {
-        GameState gs = this.stateManager.getState(GameState.class);
+        GameClientState gs = this.stateManager.getState(GameClientState.class);
         Thing.Camera result = null;
 
         for (Thing thing : gs.getLevelData().getThings()) {

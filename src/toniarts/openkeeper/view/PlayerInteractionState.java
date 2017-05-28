@@ -48,7 +48,7 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.CheatState;
 import static toniarts.openkeeper.game.state.CheatState.CheatType.MONEY;
-import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -83,7 +83,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private static final float CURSOR_UPDATE_INTERVAL = 0.25f;
 
     private Main app;
-    private GameState gameState;
+    private GameClientState gameClientState;
     private AssetManager assetManager;
     private AppStateManager stateManager;
     private InputManager inputManager;
@@ -122,13 +122,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         assetManager = this.app.getAssetManager();
         this.stateManager = this.app.getStateManager();
         inputManager = this.app.getInputManager();
-        gameState = this.stateManager.getState(GameState.class);
+        gameClientState = this.stateManager.getState(GameClientState.class);
 
         PlayerScreenController psc = this.stateManager.getState(PlayerState.class).getScreen();
         this.view = psc.getGuiConstraint();
         this.tooltip = psc.getTooltip();
         // Init the keeper hand
-        keeperHand = new KeeperHand(assetManager, (int) gameState.getLevelVariable(MiscType.MAX_NUMBER_OF_THINGS_IN_HAND));
+        keeperHand = new KeeperHand(assetManager, (int) gameClientState.getLevelVariable(MiscType.MAX_NUMBER_OF_THINGS_IN_HAND));
         this.app.getGuiNode().attachChild(keeperHand.getNode());
 
         // Init handler
@@ -174,7 +174,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 }
                 if (interactionState.getType() == Type.SELL) {
                     return ColorIndicator.RED;
-                } else if (interactionState.getType() == Type.ROOM && !(getWorldHandler().isTaggable((int) pos.x, (int) pos.y) || (getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameState.getLevelData().getRoomById(interactionState.getItemId())) && isPlayerAffordToBuild(player, gameState.getLevelData().getRoomById(interactionState.getItemId()))))) {
+                } else if (interactionState.getType() == Type.ROOM && !(getWorldHandler().isTaggable((int) pos.x, (int) pos.y) || (getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameClientState.getLevelData().getRoomById(interactionState.getItemId())) && isPlayerAffordToBuild(player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))))) {
                     return ColorIndicator.RED;
                 }
                 return ColorIndicator.BLUE;
@@ -211,7 +211,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         getWorldHandler().addGold(player.getPlayerId(), 100000);
                         break;
                     case MANA:
-                        gameState.getPlayer(player.getPlayerId()).getManaControl().addMana(100000);
+                        gameClientState.getPlayer(player.getPlayerId()).getManaControl().addMana(100000);
                         break;
                     case LEVEL_MAX:
                         Map<Creature, Set<CreatureControl>> creatureMap = stateManager.getState(PlayerState.class).getCreatureControl().getAllCreatures();
@@ -222,7 +222,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         });
                         break;
                     case WIN_LEVEL:
-                        gameState.setEnd(true);
+                        //gameClientState.setEnd(true);
                         break;
                     default:
                         logger.log(Level.WARNING, "Cheat {0} not implemented yet!", cheat.toString());
@@ -276,8 +276,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             updateInteractiveObjectOnCursor();
         }
 
-        updateStateFlags();
-
+        // updateStateFlags();
         timeFromLastUpdate += tpf;
         // Update the cursor, the camera might have moved, a creature might have slipped by us... etc.
         if (timeFromLastUpdate > CURSOR_UPDATE_INTERVAL) {
@@ -592,8 +591,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                             boolean select = !getWorldHandler().isSelected((int) Math.max(0, selectionArea.getRealStart().x), (int) Math.max(0, selectionArea.getRealStart().y));
                             getWorldHandler().selectTiles(selectionArea, select, player.getPlayerId());
                         } else if (interactionState.getType() == Type.ROOM && getWorldHandler().isBuildable((int) selectionArea.getRealStart().x,
-                                (int) selectionArea.getRealStart().y, player, gameState.getLevelData().getRoomById(interactionState.getItemId()))) {
-                            getWorldHandler().build(selectionArea, player, gameState.getLevelData().getRoomById(interactionState.getItemId()));
+                                (int) selectionArea.getRealStart().y, player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))) {
+                            getWorldHandler().build(selectionArea, player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()));
                         } else if (interactionState.getType() == Type.SELL) {
                             getWorldHandler().sell(selectionArea, player);
                         }

@@ -72,12 +72,11 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
         roomControl = new PlayerRoomControl(app);
         spellControl = new PlayerSpellControl(app);
 
-        int triggerId = player.getTriggerId();
-        if (triggerId != 0) {
-            triggerControl = new PlayerTriggerControl(stateManager, triggerId);
-            triggerControl.setPlayer(id);
-        }
-
+//        int triggerId = player.getTriggerId();
+//        if (triggerId != 0) {
+//            triggerControl = new PlayerTriggerControl(stateManager, triggerId);
+//            triggerControl.setPlayer(id);
+//        }
         // Don't create mana control for neutral nor good player
         if (id != Player.GOOD_PLAYER_ID && id != Player.NEUTRAL_PLAYER_ID) {
             manaControl = new PlayerManaControl(id, stateManager);
