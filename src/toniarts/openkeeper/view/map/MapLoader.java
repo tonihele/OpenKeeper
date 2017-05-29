@@ -45,16 +45,15 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.EntityInstance;
+import toniarts.openkeeper.view.map.WallSection.WallDirection;
+import toniarts.openkeeper.view.map.construction.QuadConstructor;
+import toniarts.openkeeper.view.map.construction.WaterConstructor;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.effect.TorchControl;
 import toniarts.openkeeper.world.room.GenericRoom;
-import toniarts.openkeeper.world.room.RoomInstance;
-import toniarts.openkeeper.world.room.WallSection;
-import toniarts.openkeeper.world.room.WallSection.WallDirection;
-import toniarts.openkeeper.world.terrain.Water;
 
 /**
  * Loads whole maps, and handles the maps
@@ -92,8 +91,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     // private final List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
     private final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
-    // private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
-    //private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
+    private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
+    private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     // private final Map<RoomInstance, GenericRoom> roomActuals = new LinkedHashMap<>(); // Rooms by room instance
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
@@ -115,12 +114,14 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         terrain.attachChild(roomsNode);
 
         // Go through the fixed rooms and construct them
-//        for (Thing thing : kwdFile.getThings()) {
-//            if (thing instanceof Thing.Room) {
-//                Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
-//                handleRoom(p, kwdFile.getRoomByTerrain(mapData.getTile(p).getTerrain().getTerrainId()), (Thing.Room) thing);
-//            }
-//        }
+        // We might not need the room list on the client ever, we can draw them without
+        for (Thing thing : kwdFile.getThings()) {
+            if (thing instanceof Thing.Room) {
+                Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
+                handleRoom(p, kwdFile.getRoomByTerrain(mapData.getTile(p).getTerrainId()), (Thing.Room) thing);
+            }
+        }
+
         // Go through the map
         int tilesCount = mapData.getWidth() * object.getMap().getHeight();
 
@@ -354,21 +355,22 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         if (!(terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS))) {
             return loadModel(modelName);
+        } else if (hasRoomWalls(neigbourTile)) {
+            return getRoomWall(neigbourTile, direction);
         }
-//        } else if (hasRoomWalls(neigbourTile)) {
-//            return getRoomWall(neigbourTile, direction);
-//        }
 
         return loadModel(modelName);
     }
 
-//    private Spatial getRoomWall(MapTile tile, WallDirection direction) {
-//        Point p = tile.getLocation();
-//        Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
-//        RoomInstance roomInstance = handleRoom(p, room, null);
-//        GenericRoom gr = roomActuals.get(roomInstance);
-//        return gr.getWallSpatial(p, direction);
-//    }
+    private Spatial getRoomWall(MapTile tile, WallDirection direction) {
+        Point p = tile.getLocation();
+        Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+        RoomInstance roomInstance = handleRoom(p, room, null);
+        //GenericRoom gr = roomActuals.get(roomInstance);
+        // return gr.getWallSpatial(p, direction);
+        return null;
+    }
+
     /**
      * Sets random material (from the list) to all the geometries that have been
      * tagged for this in this spatial
@@ -446,7 +448,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
             // Construct the actual room
             Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-//            handleRoom(p, room, null);
+            handleRoom(p, room, null);
 
             // Swap the terrain if this is a bridge
             terrain = kwdFile.getTerrainBridge(tile.getBridgeTerrainType(), room);
@@ -518,18 +520,18 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
     }
 
-//    private RoomInstance handleRoom(Point p, Room room, Thing.Room thing) {
-//        if (roomCoordinates.containsKey(p)) {
-//            RoomInstance roomInstance = roomCoordinates.get(p);
-//            return roomInstance;
-//        }
-//
-//        RoomInstance roomInstance = new RoomInstance(room, mapData, thing);
-//        findRoom(p, roomInstance);
-//        findRoomWallSections(roomInstance);
-//        rooms.add(roomInstance);
-//
-//        // Put the thing attributes in
+    private RoomInstance handleRoom(Point p, Room room, Thing.Room thing) {
+        if (roomCoordinates.containsKey(p)) {
+            RoomInstance roomInstance = roomCoordinates.get(p);
+            return roomInstance;
+        }
+
+        RoomInstance roomInstance = new RoomInstance(room, thing);
+        findRoom(p, roomInstance);
+        findRoomWallSections(roomInstance);
+        //rooms.add(roomInstance);
+
+        // Put the thing attributes in
 //        if (thing != null) {
 //            for (Point roomPoint : roomInstance.getCoordinates()) {
 //                MapTile tile = mapData.getTile(roomPoint);
@@ -537,14 +539,16 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 //                tile.setHealth((int) (tile.getTerrain().getMaxHealth() * (thing.getInitialHealth() / 100f)));
 //            }
 //        }
-//
-//        Spatial roomNode = handleRoom(roomInstance);
-//        roomsNode.attachChild(roomNode);
-//
-//        // Add to registry
-//        roomNodes.put(roomInstance, roomNode);
-//        return roomInstance;
-//    }
+        Spatial roomNode = handleRoom(roomInstance);
+        if (roomNode != null) {
+            roomsNode.attachChild(roomNode);
+        }
+
+        // Add to registry
+        roomNodes.put(roomInstance, roomNode);
+        return roomInstance;
+    }
+
     /**
      * Handle top construction on the tile
      *
@@ -709,30 +713,30 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         MapTile tile = mapData.getTile(p);
 
         // Get the terrain
-//        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-//        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-//
-//            if (!roomCoordinates.containsKey(p)) {
-//                if (roomInstance.getRoom().equals(kwdFile.getRoomByTerrain(terrain.getTerrainId()))) {
-//
-//                    // Add the coordinate
-//                    roomCoordinates.put(p, roomInstance);
-//                    roomInstance.addCoordinate(p);
-//
-//                    // Find north
-//                    findRoom(new Point(p.x, p.y - 1), roomInstance);
-//
-//                    // Find east
-//                    findRoom(new Point(p.x + 1, p.y), roomInstance);
-//
-//                    // Find south
-//                    findRoom(new Point(p.x, p.y + 1), roomInstance);
-//
-//                    // Find west
-//                    findRoom(new Point(p.x - 1, p.y), roomInstance);
-//                }
-//            }
-//        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+
+            if (!roomCoordinates.containsKey(p)) {
+                if (roomInstance.getRoom().equals(kwdFile.getRoomByTerrain(terrain.getTerrainId()))) {
+
+                    // Add the coordinate
+                    roomCoordinates.put(p, roomInstance);
+                    roomInstance.addCoordinate(p);
+
+                    // Find north
+                    findRoom(new Point(p.x, p.y - 1), roomInstance);
+
+                    // Find east
+                    findRoom(new Point(p.x + 1, p.y), roomInstance);
+
+                    // Find south
+                    findRoom(new Point(p.x, p.y + 1), roomInstance);
+
+                    // Find west
+                    findRoom(new Point(p.x - 1, p.y), roomInstance);
+                }
+            }
+        }
     }
 
     /**
@@ -781,11 +785,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param roomInstance the room instance
      */
     private Spatial handleRoom(RoomInstance roomInstance) {
-//        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, effectManager, worldState, objectLoader);
-//        roomActuals.put(roomInstance, room);
-//        updateRoomWalls(roomInstance);
-//        return room.construct();
-        return null;
+        //GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, effectManager, worldState, objectLoader);
+        //roomActuals.put(roomInstance, room);
+        updateRoomWalls(roomInstance);
+        return RoomFactory.constructRoom(roomInstance, assetManager, null);
     }
 
     /**

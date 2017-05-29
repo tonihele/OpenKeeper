@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.map;
+package toniarts.openkeeper.view.map.construction;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
@@ -25,13 +25,13 @@ import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
+import static toniarts.openkeeper.view.map.MapLoader.TILE_WIDTH;
 
 /**
  *
  * @author ArchDemon
  */
-public class QuadConstructor extends TileConstructor {
+public class QuadConstructor extends SingleTileConstructor {
 
     public QuadConstructor(KwdFile kwdFile) {
         super(kwdFile);
@@ -144,7 +144,6 @@ public class QuadConstructor extends TileConstructor {
 
                 part.rotate(0, yAngle, 0);
                 part.move(movement);
-                //part.move((i - 1) * -TILE_WIDTH, 0, (k - 1) * TILE_WIDTH);
                 model.attachChild(part);
             }
         }

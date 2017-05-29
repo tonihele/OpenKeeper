@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.map;
+package toniarts.openkeeper.view.map.construction;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
@@ -22,13 +22,12 @@ import com.jme3.scene.Spatial;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import toniarts.openkeeper.world.room.Quad;
 
 /**
  *
  * @author ArchDemon
  */
-public class WaterConstructor extends TileConstructor {
+public class WaterConstructor extends SingleTileConstructor {
 
     public WaterConstructor(KwdFile kwdFile) {
         super(kwdFile);
@@ -49,7 +48,7 @@ public class WaterConstructor extends TileConstructor {
     public Spatial construct(MapData mapData, int x, int y, final Terrain terrain, AssetManager assetManager, String model) {
 
         // The bed
-        // Figure out which peace by seeing the neighbours
+        // Figure out which piece by seeing the neighbours
         boolean N = hasSameTile(mapData, x, y - 1, terrain);
         boolean NE = hasSameTile(mapData, x + 1, y - 1, terrain);
         boolean E = hasSameTile(mapData, x + 1, y, terrain);
@@ -107,6 +106,7 @@ public class WaterConstructor extends TileConstructor {
             }
             return floor;
         }
+
         // 2x2
         floor = Quad.constructQuad(assetManager, model, 4, FastMath.PI, N, NE, E, SE, S, SW, W, NW);
 

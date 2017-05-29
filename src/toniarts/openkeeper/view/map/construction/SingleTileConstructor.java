@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.map;
+package toniarts.openkeeper.view.map.construction;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Spatial;
@@ -28,11 +28,11 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author ArchDemon
  */
-abstract class TileConstructor {
+abstract class SingleTileConstructor {
 
     protected final KwdFile kwdFile;
 
-    public TileConstructor(KwdFile kwdFile) {
+    public SingleTileConstructor(KwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 
