@@ -17,11 +17,18 @@
 package toniarts.openkeeper.view.map;
 
 import com.jme3.asset.AssetManager;
-import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.view.map.construction.FiveByFiveRotated;
+import toniarts.openkeeper.view.map.construction.DoubleQuadConstructor;
+import toniarts.openkeeper.view.map.construction.FiveByFiveRotatedConstructor;
+import toniarts.openkeeper.view.map.construction.HeroGateConstructor;
+import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
+import toniarts.openkeeper.view.map.construction.HeroGateThreeByOneConstructor;
+import toniarts.openkeeper.view.map.construction.HeroGateTwoByTwoConstructor;
 import toniarts.openkeeper.view.map.construction.NormalConstructor;
+import toniarts.openkeeper.view.map.construction.QuadConstructor;
+import toniarts.openkeeper.view.map.construction.RoomConstructor;
+import toniarts.openkeeper.view.map.construction.ThreeByThreeConstructor;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 
 /**
@@ -37,29 +44,29 @@ public final class RoomFactory {
         // Nope
     }
 
-    public static Spatial constructRoom(RoomInstance roomInstance, AssetManager assetManager,
+    public static RoomConstructor constructRoom(RoomInstance roomInstance, AssetManager assetManager,
             EffectManagerState effectManager) {
 
         String roomName = roomInstance.getRoom().getName();
 
         switch (roomInstance.getRoom().getTileConstruction()) {
-//            case _3_BY_3:
-//                return new ThreeByThree(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//
-//            case HERO_GATE:
-//                return new HeroGate(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//
-//            case HERO_GATE_FRONT_END:
-//                return new HeroGateFrontEnd(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//
-//            case HERO_GATE_2_BY_2:
-//                return new HeroGateTwoByTwo(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//
-//            case HERO_GATE_3_BY_1:
-//                return new HeroGateThreeByOne(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//
+            case _3_BY_3:
+                return new ThreeByThreeConstructor(assetManager, roomInstance);
+
+            case HERO_GATE:
+                return new HeroGateConstructor(assetManager, roomInstance);
+
+            case HERO_GATE_FRONT_END:
+                return new HeroGateFrontEndConstructor(assetManager, roomInstance);
+
+            case HERO_GATE_2_BY_2:
+                return new HeroGateTwoByTwoConstructor(assetManager, roomInstance);
+
+            case HERO_GATE_3_BY_1:
+                return new HeroGateThreeByOneConstructor(assetManager, roomInstance);
+
             case _5_BY_5_ROTATED:
-                return new FiveByFiveRotated(assetManager, roomInstance).construct();
+                return new FiveByFiveRotatedConstructor(assetManager, roomInstance);
 
             case NORMAL:
 //                if (roomName.equalsIgnoreCase("Lair")) {
@@ -83,15 +90,15 @@ public final class RoomFactory {
 //                } else if (roomName.equalsIgnoreCase("Hatchery")) {
 //                    return new Hatchery(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                }
-                return new NormalConstructor(assetManager, roomInstance).construct();
+                return new NormalConstructor(assetManager, roomInstance);
 
-//            case QUAD:
+            case QUAD:
 //                if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
 //                    return new StoneBridge(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                }
-//                return new Quad(assetManager, roomInstance, objectLoader, worldState, effectManager);
+                return new QuadConstructor(assetManager, roomInstance);
 //
-//            case DOUBLE_QUAD:
+            case DOUBLE_QUAD:
 //                if (roomName.equalsIgnoreCase("Prison")) {
 //                    return new Prison(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                } else if (roomName.equalsIgnoreCase("Combat Pit")) {
@@ -100,7 +107,7 @@ public final class RoomFactory {
 //                    return new Temple(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                }
 //                // TODO use quad construction for different rooms
-//                return new DoubleQuad(assetManager, roomInstance, objectLoader, worldState, effectManager);
+                return new DoubleQuadConstructor(assetManager, roomInstance);
             default:
 
                 // TODO

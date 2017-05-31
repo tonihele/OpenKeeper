@@ -28,7 +28,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.Debug;
-import toniarts.openkeeper.view.map.MapLoader;
+import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.listener.RoomListener;
 import toniarts.openkeeper.world.listener.TileChangeListener;
@@ -42,7 +42,7 @@ public abstract class PlayerMapViewState extends AbstractAppState {
 
     private Main app;
     private AppStateManager stateManager;
-    private final MapLoader mapLoader;
+    private final MapViewController mapLoader;
 //    private final ThingLoader thingLoader;
     private final KwdFile kwdFile;
     private AssetManager assetManager;
@@ -75,7 +75,7 @@ public abstract class PlayerMapViewState extends AbstractAppState {
 
         // Create the actual map
         //thingLoader = new ThingLoader(this, kwdFile, assetManager);
-        this.mapLoader = new MapLoader(assetManager, kwdFile, mapData) {
+        this.mapLoader = new MapViewController(assetManager, kwdFile, mapData) {
             @Override
             protected void updateProgress(float progress) {
                 PlayerMapViewState.this.updateProgress(progress);

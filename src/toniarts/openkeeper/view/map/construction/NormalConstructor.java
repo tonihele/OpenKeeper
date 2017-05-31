@@ -35,7 +35,7 @@ public class NormalConstructor extends RoomConstructor {
     }
 
     @Override
-    public BatchNode construct() {
+    protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
 
@@ -65,7 +65,7 @@ public class NormalConstructor extends RoomConstructor {
                 if (N && NE && E && SE && S && SW && W && NW && useBigFloorTile(x, y)) {
                     part = AssetUtils.loadModel(assetManager, modelName + "9");
                 } else {
-                    part = Quad.constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
+                    part = QuadConstructor.constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
                 }
                 AssetUtils.translateToTile(part, new Point(x, y));
                 root.attachChild(part);

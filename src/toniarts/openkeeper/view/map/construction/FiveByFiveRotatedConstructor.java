@@ -29,14 +29,14 @@ import toniarts.openkeeper.view.map.RoomInstance;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class FiveByFiveRotated extends RoomConstructor {
+public class FiveByFiveRotatedConstructor extends RoomConstructor {
 
-    public FiveByFiveRotated(AssetManager assetManager, RoomInstance roomInstance) {
+    public FiveByFiveRotatedConstructor(AssetManager assetManager, RoomInstance roomInstance) {
         super(assetManager, roomInstance);
     }
 
     @Override
-    public BatchNode construct() {
+    protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
 
         // 5 by 5

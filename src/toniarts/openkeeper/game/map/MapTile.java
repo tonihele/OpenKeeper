@@ -46,6 +46,9 @@ public class MapTile implements Savable {
     private int maxHealth;
     private int gold;
 
+    /* Refers to the room this tile holds */
+    private boolean destroyed = false;
+
     private short ownerId;
     private short terrainId;
     private BridgeTerrainType bridgeTerrainType;
@@ -67,7 +70,7 @@ public class MapTile implements Savable {
         // The water/lava under the bridge is set only when there is an actual bridge, but we might as well set it here, it doesn't change
         if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
             bridgeTerrainType = BridgeTerrainType.LAVA;
-        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER)) {
+        } else {
             bridgeTerrainType = BridgeTerrainType.WATER;
         }
 
@@ -321,6 +324,7 @@ public class MapTile implements Savable {
         out.write(ownerId, "ownerId", Integer.valueOf(0).shortValue());
         out.write(terrainId, "terrainId", Integer.valueOf(0).shortValue());
         out.write(bridgeTerrainType, "bridgeTerrainType", null);
+        out.write(destroyed, "destroyed", false);
     }
 
     private void writeShortBooleanMap(OutputCapsule out, Map<Short, Boolean> map, String name) throws IOException {
@@ -352,6 +356,7 @@ public class MapTile implements Savable {
         ownerId = in.readShort("ownerId", Integer.valueOf(0).shortValue());
         terrainId = in.readShort("terrainId", Integer.valueOf(0).shortValue());
         bridgeTerrainType = in.readEnum("bridgeTerrainType", BridgeTerrainType.class, null);
+        destroyed = in.readBoolean("destroyed", false);
     }
 
     private Map<Short, Boolean> readShortBooleanMap(InputCapsule in, String name) throws IOException {

@@ -19,135 +19,167 @@ package toniarts.openkeeper.view.map.construction;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Terrain;
-import static toniarts.openkeeper.view.map.MapLoader.TILE_WIDTH;
+import java.awt.Point;
+import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.map.RoomInstance;
+import toniarts.openkeeper.world.MapLoader;
 
 /**
+ * FIXME: QuadConstructor
  *
  * @author ArchDemon
  */
-public class QuadConstructor extends SingleTileConstructor {
+public class QuadConstructor extends RoomConstructor {
 
-    public QuadConstructor(KwdFile kwdFile) {
-        super(kwdFile);
+    public QuadConstructor(AssetManager assetManager, RoomInstance roomInstance) {
+        super(assetManager, roomInstance);
+    }
+
+    public static Node constructQuad(AssetManager assetManager, String modelName,
+            boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW) {
+
+        return constructQuad(assetManager, modelName, 0, 0, N, NE, E, SE, S, SW, W, NW);
     }
 
     /**
-     * Constructs a quad tile type (2x2 pieces forms one tile), i.e. claimed top
-     * and floor
      *
-     * @param mapData the tiles
-     * @param terrain the terrain
-     * @param x x
-     * @param y y
-     * @param assetManager the asset manager instance
-     * @param modelName the model name to load
-     * @return the loaded model
+     * @param assetManager
+     * @param modelName
+     * @param base base index of piece (need to construct water bed)
+     * @param angle base totation yAngle of piece (need to construct water bed)
+     * @param N
+     * @param NE
+     * @param E
+     * @param SE
+     * @param S
+     * @param SW
+     * @param W
+     * @param NW
+     * @return
      */
-    @Override
-    public Spatial construct(MapData mapData, int x, int y, final Terrain terrain, final AssetManager assetManager, String modelName) {
+    public static Node constructQuad(AssetManager assetManager, String modelName, int base, float angle,
+            boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW) {
 
-        // If ownable, playerId is first. With fixed Hero Lair
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && terrain.getTerrainId() != 35) {
-            MapTile tile = mapData.getTile(x, y);
-            modelName += tile.getOwnerId() - 1 + "_";
-        }
+        Node quad = new Node();
 
-        // It needs to be parsed together from tiles
-        boolean solid = isSolidTile(mapData, x, y);
-
-        // Figure out which peace by seeing the neighbours
-        // This is slightly different with the top
-        boolean N = hasSameTile(mapData, x, y - 1, terrain) || (solid && isSolidTile(mapData, x, y - 1));
-        boolean NE = hasSameTile(mapData, x + 1, y - 1, terrain) || (solid && isSolidTile(mapData, x + 1, y - 1));
-        boolean E = hasSameTile(mapData, x + 1, y, terrain) || (solid && isSolidTile(mapData, x + 1, y));
-        boolean SE = hasSameTile(mapData, x + 1, y + 1, terrain) || (solid && isSolidTile(mapData, x + 1, y + 1));
-        boolean S = hasSameTile(mapData, x, y + 1, terrain) || (solid && isSolidTile(mapData, x, y + 1));
-        boolean SW = hasSameTile(mapData, x - 1, y + 1, terrain) || (solid && isSolidTile(mapData, x - 1, y + 1));
-        boolean W = hasSameTile(mapData, x - 1, y, terrain) || (solid && isSolidTile(mapData, x - 1, y));
-        boolean NW = hasSameTile(mapData, x - 1, y - 1, terrain) || (solid && isSolidTile(mapData, x - 1, y - 1));
-
-        // 2x2
-        Node model = new Node();
         for (int i = 0; i < 2; i++) {
             for (int k = 0; k < 2; k++) {
 
-                int pieceNumber = 0;
-                float yAngle;
+                int piece = 0;
+                float yAngle = 0;
                 Vector3f movement;
 
                 // Determine the piece
                 if (i == 0 && k == 0) { // North west corner
                     if (N && W && NW) {
-                        pieceNumber = 3;
+                        piece = 3;
+                        yAngle = -FastMath.HALF_PI;
                     } else if (N && W && !NW) {
-                        pieceNumber = 2;
-                    } else if (!N && !W) {
-                        pieceNumber = 1;
-                    } else if (N && !W) {
-                        pieceNumber = 4;
+                        piece = 2;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (!N && W) { // && NW no matter
+                        piece = 0;
+                    } else if (N && !W) { // && NW no matter
+                        piece = 0;
+                        yAngle = FastMath.HALF_PI;
+                    } else { // if (!N && !W)
+                        piece = 1;
+                        yAngle = FastMath.HALF_PI;
                     }
-
-                    yAngle = FastMath.PI;
-                    movement = new Vector3f(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
-
+                    movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
                 } else if (i == 1 && k == 0) { // North east corner
                     if (N && E && NE) {
-                        pieceNumber = 3;
+                        piece = 3;
+                        yAngle = FastMath.PI;
                     } else if (N && E && !NE) {
-                        pieceNumber = 2;
-                    } else if (!N && !E) {
-                        pieceNumber = 1;
+                        piece = 2;
+                        yAngle = FastMath.PI;
                     } else if (!N && E) {
-                        pieceNumber = 4;
+                        piece = 0;
+                    } else if (N && !E) {
+                        piece = 0;
+                        yAngle = -FastMath.HALF_PI;
+                    } else {
+                        piece = 1;
                     }
-
-                    yAngle = FastMath.HALF_PI;
-                    movement = new Vector3f(TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
-
+                    movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
                 } else if (i == 0 && k == 1) { // South west corner
                     if (S && W && SW) {
-                        pieceNumber = 3;
+                        piece = 3;
                     } else if (S && W && !SW) {
-                        pieceNumber = 2;
-                    } else if (!S && !W) {
-                        pieceNumber = 1;
+                        piece = 2;
                     } else if (!S && W) {
-                        pieceNumber = 4;
+                        piece = 0;
+                        yAngle = FastMath.PI;
+                    } else if (S && !W) {
+                        piece = 0;
+                        yAngle = FastMath.HALF_PI;
+                    } else {
+                        piece = 1;
+                        yAngle = FastMath.PI;
                     }
-
-                    yAngle = -FastMath.HALF_PI;
-                    movement = new Vector3f(-TILE_WIDTH / 4, 0, TILE_WIDTH / 4);
-
-                } else { // (i == 1 && k == 1) South east corner
+                    movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
+                } else { // South east corner if (i == 1 && k == 1)
                     if (S && E && SE) {
-                        pieceNumber = 3;
+                        piece = 3;
+                        yAngle = FastMath.HALF_PI;
                     } else if (S && E && !SE) {
-                        pieceNumber = 2;
-                    } else if (!S && !E) {
-                        pieceNumber = 1;
+                        piece = 2;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (!S && E) {
+                        piece = 0;
+                        yAngle = FastMath.PI;
                     } else if (S && !E) {
-                        pieceNumber = 4;
+                        piece = 0;
+                        yAngle = -FastMath.HALF_PI;
+                    } else {
+                        piece = 1;
+                        yAngle = -FastMath.HALF_PI;
                     }
-
-                    yAngle = 0;
-                    movement = new Vector3f(TILE_WIDTH / 4, 0, TILE_WIDTH / 4);
+                    movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                 }
-
                 // Load the piece
-                Spatial part = loadAsset(assetManager, modelName + pieceNumber);
-
-                part.rotate(0, yAngle, 0);
+                Spatial part = AssetUtils.loadModel(assetManager, modelName + (base + piece));
+                part.rotate(0, angle + yAngle, 0);
                 part.move(movement);
-                model.attachChild(part);
+
+                quad.attachChild(part);
             }
         }
 
-        return model;
+        return quad;
     }
+
+    @Override
+    protected BatchNode constructFloor() {
+        BatchNode root = new BatchNode();
+        String modelName = roomInstance.getRoom().getCompleteResource().getName();
+        //Point start = roomInstance.getCoordinates().get(0);
+        // Contruct the tiles
+        for (Point p : roomInstance.getCoordinates()) {
+            // Figure out which peace by seeing the neighbours
+            boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
+            boolean NE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
+            boolean E = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
+            boolean SE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
+            boolean S = roomInstance.hasCoordinate(new Point(p.x, p.y + 1));
+            boolean SW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y + 1));
+            boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
+            boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
+            // 2x2
+            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
+            //AssetUtils.scale(model);
+            AssetUtils.translateToTile(model, p);
+            root.attachChild(model);
+        }
+
+        // Set the transform and scale to our scale and 0 the transform
+        //AssetUtils.scale(root);
+        //AssetUtils.moveToTile(root, start);
+        return root;
+    }
+
 }

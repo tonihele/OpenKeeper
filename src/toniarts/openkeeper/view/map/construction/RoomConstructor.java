@@ -8,11 +8,13 @@ package toniarts.openkeeper.view.map.construction;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.BatchNode;
+import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.view.map.MapLoader;
+import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.map.RoomInstance;
 import toniarts.openkeeper.view.map.WallSection;
 import static toniarts.openkeeper.view.map.WallSection.WallDirection.WEST;
@@ -45,7 +47,51 @@ public abstract class RoomConstructor {
      *
      * @return the spatial representing the room
      */
-    public abstract BatchNode construct();
+    public final Spatial construct() {
+        Node root = new Node(roomInstance.getRoom().getName());
+
+        // Add the floor
+        BatchNode floorNode = constructFloor();
+        if (floorNode != null) {
+            floorNode.setName("Floor");
+            floorNode.setShadowMode(getFloorShadowMode());
+            floorNode.batch();
+            root.attachChild(floorNode);
+        }
+
+        // Custom wall
+        BatchNode wallNode = constructWall();
+        if (wallNode != null) {
+            wallNode.setName("Wall");
+            wallNode.setShadowMode(getWallShadowMode());
+            wallNode.batch();
+            root.attachChild(wallNode);
+        }
+
+        return root;
+    }
+
+    protected abstract BatchNode constructFloor();
+
+    /**
+     * Rooms typically don't contruct walls themselves, instead they are asked
+     * for the wall spatials by the map loader in normal map drawing situation
+     *
+     * @see #getWallSpatial(java.awt.Point,
+     * toniarts.openkeeper.world.room.WallSection.WallDirection)
+     * @return contructed wall
+     */
+    protected BatchNode constructWall() {
+        return null;
+    }
+
+    protected RenderQueue.ShadowMode getFloorShadowMode() {
+        return RenderQueue.ShadowMode.Receive;
+    }
+
+    protected RenderQueue.ShadowMode getWallShadowMode() {
+        return RenderQueue.ShadowMode.CastAndReceive;
+    }
 
     /**
      * Use the big floor tile at the specified point
@@ -104,11 +150,11 @@ public abstract class RoomConstructor {
                     Vector3f moveSecond;
                     if (section.getDirection() == WallSection.WallDirection.WEST
                             || section.getDirection() == WallSection.WallDirection.SOUTH) {
-                        moveFirst = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -3 * MapLoader.TILE_WIDTH / 4);
-                        moveSecond = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -3 * MapLoader.TILE_WIDTH / 4);
+                        moveFirst = new Vector3f(MapViewController.TILE_WIDTH / 4, 0, -3 * MapViewController.TILE_WIDTH / 4);
+                        moveSecond = new Vector3f(-MapViewController.TILE_WIDTH / 4, 0, -3 * MapViewController.TILE_WIDTH / 4);
                     } else { // NORTH, EAST
-                        moveFirst = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -3 * MapLoader.TILE_WIDTH / 4);
-                        moveSecond = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -3 * MapLoader.TILE_WIDTH / 4);
+                        moveFirst = new Vector3f(-MapViewController.TILE_WIDTH / 4, 0, -3 * MapViewController.TILE_WIDTH / 4);
+                        moveSecond = new Vector3f(MapViewController.TILE_WIDTH / 4, 0, -3 * MapViewController.TILE_WIDTH / 4);
                     }
 
                     spatial = new BatchNode();
@@ -144,17 +190,17 @@ public abstract class RoomConstructor {
 
                     switch (section.getDirection()) {
                         case WEST:
-                            spatial.move(-MapLoader.TILE_WIDTH, 0, 0);
+                            spatial.move(-MapViewController.TILE_WIDTH, 0, 0);
                             break;
                         case SOUTH:
-                            spatial.move(0, 0, MapLoader.TILE_WIDTH);
+                            spatial.move(0, 0, MapViewController.TILE_WIDTH);
                             break;
                         case EAST:
-                            spatial.move(MapLoader.TILE_WIDTH, 0, 0);
+                            spatial.move(MapViewController.TILE_WIDTH, 0, 0);
                             break;
                         default:
                             // NORTH
-                            spatial.move(0, 0, -MapLoader.TILE_WIDTH);
+                            spatial.move(0, 0, -MapViewController.TILE_WIDTH);
                             break;
                     }
                 }

@@ -100,7 +100,7 @@ public class Water {
 
                     // Alpha resource, compile such
                     mat = AssetUtils.createLightningSpriteMaterial(resource, assetManager);
-                    MapLoader.setTerrainMaterialLighting(mat, entityInstances.get(0).getEntity());
+                    MapViewController.setTerrainMaterialLighting(mat, entityInstances.get(0).getEntity());
                     break;
                 }
             }
@@ -112,7 +112,7 @@ public class Water {
             TextureKey textureKey = new TextureKey(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(entityInstances.get(0).getEntity().getTopResource().getName()).concat(".png")), false);
             Texture tex = assetManager.loadTexture(textureKey);
             mat.setTexture("DiffuseMap", tex);
-            MapLoader.setTerrainMaterialLighting(mat, entityInstances.get(0).getEntity());
+            MapViewController.setTerrainMaterialLighting(mat, entityInstances.get(0).getEntity());
         }
 
         // Set it all
@@ -161,14 +161,14 @@ public class Water {
                 Vector2f textureCoord4 = new Vector2f(1, 1);
 
                 // Vertices
-                Vector3f vertice1 = new Vector3f((tile.x - 0.5f) * MapLoader.TILE_WIDTH,
-                        MapLoader.WATER_LEVEL, (tile.y - 0.5f) * MapLoader.TILE_WIDTH);
-                Vector3f vertice2 = new Vector3f((tile.x + 0.5f) * MapLoader.TILE_WIDTH,
-                        MapLoader.WATER_LEVEL, (tile.y - 0.5f) * MapLoader.TILE_WIDTH);
-                Vector3f vertice3 = new Vector3f((tile.x - 0.5f) * MapLoader.TILE_WIDTH,
-                        MapLoader.WATER_LEVEL, (tile.y + 0.5f) * MapLoader.TILE_WIDTH);
-                Vector3f vertice4 = new Vector3f((tile.x + 0.5f) * MapLoader.TILE_WIDTH,
-                        MapLoader.WATER_LEVEL, (tile.y + 0.5f) * MapLoader.TILE_WIDTH);
+                Vector3f vertice1 = new Vector3f((tile.x - 0.5f) * MapViewController.TILE_WIDTH,
+                        MapViewController.WATER_LEVEL, (tile.y - 0.5f) * MapViewController.TILE_WIDTH);
+                Vector3f vertice2 = new Vector3f((tile.x + 0.5f) * MapViewController.TILE_WIDTH,
+                        MapViewController.WATER_LEVEL, (tile.y - 0.5f) * MapViewController.TILE_WIDTH);
+                Vector3f vertice3 = new Vector3f((tile.x - 0.5f) * MapViewController.TILE_WIDTH,
+                        MapViewController.WATER_LEVEL, (tile.y + 0.5f) * MapViewController.TILE_WIDTH);
+                Vector3f vertice4 = new Vector3f((tile.x + 0.5f) * MapViewController.TILE_WIDTH,
+                        MapViewController.WATER_LEVEL, (tile.y + 0.5f) * MapViewController.TILE_WIDTH);
 
                 int vertice1Index = addVertice(verticeHash, vertice1, vertices, textureCoord1,
                         textureCoordinates, normals, shareVertices);

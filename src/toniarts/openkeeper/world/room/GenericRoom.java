@@ -95,6 +95,7 @@ public abstract class GenericRoom {
 
     // FIXME we need todo something
     private static final Map<Integer, String> temp = new HashMap<>();
+
     static {
         temp.put(3, "%44"); // Portal
         temp.put(2, "%45"); // Lairs
@@ -504,7 +505,6 @@ public abstract class GenericRoom {
         return result;
     }
 
-
     /**
      * Get used capacity
      *
@@ -641,6 +641,7 @@ public abstract class GenericRoom {
     }
 
     private static class RoomCount {
+
         public String placeholder;
         public int amount;
 

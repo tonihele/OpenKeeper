@@ -29,6 +29,7 @@ public class RoomInstance extends EntityInstance<Room> {
 
     private List<WallSection> wallSections;
     private final Thing.Room.Direction direction;
+    private boolean destroyed = false;
 
     public RoomInstance(Room room) {
         this(room, null);
@@ -62,6 +63,14 @@ public class RoomInstance extends EntityInstance<Room> {
      */
     public Thing.Room.Direction getDirection() {
         return direction;
+    }
+
+    public void setDestroyed(boolean destroyed) {
+        this.destroyed = destroyed;
+    }
+
+    public boolean isDestroyed() {
+        return destroyed;
     }
 
 }
