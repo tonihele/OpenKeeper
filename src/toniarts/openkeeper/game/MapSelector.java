@@ -147,7 +147,7 @@ public class MapSelector {
     }
 
     /**
-     * Get a map by name
+     * Get a map by name, also sets it as the current map
      *
      * @param map the map name
      * @return the map, or {@code null} if not found
@@ -155,7 +155,8 @@ public class MapSelector {
     public GameMapContainer getMap(String map) {
         int index = Collections.binarySearch(getMaps(), new GameMapContainer(null, map), new MapComparator());
         if (index >= 0) {
-            return getMaps().get(index);
+            this.map = getMaps().get(index);
+            return this.map;
         }
         return null;
     }
