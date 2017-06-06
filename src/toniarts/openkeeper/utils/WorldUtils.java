@@ -25,9 +25,15 @@ import toniarts.openkeeper.world.MapLoader;
 
 /**
  * Contains transforms from tile indexes and world coordinates
+ *
  * @author archdemon
  */
 public class WorldUtils {
+
+    private WorldUtils() {
+        // Nope
+    }
+
     /**
      * Get a standard camera position vector on given map point
      *
@@ -41,6 +47,7 @@ public class WorldUtils {
 
     /**
      * calculates position from center ActionPoint
+     *
      * @param ap
      * @return position on 3D world with y = 0
      */
@@ -54,6 +61,7 @@ public class WorldUtils {
 
     /**
      * calculates position from center ActionPoint
+     *
      * @param ap
      * @return position on 2D world
      */
@@ -104,4 +112,5 @@ public class WorldUtils {
     public static Point vectorToPoint(final float x, final float y) {
         return new Point(Math.round(x / MapLoader.TILE_WIDTH), Math.round(y / MapLoader.TILE_WIDTH));
     }
+
 }

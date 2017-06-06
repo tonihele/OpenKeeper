@@ -16,21 +16,27 @@
  */
 package toniarts.openkeeper.game.network.game;
 
+import com.jme3.math.Vector2f;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rmi.RmiRegistry;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.map.MapData;
+import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.NetworkConstants;
+import toniarts.openkeeper.game.network.streaming.StreamingHostedService;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.game.state.session.GameSessionService;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
  * Game server hosts lobby service for the game clients.
@@ -38,6 +44,13 @@ import toniarts.openkeeper.game.state.session.GameSessionService;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class GameHostedService extends AbstractHostedConnectionService implements GameSessionService {
+
+    /**
+     * Someone is listening on the other end, for that we need a message type
+     */
+    public enum MessageType {
+        MAP_DATA;
+    }
 
     private static final Logger logger = Logger.getLogger(GameHostedService.class.getName());
 
@@ -106,8 +119,12 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
     @Override
     public void sendGameData(MapData mapData) {
-        for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onGameDataLoaded(mapData);
+        try {
+
+            // Data is too big, stream the data
+            getServiceManager().getService(StreamingHostedService.class).sendData(MessageType.MAP_DATA.ordinal(), mapData, null);
+        } catch (IOException ex) {
+            Logger.getLogger(GameHostedService.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -176,7 +193,8 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
         @Override
         public void onGameDataLoaded(MapData mapData) {
-            getCallback().onGameDataLoaded(mapData);
+
+            // We send this as a streamed message, to all, super big
         }
 
         @Override
@@ -192,6 +210,46 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         @Override
         public void onLoadStatusUpdate(float progress, short keeperId) {
             getCallback().onLoadStatusUpdate(progress, keeperId);
+        }
+
+        @Override
+        public void onTilesChange(List<MapTile> updatedTiles) {
+            getCallback().onTilesChange(updatedTiles);
+        }
+
+        @Override
+        public MapData getMapData() {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void setTiles(List<MapTile> tiles) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public boolean isBuildable(int x, int y, Player player, Room room) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public boolean isClaimable(int x, int y, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public boolean isSelected(int x, int y, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public boolean isTaggable(int x, int y) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
     }

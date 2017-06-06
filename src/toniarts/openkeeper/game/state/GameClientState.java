@@ -26,10 +26,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.action.ActionPointState;
+import toniarts.openkeeper.game.controller.MapClientService;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.GameLogicThread;
 import toniarts.openkeeper.game.map.MapData;
+import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
@@ -316,7 +318,7 @@ public class GameClientState extends AbstractPauseAwareState {
 
             // Now we have the game data, start loading the map
             kwdFile.load();
-            playerMapViewState = new PlayerMapViewState(kwdFile, app.getAssetManager(), mapData) {
+            playerMapViewState = new PlayerMapViewState(kwdFile, app.getAssetManager(), gameClientService, playerId) {
 
                 @Override
                 protected void updateProgress(float progress) {
@@ -355,6 +357,15 @@ public class GameClientState extends AbstractPauseAwareState {
             }
         }
 
+        @Override
+        public void onTilesChange(List<MapTile> updatedTiles) {
+            playerMapViewState.onTilesChange(updatedTiles);
+        }
+
+    }
+
+    public MapClientService getMapClientService() {
+        return gameClientService;
     }
 
 }

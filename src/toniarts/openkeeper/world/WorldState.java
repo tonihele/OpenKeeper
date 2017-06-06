@@ -177,9 +177,10 @@ public abstract class WorldState extends AbstractAppState {
         }
 
         // Set up the money$$$
-        for (Keeper player : gameState.getPlayers()) {
-            if (player.getInitialGold() > 0) {
-                addGold(player.getId(), player.getInitialGold());
+        for (Keeper keeper : gameState.getPlayers()) {
+            Player player = kwdFile.getPlayer(keeper.getId());
+            if (player.getStartingGold() > 0) {
+                addGold(keeper.getId(), player.getStartingGold());
             }
         }
     }
@@ -1247,8 +1248,8 @@ public abstract class WorldState extends AbstractAppState {
                     roomTile.applyHealing(tile.getTerrain().getMaxHealth());
 
                     effectManager.load(worldNode,
-                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
-                        tile.getTerrain().getMaxHealthEffectId(), false);
+                            WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                            tile.getTerrain().getMaxHealthEffectId(), false);
 
                     // FIXME ROOM_CLAIM_ID is realy claim effect?
                     effectManager.load(worldNode,

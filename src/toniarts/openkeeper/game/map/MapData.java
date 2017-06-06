@@ -23,6 +23,7 @@ import com.jme3.export.OutputCapsule;
 import com.jme3.export.Savable;
 import java.awt.Point;
 import java.io.IOException;
+import java.util.List;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
@@ -91,6 +92,12 @@ public class MapData implements Savable {
         return null;
     }
 
+    public void setTiles(List<MapTile> mapTiles) {
+        for (MapTile mapTile : mapTiles) {
+            tiles[mapTile.getX()][mapTile.getY()] = mapTile;
+        }
+    }
+
     @Override
     public void write(JmeExporter ex) throws IOException {
         OutputCapsule out = ex.getCapsule(this);
@@ -110,4 +117,5 @@ public class MapData implements Savable {
         width = tiles.length;
         height = tiles[0].length;
     }
+
 }

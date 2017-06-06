@@ -41,7 +41,6 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
     private AIType aiType = AIType.MASTER_KEEPER;
     private transient Player player;
     private short id;
-    private int initialGold = 0;
     private transient PlayerGoldControl goldControl = new PlayerGoldControl();
     private transient PlayerCreatureControl creatureControl;
     private transient PlayerSpellControl spellControl;
@@ -64,7 +63,6 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
     public Keeper(Player player, final Application app) {
         this.player = player;
         this.id = player.getPlayerId();
-        initialGold = player.getStartingGold();
     }
 
     public void initialize(final AppStateManager stateManager, final Application app) {
@@ -89,10 +87,6 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
 
     public void setId(short id) {
         this.id = id;
-    }
-
-    public int getInitialGold() {
-        return initialGold;
     }
 
     public Player getPlayer() {
@@ -139,9 +133,6 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
 
     public void setPlayer(Player player) {
         this.player = player;
-
-        // Set the gold
-        initialGold = player.getStartingGold();
     }
 
     @Override

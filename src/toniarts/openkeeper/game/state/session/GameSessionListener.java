@@ -17,14 +17,15 @@
 package toniarts.openkeeper.game.state.session;
 
 import com.jme3.network.service.rmi.Asynchronous;
+import toniarts.openkeeper.game.controller.MapListener;
 import toniarts.openkeeper.game.map.MapData;
 
 /**
- * The gane callbacks the server sends to the client
+ * The game callbacks the server sends to the client
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface GameSessionListener {
+public interface GameSessionListener extends MapListener {
 
     /**
      * Client should start to load the game data up visually

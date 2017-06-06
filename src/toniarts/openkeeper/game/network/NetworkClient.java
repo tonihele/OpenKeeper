@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.network.message.MessagePlayerInfo;
 import toniarts.openkeeper.game.network.message.MessageServerInfo;
 import toniarts.openkeeper.game.network.message.MessageTime;
 import toniarts.openkeeper.game.network.session.AccountClientService;
+import toniarts.openkeeper.game.network.streaming.StreamingClientService;
 
 /**
  *
@@ -70,12 +71,14 @@ public class NetworkClient implements ChatSession {
         // client.addMessageListener(delegator, delegator.getMessageTypes());
         client.getServices().addServices(new RpcClientService(),
                 new RmiClientService(),
+                new StreamingClientService(),
                 new AccountClientService(),
                 new LobbyClientService(),
                 new ChatClientService(), new EtherealClient(NetworkConstants.OBJECT_PROTOCOL,
                         NetworkConstants.ZONE_GRID,
                         NetworkConstants.ZONE_RADIUS),
-                new GameClientService());
+                new GameClientService()
+        );
     }
 
     public final long getGameTime() {

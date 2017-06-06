@@ -21,29 +21,225 @@ import com.jme3.export.JmeExporter;
 import com.jme3.export.JmeImporter;
 import com.jme3.export.OutputCapsule;
 import com.jme3.export.Savable;
+import com.jme3.math.Vector2f;
+import java.awt.Point;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import toniarts.openkeeper.game.map.MapData;
+import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 
 /**
  * This is controller for the map related functions
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class MapController implements Savable {
+public final class MapController implements Savable, MapClientService {
 
     private MapData mapData;
+    private KwdFile kwdFile;
+    private final List<MapListener> listeners = new ArrayList<>();
 
     public MapController() {
         // For serialization
     }
 
-    public MapController(KwdFile kwdFile) {
-        this.mapData = new MapData(kwdFile);
+    /**
+     * Load map data from a KWD file straight
+     *
+     * @param kwdFile the KWD file
+     * @return the loaded map data
+     */
+    public static MapData load(KwdFile kwdFile) {
+        return new MapData(kwdFile);
     }
 
+    public MapController(MapData mapData, KwdFile kwdFile) {
+        this.mapData = mapData;
+        this.kwdFile = kwdFile;
+    }
+
+    @Override
     public MapData getMapData() {
         return mapData;
+    }
+
+    public void setMapData(MapData mapData) {
+        this.mapData = mapData;
+    }
+
+    public void setKwdFile(KwdFile kwdFile) {
+        this.kwdFile = kwdFile;
+    }
+
+    /**
+     * If you want to get notified about tile changes
+     *
+     * @param listener the listener
+     */
+    public void addListener(MapListener listener) {
+        listeners.add(listener);
+    }
+
+    /**
+     * Stop listening to map updates
+     *
+     * @param listener the listener
+     */
+    public void removeListener(MapListener listener) {
+        listeners.remove(listener);
+    }
+
+    @Override
+    public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
+        List<MapTile> updatableTiles = new ArrayList<>();
+        for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
+            for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
+                MapTile tile = getMapData().getTile(x, y);
+                if (tile == null) {
+                    continue;
+                }
+                Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+                if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                    continue;
+                }
+                tile.setSelected(select, playerId);
+                updatableTiles.add(tile);
+            }
+        }
+        //Point[] tiles = updatableTiles.toArray(new Point[updatableTiles.size()]);
+        //mapLoader.updateTiles(tiles);
+
+        // Notify
+        notifyTileChange(updatableTiles);
+    }
+
+    @Override
+    public boolean isSelected(int x, int y, short playerId) {
+        MapTile tile = getMapData().getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
+        return tile.isSelected(playerId);
+    }
+
+    @Override
+    public boolean isTaggable(int x, int y) {
+        MapTile tile = getMapData().getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE);
+    }
+
+    @Override
+    public boolean isBuildable(int x, int y, Player player, Room room) {
+        MapTile tile = getMapData().getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
+
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+
+        // Ownable tile is needed for land building (and needs to be owned by us)
+        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)
+                && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                && !terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)
+                && tile.getOwnerId() == player.getPlayerId()) {
+            return true;
+        }
+
+        // See if we are dealing with bridges
+        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER) && terrain.getFlags().contains(Terrain.TerrainFlag.WATER)) {
+            return true;
+        }
+        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA) && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean isClaimable(int x, int y, short playerId) {
+        MapTile tile = getMapData().getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
+
+        // See if the terrain is claimable at all
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        boolean claimable = false;
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            if (tile.getOwnerId() != playerId) {
+                claimable = true;
+            }
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+            if (tile.getOwnerId() != playerId) {
+                claimable = true;
+            }
+        } else {
+            claimable = (terrain.getMaxHealthTypeTerrainId() != terrain.getTerrainId());
+        }
+
+        // In order to claim, it needs to be adjacent to your own tiles
+        if (claimable) {
+            for (Point p : getSurroundingTiles(new Point(x, y), false)) {
+                MapTile neighbourTile = getMapData().getTile(p);
+                if (neighbourTile != null) {
+                    Terrain neighbourTerrain = kwdFile.getTerrain(neighbourTile.getTerrainId());
+                    if (neighbourTile.getOwnerId() == playerId && neighbourTerrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !neighbourTerrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public Point[] getSurroundingTiles(Point point, boolean diagonal) {
+
+        // Get all surrounding tiles
+        List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
+        tileCoords.add(point);
+
+        addIfValidCoordinate(point.x, point.y - 1, tileCoords); // North
+        addIfValidCoordinate(point.x + 1, point.y, tileCoords); // East
+        addIfValidCoordinate(point.x, point.y + 1, tileCoords); // South
+        addIfValidCoordinate(point.x - 1, point.y, tileCoords); // West
+        if (diagonal) {
+            addIfValidCoordinate(point.x - 1, point.y - 1, tileCoords); // NW
+            addIfValidCoordinate(point.x + 1, point.y - 1, tileCoords); // NE
+            addIfValidCoordinate(point.x - 1, point.y + 1, tileCoords); // SW
+            addIfValidCoordinate(point.x + 1, point.y + 1, tileCoords); // SE
+        }
+
+        return tileCoords.toArray(new Point[tileCoords.size()]);
+    }
+
+    private void addIfValidCoordinate(final int x, final int y, List<Point> tileCoords) {
+        MapTile tile = mapData.getTile(x, y);
+        if (tile != null) {
+            tileCoords.add(tile.getLocation());
+        }
+    }
+
+    @Override
+    public void setTiles(List<MapTile> tiles) {
+        mapData.setTiles(tiles);
+    }
+
+    private void notifyTileChange(List<MapTile> updatedTiles) {
+        for (MapListener mapListener : listeners) {
+            mapListener.onTilesChange(updatedTiles);
+        }
     }
 
     @Override

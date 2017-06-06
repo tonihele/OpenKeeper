@@ -17,6 +17,7 @@
 package toniarts.openkeeper.view.map;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
@@ -27,6 +28,7 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
+import com.jme3.texture.Texture;
 import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -38,8 +40,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.controller.MapClientService;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -83,10 +87,12 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private List<Node> pages;
     private final KwdFile kwdFile;
     private Node map;
-    private final MapData mapData;
+    //private final MapData mapData;
     private final AssetManager assetManager;
+    private final MapClientService mapClientService;
     //private final EffectManagerState effectManager;
     private Node roomsNode;
+    private final short playerId;
     // private final WorldState worldState;
     //private final ObjectLoader objectLoader;
     // private final List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
@@ -98,10 +104,11 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapViewController.class.getName());
 
-    public MapViewController(AssetManager assetManager, KwdFile kwdFile, MapData mapData) {
+    public MapViewController(AssetManager assetManager, KwdFile kwdFile, MapClientService mapClientService, short playerId) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
-        this.mapData = mapData;
+        this.mapClientService = mapClientService;
+        this.playerId = playerId;
     }
 
     @Override
@@ -119,18 +126,18 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         for (Thing thing : kwdFile.getThings()) {
             if (thing instanceof Thing.Room) {
                 Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
-                handleRoom(p, kwdFile.getRoomByTerrain(mapData.getTile(p).getTerrainId()), (Thing.Room) thing);
+                handleRoom(p, kwdFile.getRoomByTerrain(getMapData().getTile(p).getTerrainId()), (Thing.Room) thing);
             }
         }
 
         // Go through the map
-        int tilesCount = mapData.getWidth() * object.getMap().getHeight();
+        int tilesCount = getMapData().getWidth() * object.getMap().getHeight();
 
-        for (int y = 0; y < mapData.getHeight(); y++) {
-            for (int x = 0; x < mapData.getWidth(); x++) {
+        for (int y = 0; y < getMapData().getHeight(); y++) {
+            for (int x = 0; x < getMapData().getWidth(); x++) {
 
                 try {
-                    handleTile(mapData.getTile(x, y), terrain);
+                    handleTile(getMapData().getTile(x, y), terrain);
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Failed to handle tile at " + x + ", " + y + "!", e);
                 }
@@ -162,7 +169,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     }
 
     public MapData getMapData() {
-        return mapData;
+        return mapClientService.getMapData();
     }
 
     private Terrain getTerrain(MapTile tile) {
@@ -174,13 +181,13 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      *
      * @param points tile coordinates to update
      */
-    protected void updateTiles(Point... points) {
+    public void updateTiles(Point... points) {
 
         // Reconstruct all tiles in the area
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
         Node terrainNode = (Node) map.getChild(TERRAIN_NODE);
         for (Point point : points) {
-            MapTile tile = mapData.getTile(point);
+            MapTile tile = getMapData().getTile(point);
 
             // Reconstruct and mark for patching
             // The tile node needs to created anew, somehow the BatchNode just doesn't get it if I remove children from subnode
@@ -222,61 +229,62 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private void setTileMaterialToGeometries(final MapTile tile, final Node node) {
 
         // Change the material on geometries
-//        if (!tile.isFlashed() && !tile.isSelected()
-//                && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.DECAY)) {
-        return;
-//        }
+        Terrain terrain = getTerrain(tile);
+        if (!tile.isFlashed(playerId) && !tile.isSelected(playerId)
+                && !terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
+            return;
+        }
 
-//        node.depthFirstTraversal(new SceneGraphVisitor() {
-//            @Override
-//            public void visit(Spatial spatial) {
-//                if (!(spatial instanceof Geometry)) {
-//                    return;
-//                }
-//
-//                Material material = ((Geometry) spatial).getMaterial();
-//
-        // Decay
-//                if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.DECAY) && tile.getTerrain().getTextureFrames() > 1) {
-//
-//                    Integer texCount = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
-//                    if (texCount != null) {
-//
-//                        // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
-//                        // Now we have a random starting texture...
-//                        int textureIndex = tile.getTerrain().getTextureFrames() - (int) Math.ceil(tile.getHealthPercent() / (100f / tile.getTerrain().getTextureFrames()));
-//                        String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName().replaceFirst("_DECAY\\d", ""); // Unharmed texture
-//                        if (textureIndex > 0) {
-//
-//                            // The first one doesn't have a number
-//                            if (textureIndex == 1) {
-//                                diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY.png");
-//                            } else {
-//                                diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY" + textureIndex + ".png");
-//                            }
-//                        }
-//                        try {
-//                            Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
-//                            material.setTexture("DiffuseMap", texture);
-//
-//                            AssetUtils.assignMapsToMaterial(assetManager, material);
-//                        } catch (Exception e) {
-//                            logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, tile.getTerrain().getName(), e.getMessage()});
-//                        }
-//                    }
-//                }
-//                if (tile.isFlashed()) {
-//                    material.setColor("Ambient", COLOR_FLASH);
-//                    material.setBoolean("UseMaterialColors", true);
-//                }
-//                if (tile.isSelected()) {
-//                    material.setColor("Ambient", COLOR_TAG);
-//                    material.setBoolean("UseMaterialColors", true);
-//                }
-//
-//            }
-//
-//        });
+        node.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (!(spatial instanceof Geometry)) {
+                    return;
+                }
+
+                Material material = ((Geometry) spatial).getMaterial();
+
+                // Decay
+                if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY) && terrain.getTextureFrames() > 1) {
+
+                    Integer texCount = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
+                    if (texCount != null) {
+
+                        // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
+                        // Now we have a random starting texture...
+                        int textureIndex = terrain.getTextureFrames() - (int) Math.ceil(tile.getHealthPercent() / (100f / terrain.getTextureFrames()));
+                        String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName().replaceFirst("_DECAY\\d", ""); // Unharmed texture
+                        if (textureIndex > 0) {
+
+                            // The first one doesn't have a number
+                            if (textureIndex == 1) {
+                                diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY.png");
+                            } else {
+                                diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY" + textureIndex + ".png");
+                            }
+                        }
+                        try {
+                            Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
+                            material.setTexture("DiffuseMap", texture);
+
+                            AssetUtils.assignMapsToMaterial(assetManager, material);
+                        } catch (Exception e) {
+                            logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
+                        }
+                    }
+                }
+                if (tile.isFlashed(playerId)) {
+                    material.setColor("Ambient", COLOR_FLASH);
+                    material.setBoolean("UseMaterialColors", true);
+                }
+                if (tile.isSelected(playerId)) {
+                    material.setColor("Ambient", COLOR_TAG);
+                    material.setBoolean("UseMaterialColors", true);
+                }
+
+            }
+
+        });
     }
 
     /**
@@ -285,10 +293,10 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      * @param root where to generate pages on
      */
     private void generatePages(Node root) {
-        pages = new ArrayList<>(((int) Math.ceil(mapData.getHeight() / (float) PAGE_SQUARE_SIZE))
-                * ((int) Math.ceil(mapData.getWidth() / (float) PAGE_SQUARE_SIZE)));
-        for (int y = 0; y < (int) Math.ceil(mapData.getHeight() / (float) PAGE_SQUARE_SIZE); y++) {
-            for (int x = 0; x < (int) Math.ceil(mapData.getWidth() / (float) PAGE_SQUARE_SIZE); x++) {
+        pages = new ArrayList<>(((int) Math.ceil(getMapData().getHeight() / (float) PAGE_SQUARE_SIZE))
+                * ((int) Math.ceil(getMapData().getWidth() / (float) PAGE_SQUARE_SIZE)));
+        for (int y = 0; y < (int) Math.ceil(getMapData().getHeight() / (float) PAGE_SQUARE_SIZE); y++) {
+            for (int x = 0; x < (int) Math.ceil(getMapData().getWidth() / (float) PAGE_SQUARE_SIZE); x++) {
                 Node page = new Node(x + "_" + y);
 
                 // Create batch nodes for ceiling, floor and walls
@@ -333,16 +341,16 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         MapTile neigbourTile;
         switch (direction) {
             case NORTH:
-                neigbourTile = mapData.getTile(p.x, p.y - 1);
+                neigbourTile = getMapData().getTile(p.x, p.y - 1);
                 break;
             case SOUTH:
-                neigbourTile = mapData.getTile(p.x, p.y + 1);
+                neigbourTile = getMapData().getTile(p.x, p.y + 1);
                 break;
             case EAST:
-                neigbourTile = mapData.getTile(p.x + 1, p.y);
+                neigbourTile = getMapData().getTile(p.x + 1, p.y);
                 break;
             default: // WEST
-                neigbourTile = mapData.getTile(p.x - 1, p.y);
+                neigbourTile = getMapData().getTile(p.x - 1, p.y);
                 break;
         }
         // Check for out of bounds
@@ -515,7 +523,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     }
 
     private boolean canPlaceTorch(int x, int y) {
-        MapTile tile = mapData.getTile(x, y);
+        MapTile tile = getMapData().getTile(x, y);
         return (tile != null && getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.TORCH));
 
     }
@@ -576,12 +584,12 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                 }
             }
 
-            spatial = new WaterConstructor(kwdFile).construct(mapData, p.x, p.y, terrain, assetManager, model.getName());
+            spatial = new WaterConstructor(kwdFile).construct(getMapData(), p.x, p.y, terrain, assetManager, model.getName());
 
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
             // If this resource is type quad, parse it together. With fixed Hero Lair
             String modelName = (model == null && terrain.getTerrainId() == 35) ? "hero_outpost_floor" : model.getName();
-            spatial = new SingleQuadConstructor(kwdFile).construct(mapData, p.x, p.y, terrain, assetManager, modelName);
+            spatial = new SingleQuadConstructor(kwdFile).construct(getMapData(), p.x, p.y, terrain, assetManager, modelName);
 
         } else {
 
@@ -673,7 +681,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         // Get the page index
         int index = pageX;
         if (pageY > 0) {
-            int pagesPerRow = (int) Math.ceil(mapData.getWidth() / (float) PAGE_SQUARE_SIZE);
+            int pagesPerRow = (int) Math.ceil(getMapData().getWidth() / (float) PAGE_SQUARE_SIZE);
             index += pagesPerRow * pageY;
         }
         return (Node) root.getChild(index);
@@ -710,7 +718,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      * @param roomInstance the room instance
      */
     private void findRoom(Point p, RoomInstance roomInstance) {
-        MapTile tile = mapData.getTile(p);
+        MapTile tile = getMapData().getTile(p);
 
         // Get the terrain
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
@@ -747,7 +755,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      * @param entityInstance the batch instance
      */
     private void findTerrainBatch(Point p, EntityInstance<Terrain> entityInstance) {
-        MapTile tile = mapData.getTile(p);
+        MapTile tile = getMapData().getTile(p);
 
         if (!terrainBatchCoordinates.containsKey(p)) {
 
@@ -942,13 +950,13 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         // See if the starting point has a wall to the given direction
         MapTile tile;
         if (wallDirection == WallDirection.NORTH) {
-            tile = mapData.getTile(p.x, p.y + 1);
+            tile = getMapData().getTile(p.x, p.y + 1);
         } else if (wallDirection == WallDirection.EAST) {
-            tile = mapData.getTile(p.x - 1, p.y);
+            tile = getMapData().getTile(p.x - 1, p.y);
         } else if (wallDirection == WallDirection.SOUTH) {
-            tile = mapData.getTile(p.x, p.y - 1);
+            tile = getMapData().getTile(p.x, p.y - 1);
         } else {
-            tile = mapData.getTile(p.x + 1, p.y); // West
+            tile = getMapData().getTile(p.x + 1, p.y); // West
         }
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
@@ -993,33 +1001,6 @@ public abstract class MapViewController implements ILoader<KwdFile> {
             return wallPoints;
         }
         return null;
-    }
-
-    public Point[] getSurroundingTiles(Point point, boolean diagonal) {
-
-        // Get all surrounding tiles
-        List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
-        tileCoords.add(point);
-
-        addIfValidCoordinate(point.x, point.y - 1, tileCoords); // North
-        addIfValidCoordinate(point.x + 1, point.y, tileCoords); // East
-        addIfValidCoordinate(point.x, point.y + 1, tileCoords); // South
-        addIfValidCoordinate(point.x - 1, point.y, tileCoords); // West
-        if (diagonal) {
-            addIfValidCoordinate(point.x - 1, point.y - 1, tileCoords); // NW
-            addIfValidCoordinate(point.x + 1, point.y - 1, tileCoords); // NE
-            addIfValidCoordinate(point.x - 1, point.y + 1, tileCoords); // SW
-            addIfValidCoordinate(point.x + 1, point.y + 1, tileCoords); // SE
-        }
-
-        return tileCoords.toArray(new Point[tileCoords.size()]);
-    }
-
-    private void addIfValidCoordinate(final int x, final int y, List<Point> tileCoords) {
-        MapTile tile = mapData.getTile(x, y);
-        if (tile != null) {
-            tileCoords.add(tile.getLocation());
-        }
     }
 
     /**

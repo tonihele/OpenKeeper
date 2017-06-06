@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.network.game;
 
+import com.jme3.math.Vector2f;
 import com.jme3.network.service.AbstractClientService;
 import com.jme3.network.service.ClientServiceManager;
 import com.jme3.network.service.rmi.RmiClientService;
@@ -23,11 +24,17 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.controller.MapController;
 import toniarts.openkeeper.game.map.MapData;
+import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.NetworkConstants;
+import toniarts.openkeeper.game.network.streaming.StreamedMessageListener;
+import toniarts.openkeeper.game.network.streaming.StreamingClientService;
 import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
  * Client side service for the game lobby services
@@ -41,6 +48,8 @@ public class GameClientService extends AbstractClientService
 
     private RmiClientService rmiService;
     private GameSession delegate;
+
+    private MapController mapController;
 
     private final GameSessionCallback sessionCallback = new GameSessionCallback();
     private final List<GameSessionListener> listeners = new CopyOnWriteArrayList<>();
@@ -74,6 +83,17 @@ public class GameClientService extends AbstractClientService
         }
         logger.finer("Sharing session callback.");
         rmiService.share(NetworkConstants.GAME_CHANNEL, sessionCallback, GameSessionListener.class);
+
+        // Listen for the streaming messages
+        s.getService(StreamingClientService.class).addListener(GameHostedService.MessageType.MAP_DATA.ordinal(), (StreamedMessageListener<MapData>) (MapData data) -> {
+
+            logger.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{data});
+            mapController = new MapController(data, null);
+            for (GameSessionListener l : listeners) {
+                l.onGameDataLoaded(data);
+            }
+
+        });
     }
 
     /**
@@ -103,6 +123,41 @@ public class GameClientService extends AbstractClientService
         return delegate;
     }
 
+    @Override
+    public MapData getMapData() {
+        return mapController.getMapData(); // Cached
+    }
+
+    @Override
+    public void setTiles(List<MapTile> tiles) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public boolean isBuildable(int x, int y, Player player, Room room) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public boolean isClaimable(int x, int y, short playerId) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public boolean isSelected(int x, int y, short playerId) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public boolean isTaggable(int x, int y) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
     /**
      * Shared with the server over RMI so that it can notify us about account
      * related stuff.
@@ -111,10 +166,12 @@ public class GameClientService extends AbstractClientService
 
         @Override
         public void onGameDataLoaded(MapData mapData) {
-            logger.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{mapData});
-            for (GameSessionListener l : listeners) {
-                l.onGameDataLoaded(mapData);
-            }
+
+            // This is dealt with streaming
+//            logger.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{mapData});
+//            for (GameSessionListener l : listeners) {
+//                l.onGameDataLoaded(mapData);
+//            }
         }
 
         @Override
@@ -138,6 +195,13 @@ public class GameClientService extends AbstractClientService
             logger.log(Level.FINEST, "onLoadComplete({0},{1})", new Object[]{progress, keeperId});
             for (GameSessionListener l : listeners) {
                 l.onLoadStatusUpdate(progress, keeperId);
+            }
+        }
+
+        @Override
+        public void onTilesChange(List<MapTile> updatedTiles) {
+            for (GameSessionListener l : listeners) {
+                l.onTilesChange(updatedTiles);
             }
         }
     }

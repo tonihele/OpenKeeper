@@ -39,7 +39,9 @@ import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
 import toniarts.openkeeper.game.network.game.GameHostedService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
+import toniarts.openkeeper.game.network.message.StreamedMessage;
 import toniarts.openkeeper.game.network.session.AccountHostedService;
+import toniarts.openkeeper.game.network.streaming.StreamingHostedService;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
@@ -64,13 +66,18 @@ public class NetworkServer {
     }
 
     private void initialize() {
+
+        // Messages
+        Serializer.registerClass(StreamedMessage.class, new FieldSerializer());
+
+        // Lobby
         Serializer.registerClass(ClientInfo.class, new FieldSerializer());
         Serializer.registerClass(Keeper.class, new FieldSerializer());
 
         // Needed for the game
         Serializer.registerClass(Point.class, new FieldSerializer());
         Serializer.registerClass(Tile.BridgeTerrainType.class, new EnumSerializer());
-        Serializer.registerClass(MapData.class, new FieldSerializer());
+        Serializer.registerClass(MapData.class, new FieldSerializer()); // FIXME: Savable serializer would be better...
         Serializer.registerClass(MapTile.class, new FieldSerializer());
     }
 
@@ -97,6 +104,7 @@ public class NetworkServer {
 
         server.getServices().addServices(new RpcHostedService(),
                 new RmiHostedService(),
+                new StreamingHostedService(),
                 new AccountHostedService(name),
                 new LobbyHostedService(),
                 new ChatHostedService(),

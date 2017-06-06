@@ -463,8 +463,7 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
             kwdFile.load();
 
             // Load the map
-            MapController mapController = new MapController(kwdFile);
-            gameService.sendGameData(mapController.getMapData());
+            gameService.sendGameData(MapController.load(kwdFile));
 
             // Nullify the thread object
             loader = null;

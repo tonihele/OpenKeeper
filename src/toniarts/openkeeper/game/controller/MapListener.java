@@ -14,30 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.state.session;
+package toniarts.openkeeper.game.controller;
 
 import com.jme3.network.service.rmi.Asynchronous;
-import toniarts.openkeeper.game.controller.MapClientService;
+import java.util.List;
+import toniarts.openkeeper.game.map.MapTile;
 
 /**
- * Clients view on game service
+ * Listen to map (tile) changes
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface GameSession extends MapClientService {
+public interface MapListener {
 
     /**
-     * Signal that we are ready and loaded up
-     */
-    @Asynchronous
-    public void loadComplete();
-
-    /**
-     * Our game loading status update
+     * On tiles changed
      *
-     * @param progress our current progress
+     * @param updatedTiles the tiles that changed
      */
     @Asynchronous
-    public void loadStatus(float progress);
+    public void onTilesChange(List<MapTile> updatedTiles);
 
 }

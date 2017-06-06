@@ -21,11 +21,14 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
+import java.awt.Point;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.map.MapData;
+import toniarts.openkeeper.game.controller.MapClientService;
+import toniarts.openkeeper.game.controller.MapListener;
+import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.Debug;
 import toniarts.openkeeper.view.map.MapViewController;
@@ -38,7 +41,7 @@ import toniarts.openkeeper.world.listener.TileChangeListener;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class PlayerMapViewState extends AbstractAppState {
+public abstract class PlayerMapViewState extends AbstractAppState implements MapListener {
 
     private Main app;
     private AppStateManager stateManager;
@@ -60,7 +63,7 @@ public abstract class PlayerMapViewState extends AbstractAppState {
 
     private static final Logger logger = Logger.getLogger(PlayerMapViewState.class.getName());
 
-    public PlayerMapViewState(final KwdFile kwdFile, final AssetManager assetManager, MapData mapData) {
+    public PlayerMapViewState(final KwdFile kwdFile, final AssetManager assetManager, MapClientService mapClientService, short playerId) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
 
@@ -75,11 +78,13 @@ public abstract class PlayerMapViewState extends AbstractAppState {
 
         // Create the actual map
         //thingLoader = new ThingLoader(this, kwdFile, assetManager);
-        this.mapLoader = new MapViewController(assetManager, kwdFile, mapData) {
+        this.mapLoader = new MapViewController(assetManager, kwdFile, mapClientService, playerId) {
+
             @Override
             protected void updateProgress(float progress) {
                 PlayerMapViewState.this.updateProgress(progress);
             }
+
         };
         worldNode.attachChild(mapLoader.load(assetManager, kwdFile));
     }
@@ -146,6 +151,17 @@ public abstract class PlayerMapViewState extends AbstractAppState {
      * @param progress current progress from 0.0 to 1.0
      */
     protected abstract void updateProgress(final float progress);
+
+    @Override
+    public void onTilesChange(List<MapTile> updatedTiles) {
+        Point[] points = new Point[updatedTiles.size()];
+        for (int i = 0; i < updatedTiles.size(); i++) {
+            MapTile mapTile = updatedTiles.get(i);
+            points[i] = new Point(mapTile.getX(), mapTile.getY());
+        }
+        mapLoader.updateTiles(points);
+    }
+
 //
 //    /**
 //     * If you want to get notified about tile changes
@@ -1345,5 +1361,4 @@ public abstract class PlayerMapViewState extends AbstractAppState {
 //        }
 //        return null;
 //    }
-
 }

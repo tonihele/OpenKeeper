@@ -39,9 +39,9 @@ import toniarts.openkeeper.tools.convert.map.Tile.BridgeTerrainType;
  */
 public class MapTile implements Savable {
 
-    private Map<Short, Boolean> selection;
-    private Map<Short, Boolean> flashing;
-    private Integer randomTextureIndex;
+    private Map<Short, Boolean> selection = new HashMap<>();
+    private Map<Short, Boolean> flashing = new HashMap<>();
+    private int randomTextureIndex;
     private int health;
     private int maxHealth;
     private int gold;
@@ -97,7 +97,7 @@ public class MapTile implements Savable {
         return false;
     }
 
-    protected void setSelected(boolean selected, short playerId) {
+    public void setSelected(boolean selected, short playerId) {
         if (selection == null) {
             selection = new HashMap<>(4);
         }
@@ -241,9 +241,10 @@ public class MapTile implements Savable {
 //                .replaceAll("%67", Integer.toString(gold));
 //    }
 //
-//    protected Integer getHealthPercent() {
-//        return Math.round((float) health / terrain.getMaxHealth() * 100);
-//    }
+    public Integer getHealthPercent() {
+        return Math.round((float) health / maxHealth * 100);
+    }
+
     /**
      * Apply damage to the tile
      *
@@ -309,15 +310,13 @@ public class MapTile implements Savable {
     @Override
     public void write(JmeExporter ex) throws IOException {
         OutputCapsule out = ex.getCapsule(this);
-        if (selection != null) {
-            writeShortBooleanMap(out, selection, "selection");
-        }
-        if (flashing != null) {
-            writeShortBooleanMap(out, flashing, "flashing");
-        }
-        if (randomTextureIndex != null) {
-            out.write(randomTextureIndex, "randomTextureIndex", 0);
-        }
+//        if (selection != null) {
+        writeShortBooleanMap(out, selection, "selection");
+//        }
+//        if (flashing != null) {
+        writeShortBooleanMap(out, flashing, "flashing");
+//        }
+        out.write(randomTextureIndex, "randomTextureIndex", 0);
         out.write(health, "health", 0);
         out.write(maxHealth, "maxHealth", 0);
         out.write(gold, "gold", 0);
@@ -347,9 +346,6 @@ public class MapTile implements Savable {
         selection = readShortBooleanMap(in, "selection");
         flashing = readShortBooleanMap(in, "flashing");
         randomTextureIndex = in.readInt("randomTextureIndex", -1);
-        if (randomTextureIndex == -1) {
-            randomTextureIndex = null;
-        }
         health = in.readInt("health", 0);
         maxHealth = in.readInt("maxHealth", 0);
         gold = in.readInt("gold", 0);

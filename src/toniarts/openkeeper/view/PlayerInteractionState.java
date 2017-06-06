@@ -45,6 +45,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.CheatState;
 import static toniarts.openkeeper.game.state.CheatState.CheatType.MONEY;
@@ -55,19 +56,14 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
-import toniarts.openkeeper.world.TileData;
-import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.GenericRoom;
-import toniarts.openkeeper.world.room.RoomInstance;
 
 /**
  * State for managing player interactions in the world. Heavily drawn from
@@ -165,39 +161,39 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     pos = selectionHandler.getPointedTilePosition();
                 }
                 if (interactionState.getType() == Type.NONE && keeperHand.getItem() != null) {
-                    TileData tile = getWorldHandler().getMapData().getTile((int) pos.x, (int) pos.y);
+                    MapTile tile = gameClientState.getMapClientService().getMapData().getTile((int) pos.x, (int) pos.y);
                     if (tile != null) {
-                        IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
-                        return (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
+                        //IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
+                        //return (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
                     }
                     return ColorIndicator.RED;
                 }
                 if (interactionState.getType() == Type.SELL) {
                     return ColorIndicator.RED;
-                } else if (interactionState.getType() == Type.ROOM && !(getWorldHandler().isTaggable((int) pos.x, (int) pos.y) || (getWorldHandler().isBuildable((int) pos.x, (int) pos.y, player, gameClientState.getLevelData().getRoomById(interactionState.getItemId())) && isPlayerAffordToBuild(player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))))) {
+                } else if (interactionState.getType() == Type.ROOM && !(gameClientState.getMapClientService().isTaggable((int) pos.x, (int) pos.y) || (gameClientState.getMapClientService().isBuildable((int) pos.x, (int) pos.y, player, gameClientState.getLevelData().getRoomById(interactionState.getItemId())) && isPlayerAffordToBuild(player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))))) {
                     return ColorIndicator.RED;
                 }
                 return ColorIndicator.BLUE;
             }
 
             private boolean isPlayerAffordToBuild(Player player, Room room) {
-                int playerMoney = getWorldHandler().getGameState().getPlayer(player.getPlayerId()).getGoldControl().getGold();
-                if (playerMoney == 0) {
-                    return false;
-                }
-                int buildablePlots = 0;
-                for (int x = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().x); x < Math.min(getWorldHandler().getMapData().getWidth(), selectionHandler.getSelectionArea().getEnd().x + 1); x++) {
-                    for (int y = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().y); y < Math.min(getWorldHandler().getMapData().getHeight(), selectionHandler.getSelectionArea().getEnd().y + 1); y++) {
-                        if (getWorldHandler().isBuildable(x, y, player, room)) {
-                            buildablePlots++;
-                        }
-
-                        // See the gold amount
-                        if (playerMoney < buildablePlots * room.getCost()) {
-                            return false;
-                        }
-                    }
-                }
+//                int playerMoney = getWorldHandler().getGameState().getPlayer(player.getPlayerId()).getGoldControl().getGold();
+//                if (playerMoney == 0) {
+//                    return false;
+//                }
+//                int buildablePlots = 0;
+//                for (int x = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().x); x < Math.min(getWorldHandler().getMapData().getWidth(), selectionHandler.getSelectionArea().getEnd().x + 1); x++) {
+//                    for (int y = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().y); y < Math.min(getWorldHandler().getMapData().getHeight(), selectionHandler.getSelectionArea().getEnd().y + 1); y++) {
+//                        if (getWorldHandler().isBuildable(x, y, player, room)) {
+//                            buildablePlots++;
+//                        }
+//
+//                        // See the gold amount
+//                        if (playerMoney < buildablePlots * room.getCost()) {
+//                            return false;
+//                        }
+//                    }
+//                }
                 return true;
             }
         };
@@ -208,7 +204,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
                 switch (cheat) {
                     case MONEY:
-                        getWorldHandler().addGold(player.getPlayerId(), 100000);
+//                        getWorldHandler().addGold(player.getPlayerId(), 100000);
                         break;
                     case MANA:
                         gameClientState.getPlayer(player.getPlayerId()).getManaControl().addMana(100000);
@@ -276,12 +272,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             updateInteractiveObjectOnCursor();
         }
 
-        // updateStateFlags();
+//        updateStateFlags();
         timeFromLastUpdate += tpf;
+
         // Update the cursor, the camera might have moved, a creature might have slipped by us... etc.
         if (timeFromLastUpdate > CURSOR_UPDATE_INTERVAL) {
-            //updateCursor();
-            //updateStateFlags();
+            updateCursor();
+            updateStateFlags();
             timeFromLastUpdate = 0;
         }
     }
@@ -289,10 +286,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     @Override
     public boolean isPauseable() {
         return true;
-    }
-
-    private WorldState getWorldHandler() {
-        return stateManager.getState(WorldState.class);
     }
 
     /**
@@ -385,19 +378,19 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         } else if (isOnMap) {
 
             // Tile tooltip then
-            p = selectionHandler.getPointedTileIndex();
-            TileData tile = getWorldHandler().getMapData().getTile(p);
-            if (tile != null) {
-                if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                    RoomInstance roomInstance = getWorldHandler().getMapLoader().getRoomCoordinates().get(new Point((int) p.x, (int) p.y));
-                    GenericRoom room = getWorldHandler().getMapLoader().getRoomActuals().get(roomInstance);
-                    tooltip.setText(room.getTooltip(player.getPlayerId()));
-                } else {
-                    tooltip.setText(tile.getTooltip());
-                }
-            } else {
-                tooltip.setText("");
-            }
+//            p = selectionHandler.getPointedTileIndex();
+//            TileData tile = getWorldHandler().getMapData().getTile(p);
+//            if (tile != null) {
+//                if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+//                    RoomInstance roomInstance = getWorldHandler().getMapLoader().getRoomCoordinates().get(new Point((int) p.x, (int) p.y));
+//                    GenericRoom room = getWorldHandler().getMapLoader().getRoomActuals().get(roomInstance);
+//                    tooltip.setText(room.getTooltip(player.getPlayerId()));
+//                } else {
+//                    tooltip.setText(tile.getTooltip());
+//                }
+//            } else {
+            tooltip.setText("");
+//            }
         }
 
         // If debug, show tile coordinate
@@ -433,8 +426,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Ray ray = new Ray(click3d, dir);
 
         // Collect intersections between ray and all nodes in results list
-        getWorldHandler().getThingsNode().collideWith(ray, results);
-
+//        getWorldHandler().getThingsNode().collideWith(ray, results);
         // See the results so we see what is going on
         Node object;
         for (int i = 0; i < results.size(); i++) {
@@ -474,7 +466,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Point p = selectionHandler.getPointedTileIndex();
         return (interactionState.getType() == Type.ROOM
                 || interactionState.getType() == Type.NONE)
-                && isOnMap && getWorldHandler().isTaggable(p.x, p.y);
+                && isOnMap && gameClientState.getMapClientService().isTaggable(p.x, p.y);
     }
 
     private boolean isOnMap() {
@@ -482,7 +474,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             return false;
         }
         Point p = selectionHandler.getPointedTileIndex();
-        return getWorldHandler().getMapData().getTile(p) != null;
+        return gameClientState.getMapClientService().getMapData().getTile(p) != null;
     }
 
     protected void updateCursor() {
@@ -529,11 +521,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             public void onMouseMotionEvent(MouseMotionEvent evt) {
                 mousePosition.set(evt.getX(), evt.getY());
                 keeperHand.setPosition(evt.getX(), evt.getY());
+
+                timeFromLastUpdate = 0;
+                updateStateFlags();
+                updateCursor();
             }
 
             @Override
             public void onMouseButtonEvent(MouseButtonEvent evt) {
-                timeFromLastUpdate = 0;
+//                timeFromLastUpdate = 0;
                 if (isOnGui || !isOnMap) {
                     return;
                 }
@@ -577,7 +573,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                                 updateCursor();
                                 // The tagging sound is positional and played against the cursor change, not the action itself
                                 Point pos = selectionHandler.getPointedTileIndex();
-                                getWorldHandler().playSoundAtTile(pos.x, pos.y, "/Global/GuiHD/dk1tag.mp2");
+//                                getWorldHandler().playSoundAtTile(pos.x, pos.y, "/Global/GuiHD/dk1tag.mp2");
                             }
                         }
 
@@ -585,17 +581,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         SelectionArea selectionArea = selectionHandler.getSelectionArea();
                         if (interactionState.getType() == Type.NONE
                                 || (interactionState.getType() == Type.ROOM
-                                && getWorldHandler().isTaggable((int) selectionArea.getRealStart().x, (int) selectionArea.getRealStart().y))) {
+                                && gameClientState.getMapClientService().isTaggable((int) selectionArea.getRealStart().x, (int) selectionArea.getRealStart().y))) {
 
                             // Determine if this is a select/deselect by the starting tile's status
-                            boolean select = !getWorldHandler().isSelected((int) Math.max(0, selectionArea.getRealStart().x), (int) Math.max(0, selectionArea.getRealStart().y));
-                            getWorldHandler().selectTiles(selectionArea, select, player.getPlayerId());
-                        } else if (interactionState.getType() == Type.ROOM && getWorldHandler().isBuildable((int) selectionArea.getRealStart().x,
-                                (int) selectionArea.getRealStart().y, player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))) {
-                            getWorldHandler().build(selectionArea, player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()));
-                        } else if (interactionState.getType() == Type.SELL) {
-                            getWorldHandler().sell(selectionArea, player);
-                        }
+                            boolean select = !gameClientState.getMapClientService().isSelected((int) Math.max(0, selectionArea.getRealStart().x), (int) Math.max(0, selectionArea.getRealStart().y), player.getPlayerId());
+                            gameClientState.getMapClientService().selectTiles(selectionArea.getStart(), selectionArea.getEnd(), select, player.getPlayerId());
+                        } //else if (interactionState.getType() == Type.ROOM && getWorldHandler().isBuildable((int) selectionArea.getRealStart().x,
+                        // (int) selectionArea.getRealStart().y, player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))) {
+                        // getWorldHandler().build(selectionArea, player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()));
+//                        } else if (interactionState.getType() == Type.SELL) {
+                        //getWorldHandler().sell(selectionArea, player);
+//                        }
 
                         selectionHandler.setActive(false);
                         updateCursor();
@@ -607,25 +603,25 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
                         // Drop
                         if (keeperHand.getItem() != null) {
-                            TileData tile = getWorldHandler().getMapData().getTile(p);
-                            IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
-                            if (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE) {
-
-                                // Drop & update cursor
-                                keeperHand.pop().drop(tile, selectionHandler.getActualPointedPosition(), interactiveControl);
-                                updateCursor();
-                            }
+                            MapTile tile = gameClientState.getMapClientService().getMapData().getTile(p);
+//                            IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
+//                            if (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE) {
+//
+//                                // Drop & update cursor
+//                                keeperHand.pop().drop(tile, selectionHandler.getActualPointedPosition(), interactiveControl);
+//                                updateCursor();
+//                            }
                         } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
-                            getWorldHandler().playSoundAtTile(p.x, p.y, KeeperHand.getSlapSound());
+//                            getWorldHandler().playSoundAtTile(p.x, p.y, KeeperHand.getSlapSound());
                             interactiveControl.interact(player.getPlayerId());
                         } else if (Main.isDebug()) {
                             // taggable -> "dig"
-                            if (getWorldHandler().isTaggable(p.x, p.y)) {
-                                getWorldHandler().digTile(p.x, p.y);
-                            } // ownable -> "claim"
-                            else if (getWorldHandler().isClaimable(p.x, p.y, player.getPlayerId())) {
-                                getWorldHandler().claimTile(p.x, p.y, player.getPlayerId());
-                            }
+//                            if (getWorldHandler().isTaggable(p.x, p.y)) {
+//                                getWorldHandler().digTile(p.x, p.y);
+//                            } // ownable -> "claim"
+//                            else if (getWorldHandler().isClaimable(p.x, p.y, player.getPlayerId())) {
+//                                getWorldHandler().claimTile(p.x, p.y, player.getPlayerId());
+//                            }
                         }
                     }
 
@@ -636,10 +632,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     selectionHandler.setActive(false);
 
                 } else if (evt.getButtonIndex() == MouseInput.BUTTON_MIDDLE && evt.isReleased()) {
-                    if (Main.isDebug()) {
-                        Point p = selectionHandler.getPointedTileIndex();
-                        getWorldHandler().claimTile(p.x, p.y, player.getPlayerId());
-                    }
+//                    if (Main.isDebug()) {
+//                        Point p = selectionHandler.getPointedTileIndex();
+//                        getWorldHandler().claimTile(p.x, p.y, player.getPlayerId());
+//                    }
                 }
             }
 
