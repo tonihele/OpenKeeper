@@ -346,6 +346,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
         private final HostedConnection conn;
         private LobbySessionListener callback;
+        private boolean hostingGameServices = false;
 
         public LobbySessionImpl(HostedConnection conn, ClientInfo clientInfo) {
             super(clientInfo);
@@ -368,6 +369,15 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
         @Override
         public void setReady(boolean ready) {
+
+            // Not really exact science, do this here, if on game start,
+            // there might not be enough time for the services to start
+            if (ready && !hostingGameServices) {
+                hostingGameServices = true;
+                getService(EtherealHost.class).startHostingOnConnection(conn);
+                getService(GameHostedService.class).startHostingOnConnection(conn, getClientInfo());
+            }
+
             getClientInfo().setReady(ready);
             for (AbstractLobbySessionImpl lobby : players.values()) {
                 lobby.onPlayerListChanged(getPlayers());
@@ -396,9 +406,6 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
         @Override
         public void onGameStarted(String mapName, List<ClientInfo> players) {
-            getService(EtherealHost.class).startHostingOnConnection(conn);
-            getService(GameHostedService.class).startHostingOnConnection(conn, getClientInfo());
-
             getCallback().onGameStarted(mapName, players);
         }
 
