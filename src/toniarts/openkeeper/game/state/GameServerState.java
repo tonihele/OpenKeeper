@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.state;
 import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.math.Vector2f;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,11 +29,14 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.controller.MapController;
+import toniarts.openkeeper.game.controller.MapListener;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.GameLogicThread;
 import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
-import toniarts.openkeeper.game.state.session.GameSessionService;
+import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.state.session.GameSessionServerService;
+import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
@@ -75,7 +79,10 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
     private final List<GameTimer> timers = new ArrayList<>(LEVEL_TIMER_MAX_COUNT);
     private int levelScore = 0;
     private boolean campaign;
-    private final GameSessionService gameService;
+    private final GameSessionServerService gameService;
+    private MapController mapController;
+    private final MapListener mapListener = new MapListenerImpl();
+    private final GameSessionServiceListener gameSessionListener = new GameSessionServiceListenerImpl();
 
     private GameResult gameResult = null;
     private float timeTaken = 0;
@@ -92,7 +99,7 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
      * @param level the level to load
      * @param players players participating in this game
      */
-    public GameServerState(KwdFile level, List<Keeper> players, boolean campaign, GameSessionService gameService) {
+    public GameServerState(KwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService) {
         this.level = null;
         this.kwdFile = level;
         this.levelObject = null;
@@ -103,6 +110,9 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
                 this.players.put(keeper.getId(), keeper);
             }
         }
+
+        // Add the listener
+        gameService.addGameSessionServiceListener(gameSessionListener);
 
         // Start loading game
         loadGame();
@@ -450,6 +460,9 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
         return true;
     }
 
+    /**
+     * Load the game
+     */
     private class GameLoader extends Thread {
 
         public GameLoader() {
@@ -463,10 +476,39 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
             kwdFile.load();
 
             // Load the map
-            gameService.sendGameData(MapController.load(kwdFile));
+            mapController = new MapController(MapController.load(kwdFile), kwdFile);
+            gameService.sendGameData(mapController.getMapData());
+
+            // Set up a listener for the map
+            mapController.addListener(mapListener);
 
             // Nullify the thread object
             loader = null;
+        }
+    }
+
+    /**
+     * Listen for basically clients' requests
+     */
+    private class GameSessionServiceListenerImpl implements GameSessionServiceListener {
+
+        public GameSessionServiceListenerImpl() {
+        }
+
+        @Override
+        public void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
+            mapController.selectTiles(start, end, select, playerId);
+        }
+    }
+
+    /**
+     * Listen for the map changes
+     */
+    private class MapListenerImpl implements MapListener {
+
+        @Override
+        public void onTilesChange(List<MapTile> updatedTiles) {
+            gameService.updateTiles(updatedTiles);
         }
     }
 

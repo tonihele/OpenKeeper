@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.network;
 
+import com.jme3.math.Vector2f;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.Network;
 import com.jme3.network.Server;
@@ -75,6 +76,7 @@ public class NetworkServer {
         Serializer.registerClass(Keeper.class, new FieldSerializer());
 
         // Needed for the game
+        Serializer.registerClass(Vector2f.class, new FieldSerializer());
         Serializer.registerClass(Point.class, new FieldSerializer());
         Serializer.registerClass(Tile.BridgeTerrainType.class, new EnumSerializer());
         Serializer.registerClass(MapData.class, new FieldSerializer()); // FIXME: Savable serializer would be better...

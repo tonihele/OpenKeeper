@@ -159,7 +159,11 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             MapTile mapTile = updatedTiles.get(i);
             points[i] = new Point(mapTile.getX(), mapTile.getY());
         }
-        mapLoader.updateTiles(points);
+
+        // FIXME: See in what thread we are, perhaps even do everything ready, just the attaching in render thread
+        app.enqueue(() -> {
+            mapLoader.updateTiles(points);
+        });
     }
 
 //

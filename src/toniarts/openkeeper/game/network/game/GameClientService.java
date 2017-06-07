@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.controller.MapController;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.NetworkConstants;
@@ -33,8 +32,6 @@ import toniarts.openkeeper.game.network.streaming.StreamingClientService;
 import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
-import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
  * Client side service for the game lobby services
@@ -48,8 +45,6 @@ public class GameClientService extends AbstractClientService
 
     private RmiClientService rmiService;
     private GameSession delegate;
-
-    private MapController mapController;
 
     private final GameSessionCallback sessionCallback = new GameSessionCallback();
     private final List<GameSessionListener> listeners = new CopyOnWriteArrayList<>();
@@ -88,7 +83,6 @@ public class GameClientService extends AbstractClientService
         s.getService(StreamingClientService.class).addListener(GameHostedService.MessageType.MAP_DATA.ordinal(), (StreamedMessageListener<MapData>) (MapData data) -> {
 
             logger.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{data});
-            mapController = new MapController(data, null);
             for (GameSessionListener l : listeners) {
                 l.onGameDataLoaded(data);
             }
@@ -124,38 +118,8 @@ public class GameClientService extends AbstractClientService
     }
 
     @Override
-    public MapData getMapData() {
-        return mapController.getMapData(); // Cached
-    }
-
-    @Override
-    public void setTiles(List<MapTile> tiles) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public boolean isBuildable(int x, int y, Player player, Room room) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public boolean isClaimable(int x, int y, short playerId) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public boolean isSelected(int x, int y, short playerId) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public boolean isTaggable(int x, int y) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void selectTiles(Vector2f start, Vector2f end, boolean select) {
+        getDelegate().selectTiles(start, end, select);
     }
 
     @Override

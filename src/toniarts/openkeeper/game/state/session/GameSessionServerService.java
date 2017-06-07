@@ -16,35 +16,15 @@
  */
 package toniarts.openkeeper.game.state.session;
 
-import java.util.List;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
-
 /**
- * This is server's perspective of game flow things. The services we offer our
- * clients.
+ * A generous game client services for the esteemed guests!
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface GameSessionService {
+public interface GameSessionServerService extends GameSessionService {
 
-    /**
-     * Sends the game data to the clients to allow them to load it up visually
-     *
-     * @param mapData
-     */
-    public void sendGameData(MapData mapData);
+    public void addGameSessionServiceListener(GameSessionServiceListener l);
 
-    /**
-     * Signals that the game should start
-     */
-    public void startGame();
-
-    /**
-     * Signals that map tiles have been changed
-     *
-     * @param updatedTiles the changed tiles
-     */
-    public void updateTiles(List<MapTile> updatedTiles);
+    public void removeGameSessionServiceListener(GameSessionServiceListener l);
 
 }

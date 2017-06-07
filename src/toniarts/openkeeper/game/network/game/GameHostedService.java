@@ -34,16 +34,15 @@ import toniarts.openkeeper.game.network.streaming.StreamingHostedService;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
-import toniarts.openkeeper.game.state.session.GameSessionService;
-import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.game.state.session.GameSessionServerService;
+import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
 
 /**
  * Game server hosts lobby service for the game clients.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameHostedService extends AbstractHostedConnectionService implements GameSessionService {
+public class GameHostedService extends AbstractHostedConnectionService implements GameSessionServerService {
 
     /**
      * Someone is listening on the other end, for that we need a message type
@@ -58,6 +57,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     private final Object loadLock = new Object();
     private static final String ATTRIBUTE_SESSION = "game.session";
     private final Map<ClientInfo, GameSessionImpl> players = new ConcurrentHashMap<>(4, 0.75f, 5);
+    private final List<GameSessionServiceListener> serverListeners = new ArrayList<>();
     private RmiHostedService rmiService;
 
     /**
@@ -120,6 +120,16 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     @Override
+    public void addGameSessionServiceListener(GameSessionServiceListener l) {
+        serverListeners.add(l);
+    }
+
+    @Override
+    public void removeGameSessionServiceListener(GameSessionServiceListener l) {
+        serverListeners.remove(l);
+    }
+
+    @Override
     public void sendGameData(MapData mapData) {
         Thread thread = new Thread(() -> {
 
@@ -153,6 +163,13 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     public void startGame() {
         for (GameSessionImpl gameSession : players.values()) {
             gameSession.onGameStarted();
+        }
+    }
+
+    @Override
+    public void updateTiles(List<MapTile> updatedTiles) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onTilesChange(updatedTiles);
         }
     }
 
@@ -242,41 +259,6 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
-        public MapData getMapData() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public void setTiles(List<MapTile> tiles) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public boolean isBuildable(int x, int y, Player player, Room room) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public boolean isClaimable(int x, int y, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public boolean isSelected(int x, int y, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public boolean isTaggable(int x, int y) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
         public void markReady() {
             clientInfo.setReadyToLoad(true);
 
@@ -290,6 +272,13 @@ public class GameHostedService extends AbstractHostedConnectionService implement
             readyToLoad = true;
             synchronized (loadLock) {
                 loadLock.notifyAll();
+            }
+        }
+
+        @Override
+        public void selectTiles(Vector2f start, Vector2f end, boolean select) {
+            for (GameSessionServiceListener listener : serverListeners) {
+                listener.onSelectTiles(start, end, select, clientInfo.getKeeper().getId());
             }
         }
 

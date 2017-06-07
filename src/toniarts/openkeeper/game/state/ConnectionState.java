@@ -39,7 +39,7 @@ import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
 import toniarts.openkeeper.game.network.session.AccountClientService;
 import toniarts.openkeeper.game.network.session.AccountSessionListener;
 import toniarts.openkeeper.game.state.lobby.LobbyService;
-import toniarts.openkeeper.game.state.session.GameSessionService;
+import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -126,7 +126,7 @@ public class ConnectionState extends AbstractAppState {
      *
      * @return the server side game services
      */
-    public GameSessionService getGameSessionService() {
+    public GameSessionServerService getGameSessionServerService() {
         if (server != null) {
             return server.getService(GameHostedService.class);
         }

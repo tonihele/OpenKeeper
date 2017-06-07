@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.math.Vector2f;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.controller.MapClientService;
+import toniarts.openkeeper.game.controller.MapController;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.GameLogicThread;
@@ -45,6 +47,8 @@ import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 import toniarts.openkeeper.view.PlayerMapViewState;
@@ -92,6 +96,7 @@ public class GameClientState extends AbstractPauseAwareState {
     private IPlayerLoadingProgress loadingState;
     private final GameSessionClientService gameClientService;
     private final GameSessionListenerImpl gameSessionListener = new GameSessionListenerImpl();
+    private MapClientService mapClientService;
 
     private PlayerMapViewState playerMapViewState;
 
@@ -325,7 +330,47 @@ public class GameClientState extends AbstractPauseAwareState {
 
             // Now we have the game data, start loading the map
             kwdFile.load();
-            playerMapViewState = new PlayerMapViewState(kwdFile, app.getAssetManager(), gameClientService, playerId) {
+            final MapClientService localMap = new MapController(mapData, kwdFile);
+            mapClientService = new MapClientService() {
+
+                @Override
+                public MapData getMapData() {
+                    return localMap.getMapData();
+                }
+
+                @Override
+                public void setTiles(List<MapTile> tiles) {
+                    localMap.setTiles(tiles);
+                }
+
+                @Override
+                public boolean isBuildable(int x, int y, Player player, Room room) {
+                    return localMap.isBuildable(x, y, player, room);
+                }
+
+                @Override
+                public boolean isClaimable(int x, int y, short playerId) {
+                    return localMap.isClaimable(x, y, playerId);
+                }
+
+                @Override
+                public boolean isSelected(int x, int y, short playerId) {
+                    return localMap.isSelected(x, y, playerId);
+                }
+
+                @Override
+                public boolean isTaggable(int x, int y) {
+                    return localMap.isTaggable(x, y);
+                }
+
+                @Override
+                public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
+
+                    // Relay this to the client service
+                    gameClientService.selectTiles(start, end, select);
+                }
+            };
+            playerMapViewState = new PlayerMapViewState(kwdFile, app.getAssetManager(), mapClientService, playerId) {
 
                 @Override
                 protected void updateProgress(float progress) {
@@ -366,13 +411,14 @@ public class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onTilesChange(List<MapTile> updatedTiles) {
+            mapClientService.setTiles(updatedTiles);
             playerMapViewState.onTilesChange(updatedTiles);
         }
 
     }
 
     public MapClientService getMapClientService() {
-        return gameClientService;
+        return mapClientService;
     }
 
 }

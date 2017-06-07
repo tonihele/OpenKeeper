@@ -20,31 +20,11 @@ import com.jme3.math.Vector2f;
 import com.jme3.network.service.rmi.Asynchronous;
 
 /**
- * Clients view on game service
+ * Listener for the service. To listen to clients' requests
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface GameSession {
-
-    /**
-     * Signal that we are ready and loaded up
-     */
-    @Asynchronous
-    public void loadComplete();
-
-    /**
-     * Our game loading status update
-     *
-     * @param progress our current progress
-     */
-    @Asynchronous
-    public void loadStatus(float progress);
-
-    /**
-     * Mark us ready to start receiving game updates
-     */
-    @Asynchronous
-    public void markReady();
+public interface GameSessionServiceListener {
 
     /**
      * Set some tiles selected/undelected
@@ -52,8 +32,9 @@ public interface GameSession {
      * @param start start coordinates
      * @param end end coordinates
      * @param select select or unselect
+     * @param playerId the player who selected the tile
      */
     @Asynchronous
-    void selectTiles(Vector2f start, Vector2f end, boolean select);
+    void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId);
 
 }

@@ -53,11 +53,6 @@ public interface GameSessionListener extends MapListener {
     public void onLoadStatusUpdate(float progress, short keeperId);
 
     /**
-     * Signal that a player is ready to receive game data
-     */
-    // @Asynchronous
-    //public void onMarkReady();
-    /**
      * Client should start the visuals
      */
     @Asynchronous

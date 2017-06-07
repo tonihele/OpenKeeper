@@ -6,7 +6,6 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
-import com.jme3.network.service.rmi.Asynchronous;
 import java.util.List;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -82,7 +81,6 @@ public interface MapClientService {
      * @param select select or unselect
      * @param playerId the player who selected the tile
      */
-    @Asynchronous
     void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId);
 
 }
