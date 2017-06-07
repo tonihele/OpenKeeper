@@ -54,6 +54,8 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
     private static final Logger logger = Logger.getLogger(GameHostedService.class.getName());
 
+    private boolean readyToLoad = false;
+    private final Object loadLock = new Object();
     private static final String ATTRIBUTE_SESSION = "game.session";
     private final Map<ClientInfo, GameSessionImpl> players = new ConcurrentHashMap<>(4, 0.75f, 5);
     private RmiHostedService rmiService;
@@ -119,13 +121,32 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
     @Override
     public void sendGameData(MapData mapData) {
-        try {
+        Thread thread = new Thread(() -> {
 
-            // Data is too big, stream the data
-            getServiceManager().getService(StreamingHostedService.class).sendData(MessageType.MAP_DATA.ordinal(), mapData, null);
-        } catch (IOException ex) {
-            Logger.getLogger(GameHostedService.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            if (!readyToLoad) {
+                synchronized (loadLock) {
+                    if (!readyToLoad) {
+                        try {
+                            loadLock.wait();
+                        } catch (InterruptedException ex) {
+                            logger.log(Level.SEVERE, "Game data sender interrupted!", ex);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // We must block this until all clients are ready to receive
+            try {
+
+                // Data is too big, stream the data
+                getServiceManager().getService(StreamingHostedService.class).sendData(MessageType.MAP_DATA.ordinal(), mapData, null);
+            } catch (IOException ex) {
+                logger.log(Level.SEVERE, null, ex);
+            }
+
+        }, "GameDataSender");
+        thread.start();
     }
 
     @Override
@@ -186,9 +207,12 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         @Override
         public void loadStatus(float progress) {
             clientInfo.setLoadingProgress(progress);
-            for (GameSessionImpl gameSession : players.values()) {
-                gameSession.onLoadStatusUpdate(progress, clientInfo.getKeeper().getId());
-            }
+
+            // FIXME: we need to change this to messages or something, it really saturates the connection/channel/etc
+            // and nothing works then
+//            for (GameSessionImpl gameSession : players.values()) {
+//                gameSession.onLoadStatusUpdate(progress, clientInfo.getKeeper().getId());
+//            }
         }
 
         @Override
@@ -250,6 +274,23 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         @Override
         public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
             throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void markReady() {
+            clientInfo.setReadyToLoad(true);
+
+            for (GameSessionImpl gameSession : players.values()) {
+                if (!gameSession.clientInfo.isReadyToLoad()) {
+                    return;
+                }
+            }
+
+            // Let the game loader continue
+            readyToLoad = true;
+            synchronized (loadLock) {
+                loadLock.notifyAll();
+            }
         }
 
     }

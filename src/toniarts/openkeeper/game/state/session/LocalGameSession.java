@@ -113,6 +113,11 @@ public class LocalGameSession implements GameSessionService, GameSessionClientSe
         mapController.selectTiles(start, end, select, playerId);
     }
 
+    @Override
+    public void markReady() {
+        // We don't care really, locally if the client is started before the server, everything is fine
+    }
+
     private class MapListenerImpl implements MapListener {
 
         @Override

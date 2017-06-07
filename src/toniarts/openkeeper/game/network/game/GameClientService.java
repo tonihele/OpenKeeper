@@ -117,7 +117,7 @@ public class GameClientService extends AbstractClientService
             this.delegate = rmiService.getRemoteObject(GameSession.class);
             logger.log(Level.FINER, "delegate:{0}", delegate);
             if (delegate == null) {
-                throw new RuntimeException("No lobby session found");
+                throw new RuntimeException("No game session found");
             }
         }
         return delegate;
@@ -158,6 +158,11 @@ public class GameClientService extends AbstractClientService
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
+    @Override
+    public void markReady() {
+        getDelegate().markReady();
+    }
+
     /**
      * Shared with the server over RMI so that it can notify us about account
      * related stuff.
@@ -192,7 +197,7 @@ public class GameClientService extends AbstractClientService
 
         @Override
         public void onLoadStatusUpdate(float progress, short keeperId) {
-            logger.log(Level.FINEST, "onLoadComplete({0},{1})", new Object[]{progress, keeperId});
+            logger.log(Level.FINEST, "onLoadStatusUpdate({0},{1})", new Object[]{progress, keeperId});
             for (GameSessionListener l : listeners) {
                 l.onLoadStatusUpdate(progress, keeperId);
             }

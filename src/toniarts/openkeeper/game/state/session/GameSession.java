@@ -40,4 +40,10 @@ public interface GameSession extends MapClientService {
     @Asynchronous
     public void loadStatus(float progress);
 
+    /**
+     * Mark us ready to start receiving game updates
+     */
+    @Asynchronous
+    public void markReady();
+
 }

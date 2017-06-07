@@ -33,6 +33,7 @@ public class ClientInfo {
     private boolean ready = false;
     private float loadingProgress = 0;
     private boolean loaded = false;
+    private boolean readyToLoad = false;
     private int id;
 
     public ClientInfo() {
@@ -110,6 +111,14 @@ public class ClientInfo {
 
     public boolean isLoaded() {
         return loaded;
+    }
+
+    public void setReadyToLoad(boolean readyToLoad) {
+        this.readyToLoad = readyToLoad;
+    }
+
+    public boolean isReadyToLoad() {
+        return readyToLoad;
     }
 
     @Override

@@ -117,6 +117,9 @@ public class GameClientState extends AbstractPauseAwareState {
 
         // Add the listener
         gameClientService.addGameSessionListener(gameSessionListener);
+
+        // Tell that we are ready to start receiving game data
+        gameClientService.markReady();
     }
 
     @Override
@@ -132,9 +135,11 @@ public class GameClientState extends AbstractPauseAwareState {
         }
 
         // Attach the loading state finally
-        synchronized (loadingObject) {
-            if (!gameStarted) {
-                stateManager.attach(loadingState);
+        if (!gameStarted) {
+            synchronized (loadingObject) {
+                if (!gameStarted) {
+                    stateManager.attach(loadingState);
+                }
             }
         }
     }
@@ -270,9 +275,11 @@ public class GameClientState extends AbstractPauseAwareState {
         try {
 
             // The game is actually loaded elsewhere but for the visuals we need this
-            synchronized (loadingObject) {
-                if (!gameStarted) {
-                    loadingObject.wait();
+            if (!gameStarted) {
+                synchronized (loadingObject) {
+                    if (!gameStarted) {
+                        loadingObject.wait();
+                    }
                 }
             }
 
