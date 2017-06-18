@@ -24,6 +24,7 @@ import com.jme3.network.service.rmi.RmiClientService;
 import com.jme3.network.service.rpc.RpcClientService;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.client.EntityDataClientService;
 import com.simsilica.es.client.RemoteEntityData;
 import com.simsilica.ethereal.EtherealClient;
 import java.io.IOException;
@@ -66,9 +67,6 @@ public class NetworkClient implements ChatSession {
 
         client.addClientStateListener(new ClientStateChangeListener(this));
 
-        //this.ed = new RemoteEntityData(client, 0);
-        //ObjectMessageDelegator delegator = new ObjectMessageDelegator(this, true);
-        // client.addMessageListener(delegator, delegator.getMessageTypes());
         client.getServices().addServices(new RpcClientService(),
                 new RmiClientService(),
                 new StreamingClientService(),
@@ -77,6 +75,7 @@ public class NetworkClient implements ChatSession {
                 new ChatClientService(), new EtherealClient(NetworkConstants.OBJECT_PROTOCOL,
                         NetworkConstants.ZONE_GRID,
                         NetworkConstants.ZONE_RADIUS),
+                new EntityDataClientService(NetworkConstants.ES_CHANNEL),
                 new GameClientService()
         );
     }

@@ -20,6 +20,8 @@ import com.jme3.math.Vector2f;
 import com.jme3.network.service.AbstractClientService;
 import com.jme3.network.service.ClientServiceManager;
 import com.jme3.network.service.rmi.RmiClientService;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.client.EntityDataClientService;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
@@ -125,6 +127,11 @@ public class GameClientService extends AbstractClientService
     @Override
     public void markReady() {
         getDelegate().markReady();
+    }
+
+    @Override
+    public EntityData getEntityData() {
+        return getService(EntityDataClientService.class).getEntityData();
     }
 
     /**

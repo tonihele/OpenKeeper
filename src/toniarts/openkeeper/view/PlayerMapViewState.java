@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.controller.MapClientService;
-import toniarts.openkeeper.game.controller.MapListener;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.Debug;
@@ -63,7 +63,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     private static final Logger logger = Logger.getLogger(PlayerMapViewState.class.getName());
 
-    public PlayerMapViewState(final KwdFile kwdFile, final AssetManager assetManager, MapClientService mapClientService, short playerId) {
+    public PlayerMapViewState(final KwdFile kwdFile, final AssetManager assetManager, IMapController mapClientService, short playerId) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
 

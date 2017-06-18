@@ -29,9 +29,10 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.controller.MapController;
-import toniarts.openkeeper.game.controller.MapListener;
+import toniarts.openkeeper.game.controller.ObjectController;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.logic.GameLogicThread;
 import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.game.map.MapTile;
@@ -475,8 +476,12 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
             // Make sure the KWD file is fully loaded
             kwdFile.load();
 
+            // Load objects
+            // TODO: interface
+            ObjectController objectController = new ObjectController(kwdFile, gameService.getEntityData());
+
             // Load the map
-            mapController = new MapController(MapController.load(kwdFile), kwdFile);
+            mapController = new MapController(kwdFile);
             gameService.sendGameData(mapController.getMapData());
 
             // Set up a listener for the map

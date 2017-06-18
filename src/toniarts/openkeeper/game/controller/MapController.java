@@ -26,6 +26,7 @@ import java.awt.Point;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -38,7 +39,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class MapController implements Savable, MapClientService {
+public final class MapController implements Savable, IMapController {
 
     private MapData mapData;
     private KwdFile kwdFile;
@@ -49,18 +50,44 @@ public final class MapController implements Savable, MapClientService {
     }
 
     /**
-     * Load map data from a KWD file straight
+     * Load map data from a KWD file straight (new game)
      *
      * @param kwdFile the KWD file
-     * @return the loaded map data
      */
-    public static MapData load(KwdFile kwdFile) {
-        return new MapData(kwdFile);
+    public MapController(KwdFile kwdFile) {
+        this.kwdFile = kwdFile;
+        this.mapData = new MapData(kwdFile);
+
+        // Load rooms
+        loadRooms();
     }
 
+    /**
+     * Instantiate a map controller from map data (loaded game)
+     *
+     * @param mapData the map data
+     * @param kwdFile the KWD file
+     */
     public MapController(MapData mapData, KwdFile kwdFile) {
         this.mapData = mapData;
         this.kwdFile = kwdFile;
+    }
+
+    private void loadRooms() {
+
+        // Go through the tiles and detect any rooms
+        for (int y = 0; y < mapData.getHeight(); y++) {
+            for (int x = 0; x < mapData.getWidth(); x++) {
+                MapTile mapTile = mapData.getTile(x, y);
+                if (kwdFile.getTerrain(mapTile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                    loadRoom(x, y);
+                }
+            }
+        }
+    }
+
+    private void loadRoom(int x, int y) {
+
     }
 
     @Override

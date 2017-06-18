@@ -36,6 +36,8 @@ public class NetworkConstants {
 
     public final static byte GAME_CHANNEL = -1;
 
+    public final static byte ES_CHANNEL = 2;
+
     /**
      * We add an extra channel on the client->server connection to send chat
      * related messages. This is its own separate TCP socket that avoids tying

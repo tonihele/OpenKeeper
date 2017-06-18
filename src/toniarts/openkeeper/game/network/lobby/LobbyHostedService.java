@@ -21,6 +21,7 @@ import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rmi.RmiRegistry;
+import com.simsilica.es.server.EntityDataHostedService;
 import com.simsilica.ethereal.EtherealHost;
 import com.simsilica.ethereal.NetworkStateListener;
 import java.util.*;
@@ -376,6 +377,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
                 hostingGameServices = true;
                 getService(EtherealHost.class).startHostingOnConnection(conn);
                 getService(GameHostedService.class).startHostingOnConnection(conn, getClientInfo());
+                getService(EntityDataHostedService.class).startHostingOnConnection(conn);
             }
 
             getClientInfo().setReady(ready);

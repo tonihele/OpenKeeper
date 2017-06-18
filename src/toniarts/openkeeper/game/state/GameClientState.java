@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.state;
 
+import toniarts.openkeeper.view.PlayerEntityViewState;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector2f;
@@ -27,7 +28,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.action.ActionPointState;
-import toniarts.openkeeper.game.controller.MapClientService;
+import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.MapController;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
@@ -96,9 +97,10 @@ public class GameClientState extends AbstractPauseAwareState {
     private IPlayerLoadingProgress loadingState;
     private final GameSessionClientService gameClientService;
     private final GameSessionListenerImpl gameSessionListener = new GameSessionListenerImpl();
-    private MapClientService mapClientService;
+    private IMapController mapClientService;
 
     private PlayerMapViewState playerMapViewState;
+    private PlayerEntityViewState playerModelViewState;
 
     private static final Logger logger = Logger.getLogger(GameClientState.class.getName());
 
@@ -330,46 +332,8 @@ public class GameClientState extends AbstractPauseAwareState {
 
             // Now we have the game data, start loading the map
             kwdFile.load();
-            final MapClientService localMap = new MapController(mapData, kwdFile);
-            mapClientService = new MapClientService() {
-
-                @Override
-                public MapData getMapData() {
-                    return localMap.getMapData();
-                }
-
-                @Override
-                public void setTiles(List<MapTile> tiles) {
-                    localMap.setTiles(tiles);
-                }
-
-                @Override
-                public boolean isBuildable(int x, int y, Player player, Room room) {
-                    return localMap.isBuildable(x, y, player, room);
-                }
-
-                @Override
-                public boolean isClaimable(int x, int y, short playerId) {
-                    return localMap.isClaimable(x, y, playerId);
-                }
-
-                @Override
-                public boolean isSelected(int x, int y, short playerId) {
-                    return localMap.isSelected(x, y, playerId);
-                }
-
-                @Override
-                public boolean isTaggable(int x, int y) {
-                    return localMap.isTaggable(x, y);
-                }
-
-                @Override
-                public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-
-                    // Relay this to the client service
-                    gameClientService.selectTiles(start, end, select);
-                }
-            };
+            mapClientService = new ClientMapController(mapData, kwdFile);
+            playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId);
             playerMapViewState = new PlayerMapViewState(kwdFile, app.getAssetManager(), mapClientService, playerId) {
 
                 @Override
@@ -401,6 +365,7 @@ public class GameClientState extends AbstractPauseAwareState {
             playerState.setPlayerId(playerId);
             playerState.setEnabled(true);
             stateManager.attach(playerMapViewState);
+            stateManager.attach(playerModelViewState);
 
             // Release the lock and enter to the game phase
             synchronized (loadingObject) {
@@ -417,8 +382,58 @@ public class GameClientState extends AbstractPauseAwareState {
 
     }
 
-    public MapClientService getMapClientService() {
+    public IMapController getMapClientService() {
         return mapClientService;
+    }
+
+    /**
+     * A local map map controller that relays commands to the client and
+     * maintains the data locally
+     */
+    private class ClientMapController implements IMapController {
+
+        private final IMapController localMap;
+
+        public ClientMapController(MapData mapData, KwdFile kwdFile) {
+            localMap = new MapController(mapData, kwdFile);
+        }
+
+        @Override
+        public MapData getMapData() {
+            return localMap.getMapData();
+        }
+
+        @Override
+        public void setTiles(List<MapTile> tiles) {
+            localMap.setTiles(tiles);
+        }
+
+        @Override
+        public boolean isBuildable(int x, int y, Player player, Room room) {
+            return localMap.isBuildable(x, y, player, room);
+        }
+
+        @Override
+        public boolean isClaimable(int x, int y, short playerId) {
+            return localMap.isClaimable(x, y, playerId);
+        }
+
+        @Override
+        public boolean isSelected(int x, int y, short playerId) {
+            return localMap.isSelected(x, y, playerId);
+        }
+
+        @Override
+        public boolean isTaggable(int x, int y) {
+            return localMap.isTaggable(x, y);
+        }
+
+        @Override
+        public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
+
+            // Relay this to the client service
+            gameClientService.selectTiles(start, end, select);
+        }
     }
 
 }

@@ -6,6 +6,8 @@
 package toniarts.openkeeper.game.state.session;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.base.DefaultEntityData;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.game.map.MapData;
@@ -19,11 +21,17 @@ import toniarts.openkeeper.tools.convert.map.Player;
  */
 public class LocalGameSession implements GameSessionServerService, GameSessionClientService {
 
+    private final EntityData entityData = new DefaultEntityData();
     private final List<GameSessionListener> listeners = new ArrayList<>();
     private final List<GameSessionServiceListener> serverListeners = new ArrayList<>();
 
     public LocalGameSession() {
 
+    }
+
+    @Override
+    public EntityData getEntityData() {
+        return entityData;
     }
 
     @Override

@@ -14,25 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.controller;
+package toniarts.openkeeper.game.entity;
 
-import com.jme3.network.service.rmi.Asynchronous;
-import java.util.List;
-import toniarts.openkeeper.game.map.MapTile;
+import com.simsilica.es.EntityComponent;
 
 /**
- * Listen to map (tile) changes
+ * Simple spellbook object
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface MapListener {
+public class Spellbook implements EntityComponent {
 
-    /**
-     * On tiles changed
-     *
-     * @param updatedTiles the tiles that changed
-     */
-    @Asynchronous
-    public void onTilesChange(List<MapTile> updatedTiles);
+    public int keeperSpellId;
+
+    public Spellbook() {
+        // For serialization
+    }
+
+    public Spellbook(int keeperSpellId) {
+        this.keeperSpellId = keeperSpellId;
+    }
 
 }

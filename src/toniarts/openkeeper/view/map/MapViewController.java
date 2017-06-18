@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.controller.MapClientService;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -59,6 +58,7 @@ import toniarts.openkeeper.view.map.construction.WaterConstructor;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.effect.TorchControl;
 import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.game.controller.IMapController;
 
 /**
  * Loads whole maps, and handles the maps
@@ -89,7 +89,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private Node map;
     //private final MapData mapData;
     private final AssetManager assetManager;
-    private final MapClientService mapClientService;
+    private final IMapController mapClientService;
     //private final EffectManagerState effectManager;
     private Node roomsNode;
     private final short playerId;
@@ -104,7 +104,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapViewController.class.getName());
 
-    public MapViewController(AssetManager assetManager, KwdFile kwdFile, MapClientService mapClientService, short playerId) {
+    public MapViewController(AssetManager assetManager, KwdFile kwdFile, IMapController mapClientService, short playerId) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.mapClientService = mapClientService;

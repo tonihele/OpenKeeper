@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state.session;
 
 import com.jme3.math.Vector2f;
 import com.jme3.network.service.rmi.Asynchronous;
+import com.simsilica.es.EntityData;
 
 /**
  * Clients view on game service
@@ -25,6 +26,13 @@ import com.jme3.network.service.rmi.Asynchronous;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public interface GameSession {
+
+    /**
+     * Get the game entity data
+     *
+     * @return entity data
+     */
+    public EntityData getEntityData();
 
     /**
      * Signal that we are ready and loaded up

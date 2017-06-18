@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.IntStream;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Tile.BridgeTerrainType;
@@ -60,7 +59,7 @@ public class MapTile implements Savable {
         // For serialization
     }
 
-    public MapTile(KwdFile kwdFile, Tile tile, Terrain terrain, int x, int y, int index) {
+    public MapTile(Tile tile, Terrain terrain, int x, int y, int index) {
         this.p = new Point(x, y);
         this.index = index;
 

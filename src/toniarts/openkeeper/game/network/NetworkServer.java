@@ -28,13 +28,18 @@ import com.jme3.network.service.HostedService;
 import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rpc.RpcHostedService;
-import com.simsilica.es.server.EntityDataHostService;
+import com.simsilica.es.base.DefaultEntityData;
+import com.simsilica.es.server.EntityDataHostedService;
 import com.simsilica.ethereal.EtherealHost;
 import java.awt.Point;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.entity.Gold;
+import toniarts.openkeeper.game.entity.ObjectEntity;
+import toniarts.openkeeper.game.entity.Position;
+import toniarts.openkeeper.game.entity.Spellbook;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
@@ -55,7 +60,6 @@ public class NetworkServer {
     private final String host;
     private final int port;
     private String name;
-    private EntityDataHostService edHost;
 
     private Server server = null;
     private long start = System.nanoTime();
@@ -81,6 +85,12 @@ public class NetworkServer {
         Serializer.registerClass(Tile.BridgeTerrainType.class, new EnumSerializer());
         Serializer.registerClass(MapData.class, new FieldSerializer()); // FIXME: Savable serializer would be better...
         Serializer.registerClass(MapTile.class, new FieldSerializer());
+
+        // Our entities
+        Serializer.registerClass(Position.class, new FieldSerializer());
+        Serializer.registerClass(ObjectEntity.class, new FieldSerializer());
+        Serializer.registerClass(Gold.class, new FieldSerializer());
+        Serializer.registerClass(Spellbook.class, new FieldSerializer());
     }
 
     public <T extends HostedService> T getService(Class<T> type) {
@@ -93,6 +103,7 @@ public class NetworkServer {
         }
         server.addChannel(port + 1); // Lobby
         server.addChannel(port + 2); // Chat
+        server.addChannel(port + 3); // ES object data
 
         initialize();
         server.addConnectionListener(new ServerConnectionListener(this));
@@ -119,6 +130,9 @@ public class NetworkServer {
                 NetworkConstants.ZONE_GRID,
                 NetworkConstants.ZONE_RADIUS);
         server.getServices().addService(ethereal);
+
+        // The ES objects
+        server.getServices().addService(new EntityDataHostedService(NetworkConstants.ES_CHANNEL, new DefaultEntityData(), false));
 
         server.start();
 

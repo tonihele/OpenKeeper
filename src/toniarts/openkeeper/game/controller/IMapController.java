@@ -17,21 +17,21 @@ import toniarts.openkeeper.tools.convert.map.Room;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface MapClientService {
+public interface IMapController {
 
     /**
      * Get the map data
      *
      * @return the map data
      */
-    public MapData getMapData();
+    MapData getMapData();
 
     /**
      * Sets some specified map tiles in place (updates the map data)
      *
      * @param tiles tiles to set
      */
-    public void setTiles(List<MapTile> tiles);
+    void setTiles(List<MapTile> tiles);
 
     /**
      * Determine if a tile at x & y is buildable by the player

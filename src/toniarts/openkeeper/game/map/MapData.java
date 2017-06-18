@@ -51,7 +51,7 @@ public class MapData implements Savable {
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 Tile tile = kwdFile.getMap().getTile(x, y);
-                tiles[x][y] = new MapTile(kwdFile, tile, kwdFile.getTerrain(tile.getTerrainId()), x, y, y * width + x);
+                tiles[x][y] = new MapTile(tile, kwdFile.getTerrain(tile.getTerrainId()), x, y, y * width + x);
             }
         }
     }

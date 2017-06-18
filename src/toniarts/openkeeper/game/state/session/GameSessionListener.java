@@ -17,7 +17,7 @@
 package toniarts.openkeeper.game.state.session;
 
 import com.jme3.network.service.rmi.Asynchronous;
-import toniarts.openkeeper.game.controller.MapListener;
+import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.map.MapData;
 
 /**

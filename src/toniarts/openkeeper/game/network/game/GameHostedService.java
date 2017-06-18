@@ -22,6 +22,8 @@ import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rmi.RmiRegistry;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.server.EntityDataHostedService;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -127,6 +129,11 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     @Override
     public void removeGameSessionServiceListener(GameSessionServiceListener l) {
         serverListeners.remove(l);
+    }
+
+    @Override
+    public EntityData getEntityData() {
+        return getServiceManager().getService(EntityDataHostedService.class).getEntityData();
     }
 
     @Override
@@ -280,6 +287,11 @@ public class GameHostedService extends AbstractHostedConnectionService implement
             for (GameSessionServiceListener listener : serverListeners) {
                 listener.onSelectTiles(start, end, select, clientInfo.getKeeper().getId());
             }
+        }
+
+        @Override
+        public EntityData getEntityData() {
+            return null; // Cached on client...
         }
 
     }

@@ -14,45 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.state.session;
+package toniarts.openkeeper.game.listener;
 
-import com.simsilica.es.EntityData;
+import com.jme3.network.service.rmi.Asynchronous;
 import java.util.List;
-import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 
 /**
- * This is server's perspective of game flow things. The services we offer our
- * clients.
+ * Listen to map (tile) changes
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface GameSessionService {
+public interface MapListener {
 
     /**
-     * Get the entity data
+     * On tiles changed
      *
-     * @return the entity data
+     * @param updatedTiles the tiles that changed
      */
-    public EntityData getEntityData();
-
-    /**
-     * Sends the game data to the clients to allow them to load it up visually
-     *
-     * @param mapData
-     */
-    public void sendGameData(MapData mapData);
-
-    /**
-     * Signals that the game should start
-     */
-    public void startGame();
-
-    /**
-     * Signals that map tiles have been changed
-     *
-     * @param updatedTiles the changed tiles
-     */
-    public void updateTiles(List<MapTile> updatedTiles);
+    @Asynchronous
+    public void onTilesChange(List<MapTile> updatedTiles);
 
 }
