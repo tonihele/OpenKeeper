@@ -881,13 +881,13 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     @Override
     public void cancelMultiplayer() {
+        LobbyState ls = state.getLobbyState();
 
         // Disconnect and dismantle
         removeLobbyListeners();
         state.shutdownMultiplayer();
 
         // Go back to where we were, if we ever left...
-        LobbyState ls = state.getLobbyState();
         if (ls != null) {
             if (ls.isOnline()) {
                 if (ls.isHosting()) {
