@@ -21,7 +21,7 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.view.map.RoomInstance;
+import toniarts.openkeeper.common.RoomInstance;
 
 /**
  * Portal is the only one I think

@@ -26,14 +26,14 @@ import com.simsilica.es.EntityComponent;
  */
 public class Position implements EntityComponent {
 
-    public int rotation; // We are essentially 2D game
+    public float rotation; // We are essentially 2D game, so around y-axis
     public Vector3f position;
 
     public Position() {
         // For serialization
     }
 
-    public Position(int rotation, Vector3f position) {
+    public Position(float rotation, Vector3f position) {
         this.rotation = rotation;
         this.position = position;
     }

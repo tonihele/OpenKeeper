@@ -33,10 +33,12 @@ import toniarts.openkeeper.world.MapLoader;
 
 /**
  * This is a controller that controls all the game objects in the world
+ * TODO: Hmm, should this be more a factory maybe, or if this offers the ability
+ * to load / save, then it is fine
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectController {
+public class ObjectsController implements IObjectsController {
 
     public final static short OBJECT_GOLD_ID = 1;
     //public final static short OBJECT_GOLD_BAG_ID = 2;
@@ -46,9 +48,9 @@ public class ObjectController {
     private KwdFile kwdFile;
     private EntityData entityData;
 
-    private static final Logger logger = Logger.getLogger(ObjectController.class.getName());
+    private static final Logger logger = Logger.getLogger(ObjectsController.class.getName());
 
-    public ObjectController() {
+    public ObjectsController() {
         // For serialization
     }
 
@@ -58,7 +60,7 @@ public class ObjectController {
      * @param kwdFile the KWD file
      * @param entityData the entity controller
      */
-    public ObjectController(KwdFile kwdFile, EntityData entityData) {
+    public ObjectsController(KwdFile kwdFile, EntityData entityData) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
 
@@ -81,22 +83,42 @@ public class ObjectController {
     }
 
     private void loadObject(Thing.Object objectThing) {
+        loadObject(objectThing.getObjectId(), objectThing.getPlayerId(), objectThing.getPosX(), objectThing.getPosY(),
+                0, objectThing.getMoneyAmount(), objectThing.getKeeperSpellId(), objectThing.getTriggerId());
+    }
+
+    @Override
+    public void loadObject(short objectId, short ownerId, int x, int y) {
+        loadObject(objectId, ownerId, x, y, 0, null, null, null);
+    }
+
+    @Override
+    public void loadObject(short objectId, short ownerId, int x, int y, float rotation) {
+        loadObject(objectId, ownerId, x, y, rotation, null, null, null);
+    }
+
+    @Override
+    public void loadObject(short objectId, short ownerId, int x, int y, Integer money, Integer spellId) {
+        loadObject(objectId, ownerId, x, y, 0, money, spellId, null);
+    }
+
+    private void loadObject(short objectId, short ownerId, int x, int y, float rotation, Integer money, Integer spellId, Integer triggerId) {
         EntityId entity = entityData.createEntity();
-        entityData.setComponent(entity, new ObjectEntity(objectThing.getObjectId(), objectThing.getPlayerId()));
+        entityData.setComponent(entity, new ObjectEntity(objectId, ownerId));
 
         // Move to the center of the tile
-        Vector3f pos = WorldUtils.pointToVector3f(objectThing.getPosX(), objectThing.getPosY());
+        Vector3f pos = WorldUtils.pointToVector3f(x, y);
         pos.y = MapLoader.FLOOR_HEIGHT; // FIXME: no
-        entityData.setComponent(entity, new Position(0, pos));
+        entityData.setComponent(entity, new Position(rotation, pos));
 
         // Add additional components
-        GameObject obj = kwdFile.getObject(objectThing.getObjectId());
+        GameObject obj = kwdFile.getObject(objectId);
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
             // FIXME: max money
-            entityData.setComponent(entity, new Gold(objectThing.getMoneyAmount(), 1000));
+            entityData.setComponent(entity, new Gold(money, 1000));
         }
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPELL_BOOK)) {
-            entityData.setComponent(entity, new Spellbook(objectThing.getKeeperSpellId()));
+            entityData.setComponent(entity, new Spellbook(spellId));
         }
 
         // Trigger

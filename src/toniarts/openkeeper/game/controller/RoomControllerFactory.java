@@ -14,60 +14,57 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.map;
+package toniarts.openkeeper.game.controller;
 
-import toniarts.openkeeper.common.RoomInstance;
-import com.jme3.asset.AssetManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.view.map.construction.DoubleQuadConstructor;
-import toniarts.openkeeper.view.map.construction.FiveByFiveRotatedConstructor;
-import toniarts.openkeeper.view.map.construction.HeroGateConstructor;
-import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
-import toniarts.openkeeper.view.map.construction.HeroGateThreeByOneConstructor;
-import toniarts.openkeeper.view.map.construction.HeroGateTwoByTwoConstructor;
-import toniarts.openkeeper.view.map.construction.NormalConstructor;
-import toniarts.openkeeper.view.map.construction.QuadConstructor;
-import toniarts.openkeeper.view.map.construction.RoomConstructor;
-import toniarts.openkeeper.view.map.construction.ThreeByThreeConstructor;
-import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.room.CasinoController;
+import toniarts.openkeeper.game.controller.room.CombatPitController;
+import toniarts.openkeeper.game.controller.room.DoubleQuadController;
+import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
+import toniarts.openkeeper.game.controller.room.HatcheryController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.NormalRoomController;
+import toniarts.openkeeper.game.controller.room.PrisonController;
+import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
+import toniarts.openkeeper.game.controller.room.WorkshopController;
 
 /**
  * A factory class you can use to build buildings
  *
  * @author ArchDemon
  */
-public final class RoomFactory {
+public final class RoomControllerFactory {
 
-    private static final Logger logger = Logger.getLogger(RoomFactory.class.getName());
+    private static final Logger logger = Logger.getLogger(RoomControllerFactory.class.getName());
 
-    private RoomFactory() {
+    private RoomControllerFactory() {
         // Nope
     }
 
-    public static RoomConstructor constructRoom(RoomInstance roomInstance, AssetManager assetManager,
-            EffectManagerState effectManager) {
+    public static IRoomController constructRoom(RoomInstance roomInstance, IObjectsController objectsController) {
 
         String roomName = roomInstance.getRoom().getName();
 
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3:
-                return new ThreeByThreeConstructor(assetManager, roomInstance);
+                return new ThreeByThreeController(roomInstance, objectsController);
 
             case HERO_GATE:
-                return new HeroGateConstructor(assetManager, roomInstance);
+            //return new HeroGateConstructor(assetManager, roomInstance);
 
             case HERO_GATE_FRONT_END:
-                return new HeroGateFrontEndConstructor(assetManager, roomInstance);
+            //return new HeroGateFrontEndConstructor(assetManager, roomInstance);
 
             case HERO_GATE_2_BY_2:
-                return new HeroGateTwoByTwoConstructor(assetManager, roomInstance);
+            //return new HeroGateTwoByTwoConstructor(assetManager, roomInstance);
 
             case HERO_GATE_3_BY_1:
-                return new HeroGateThreeByOneConstructor(assetManager, roomInstance);
+            //return new HeroGateThreeByOneConstructor(assetManager, roomInstance);
 
             case _5_BY_5_ROTATED:
-                return new FiveByFiveRotatedConstructor(assetManager, roomInstance);
+                return new FiveByFiveRotatedController(roomInstance, objectsController);
 
             case NORMAL:
 //                if (roomName.equalsIgnoreCase("Lair")) {
@@ -76,44 +73,46 @@ public final class RoomFactory {
 //                    return new Library(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                } else if (roomName.equalsIgnoreCase("Training Room")) {
 //                    return new TrainingRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                } else if (roomName.equalsIgnoreCase("Work Shop")) {
-//                    return new Workshop(assetManager, roomInstance, objectLoader, worldState, effectManager);
+//                } else
+                if (roomName.equalsIgnoreCase("Work Shop")) {
+                    return new WorkshopController(roomInstance, objectsController);
 //                } else if (roomName.equalsIgnoreCase("Guard Room")) {
 //                    return new GuardRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                } else if (roomName.equalsIgnoreCase("Casino")) {
-//                    return new Casino(assetManager, roomInstance, objectLoader, worldState, effectManager);
+                } else if (roomName.equalsIgnoreCase("Casino")) {
+            return new CasinoController(roomInstance, objectsController);
 //                } else if (roomName.equalsIgnoreCase("Graveyard")) {
 //                    return new Graveyard(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
 //                    return new TortureChamber(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                } else if (roomName.equalsIgnoreCase("Treasury")) {
 //                    return new Treasury(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                } else if (roomName.equalsIgnoreCase("Hatchery")) {
-//                    return new Hatchery(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                }
-                return new NormalConstructor(assetManager, roomInstance);
+                } else if (roomName.equalsIgnoreCase("Hatchery")) {
+                    return new HatcheryController(roomInstance, objectsController);
+                }
+                return new NormalRoomController(roomInstance, objectsController);
 
             case QUAD:
 //                if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
 //                    return new StoneBridge(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                }
-                return new QuadConstructor(assetManager, roomInstance);
+               // return new QuadConstructor(assetManager, roomInstance);
 //
             case DOUBLE_QUAD:
-//                if (roomName.equalsIgnoreCase("Prison")) {
-//                    return new Prison(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                } else if (roomName.equalsIgnoreCase("Combat Pit")) {
-//                    return new CombatPit(assetManager, roomInstance, objectLoader, worldState, effectManager);
+                if (roomName.equalsIgnoreCase("Prison")) {
+                    return new PrisonController(roomInstance, objectsController);
+                } else if (roomName.equalsIgnoreCase("Combat Pit")) {
+                    return new CombatPitController(roomInstance, objectsController);
+                }
 //                } else if (roomName.equalsIgnoreCase("Temple")) {
 //                    return new Temple(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                }
 //                // TODO use quad construction for different rooms
-                return new DoubleQuadConstructor(assetManager, roomInstance);
+                return new DoubleQuadController(roomInstance, objectsController);
             default:
 
                 // TODO
                 logger.log(Level.WARNING, "Room {0} not exist", roomName);
+                return new NormalRoomController(roomInstance, objectsController);
         }
-        return null;
     }
 }

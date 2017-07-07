@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 OpenKeeper
+ * Copyright (C) 2014-2016 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,17 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.loader;
+package toniarts.openkeeper.game.controller.room;
 
-import com.jme3.asset.AssetManager;
-import com.jme3.scene.Spatial;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.IObjectsController;
 
 /**
- * A simple interface for loading DK2 map classes to JME spatials
+ * The hatchery
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface ILoader<T> {
+public class HatcheryController extends NormalRoomController {
 
-    public Spatial load(AssetManager assetManager, T object);
+    public HatcheryController(RoomInstance roomInstance, IObjectsController objectsController) {
+        super(roomInstance, objectsController);
+    }
+
+    @Override
+    protected RoomObjectLayout getRoomObjectLayout() {
+        return RoomObjectLayout.ISOLATED;
+    }
+
 }

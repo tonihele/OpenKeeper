@@ -15,7 +15,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.map.MapViewController;
-import toniarts.openkeeper.view.map.RoomInstance;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.view.map.WallSection;
 import static toniarts.openkeeper.view.map.WallSection.WallDirection.WEST;
 

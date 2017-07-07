@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.map;
+package toniarts.openkeeper.common;
 
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.view.map.WallSection;
 
 /**
  * Holds a room instance, series of coordinates that together form a room

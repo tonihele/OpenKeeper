@@ -25,7 +25,11 @@ import com.jme3.math.Vector2f;
 import java.awt.Point;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -43,6 +47,9 @@ public final class MapController implements Savable, IMapController {
 
     private MapData mapData;
     private KwdFile kwdFile;
+    private IObjectsController objectsController;
+    private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>();
+    private final Map<RoomInstance, IRoomController> roomControllers = new HashMap<>();
     private final List<MapListener> listeners = new ArrayList<>();
 
     public MapController() {
@@ -52,10 +59,12 @@ public final class MapController implements Savable, IMapController {
     /**
      * Load map data from a KWD file straight (new game)
      *
-     * @param kwdFile the KWD file
+     * @param kwdFile           the KWD file
+     * @param objectsController objects controller
      */
-    public MapController(KwdFile kwdFile) {
+    public MapController(KwdFile kwdFile, IObjectsController objectsController) {
         this.kwdFile = kwdFile;
+        this.objectsController = objectsController;
         this.mapData = new MapData(kwdFile);
 
         // Load rooms
@@ -87,7 +96,57 @@ public final class MapController implements Savable, IMapController {
     }
 
     private void loadRoom(int x, int y) {
+        Point p = new Point(x, y);
+        if (roomCoordinates.containsKey(p)) {
+            return;
+        }
 
+        // Find it
+        MapTile mapTile = mapData.getTile(x, y);
+        RoomInstance roomInstance = new RoomInstance(kwdFile.getRoomByTerrain(mapTile.getTerrainId()));
+        findRoom(p, roomInstance);
+
+        // Create a controller for it
+        IRoomController roomController = RoomControllerFactory.constructRoom(roomInstance, objectsController);
+        roomController.construct();
+        roomControllers.put(roomInstance, roomController);
+    }
+
+    /**
+     * Find the room starting from a certain point, rooms are never diagonally
+     * attached
+     *
+     * @param p            starting point
+     * @param roomInstance the room instance
+     */
+    private void findRoom(Point p, RoomInstance roomInstance) {
+        MapTile tile = getMapData().getTile(p);
+
+        // Get the terrain
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+
+            if (!roomCoordinates.containsKey(p)) {
+                if (roomInstance.getRoom().equals(kwdFile.getRoomByTerrain(terrain.getTerrainId()))) {
+
+                    // Add the coordinate
+                    roomCoordinates.put(p, roomInstance);
+                    roomInstance.addCoordinate(p);
+
+                    // Find north
+                    findRoom(new Point(p.x, p.y - 1), roomInstance);
+
+                    // Find east
+                    findRoom(new Point(p.x + 1, p.y), roomInstance);
+
+                    // Find south
+                    findRoom(new Point(p.x, p.y + 1), roomInstance);
+
+                    // Find west
+                    findRoom(new Point(p.x - 1, p.y), roomInstance);
+                }
+            }
+        }
     }
 
     @Override

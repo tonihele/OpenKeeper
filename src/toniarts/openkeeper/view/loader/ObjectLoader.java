@@ -22,7 +22,6 @@ import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.entity.ObjectEntity;
-import toniarts.openkeeper.game.entity.Position;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 
@@ -41,7 +40,7 @@ public class ObjectLoader implements ILoader<ObjectEntity> {
     }
 
     @Override
-    public Spatial load(AssetManager assetManager, Position position, ObjectEntity object) {
+    public Spatial load(AssetManager assetManager, ObjectEntity object) {
         try {
             Node nodeObject = (Node) AssetUtils.loadModel(assetManager, kwdFile.getObject(object.objectId).getMeshResource().getName());
             return nodeObject;

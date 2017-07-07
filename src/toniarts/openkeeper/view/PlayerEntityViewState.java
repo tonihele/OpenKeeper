@@ -117,11 +117,11 @@ public class PlayerEntityViewState extends AbstractAppState {
         // Also the syncing, I don't know do we need a "listener" for all these classes then...
         // TODO: object & gold amount are now separate, how to display the different amounts of gold, the model index?
         // The server doesn't need to know it, physics are based on different things I assume, never in the server we load assets
+        // Also maybe would be nice to batch up room pillars like before
         Spatial result = new Node("Wat"); // FIXME: Yeah...
-        Position position = e.get(Position.class);
         ObjectEntity objectEntity = e.get(ObjectEntity.class);
         if (objectEntity != null) {
-            result = objectLoader.load(assetManager, position, objectEntity);
+            result = objectLoader.load(assetManager, objectEntity);
             nodeObjects.attachChild(result);
         }
         return result;
@@ -130,6 +130,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void updateModel(Spatial object, Entity e) {
         Position position = e.get(Position.class);
         object.setLocalTranslation(position.position);
+        object.setLocalRotation(object.getLocalRotation().fromAngles(0, position.rotation, 0));
     }
 
     private void removeModel(Spatial object, Entity e) {

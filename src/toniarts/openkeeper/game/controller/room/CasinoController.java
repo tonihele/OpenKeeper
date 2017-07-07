@@ -14,17 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.loader;
+package toniarts.openkeeper.game.controller.room;
 
-import com.jme3.asset.AssetManager;
-import com.jme3.scene.Spatial;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.IObjectsController;
 
 /**
- * A simple interface for loading DK2 map classes to JME spatials
+ * The casino
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface ILoader<T> {
+public class CasinoController extends NormalRoomController {
 
-    public Spatial load(AssetManager assetManager, T object);
+    public CasinoController(RoomInstance roomInstance, IObjectsController objectsController) {
+        super(roomInstance, objectsController);
+    }
+
+    @Override
+    protected RoomObjectLayout getRoomObjectLayout() {
+        return RoomObjectLayout.ALLOW_DIAGONAL_NEIGHBOUR_ONLY;
+    }
+
 }

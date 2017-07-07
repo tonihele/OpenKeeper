@@ -28,7 +28,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 public class HeroGateTwoByTwoConstructor extends RoomConstructor {
 
-    public HeroGateTwoByTwoConstructor(AssetManager assetManager, toniarts.openkeeper.view.map.RoomInstance roomInstance) {
+    public HeroGateTwoByTwoConstructor(AssetManager assetManager, toniarts.openkeeper.common.RoomInstance roomInstance) {
         super(assetManager, roomInstance);
     }
 

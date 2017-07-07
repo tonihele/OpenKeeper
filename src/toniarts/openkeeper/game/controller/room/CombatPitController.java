@@ -14,33 +14,32 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.map.construction;
+package toniarts.openkeeper.game.controller.room;
 
-import com.jme3.asset.AssetManager;
-import com.jme3.scene.BatchNode;
-import com.jme3.scene.Node;
 import java.awt.Point;
-import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.common.RoomInstance;
-import static toniarts.openkeeper.view.map.construction.QuadConstructor.constructQuad;
+import toniarts.openkeeper.game.controller.IObjectsController;
 
 /**
+ * TODO: not completed
  *
  * @author ArchDemon
  */
-public class DoubleQuadConstructor extends RoomConstructor {
+public class CombatPitController extends DoubleQuadController {
 
-    public DoubleQuadConstructor(AssetManager assetManager, RoomInstance roomInstance) {
-        super(assetManager, roomInstance);
+    private Point door;
+
+    public CombatPitController(toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
+        super(roomInstance, objectsController);
     }
 
     @Override
-    protected BatchNode constructFloor() {
-        BatchNode root = new BatchNode();
-        String modelName = roomInstance.getRoom().getCompleteResource().getName();
-        //Point start = roomInstance.getCoordinates().get(0);
-        // Contruct the tiles
+    public void construct() {
+        super.construct();
+
+        // Store the door position for spawning the creatures in
+        door = null;
         for (Point p : roomInstance.getCoordinates()) {
+
             // Figure out which peace by seeing the neighbours
             boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
             boolean NE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
@@ -51,14 +50,11 @@ public class DoubleQuadConstructor extends RoomConstructor {
             boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
             boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
 
-            // 2x2
-            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
-            //AssetUtils.scale(model);
-            AssetUtils.translateToTile(model, p);
-            root.attachChild(model);
+            if (door == null && !N && !NE && E && SE && S && SW && W && !NW) {
+                door = p;
+                break;
+            }
         }
-
-        return root;
     }
 
 }

@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.view.map;
 
+import toniarts.openkeeper.common.EntityInstance;
+import toniarts.openkeeper.common.RoomInstance;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
