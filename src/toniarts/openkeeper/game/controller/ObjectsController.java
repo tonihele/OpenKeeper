@@ -21,10 +21,11 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.entity.Gold;
-import toniarts.openkeeper.game.entity.ObjectEntity;
-import toniarts.openkeeper.game.entity.Position;
-import toniarts.openkeeper.game.entity.Spellbook;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.ObjectEntity;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Spellbook;
+import toniarts.openkeeper.game.player.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -32,9 +33,9 @@ import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
- * This is a controller that controls all the game objects in the world
- * TODO: Hmm, should this be more a factory maybe, or if this offers the ability
- * to load / save, then it is fine
+ * This is a controller that controls all the game objects in the world TODO:
+ * Hmm, should this be more a factory/loader maybe, or if this offers the
+ * ability to load / save, then it is fine
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -88,21 +89,21 @@ public class ObjectsController implements IObjectsController {
     }
 
     @Override
-    public void loadObject(short objectId, short ownerId, int x, int y) {
-        loadObject(objectId, ownerId, x, y, 0, null, null, null);
+    public EntityId loadObject(short objectId, short ownerId, int x, int y) {
+        return loadObject(objectId, ownerId, x, y, 0, null, null, null);
     }
 
     @Override
-    public void loadObject(short objectId, short ownerId, int x, int y, float rotation) {
-        loadObject(objectId, ownerId, x, y, rotation, null, null, null);
+    public EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation) {
+        return loadObject(objectId, ownerId, x, y, rotation, null, null, null);
     }
 
     @Override
-    public void loadObject(short objectId, short ownerId, int x, int y, Integer money, Integer spellId) {
-        loadObject(objectId, ownerId, x, y, 0, money, spellId, null);
+    public EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, Integer spellId) {
+        return loadObject(objectId, ownerId, x, y, 0, money, spellId, null);
     }
 
-    private void loadObject(short objectId, short ownerId, int x, int y, float rotation, Integer money, Integer spellId, Integer triggerId) {
+    private EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation, Integer money, Integer spellId, Integer triggerId) {
         EntityId entity = entityData.createEntity();
         entityData.setComponent(entity, new ObjectEntity(objectId, ownerId));
 
@@ -125,6 +126,22 @@ public class ObjectsController implements IObjectsController {
 //                    if (objectThing.getTriggerId() != 0) {
 //                        objectTriggerState.setThing(objectThing.getTriggerId(), objectControl);
 //                    }
+        return entity;
+    }
+
+    @Override
+    public EntityId addRoomGold(short ownerId, int x, int y, int money) {
+        return loadObject(OBJECT_GOLD_ID, ownerId, x, y, money, null);
+    }
+
+    @Override
+    public EntityId addLooseGold(short ownerId, int x, int y, int money) {
+        return loadObject(OBJECT_GOLD_PILE_ID, ownerId, x, y, money, null);
+    }
+
+    @Override
+    public EntityId addRoomSpellBook(short ownerId, int x, int y, PlayerSpell spell) {
+        return loadObject(OBJECT_SPELL_BOOK_ID, ownerId, x, y);
     }
 
 }

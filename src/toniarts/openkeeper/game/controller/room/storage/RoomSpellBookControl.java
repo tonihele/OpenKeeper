@@ -16,29 +16,30 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
-import toniarts.openkeeper.world.room.control.*;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.player.PlayerSpell;
-import toniarts.openkeeper.world.ThingLoader;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.object.ObjectControl;
-import toniarts.openkeeper.world.object.SpellBookObjectControl;
-import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Holds out the spell books
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomSpellBookControl extends RoomObjectControl<SpellBookObjectControl, PlayerSpell> {
+public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<PlayerSpell> {
 
     private int storedSpellBooks = 0;
 
-    public RoomSpellBookControl(GenericRoom parent) {
-        super(parent);
+    public RoomSpellBookControl(IRoomController parent, IObjectsController objectsController, EntityData entityData) {
+        super(parent, objectsController, entityData);
     }
 
     @Override
@@ -52,13 +53,13 @@ public abstract class RoomSpellBookControl extends RoomObjectControl<SpellBookOb
     }
 
     @Override
-    public GenericRoom.ObjectType getObjectType() {
-        return GenericRoom.ObjectType.SPELL_BOOK;
+    public ObjectType getObjectType() {
+        return ObjectType.SPELL_BOOK;
     }
 
     @Override
-    public PlayerSpell addItem(PlayerSpell value, Point p, ThingLoader thingLoader, CreatureControl creature) {
-        Collection<SpellBookObjectControl> spellBooks = null;
+    public PlayerSpell addItem(PlayerSpell value, Point p) {
+        Collection<EntityId> spellBooks = null;
         if (p != null) {
             spellBooks = objectsByCoordinate.get(p);
             if (spellBooks != null && spellBooks.size() == getObjectsPerTile()) {
@@ -76,13 +77,13 @@ public abstract class RoomSpellBookControl extends RoomObjectControl<SpellBookOb
                 }
             }
         }
-        SpellBookObjectControl object = thingLoader.addRoomSpellBook(p, value, creature.getOwnerId());
+        EntityId object = objectsController.addRoomSpellBook((short) 0, p.x, p.y, value);
         if (spellBooks == null) {
             spellBooks = new ArrayList<>(getObjectsPerTile());
         }
         spellBooks.add(object);
         objectsByCoordinate.put(p, spellBooks);
-        object.setRoomObjectControl(this);
+        //object.setRoomObjectControl(this);
         storedSpellBooks++;
         return null;
     }
@@ -99,8 +100,8 @@ public abstract class RoomSpellBookControl extends RoomObjectControl<SpellBookOb
 
         // Only floor furniture
         List<Point> coordinates = new ArrayList<>(parent.getFloorFurnitureCount());
-        for (ObjectControl oc : parent.getFloorFurniture()) {
-            coordinates.add(oc.getObjectCoordinates());
+        for (EntityId oc : parent.getFloorFurniture()) {
+            coordinates.add(WorldUtils.vectorToPoint(entityData.getComponent(oc, Position.class).position));
         }
         return coordinates;
     }

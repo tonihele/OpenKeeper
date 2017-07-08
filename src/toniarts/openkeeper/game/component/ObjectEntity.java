@@ -14,25 +14,27 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.entity;
+package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 
 /**
- * Simple spellbook object
+ * A base object entity class
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Spellbook implements EntityComponent {
+public class ObjectEntity implements EntityComponent {
 
-    public int keeperSpellId;
+    public short objectId;
+    public short ownerId;
 
-    public Spellbook() {
+    public ObjectEntity() {
         // For serialization
     }
 
-    public Spellbook(int keeperSpellId) {
-        this.keeperSpellId = keeperSpellId;
+    public ObjectEntity(short objectId, short ownerId) {
+        this.objectId = objectId;
+        this.ownerId = ownerId;
     }
 
 }

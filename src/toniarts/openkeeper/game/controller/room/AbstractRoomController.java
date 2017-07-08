@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
-import com.jme3.scene.Node;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,7 +25,6 @@ import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
 /**
@@ -71,9 +70,8 @@ public abstract class AbstractRoomController implements IRoomController {
     protected boolean[][] map;
     protected Point start;
     protected final IObjectsController objectsController;
-    private final Set<ObjectControl> floorFurniture = new HashSet<>();
-    private final Set<ObjectControl> wallFurniture = new HashSet<>();
-
+    private final Set<EntityId> floorFurniture = new HashSet<>();
+    private final Set<EntityId> wallFurniture = new HashSet<>();
 
     public AbstractRoomController(RoomInstance roomInstance, IObjectsController objectsController) {
         this.roomInstance = roomInstance;
@@ -118,7 +116,6 @@ public abstract class AbstractRoomController implements IRoomController {
         // Floor objects 0-2
         Room room = roomInstance.getRoom();
         int index = -1;
-        Node objects = new Node();
         if (room.getObjects().get(0) > 0 || room.getObjects().get(1) > 0 || room.getObjects().get(2) > 0) {
 
             // Object map
@@ -170,7 +167,8 @@ public abstract class AbstractRoomController implements IRoomController {
 
                         // Add object
                         objectMap[x][y] = true;
-                        objectsController.loadObject(room.getObjects().get(index), (short) 0, start.x + x, start.y + y);
+                        EntityId object = objectsController.loadObject(room.getObjects().get(index), (short) 0, start.x + x, start.y + y);
+                        floorFurniture.add(object);
                     }
                 }
             }
@@ -199,6 +197,7 @@ public abstract class AbstractRoomController implements IRoomController {
         return true;
     }
 
+    @Override
     public final boolean isTileAccessible(Point from, Point to) {
         return isTileAccessible(from != null ? from.x : null, (from != null ? from.y : null), to.x, to.y);
     }
@@ -283,7 +282,8 @@ public abstract class AbstractRoomController implements IRoomController {
         return null;
     }
 
-    public RoomInstance getRoomInstance() {
+    @Override
+    public final RoomInstance getRoomInstance() {
         return roomInstance;
     }
 
@@ -328,6 +328,7 @@ public abstract class AbstractRoomController implements IRoomController {
      *
      * @return floor furniture count
      */
+    @Override
     public int getFloorFurnitureCount() {
         return floorFurniture.size();
     }
@@ -337,15 +338,18 @@ public abstract class AbstractRoomController implements IRoomController {
      *
      * @return wall furniture count
      */
+    @Override
     public int getWallFurnitureCount() {
         return wallFurniture.size();
     }
 
-    public Set<ObjectControl> getFloorFurniture() {
+    @Override
+    public Set<EntityId> getFloorFurniture() {
         return floorFurniture;
     }
 
-    public Set<ObjectControl> getWallFurniture() {
+    @Override
+    public Set<EntityId> getWallFurniture() {
         return wallFurniture;
     }
 

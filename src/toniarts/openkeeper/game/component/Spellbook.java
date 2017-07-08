@@ -14,27 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.entity;
+package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 
 /**
- * Simple gold container
+ * Simple spellbook object
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Gold implements EntityComponent {
+public class Spellbook implements EntityComponent {
 
-    public int gold;
-    public int maxGold; // Mainly for information on the rendering end
+    public int keeperSpellId;
 
-    public Gold() {
+    public Spellbook() {
         // For serialization
     }
 
-    public Gold(int gold, int maxGold) {
-        this.gold = gold;
-        this.maxGold = maxGold;
+    public Spellbook(int keeperSpellId) {
+        this.keeperSpellId = keeperSpellId;
     }
 
 }

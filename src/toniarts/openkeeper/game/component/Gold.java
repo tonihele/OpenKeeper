@@ -14,28 +14,27 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.entity;
+package toniarts.openkeeper.game.component;
 
-import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Simple entity position class
+ * Simple gold container
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Position implements EntityComponent {
+public class Gold implements EntityComponent {
 
-    public float rotation; // We are essentially 2D game, so around y-axis
-    public Vector3f position;
+    public int gold;
+    public int maxGold; // Mainly for information on the rendering end
 
-    public Position() {
+    public Gold() {
         // For serialization
     }
 
-    public Position(float rotation, Vector3f position) {
-        this.rotation = rotation;
-        this.position = position;
+    public Gold(int gold, int maxGold) {
+        this.gold = gold;
+        this.maxGold = maxGold;
     }
 
 }

@@ -16,25 +16,27 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
-import toniarts.openkeeper.world.room.control.*;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import toniarts.openkeeper.world.ThingLoader;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.object.ObjectControl;
-import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Holds out the researchers populating a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomResearcherControl extends RoomObjectControl<ObjectControl, Integer> {
+public abstract class RoomResearcherControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomResearcherControl(GenericRoom parent) {
-        super(parent);
+    public RoomResearcherControl(IRoomController parent, IObjectsController objectsController, EntityData entityData) {
+        super(parent, objectsController, entityData);
     }
 
     @Override
@@ -48,13 +50,13 @@ public abstract class RoomResearcherControl extends RoomObjectControl<ObjectCont
     }
 
     @Override
-    public GenericRoom.ObjectType getObjectType() {
-        return GenericRoom.ObjectType.RESEARCHER;
+    public ObjectType getObjectType() {
+        return ObjectType.RESEARCHER;
     }
 
     @Override
-    public Integer addItem(Integer sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
-        return sum;
+    public EntityId addItem(EntityId researcher, Point p) {
+        return researcher;
     }
 
     @Override
@@ -68,11 +70,11 @@ public abstract class RoomResearcherControl extends RoomObjectControl<ObjectCont
 
         // Only furniture
         List<Point> coordinates = new ArrayList<>(parent.getFloorFurnitureCount() + parent.getWallFurnitureCount());
-        for (ObjectControl oc : parent.getFloorFurniture()) {
-            coordinates.add(oc.getObjectCoordinates());
+        for (EntityId oc : parent.getFloorFurniture()) {
+            coordinates.add(WorldUtils.vectorToPoint(entityData.getComponent(oc, Position.class).position));
         }
-        for (ObjectControl oc : parent.getWallFurniture()) {
-            coordinates.add(oc.getObjectCoordinates());
+        for (EntityId oc : parent.getWallFurniture()) {
+            coordinates.add(WorldUtils.vectorToPoint(entityData.getComponent(oc, Position.class).position));
         }
         return coordinates;
     }

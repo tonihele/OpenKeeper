@@ -21,7 +21,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.entity.ObjectEntity;
+import toniarts.openkeeper.game.component.ObjectEntity;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 

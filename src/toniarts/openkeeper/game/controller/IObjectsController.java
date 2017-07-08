@@ -16,6 +16,9 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.player.PlayerSpell;
+
 /**
  * Handles the object space
  *
@@ -23,10 +26,16 @@ package toniarts.openkeeper.game.controller;
  */
 public interface IObjectsController {
 
-    void loadObject(short objectId, short ownerId, int x, int y);
+    EntityId loadObject(short objectId, short ownerId, int x, int y);
 
-    void loadObject(short objectId, short ownerId, int x, int y, float rotation);
+    EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation);
 
-    void loadObject(short objectId, short ownerId, int x, int y, Integer money, Integer spellId);
+    EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, Integer spellId);
+
+    EntityId addRoomGold(short ownerId, int x, int y, int money);
+
+    EntityId addLooseGold(short ownerId, int x, int y, int money);
+
+    EntityId addRoomSpellBook(short ownerId, int x, int y, PlayerSpell spell);
 
 }

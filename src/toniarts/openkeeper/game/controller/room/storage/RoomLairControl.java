@@ -16,26 +16,26 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
-import toniarts.openkeeper.world.room.control.*;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
-import toniarts.openkeeper.world.ThingLoader;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.object.ObjectControl;
-import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 
 /**
  * Controls creature lairs in a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomLairControl extends RoomObjectControl<ObjectControl, Integer> {
+public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId> {
 
     private int lairs = 0;
 
-    public RoomLairControl(GenericRoom parent) {
-        super(parent);
+    public RoomLairControl(IRoomController parent, IObjectsController objectsController, EntityData entityData) {
+        super(parent, objectsController, entityData);
     }
 
     @Override
@@ -44,25 +44,27 @@ public abstract class RoomLairControl extends RoomObjectControl<ObjectControl, I
     }
 
     @Override
-    public GenericRoom.ObjectType getObjectType() {
-        return GenericRoom.ObjectType.LAIR;
+    public ObjectType getObjectType() {
+        return ObjectType.LAIR;
     }
 
     @Override
-    public Integer addItem(Integer sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
-        Collection<ObjectControl> objects = objectsByCoordinate.get(p);
+    public EntityId addItem(EntityId creature, Point p) {
+        Collection<EntityId> objects = objectsByCoordinate.get(p);
         if (objects != null && !objects.isEmpty()) {
-            return sum; // Already a lair here
+            return objects.iterator().next(); // Already a lair here
         }
-        ObjectControl object = thingLoader.addObject(p, creature.getCreature().getLairObjectId(), creature.getOwnerId());
+
+        // FIXME: KWD stuff should not be used anymore in this level, all data must be in in-game objects
+        EntityId object = objectsController.loadObject((short) 5, (short) 0, p.x, p.y);
         if (objects == null) {
             objects = new ArrayList<>(1);
         }
         objects.add(object);
         objectsByCoordinate.put(p, objects);
-        object.setRoomObjectControl(this);
+        //object.setRoomObjectControl(this);
         lairs++;
-        return 0;
+        return object;
     }
 
     @Override
@@ -73,7 +75,7 @@ public abstract class RoomLairControl extends RoomObjectControl<ObjectControl, I
     }
 
     @Override
-    public void removeItem(ObjectControl object) {
+    public void removeItem(EntityId object) {
         super.removeItem(object);
         lairs--;
     }

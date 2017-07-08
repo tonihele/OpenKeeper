@@ -16,7 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
-import toniarts.openkeeper.world.room.control.*;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,26 +25,27 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import toniarts.openkeeper.world.ThingLoader;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.object.ObjectControl;
-import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 
 /**
- * Room object controller. FIXME: Cache the coorninates and listen to changes in
+ * Room object controller. FIXME: Cache the coordinates and listen to changes in
  * rooms
  *
- * @param <T> the held object type
  * @param <V> the value type to add
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomObjectControl<T extends ObjectControl, V> {
+public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl<V> {
 
-    protected final GenericRoom parent;
-    protected final Map<Point, Collection<T>> objectsByCoordinate = new HashMap<>();
+    protected final IRoomController parent;
+    protected final IObjectsController objectsController;
+    protected final EntityData entityData;
+    protected final Map<Point, Collection<EntityId>> objectsByCoordinate = new HashMap<>();
 
-    public RoomObjectControl(GenericRoom parent) {
+    public AbstractRoomObjectControl(IRoomController parent, IObjectsController objectsController, EntityData entityData) {
         this.parent = parent;
+        this.objectsController = objectsController;
+        this.entityData = entityData;
     }
 
     protected abstract int getObjectsPerTile();
@@ -51,42 +53,13 @@ public abstract class RoomObjectControl<T extends ObjectControl, V> {
     protected abstract int getNumberOfAccessibleTiles();
 
     /**
-     * Get the room currently used capacity
-     *
-     * @return the currently used capacity in number of objects
-     */
-    public abstract int getCurrentCapacity();
-
-    /**
-     * Get the type of object that can be stored in here
-     *
-     * @return the object type
-     */
-    public abstract GenericRoom.ObjectType getObjectType();
-
-    /**
-     * When the room gets destroyed, controls need to be destroyed
-     */
-    public abstract void destroy();
-
-    /**
-     * Add item to room
-     *
-     * @param value the number of items to add
-     * @param p preferred dropping point for the item
-     * @param thingLoader thing loader for displaying the actual item
-     * @param creature the creature adding the item
-     * @return the item count that doesn't fit
-     */
-    public abstract V addItem(V value, Point p, ThingLoader thingLoader, CreatureControl creature);
-
-    /**
      * Get a room objects
      *
      * @param p the object from point
      * @return the objects in given point
      */
-    public Collection<T> getItems(Point p) {
+    @Override
+    public Collection<EntityId> getItems(Point p) {
         return objectsByCoordinate.get(p);
     }
 
@@ -95,6 +68,7 @@ public abstract class RoomObjectControl<T extends ObjectControl, V> {
      *
      * @return max capacity in number of objects
      */
+    @Override
     public int getMaxCapacity() {
         return getObjectsPerTile() * getNumberOfAccessibleTiles();
     }
@@ -104,6 +78,7 @@ public abstract class RoomObjectControl<T extends ObjectControl, V> {
      *
      * @return max capacity used
      */
+    @Override
     public boolean isFullCapacity() {
         return getCurrentCapacity() >= getMaxCapacity();
     }
@@ -113,9 +88,10 @@ public abstract class RoomObjectControl<T extends ObjectControl, V> {
      *
      * @param object the object
      */
-    public void removeItem(T object) {
-        object.setRoomObjectControl(null);
-        for (Collection<T> objects : objectsByCoordinate.values()) {
+    @Override
+    public void removeItem(EntityId object) {
+        //object.setRoomObjectControl(null);
+        for (Collection<EntityId> objects : objectsByCoordinate.values()) {
             if (objects.remove(object)) {
                 break;
             }
@@ -126,10 +102,11 @@ public abstract class RoomObjectControl<T extends ObjectControl, V> {
      * Removes all objects (for real)
      */
     protected void removeAllObjects() {
-        List<Collection<T>> objectList = new ArrayList<>(objectsByCoordinate.values());
-        for (Collection<T> objects : objectList) {
-            for (T obj : objects) {
-                obj.removeObject();
+        List<Collection<EntityId>> objectList = new ArrayList<>(objectsByCoordinate.values());
+        for (Collection<EntityId> objects : objectList) {
+            for (EntityId obj : objects) {
+                //obj.removeObject();
+                entityData.removeEntity(obj);
             }
         }
     }
@@ -156,12 +133,13 @@ public abstract class RoomObjectControl<T extends ObjectControl, V> {
      *
      * @return list of available coordinates
      */
+    @Override
     public Collection<Point> getAvailableCoordinates() {
         List<Point> coordinates = new ArrayList<>(getCoordinates());
         Iterator<Point> iter = coordinates.iterator();
         while (iter.hasNext()) {
             Point p = iter.next();
-            Collection<T> items = getItems(p);
+            Collection<EntityId> items = getItems(p);
             if (items != null && items.size() == getObjectsPerTile()) {
                 iter.remove();
             }

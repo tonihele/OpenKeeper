@@ -16,22 +16,22 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
-import toniarts.openkeeper.world.room.control.*;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
-import toniarts.openkeeper.world.ThingLoader;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.object.ObjectControl;
-import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 
 /**
  * Holds out the prisoners populating a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomPrisonerControl extends RoomObjectControl<ObjectControl, Integer> {
+public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomPrisonerControl(GenericRoom parent) {
-        super(parent);
+    public RoomPrisonerControl(IRoomController parent, IObjectsController objectsController, EntityData entityData) {
+        super(parent, objectsController, entityData);
     }
 
     @Override
@@ -45,13 +45,13 @@ public abstract class RoomPrisonerControl extends RoomObjectControl<ObjectContro
     }
 
     @Override
-    public GenericRoom.ObjectType getObjectType() {
-        return GenericRoom.ObjectType.PRISONER;
+    public ObjectType getObjectType() {
+        return ObjectType.PRISONER;
     }
 
     @Override
-    public Integer addItem(Integer sum, Point p, ThingLoader thingLoader, CreatureControl creature) {
-        return sum;
+    public EntityId addItem(EntityId creature, Point p) {
+        return creature;
     }
 
     @Override

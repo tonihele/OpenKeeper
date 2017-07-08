@@ -16,6 +16,11 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityId;
+import java.awt.Point;
+import java.util.Set;
+import toniarts.openkeeper.common.RoomInstance;
+
 /**
  * Controls rooms and provides services related to rooms
  *
@@ -27,5 +32,50 @@ public interface IRoomController {
      * Constructs a room
      */
     public void construct();
+
+    /**
+     * Checks if the given tile is accessible, from an adjacent tile. If no from
+     * tile is given, checks general accessibility
+     *
+     * @param from from tile, can be {@code null}
+     * @param to the target tile
+     * @return true is the tile is accessible
+     */
+    public boolean isTileAccessible(Point from, Point to);
+
+    /**
+     * Get the actual room instance representation of the room
+     *
+     * @return the room instance
+     */
+    public RoomInstance getRoomInstance();
+
+    /**
+     * Get the number of floor furniture in a room
+     *
+     * @return floor furniture count
+     */
+    public int getFloorFurnitureCount();
+
+    /**
+     * Get the number of wall furniture in a room
+     *
+     * @return wall furniture count
+     */
+    public int getWallFurnitureCount();
+
+    /**
+     * Get the floot furniture IDs
+     *
+     * @return floor furniture
+     */
+    public Set<EntityId> getFloorFurniture();
+
+    /**
+     * Get the wall furniture IDs
+     *
+     * @return wall furniture
+     */
+    public Set<EntityId> getWallFurniture();
 
 }
