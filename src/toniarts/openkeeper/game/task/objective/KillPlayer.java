@@ -39,7 +39,7 @@ public class KillPlayer extends AbstractObjectiveTask {
     protected final CreatureControl creature;
 
     public KillPlayer(WorldState worldState, short targetPlayerId, CreatureControl creature) {
-        super(worldState, worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).x, worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).y, creature.getOwnerId());
+        super(worldState, 0, 0 /*worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).x, worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).y*/, creature.getOwnerId());
 
         this.targetPlayerId = targetPlayerId;
         this.creature = creature;

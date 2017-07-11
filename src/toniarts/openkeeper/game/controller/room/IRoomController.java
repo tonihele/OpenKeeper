@@ -20,6 +20,8 @@ import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
  * Controls rooms and provides services related to rooms
@@ -77,5 +79,20 @@ public interface IRoomController {
      * @return wall furniture
      */
     public Set<EntityId> getWallFurniture();
+
+    public boolean canStoreGold();
+
+    public boolean hasObjectControl(AbstractRoomController.ObjectType objectType);
+
+    public <T extends IRoomObjectControl> T getObjectControl(AbstractRoomController.ObjectType objectType);
+
+    public Room getRoom();
+
+    /**
+     * Are we the dungeon heart?
+     *
+     * @return are we?
+     */
+    public boolean isDungeonHeart();
 
 }

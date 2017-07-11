@@ -16,13 +16,11 @@
  */
 package toniarts.openkeeper.world.room.control;
 
-import com.jme3.math.Vector2f;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.GoldObjectControl;
@@ -95,7 +93,7 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
             }
 
             // Add gold to player
-            parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().addGold(goldToStore);
+//            parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().addGold(goldToStore);
         }
         return sum;
     }
@@ -132,7 +130,7 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
         super.removeItem(object);
 
         // Substract the gold from the player
-        parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(object.getGold());
+//        parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(object.getGold());
         storedGold -= object.getGold();
         if (object.getGold() == 0) {
             object.removeObject();
@@ -155,7 +153,7 @@ public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectContro
                 goldObjectControl.setGold(goldObjectControl.getGold() - goldToRemove);
 
                 // Substract the gold from the player
-                parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(goldToRemove);
+//                parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(goldToRemove);
                 storedGold -= goldToRemove;
 
                 // Add to removal list if empty item

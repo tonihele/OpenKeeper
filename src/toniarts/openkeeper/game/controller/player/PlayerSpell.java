@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.player;
+package toniarts.openkeeper.game.controller.player;
 
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.world.object.SpellBookObjectControl;

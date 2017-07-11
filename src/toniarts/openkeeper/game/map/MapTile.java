@@ -44,6 +44,7 @@ public class MapTile implements Savable {
     private int health;
     private int maxHealth;
     private int gold;
+    private int manaGain;
 
     /* Refers to the room this tile holds */
     private boolean destroyed = false;
@@ -81,6 +82,7 @@ public class MapTile implements Savable {
         tile.health = terrain.getStartingHealth();
         tile.maxHealth = terrain.getMaxHealth();
         tile.gold = terrain.getGoldValue();
+        tile.manaGain = terrain.getManaGain();
 
         // Randomize the texture index, the terrain can change for sure but the changed types have no random textures
         // But for the principle, let it be here
@@ -242,6 +244,10 @@ public class MapTile implements Savable {
 //
     public Integer getHealthPercent() {
         return Math.round((float) health / maxHealth * 100);
+    }
+
+    public int getManaGain() {
+        return manaGain;
     }
 
     /**

@@ -30,6 +30,7 @@ public class RoomInstance extends EntityInstance<Room> {
 
     private List<WallSection> wallSections;
     private final Thing.Room.Direction direction;
+    private short ownerId;
     private boolean destroyed = false;
 
     public RoomInstance(Room room) {
@@ -64,6 +65,14 @@ public class RoomInstance extends EntityInstance<Room> {
      */
     public Thing.Room.Direction getDirection() {
         return direction;
+    }
+
+    public void setOwnerId(short ownerId) {
+        this.ownerId = ownerId;
+    }
+
+    public short getOwnerId() {
+        return ownerId;
     }
 
     public void setDestroyed(boolean destroyed) {

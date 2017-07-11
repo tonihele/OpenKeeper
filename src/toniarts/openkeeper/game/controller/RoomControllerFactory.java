@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.common.RoomInstance;
@@ -29,6 +30,7 @@ import toniarts.openkeeper.game.controller.room.NormalRoomController;
 import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.WorkshopController;
+import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
  * A factory class you can use to build buildings
@@ -43,7 +45,8 @@ public final class RoomControllerFactory {
         // Nope
     }
 
-    public static IRoomController constructRoom(RoomInstance roomInstance, IObjectsController objectsController) {
+    public static IRoomController constructRoom(RoomInstance roomInstance, IObjectsController objectsController,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
 
         String roomName = roomInstance.getRoom().getName();
 
@@ -64,7 +67,7 @@ public final class RoomControllerFactory {
             //return new HeroGateThreeByOneConstructor(assetManager, roomInstance);
 
             case _5_BY_5_ROTATED:
-                return new FiveByFiveRotatedController(roomInstance, objectsController);
+                return new FiveByFiveRotatedController(roomInstance, objectsController, gameSettings);
 
             case NORMAL:
 //                if (roomName.equalsIgnoreCase("Lair")) {
@@ -79,7 +82,7 @@ public final class RoomControllerFactory {
 //                } else if (roomName.equalsIgnoreCase("Guard Room")) {
 //                    return new GuardRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 } else if (roomName.equalsIgnoreCase("Casino")) {
-            return new CasinoController(roomInstance, objectsController);
+                    return new CasinoController(roomInstance, objectsController);
 //                } else if (roomName.equalsIgnoreCase("Graveyard")) {
 //                    return new Graveyard(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
@@ -95,7 +98,7 @@ public final class RoomControllerFactory {
 //                if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
 //                    return new StoneBridge(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                }
-               // return new QuadConstructor(assetManager, roomInstance);
+            // return new QuadConstructor(assetManager, roomInstance);
 //
             case DOUBLE_QUAD:
                 if (roomName.equalsIgnoreCase("Prison")) {

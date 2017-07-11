@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state.session;
 
 import com.simsilica.es.EntityData;
 import java.util.List;
+import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 
@@ -27,7 +28,7 @@ import toniarts.openkeeper.game.map.MapTile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface GameSessionService {
+public interface GameSessionService extends PlayerListener {
 
     /**
      * Get the entity data

@@ -37,7 +37,6 @@ import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
 import de.lessvoid.nifty.elements.render.PanelRenderer;
-import de.lessvoid.nifty.elements.render.TextRenderer;
 import de.lessvoid.nifty.render.NiftyImage;
 import de.lessvoid.nifty.render.image.ImageModeFactory;
 import de.lessvoid.nifty.render.image.ImageModeHelper;
@@ -52,19 +51,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.ai.creature.CreatureState;
-import toniarts.openkeeper.game.player.PlayerCreatureControl.CreatureUIState;
-import toniarts.openkeeper.game.player.PlayerManaControl;
-import toniarts.openkeeper.game.player.PlayerRoomControl;
-import toniarts.openkeeper.game.player.PlayerSpell;
-import toniarts.openkeeper.game.player.PlayerSpellListener;
+import toniarts.openkeeper.game.controller.player.PlayerCreatureControl.CreatureUIState;
+import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.gui.nifty.CreatureCardControl;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.WorkerAmountControl;
@@ -84,8 +77,6 @@ import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PossessionInteractionState;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.listener.CreatureListener;
 
 /**
  *
@@ -129,7 +120,7 @@ public class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void togglePanel() {
         // FIXME work but not properly. Map should not move with other things. Need HUD redesign
-        Element element  = nifty.getScreen(HUD_SCREEN_ID).findElementById("bottomPanel");
+        Element element = nifty.getScreen(HUD_SCREEN_ID).findElementById("bottomPanel");
 
         if (!element.getUserDataKeys().contains("toggle")) {
             element.setUserData("toggle", false);
@@ -307,7 +298,7 @@ public class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void pickUpImp(String uiState) {
         short creatureId = state.getCreatureControl().getImp().getCreatureId();
-        pickUpCreature(String.valueOf(creatureId),uiState);
+        pickUpCreature(String.valueOf(creatureId), uiState);
     }
 
     @Override
@@ -327,7 +318,6 @@ public class PlayerScreenController implements IPlayerScreenController {
             }
         }
     }
-
 
     @Override
     public void quitToMainMenu() {
@@ -573,105 +563,102 @@ public class PlayerScreenController implements IPlayerScreenController {
             logger.log(Level.SEVERE, "Failed to open the background image!", ex);
         }
 
-        PlayerManaControl manaControl = state.getPlayer().getManaControl();
-        if (manaControl != null) {
-            manaControl.addListener(hud.findNiftyControl("mana", Label.class), PlayerManaControl.Type.CURRENT);
-            manaControl.addListener(hud.findNiftyControl("manaGet", Label.class), PlayerManaControl.Type.GAIN);
-            manaControl.addListener(hud.findNiftyControl("manaLose", Label.class), PlayerManaControl.Type.LOSE);
-        }
-
+//        PlayerManaControl manaControl = state.getPlayer().getManaControl();
+//        if (manaControl != null) {
+        //manaControl.addListener(hud.findNiftyControl("mana", Label.class), PlayerManaControl.Type.CURRENT);
+        // manaControl.addListener(hud.findNiftyControl("manaGet", Label.class), PlayerManaControl.Type.GAIN);
+        //manaControl.addListener(hud.findNiftyControl("manaLose", Label.class), PlayerManaControl.Type.LOSE);
+//        }
         if (state.getGoldControl() != null) {
-            state.getGoldControl().addListener(hud.findNiftyControl("gold", Label.class));
+            // state.getGoldControl().addListener(hud.findNiftyControl("gold", Label.class));
         }
 
         // Player creatures
         Element creatureTab = hud.findElementById("tab-creature");
         final Element creaturePanel = creatureTab.findElementById("tab-creature-content");
         removeAllChildElements(creaturePanel);
-        for (final Map.Entry<Creature, Set<CreatureControl>> entry : state.getCreatureControl().getCreatures().entrySet()) {
-            createPlayerCreatureIcon(entry.getKey(), hud, creaturePanel);
-        }
-        state.getCreatureControl().addCreatureListener(new CreatureListener() {
-
-            @Override
-            public void onSpawn(CreatureControl creature) {
-                int total = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
-                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
-                        CreatureCardControl.class);
-                if (card == null) {
-                    card = createPlayerCreatureIcon(creature.getCreature(), hud, creaturePanel);// Create
-                }
-                card.setTotal(total);
-            }
-
-            @Override
-            public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
-                if (newState == CreatureState.PICKED_UP || oldState == CreatureState.PICKED_UP) {
-                    int total = 0;
-                    Set<CreatureControl> c = state.getCreatureControl().getCreatures().get(creature.getCreature());
-                    for (CreatureControl creatureControl : c) {
-                        if (creatureControl.getStateMachine().getCurrentState() != CreatureState.PICKED_UP) {
-                            total++;
-                        }
-                    }
-                    CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
-                        CreatureCardControl.class);
-                    card.setTotal(total);
-                }
-            }
-
-            @Override
-            public void onDie(CreatureControl creature) {
-                int total = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
-                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
-                        CreatureCardControl.class);
-                card.setTotal(total);
-                if (total == 0) {
-                    card.getElement().markForRemoval(); // Remove
-                }
-            }
-        });
-        state.getCreatureControl().addWorkerListener(creatureTab.findControl("tab-workers",
-                WorkerAmountControl.class));
+//        for (final Map.Entry<Creature, Set<CreatureControl>> entry : state.getCreatureControl().getCreatures().entrySet()) {
+//            createPlayerCreatureIcon(entry.getKey(), hud, creaturePanel);
+//        }
+//        state.getCreatureControl().addCreatureListener(new CreatureListener() {
+//
+//            @Override
+//            public void onSpawn(CreatureControl creature) {
+//                int total = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
+//                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
+//                        CreatureCardControl.class);
+//                if (card == null) {
+//                    card = createPlayerCreatureIcon(creature.getCreature(), hud, creaturePanel);// Create
+//                }
+//                card.setTotal(total);
+//            }
+//
+//            @Override
+//            public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
+//                if (newState == CreatureState.PICKED_UP || oldState == CreatureState.PICKED_UP) {
+//                    int total = 0;
+//                    Set<CreatureControl> c = state.getCreatureControl().getCreatures().get(creature.getCreature());
+//                    for (CreatureControl creatureControl : c) {
+//                        if (creatureControl.getStateMachine().getCurrentState() != CreatureState.PICKED_UP) {
+//                            total++;
+//                        }
+//                    }
+//                    CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
+//                            CreatureCardControl.class);
+//                    card.setTotal(total);
+//                }
+//            }
+//
+//            @Override
+//            public void onDie(CreatureControl creature) {
+//                int total = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
+//                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
+//                        CreatureCardControl.class);
+//                card.setTotal(total);
+//                if (total == 0) {
+//                    card.getElement().markForRemoval(); // Remove
+//                }
+//            }
+//        });
+//        state.getCreatureControl().addWorkerListener(creatureTab.findControl("tab-workers",
+//                WorkerAmountControl.class));
 
         // Rooms
-        state.getRoomControl().addRoomAvailabilityListener(new PlayerRoomControl.IRoomAvailabilityListener() {
-
-            @Override
-            public void onChange() {
-                populateRoomTab();
-            }
-        });
-        populateRoomTab();
-
+//        state.getRoomControl().addRoomAvailabilityListener(new PlayerRoomControl.IRoomAvailabilityListener() {
+//
+//            @Override
+//            public void onChange() {
+//                populateRoomTab();
+//            }
+//        });
+//        populateRoomTab();
         // Spells
-        state.getSpellControl().addPlayerSpellListener(new PlayerSpellListener() {
-            @Override
-            public void onAdded(PlayerSpell spell) {
-                populateSpellTab();
-            }
-
-            @Override
-            public void onRemoved(PlayerSpell spell) {
-                populateSpellTab();
-            }
-
-            @Override
-            public void onResearchStatusChanged(PlayerSpell spell) {
-                // FIXME: implement properly
-                populateSpellTab();
-            }
-        });
-        populateSpellTab();
-
-        FlowLayoutControl contentPanel = hud.findElementById("tab-workshop-content").getControl(FlowLayoutControl.class);
-        contentPanel.removeAll();
-        for (final Door door : state.getAvailableDoors()) {
-            contentPanel.addElement(createDoorIcon(door));
-        }
-        for (final Trap trap : state.getAvailableTraps()) {
-            contentPanel.addElement(createTrapIcon(trap));
-        }
+//        state.getSpellControl().addPlayerSpellListener(new PlayerSpellListener() {
+//            @Override
+//            public void onAdded(PlayerSpell spell) {
+//                populateSpellTab();
+//            }
+//
+//            @Override
+//            public void onRemoved(PlayerSpell spell) {
+//                populateSpellTab();
+//            }
+//
+//            @Override
+//            public void onResearchStatusChanged(PlayerSpell spell) {
+//                // FIXME: implement properly
+//                populateSpellTab();
+//            }
+//        });
+//        populateSpellTab();
+//        FlowLayoutControl contentPanel = hud.findElementById("tab-workshop-content").getControl(FlowLayoutControl.class);
+//        contentPanel.removeAll();
+//        for (final Door door : state.getAvailableDoors()) {
+//            contentPanel.addElement(createDoorIcon(door));
+//        }
+//        for (final Trap trap : state.getAvailableTraps()) {
+//            contentPanel.addElement(createTrapIcon(trap));
+//        }
     }
 
     /**

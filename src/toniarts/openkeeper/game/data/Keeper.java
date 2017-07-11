@@ -20,13 +20,6 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import java.util.HashSet;
 import java.util.Set;
-import toniarts.openkeeper.game.player.PlayerCreatureControl;
-import toniarts.openkeeper.game.player.PlayerGoldControl;
-import toniarts.openkeeper.game.player.PlayerManaControl;
-import toniarts.openkeeper.game.player.PlayerRoomControl;
-import toniarts.openkeeper.game.player.PlayerSpellControl;
-import toniarts.openkeeper.game.player.PlayerStatsControl;
-import toniarts.openkeeper.game.player.PlayerTriggerControl;
 import toniarts.openkeeper.tools.convert.map.AI.AIType;
 import toniarts.openkeeper.tools.convert.map.Player;
 
@@ -39,15 +32,23 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
 
     private boolean ai;
     private AIType aiType = AIType.MASTER_KEEPER;
+
+    private int gold;
+    private int goldMined;
+    private int mana;
+    private int manaGain;
+    private int manaLoose;
+    private int maxMana;
+
     private transient Player player;
     private short id;
-    private transient PlayerGoldControl goldControl = new PlayerGoldControl();
-    private transient PlayerCreatureControl creatureControl;
-    private transient PlayerSpellControl spellControl;
-    private transient PlayerStatsControl statsControl = new PlayerStatsControl();
-    private transient PlayerRoomControl roomControl;
-    private transient PlayerTriggerControl triggerControl;
-    private transient PlayerManaControl manaControl;
+//    private transient PlayerGoldControl goldControl;
+//    private transient PlayerCreatureControl creatureControl;
+//    private transient PlayerSpellControl spellControl;
+//    private transient PlayerStatsControl statsControl = new PlayerStatsControl();
+//    private transient PlayerRoomControl roomControl;
+//    private transient PlayerTriggerControl triggerControl;
+//    private transient PlayerManaControl manaControl;
     private boolean destroyed = false;
     private final Set<Short> allies = new HashSet<>(4);
 
@@ -55,20 +56,21 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
 
     }
 
-    public Keeper(boolean ai, short id, final Application app) {
+    public Keeper(boolean ai, short id) {
         this.ai = ai;
         this.id = id;
     }
 
-    public Keeper(Player player, final Application app) {
+    public Keeper(Player player) {
         this.player = player;
         this.id = player.getPlayerId();
     }
 
     public void initialize(final AppStateManager stateManager, final Application app) {
-        creatureControl = new PlayerCreatureControl(app);
-        roomControl = new PlayerRoomControl(app);
-        spellControl = new PlayerSpellControl(app);
+//        goldControl = new PlayerGoldControl(this);
+//        creatureControl = new PlayerCreatureControl(this);
+//        roomControl = new PlayerRoomControl(this);
+//        spellControl = new PlayerSpellControl(this);
 
 //        int triggerId = player.getTriggerId();
 //        if (triggerId != 0) {
@@ -76,11 +78,12 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
 //            triggerControl.setPlayer(id);
 //        }
         // Don't create mana control for neutral nor good player
-        if (id != Player.GOOD_PLAYER_ID && id != Player.NEUTRAL_PLAYER_ID) {
-            manaControl = new PlayerManaControl(id, stateManager);
-        }
+//        if (id != Player.GOOD_PLAYER_ID && id != Player.NEUTRAL_PLAYER_ID) {
+//            manaControl = new PlayerManaControl(null, null, null, null);
+//        }
     }
 
+    @Override
     public short getId() {
         return id;
     }
@@ -93,44 +96,67 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
         return player;
     }
 
-    public PlayerGoldControl getGoldControl() {
-        return goldControl;
+    public int getGoldMined() {
+        return goldMined;
     }
 
-    public PlayerCreatureControl getCreatureControl() {
-        return creatureControl;
+    public void setGoldMined(int goldMined) {
+        this.goldMined = goldMined;
     }
 
-    public PlayerStatsControl getStatsControl() {
-        return statsControl;
+    public void setManaGain(int manaGain) {
+        this.manaGain = manaGain;
     }
 
-    public PlayerRoomControl getRoomControl() {
-        return roomControl;
+    public int getManaGain() {
+        return manaGain;
     }
 
-    public PlayerTriggerControl getTriggerControl() {
-        return triggerControl;
+    public void setManaLoose(int manaLoose) {
+        this.manaLoose = manaLoose;
     }
 
-    public PlayerManaControl getManaControl() {
-        return manaControl;
+    public int getManaLoose() {
+        return manaLoose;
     }
 
-    public PlayerSpellControl getSpellControl() {
-        return spellControl;
-    }
-
-    public void update(float tpf) {
-        if (triggerControl != null) {
-            triggerControl.update(tpf);
-        }
-
-        if (manaControl != null) {
-            manaControl.update(tpf);
-        }
-    }
-
+//    public PlayerGoldControl getGoldControl() {
+//        return goldControl;
+//    }
+//
+//    public PlayerCreatureControl getCreatureControl() {
+//        return creatureControl;
+//    }
+//
+//    public PlayerStatsControl getStatsControl() {
+//        return statsControl;
+//    }
+//
+//    public PlayerRoomControl getRoomControl() {
+//        return roomControl;
+//    }
+//
+//    public PlayerTriggerControl getTriggerControl() {
+//        return triggerControl;
+//    }
+//
+//    public PlayerManaControl getManaControl() {
+//        return manaControl;
+//    }
+//
+//    public PlayerSpellControl getSpellControl() {
+//        return spellControl;
+//    }
+//
+//    public void update(float tpf) {
+//        if (triggerControl != null) {
+//            triggerControl.update(tpf);
+//        }
+//
+//        if (manaControl != null) {
+//            manaControl.update(tpf);
+//        }
+//    }
     public void setPlayer(Player player) {
         this.player = player;
     }
@@ -205,6 +231,30 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
      */
     public void breakAlliance(short playerId) {
         allies.remove(playerId);
+    }
+
+    public int getGold() {
+        return gold;
+    }
+
+    public int getMana() {
+        return mana;
+    }
+
+    public void setGold(int gold) {
+        this.gold = gold;
+    }
+
+    public void setMana(int mana) {
+        this.mana = mana;
+    }
+
+    public int getMaxMana() {
+        return maxMana;
+    }
+
+    public void setMaxMana(int maxMana) {
+        this.maxMana = maxMana;
     }
 
     @Override

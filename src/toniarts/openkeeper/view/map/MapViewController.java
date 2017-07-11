@@ -16,8 +16,6 @@
  */
 package toniarts.openkeeper.view.map;
 
-import toniarts.openkeeper.common.EntityInstance;
-import toniarts.openkeeper.common.RoomInstance;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
@@ -42,6 +40,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.common.EntityInstance;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -60,7 +61,6 @@ import toniarts.openkeeper.view.map.construction.WaterConstructor;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.effect.TorchControl;
 import toniarts.openkeeper.world.room.GenericRoom;
-import toniarts.openkeeper.game.controller.IMapController;
 
 /**
  * Loads whole maps, and handles the maps
@@ -798,7 +798,10 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         RoomConstructor roomConstructor = RoomFactory.constructRoom(roomInstance, assetManager, null);
         roomActuals.put(roomInstance, roomConstructor);
         updateRoomWalls(roomInstance);
-        return roomConstructor.construct();
+        if (roomConstructor != null) {
+            return roomConstructor.construct();
+        }
+        return null;
     }
 
     /**

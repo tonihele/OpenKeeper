@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 OpenKeeper
+ * Copyright (C) 2014-2017 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,19 +14,13 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.player;
+package toniarts.openkeeper.game.listener;
 
 /**
- * Listen for changes in keeper spell statuses
+ * General player events etc. listener
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface PlayerSpellListener {
-
-    void onAdded(PlayerSpell spell);
-
-    void onRemoved(PlayerSpell spell);
-
-    void onResearchStatusChanged(PlayerSpell spell);
+public interface PlayerListener extends PlayerSpellListener, PlayerGoldListener, PlayerManaListener {
 
 }

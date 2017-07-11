@@ -198,15 +198,15 @@ public class TriggerControl extends Control {
                 // TODO this
                 switch (flag) {
                     case CREATURE:
-                        keeper.getCreatureControl().setTypeAvailable(kwdFile.getCreature(targetId), available);
+//                        keeper.getCreatureControl().setTypeAvailable(kwdFile.getCreature(targetId), available);
                         break;
                     case DOOR:
                         break;
                     case KEEPER_SPELL:
-                        keeper.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(targetId), available);
+//                        keeper.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(targetId), available);
                         break;
                     case ROOM:
-                        keeper.getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
+//                        keeper.getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
                         break;
                     case TRAP:
                         break;

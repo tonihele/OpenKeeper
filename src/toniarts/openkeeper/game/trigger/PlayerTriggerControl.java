@@ -14,30 +14,28 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.player;
+package toniarts.openkeeper.game.trigger;
 
 import com.jme3.app.state.AppStateManager;
-import java.awt.Point;
+import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.action.FlashControl;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
+import toniarts.openkeeper.game.player.PlayerCameraRotateControl;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.game.state.SystemMessageState;
-import toniarts.openkeeper.game.trigger.TriggerActionData;
-import toniarts.openkeeper.game.trigger.TriggerControl;
-import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.ICreatureEntrance;
 
 /**
@@ -138,39 +136,39 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_GOLD:
                 isValue = trigger.getUserData("flag", short.class) == 1;
 
-                target = getPlayer().getGoldControl().getGold();
+                target = getPlayer().getGold();
 
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
                     short otherPlayerId = trigger.getUserData("playerId", short.class);
-                    value = getPlayer(otherPlayerId).getGoldControl().getGold();
+                    value = getPlayer(otherPlayerId).getGold();
                 }
                 break;
 
             case PLAYER_GOLD_MINED:
                 isValue = trigger.getUserData("flag", short.class) == 1;
 
-                target = getPlayer().getGoldControl().getGoldMined();
+                target = getPlayer().getGoldMined();
 
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
                     short otherPlayerId = trigger.getUserData("playerId", short.class);
-                    value = getPlayer(otherPlayerId).getGoldControl().getGoldMined();
+                    value = getPlayer(otherPlayerId).getGoldMined();
                 }
                 break;
 
             case PLAYER_MANA:
                 isValue = trigger.getUserData("flag", short.class) == 1;
 
-                target = getPlayer().getManaControl().getMana();
+                target = getPlayer().getMana();
 
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
                     short otherPlayerId = trigger.getUserData("playerId", short.class);
-                    value = getPlayer(otherPlayerId).getManaControl().getMana();
+                    value = getPlayer(otherPlayerId).getMana();
                 }
                 break;
 
@@ -186,7 +184,8 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
 
             case PLAYER_CREATURE_PICKED_UP:
-                PlayerStatsControl psc = getPlayer().getStatsControl();
+                PlayerStatsControl psc = null;
+                //getPlayer().getStatsControl();
                 creatureId = trigger.getUserData("creatureId", short.class);
 
                 if (creatureId == 0) {
@@ -198,7 +197,8 @@ public class PlayerTriggerControl extends TriggerControl {
                 }
 
             case PLAYER_CREATURE_DROPPED:
-                psc = getPlayer().getStatsControl();
+                psc = null;
+                //getPlayer().getStatsControl();
                 creatureId = trigger.getUserData("creatureId", short.class);
 
                 if (creatureId == 0) {
@@ -210,7 +210,8 @@ public class PlayerTriggerControl extends TriggerControl {
                 }
 
             case PLAYER_CREATURE_SLAPPED:
-                psc = getPlayer().getStatsControl();
+                psc = null;
+                //getPlayer().getStatsControl();
                 creatureId = trigger.getUserData("creatureId", short.class);
 
                 if (creatureId == 0) {
@@ -272,7 +273,8 @@ public class PlayerTriggerControl extends TriggerControl {
                 Keeper keeper = getPlayer();
 
                 // Get first spawn point of the player (this flag is only for the players)
-                Set<GenericRoom> rooms = keeper.getRoomControl().getTypes().get(stateManager.getState(GameState.class).getLevelData().getPortal());
+                Set<IRoomController> rooms = Collections.emptySet();
+//                        keeper.getRoomControl().getTypes().get(stateManager.getState(GameState.class).getLevelData().getPortal());
                 if (rooms == null || rooms.isEmpty()) {
                     logger.warning("Generate creature triggered but no entrances found!");
                     break;
@@ -285,7 +287,7 @@ public class PlayerTriggerControl extends TriggerControl {
 
             case SET_PORTAL_STATUS: // Creature part. Only for keeper x
                 boolean available = trigger.getUserData("available", short.class) != 0;
-                getPlayer().getRoomControl().setPortalsOpen(available);
+//                getPlayer().getRoomControl().setPortalsOpen(available);
                 break;
 
             case FLASH_BUTTON: // gui part. Only for keeper x
@@ -423,39 +425,39 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private int getCreaturesCount(int playerId, short creatureId) {
-        int result;
+        int result = 0;
 
         if (creatureId == 0) {
-            result = getPlayer((short) playerId).getCreatureControl().getTypeCount();
+//            result = getPlayer((short) playerId).getCreatureControl().getTypeCount();
         } else {
             GameState gameState = stateManager.getState(GameState.class);
-            result = getPlayer((short) playerId).getCreatureControl().getTypeCount(gameState.getLevelData().getCreature(creatureId));
+//            result = getPlayer((short) playerId).getCreatureControl().getTypeCount(gameState.getLevelData().getCreature(creatureId));
         }
 
         return result;
     }
 
     private int getRoomSlabsCount(int playerId, short roomId) {
-        int result;
+        int result = 0;
 
         if (roomId == 0) {
-            result = getPlayer((short) playerId).getRoomControl().getRoomSlabsCount();
+//            result = getPlayer((short) playerId).getRoomControl().getRoomSlabsCount();
         } else {
             GameState gameState = stateManager.getState(GameState.class);
-            result = getPlayer((short) playerId).getRoomControl().getRoomSlabsCount(gameState.getLevelData().getRoomById(roomId));
+//            result = getPlayer((short) playerId).getRoomControl().getRoomSlabsCount(gameState.getLevelData().getRoomById(roomId));
         }
 
         return result;
     }
 
     private int getRoomCount(int playerId, short roomId) {
-        int result;
+        int result = 0;
 
         if (roomId == 0) {
-            result = getPlayer((short) playerId).getRoomControl().getTypeCount();
+//            result = getPlayer((short) playerId).getRoomControl().getTypeCount();
         } else {
             GameState gameState = stateManager.getState(GameState.class);
-            result = getPlayer((short) playerId).getRoomControl().getTypeCount(gameState.getLevelData().getRoomById(roomId));
+//            result = getPlayer((short) playerId).getRoomControl().getTypeCount(gameState.getLevelData().getRoomById(roomId));
         }
 
         return result;

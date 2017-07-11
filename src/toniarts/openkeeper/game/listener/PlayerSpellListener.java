@@ -14,32 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.world.object;
+package toniarts.openkeeper.game.listener;
 
+import com.jme3.network.service.rmi.Asynchronous;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
-import toniarts.openkeeper.tools.convert.map.GameObject;
-import toniarts.openkeeper.world.TileData;
-import toniarts.openkeeper.world.WorldState;
 
 /**
- * Represents a player spell in the world
+ * Listen for changes in keeper spell statuses
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SpellBookObjectControl extends ObjectControl {
+public interface PlayerSpellListener {
 
-    private final PlayerSpell playerSpell;
+    @Asynchronous
+    void onAdded(PlayerSpell spell);
 
-    public SpellBookObjectControl(TileData tile, GameObject object, WorldState worldState, PlayerSpell playerSpell) {
-        super(tile, object, worldState);
+    @Asynchronous
+    void onRemoved(PlayerSpell spell);
 
-        this.playerSpell = playerSpell;
-        this.playerSpell.setSpellBookObjectControl(this);
-    }
-
-    @Override
-    public String getTooltip(short playerId) {
-        return "";
-    }
+    @Asynchronous
+    void onResearchStatusChanged(PlayerSpell spell);
 
 }

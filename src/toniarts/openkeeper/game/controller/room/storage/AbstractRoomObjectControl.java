@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
-import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -39,13 +38,11 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
 
     protected final IRoomController parent;
     protected final IObjectsController objectsController;
-    protected final EntityData entityData;
     protected final Map<Point, Collection<EntityId>> objectsByCoordinate = new HashMap<>();
 
-    public AbstractRoomObjectControl(IRoomController parent, IObjectsController objectsController, EntityData entityData) {
+    public AbstractRoomObjectControl(IRoomController parent, IObjectsController objectsController) {
         this.parent = parent;
         this.objectsController = objectsController;
-        this.entityData = entityData;
     }
 
     protected abstract int getObjectsPerTile();
@@ -106,7 +103,7 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
         for (Collection<EntityId> objects : objectList) {
             for (EntityId obj : objects) {
                 //obj.removeObject();
-                entityData.removeEntity(obj);
+                objectsController.getEntityData().removeEntity(obj);
             }
         }
     }

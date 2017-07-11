@@ -22,13 +22,16 @@ import com.jme3.export.JmeImporter;
 import com.jme3.export.OutputCapsule;
 import com.jme3.export.Savable;
 import com.jme3.math.Vector2f;
+import com.jme3.util.SafeArrayList;
 import java.awt.Point;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.map.MapData;
@@ -37,6 +40,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
  * This is controller for the map related functions
@@ -48,9 +52,10 @@ public final class MapController implements Savable, IMapController {
     private MapData mapData;
     private KwdFile kwdFile;
     private IObjectsController objectsController;
+    private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>();
     private final Map<RoomInstance, IRoomController> roomControllers = new HashMap<>();
-    private final List<MapListener> listeners = new ArrayList<>();
+    private final List<MapListener> listeners = new SafeArrayList<>(MapListener.class);
 
     public MapController() {
         // For serialization
@@ -59,13 +64,14 @@ public final class MapController implements Savable, IMapController {
     /**
      * Load map data from a KWD file straight (new game)
      *
-     * @param kwdFile           the KWD file
+     * @param kwdFile the KWD file
      * @param objectsController objects controller
      */
-    public MapController(KwdFile kwdFile, IObjectsController objectsController) {
+    public MapController(KwdFile kwdFile, IObjectsController objectsController, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.kwdFile = kwdFile;
         this.objectsController = objectsController;
         this.mapData = new MapData(kwdFile);
+        this.gameSettings = gameSettings;
 
         // Load rooms
         loadRooms();
@@ -77,6 +83,12 @@ public final class MapController implements Savable, IMapController {
      * @param mapData the map data
      * @param kwdFile the KWD file
      */
+    public MapController(MapData mapData, KwdFile kwdFile, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+        this.mapData = mapData;
+        this.kwdFile = kwdFile;
+        this.gameSettings = gameSettings;
+    }
+
     public MapController(MapData mapData, KwdFile kwdFile) {
         this.mapData = mapData;
         this.kwdFile = kwdFile;
@@ -104,10 +116,11 @@ public final class MapController implements Savable, IMapController {
         // Find it
         MapTile mapTile = mapData.getTile(x, y);
         RoomInstance roomInstance = new RoomInstance(kwdFile.getRoomByTerrain(mapTile.getTerrainId()));
+        roomInstance.setOwnerId(mapTile.getOwnerId());
         findRoom(p, roomInstance);
 
         // Create a controller for it
-        IRoomController roomController = RoomControllerFactory.constructRoom(roomInstance, objectsController);
+        IRoomController roomController = RoomControllerFactory.constructRoom(roomInstance, objectsController, gameSettings);
         roomController.construct();
         roomControllers.put(roomInstance, roomController);
     }
@@ -116,7 +129,7 @@ public final class MapController implements Savable, IMapController {
      * Find the room starting from a certain point, rooms are never diagonally
      * attached
      *
-     * @param p            starting point
+     * @param p starting point
      * @param roomInstance the room instance
      */
     private void findRoom(Point p, RoomInstance roomInstance) {
@@ -167,6 +180,7 @@ public final class MapController implements Savable, IMapController {
      *
      * @param listener the listener
      */
+    @Override
     public void addListener(MapListener listener) {
         listeners.add(listener);
     }
@@ -176,6 +190,7 @@ public final class MapController implements Savable, IMapController {
      *
      * @param listener the listener
      */
+    @Override
     public void removeListener(MapListener listener) {
         listeners.remove(listener);
     }
@@ -326,6 +341,42 @@ public final class MapController implements Savable, IMapController {
         for (MapListener mapListener : listeners) {
             mapListener.onTilesChange(updatedTiles);
         }
+    }
+
+    @Override
+    public Collection<IRoomController> getRoomControllers() {
+        return roomControllers.values();
+    }
+
+    @Override
+    public RoomInstance getRoomInstanceByCoordinates(Point p) {
+        return roomCoordinates.get(p);
+    }
+
+    @Override
+    public IRoomController getRoomController(RoomInstance roomInstance) {
+        return roomControllers.get(roomInstance);
+    }
+
+    /**
+     * Get rooms by function.<br> FIXME: Should the player have ready lists?
+     *
+     * @param objectType the function
+     * @param playerId the player id, can be null
+     * @return list of rooms that match the criteria
+     */
+    @Override
+    public List<IRoomController> getRoomsByFunction(ObjectType objectType, Short playerId) {
+        List<IRoomController> roomsList = new ArrayList<>();
+        for (Map.Entry<RoomInstance, IRoomController> entry : roomControllers.entrySet()) {
+            if (playerId != null && entry.getKey().getOwnerId() != playerId) {
+                continue;
+            }
+            if (entry.getValue().hasObjectControl(objectType)) {
+                roomsList.add(entry.getValue());
+            }
+        }
+        return roomsList;
     }
 
     @Override

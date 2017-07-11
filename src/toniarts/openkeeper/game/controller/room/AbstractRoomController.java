@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
 /**
  * Base class for all rooms
@@ -65,7 +65,7 @@ public abstract class AbstractRoomController implements IRoomController {
 
     protected final RoomInstance roomInstance;
     private ObjectType defaultObjectType;
-    private final Map<ObjectType, RoomObjectControl> objectControls = new HashMap<>();
+    private final Map<ObjectType, IRoomObjectControl> objectControls = new HashMap<>();
     protected boolean destroyed = false;
     protected boolean[][] map;
     protected Point start;
@@ -202,18 +202,20 @@ public abstract class AbstractRoomController implements IRoomController {
         return isTileAccessible(from != null ? from.x : null, (from != null ? from.y : null), to.x, to.y);
     }
 
-    protected final void addObjectControl(RoomObjectControl control) {
-//        objectControls.put(control.getObjectType(), control);
-//        if (defaultObjectType == null) {
-//            defaultObjectType = control.getObjectType();
-//        }
+    protected final void addObjectControl(IRoomObjectControl control) {
+        objectControls.put(control.getObjectType(), control);
+        if (defaultObjectType == null) {
+            defaultObjectType = control.getObjectType();
+        }
     }
 
+    @Override
     public boolean hasObjectControl(ObjectType objectType) {
         return objectControls.containsKey(objectType);
     }
 
-    public <T extends RoomObjectControl> T getObjectControl(ObjectType objectType) {
+    @Override
+    public <T extends IRoomObjectControl> T getObjectControl(ObjectType objectType) {
         return (T) objectControls.get(objectType);
     }
 
@@ -225,7 +227,7 @@ public abstract class AbstractRoomController implements IRoomController {
         destroyed = true;
 
         // Destroy the controls
-        for (RoomObjectControl control : objectControls.values()) {
+        for (IRoomObjectControl control : objectControls.values()) {
             control.destroy();
         }
     }
@@ -245,6 +247,7 @@ public abstract class AbstractRoomController implements IRoomController {
      *
      * @return can store gold
      */
+    @Override
     public boolean canStoreGold() {
         return hasObjectControl(ObjectType.GOLD);
     }
@@ -255,7 +258,7 @@ public abstract class AbstractRoomController implements IRoomController {
      * @return room max capacity
      */
     protected int getMaxCapacity() {
-        RoomObjectControl control = getDefaultRoomObjectControl();
+        IRoomObjectControl control = getDefaultRoomObjectControl();
         if (control != null) {
             return control.getMaxCapacity();
         }
@@ -268,14 +271,14 @@ public abstract class AbstractRoomController implements IRoomController {
      * @return the used capacity of the room
      */
     protected int getUsedCapacity() {
-        RoomObjectControl control = getDefaultRoomObjectControl();
+        IRoomObjectControl control = getDefaultRoomObjectControl();
         if (control != null) {
             return control.getCurrentCapacity();
         }
         return 0;
     }
 
-    private RoomObjectControl getDefaultRoomObjectControl() {
+    private IRoomObjectControl getDefaultRoomObjectControl() {
         if (defaultObjectType != null) {
             return objectControls.get(defaultObjectType);
         }
@@ -301,6 +304,7 @@ public abstract class AbstractRoomController implements IRoomController {
      *
      * @return the room type
      */
+    @Override
     public Room getRoom() {
         return roomInstance.getRoom();
     }
@@ -310,6 +314,7 @@ public abstract class AbstractRoomController implements IRoomController {
      *
      * @return are we?
      */
+    @Override
     public boolean isDungeonHeart() {
         return false;
     }

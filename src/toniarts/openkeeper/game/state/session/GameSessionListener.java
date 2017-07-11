@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state.session;
 
 import com.jme3.network.service.rmi.Asynchronous;
 import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.game.map.MapData;
 
 /**
@@ -25,7 +26,7 @@ import toniarts.openkeeper.game.map.MapData;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface GameSessionListener extends MapListener {
+public interface GameSessionListener extends MapListener, PlayerListener {
 
     /**
      * Client should start to load the game data up visually

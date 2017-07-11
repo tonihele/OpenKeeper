@@ -21,7 +21,6 @@ import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.ai.steer.behaviors.Cohesion;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
-import com.badlogic.gdx.ai.steer.behaviors.Seek;
 import com.badlogic.gdx.ai.steer.proximities.InfiniteProximity;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
@@ -31,7 +30,6 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
-import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -612,8 +610,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             }
 
             // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
-            worldState.getGameState().getPlayer(playerId).getStatsControl().creatureSlapped(creature);
-
+//            worldState.getGameState().getPlayer(playerId).getStatsControl().creatureSlapped(creature);
             return true;
         }
         return false;
@@ -1150,8 +1147,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         return (playerId == ownerId && !isIncapacitated()
                 && creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP))
                 || ((stateMachine.isInState(CreatureState.IMPRISONED)
-                    || stateMachine.isInState(CreatureState.TORTURED))
-                    && worldState.getMapData().getTile(getCreatureCoordinates()).getPlayerId() == playerId);
+                || stateMachine.isInState(CreatureState.TORTURED))
+                && worldState.getMapData().getTile(getCreatureCoordinates()).getPlayerId() == playerId);
     }
 
     @Override
@@ -1172,8 +1169,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         getSpatial().removeFromParent();
 
         // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
-        worldState.getGameState().getPlayer(playerId).getStatsControl().creaturePickedUp(creature);
-
+//        worldState.getGameState().getPlayer(playerId).getStatsControl().creaturePickedUp(creature);
         return this;
     }
 
@@ -1228,7 +1224,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             });
 
             // TODO: Listeners, telegrams, or just like this? I don't think nobody else needs to know this so this is the simplest...
-            worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
+//            worldState.getGameState().getPlayer(ownerId).getStatsControl().creatureDropped(creature);
         } else {
             CreatureControl.this.enabled = true;
             CreatureControl.this.animationPlaying = false;
@@ -1467,7 +1463,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         prioritySteering.add(seek);
 
         setSteeringBehavior(prioritySteering);
-        */
+         */
     }
 
     /**
@@ -1590,7 +1586,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 //            prioritySteering.add(flee);
 //        }
         // FIXME: For now just flee towards the dungeon heart or random tiles
-        GenericRoom room = worldState.getGameState().getPlayer(ownerId).getRoomControl().getDungeonHeart();
+        GenericRoom room = null;
+//                worldState.getGameState().getPlayer(ownerId).getRoomControl().getDungeonHeart();
         if (room != null) {
             SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState, this, this, room.getRoomInstance().getCoordinates().get(0));
             if (steering != null) {

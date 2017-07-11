@@ -635,9 +635,10 @@ public abstract class GenericRoom {
         }
 
         Keeper player = worldState.getGameState().getPlayer(roomInstance.getOwnerId());
-        int total = player.getRoomControl().getTypeCount(roomInstance.getRoom());
+//        int total = player.getRoomControl().getTypeCount(roomInstance.getRoom());
 
-        return new RoomCount(temp.get(roomId), total);
+//        return new RoomCount(temp.get(roomId), total);
+        return null;
     }
 
     private static class RoomCount {

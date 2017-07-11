@@ -27,7 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
@@ -39,7 +40,6 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.ICreatureEntrance;
 
 /**
@@ -55,10 +55,10 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
     private final int initialPortalCapacity;
     private final int additionalPortalCapacity;
     private final int freeImpCoolDownTime;
-    private final Map<Keeper, Map<GenericRoom, Float>> entranceSpawnTimes;
+    private final Map<IPlayerController, Map<IRoomController, Float>> entranceSpawnTimes;
     private final KwdFile kwdFile;
 
-    public CreatureSpawnLogicState(ThingLoader thingLoader, Collection<Keeper> players, GameState gameState) {
+    public CreatureSpawnLogicState(ThingLoader thingLoader, Collection<IPlayerController> playerControllers, GameState gameState) {
         this.thingLoader = thingLoader;
 
         // We need the game state just for the variables
@@ -70,8 +70,8 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
         kwdFile = gameState.getLevelData();
 
         // Create entrance counters for all players
-        entranceSpawnTimes = new HashMap<>(players.size());
-        for (Keeper player : players) {
+        entranceSpawnTimes = new HashMap<>(playerControllers.size());
+        for (IPlayerController player : playerControllers) {
             entranceSpawnTimes.put(player, new HashMap<>());
         }
     }
@@ -81,13 +81,13 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
 
         // FIXME: really should use the listeners, I think this just produces unnecessary garbage
         // Maintain the players entrance registry
-        for (Entry<Keeper, Map<GenericRoom, Float>> keeperRoomTimes : entranceSpawnTimes.entrySet()) {
+        for (Entry<IPlayerController, Map<IRoomController, Float>> keeperRoomTimes : entranceSpawnTimes.entrySet()) {
 
             // Remove the obsolete ones & advance timers
-            Iterator<Entry<GenericRoom, Float>> roomTimesIter = keeperRoomTimes.getValue().entrySet().iterator();
+            Iterator<Entry<IRoomController, Float>> roomTimesIter = keeperRoomTimes.getValue().entrySet().iterator();
             while (roomTimesIter.hasNext()) {
-                Entry<GenericRoom, Float> entry = roomTimesIter.next();
-                if (entry.getKey().isDestroyed() || entry.getKey().getRoomInstance().getOwnerId() != keeperRoomTimes.getKey().getId()) {
+                Entry<IRoomController, Float> entry = roomTimesIter.next();
+                if (entry.getKey().getRoomInstance().isDestroyed() || entry.getKey().getRoomInstance().getOwnerId() != keeperRoomTimes.getKey().getKeeper().getId()) {
                     roomTimesIter.remove();
                 } else {
                     // TODO: Should we advance the timer if the entrances are not open?
@@ -100,10 +100,10 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
             }
 
             // Add new ones
-            for (Entry<Room, Set<GenericRoom>> keeperRooms : keeperRoomTimes.getKey().getRoomControl().getTypes().entrySet()) {
+            for (Entry<Room, Set<IRoomController>> keeperRooms : keeperRoomTimes.getKey().getRoomControl().getTypes().entrySet()) {
 
                 // See that should we add
-                for (GenericRoom genericRoom : keeperRooms.getValue()) {
+                for (IRoomController genericRoom : keeperRooms.getValue()) {
 
                     // A bit clumsy to check like this
                     if (!(genericRoom instanceof ICreatureEntrance)) {
@@ -121,7 +121,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
 
     }
 
-    private void evaluateAndSpawnCreature(Keeper player, GenericRoom room, Application app) {
+    private void evaluateAndSpawnCreature(IPlayerController player, IRoomController room, Application app) {
         float spawnTime = entranceSpawnTimes.get(player).get(room);
         boolean spawned = false;
         if (spawnTime >= freeImpCoolDownTime && isDungeonHeart(room)) {
@@ -135,7 +135,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
                 && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
 
             // Evaluate what creature can we spawn
-            Map<Integer, CreaturePool> pool = kwdFile.getCreaturePool(player.getId());
+            Map<Integer, CreaturePool> pool = kwdFile.getCreaturePool(player.getKeeper().getId());
             List<Creature> possibleCreatures = new ArrayList<>(player.getCreatureControl().getTypesAvailable());
             Iterator<Creature> iter = possibleCreatures.iterator();
             while (iter.hasNext()) {
@@ -161,7 +161,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
         }
     }
 
-    private boolean isDungeonHeart(GenericRoom room) {
+    private boolean isDungeonHeart(IRoomController room) {
         return room.isDungeonHeart();
     }
 
@@ -173,11 +173,11 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
                 WorldUtils.pointToVector2f(tile), entrance, app);
     }
 
-    private boolean isCreatureLimitReached(Keeper player) {
+    private boolean isCreatureLimitReached(IPlayerController player) {
         return player.getCreatureControl().getTypeCount() >= (initialPortalCapacity + (player.getRoomControl().getTypeCount(kwdFile.getPortal()) - 1) * additionalPortalCapacity);
     }
 
-    private boolean isCreatureRequirementsSatisfied(Creature creature, Keeper player) {
+    private boolean isCreatureRequirementsSatisfied(Creature creature, IPlayerController player) {
         for (Attraction attraction : creature.getAttractions()) {
             short roomId = (short) attraction.getRoomId();
             if (roomId > 0) {
@@ -187,7 +187,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
                     // Ok, we have these, see sizes, I recon we really need a room that size, not summed up tiles
                     if (attraction.getRoomSize() > 0) {
                         boolean roomFound = false;
-                        for (GenericRoom genericRoom : new ArrayList<>(player.getRoomControl().getTypes().get(room))) {
+                        for (IRoomController genericRoom : new ArrayList<>(player.getRoomControl().getTypes().get(room))) {
                             if (attraction.getRoomSize() <= genericRoom.getRoomInstance().getCoordinates().size()) {
                                 roomFound = true;
                                 break; // Ok
@@ -209,7 +209,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
         return true;
     }
 
-    private boolean isCreatureAvailableFromPool(Creature creature, Keeper player, Map<Integer, CreaturePool> pool) {
+    private boolean isCreatureAvailableFromPool(Creature creature, IPlayerController player, Map<Integer, CreaturePool> pool) {
         CreaturePool creaturePool = pool.get(Short.valueOf(creature.getCreatureId()).intValue());
         if (creaturePool != null) {
             int creatures = player.getCreatureControl().getTypeCount(creature);

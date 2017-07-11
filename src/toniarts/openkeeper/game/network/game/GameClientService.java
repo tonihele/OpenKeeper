@@ -20,12 +20,13 @@ import com.jme3.math.Vector2f;
 import com.jme3.network.service.AbstractClientService;
 import com.jme3.network.service.ClientServiceManager;
 import com.jme3.network.service.rmi.RmiClientService;
+import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.client.EntityDataClientService;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.NetworkConstants;
@@ -49,7 +50,7 @@ public class GameClientService extends AbstractClientService
     private GameSession delegate;
 
     private final GameSessionCallback sessionCallback = new GameSessionCallback();
-    private final List<GameSessionListener> listeners = new CopyOnWriteArrayList<>();
+    private final List<GameSessionListener> listeners = new SafeArrayList<>(GameSessionListener.class);
 
     @Override
     public void loadComplete() {
@@ -178,6 +179,41 @@ public class GameClientService extends AbstractClientService
         public void onTilesChange(List<MapTile> updatedTiles) {
             for (GameSessionListener l : listeners) {
                 l.onTilesChange(updatedTiles);
+            }
+        }
+
+        @Override
+        public void onAdded(PlayerSpell spell) {
+            for (GameSessionListener l : listeners) {
+                l.onAdded(spell);
+            }
+        }
+
+        @Override
+        public void onRemoved(PlayerSpell spell) {
+            for (GameSessionListener l : listeners) {
+                l.onRemoved(spell);
+            }
+        }
+
+        @Override
+        public void onResearchStatusChanged(PlayerSpell spell) {
+            for (GameSessionListener l : listeners) {
+                l.onResearchStatusChanged(spell);
+            }
+        }
+
+        @Override
+        public void onGoldChange(short keeperId, int gold) {
+            for (GameSessionListener l : listeners) {
+                l.onGoldChange(keeperId, gold);
+            }
+        }
+
+        @Override
+        public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
+            for (GameSessionListener l : listeners) {
+                l.onManaChange(keeperId, mana, manaLoose, manaGain);
             }
         }
     }

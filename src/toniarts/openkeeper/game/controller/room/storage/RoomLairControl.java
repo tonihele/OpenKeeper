@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
-import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -34,8 +33,8 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
 
     private int lairs = 0;
 
-    public RoomLairControl(IRoomController parent, IObjectsController objectsController, EntityData entityData) {
-        super(parent, objectsController, entityData);
+    public RoomLairControl(IRoomController parent, IObjectsController objectsController) {
+        super(parent, objectsController);
     }
 
     @Override

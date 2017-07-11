@@ -19,16 +19,18 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.ObjectEntity;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Spellbook;
-import toniarts.openkeeper.game.player.PlayerSpell;
+import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.MapLoader;
 
@@ -48,6 +50,7 @@ public class ObjectsController implements IObjectsController {
 
     private KwdFile kwdFile;
     private EntityData entityData;
+    private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
 
     private static final Logger logger = Logger.getLogger(ObjectsController.class.getName());
 
@@ -61,9 +64,10 @@ public class ObjectsController implements IObjectsController {
      * @param kwdFile the KWD file
      * @param entityData the entity controller
      */
-    public ObjectsController(KwdFile kwdFile, EntityData entityData) {
+    public ObjectsController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
+        this.gameSettings = gameSettings;
 
         // Load objects
         loadObjects();
@@ -85,25 +89,25 @@ public class ObjectsController implements IObjectsController {
 
     private void loadObject(Thing.Object objectThing) {
         loadObject(objectThing.getObjectId(), objectThing.getPlayerId(), objectThing.getPosX(), objectThing.getPosY(),
-                0, objectThing.getMoneyAmount(), objectThing.getKeeperSpellId(), objectThing.getTriggerId());
+                0, objectThing.getMoneyAmount(), objectThing.getKeeperSpellId(), objectThing.getTriggerId(), null);
     }
 
     @Override
     public EntityId loadObject(short objectId, short ownerId, int x, int y) {
-        return loadObject(objectId, ownerId, x, y, 0, null, null, null);
+        return loadObject(objectId, ownerId, x, y, 0, null, null, null, null);
     }
 
     @Override
     public EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation) {
-        return loadObject(objectId, ownerId, x, y, rotation, null, null, null);
+        return loadObject(objectId, ownerId, x, y, rotation, null, null, null, null);
     }
 
     @Override
     public EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, Integer spellId) {
-        return loadObject(objectId, ownerId, x, y, 0, money, spellId, null);
+        return loadObject(objectId, ownerId, x, y, 0, money, spellId, null, null);
     }
 
-    private EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation, Integer money, Integer spellId, Integer triggerId) {
+    private EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation, Integer money, Integer spellId, Integer triggerId, Integer maxMoney) {
         EntityId entity = entityData.createEntity();
         entityData.setComponent(entity, new ObjectEntity(objectId, ownerId));
 
@@ -115,8 +119,7 @@ public class ObjectsController implements IObjectsController {
         // Add additional components
         GameObject obj = kwdFile.getObject(objectId);
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
-            // FIXME: max money
-            entityData.setComponent(entity, new Gold(money, 1000));
+            entityData.setComponent(entity, new Gold(money, (maxMoney == null ? (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue() : maxMoney)));
         }
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPELL_BOOK)) {
             entityData.setComponent(entity, new Spellbook(spellId));
@@ -130,18 +133,23 @@ public class ObjectsController implements IObjectsController {
     }
 
     @Override
-    public EntityId addRoomGold(short ownerId, int x, int y, int money) {
-        return loadObject(OBJECT_GOLD_ID, ownerId, x, y, money, null);
+    public EntityId addRoomGold(short ownerId, int x, int y, int money, int maxMoney) {
+        return loadObject(OBJECT_GOLD_PILE_ID, ownerId, x, y, 0, money, null, null, maxMoney);
     }
 
     @Override
-    public EntityId addLooseGold(short ownerId, int x, int y, int money) {
-        return loadObject(OBJECT_GOLD_PILE_ID, ownerId, x, y, money, null);
+    public EntityId addLooseGold(short ownerId, int x, int y, int money, int maxMoney) {
+        return loadObject(OBJECT_GOLD_ID, ownerId, x, y, 0, money, null, null, maxMoney);
     }
 
     @Override
     public EntityId addRoomSpellBook(short ownerId, int x, int y, PlayerSpell spell) {
         return loadObject(OBJECT_SPELL_BOOK_ID, ownerId, x, y);
+    }
+
+    @Override
+    public EntityData getEntityData() {
+        return entityData;
     }
 
 }

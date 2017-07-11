@@ -18,7 +18,6 @@ package toniarts.openkeeper.game.trigger;
 
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.player.PlayerTriggerControl;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 
 /**

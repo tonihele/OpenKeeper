@@ -14,15 +14,15 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.player;
+package toniarts.openkeeper.game.controller.player;
 
-import com.jme3.app.Application;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import toniarts.openkeeper.game.data.Keeper;
 
 /**
  * Abstract base for player controls that have availabilities
@@ -35,10 +35,10 @@ public abstract class AbstractPlayerControl<K extends Comparable<K>, V> {
 
     private final List<K> typesAvailable = new ArrayList<>();
     protected final Map<K, V> types = new LinkedHashMap<>();
-    protected final Application application;
+    protected final Keeper keeper;
 
-    public AbstractPlayerControl(Application application) {
-        this.application = application;
+    public AbstractPlayerControl(Keeper keeper) {
+        this.keeper = keeper;
     }
 
     /**

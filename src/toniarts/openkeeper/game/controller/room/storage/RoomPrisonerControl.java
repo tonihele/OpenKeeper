@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
-import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -30,8 +29,8 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
  */
 public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomPrisonerControl(IRoomController parent, IObjectsController objectsController, EntityData entityData) {
-        super(parent, objectsController, entityData);
+    public RoomPrisonerControl(IRoomController parent, IObjectsController objectsController) {
+        super(parent, objectsController);
     }
 
     @Override

@@ -14,32 +14,23 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.world.object;
+package toniarts.openkeeper.game.listener;
 
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
-import toniarts.openkeeper.tools.convert.map.GameObject;
-import toniarts.openkeeper.world.TileData;
-import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 
 /**
- * Represents a player spell in the world
+ * For listening room changes
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SpellBookObjectControl extends ObjectControl {
+public interface RoomListener {
 
-    private final PlayerSpell playerSpell;
+    void onBuild(IRoomController room);
 
-    public SpellBookObjectControl(TileData tile, GameObject object, WorldState worldState, PlayerSpell playerSpell) {
-        super(tile, object, worldState);
+    void onCaptured(IRoomController room);
 
-        this.playerSpell = playerSpell;
-        this.playerSpell.setSpellBookObjectControl(this);
-    }
+    void onCapturedByEnemy(IRoomController room);
 
-    @Override
-    public String getTooltip(short playerId) {
-        return "";
-    }
+    void onSold(IRoomController room);
 
 }

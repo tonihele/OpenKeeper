@@ -6,7 +6,13 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
+import java.awt.Point;
+import java.util.Collection;
 import java.util.List;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -82,5 +88,27 @@ public interface IMapController {
      * @param playerId the player who selected the tile
      */
     void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId);
+
+    /**
+     * If you want to get notified about tile changes
+     *
+     * @param listener the listener
+     */
+    public void addListener(MapListener listener);
+
+    /**
+     * Stop listening to map updates
+     *
+     * @param listener the listener
+     */
+    public void removeListener(MapListener listener);
+
+    public Collection<IRoomController> getRoomControllers();
+
+    public RoomInstance getRoomInstanceByCoordinates(Point p);
+
+    public IRoomController getRoomController(RoomInstance roomInstance);
+
+    public List<IRoomController> getRoomsByFunction(AbstractRoomController.ObjectType objectType, Short playerId);
 
 }

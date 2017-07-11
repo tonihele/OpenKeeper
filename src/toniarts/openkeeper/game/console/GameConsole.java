@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.console;
 
 import com.jme3.app.state.AppStateManager;
-import com.jme3.math.Vector2f;
 import de.lessvoid.nifty.controls.Console;
 import de.lessvoid.nifty.controls.ConsoleCommands;
 import de.lessvoid.nifty.controls.ConsoleCommands.ConsoleCommand;
@@ -29,9 +28,7 @@ import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.room.ICreatureEntrance;
 
 /**
  *
@@ -180,7 +177,7 @@ public class GameConsole {
                 case ADD_MANA:
                     try {
                         int amount = Integer.parseInt(args[1]);
-                        keeper.getManaControl().addMana(amount);
+//                        keeper.getManaControl().addMana(amount);
                     } catch (NumberFormatException e) {
                         console.outputError("First parameter must be a number!");
                     }
@@ -229,12 +226,12 @@ public class GameConsole {
     }
 
     private void spawnImp() {
-        spawnCreature(keeper.getCreatureControl().getImp().getCreatureId(), (short) 1);
+//        spawnCreature(keeper.getCreatureControl().getImp().getCreatureId(), (short) 1);
     }
 
     private void spawnCreature(short creatureId, short level) {
-        Vector2f dhEntrance = WorldUtils.pointToVector2f(((ICreatureEntrance) keeper.getRoomControl().getDungeonHeart()).getEntranceCoordinate());
-        stateManager.getState(WorldState.class).getThingLoader().spawnCreature(creatureId, keeper.getId(), level, dhEntrance, false, null);
+//        Vector2f dhEntrance = WorldUtils.pointToVector2f(((ICreatureEntrance) keeper.getRoomControl().getDungeonHeart()).getEntranceCoordinate());
+//        stateManager.getState(WorldState.class).getThingLoader().spawnCreature(creatureId, keeper.getId(), level, dhEntrance, false, null);
     }
 
     private boolean showHelpMessage() {

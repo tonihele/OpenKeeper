@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
-import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
@@ -384,9 +383,8 @@ public class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance 
         String result = super.getTooltip(playerId);
 
         if (playerId == roomInstance.getOwnerId()) {
-            PlayerManaControl pmc = worldState.getGameState().getPlayer(playerId).getManaControl();
-            result = result.replaceAll("%40", String.valueOf(pmc.getMana())) // mana held
-                .replaceAll("%41", String.valueOf(pmc.getManaMax())); // max mana held
+            result = result.replaceAll("%40", String.valueOf(worldState.getGameState().getPlayer(playerId).getMana())) // mana held
+                    .replaceAll("%41", String.valueOf(worldState.getGameState().getPlayer(playerId).getMaxMana())); // max mana held
         }
 
         return result;

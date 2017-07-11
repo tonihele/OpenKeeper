@@ -17,8 +17,8 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
-import toniarts.openkeeper.game.player.PlayerSpell;
-import toniarts.openkeeper.game.player.PlayerSpellControl;
+import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -38,7 +38,8 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
 
     public ResearchSpells(WorldState worldState, int x, int y, short playerId, GenericRoom room, TaskManager taskManager) {
         super(worldState, x, y, playerId, room, taskManager);
-        spellControl = worldState.getGameState().getPlayer(playerId).getSpellControl();
+        spellControl = null;
+        //worldState.getGameState().getPlayer(playerId).getSpellControl();
     }
 
     @Override

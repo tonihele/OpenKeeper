@@ -16,17 +16,16 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
-import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.player.PlayerSpell;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -38,8 +37,8 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Pla
 
     private int storedSpellBooks = 0;
 
-    public RoomSpellBookControl(IRoomController parent, IObjectsController objectsController, EntityData entityData) {
-        super(parent, objectsController, entityData);
+    public RoomSpellBookControl(IRoomController parent, IObjectsController objectsController) {
+        super(parent, objectsController);
     }
 
     @Override
@@ -101,7 +100,7 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Pla
         // Only floor furniture
         List<Point> coordinates = new ArrayList<>(parent.getFloorFurnitureCount());
         for (EntityId oc : parent.getFloorFurniture()) {
-            coordinates.add(WorldUtils.vectorToPoint(entityData.getComponent(oc, Position.class).position));
+            coordinates.add(WorldUtils.vectorToPoint(objectsController.getEntityData().getComponent(oc, Position.class).position));
         }
         return coordinates;
     }

@@ -19,7 +19,10 @@ package toniarts.openkeeper.game.controller.room;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -36,8 +39,22 @@ public class FiveByFiveRotatedController extends AbstractRoomController implemen
 
     private final List<Point> spawnPoints = new ArrayList<>(16);
 
-    public FiveByFiveRotatedController(toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
+    public FiveByFiveRotatedController(toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         super(roomInstance, objectsController);
+        final int maxGold = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE).getValue();
+        addObjectControl(new RoomGoldControl(this, objectsController) {
+
+            @Override
+            protected int getGoldPerObject() {
+                return maxGold;
+            }
+
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                return 16;
+            }
+        });
     }
 
     @Override

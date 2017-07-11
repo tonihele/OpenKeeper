@@ -292,9 +292,9 @@ public class TaskManager {
 
         // See if the creature's player lacks of gold
         Keeper player = worldState.getGameState().getPlayer(creature.getOwnerId());
-        if (!player.getGoldControl().isFullCapacity()) {
-            return assignClosestRoomTask(creature, GenericRoom.ObjectType.GOLD);
-        }
+//        if (!player.getGoldControl().isFullCapacity()) {
+//            return assignClosestRoomTask(creature, GenericRoom.ObjectType.GOLD);
+//        }
         return false;
     }
 

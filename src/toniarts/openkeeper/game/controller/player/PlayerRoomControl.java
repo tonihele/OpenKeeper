@@ -14,38 +14,36 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.player;
+package toniarts.openkeeper.game.controller.player;
 
-import com.jme3.app.Application;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.world.listener.RoomListener;
-import toniarts.openkeeper.world.room.GenericRoom;
-import toniarts.openkeeper.world.room.RoomInstance;
 
 /**
  * Holds a list of player rooms and functionality related to them
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<GenericRoom>> implements RoomListener {
+public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomController>> implements RoomListener {
 
     private int roomCount = 0;
     private boolean portalsOpen = true;
     private List<IRoomAvailabilityListener> roomAvailabilityListeners;
-    private GenericRoom dungeonHeart;
+    private IRoomController dungeonHeart;
 
-    public PlayerRoomControl(Application application) {
-        super(application);
+    public PlayerRoomControl(Keeper keeper) {
+        super(keeper);
     }
 
-    public void init(List<Map.Entry<RoomInstance, GenericRoom>> rooms) {
-        for (Map.Entry<RoomInstance, GenericRoom> entry : rooms) {
-            onBuild(entry.getValue());
+    public void init(List<IRoomController> rooms) {
+        for (IRoomController roomController : rooms) {
+            onBuild(roomController);
         }
     }
 
@@ -61,19 +59,17 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<GenericRo
 
         // Notify listeners
         if (roomAvailabilityListeners != null) {
-            application.enqueue(() -> {
-                for (IRoomAvailabilityListener listener : roomAvailabilityListeners) {
-                    listener.onChange();
-                }
-            });
+            for (IRoomAvailabilityListener listener : roomAvailabilityListeners) {
+                listener.onChange();
+            }
         }
     }
 
     @Override
-    public void onBuild(GenericRoom room) {
+    public void onBuild(IRoomController room) {
 
         // Add to the list
-        Set<GenericRoom> roomSet = get(room.getRoom());
+        Set<IRoomController> roomSet = get(room.getRoom());
         if (roomSet == null) {
             roomSet = new LinkedHashSet<>();
             put(room.getRoom(), roomSet);
@@ -86,20 +82,20 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<GenericRo
     }
 
     @Override
-    public void onCaptured(GenericRoom room) {
+    public void onCaptured(IRoomController room) {
         onBuild(room);
     }
 
     @Override
-    public void onCapturedByEnemy(GenericRoom room) {
+    public void onCapturedByEnemy(IRoomController room) {
         onSold(room);
     }
 
     @Override
-    public void onSold(GenericRoom room) {
+    public void onSold(IRoomController room) {
 
         // Delete
-        Set<GenericRoom> roomSet = get(room.getRoom());
+        Set<IRoomController> roomSet = get(room.getRoom());
         if (roomSet != null) {
             roomSet.remove(room);
             roomCount--;
@@ -133,9 +129,9 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<GenericRo
         int count = 0;
         if (!types.isEmpty()) {
             for (Room room : new ArrayList<>(types.keySet())) {
-                Set<GenericRoom> rooms = get(room);
+                Set<IRoomController> rooms = get(room);
                 if (!rooms.isEmpty()) {
-                    for (GenericRoom genericRoom : new ArrayList<>(rooms)) {
+                    for (IRoomController genericRoom : new ArrayList<>(rooms)) {
                         count += genericRoom.getRoomInstance().getCoordinates().size();
                     }
                 }
@@ -152,9 +148,9 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<GenericRo
      */
     public int getRoomSlabsCount(Room room) {
         int count = 0;
-        Set<GenericRoom> rooms = get(room);
+        Set<IRoomController> rooms = get(room);
         if (rooms != null && !rooms.isEmpty()) {
-            for (GenericRoom genericRoom : new ArrayList<>(rooms)) {
+            for (IRoomController genericRoom : new ArrayList<>(rooms)) {
                 count += genericRoom.getRoomInstance().getCoordinates().size();
             }
         }
@@ -178,7 +174,7 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<GenericRo
      *
      * @return the dungeon heart
      */
-    public GenericRoom getDungeonHeart() {
+    public IRoomController getDungeonHeart() {
         return dungeonHeart;
     }
 

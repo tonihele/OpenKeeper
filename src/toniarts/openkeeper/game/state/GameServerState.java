@@ -28,9 +28,9 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
-import toniarts.openkeeper.game.controller.IObjectsController;
-import toniarts.openkeeper.game.controller.MapController;
-import toniarts.openkeeper.game.controller.ObjectsController;
+import toniarts.openkeeper.game.controller.GameController;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
@@ -82,7 +82,7 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
     private int levelScore = 0;
     private boolean campaign;
     private final GameSessionServerService gameService;
-    private MapController mapController;
+    private IMapController mapController;
     private final MapListener mapListener = new MapListenerImpl();
     private final GameSessionServiceListener gameSessionListener = new GameSessionServiceListenerImpl();
 
@@ -412,9 +412,9 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
             actionPointState.update(tpf);
         }
 
-        for (Keeper player : players.values()) {
-            player.update(tpf);
-        }
+//        for (Keeper player : players.values()) {
+//            player.update(tpf);
+//        }
     }
 
     /**
@@ -477,15 +477,21 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
             // Make sure the KWD file is fully loaded
             kwdFile.load();
 
-            // Load objects
-            IObjectsController objectController = new ObjectsController(kwdFile, gameService.getEntityData());
+            // Create the central game controller
+            GameController gameController = new GameController(kwdFile, gameService.getEntityData(), kwdFile.getVariables());
+            gameController.createNewGame(players.values());
+            mapController = gameController.getMapController();
 
-            // Load the map
-            mapController = new MapController(kwdFile, objectController);
+            // Send the the map
             gameService.sendGameData(mapController.getMapData());
 
             // Set up a listener for the map
             mapController.addListener(mapListener);
+
+            // Set up a listener for the player changes, they are per player
+            for (IPlayerController playerController : gameController.getPlayerControllers()) {
+                playerController.addListener(gameService);
+            }
 
             // Nullify the thread object
             loader = null;

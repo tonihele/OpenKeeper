@@ -27,14 +27,14 @@ import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
+import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
+import toniarts.openkeeper.game.controller.player.PlayerCreatureControl.CreatureUIState;
+import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
+import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
+import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.player.PlayerCreatureControl;
-import toniarts.openkeeper.game.player.PlayerCreatureControl.CreatureUIState;
-import toniarts.openkeeper.game.player.PlayerGoldControl;
-import toniarts.openkeeper.game.player.PlayerRoomControl;
-import toniarts.openkeeper.game.player.PlayerSpellControl;
-import toniarts.openkeeper.game.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -226,41 +226,41 @@ public class PlayerState extends AbstractAppState {
 
     public PlayerStatsControl getStatsControl() {
         Keeper keeper = getPlayer();
-        if (keeper != null) {
-            return keeper.getStatsControl();
-        }
+//        if (keeper != null) {
+//            return keeper.getStatsControl();
+//        }
         return null;
     }
 
     public PlayerGoldControl getGoldControl() {
         Keeper keeper = getPlayer();
-        if (keeper != null) {
-            return keeper.getGoldControl();
-        }
+//        if (keeper != null) {
+//            return keeper.getGoldControl();
+//        }
         return null;
     }
 
     public PlayerCreatureControl getCreatureControl() {
         Keeper keeper = getPlayer();
-        if (keeper != null) {
-            return keeper.getCreatureControl();
-        }
+//        if (keeper != null) {
+//            return keeper.getCreatureControl();
+//        }
         return null;
     }
 
     public PlayerRoomControl getRoomControl() {
         Keeper keeper = getPlayer();
-        if (keeper != null) {
-            return keeper.getRoomControl();
-        }
+//        if (keeper != null) {
+//            return keeper.getRoomControl();
+//        }
         return null;
     }
 
     public PlayerSpellControl getSpellControl() {
         Keeper keeper = getPlayer();
-        if (keeper != null) {
-            return keeper.getSpellControl();
-        }
+//        if (keeper != null) {
+//            return keeper.getSpellControl();
+//        }
         return null;
     }
 

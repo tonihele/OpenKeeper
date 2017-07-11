@@ -207,7 +207,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 //                        getWorldHandler().addGold(player.getPlayerId(), 100000);
                         break;
                     case MANA:
-                        gameClientState.getPlayer(player.getPlayerId()).getManaControl().addMana(100000);
+//                        gameClientState.getPlayer(player.getPlayerId()).getManaControl().addMana(100000);
                         break;
                     case LEVEL_MAX:
                         Map<Creature, Set<CreatureControl>> creatureMap = stateManager.getState(PlayerState.class).getCreatureControl().getAllCreatures();

@@ -14,9 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.player;
+package toniarts.openkeeper.game.controller.player;
 
-import com.jme3.app.Application;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -26,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.gui.nifty.WorkerAmountControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -53,8 +53,8 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<C
     private int impBusy = 0;
     private final Map<Creature, Integer> selectionIndices = new HashMap<>();
 
-    public PlayerCreatureControl(Application application) {
-        super(application);
+    public PlayerCreatureControl(Keeper keeper) {
+        super(keeper);
     }
 
     public void init(List<CreatureControl> creatures, Creature imp) {
@@ -83,11 +83,9 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<C
         } else {
             creatureCount++;
             if (creatureListeners != null) {
-                application.enqueue(() -> {
-                    for (CreatureListener listener : creatureListeners) {
-                        listener.onSpawn(creature);
-                    }
-                });
+                for (CreatureListener listener : creatureListeners) {
+                    listener.onSpawn(creature);
+                }
             }
         }
     }
@@ -96,13 +94,9 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<C
     public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
         if (isImp(creature)) {
             updateWorkerListeners();
-        } else {
-            if (creatureListeners != null) {
-                application.enqueue(() -> {
-                    for (CreatureListener listener : creatureListeners) {
-                        listener.onStateChange(creature, newState, oldState);
-                    }
-                });
+        } else if (creatureListeners != null) {
+            for (CreatureListener listener : creatureListeners) {
+                listener.onStateChange(creature, newState, oldState);
             }
         }
     }
@@ -122,11 +116,9 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<C
         } else {
             creatureCount--;
             if (creatureListeners != null) {
-                application.enqueue(() -> {
-                    for (CreatureListener listener : creatureListeners) {
-                        listener.onDie(creature);
-                    }
-                });
+                for (CreatureListener listener : creatureListeners) {
+                    listener.onDie(creature);
+                }
             }
         }
     }
@@ -202,11 +194,9 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<C
             }
 
             // Update
-            application.enqueue(() -> {
-                for (WorkerAmountControl control : workerListeners) {
-                    control.setValues(impTotal, impIdle, impBusy, impFighting);
-                }
-            });
+            for (WorkerAmountControl control : workerListeners) {
+                control.setValues(impTotal, impIdle, impBusy, impFighting);
+            }
         }
     }
 

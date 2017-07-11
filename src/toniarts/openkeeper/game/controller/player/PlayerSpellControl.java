@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.player;
+package toniarts.openkeeper.game.controller.player;
 
-import com.jme3.app.Application;
 import java.util.ArrayList;
 import java.util.List;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.listener.PlayerSpellListener;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 
 /**
@@ -31,8 +32,8 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
     private PlayerSpell currentResearch = null;
     private List<PlayerSpellListener> playerSpellListeners;
 
-    public PlayerSpellControl(Application application) {
-        super(application);
+    public PlayerSpellControl(Keeper keeper) {
+        super(keeper);
     }
 
     @Override

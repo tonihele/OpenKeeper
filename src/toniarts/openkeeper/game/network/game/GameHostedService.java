@@ -22,6 +22,7 @@ import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rmi.RmiRegistry;
+import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.server.EntityDataHostedService;
 import java.io.IOException;
@@ -29,6 +30,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.NetworkConstants;
@@ -59,7 +61,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     private final Object loadLock = new Object();
     private static final String ATTRIBUTE_SESSION = "game.session";
     private final Map<ClientInfo, GameSessionImpl> players = new ConcurrentHashMap<>(4, 0.75f, 5);
-    private final List<GameSessionServiceListener> serverListeners = new ArrayList<>();
+    private final List<GameSessionServiceListener> serverListeners = new SafeArrayList<>(GameSessionServiceListener.class);
     private RmiHostedService rmiService;
 
     /**
@@ -180,6 +182,41 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
     }
 
+    @Override
+    public void onAdded(PlayerSpell spell) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onAdded(spell);
+        }
+    }
+
+    @Override
+    public void onRemoved(PlayerSpell spell) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onRemoved(spell);
+        }
+    }
+
+    @Override
+    public void onResearchStatusChanged(PlayerSpell spell) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onResearchStatusChanged(spell);
+        }
+    }
+
+    @Override
+    public void onGoldChange(short keeperId, int gold) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onGoldChange(keeperId, gold);
+        }
+    }
+
+    @Override
+    public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onManaChange(keeperId, mana, manaLoose, manaGain);
+        }
+    }
+
     /**
      * The connection-specific 'host' for the GameSession. For convenience this
      * also implements the GameSessionListener. Since the methods don't collide
@@ -292,6 +329,31 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         @Override
         public EntityData getEntityData() {
             return null; // Cached on client...
+        }
+
+        @Override
+        public void onAdded(PlayerSpell spell) {
+            getCallback().onAdded(spell);
+        }
+
+        @Override
+        public void onRemoved(PlayerSpell spell) {
+            getCallback().onRemoved(spell);
+        }
+
+        @Override
+        public void onResearchStatusChanged(PlayerSpell spell) {
+            getCallback().onResearchStatusChanged(spell);
+        }
+
+        @Override
+        public void onGoldChange(short keeperId, int gold) {
+            getCallback().onGoldChange(keeperId, gold);
+        }
+
+        @Override
+        public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
+            getCallback().onManaChange(keeperId, mana, manaLoose, manaGain);
         }
 
     }

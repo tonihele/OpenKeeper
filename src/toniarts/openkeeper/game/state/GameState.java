@@ -40,12 +40,9 @@ import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
-import toniarts.openkeeper.game.logic.CreatureLogicState;
-import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.game.logic.GameLogicThread;
 import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.game.logic.MovementThread;
-import toniarts.openkeeper.game.logic.RoomGoldFixer;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
@@ -231,11 +228,11 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                             return new Thread(r, "GameLogicAndMovementThread");
                         }
                     });
-                    gameLogicThread = new GameLogicThread(GameState.this.app,
-                            worldState, 1.0f / kwdFile.getGameLevel().getTicksPerSec(),
-                            GameState.this, new CreatureLogicState(worldState.getThingLoader()),
-                            new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this),
-                            new RoomGoldFixer(worldState));
+//                    gameLogicThread = new GameLogicThread(GameState.this.app,
+//                            worldState, 1.0f / kwdFile.getGameLevel().getTicksPerSec(),
+//                            GameState.this, new CreatureLogicState(worldState.getThingLoader()),
+//                            new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this),
+//                            new RoomGoldFixer(worldState));
                     exec.scheduleAtFixedRate(gameLogicThread,
                             0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
                     exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()),
@@ -259,7 +256,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                         keeper = players.get(entry.getKey());
                         keeper.setPlayer(entry.getValue());
                     } else if (addMissingPlayers || entry.getKey() < Player.KEEPER1_ID) {
-                        keeper = new Keeper(entry.getValue(), app);
+                        keeper = new Keeper(entry.getValue());
                         players.put(entry.getKey(), keeper);
                     }
 
@@ -270,7 +267,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                         // Spells are all available for research unless otherwise stated
                         for (KeeperSpell spell : kwdFile.getKeeperSpells()) {
                             if (spell.getBonusRTime() != 0) {
-                                keeper.getSpellControl().setTypeAvailable(spell, true);
+//                                keeper.getSpellControl().setTypeAvailable(spell, true);
                             }
                         }
                     }
@@ -299,20 +296,20 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
             private void setAvailability(Keeper player, Variable.Availability availability) {
                 switch (availability.getType()) {
                     case CREATURE: {
-                        player.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+//                        player.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
                         break;
                     }
                     case ROOM: {
-                        player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+//                        player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
                         break;
                     }
                     case SPELL: {
                         if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
 
                             // Enable the spell, no need to research it
-                            player.getSpellControl().setSpellDiscovered(kwdFile.getKeeperSpellById(availability.getTypeId()), true);
+//                            player.getSpellControl().setSpellDiscovered(kwdFile.getKeeperSpellById(availability.getTypeId()), true);
                         } else {
-                            player.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), false);
+//                            player.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), false);
                         }
                     }
                 }
@@ -434,7 +431,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         }
 
         for (Keeper player : players.values()) {
-            player.update(tpf);
+//            player.update(tpf);
         }
     }
 
