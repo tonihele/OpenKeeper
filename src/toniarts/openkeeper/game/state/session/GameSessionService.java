@@ -17,7 +17,9 @@
 package toniarts.openkeeper.game.state.session;
 
 import com.simsilica.es.EntityData;
+import java.util.Collection;
 import java.util.List;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -40,9 +42,10 @@ public interface GameSessionService extends PlayerListener {
     /**
      * Sends the game data to the clients to allow them to load it up visually
      *
-     * @param mapData
+     * @param players the players
+     * @param mapData the map
      */
-    public void sendGameData(MapData mapData);
+    public void sendGameData(Collection<Keeper> players, MapData mapData);
 
     /**
      * Signals that the game should start

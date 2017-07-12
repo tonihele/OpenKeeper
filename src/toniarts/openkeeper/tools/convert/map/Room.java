@@ -19,6 +19,7 @@ package toniarts.openkeeper.tools.convert.map;
 import java.awt.Color;
 import java.util.EnumSet;
 import java.util.List;
+import toniarts.openkeeper.game.data.IIndexable;
 import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
@@ -31,7 +32,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * Thank you https://github.com/werkt
  */
-public class Room implements Comparable<Room>, ISoundable {
+public class Room implements Comparable<Room>, ISoundable, IIndexable {
 
     /**
      * Room flags
@@ -466,6 +467,11 @@ public class Room implements Comparable<Room>, ISoundable {
 
     protected void setTorch(ArtResource torch) {
         this.torch = torch;
+    }
+
+    @Override
+    public short getId() {
+        return roomId;
     }
 
     @Override

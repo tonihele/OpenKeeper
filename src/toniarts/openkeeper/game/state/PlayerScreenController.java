@@ -569,9 +569,14 @@ public class PlayerScreenController implements IPlayerScreenController {
         // manaControl.addListener(hud.findNiftyControl("manaGet", Label.class), PlayerManaControl.Type.GAIN);
         //manaControl.addListener(hud.findNiftyControl("manaLose", Label.class), PlayerManaControl.Type.LOSE);
 //        }
+        hud.findNiftyControl("mana", Label.class).setText(Integer.toString(state.getPlayer().getMana()));
+        hud.findNiftyControl("manaGet", Label.class).setText(Integer.toString(state.getPlayer().getManaGain()));
+        hud.findNiftyControl("manaLose", Label.class).setText(Integer.toString(state.getPlayer().getManaLoose()));
+
         if (state.getGoldControl() != null) {
             // state.getGoldControl().addListener(hud.findNiftyControl("gold", Label.class));
         }
+        hud.findNiftyControl("gold", Label.class).setText(Integer.toString(state.getPlayer().getGold()));
 
         // Player creatures
         Element creatureTab = hud.findElementById("tab-creature");
@@ -631,7 +636,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 //                populateRoomTab();
 //            }
 //        });
-//        populateRoomTab();
+        populateRoomTab();
         // Spells
 //        state.getSpellControl().addPlayerSpellListener(new PlayerSpellListener() {
 //            @Override

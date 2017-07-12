@@ -54,7 +54,7 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<C
     private final Map<Creature, Integer> selectionIndices = new HashMap<>();
 
     public PlayerCreatureControl(Keeper keeper) {
-        super(keeper);
+        super(keeper, keeper.getAvailableCreatures());
     }
 
     public void init(List<CreatureControl> creatures, Creature imp) {

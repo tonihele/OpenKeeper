@@ -297,7 +297,15 @@ public class PlayerState extends AbstractAppState {
     }
 
     protected List<Room> getAvailableRoomsToBuild() {
-        return getRoomControl().getTypesAvailable();
+
+        // TODO: cache, or something, maybe add the listeners here
+        GameClientState gameState = stateManager.getState(GameClientState.class);
+        Keeper keeper = getPlayer();
+        List<Room> rooms = new ArrayList<>();
+        keeper.getAvailableRooms().stream().forEach((id) -> {
+            rooms.add(gameState.getLevelData().getRoomById(id));
+        });
+        return rooms;
     }
 
     protected List<Door> getAvailableDoors() {

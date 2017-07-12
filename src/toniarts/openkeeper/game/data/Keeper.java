@@ -18,7 +18,9 @@ package toniarts.openkeeper.game.data;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.tools.convert.map.AI.AIType;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -39,6 +41,9 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
     private int manaGain;
     private int manaLoose;
     private int maxMana;
+    private final List<Short> availableRooms = new ArrayList<>();
+    private final List<Short> availableSpells = new ArrayList<>();
+    private final List<Short> availableCreatures = new ArrayList<>();
 
     private transient Player player;
     private short id;
@@ -255,6 +260,18 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
 
     public void setMaxMana(int maxMana) {
         this.maxMana = maxMana;
+    }
+
+    public List<Short> getAvailableRooms() {
+        return availableRooms;
+    }
+
+    public List<Short> getAvailableSpells() {
+        return availableSpells;
+    }
+
+    public List<Short> getAvailableCreatures() {
+        return availableCreatures;
     }
 
     @Override

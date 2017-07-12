@@ -291,4 +291,8 @@ public class GameController {
         return playerControllers.values();
     }
 
+    public Collection<Keeper> getPlayers() {
+        return players.values();
+    }
+
 }

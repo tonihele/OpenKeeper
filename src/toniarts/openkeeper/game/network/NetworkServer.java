@@ -35,16 +35,17 @@ import java.awt.Point;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.ObjectEntity;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Spellbook;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
 import toniarts.openkeeper.game.network.game.GameHostedService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
+import toniarts.openkeeper.game.network.message.GameData;
 import toniarts.openkeeper.game.network.message.StreamedMessage;
 import toniarts.openkeeper.game.network.session.AccountHostedService;
 import toniarts.openkeeper.game.network.streaming.StreamingHostedService;
@@ -85,6 +86,7 @@ public class NetworkServer {
         Serializer.registerClass(Tile.BridgeTerrainType.class, new EnumSerializer());
         Serializer.registerClass(MapData.class, new FieldSerializer()); // FIXME: Savable serializer would be better...
         Serializer.registerClass(MapTile.class, new FieldSerializer());
+        Serializer.registerClass(GameData.class, new FieldSerializer());
 
         // Our entities
         Serializer.registerClass(Position.class, new FieldSerializer());

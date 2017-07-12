@@ -121,9 +121,6 @@ public class GameClientState extends AbstractPauseAwareState {
         // this.gameService = gameService;
         this.gameClientService = gameClientService;
         this.playerId = playerId;
-        for (ClientInfo ci : players) {
-            this.players.put(ci.getKeeper().getId(), ci.getKeeper());
-        }
 
         // Create the loading state
         loadingState = createLoadingState(players);
@@ -327,10 +324,13 @@ public class GameClientState extends AbstractPauseAwareState {
     private class GameSessionListenerImpl implements GameSessionListener {
 
         @Override
-        public void onGameDataLoaded(MapData mapData) {
+        public void onGameDataLoaded(Collection<Keeper> players, MapData mapData) {
 
             // Now we have the game data, start loading the map
             kwdFile.load();
+            for (Keeper keeper : players) {
+                GameClientState.this.players.put(keeper.getId(), keeper);
+            }
             mapClientService = new ClientMapController(mapData, kwdFile);
             playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId);
             playerMapViewState = new PlayerMapViewState(kwdFile, app.getAssetManager(), mapClientService, playerId) {

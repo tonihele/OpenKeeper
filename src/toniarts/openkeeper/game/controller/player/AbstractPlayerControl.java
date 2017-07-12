@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import toniarts.openkeeper.game.data.IIndexable;
 import toniarts.openkeeper.game.data.Keeper;
 
 /**
@@ -31,28 +32,32 @@ import toniarts.openkeeper.game.data.Keeper;
  * @param <K> the type of object this control manages
  * @param <V> the value behind the type
  */
-public abstract class AbstractPlayerControl<K extends Comparable<K>, V> {
+public abstract class AbstractPlayerControl<K extends Comparable<K> & IIndexable, V> {
 
     private final List<K> typesAvailable = new ArrayList<>();
+    private final List<Short> availabilitiesList;
     protected final Map<K, V> types = new LinkedHashMap<>();
     protected final Keeper keeper;
 
-    public AbstractPlayerControl(Keeper keeper) {
+    public AbstractPlayerControl(Keeper keeper, List<Short> availabilitiesList) {
         this.keeper = keeper;
+        this.availabilitiesList = availabilitiesList;
     }
 
     /**
      * Add a type to the availability pool of this player
      *
-     * @param type the creature to add
+     * @param type the type to add
      * @param available set available or not
      */
     public void setTypeAvailable(K type, boolean available) {
         int index = Collections.binarySearch(typesAvailable, type);
         if (index < 0 && available) {
             typesAvailable.add(~index, type);
+            availabilitiesList.add(~index, type.getId());
         } else if (index >= 0 && !available) {
             typesAvailable.remove(index);
+            availabilitiesList.remove(index);
         }
     }
 

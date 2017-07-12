@@ -10,8 +10,10 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.base.DefaultEntityData;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -37,9 +39,9 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
-    public void sendGameData(MapData mapData) {
+    public void sendGameData(Collection<Keeper> players, MapData mapData) {
         for (GameSessionListener listener : listeners) {
-            listener.onGameDataLoaded(mapData);
+            listener.onGameDataLoaded(players, mapData);
         }
     }
 

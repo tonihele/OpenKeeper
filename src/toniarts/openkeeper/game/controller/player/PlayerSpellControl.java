@@ -33,7 +33,7 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
     private List<PlayerSpellListener> playerSpellListeners;
 
     public PlayerSpellControl(Keeper keeper) {
-        super(keeper);
+        super(keeper, keeper.getAvailableSpells());
     }
 
     @Override

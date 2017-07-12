@@ -22,8 +22,6 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector2f;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
@@ -90,7 +88,6 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
     private float timeTaken = 0;
     private Float timeLimit = null;
     private TaskManager taskManager;
-    private final Map<Short, Keeper> players = new TreeMap<>();
     private PauseableScheduledThreadPoolExecutor exec;
 
     private static final Logger logger = Logger.getLogger(GameServerState.class.getName());
@@ -107,21 +104,16 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
         this.levelObject = null;
         this.campaign = campaign;
         this.gameService = gameService;
-        if (players != null) {
-            for (Keeper keeper : players) {
-                this.players.put(keeper.getId(), keeper);
-            }
-        }
 
         // Add the listener
         gameService.addGameSessionServiceListener(gameSessionListener);
 
         // Start loading game
-        loadGame();
+        loadGame(players);
     }
 
-    private void loadGame() {
-        loader = new GameLoader();
+    private void loadGame(List<Keeper> players) {
+        loader = new GameLoader(players);
         loader.start();
     }
 
@@ -467,8 +459,12 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
      */
     private class GameLoader extends Thread {
 
-        public GameLoader() {
+        private final List<Keeper> players;
+
+        public GameLoader(List<Keeper> players) {
             super("GameLoader");
+
+            this.players = players;
         }
 
         @Override
@@ -479,11 +475,11 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
 
             // Create the central game controller
             GameController gameController = new GameController(kwdFile, gameService.getEntityData(), kwdFile.getVariables());
-            gameController.createNewGame(players.values());
+            gameController.createNewGame(players);
             mapController = gameController.getMapController();
 
-            // Send the the map
-            gameService.sendGameData(mapController.getMapData());
+            // Send the the initial game data
+            gameService.sendGameData(gameController.getPlayers(), mapController.getMapData());
 
             // Set up a listener for the map
             mapController.addListener(mapListener);

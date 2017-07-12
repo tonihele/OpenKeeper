@@ -66,13 +66,17 @@ public class PlayerController implements IPlayerController {
     @Override
     public void addListener(PlayerListener listener) {
         goldControl.addListener(listener);
-        manaControl.addListener(listener);
+        if (manaControl != null) {
+            manaControl.addListener(listener);
+        }
     }
 
     @Override
     public void removeListener(PlayerListener listener) {
         goldControl.removeListener(listener);
-        manaControl.removeListener(listener);
+        if (manaControl != null) {
+            manaControl.removeListener(listener);
+        }
     }
 
     @Override

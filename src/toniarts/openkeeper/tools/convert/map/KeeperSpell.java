@@ -16,17 +16,18 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IValueEnum;
-import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
+import toniarts.openkeeper.game.data.IIndexable;
 import toniarts.openkeeper.game.data.ISoundable;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
+import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
  * Container class for KeeperSpells.kwd
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KeeperSpell implements Comparable<KeeperSpell>, ISoundable {
+public class KeeperSpell implements Comparable<KeeperSpell>, ISoundable, IIndexable {
 
     /**
      * Keeper spell flags
@@ -418,6 +419,11 @@ public class KeeperSpell implements Comparable<KeeperSpell>, ISoundable {
 
     protected void setNoGoHandAnimId(HandAnimId noGoHandAnimId) {
         this.noGoHandAnimId = noGoHandAnimId;
+    }
+
+    @Override
+    public short getId() {
+        return keeperSpellId;
     }
 
     @Override

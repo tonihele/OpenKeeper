@@ -38,7 +38,7 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
     private IRoomController dungeonHeart;
 
     public PlayerRoomControl(Keeper keeper) {
-        super(keeper);
+        super(keeper, keeper.getAvailableRooms());
     }
 
     public void init(List<IRoomController> rooms) {

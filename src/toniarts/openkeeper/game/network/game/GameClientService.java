@@ -23,13 +23,16 @@ import com.jme3.network.service.rmi.RmiClientService;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.client.EntityDataClientService;
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.NetworkConstants;
+import toniarts.openkeeper.game.network.message.GameData;
 import toniarts.openkeeper.game.network.streaming.StreamedMessageListener;
 import toniarts.openkeeper.game.network.streaming.StreamingClientService;
 import toniarts.openkeeper.game.state.session.GameSession;
@@ -83,11 +86,11 @@ public class GameClientService extends AbstractClientService
         rmiService.share(NetworkConstants.GAME_CHANNEL, sessionCallback, GameSessionListener.class);
 
         // Listen for the streaming messages
-        s.getService(StreamingClientService.class).addListener(GameHostedService.MessageType.MAP_DATA.ordinal(), (StreamedMessageListener<MapData>) (MapData data) -> {
+        s.getService(StreamingClientService.class).addListener(GameHostedService.MessageType.GAME_DATA.ordinal(), (StreamedMessageListener<GameData>) (GameData data) -> {
 
             logger.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{data});
             for (GameSessionListener l : listeners) {
-                l.onGameDataLoaded(data);
+                l.onGameDataLoaded(data.getPlayers(), data.getMapData());
             }
 
         });
@@ -142,7 +145,7 @@ public class GameClientService extends AbstractClientService
     private class GameSessionCallback implements GameSessionListener {
 
         @Override
-        public void onGameDataLoaded(MapData mapData) {
+        public void onGameDataLoaded(Collection<Keeper> players, MapData mapData) {
 
             // This is dealt with streaming
 //            logger.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{mapData});
