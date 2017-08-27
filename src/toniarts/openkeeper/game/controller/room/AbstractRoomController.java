@@ -223,6 +223,7 @@ public abstract class AbstractRoomController implements IRoomController {
      * Destroy the room, marks the room as destroyed and releases all the
      * controls. The room <strong>should not</strong> be used after this.
      */
+    @Override
     public void destroy() {
         destroyed = true;
 

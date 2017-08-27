@@ -666,6 +666,18 @@ public class PlayerScreenController implements IPlayerScreenController {
 //        }
     }
 
+    public void setGold(int gold) {
+        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+        hud.findNiftyControl("gold", Label.class).setText(Integer.toString(gold));
+    }
+
+    public void setMana(int mana, int manaLoose, int manaGain) {
+        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+        hud.findNiftyControl("mana", Label.class).setText(Integer.toString(mana));
+        hud.findNiftyControl("manaGet", Label.class).setText(Integer.toString(manaGain));
+        hud.findNiftyControl("manaLose", Label.class).setText(Integer.toString(manaLoose));
+    }
+
     /**
      * Populates the player spells tab
      */

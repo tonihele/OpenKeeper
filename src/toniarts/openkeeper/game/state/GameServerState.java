@@ -83,6 +83,7 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
     private IMapController mapController;
     private final MapListener mapListener = new MapListenerImpl();
     private final GameSessionServiceListener gameSessionListener = new GameSessionServiceListenerImpl();
+    private GameController gameController;
 
     private GameResult gameResult = null;
     private float timeTaken = 0;
@@ -474,7 +475,7 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
             kwdFile.load();
 
             // Create the central game controller
-            GameController gameController = new GameController(kwdFile, gameService.getEntityData(), kwdFile.getVariables());
+            gameController = new GameController(kwdFile, gameService.getEntityData(), kwdFile.getVariables());
             gameController.createNewGame(players);
             mapController = gameController.getMapController();
 
@@ -505,6 +506,16 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
         @Override
         public void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
             mapController.selectTiles(start, end, select, playerId);
+        }
+
+        @Override
+        public void onBuild(Vector2f start, Vector2f end, short roomId, short playerId) {
+            gameController.build(start, end, playerId, roomId);
+        }
+
+        @Override
+        public void onSell(Vector2f start, Vector2f end, short playerId) {
+            gameController.sell(start, end, playerId);
         }
     }
 

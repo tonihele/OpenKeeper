@@ -95,4 +95,6 @@ public interface IRoomController {
      */
     public boolean isDungeonHeart();
 
+    public void destroy();
+
 }

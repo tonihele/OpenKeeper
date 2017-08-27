@@ -27,6 +27,27 @@ import com.jme3.network.service.rmi.Asynchronous;
 public interface GameSessionServiceListener {
 
     /**
+     * Build a building to the wanted area
+     *
+     * @param start start coordinates
+     * @param end end coordinates
+     * @param roomId room to build
+     * @param playerId the player who builds the room
+     */
+    @Asynchronous
+    public void onBuild(Vector2f start, Vector2f end, short roomId, short playerId);
+
+    /**
+     * Sell building(s) from the wanted area
+     *
+     * @param start start coordinates
+     * @param end end coordinates
+     * @param playerId the player who sells the tile
+     */
+    @Asynchronous
+    public void onSell(Vector2f start, Vector2f end, short playerId);
+
+    /**
      * Set some tiles selected/undelected
      *
      * @param start start coordinates

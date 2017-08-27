@@ -53,8 +53,6 @@ import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 import toniarts.openkeeper.view.PlayerEntityViewState;
@@ -104,6 +102,7 @@ public class GameClientState extends AbstractPauseAwareState {
     private final GameSessionClientService gameClientService;
     private final GameSessionListenerImpl gameSessionListener = new GameSessionListenerImpl();
     private IMapController mapClientService;
+    private PlayerState playerState;
 
     private PlayerMapViewState playerMapViewState;
     private PlayerEntityViewState playerModelViewState;
@@ -360,7 +359,7 @@ public class GameClientState extends AbstractPauseAwareState {
             loadingState = null;
 
             // Set the player stuff
-            PlayerState playerState = stateManager.getState(PlayerState.class);
+            playerState = stateManager.getState(PlayerState.class);
             playerState.setPlayerId(playerId);
             playerState.setEnabled(true);
             stateManager.attach(playerMapViewState);
@@ -397,6 +396,13 @@ public class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onGoldChange(short keeperId, int gold) {
             players.get(keeperId).setGold(gold);
+
+            // FIXME: See in what thread we are
+            if (playerState != null && playerState.getPlayerId() == keeperId) {
+                app.enqueue(() -> {
+                    playerState.onGoldChange(keeperId, gold);
+                });
+            }
         }
 
         @Override
@@ -405,12 +411,23 @@ public class GameClientState extends AbstractPauseAwareState {
             keeper.setMana(mana);
             keeper.setManaGain(manaGain);
             keeper.setManaLoose(manaLoose);
+
+            // FIXME: See in what thread we are
+            if (playerState != null && playerState.getPlayerId() == keeperId) {
+                app.enqueue(() -> {
+                    playerState.onManaChange(keeperId, mana, manaLoose, manaGain);
+                });
+            }
         }
 
     }
 
     public IMapController getMapClientService() {
         return mapClientService;
+    }
+
+    public GameSessionClientService getGameClientService() {
+        return gameClientService;
     }
 
     /**
@@ -436,8 +453,8 @@ public class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public boolean isBuildable(int x, int y, Player player, Room room) {
-            return localMap.isBuildable(x, y, player, room);
+        public boolean isBuildable(int x, int y, short playerId, short roomId) {
+            return localMap.isBuildable(x, y, playerId, roomId);
         }
 
         @Override
@@ -489,6 +506,36 @@ public class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public List<IRoomController> getRoomsByFunction(AbstractRoomController.ObjectType objectType, Short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public Point[] getSurroundingTiles(Point point, boolean diagonal) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public Map<Point, RoomInstance> getRoomCoordinates() {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public Map<RoomInstance, IRoomController> getRoomControllersByInstances() {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void removeRoomInstances(RoomInstance... instances) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public boolean isSellable(int x, int y, short playerId) {
+            return localMap.isSellable(x, y, playerId);
+        }
+
+        @Override
+        public void updateRooms(Point[] coordinates) {
             throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
     }

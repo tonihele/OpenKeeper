@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.controller.player;
 
 import com.jme3.util.SafeArrayList;
-import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -38,7 +37,7 @@ public class PlayerManaControl extends Control {
     private final Keeper keeper;
     private final IMapController mapController;
     private final PlayerCreatureControl playerCreatureControl;
-    private final List<PlayerManaListener> listeners = new SafeArrayList<>(PlayerManaListener.class);
+    private final SafeArrayList<PlayerManaListener> listeners = new SafeArrayList<>(PlayerManaListener.class);
     private final int manaGainBase;
     private int manaGainFromTiles = 0;
     private final static int MANA_LOSE_PER_IMP = 7;  // I don't find in Creature.java
@@ -102,7 +101,7 @@ public class PlayerManaControl extends Control {
     }
 
     private void updateListerners() {
-        for (PlayerManaListener listener : listeners) {
+        for (PlayerManaListener listener : listeners.getArray()) {
             listener.onManaChange(keeper.getId(), keeper.getMana(), keeper.getManaLoose(), keeper.getManaGain());
         }
     }

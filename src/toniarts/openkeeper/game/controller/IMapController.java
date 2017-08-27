@@ -9,14 +9,13 @@ import com.jme3.math.Vector2f;
 import java.awt.Point;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
-import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
  * Map related actions available to all players
@@ -44,11 +43,11 @@ public interface IMapController {
      *
      * @param x x coordinate
      * @param y y coordinate
-     * @param player the player
-     * @param room the room to be build
+     * @param playerId the player
+     * @param roomId the room to be build
      * @return is the tile buildable
      */
-    boolean isBuildable(int x, int y, Player player, Room room);
+    boolean isBuildable(int x, int y, short playerId, short roomId);
 
     /**
      * Determine if a tile (maybe a room) at x & y is claimable by the player
@@ -80,6 +79,16 @@ public interface IMapController {
     boolean isTaggable(int x, int y);
 
     /**
+     * Is the tile (building) sellable by us
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param playerId the player, the seller
+     * @return true if we can sell
+     */
+    public boolean isSellable(int x, int y, short playerId);
+
+    /**
      * Set some tiles selected/undelected
      *
      * @param start start coordinates
@@ -103,12 +112,80 @@ public interface IMapController {
      */
     public void removeListener(MapListener listener);
 
+    /**
+     * Get all the room controllers. FIXME: At least with the current design,
+     * the clients do not have this data, so either separate interface or design
+     * controllers so that they share data
+     *
+     * @return all the room controllers
+     */
     public Collection<IRoomController> getRoomControllers();
 
+    /**
+     * Get room instance by coordinates
+     *
+     * @param p the coordinates
+     * @return the room instance in the coordinates
+     */
     public RoomInstance getRoomInstanceByCoordinates(Point p);
 
+    /**
+     * Get a room controller by a room instance. FIXME: At least with the
+     * current design, the clients do not have this data, so either separate
+     * interface or design controllers so that they share data
+     *
+     * @param roomInstance the room instance
+     * @return room controller associaced to the given instance
+     */
     public IRoomController getRoomController(RoomInstance roomInstance);
 
+    /**
+     * Get all the rooms that implement a certain function i.e. serves as a
+     * storage for the given type etc. FIXME: At least with the current design,
+     * the clients do not have this data, so either separate interface or design
+     * controllers so that they share data
+     *
+     * @param objectType the object type (or function if you may)
+     * @param playerId the owner of the room
+     * @return list of room controllers that match your search criteria
+     */
     public List<IRoomController> getRoomsByFunction(AbstractRoomController.ObjectType objectType, Short playerId);
+
+    /**
+     * Get surrounding tile coordinates
+     *
+     * @param point starting coordinate whose surroundings you want
+     * @param diagonal whether to also include diagonally attached tiles
+     * @return surrounding tile coordinates
+     */
+    public Point[] getSurroundingTiles(Point point, boolean diagonal);
+
+    /**
+     * Get all the coordinates that contain rooms and their instances
+     *
+     * @return room coordinates
+     */
+    public Map<Point, RoomInstance> getRoomCoordinates();
+
+    /**
+     * Get room controllers by the instances
+     *
+     * @return the room controllers by instances
+     */
+    public Map<RoomInstance, IRoomController> getRoomControllersByInstances();
+
+    /**
+     * Removes room instances
+     *
+     * @param instances the instances to remove
+     */
+    public void removeRoomInstances(RoomInstance... instances);
+
+    /**
+     * Update rooms in specified coordinates
+     *
+     * @param coordinates the coordinates
+     */
+    public void updateRooms(Point[] coordinates);
 
 }

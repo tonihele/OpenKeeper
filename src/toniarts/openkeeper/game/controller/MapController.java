@@ -37,7 +37,6 @@ import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -55,7 +54,7 @@ public final class MapController implements Savable, IMapController {
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>();
     private final Map<RoomInstance, IRoomController> roomControllers = new HashMap<>();
-    private final List<MapListener> listeners = new SafeArrayList<>(MapListener.class);
+    private final SafeArrayList<MapListener> listeners = new SafeArrayList<>(MapListener.class);
 
     public MapController() {
         // For serialization
@@ -66,6 +65,7 @@ public final class MapController implements Savable, IMapController {
      *
      * @param kwdFile the KWD file
      * @param objectsController objects controller
+     * @param gameSettings the game settings
      */
     public MapController(KwdFile kwdFile, IObjectsController objectsController, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.kwdFile = kwdFile;
@@ -82,6 +82,7 @@ public final class MapController implements Savable, IMapController {
      *
      * @param mapData the map data
      * @param kwdFile the KWD file
+     * @param gameSettings the game settings
      */
     public MapController(MapData mapData, KwdFile kwdFile, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.mapData = mapData;
@@ -99,22 +100,22 @@ public final class MapController implements Savable, IMapController {
         // Go through the tiles and detect any rooms
         for (int y = 0; y < mapData.getHeight(); y++) {
             for (int x = 0; x < mapData.getWidth(); x++) {
-                MapTile mapTile = mapData.getTile(x, y);
-                if (kwdFile.getTerrain(mapTile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                    loadRoom(x, y);
-                }
+                loadRoom(new Point(x, y));
             }
         }
     }
 
-    private void loadRoom(int x, int y) {
-        Point p = new Point(x, y);
+    private void loadRoom(Point p) {
+        MapTile mapTile = mapData.getTile(p);
+        if (!kwdFile.getTerrain(mapTile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            return;
+        }
+
         if (roomCoordinates.containsKey(p)) {
             return;
         }
 
         // Find it
-        MapTile mapTile = mapData.getTile(x, y);
         RoomInstance roomInstance = new RoomInstance(kwdFile.getRoomByTerrain(mapTile.getTerrainId()));
         roomInstance.setOwnerId(mapTile.getOwnerId());
         findRoom(p, roomInstance);
@@ -239,12 +240,13 @@ public final class MapController implements Savable, IMapController {
     }
 
     @Override
-    public boolean isBuildable(int x, int y, Player player, Room room) {
+    public boolean isBuildable(int x, int y, short playerId, short roomId) {
         MapTile tile = getMapData().getTile(x, y);
         if (tile == null) {
             return false;
         }
 
+        Room room = kwdFile.getRoomById(roomId);
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
 
         // Ownable tile is needed for land building (and needs to be owned by us)
@@ -252,7 +254,7 @@ public final class MapController implements Savable, IMapController {
                 && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
                 && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
                 && !terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)
-                && tile.getOwnerId() == player.getPlayerId()) {
+                && tile.getOwnerId() == playerId) {
             return true;
         }
 
@@ -305,6 +307,20 @@ public final class MapController implements Savable, IMapController {
         return false;
     }
 
+    @Override
+    public boolean isSellable(int x, int y, short playerId) {
+        MapTile tile = getMapData().getTile(x, y);
+        Point p = new Point(x, y);
+        if (tile.getOwnerId() == playerId && getRoomCoordinates().containsKey(p)) {
+
+            // We own it, see if sellable
+            RoomInstance instance = roomCoordinates.get(p);
+            return instance.getRoom().getFlags().contains(Room.RoomFlag.BUILDABLE);
+        }
+        return false;
+    }
+
+    @Override
     public Point[] getSurroundingTiles(Point point, boolean diagonal) {
 
         // Get all surrounding tiles
@@ -338,7 +354,7 @@ public final class MapController implements Savable, IMapController {
     }
 
     private void notifyTileChange(List<MapTile> updatedTiles) {
-        for (MapListener mapListener : listeners) {
+        for (MapListener mapListener : listeners.getArray()) {
             mapListener.onTilesChange(updatedTiles);
         }
     }
@@ -356,6 +372,31 @@ public final class MapController implements Savable, IMapController {
     @Override
     public IRoomController getRoomController(RoomInstance roomInstance) {
         return roomControllers.get(roomInstance);
+    }
+
+    @Override
+    public Map<Point, RoomInstance> getRoomCoordinates() {
+        return roomCoordinates;
+    }
+
+    @Override
+    public Map<RoomInstance, IRoomController> getRoomControllersByInstances() {
+        return roomControllers;
+    }
+
+    @Override
+    public void removeRoomInstances(RoomInstance... instances) {
+        for (RoomInstance instance : instances) {
+
+            // Signal the room
+            IRoomController roomController = getRoomController(instance);
+            roomController.destroy();
+
+            roomControllers.remove(instance);
+            for (Point p : instance.getCoordinates()) {
+                roomCoordinates.remove(p);
+            }
+        }
     }
 
     /**
@@ -377,6 +418,13 @@ public final class MapController implements Savable, IMapController {
             }
         }
         return roomsList;
+    }
+
+    @Override
+    public void updateRooms(Point[] coordinates) {
+        for (Point p : coordinates) {
+            loadRoom(p);
+        }
     }
 
     @Override

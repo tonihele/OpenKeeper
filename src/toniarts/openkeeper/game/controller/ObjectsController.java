@@ -63,6 +63,7 @@ public class ObjectsController implements IObjectsController {
      *
      * @param kwdFile the KWD file
      * @param entityData the entity controller
+     * @param gameSettings the game settings
      */
     public ObjectsController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.kwdFile = kwdFile;

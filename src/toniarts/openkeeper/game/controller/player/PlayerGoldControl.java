@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.controller.player;
 
 import com.jme3.util.SafeArrayList;
-import java.util.List;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerGoldListener;
 
@@ -29,7 +28,7 @@ public class PlayerGoldControl {
 
     private int goldMax = 0;
     private final Keeper keeper;
-    private final List<PlayerGoldListener> listeners = new SafeArrayList<>(PlayerGoldListener.class);
+    private final SafeArrayList<PlayerGoldListener> listeners = new SafeArrayList<>(PlayerGoldListener.class);
 
     public PlayerGoldControl(Keeper keeper) {
         this.keeper = keeper;
@@ -63,7 +62,7 @@ public class PlayerGoldControl {
     }
 
     private void updateListeners() {
-        for (PlayerGoldListener listener : listeners) {
+        for (PlayerGoldListener listener : listeners.getArray()) {
             listener.onGoldChange(keeper.getId(), keeper.getGold());
         }
     }

@@ -14,64 +14,35 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.state.session;
+package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
-import com.jme3.network.service.rmi.Asynchronous;
-import com.simsilica.es.EntityData;
 
 /**
- * Clients view on game service
+ * Holds together all game related player actions
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface GameSession {
-
-    /**
-     * Get the game entity data
-     *
-     * @return entity data
-     */
-    public EntityData getEntityData();
-
-    /**
-     * Signal that we are ready and loaded up
-     */
-    @Asynchronous
-    public void loadComplete();
-
-    /**
-     * Our game loading status update
-     *
-     * @param progress our current progress
-     */
-    @Asynchronous
-    public void loadStatus(float progress);
-
-    /**
-     * Mark us ready to start receiving game updates
-     */
-    @Asynchronous
-    public void markReady();
+public interface IPlayerActions {
 
     /**
      * Build a building to the wanted area
      *
      * @param start start coordinates
      * @param end end coordinates
+     * @param playerId the player, the new owner
      * @param roomId room to build
      */
-    @Asynchronous
-    public void build(Vector2f start, Vector2f end, short roomId);
+    public void build(Vector2f start, Vector2f end, short playerId, short roomId);
 
     /**
      * Sell building(s) from the wanted area
      *
      * @param start start coordinates
      * @param end end coordinates
+     * @param playerId the player, the seller
      */
-    @Asynchronous
-    public void sell(Vector2f start, Vector2f end);
+    public void sell(Vector2f start, Vector2f end, short playerId);
 
     /**
      * Set some tiles selected/undelected
@@ -79,8 +50,8 @@ public interface GameSession {
      * @param start start coordinates
      * @param end end coordinates
      * @param select select or unselect
+     * @param playerId the player who selected the tile
      */
-    @Asynchronous
-    public void selectTiles(Vector2f start, Vector2f end, boolean select);
+    public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId);
 
 }

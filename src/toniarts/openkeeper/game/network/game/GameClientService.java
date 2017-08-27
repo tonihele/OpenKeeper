@@ -53,7 +53,7 @@ public class GameClientService extends AbstractClientService
     private GameSession delegate;
 
     private final GameSessionCallback sessionCallback = new GameSessionCallback();
-    private final List<GameSessionListener> listeners = new SafeArrayList<>(GameSessionListener.class);
+    private final SafeArrayList<GameSessionListener> listeners = new SafeArrayList<>(GameSessionListener.class);
 
     @Override
     public void loadComplete() {
@@ -89,7 +89,7 @@ public class GameClientService extends AbstractClientService
         s.getService(StreamingClientService.class).addListener(GameHostedService.MessageType.GAME_DATA.ordinal(), (StreamedMessageListener<GameData>) (GameData data) -> {
 
             logger.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{data});
-            for (GameSessionListener l : listeners) {
+            for (GameSessionListener l : listeners.getArray()) {
                 l.onGameDataLoaded(data.getPlayers(), data.getMapData());
             }
 
@@ -129,6 +129,16 @@ public class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void build(Vector2f start, Vector2f end, short roomId) {
+        getDelegate().build(start, end, roomId);
+    }
+
+    @Override
+    public void sell(Vector2f start, Vector2f end) {
+        getDelegate().sell(start, end);
+    }
+
+    @Override
     public void markReady() {
         getDelegate().markReady();
     }
@@ -157,7 +167,7 @@ public class GameClientService extends AbstractClientService
         @Override
         public void onGameStarted() {
             logger.log(Level.FINEST, "onGameStarted()");
-            for (GameSessionListener l : listeners) {
+            for (GameSessionListener l : listeners.getArray()) {
                 l.onGameStarted();
             }
         }
@@ -165,7 +175,7 @@ public class GameClientService extends AbstractClientService
         @Override
         public void onLoadComplete(short keeperId) {
             logger.log(Level.FINEST, "onLoadComplete({0})", new Object[]{keeperId});
-            for (GameSessionListener l : listeners) {
+            for (GameSessionListener l : listeners.getArray()) {
                 l.onLoadComplete(keeperId);
             }
         }
@@ -173,49 +183,49 @@ public class GameClientService extends AbstractClientService
         @Override
         public void onLoadStatusUpdate(float progress, short keeperId) {
             logger.log(Level.FINEST, "onLoadStatusUpdate({0},{1})", new Object[]{progress, keeperId});
-            for (GameSessionListener l : listeners) {
+            for (GameSessionListener l : listeners.getArray()) {
                 l.onLoadStatusUpdate(progress, keeperId);
             }
         }
 
         @Override
         public void onTilesChange(List<MapTile> updatedTiles) {
-            for (GameSessionListener l : listeners) {
+            for (GameSessionListener l : listeners.getArray()) {
                 l.onTilesChange(updatedTiles);
             }
         }
 
         @Override
         public void onAdded(PlayerSpell spell) {
-            for (GameSessionListener l : listeners) {
+            for (GameSessionListener l : listeners.getArray()) {
                 l.onAdded(spell);
             }
         }
 
         @Override
         public void onRemoved(PlayerSpell spell) {
-            for (GameSessionListener l : listeners) {
+            for (GameSessionListener l : listeners.getArray()) {
                 l.onRemoved(spell);
             }
         }
 
         @Override
         public void onResearchStatusChanged(PlayerSpell spell) {
-            for (GameSessionListener l : listeners) {
+            for (GameSessionListener l : listeners.getArray()) {
                 l.onResearchStatusChanged(spell);
             }
         }
 
         @Override
         public void onGoldChange(short keeperId, int gold) {
-            for (GameSessionListener l : listeners) {
+            for (GameSessionListener l : listeners.getArray()) {
                 l.onGoldChange(keeperId, gold);
             }
         }
 
         @Override
         public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
-            for (GameSessionListener l : listeners) {
+            for (GameSessionListener l : listeners.getArray()) {
                 l.onManaChange(keeperId, mana, manaLoose, manaGain);
             }
         }

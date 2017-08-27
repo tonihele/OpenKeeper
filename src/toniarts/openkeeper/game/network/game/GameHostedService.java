@@ -63,7 +63,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     private final Object loadLock = new Object();
     private static final String ATTRIBUTE_SESSION = "game.session";
     private final Map<ClientInfo, GameSessionImpl> players = new ConcurrentHashMap<>(4, 0.75f, 5);
-    private final List<GameSessionServiceListener> serverListeners = new SafeArrayList<>(GameSessionServiceListener.class);
+    private final SafeArrayList<GameSessionServiceListener> serverListeners = new SafeArrayList<>(GameSessionServiceListener.class);
     private RmiHostedService rmiService;
 
     /**
@@ -323,8 +323,22 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
         @Override
         public void selectTiles(Vector2f start, Vector2f end, boolean select) {
-            for (GameSessionServiceListener listener : serverListeners) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onSelectTiles(start, end, select, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void build(Vector2f start, Vector2f end, short roomId) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onBuild(start, end, roomId, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void sell(Vector2f start, Vector2f end) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onSell(start, end, clientInfo.getKeeper().getId());
             }
         }
 

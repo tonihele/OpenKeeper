@@ -31,10 +31,12 @@ import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl.CreatureUIState;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
+import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -58,7 +60,7 @@ import toniarts.openkeeper.world.room.RoomInstance;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerState extends AbstractAppState {
+public class PlayerState extends AbstractAppState implements PlayerListener {
 
     protected Main app;
 
@@ -458,5 +460,30 @@ public class PlayerState extends AbstractAppState {
         // TODO payday cost calculator
         return text.replaceAll("%19%", String.valueOf(dungeonHealth))
                 .replaceAll("%20", String.valueOf(paydayCost));
+    }
+
+    @Override
+    public void onAdded(PlayerSpell spell) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void onRemoved(PlayerSpell spell) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void onResearchStatusChanged(PlayerSpell spell) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void onGoldChange(short keeperId, int gold) {
+        screen.setGold(gold);
+    }
+
+    @Override
+    public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
+        screen.setMana(mana, manaLoose, manaGain);
     }
 }

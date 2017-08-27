@@ -123,6 +123,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         PlayerScreenController psc = this.stateManager.getState(PlayerState.class).getScreen();
         this.view = psc.getGuiConstraint();
         this.tooltip = psc.getTooltip();
+
         // Init the keeper hand
         keeperHand = new KeeperHand(assetManager, (int) gameClientState.getLevelVariable(MiscType.MAX_NUMBER_OF_THINGS_IN_HAND));
         this.app.getGuiNode().attachChild(keeperHand.getNode());
@@ -170,7 +171,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 }
                 if (interactionState.getType() == Type.SELL) {
                     return ColorIndicator.RED;
-                } else if (interactionState.getType() == Type.ROOM && !(gameClientState.getMapClientService().isTaggable((int) pos.x, (int) pos.y) || (gameClientState.getMapClientService().isBuildable((int) pos.x, (int) pos.y, player, gameClientState.getLevelData().getRoomById(interactionState.getItemId())) && isPlayerAffordToBuild(player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))))) {
+                } else if (interactionState.getType() == Type.ROOM && !(gameClientState.getMapClientService().isTaggable((int) pos.x, (int) pos.y) || (gameClientState.getMapClientService().isBuildable((int) pos.x, (int) pos.y, player.getPlayerId(), (short) interactionState.getItemId()) && isPlayerAffordToBuild(player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))))) {
                     return ColorIndicator.RED;
                 }
                 return ColorIndicator.BLUE;
@@ -586,12 +587,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                             // Determine if this is a select/deselect by the starting tile's status
                             boolean select = !gameClientState.getMapClientService().isSelected((int) Math.max(0, selectionArea.getRealStart().x), (int) Math.max(0, selectionArea.getRealStart().y), player.getPlayerId());
                             gameClientState.getMapClientService().selectTiles(selectionArea.getStart(), selectionArea.getEnd(), select, player.getPlayerId());
-                        } //else if (interactionState.getType() == Type.ROOM && getWorldHandler().isBuildable((int) selectionArea.getRealStart().x,
-                        // (int) selectionArea.getRealStart().y, player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))) {
-                        // getWorldHandler().build(selectionArea, player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()));
-//                        } else if (interactionState.getType() == Type.SELL) {
-                        //getWorldHandler().sell(selectionArea, player);
-//                        }
+                        } else if (interactionState.getType() == Type.ROOM && gameClientState.getMapClientService().isBuildable((int) selectionArea.getRealStart().x,
+                                (int) selectionArea.getRealStart().y, player.getPlayerId(), (short) interactionState.getItemId())) {
+                            gameClientState.getGameClientService().build(selectionArea.getStart(), selectionArea.getEnd(), (short) interactionState.getItemId());
+                        } else if (interactionState.getType() == Type.SELL) {
+                            gameClientState.getGameClientService().sell(selectionArea.getStart(), selectionArea.getEnd());
+                        }
 
                         selectionHandler.setActive(false);
                         updateCursor();

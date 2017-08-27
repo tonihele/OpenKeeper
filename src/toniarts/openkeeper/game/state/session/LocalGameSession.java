@@ -9,7 +9,6 @@ import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.base.DefaultEntityData;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
@@ -26,8 +25,8 @@ import toniarts.openkeeper.tools.convert.map.Player;
 public class LocalGameSession implements GameSessionServerService, GameSessionClientService {
 
     private final EntityData entityData = new DefaultEntityData();
-    private final List<GameSessionListener> listeners = new SafeArrayList<>(GameSessionListener.class);
-    private final List<GameSessionServiceListener> serverListeners = new ArrayList<>();
+    private final SafeArrayList<GameSessionListener> listeners = new SafeArrayList<>(GameSessionListener.class);
+    private final SafeArrayList<GameSessionServiceListener> serverListeners = new SafeArrayList<>(GameSessionServiceListener.class);
 
     public LocalGameSession() {
 
@@ -40,14 +39,14 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
 
     @Override
     public void sendGameData(Collection<Keeper> players, MapData mapData) {
-        for (GameSessionListener listener : listeners) {
+        for (GameSessionListener listener : listeners.getArray()) {
             listener.onGameDataLoaded(players, mapData);
         }
     }
 
     @Override
     public void startGame() {
-        for (GameSessionListener listener : listeners) {
+        for (GameSessionListener listener : listeners.getArray()) {
             listener.onGameStarted();
         }
     }
@@ -64,7 +63,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
 
     @Override
     public void loadComplete() {
-        for (GameSessionListener listener : listeners) {
+        for (GameSessionListener listener : listeners.getArray()) {
             listener.onLoadComplete(Player.KEEPER1_ID);
         }
 
@@ -74,15 +73,29 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
 
     @Override
     public void loadStatus(float progress) {
-        for (GameSessionListener listener : listeners) {
+        for (GameSessionListener listener : listeners.getArray()) {
             listener.onLoadStatusUpdate(progress, Player.KEEPER1_ID);
         }
     }
 
     @Override
     public void selectTiles(Vector2f start, Vector2f end, boolean select) {
-        for (GameSessionServiceListener listener : serverListeners) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
             listener.onSelectTiles(start, end, select, Player.KEEPER1_ID);
+        }
+    }
+
+    @Override
+    public void build(Vector2f start, Vector2f end, short roomId) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onBuild(start, end, roomId, Player.KEEPER1_ID);
+        }
+    }
+
+    @Override
+    public void sell(Vector2f start, Vector2f end) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onSell(start, end, Player.KEEPER1_ID);
         }
     }
 
@@ -93,7 +106,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
 
     @Override
     public void updateTiles(List<MapTile> updatedTiles) {
-        for (GameSessionListener listener : listeners) {
+        for (GameSessionListener listener : listeners.getArray()) {
             listener.onTilesChange(updatedTiles);
         }
     }
@@ -110,35 +123,35 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
 
     @Override
     public void onAdded(PlayerSpell spell) {
-        for (GameSessionListener listener : listeners) {
+        for (GameSessionListener listener : listeners.getArray()) {
             listener.onAdded(spell);
         }
     }
 
     @Override
     public void onRemoved(PlayerSpell spell) {
-        for (GameSessionListener listener : listeners) {
+        for (GameSessionListener listener : listeners.getArray()) {
             listener.onRemoved(spell);
         }
     }
 
     @Override
     public void onResearchStatusChanged(PlayerSpell spell) {
-        for (GameSessionListener listener : listeners) {
+        for (GameSessionListener listener : listeners.getArray()) {
             listener.onResearchStatusChanged(spell);
         }
     }
 
     @Override
     public void onGoldChange(short keeperId, int gold) {
-        for (GameSessionListener listener : listeners) {
+        for (GameSessionListener listener : listeners.getArray()) {
             listener.onGoldChange(keeperId, gold);
         }
     }
 
     @Override
     public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
-        for (GameSessionListener listener : listeners) {
+        for (GameSessionListener listener : listeners.getArray()) {
             listener.onManaChange(keeperId, mana, manaLoose, manaGain);
         }
     }
