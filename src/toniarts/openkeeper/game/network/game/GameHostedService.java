@@ -28,6 +28,9 @@ import com.simsilica.es.server.EntityDataHostedService;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
@@ -65,6 +68,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     private final Map<ClientInfo, GameSessionImpl> players = new ConcurrentHashMap<>(4, 0.75f, 5);
     private final SafeArrayList<GameSessionServiceListener> serverListeners = new SafeArrayList<>(GameSessionServiceListener.class);
     private RmiHostedService rmiService;
+    private ScheduledExecutorService entityUpdater;
 
     /**
      * Creates a new lobby service that will use the default reliable channel
@@ -85,6 +89,19 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         this.rmiService = getService(RmiHostedService.class);
         if (rmiService == null) {
             throw new RuntimeException(getClass().getName() + " requires an RMI service.");
+        }
+    }
+
+    @Override
+    public void terminate(HostedServiceManager serviceManager) {
+        super.terminate(serviceManager);
+        if (entityUpdater != null) {
+            entityUpdater.shutdownNow();
+            try {
+                entityUpdater.awaitTermination(1, TimeUnit.MINUTES);
+            } catch (InterruptedException ex) {
+                logger.log(Level.SEVERE, "Failed to wait for the entity updater to shutdown!", ex);
+            }
         }
     }
 
@@ -175,6 +192,12 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         for (GameSessionImpl gameSession : players.values()) {
             gameSession.onGameStarted();
         }
+
+        // Hmm, for now this, update the entities
+        entityUpdater = Executors.newSingleThreadScheduledExecutor((Runnable r) -> new Thread(r, "EntityDataUpdater"));
+        entityUpdater.scheduleAtFixedRate(() -> {
+            getServiceManager().getService(EntityDataHostedService.class).sendUpdates();
+        }, 100, 100, TimeUnit.MILLISECONDS);
     }
 
     @Override
