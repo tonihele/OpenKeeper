@@ -41,9 +41,9 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
     private int manaGain;
     private int manaLoose;
     private int maxMana;
-    private final List<Short> availableRooms = new ArrayList<>();
-    private final List<Short> availableSpells = new ArrayList<>();
-    private final List<Short> availableCreatures = new ArrayList<>();
+    private List<Short> availableRooms = new ArrayList<>();
+    private List<Short> availableSpells = new ArrayList<>();
+    private List<Short> availableCreatures = new ArrayList<>();
 
     private transient Player player;
     private short id;
