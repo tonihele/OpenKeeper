@@ -31,6 +31,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.ObjectEntity;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.view.control.EntityControl;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.loader.ObjectLoader;
 
@@ -45,6 +46,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private AppStateManager stateManager;
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
+    private final EntityData entityData;
 
     private final Node root;
     private final Node nodeCreatures;
@@ -60,6 +62,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     public PlayerEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+        this.entityData = entityData;
 
         // Init the loaders
         objectLoader = new ObjectLoader(kwdFile);
@@ -109,6 +112,15 @@ public class PlayerEntityViewState extends AbstractAppState {
         super.cleanup();
     }
 
+    /**
+     * Gets the entity view root node (no map, just entities)
+     *
+     * @return the root node
+     */
+    public Node getRoot() {
+        return root;
+    }
+
     private Spatial createModel(Entity e) {
 
         // We can only draw the few basic types, maybe we can do it like this
@@ -122,6 +134,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         ObjectEntity objectEntity = e.get(ObjectEntity.class);
         if (objectEntity != null) {
             result = objectLoader.load(assetManager, objectEntity);
+            EntityControl control = new EntityControl(e.getId(), entityData);
+            result.addControl(control);
             nodeObjects.attachChild(result);
         }
         return result;

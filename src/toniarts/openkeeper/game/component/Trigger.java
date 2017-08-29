@@ -19,20 +19,20 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * A base object entity class
+ * An entity class marking trigger
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectEntity implements EntityComponent {
+public class Trigger implements EntityComponent {
 
-    public short objectId;
+    public int triggerId;
 
-    public ObjectEntity() {
+    public Trigger() {
         // For serialization
     }
 
-    public ObjectEntity(short objectId) {
-        this.objectId = objectId;
+    public Trigger(int triggerId) {
+        this.triggerId = triggerId;
     }
 
 }

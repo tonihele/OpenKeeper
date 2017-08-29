@@ -60,9 +60,9 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
+import toniarts.openkeeper.view.control.IEntityControl;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
-import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
@@ -98,7 +98,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private RawInputListener inputListener;
     private boolean inputListenerAdded = false;
-    private IInteractiveControl interactiveControl;
+    private IEntityControl interactiveControl;
     private Label tooltip;
     private KeeperHand keeperHand;
 
@@ -164,8 +164,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 if (interactionState.getType() == Type.NONE && keeperHand.getItem() != null) {
                     MapTile tile = gameClientState.getMapClientService().getMapData().getTile((int) pos.x, (int) pos.y);
                     if (tile != null) {
-                        //IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
-                        //return (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
+                        //IEntityControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
+                        //return (status != IEntityControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
                     }
                     return ColorIndicator.RED;
                 }
@@ -375,7 +375,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
             // Maybe a kinda hack, but set the tooltip here
             tooltip.setText(interactiveControl.getTooltip(player.getPlayerId()));
-            interactiveControl.onHover();
+            interactiveControl.onHover(player.getPlayerId());
         } else if (isOnMap) {
 
             // Tile tooltip then
@@ -427,14 +427,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Ray ray = new Ray(click3d, dir);
 
         // Collect intersections between ray and all nodes in results list
-//        getWorldHandler().getThingsNode().collideWith(ray, results);
+        stateManager.getState(PlayerEntityViewState.class).getRoot().collideWith(ray, results);
+
         // See the results so we see what is going on
         Node object;
         for (int i = 0; i < results.size(); i++) {
 
             // TODO: Now just creature control, but all interaction objects
             object = results.getCollision(i).getGeometry().getParent().getParent();
-            IInteractiveControl control = object.getControl(IInteractiveControl.class);
+            IEntityControl control = object.getControl(IEntityControl.class);
             if (control != null) {
                 setInteractiveControl(control);
                 return;
@@ -443,7 +444,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         setInteractiveControl(null);
     }
 
-    private void setInteractiveControl(IInteractiveControl interactiveControl) {
+    private void setInteractiveControl(IEntityControl interactiveControl) {
 
         // If it is the same, don't do anything
         if (interactiveControl != null && interactiveControl.equals(this.interactiveControl)) {
@@ -452,11 +453,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         // Changed
         if (this.interactiveControl != null) {
-            this.interactiveControl.onHoverEnd();
+            this.interactiveControl.onHoverEnd(player.getPlayerId());
         }
         this.interactiveControl = interactiveControl;
         if (this.interactiveControl != null) {
-            this.interactiveControl.onHoverStart();
+            this.interactiveControl.onHoverStart(player.getPlayerId());
         }
     }
 
@@ -605,8 +606,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         // Drop
                         if (keeperHand.getItem() != null) {
                             MapTile tile = gameClientState.getMapClientService().getMapData().getTile(p);
-//                            IInteractiveControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
-//                            if (status != IInteractiveControl.DroppableStatus.NOT_DROPPABLE) {
+//                            IEntityControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
+//                            if (status != IEntityControl.DroppableStatus.NOT_DROPPABLE) {
 //
 //                                // Drop & update cursor
 //                                keeperHand.pop().drop(tile, selectionHandler.getActualPointedPosition(), interactiveControl);
@@ -679,12 +680,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      * @param object the object to pickup
      * @return picked or not
      */
-    public boolean pickupObject(IInteractiveControl object) {
+    public boolean pickupObject(IEntityControl object) {
         if (object == null || keeperHand.isFull() || !object.isPickable(player.getPlayerId())) {
             return false;
         }
 
-        keeperHand.push(object.pickUp(player.getPlayerId()));
+        //keeperHand.push(object.pickUp(player.getPlayerId()));
         updateCursor();
         return true;
     }

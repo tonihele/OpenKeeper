@@ -19,20 +19,20 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * A base object entity class
+ * An entity class marking ownership
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectEntity implements EntityComponent {
+public class Owner implements EntityComponent {
 
-    public short objectId;
+    public short ownerId;
 
-    public ObjectEntity() {
+    public Owner() {
         // For serialization
     }
 
-    public ObjectEntity(short objectId) {
-        this.objectId = objectId;
+    public Owner(short ownerId) {
+        this.ownerId = ownerId;
     }
 
 }

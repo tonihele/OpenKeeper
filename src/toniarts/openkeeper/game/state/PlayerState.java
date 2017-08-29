@@ -399,7 +399,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         Creature creature = stateManager.getState(GameState.class).getLevelData().getCreature(creatureId);
         CreatureControl creatureControl = getCreatureControl().getCreature(creature, uiState);
 
-        interactionState.pickupObject(creatureControl);
+        //interactionState.pickupObject(creatureControl);
     }
 
     public short getPlayerId() {
@@ -428,7 +428,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
             GoldObjectControl goc = ws.getThingLoader().addRoomGold(new Point(0, 0),
                     playerId, goldSubstracted, goldSubstracted);
             if (goc != null) {
-                interactionState.pickupObject(goc);
+                //interactionState.pickupObject(goc);
             }
         }
     }

@@ -23,9 +23,12 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.ObjectEntity;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Spellbook;
+import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -110,7 +113,8 @@ public class ObjectsController implements IObjectsController {
 
     private EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation, Integer money, Integer spellId, Integer triggerId, Integer maxMoney) {
         EntityId entity = entityData.createEntity();
-        entityData.setComponent(entity, new ObjectEntity(objectId, ownerId));
+        entityData.setComponent(entity, new ObjectEntity(objectId));
+        entityData.setComponent(entity, new Owner(ownerId));
 
         // Move to the center of the tile
         Vector3f pos = WorldUtils.pointToVector3f(x, y);
@@ -127,9 +131,14 @@ public class ObjectsController implements IObjectsController {
         }
 
         // Trigger
-//                    if (objectThing.getTriggerId() != 0) {
-//                        objectTriggerState.setThing(objectThing.getTriggerId(), objectControl);
-//                    }
+        if (triggerId != null) {
+            entityData.setComponent(entity, new Trigger(triggerId));
+        }
+
+        // Add some interaction properties
+        // TODO: highligtable...?
+        entityData.setComponent(entity, new Interaction(obj.getFlags().contains(GameObject.ObjectFlag.HIGHLIGHTABLE), obj.getFlags().contains(GameObject.ObjectFlag.CAN_BE_SLAPPED), obj.getFlags().contains(GameObject.ObjectFlag.CAN_BE_PICKED_UP), obj.getFlags().contains(GameObject.ObjectFlag.CAN_BE_DROPPED_ON_ANY_LAND)));
+
         return entity;
     }
 

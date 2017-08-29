@@ -19,20 +19,27 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * A base object entity class
+ * This entity tells what actions if any are possible for an entity (hmm, not
+ * sure if this is a good ES design...)
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectEntity implements EntityComponent {
+public class Interaction implements EntityComponent {
 
-    public short objectId;
+    public boolean interactable;
+    public boolean slappable;
+    public boolean pickUppable;
+    public boolean canBeDroppedOnAnyLand;
 
-    public ObjectEntity() {
+    public Interaction() {
         // For serialization
     }
 
-    public ObjectEntity(short objectId) {
-        this.objectId = objectId;
+    public Interaction(boolean interactable, boolean slappable, boolean pickUppable, boolean canBeDroppedOnAnyLand) {
+        this.interactable = interactable;
+        this.slappable = slappable;
+        this.pickUppable = pickUppable;
+        this.canBeDroppedOnAnyLand = canBeDroppedOnAnyLand;
     }
 
 }
