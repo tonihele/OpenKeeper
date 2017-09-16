@@ -22,12 +22,16 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import java.awt.Point;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.Debug;
@@ -41,7 +45,7 @@ import toniarts.openkeeper.world.listener.TileChangeListener;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class PlayerMapViewState extends AbstractAppState implements MapListener {
+public abstract class PlayerMapViewState extends AbstractAppState implements MapListener, PlayerActionListener {
 
     private Main app;
     private AppStateManager stateManager;
@@ -58,6 +62,10 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private final EffectManagerState effectManager;
     private List<TileChangeListener> tileChangeListener;
     private Map<Short, List<RoomListener>> roomListeners;
+    private Queue<TileAction> actionQueue = new ConcurrentLinkedDeque<>();
+    private static final float TICK = 0.250f; // FIXME: no, settings
+    private float lastUpdate = 0;
+    private IMapController mapClientService;
 //    private final GameState gameState;
 //    private final FlashTileControl flashTileControl;
 
@@ -66,6 +74,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     public PlayerMapViewState(final KwdFile kwdFile, final AssetManager assetManager, IMapController mapClientService, short playerId) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+        this.mapClientService = mapClientService;
 
         // Effect manager
         effectManager = new EffectManagerState(kwdFile, assetManager);
@@ -138,6 +147,16 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             return;
         }
 
+        // Maybe like an additional update or something so that we know the tick
+        lastUpdate += tpf;
+        if (lastUpdate > TICK) {
+            lastUpdate = 0;
+            TileAction action = actionQueue.poll();
+            if (action != null) {
+                mapClientService.setTiles(Arrays.asList(new MapTile[]{action.tile}));
+                mapLoader.updateTiles(action.tile.getLocation());
+            }
+        }
 //        flashTileControl.update(tpf);
     }
 
@@ -165,6 +184,21 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             mapLoader.updateTiles(points);
         });
     }
+
+    @Override
+    public void onBuild(short keeperId, List<MapTile> tiles) {
+        for (MapTile tile : tiles) {
+            actionQueue.add(new TileAction(Action.BUILD, tile));
+        }
+    }
+
+    @Override
+    public void onSold(short keeperId, List<MapTile> tiles) {
+        for (MapTile tile : tiles) {
+            actionQueue.add(new TileAction(Action.SOLD, tile));
+        }
+    }
+
 
 //
 //    /**
@@ -1365,4 +1399,20 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 //        }
 //        return null;
 //    }
+    private enum Action {
+        BUILD, SOLD;
+    }
+
+    private class TileAction {
+
+        private final Action action;
+        private final MapTile tile;
+
+        public TileAction(Action action, MapTile tile) {
+            this.action = action;
+            this.tile = tile;
+        }
+
+    }
+
 }

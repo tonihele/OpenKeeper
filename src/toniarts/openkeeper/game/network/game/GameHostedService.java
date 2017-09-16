@@ -242,6 +242,20 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
     }
 
+    @Override
+    public void onBuild(short keeperId, List<MapTile> tiles) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onBuild(keeperId, tiles);
+        }
+    }
+
+    @Override
+    public void onSold(short keeperId, List<MapTile> tiles) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onSold(keeperId, tiles);
+        }
+    }
+
     /**
      * The connection-specific 'host' for the GameSession. For convenience this
      * also implements the GameSessionListener. Since the methods don't collide
@@ -393,6 +407,16 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         @Override
         public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
             getCallback().onManaChange(keeperId, mana, manaLoose, manaGain);
+        }
+
+        @Override
+        public void onBuild(short keeperId, List<MapTile> tiles) {
+            getCallback().onBuild(keeperId, tiles);
+        }
+
+        @Override
+        public void onSold(short keeperId, List<MapTile> tiles) {
+            getCallback().onSold(keeperId, tiles);
         }
 
     }

@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.logic.GameLogicThread;
 import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.game.map.MapTile;
@@ -83,6 +84,7 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
     private IMapController mapController;
     private final MapListener mapListener = new MapListenerImpl();
     private final GameSessionServiceListener gameSessionListener = new GameSessionServiceListenerImpl();
+    private final PlayerActionListener plaerActionListener = new PlayerActionListenerImpl();
     private GameController gameController;
 
     private GameResult gameResult = null;
@@ -478,6 +480,7 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
             gameController = new GameController(kwdFile, gameService.getEntityData(), kwdFile.getVariables());
             gameController.createNewGame(players);
             mapController = gameController.getMapController();
+            gameController.addListener(plaerActionListener);
 
             // Send the the initial game data
             gameService.sendGameData(gameController.getPlayers(), mapController.getMapData());
@@ -528,6 +531,23 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
         public void onTilesChange(List<MapTile> updatedTiles) {
             gameService.updateTiles(updatedTiles);
         }
+    }
+
+    /**
+     * Listen for the map changes
+     */
+    private class PlayerActionListenerImpl implements PlayerActionListener {
+
+        @Override
+        public void onBuild(short keeperId, List<MapTile> tiles) {
+            gameService.onBuild(keeperId, tiles);
+        }
+
+        @Override
+        public void onSold(short keeperId, List<MapTile> tiles) {
+            gameService.onSold(keeperId, tiles);
+        }
+
     }
 
 }

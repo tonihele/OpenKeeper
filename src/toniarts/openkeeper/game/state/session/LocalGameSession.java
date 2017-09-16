@@ -156,4 +156,18 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
         }
     }
 
+    @Override
+    public void onBuild(short keeperId, List<MapTile> tiles) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onBuild(keeperId, tiles);
+        }
+    }
+
+    @Override
+    public void onSold(short keeperId, List<MapTile> tiles) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onSold(keeperId, tiles);
+        }
+    }
+
 }

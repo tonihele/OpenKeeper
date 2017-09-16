@@ -229,5 +229,19 @@ public class GameClientService extends AbstractClientService
                 l.onManaChange(keeperId, mana, manaLoose, manaGain);
             }
         }
+
+        @Override
+        public void onBuild(short keeperId, List<MapTile> tiles) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onBuild(keeperId, tiles);
+            }
+        }
+
+        @Override
+        public void onSold(short keeperId, List<MapTile> tiles) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onSold(keeperId, tiles);
+            }
+        }
     }
 }

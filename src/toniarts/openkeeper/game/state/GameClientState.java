@@ -420,6 +420,16 @@ public class GameClientState extends AbstractPauseAwareState {
             }
         }
 
+        @Override
+        public void onBuild(short keeperId, List<MapTile> tiles) {
+            playerMapViewState.onBuild(keeperId, tiles);
+        }
+
+        @Override
+        public void onSold(short keeperId, List<MapTile> tiles) {
+            playerMapViewState.onSold(keeperId, tiles);
+        }
+
     }
 
     public IMapController getMapClientService() {

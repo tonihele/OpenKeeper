@@ -37,6 +37,7 @@ import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerListener;
+import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -485,5 +486,15 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     @Override
     public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
         screen.setMana(mana, manaLoose, manaGain);
+    }
+
+    @Override
+    public void onBuild(short keeperId, List<MapTile> tiles) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void onSold(short keeperId, List<MapTile> tiles) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

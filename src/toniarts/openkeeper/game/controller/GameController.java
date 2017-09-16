@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
+import com.jme3.util.SafeArrayList;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import java.awt.Point;
@@ -42,6 +43,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -68,6 +70,7 @@ public class GameController implements IPlayerActions {
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
+    private final SafeArrayList<PlayerActionListener> listeners = new SafeArrayList<>(PlayerActionListener.class);
 
     public GameController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.kwdFile = kwdFile;
@@ -359,10 +362,12 @@ public class GameController implements IPlayerActions {
         substractGold(cost, playerId);
 
         // Build
+        List<MapTile> buildTiles = new ArrayList<>(instancePlots.size());
         for (Point p : instancePlots) {
             MapTile tile = mapController.getMapData().getTile(p);
             tile.setOwnerId(playerId);
             tile.setTerrainId(room.getTerrainId());
+            buildTiles.add(tile);
         }
 
         // See if we hit any of the adjacent rooms
@@ -424,6 +429,9 @@ public class GameController implements IPlayerActions {
 
         // Add any loose gold to the building
         attachLooseGoldToRoom(mapController.getRoomController(instance), instance);
+
+        // Notify the build
+        notifyOnBuild(playerId, buildTiles);
     }
 
     private void attachLooseGoldToRoom(IRoomController roomController, RoomInstance instance) {
@@ -447,6 +455,7 @@ public class GameController implements IPlayerActions {
 
     @Override
     public void sell(Vector2f start, Vector2f end, short playerId) {
+        List<MapTile> soldTiles = new ArrayList<>();
         Set<Point> updatableTiles = new HashSet<>();
         Set<RoomInstance> soldInstances = new HashSet<>();
         List<Point> roomCoordinates = new ArrayList<>();
@@ -464,6 +473,8 @@ public class GameController implements IPlayerActions {
                 if (tile == null) {
                     continue;
                 }
+                soldTiles.add(tile);
+
                 Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
                     Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
@@ -513,6 +524,9 @@ public class GameController implements IPlayerActions {
                 attachLooseGoldToRoom(mapController.getRoomController(instance), instance);
             }
         }
+
+        // Notify
+        notifyOnSold(playerId, soldTiles);
     }
 
     @Override
@@ -530,6 +544,36 @@ public class GameController implements IPlayerActions {
 
     public Collection<Keeper> getPlayers() {
         return players.values();
+    }
+
+    /**
+     * If you want to get notified about player actiosns
+     *
+     * @param listener the listener
+     */
+    public void addListener(PlayerActionListener listener) {
+        listeners.add(listener);
+    }
+
+    /**
+     * Stop listening to player actions
+     *
+     * @param listener the listener
+     */
+    public void removeListener(PlayerActionListener listener) {
+        listeners.remove(listener);
+    }
+
+    private void notifyOnBuild(short playerId, List<MapTile> buildTiles) {
+        for (PlayerActionListener listener : listeners.getArray()) {
+            listener.onBuild(playerId, buildTiles);
+        }
+    }
+
+    private void notifyOnSold(short playerId, List<MapTile> soldTiles) {
+        for (PlayerActionListener listener : listeners.getArray()) {
+            listener.onSold(playerId, soldTiles);
+        }
     }
 
 }
