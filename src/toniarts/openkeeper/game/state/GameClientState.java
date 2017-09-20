@@ -361,15 +361,18 @@ public class GameClientState extends AbstractPauseAwareState {
             // Set the player stuff
             playerState = stateManager.getState(PlayerState.class);
             playerState.setPlayerId(playerId);
-            playerState.setEnabled(true);
-            stateManager.attach(playerMapViewState);
-            stateManager.attach(playerModelViewState);
 
-            // Release the lock and enter to the game phase
-            synchronized (loadingObject) {
-                gameStarted = true;
-                loadingObject.notifyAll();
-            }
+            app.enqueue(() -> {
+                playerState.setEnabled(true);
+                stateManager.attach(playerMapViewState);
+                stateManager.attach(playerModelViewState);
+
+                // Release the lock and enter to the game phase
+                synchronized (loadingObject) {
+                    gameStarted = true;
+                    loadingObject.notifyAll();
+                }
+            });
         }
 
         @Override
