@@ -5,17 +5,30 @@
  */
 package toniarts.openkeeper.game.state.session;
 
+import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.base.DefaultEntityData;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.state.GameClientState;
+import toniarts.openkeeper.game.state.GameServerState;
+import toniarts.openkeeper.game.state.lobby.ClientInfo;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  * Local game session, a virtual server
@@ -30,6 +43,41 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
 
     public LocalGameSession() {
 
+    }
+
+    /**
+     * Creates and starts a local game session with given level and default
+     * players
+     *
+     * @param level the level to load
+     * @param stateManager state manager instance for setting up the game
+     * @throws java.io.IOException Problem with the map file
+     */
+    public static void CreateLocalGame(String level, AppStateManager stateManager) throws IOException {
+
+        // Try to load the file
+        String mapFile = ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd");
+        File file = new File(mapFile);
+        if (!file.exists()) {
+            throw new FileNotFoundException(mapFile);
+        }
+        KwdFile kwdFile = new KwdFile(Main.getDkIIFolder(), file);
+
+        // Player and server
+        LocalGameSession gameSession = new LocalGameSession();
+        Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
+        ClientInfo clientInfo = new ClientInfo(0, null, 0);
+        clientInfo.setName(Utils.getMainTextResourceBundle().getString("58"));
+        clientInfo.setKeeper(keeper);
+        clientInfo.setReady(true);
+
+        // The client
+        GameClientState gameClientState = new GameClientState(kwdFile, Player.KEEPER1_ID, Arrays.asList(clientInfo), gameSession);
+        stateManager.attach(gameClientState);
+
+        // The game server
+        GameServerState gameServerState = new GameServerState(kwdFile, Arrays.asList(keeper), false, gameSession);
+        stateManager.attach(gameServerState);
     }
 
     @Override

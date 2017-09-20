@@ -60,17 +60,17 @@ import javax.swing.JFrame;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
-import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
+import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.utils.UTF8Control;
@@ -545,8 +545,11 @@ public class Main extends SimpleApplication {
      */
     private void startGame() {
         if (params.containsKey("level")) {
-            GameState gameState = new GameState(params.get("level"));
-            stateManager.attach(gameState);
+            try {
+                LocalGameSession.CreateLocalGame(params.get("level"), stateManager);
+            } catch (IOException ex) {
+                throw new RuntimeException("Failed to start the game!", ex);
+            }
         } else {
 
             // Enable the start menu
