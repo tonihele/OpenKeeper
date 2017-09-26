@@ -305,7 +305,7 @@ public class GameController implements IPlayerActions {
             }
 
             // Substract from the player
-            playerControllers.get(playerId).getGoldControl().subGold(moneySubstracted);
+            playerControllers.get(playerId).getGoldControl().subGold(amount - moneySubstracted);
 
             return moneySubstracted;
         }
@@ -481,11 +481,13 @@ public class GameController implements IPlayerActions {
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else // Water or lava
-                     if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+                    {
+                        if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
                             tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
                         } else {
                             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                         }
+                    }
 
                     // Give money back
                     int goldLeft = addGold(playerId, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100)));
