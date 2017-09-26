@@ -285,29 +285,29 @@ public class GameController implements IPlayerActions {
             }
 
             // The gold is subtracted evenly from all treasuries
-            int moneySubstracted = amount;
+            int moneyToSubstract = amount;
             List<IRoomController> playersTreasuries = mapController.getRoomsByFunction(ObjectType.GOLD, playerId);
-            while (moneySubstracted > 0 && !playersTreasuries.isEmpty()) {
+            while (moneyToSubstract > 0 && !playersTreasuries.isEmpty()) {
                 Iterator<IRoomController> iter = playersTreasuries.iterator();
-                int goldToRemove = (int) Math.ceil((float) moneySubstracted / playersTreasuries.size());
+                int goldToRemove = (int) Math.ceil((float) moneyToSubstract / playersTreasuries.size());
                 while (iter.hasNext()) {
                     IRoomController room = iter.next();
                     RoomGoldControl control = room.getObjectControl(ObjectType.GOLD);
-                    goldToRemove = Math.min(moneySubstracted, goldToRemove); // Rounding...
-                    moneySubstracted -= goldToRemove - control.removeGold(goldToRemove);
+                    goldToRemove = Math.min(moneyToSubstract, goldToRemove); // Rounding...
+                    moneyToSubstract -= goldToRemove - control.removeGold(goldToRemove);
                     if (control.getCurrentCapacity() == 0) {
                         iter.remove();
                     }
-                    if (moneySubstracted == 0) {
+                    if (moneyToSubstract == 0) {
                         break;
                     }
                 }
             }
 
             // Substract from the player
-            playerControllers.get(playerId).getGoldControl().subGold(amount - moneySubstracted);
+            playerControllers.get(playerId).getGoldControl().subGold(amount - moneyToSubstract);
 
-            return moneySubstracted;
+            return moneyToSubstract;
         }
     }
 
@@ -481,13 +481,11 @@ public class GameController implements IPlayerActions {
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else // Water or lava
-                    {
-                        if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+                     if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
                             tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
                         } else {
                             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                         }
-                    }
 
                     // Give money back
                     int goldLeft = addGold(playerId, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100)));
