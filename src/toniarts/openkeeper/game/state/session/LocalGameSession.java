@@ -95,6 +95,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
         BinaryExporter exporter = BinaryExporter.getInstance();
         BinaryImporter importer = BinaryImporter.getInstance();
 
+        // Clone the map data so it really is different as in normal multiplayer it is
         for (GameSessionListener listener : listeners.getArray()) {
             try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
                 exporter.save(mapData, baos);
