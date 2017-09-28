@@ -6,16 +6,21 @@
 package toniarts.openkeeper.game.state.session;
 
 import com.jme3.app.state.AppStateManager;
+import com.jme3.export.binary.BinaryExporter;
+import com.jme3.export.binary.BinaryImporter;
 import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.base.DefaultEntityData;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.data.Keeper;
@@ -87,8 +92,16 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
 
     @Override
     public void sendGameData(Collection<Keeper> players, MapData mapData) {
+        BinaryExporter exporter = BinaryExporter.getInstance();
+        BinaryImporter importer = BinaryImporter.getInstance();
+
         for (GameSessionListener listener : listeners.getArray()) {
-            listener.onGameDataLoaded(players, mapData);
+            try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                exporter.save(mapData, baos);
+                listener.onGameDataLoaded(players, (MapData) importer.load(baos.toByteArray()));
+            } catch (IOException ex) {
+                Logger.getLogger(LocalGameSession.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
     }
 

@@ -348,8 +348,8 @@ public class GameController implements IPlayerActions {
 
                 Point p = new Point(x, y);
                 instancePlots.add(p);
-                buildPlots.addAll(Arrays.asList(mapController.getSurroundingTiles(p, false)));
-                updatableTiles.addAll(Arrays.asList(mapController.getSurroundingTiles(p, true)));
+                buildPlots.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, false)));
+                updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
             }
         }
 
@@ -406,7 +406,7 @@ public class GameController implements IPlayerActions {
                 }
 
                 for (Point p : instance.getCoordinates()) {
-                    updatableTiles.addAll(Arrays.asList(mapController.getSurroundingTiles(p, true)));
+                    updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
                     if (!firstInstance.equals(instance)) {
                         firstInstance.addCoordinate(p);
                         mapController.getRoomCoordinates().put(p, firstInstance);
@@ -481,11 +481,13 @@ public class GameController implements IPlayerActions {
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else // Water or lava
-                     if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+                    {
+                        if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
                             tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
                         } else {
                             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                         }
+                    }
 
                     // Give money back
                     int goldLeft = addGold(playerId, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100)));
@@ -498,14 +500,14 @@ public class GameController implements IPlayerActions {
 
                 // Get the instance
                 soldInstances.add(mapController.getRoomCoordinates().get(p));
-                updatableTiles.addAll(Arrays.asList(mapController.getSurroundingTiles(p, true)));
+                updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
             }
         }
 
         // Remove the sold instances (will be regenerated) and add them to updatable
         for (RoomInstance roomInstance : soldInstances) {
             for (Point p : roomInstance.getCoordinates()) {
-                updatableTiles.addAll(Arrays.asList(mapController.getSurroundingTiles(p, true)));
+                updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
             }
             roomCoordinates.addAll(roomInstance.getCoordinates());
         }

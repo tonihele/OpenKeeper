@@ -40,6 +40,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * This is controller for the map related functions
@@ -293,7 +294,7 @@ public final class MapController implements Savable, IMapController {
 
         // In order to claim, it needs to be adjacent to your own tiles
         if (claimable) {
-            for (Point p : getSurroundingTiles(new Point(x, y), false)) {
+            for (Point p : WorldUtils.getSurroundingTiles(mapData, new Point(x, y), false)) {
                 MapTile neighbourTile = getMapData().getTile(p);
                 if (neighbourTile != null) {
                     Terrain neighbourTerrain = kwdFile.getTerrain(neighbourTile.getTerrainId());
@@ -318,34 +319,6 @@ public final class MapController implements Savable, IMapController {
             return instance.getRoom().getFlags().contains(Room.RoomFlag.BUILDABLE);
         }
         return false;
-    }
-
-    @Override
-    public Point[] getSurroundingTiles(Point point, boolean diagonal) {
-
-        // Get all surrounding tiles
-        List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
-        tileCoords.add(point);
-
-        addIfValidCoordinate(point.x, point.y - 1, tileCoords); // North
-        addIfValidCoordinate(point.x + 1, point.y, tileCoords); // East
-        addIfValidCoordinate(point.x, point.y + 1, tileCoords); // South
-        addIfValidCoordinate(point.x - 1, point.y, tileCoords); // West
-        if (diagonal) {
-            addIfValidCoordinate(point.x - 1, point.y - 1, tileCoords); // NW
-            addIfValidCoordinate(point.x + 1, point.y - 1, tileCoords); // NE
-            addIfValidCoordinate(point.x - 1, point.y + 1, tileCoords); // SW
-            addIfValidCoordinate(point.x + 1, point.y + 1, tileCoords); // SE
-        }
-
-        return tileCoords.toArray(new Point[tileCoords.size()]);
-    }
-
-    private void addIfValidCoordinate(final int x, final int y, List<Point> tileCoords) {
-        MapTile tile = mapData.getTile(x, y);
-        if (tile != null) {
-            tileCoords.add(tile.getLocation());
-        }
     }
 
     @Override

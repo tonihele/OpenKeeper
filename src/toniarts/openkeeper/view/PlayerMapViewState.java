@@ -199,7 +199,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         }
     }
 
-
 //
 //    /**
 //     * If you want to get notified about tile changes

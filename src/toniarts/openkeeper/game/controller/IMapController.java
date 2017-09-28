@@ -152,15 +152,6 @@ public interface IMapController {
     public List<IRoomController> getRoomsByFunction(AbstractRoomController.ObjectType objectType, Short playerId);
 
     /**
-     * Get surrounding tile coordinates
-     *
-     * @param point starting coordinate whose surroundings you want
-     * @param diagonal whether to also include diagonally attached tiles
-     * @return surrounding tile coordinates
-     */
-    public Point[] getSurroundingTiles(Point point, boolean diagonal);
-
-    /**
      * Get all the coordinates that contain rooms and their instances
      *
      * @return room coordinates

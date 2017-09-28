@@ -523,11 +523,6 @@ public class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public Point[] getSurroundingTiles(Point point, boolean diagonal) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
         public Map<Point, RoomInstance> getRoomCoordinates() {
             throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }

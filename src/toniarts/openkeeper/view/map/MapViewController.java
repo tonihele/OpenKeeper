@@ -32,6 +32,7 @@ import com.jme3.texture.Texture;
 import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -184,11 +185,37 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      * @param points tile coordinates to update
      */
     public void updateTiles(Point... points) {
+        Set<Point> pointsToUpdate = new HashSet<>();
+
+        // FIXME: This is really quite heavy and unneeded, just a quick "fix"
+        // If this touches any rooms, reconstruct them and add the neighbouring tiles to update list
+        for (Point point : points) {
+            pointsToUpdate.add(point);
+            RoomInstance roomInstance = roomCoordinates.get(point);
+            if (roomInstance != null) {
+                pointsToUpdate.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(getMapData(), point, true)));
+                for (Point roomCoordinate : roomInstance.getCoordinates()) {
+                    pointsToUpdate.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(getMapData(), roomCoordinate, true)));
+                    pointsToUpdate.add(roomCoordinate);
+                }
+                removeRoomInstances(roomInstance);
+            } else {
+                Point[] surroundingTiles = WorldUtils.getSurroundingTiles(getMapData(), point, true);
+
+                // Also remove the surrounding rooms, if this room needs to be merged to other rooms
+                for (Point surroundingPoint : surroundingTiles) {
+                    roomInstance = roomCoordinates.get(surroundingPoint);
+                    if (roomInstance != null) {
+                        removeRoomInstances(roomInstance);
+                    }
+                }
+            }
+        }
 
         // Reconstruct all tiles in the area
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
         Node terrainNode = (Node) map.getChild(TERRAIN_NODE);
-        for (Point point : points) {
+        for (Point point : pointsToUpdate) {
             MapTile tile = getMapData().getTile(point);
 
             // Reconstruct and mark for patching
@@ -878,20 +905,19 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      * @param instances room instances to remove
      */
     protected void removeRoomInstances(RoomInstance... instances) {
-//        for (RoomInstance instance : instances) {
-//            roomsNode.detachChild(roomNodes.get(instance));
-//            roomNodes.remove(instance);
-//            rooms.remove(instance);
-//
-//            // Signal the room
-//            GenericRoom room = roomActuals.get(instance);
-//            room.destroy();
-//
-//            roomActuals.remove(instance);
-//            for (Point p : instance.getCoordinates()) {
-//                roomCoordinates.remove(p);
-//            }
-//        }
+        for (RoomInstance instance : instances) {
+            roomsNode.detachChild(roomNodes.get(instance));
+            roomNodes.remove(instance);
+            //rooms.remove(instance);
+
+            // Signal the room
+            //GenericRoom room = roomActuals.get(instance);
+            //room.destroy();
+            roomActuals.remove(instance);
+            for (Point p : instance.getCoordinates()) {
+                roomCoordinates.remove(p);
+            }
+        }
     }
 
     /**
