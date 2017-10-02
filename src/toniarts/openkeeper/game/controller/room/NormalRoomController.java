@@ -17,9 +17,13 @@
 package toniarts.openkeeper.game.controller.room;
 
 import com.jme3.math.FastMath;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -37,11 +41,12 @@ public class NormalRoomController extends AbstractRoomController {
     }
 
     @Override
-    protected void constructPillars() {
+    protected List<EntityId> constructPillars() {
 
         // NOTE: I don't understand how the pillars are referenced, they are neither in Terrain nor Room, but they are listed in the Objects. Even Lair has pillars, but I've never seem the in-game
         // Pillars go into all at least 3x3 corners, there can be more than 4 pillars per room
         // Go through all the points and see if they are fit for pillar placement
+        List<EntityId> pillars = null;
         for (Point p : roomInstance.getCoordinates()) {
 
             // See that we have 2 "free" neigbouring tiles
@@ -98,10 +103,15 @@ public class NormalRoomController extends AbstractRoomController {
                         yAngle = FastMath.HALF_PI;
                     }
 
+                    if (pillars == null) {
+                        pillars = new ArrayList<>();
+                    }
+
                     // Construct a pillar
-                    objectsController.loadObject(getPillarObject(roomInstance.getRoom().getRoomId()), (short) 0, p.x, p.y, yAngle);
+                    pillars.add(objectsController.loadObject(getPillarObject(roomInstance.getRoom().getRoomId()), (short) 0, p.x, p.y, yAngle));
                 }
             }
         }
+        return pillars == null ? Collections.emptyList() : pillars;
     }
 }

@@ -17,8 +17,11 @@
 package toniarts.openkeeper.game.controller.room;
 
 import com.jme3.math.FastMath;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -36,10 +39,11 @@ public class WorkshopController extends NormalRoomController {
     }
 
     @Override
-    protected void constructPillars() {
+    protected List<EntityId> constructPillars() {
 
         // We have very different logic than the normal
         // Go through all the points and see if they are fit for pillar placement
+        List<EntityId> pillars = new ArrayList<>();
         for (Point p : roomInstance.getCoordinates()) {
 
             // See that we have 2 "free" neigbouring tiles
@@ -62,25 +66,27 @@ public class WorkshopController extends NormalRoomController {
             // Face "in" diagonally
             if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
                 float yAngle = -FastMath.HALF_PI;
-                constructPillar(p, yAngle);
+                pillars.add(constructPillar(p, yAngle));
             }
             if (freeDirections.contains(WallSection.WallDirection.SOUTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
                 float yAngle = FastMath.PI;
-                constructPillar(p, yAngle);
+                pillars.add(constructPillar(p, yAngle));
             }
             if (freeDirections.contains(WallSection.WallDirection.SOUTH) && freeDirections.contains(WallSection.WallDirection.WEST)) {
                 float yAngle = FastMath.HALF_PI;
-                constructPillar(p, yAngle);
+                pillars.add(constructPillar(p, yAngle));
             }
             if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.WEST)) {
-                constructPillar(p, 0);
+                pillars.add(constructPillar(p, 0));
             }
         }
+        return pillars;
     }
 
-    private void constructPillar(Point p, float yAngle) {
+    private EntityId constructPillar(Point p, float yAngle) {
+
         // Construct a pillar
-        objectsController.loadObject(getPillarObject(roomInstance.getRoom().getRoomId()), (short) 0, p.x, p.y, yAngle);
+        return objectsController.loadObject(getPillarObject(roomInstance.getRoom().getRoomId()), (short) 0, p.x, p.y, yAngle);
     }
 
     @Override

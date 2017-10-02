@@ -18,8 +18,10 @@ package toniarts.openkeeper.game.controller.room;
 
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
@@ -72,10 +74,16 @@ public abstract class AbstractRoomController implements IRoomController {
     protected final IObjectsController objectsController;
     private final Set<EntityId> floorFurniture = new HashSet<>();
     private final Set<EntityId> wallFurniture = new HashSet<>();
+    private final Set<EntityId> pillars;
 
     public AbstractRoomController(RoomInstance roomInstance, IObjectsController objectsController) {
         this.roomInstance = roomInstance;
         this.objectsController = objectsController;
+        if (hasPillars()) {
+            pillars = new HashSet<>();
+        } else {
+            pillars = Collections.emptySet();
+        }
     }
 
     protected void setupCoordinates() {
@@ -88,9 +96,10 @@ public abstract class AbstractRoomController implements IRoomController {
         setupCoordinates();
 
         // Construct the room objects
+        removeObjects();
         constructObjects();
         if (hasPillars()) {
-            constructPillars();
+            pillars.addAll(constructPillars());
         }
     }
 
@@ -101,17 +110,18 @@ public abstract class AbstractRoomController implements IRoomController {
     /**
      * Construct room pillars. Info in:
      * https://github.com/tonihele/OpenKeeper/issues/116
+     *
+     * @return the list of pillars constructed
      */
-    protected void constructPillars() {
+    protected List<EntityId> constructPillars() {
         // TODO: Maybe replace with something similar than the object placement ENUM, there are only few different scenarios of contructing the pillars
+        return Collections.emptyList();
     }
 
     /**
      * Construct room objects
      */
     protected void constructObjects() {
-        floorFurniture.clear();
-        wallFurniture.clear();
 
         // Floor objects 0-2
         Room room = roomInstance.getRoom();
@@ -231,6 +241,27 @@ public abstract class AbstractRoomController implements IRoomController {
         for (IRoomObjectControl control : objectControls.values()) {
             control.destroy();
         }
+
+        // Remove objects
+        removeObjects();
+    }
+
+    private void removeObjects() {
+
+        // Clear the old ones
+        // TODO: recycle?
+        for (EntityId entityId : pillars) {
+            objectsController.getEntityData().removeEntity(entityId);
+        }
+        pillars.clear();
+        for (EntityId entityId : floorFurniture) {
+            objectsController.getEntityData().removeEntity(entityId);
+        }
+        floorFurniture.clear();
+        for (EntityId entityId : wallFurniture) {
+            objectsController.getEntityData().removeEntity(entityId);
+        }
+        wallFurniture.clear();
     }
 
     /**

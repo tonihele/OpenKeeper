@@ -62,10 +62,10 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private final EffectManagerState effectManager;
     private List<TileChangeListener> tileChangeListener;
     private Map<Short, List<RoomListener>> roomListeners;
-    private Queue<TileAction> actionQueue = new ConcurrentLinkedDeque<>();
-    private static final float TICK = 0.250f; // FIXME: no, settings
+    private final Queue<TileAction> actionQueue = new ConcurrentLinkedDeque<>();
+    private static final float TICK = 1.250f; // FIXME: no, settings
     private float lastUpdate = 0;
-    private IMapController mapClientService;
+    private final IMapController mapClientService;
 //    private final GameState gameState;
 //    private final FlashTileControl flashTileControl;
 

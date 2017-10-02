@@ -201,6 +201,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                 removeRoomInstances(roomInstance);
             } else {
                 Point[] surroundingTiles = WorldUtils.getSurroundingTiles(getMapData(), point, true);
+                pointsToUpdate.addAll(Arrays.asList(surroundingTiles));
 
                 // Also remove the surrounding rooms, if this room needs to be merged to other rooms
                 for (Point surroundingPoint : surroundingTiles) {
