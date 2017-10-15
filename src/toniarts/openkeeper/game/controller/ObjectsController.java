@@ -25,6 +25,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.ObjectEntity;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Spellbook;
@@ -136,8 +137,12 @@ public class ObjectsController implements IObjectsController {
         }
 
         // Add some interaction properties
-        // TODO: highligtable...?
-        entityData.setComponent(entity, new Interaction(obj.getFlags().contains(GameObject.ObjectFlag.HIGHLIGHTABLE), obj.getFlags().contains(GameObject.ObjectFlag.CAN_BE_SLAPPED), obj.getFlags().contains(GameObject.ObjectFlag.CAN_BE_PICKED_UP), obj.getFlags().contains(GameObject.ObjectFlag.CAN_BE_DROPPED_ON_ANY_LAND)));
+        if (obj.getFlags().contains(GameObject.ObjectFlag.CAN_BE_SLAPPED) || obj.getFlags().contains(GameObject.ObjectFlag.CAN_BE_PICKED_UP)) {
+            entityData.setComponent(entity, new Interaction(obj.getFlags().contains(GameObject.ObjectFlag.HIGHLIGHTABLE), obj.getFlags().contains(GameObject.ObjectFlag.CAN_BE_SLAPPED), obj.getFlags().contains(GameObject.ObjectFlag.CAN_BE_PICKED_UP), obj.getFlags().contains(GameObject.ObjectFlag.CAN_BE_DROPPED_ON_ANY_LAND)));
+        }
+
+        // The visual state
+        entityData.setComponent(entity, new ObjectViewState(objectId));
 
         return entity;
     }

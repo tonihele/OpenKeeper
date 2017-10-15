@@ -137,6 +137,7 @@ public class AnimationLoader {
                         @Override
                         public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
                             cyclesCount++;
+
                             // Signal that the main animation cycle is done
                             animationControl.onAnimationCycleDone();
 

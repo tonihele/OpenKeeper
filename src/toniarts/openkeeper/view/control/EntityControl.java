@@ -28,13 +28,14 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import static toniarts.openkeeper.view.map.MapViewController.COLOR_FLASH;
+import toniarts.openkeeper.world.animation.AnimationControl;
 
 /**
  * General entity controller, a bridge between entities and view
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EntityControl extends AbstractControl implements IEntityControl {
+public class EntityControl extends AbstractControl implements IEntityControl, AnimationControl {
 
     private final EntityId entityId;
     private final EntityData entityData;
@@ -146,6 +147,21 @@ public class EntityControl extends AbstractControl implements IEntityControl {
     @Override
     public EntityId getEntityId() {
         return entityId;
+    }
+
+    @Override
+    public void onAnimationStop() {
+
+    }
+
+    @Override
+    public void onAnimationCycleDone() {
+
+    }
+
+    @Override
+    public boolean isStopAnimation() {
+        return false;
     }
 
 }

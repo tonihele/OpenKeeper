@@ -28,12 +28,16 @@ import com.simsilica.es.EntityData;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.component.ObjectEntity;
+import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.view.control.EntityControl;
+import toniarts.openkeeper.view.loader.CreatureLoader;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.loader.ObjectLoader;
+import toniarts.openkeeper.world.animation.AnimationLoader;
 
 /**
  * A state that handles the showing of entities
@@ -53,9 +57,11 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Node nodeObjects;
     private final Node nodeDoors;
     private final Node nodeTraps;
-    private final ModelContainer modelContainer;
+    private final ObjectModelContainer objectModelContainer;
+    private final CreatureModelContainer creatureModelContainer;
 
-    private final ILoader<ObjectEntity> objectLoader;
+    private final ILoader<ObjectViewState> objectLoader;
+    private final ILoader<CreatureViewState> creatureLoader;
 
     private static final Logger logger = Logger.getLogger(PlayerEntityViewState.class.getName());
 
@@ -66,6 +72,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         // Init the loaders
         objectLoader = new ObjectLoader(kwdFile);
+        creatureLoader = new CreatureLoader(kwdFile);
 
         // Create the scene graph
         root = new Node("Things");
@@ -79,7 +86,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         root.attachChild(nodeTraps);
 
         // Create the model "listener"
-        modelContainer = new ModelContainer(entityData);
+        objectModelContainer = new ObjectModelContainer(entityData);
+        creatureModelContainer = new CreatureModelContainer(entityData);
     }
 
     @Override
@@ -92,14 +100,16 @@ public class PlayerEntityViewState extends AbstractAppState {
         this.app.getRootNode().attachChild(root);
 
         // Start loading stuff (maybe we should do this earlier...)
-        modelContainer.start();
+        objectModelContainer.start();
+        creatureModelContainer.start();
     }
 
     @Override
     public void update(float tpf) {
 
         // Update the models
-        modelContainer.update();
+        objectModelContainer.update();
+        creatureModelContainer.update();
     }
 
     @Override
@@ -107,7 +117,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         // Detach entities
         app.getRootNode().detachChild(root);
-        modelContainer.stop();
+        objectModelContainer.stop();
 
         super.cleanup();
     }
@@ -121,7 +131,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         return root;
     }
 
-    private Spatial createModel(Entity e) {
+    private Spatial createObjectModel(Entity e) {
 
         // We can only draw the few basic types, maybe we can do it like this
         // Kinda cludge perhaps, but doors can have traps, but if a door is found from the entity, draw it as a door
@@ -131,9 +141,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         // The server doesn't need to know it, physics are based on different things I assume, never in the server we load assets
         // Also maybe would be nice to batch up room pillars like before
         Spatial result = new Node("Wat"); // FIXME: Yeah...
-        ObjectEntity objectEntity = e.get(ObjectEntity.class);
-        if (objectEntity != null) {
-            result = objectLoader.load(assetManager, objectEntity);
+        ObjectViewState objectViewState = e.get(ObjectViewState.class);
+        if (objectViewState != null) {
+            result = objectLoader.load(assetManager, objectViewState);
             EntityControl control = new EntityControl(e.getId(), entityData);
             result.addControl(control);
             nodeObjects.attachChild(result);
@@ -141,37 +151,89 @@ public class PlayerEntityViewState extends AbstractAppState {
         return result;
     }
 
-    private void updateModel(Spatial object, Entity e) {
+    private Spatial createCreatureModel(Entity e) {
+
+        // We can only draw the few basic types, maybe we can do it like this
+        // Kinda cludge perhaps, but doors can have traps, but if a door is found from the entity, draw it as a door
+        // Otherwise make an object type thingie
+        // Also the syncing, I don't know do we need a "listener" for all these classes then...
+        // TODO: object & gold amount are now separate, how to display the different amounts of gold, the model index?
+        // The server doesn't need to know it, physics are based on different things I assume, never in the server we load assets
+        // Also maybe would be nice to batch up room pillars like before
+        Spatial result = new Node("Wat"); // FIXME: Yeah...
+        CreatureViewState creatureViewState = e.get(CreatureViewState.class);
+        if (creatureViewState != null) {
+            Creature creature = kwdFile.getCreature(creatureViewState.creatureId);
+            result = creatureLoader.load(assetManager, creatureViewState);
+            EntityControl control = new EntityControl(e.getId(), entityData);
+            result.addControl(control);
+            AnimationLoader.playAnimation(result, creature.getAnimation(creatureViewState.state), assetManager);
+            nodeCreatures.attachChild(result);
+        }
+        return result;
+    }
+
+    private void updateModelPosition(Spatial object, Entity e) {
         Position position = e.get(Position.class);
         object.setLocalTranslation(position.position);
         object.setLocalRotation(object.getLocalRotation().fromAngles(0, position.rotation, 0));
     }
 
-    private void removeModel(Spatial object, Entity e) {
-        object.removeFromParent();
+    private void removeModel(Spatial spatial, Entity e) {
+        spatial.removeFromParent();
     }
 
     /**
      * Contains the static objects...
      */
-    private class ModelContainer extends EntityContainer<Spatial> {
+    private class ObjectModelContainer extends EntityContainer<Spatial> {
 
-        public ModelContainer(EntityData ed) {
-            super(ed, Position.class, ObjectEntity.class); // Stuff with position is on the map
+        public ObjectModelContainer(EntityData ed) {
+            super(ed, Position.class, ObjectViewState.class); // Stuff with position is on the map
         }
 
         @Override
         protected Spatial addObject(Entity e) {
-            logger.log(Level.FINEST, "ModelContainer.addObject({0})", e);
-            Spatial result = createModel(e);
+            logger.log(Level.FINEST, "ObjectModelContainer.addObject({0})", e);
+            Spatial result = createObjectModel(e);
             updateObject(result, e);
             return result;
         }
 
         @Override
         protected void updateObject(Spatial object, Entity e) {
-            logger.log(Level.FINEST, "ModelContainer.updateObject({0})", e);
-            updateModel(object, e);
+            logger.log(Level.FINEST, "ObjectModelContainer.updateObject({0})", e);
+            updateModelPosition(object, e);
+        }
+
+        @Override
+        protected void removeObject(Spatial object, Entity e) {
+            removeModel(object, e);
+        }
+
+    }
+
+    /**
+     * Contains the creatures...
+     */
+    private class CreatureModelContainer extends EntityContainer<Spatial> {
+
+        public CreatureModelContainer(EntityData ed) {
+            super(ed, Position.class, CreatureViewState.class); // Stuff with position is on the map
+        }
+
+        @Override
+        protected Spatial addObject(Entity e) {
+            logger.log(Level.FINEST, "CreatureModelContainer.addObject({0})", e);
+            Spatial result = createCreatureModel(e);
+            updateObject(result, e);
+            return result;
+        }
+
+        @Override
+        protected void updateObject(Spatial object, Entity e) {
+            logger.log(Level.FINEST, "CreatureModelContainer.updateObject({0})", e);
+            updateModelPosition(object, e);
         }
 
         @Override

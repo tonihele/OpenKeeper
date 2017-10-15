@@ -16,15 +16,9 @@
  */
 package toniarts.openkeeper.tools.modelviewer;
 
-import com.jme3.animation.AnimChannel;
-import com.jme3.animation.AnimControl;
-import com.jme3.animation.Animation;
-import com.jme3.animation.LoopMode;
 import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
-import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
-import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;

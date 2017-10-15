@@ -21,31 +21,32 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.utils.AssetUtils;
 
 /**
  * Loads up object
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectLoader implements ILoader<ObjectViewState> {
+public class CreatureLoader implements ILoader<CreatureViewState> {
 
     private final KwdFile kwdFile;
-    private static final Logger logger = Logger.getLogger(ObjectLoader.class.getName());
+    private static final Logger logger = Logger.getLogger(CreatureLoader.class.getName());
 
-    public ObjectLoader(KwdFile kwdFile) {
+    public CreatureLoader(KwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 
     @Override
-    public Spatial load(AssetManager assetManager, ObjectViewState object) {
+    public Spatial load(AssetManager assetManager, CreatureViewState creatureViewState) {
         try {
-            Node nodeObject = (Node) AssetUtils.loadModel(assetManager, kwdFile.getObject(object.objectId).getMeshResource().getName());
-            return nodeObject;
+            Creature creature = kwdFile.getCreature(creatureViewState.creatureId);
+            Node creatureRoot = new Node(creature.getName());
+            return creatureRoot;
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Failed to load object " + object + "!", e);
+            logger.log(Level.SEVERE, "Failed to load creature " + creatureViewState + "!", e);
         }
         return null;
     }

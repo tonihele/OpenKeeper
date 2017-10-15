@@ -67,6 +67,7 @@ public class GameController implements IPlayerActions {
     private final SortedMap<Short, Keeper> players = new TreeMap<>();
     private final Map<Short, IPlayerController> playerControllers = new HashMap<>();
     private IObjectsController objectController;
+    private CreaturesController creaturesController;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -82,6 +83,9 @@ public class GameController implements IPlayerActions {
 
         // Load objects
         objectController = new ObjectsController(kwdFile, entityData, gameSettings);
+
+        // Load creatures
+        creaturesController = new CreaturesController(kwdFile, entityData, gameSettings);
 
         // Load the map
         mapController = new MapController(kwdFile, objectController, gameSettings);
@@ -484,11 +488,13 @@ public class GameController implements IPlayerActions {
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else // Water or lava
-                     if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+                    {
+                        if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
                             tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
                         } else {
                             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                         }
+                    }
 
                     // Give money back
                     int goldLeft = addGold(playerId, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100)));
