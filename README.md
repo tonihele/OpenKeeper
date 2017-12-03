@@ -14,7 +14,7 @@ OpenKeeper is written in Java using [JMonkeyEngine](http://jmonkeyengine.org/). 
 Contact
 ========
 
-We have a super secret lair at [IRC channel #OpenKeeper on Freenode](https://webchat.freenode.net/?channels=OpenKeeper). Feel free to idle there. For more persistent discussion and/or feedback, try [this forum at keeperklan.com](https://keeperklan.com/forums/101-OpenKeeper).
+We have a super secret lair at [IRC channel #OpenKeeper on Freenode](https://webchat.freenode.net/?channels=OpenKeeper). Feel free to idle there. For more persistent discussion and/or feedback, try [this forum at keeperklan.com](https://keeperklan.com/forums/101-OpenKeeper). Also we have opened a [Discord channel](https://discord.gg/e2Dnqkn).
 
 Contributing
 =============

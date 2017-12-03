@@ -202,7 +202,7 @@ public class Settings {
 
         @Override
         public Object getDefaultValue() {
-            return defValue;
+            return defValue.getClass().isEnum() ? defValue.toString() : defValue;
         }
 
         public Integer getSpecialKey() {
@@ -433,8 +433,10 @@ public class Settings {
         switch (level.getType()) {
             case Level:
                 setSetting(Setting.LEVEL_STATUS.toString() + level, status);
+                break;
             case MPD:
                 setSetting(Setting.MPD_LEVEL_STATUS.toString() + level, status);
+                break;
         }
     }
 

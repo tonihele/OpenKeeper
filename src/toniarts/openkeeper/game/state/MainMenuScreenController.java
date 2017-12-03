@@ -23,6 +23,8 @@ import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.builder.ElementBuilder.Align;
+import de.lessvoid.nifty.builder.TextBuilder;
 import de.lessvoid.nifty.controls.CheckBox;
 import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
 import de.lessvoid.nifty.controls.DropDown;
@@ -54,7 +56,9 @@ import toniarts.openkeeper.game.data.CustomMPDLevel;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.Level;
+import toniarts.openkeeper.game.data.Level.LevelType;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.data.Settings.LevelStatus;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
 import toniarts.openkeeper.game.network.chat.ChatSessionListener;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
@@ -147,7 +151,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     @Override
     public void selectMPDLevel(String number) {
-        state.selectedLevel = new Level(Level.LevelType.MPD, Integer.parseInt(number), null);
+        state.selectedLevel = new Level(Level.LevelType.MPD, Integer.parseInt(number));
         goToScreen("briefing");
     }
 
@@ -459,12 +463,48 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 // Populate the maps
                 populateMapSelection(true);
                 break;
+                
+            case "myPetDungeon":
+                // check unlocked levels
+                unlockMPDMaps();
+                break;
 
             case "myPetDungeonMapSelect":
                 // Populate the maps
                 state.mapSelector.setMPD(true);
                 populateMapSelection(false);
                 break;
+        }
+    }
+
+    /**
+     * Unlocks my pet dungeon levels if the preceding level was won
+     */
+    private void unlockMPDMaps() {
+        Screen mpdScreen = nifty.getScreen("myPetDungeon");
+        Element mpdList = mpdScreen.findElementById("mpdList");
+        int childCount = mpdList.getChildrenCount();
+        
+        for (int i = 2; i < childCount; i++) {
+            Element button = mpdList.findElementById("mpd" + i);
+
+            if (button.getStyle().equals("menuTextDisabled")) {
+                // the level before it must be completed
+                Level mpdLevel = new Level(LevelType.MPD, i - 1);
+                if (Settings.getInstance().getLevelStatus(mpdLevel).equals(LevelStatus.COMPLETED)) {
+                    TextBuilder unlockedLevel = new TextBuilder();
+                    unlockedLevel.style("menuText");
+                    unlockedLevel.id("mpd" + i);
+                    unlockedLevel.interactOnClick(String.format("selectMPDLevel(%s)", i));
+                    unlockedLevel.text(button.getRenderer(TextRenderer.class).getOriginalText());
+                    unlockedLevel.align(Align.Center);
+
+                    unlockedLevel.build(nifty, mpdScreen, mpdList, button);
+
+                    // remove the button
+                    button.markForRemoval();
+                }
+            }
         }
     }
 
@@ -603,14 +643,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
      * Generates the movie list
      */
     private void generateMovieList() {
-        // TODO: We should only do that if the progress has changed and at the start of the game
-        Element movies = screen.findElementById("movieList");
+        Element movies = nifty.getScreen("movies").findElementById("movieList");
         if (movies == null) {
             return;
-        }
-
-        for (Element oldElement : movies.getChildren()) {
-            oldElement.markForRemoval();
         }
 
         int index = 0;
@@ -625,11 +660,34 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 action = "goToScreen(cutsceneLocked)";
             }
 
-            ControlBuilder control = new ControlBuilder("movie" + index++, "movieButton");
-            control.parameter("image", "Textures/Mov_Shots/M-" + image + "-0.png");
-            control.parameter("click", action);
-            control.parameter("moviename", cutscene.moviename);
-            control.build(nifty, screen, movies);
+            final String imagePath = "Textures/Mov_Shots/M-" + image + "-0.png";
+
+            if (movies.getChildrenCount() < CUTSCENES.size()) {
+                // initialise movie list
+                ControlBuilder control = new ControlBuilder("movie" + index, "movieButton");
+                control.parameter("image", imagePath);
+                control.parameter("click", action);
+                control.parameter("moviename", cutscene.moviename);
+                control.build(nifty, screen, movies);
+            } else {
+                // modify movie list if changed
+                Element element = movies.findElementById("movie" + index);
+                final String oldImagePath = element.getElementType().getAttributes().get("image");
+                
+                // has the control changed?
+                if (oldImagePath == null || !oldImagePath.contains(image)) {
+                    // insert before the old element
+                    ControlBuilder control = new ControlBuilder("movie" + index, "movieButton");
+                    control.parameter("image", imagePath);
+                    control.parameter("click", action);
+                    control.parameter("moviename", cutscene.moviename);
+                    control.build(nifty, screen, movies, element);
+                    
+                    // remove the old element
+                    element.markForRemoval();
+                }
+            }
+            index++;
         }
     }
 
@@ -1021,12 +1079,46 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         }
 
         /**
-         * TODO get real viewable Stub for checking if a cutscene is unlocked
+         * Check if a cutscene is unlocked
          *
-         * @return
+         * @return true if movie is viewable by the user
          */
         public boolean isViewable() {
-            return true;
+            boolean status = false;
+            if (this.click.startsWith("CutSceneLevel")) {
+                final int number = Integer.parseInt(this.image) + 1;
+
+                Level levela = null;
+                Level levelb = null;
+
+                switch (number) {
+                    case 11:
+                        levela = new Level(LevelType.Level, number, "a");
+                        levelb = new Level(LevelType.Level, number, "b");
+                        Level levelc = new Level(LevelType.Level, number, "c");
+                        status = isLevelCompleted(levela) || isLevelCompleted(levelb) || isLevelCompleted(levelc);
+                        break;
+                    case 6:
+                    case 15:
+                        levela = new Level(LevelType.Level, number, "a");
+                        levelb = new Level(LevelType.Level, number, "b");
+                        status = isLevelCompleted(levela) || isLevelCompleted(levelb);
+                        break;
+                    default:
+                        status = isLevelCompleted(new Level(LevelType.Level, number));
+                }
+            } else if (this.image.equals("Outro")) {
+                status = isLevelCompleted(new Level(LevelType.Level, 20));
+            } else if (this.image.equals("Intro")) {
+                // Intro is always visible
+                status = true;
+            }
+
+            return status;
+        }
+        
+        private boolean isLevelCompleted(Level level) {
+            return Settings.getInstance().getLevelStatus(level).equals(LevelStatus.COMPLETED);
         }
     }
 
