@@ -24,7 +24,6 @@ import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.ai.steer.proximities.InfiniteProximity;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
-import com.jme3.app.Application;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
@@ -236,7 +235,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     @Override
-    public void processTick(float tpf, Application app) {
+    public void processTick(float tpf) {
         visibilityList.clear();
         visibilityListUpdated = false;
         ourThreat = null;
