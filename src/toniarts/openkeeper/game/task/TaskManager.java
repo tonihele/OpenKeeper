@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
@@ -92,6 +93,10 @@ public class TaskManager {
 
         // Add task listeners
         addListeners(players);
+    }
+
+    public TaskManager(GameWorldController gameController, Collection<Keeper> players) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     private void addListeners(Collection<Keeper> players) {

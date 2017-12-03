@@ -33,9 +33,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.data.GameResult;
+import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.game.data.Keeper;
@@ -395,7 +395,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     }
 
     @Override
-    public void processTick(float tpf, Application app) {
+    public void processTick(float tpf) {
 
         // Update time for AI
         GdxAI.getTimepiece().update(tpf);

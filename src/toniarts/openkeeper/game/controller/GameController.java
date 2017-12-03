@@ -90,7 +90,7 @@ public class GameController implements IGameLogicUpdateable, AutoCloseable {
     private int levelScore = 0;
     private boolean campaign;
     private IMapController mapController;
-    private GameWorldController gameController;
+    private GameWorldController gameWorldController;
 
     private GameResult gameResult = null;
     private float timeTaken = 0;
@@ -148,22 +148,29 @@ public class GameController implements IGameLogicUpdateable, AutoCloseable {
         }
     }
 
-    public void createNewGame() throws IOException {
+    public void createNewGame() {
 
         // Load the level data
-        if (level != null) {
-            kwdFile = new KwdFile(Main.getDkIIFolder(),
-                    new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd")));
-        } else {
-            kwdFile.load();
+        try {
+            if (level != null) {
+
+                kwdFile = new KwdFile(Main.getDkIIFolder(),
+                        new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd")));
+
+            } else {
+                kwdFile.load();
+            }
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Failed to load the map file!", ex);
+            throw new RuntimeException(level, ex);
         }
 
         // The players
         setupPlayers();
 
         // The world
-        gameController = new GameWorldController(kwdFile, entityData, gameSettings, playerControllers.values());
-        gameController.createNewGame();
+        gameWorldController = new GameWorldController(kwdFile, entityData, gameSettings, playerControllers.values());
+        gameWorldController.createNewGame();
 
         // The triggers
         partyTriggerState = new PartyTriggerState(true);
@@ -178,7 +185,7 @@ public class GameController implements IGameLogicUpdateable, AutoCloseable {
         //actionPointState.initialize(stateManager, app);
 
         // Initialize tasks
-        taskManager = new TaskManager(gameController, getPlayers());
+        taskManager = new TaskManager(gameWorldController, getPlayers());
 
         // Trigger data
         for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
@@ -286,6 +293,10 @@ public class GameController implements IGameLogicUpdateable, AutoCloseable {
                 }
             }
         }
+    }
+
+    public Collection<IPlayerController> getPlayerControllers() {
+        return playerControllers.values();
     }
 
     public void pauseGame() {
@@ -515,6 +526,10 @@ public class GameController implements IGameLogicUpdateable, AutoCloseable {
         if (exec != null) {
             exec.shutdownNow();
         }
+    }
+
+    public GameWorldController getGameWorldController() {
+        return gameWorldController;
     }
 
 }

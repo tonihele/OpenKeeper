@@ -24,17 +24,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.controller.GameController;
+import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.data.GameResult;
+import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.logic.GameLogicThread;
-import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
@@ -53,7 +53,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameServerState extends AbstractPauseAwareState implements IGameLogicUpdateable {
+public class GameServerState extends AbstractPauseAwareState {
 
     public static final int LEVEL_TIMER_MAX_COUNT = 16;
     private static final int LEVEL_FLAG_MAX_COUNT = 128;
@@ -84,8 +84,9 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
     private IMapController mapController;
     private final MapListener mapListener = new MapListenerImpl();
     private final GameSessionServiceListener gameSessionListener = new GameSessionServiceListenerImpl();
-    private final PlayerActionListener plaerActionListener = new PlayerActionListenerImpl();
+    private final PlayerActionListener playerActionListener = new PlayerActionListenerImpl();
     private GameController gameController;
+    private GameWorldController gameWorldController;
 
     private GameResult gameResult = null;
     private float timeTaken = 0;
@@ -371,8 +372,7 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
         timeTaken += tpf;
     }
 
-    @Override
-    public void processTick(float tpf, Application app) {
+    public void processTick(float tpf) {
 
         // Update time for AI
         GdxAI.getTimepiece().update(tpf);
@@ -477,10 +477,12 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
             kwdFile.load();
 
             // Create the central game controller
-            gameController = new GameController(kwdFile, gameService.getEntityData(), kwdFile.getVariables());
-            gameController.createNewGame(players);
-            mapController = gameController.getMapController();
-            gameController.addListener(plaerActionListener);
+            gameController = new GameController(kwdFile, players, gameService.getEntityData(), kwdFile.getVariables());
+            gameController.createNewGame();
+
+            gameWorldController = gameController.getGameWorldController();
+            mapController = gameWorldController.getMapController();
+            gameWorldController.addListener(playerActionListener);
 
             // Send the the initial game data
             gameService.sendGameData(gameController.getPlayers(), mapController.getMapData());
@@ -513,12 +515,12 @@ public class GameServerState extends AbstractPauseAwareState implements IGameLog
 
         @Override
         public void onBuild(Vector2f start, Vector2f end, short roomId, short playerId) {
-            gameController.build(start, end, playerId, roomId);
+            gameWorldController.build(start, end, playerId, roomId);
         }
 
         @Override
         public void onSell(Vector2f start, Vector2f end, short playerId) {
-            gameController.sell(start, end, playerId);
+            gameWorldController.sell(start, end, playerId);
         }
     }
 
