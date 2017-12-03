@@ -16,98 +16,212 @@
  */
 package toniarts.openkeeper.game.controller;
 
-import com.jme3.math.Vector2f;
-import com.jme3.util.SafeArrayList;
-import com.simsilica.es.Entity;
+import com.badlogic.gdx.ai.GdxAI;
 import com.simsilica.es.EntityData;
-import java.awt.Point;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
-import toniarts.openkeeper.common.RoomInstance;
-import toniarts.openkeeper.game.component.Gold;
-import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
-import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
-import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.annotation.Nullable;
+import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.action.ActionPointState;
+import toniarts.openkeeper.game.data.GameResult;
+import toniarts.openkeeper.game.data.GameTimer;
+import toniarts.openkeeper.game.data.GeneralLevel;
+import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.listener.PlayerActionListener;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.logic.GameLogicThread;
+import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
+import toniarts.openkeeper.game.state.*;
+import toniarts.openkeeper.game.task.TaskManager;
+import toniarts.openkeeper.game.trigger.TriggerControl;
+import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
+import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
+import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
+import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.tools.convert.map.Terrain;
-import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Variable;
-import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
+import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 
 /**
- * Game controller, hosts and connects general game functionality
+ * The game controller, runs the game simulation itself
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameController implements IPlayerActions {
+public class GameController implements IGameLogicUpdateable, AutoCloseable {
 
-    public final Object goldLock = new Object();
-    private final KwdFile kwdFile;
-    private final EntityData entityData;
+    public static final int LEVEL_TIMER_MAX_COUNT = 16;
+    private static final int LEVEL_FLAG_MAX_COUNT = 128;
+    private static final float MOVEMENT_UPDATE_TPF = 0.02f;
+
+    private String level;
+    private KwdFile kwdFile;
+    private toniarts.openkeeper.game.data.Level levelObject;
+
     private final SortedMap<Short, Keeper> players = new TreeMap<>();
     private final Map<Short, IPlayerController> playerControllers = new HashMap<>();
-    private IObjectsController objectController;
-    private CreaturesController creaturesController;
-
-    private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
-    private final SafeArrayList<PlayerActionListener> listeners = new SafeArrayList<>(PlayerActionListener.class);
+    private final EntityData entityData;
 
-    public GameController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
-        this.kwdFile = kwdFile;
+    private GameLogicThread gameLogicThread;
+    private TriggerControl triggerControl = null;
+    private CreatureTriggerState creatureTriggerState;
+    private ObjectTriggerState objectTriggerState;
+    private DoorTriggerState doorTriggerState;
+    private PartyTriggerState partyTriggerState;
+    private ActionPointState actionPointState;
+    private final List<Integer> flags = new ArrayList<>(LEVEL_FLAG_MAX_COUNT);
+    private final List<GameTimer> timers = new ArrayList<>(LEVEL_TIMER_MAX_COUNT);
+    private int levelScore = 0;
+    private boolean campaign;
+    private IMapController mapController;
+    private GameWorldController gameController;
+
+    private GameResult gameResult = null;
+    private float timeTaken = 0;
+    private Float timeLimit = null;
+    private TaskManager taskManager;
+    private PauseableScheduledThreadPoolExecutor exec;
+
+    private static final Logger logger = Logger.getLogger(GameController.class.getName());
+
+    /**
+     * Single use game states
+     *
+     * @param level the level to load
+     */
+    public GameController(String level, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+        this.level = level;
+        this.levelObject = null;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
     }
 
-    public void createNewGame(Collection<Keeper> players) {
-
-        // Load objects
-        objectController = new ObjectsController(kwdFile, entityData, gameSettings);
-
-        // Load creatures
-        creaturesController = new CreaturesController(kwdFile, entityData, gameSettings);
-
-        // Load the map
-        mapController = new MapController(kwdFile, objectController, gameSettings);
-
-        // Setup players
+    /**
+     * Single use game states
+     *
+     * @param level the level to load
+     * @param players player participating in this game, can be {@code null}
+     */
+    public GameController(KwdFile level, List<Keeper> players, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+        this.level = null;
+        this.kwdFile = level;
+        this.levelObject = null;
+        this.entityData = entityData;
+        this.gameSettings = gameSettings;
         if (players != null) {
             for (Keeper keeper : players) {
                 this.players.put(keeper.getId(), keeper);
             }
         }
+    }
+
+    /**
+     * Single use game states
+     *
+     * @param selectedLevel the level to load
+     */
+    public GameController(GeneralLevel selectedLevel, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+        this.level = null;
+        this.kwdFile = selectedLevel.getKwdFile();
+        this.entityData = entityData;
+        this.gameSettings = gameSettings;
+        if (selectedLevel instanceof toniarts.openkeeper.game.data.Level) {
+            this.levelObject = (toniarts.openkeeper.game.data.Level) selectedLevel;
+        } else {
+            this.levelObject = null;
+        }
+    }
+
+    public void createNewGame() throws IOException {
+
+        // Load the level data
+        if (level != null) {
+            kwdFile = new KwdFile(Main.getDkIIFolder(),
+                    new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd")));
+        } else {
+            kwdFile.load();
+        }
+
+        // The players
         setupPlayers();
 
-        // Setup player stuff
-        initPlayerMoney();
-        initPlayerRooms();
+        // The world
+        gameController = new GameWorldController(kwdFile, entityData, gameSettings, playerControllers.values());
+        gameController.createNewGame();
+
+        // The triggers
+        partyTriggerState = new PartyTriggerState(true);
+        //partyTriggerState.initialize(stateManager, app);
+        creatureTriggerState = new CreatureTriggerState(true);
+        //creatureTriggerState.initialize(stateManager, app);
+        objectTriggerState = new ObjectTriggerState(true);
+        //objectTriggerState.initialize(stateManager, app);
+        doorTriggerState = new DoorTriggerState(true);
+        //doorTriggerState.initialize(stateManager, app);
+        actionPointState = new ActionPointState(true);
+        //actionPointState.initialize(stateManager, app);
+
+        // Initialize tasks
+        taskManager = new TaskManager(gameController, getPlayers());
+
+        // Trigger data
+        for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
+            flags.add(i, 0);
+        }
+
+        for (byte i = 0; i < LEVEL_TIMER_MAX_COUNT; i++) {
+            timers.add(i, new GameTimer());
+        }
+
+        int triggerId = kwdFile.getGameLevel().getTriggerId();
+        if (triggerId != 0) {
+            //triggerControl = new TriggerControl(stateManager, triggerId);
+        }
+    }
+
+    public void startGame() {
+
+        // Game logic thread & movement
+        exec = new PauseableScheduledThreadPoolExecutor(2, true);
+        exec.setThreadFactory(new ThreadFactory() {
+
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "GameLogicAndMovementThread");
+            }
+        });
+//                    gameLogicThread = new GameLogicThread(GameState.this.app,
+//                            worldState, 1.0f / kwdFile.getGameLevel().getTicksPerSec(),
+//                            GameState.this, new CreatureLogicState(worldState.getThingLoader()),
+//                            new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this),
+//                            new RoomGoldFixer(worldState));
+        exec.scheduleAtFixedRate(gameLogicThread,
+                0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
+//        exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()),
+//                0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
     }
 
     private void setupPlayers() {
 
         // Setup players
         boolean addMissingPlayers = players.isEmpty(); // Add all if none is given (campaign...)
-        for (Entry<Short, Player> entry : kwdFile.getPlayers().entrySet()) {
+        for (Map.Entry<Short, Player> entry : kwdFile.getPlayers().entrySet()) {
             Keeper keeper = null;
             if (players.containsKey(entry.getKey())) {
                 keeper = players.get(entry.getKey());
@@ -119,7 +233,7 @@ public class GameController implements IPlayerActions {
 
             // Init
             if (keeper != null) {
-                PlayerController playerController = new PlayerController(keeper, mapController, gameSettings);
+                PlayerController playerController = new PlayerController(keeper, gameSettings);
                 playerControllers.put(entry.getKey(), playerController);
 
                 // Spells are all available for research unless otherwise stated
@@ -174,414 +288,232 @@ public class GameController implements IPlayerActions {
         }
     }
 
-    private void initPlayerMoney() {
-
-        // The max money$$$
-        for (IRoomController room : mapController.getRoomControllers()) {
-            if (room.canStoreGold()) {
-                IPlayerController playerController = playerControllers.get(room.getRoomInstance().getOwnerId());
-                if (playerController != null) {
-                    playerController.getGoldControl().setGoldMax(playerController.getGoldControl().getGoldMax() + room.getObjectControl(ObjectType.GOLD).getMaxCapacity());
-                }
-            }
-        }
-
-        // Set up the money$$$
-        for (Keeper keeper : players.values()) {
-            Player player = kwdFile.getPlayer(keeper.getId());
-            if (player.getStartingGold() > 0) {
-                addGold(keeper.getId(), player.getStartingGold());
-            }
+    public void pauseGame() {
+        if (exec != null) {
+            exec.pause();
         }
     }
 
-    private void initPlayerRooms() {
+    public void resumeGame() {
+        if (exec != null) {
+            exec.resume();
+        }
+    }
 
-        // Add the initial creatures and add the listeners
-        Map<Short, List<IRoomController>> playerRooms = mapController.getRoomControllers().stream().collect(Collectors.groupingBy(entry -> entry.getRoomInstance().getOwnerId()));
+    @Override
+    public void processTick(float tpf) {
+
+        // Update time for AI
+        GdxAI.getTimepiece().update(tpf);
+
+        if (actionPointState != null) {
+            actionPointState.updateControls(tpf);
+        }
+        timeTaken += tpf;
+
+        if (timeLimit != null && timeLimit > 0) {
+            timeLimit -= tpf;
+        }
+
+        for (GameTimer timer : timers) {
+            timer.update(tpf);
+        }
+
+        if (triggerControl != null) {
+            triggerControl.update(tpf);
+        }
+
+        if (partyTriggerState != null) {
+            partyTriggerState.update(tpf);
+        }
+
+        if (creatureTriggerState != null) {
+            creatureTriggerState.update(tpf);
+        }
+
+        if (objectTriggerState != null) {
+            objectTriggerState.update(tpf);
+        }
+        if (doorTriggerState != null) {
+            doorTriggerState.update(tpf);
+        }
+        if (actionPointState != null) {
+            actionPointState.update(tpf);
+        }
+
         for (Keeper player : players.values()) {
-            List<IRoomController> rooms = playerRooms.get(player.getId());
-            if (rooms != null) {
-                playerControllers.get(player.getId()).getRoomControl().init(rooms);
-            }
-
-            // Add the listener
-            //addListener(player.getId(), player.getRoomControl());
+//            player.update(tpf);
         }
     }
 
     /**
-     * Add a lump sum of gold to a player, distributes the gold to the available
-     * rooms
+     * Get the level raw data file
      *
-     * @param playerId for the player
-     * @param sum the gold sum
-     * @return returns a sum of gold that could not be added to player's gold
+     * @return the KWD
      */
-    public int addGold(short playerId, int sum) {
-        synchronized (goldLock) {
-            return addGold(playerId, null, sum);
-        }
+    public KwdFile getLevelData() {
+        return kwdFile;
+    }
+
+    public int getFlag(int id) {
+        return flags.get(id);
+    }
+
+    public void setFlag(int id, int value) {
+        flags.set(id, value);
+    }
+
+    public GameTimer getTimer(int id) {
+        return timers.get(id);
     }
 
     /**
-     * Add a lump sum of gold to a player, distributes the gold to the available
-     * rooms
-     *
-     * @param playerId for the player
-     * @param p a point where to drop the gold, can be {@code  null}
-     * @param sum the gold sum
-     * @return returns a sum of gold that could not be added to player's gold
+     * @see GameLogicThread#getGameTime()
+     * @return the game time
      */
-    public int addGold(short playerId, Point p, int sum) {
-
-        synchronized (goldLock) {
-
-            // Gold to specified point/room
-            int moneyLeft = sum;
-            if (p != null) {
-
-                // Get a room in point
-                RoomInstance roomInstance = mapController.getRoomInstanceByCoordinates(p);
-                if (roomInstance != null) {
-                    IRoomController room = mapController.getRoomController(roomInstance);
-                    if (room.canStoreGold()) {
-                        RoomGoldControl control = room.getObjectControl(ObjectType.GOLD);
-                        moneyLeft = control.addItem(sum, p);
-                    }
-                }
-            } else {
-
-                // Distribute the gold
-                for (IRoomController roomController : mapController.getRoomControllers()) {
-                    if (roomController.getRoomInstance().getOwnerId() == playerId && roomController.canStoreGold()) {
-                        RoomGoldControl control = roomController.getObjectControl(ObjectType.GOLD);
-                        moneyLeft = control.addItem(sum, p);
-                        if (moneyLeft == 0) {
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Add to the player
-            playerControllers.get(playerId).getGoldControl().addGold(sum - moneyLeft);
-
-            return moneyLeft;
+    public double getGameTime() {
+        if (gameLogicThread != null) {
+            return gameLogicThread.getGameTime();
         }
+        return 0;
     }
 
-    /**
-     * Substract gold from player
-     *
-     * @param amount the amount to try to substract
-     * @param playerId the player id
-     * @return amount of money that could not be substracted from the player
-     */
-    public int substractGold(int amount, short playerId) {
-
-        synchronized (goldLock) {
-
-            // See if the player has any gold even
-            Keeper keeper = players.get(playerId);
-            if (keeper.getGold() == 0) {
-                return amount;
-            }
-
-            // The gold is subtracted evenly from all treasuries
-            int moneyToSubstract = amount;
-            List<IRoomController> playersTreasuries = mapController.getRoomsByFunction(ObjectType.GOLD, playerId);
-            while (moneyToSubstract > 0 && !playersTreasuries.isEmpty()) {
-                Iterator<IRoomController> iter = playersTreasuries.iterator();
-                int goldToRemove = (int) Math.ceil((float) moneyToSubstract / playersTreasuries.size());
-                while (iter.hasNext()) {
-                    IRoomController room = iter.next();
-                    RoomGoldControl control = room.getObjectControl(ObjectType.GOLD);
-                    goldToRemove = Math.min(moneyToSubstract, goldToRemove); // Rounding...
-                    moneyToSubstract -= goldToRemove - control.removeGold(goldToRemove);
-                    if (control.getCurrentCapacity() == 0) {
-                        iter.remove();
-                    }
-                    if (moneyToSubstract == 0) {
-                        break;
-                    }
-                }
-            }
-
-            // Substract from the player
-            playerControllers.get(playerId).getGoldControl().subGold(amount - moneyToSubstract);
-
-            return moneyToSubstract;
-        }
+    public Float getTimeLimit() {
+        return timeLimit;
     }
 
-    private void substractGoldCapacityFromPlayer(RoomInstance instance) {
-        synchronized (goldLock) {
-            IRoomController roomController = mapController.getRoomController(instance);
-            if (roomController.canStoreGold()) {
-                RoomGoldControl roomGoldControl = roomController.getObjectControl(ObjectType.GOLD);
-                PlayerGoldControl playerGoldControl = playerControllers.get(instance.getOwnerId()).getGoldControl();
-                playerGoldControl.setGoldMax(playerGoldControl.getGoldMax() - roomGoldControl.getMaxCapacity());
+    public void setTimeLimit(float timeLimit) {
+        this.timeLimit = timeLimit;
+    }
+
+    public void setEnd(boolean win) {
+
+        gameResult = new GameResult();
+        gameResult.setData(GameResult.ResultType.LEVEL_WON, win);
+        gameResult.setData(GameResult.ResultType.TIME_TAKEN, timeTaken);
+
+        // Enable the end game state
+//        stateManager.getState(PlayerState.class).endGame(win);
+        // Mark the achievement if campaign level
+        if (levelObject != null) {
+            Main.getUserSettings().increaseLevelAttempts(levelObject);
+            if (win) {
+                Main.getUserSettings().setLevelStatus(levelObject, Settings.LevelStatus.COMPLETED);
+            }
+            try {
+                Main.getUserSettings().save();
+            } catch (IOException ex) {
+                Logger.getLogger(GameState.class.getName()).log(Level.SEVERE, "Failed to save the level progress!", ex);
             }
         }
     }
 
-    private void addGoldCapacityToPlayer(RoomInstance instance) {
-        synchronized (goldLock) {
-            IRoomController roomController = mapController.getRoomController(instance);
-            if (roomController.canStoreGold()) {
-                RoomGoldControl roomGoldControl = roomController.getObjectControl(ObjectType.GOLD);
-                PlayerGoldControl playerGoldControl = playerControllers.get(instance.getOwnerId()).getGoldControl();
-                playerGoldControl.setGoldMax(playerGoldControl.getGoldMax() + roomGoldControl.getMaxCapacity());
-            }
-        }
+    public TaskManager getTaskManager() {
+        return taskManager;
     }
 
-    @Override
-    public void build(Vector2f start, Vector2f end, short playerId, short roomId) {
-        Set<Point> updatableTiles = new HashSet<>();
-        Set<Point> buildPlots = new HashSet<>();
-        List<Point> instancePlots = new ArrayList<>();
-        for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
-            for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
-
-                // See that is this valid
-                if (!mapController.isBuildable(x, y, playerId, roomId)) {
-                    continue;
-                }
-
-                Point p = new Point(x, y);
-                instancePlots.add(p);
-                buildPlots.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, false)));
-                updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
-            }
-        }
-
-        // See that can we afford the building
-        Room room = kwdFile.getRoomById(roomId);
-        int cost = instancePlots.size() * room.getCost();
-        if (instancePlots.size() * room.getCost() > players.get(playerId).getGold()) {
-            return;
-        }
-        substractGold(cost, playerId);
-
-        // Build
-        List<MapTile> buildTiles = new ArrayList<>(instancePlots.size());
-        for (Point p : instancePlots) {
-            MapTile tile = mapController.getMapData().getTile(p);
-            tile.setOwnerId(playerId);
-            tile.setTerrainId(room.getTerrainId());
-            buildTiles.add(tile);
-        }
-
-        // See if we hit any of the adjacent rooms
-        Set<RoomInstance> adjacentInstances = new LinkedHashSet<>();
-        for (Point p : buildPlots) {
-            RoomInstance adjacentInstance = mapController.getRoomInstanceByCoordinates(p);
-            if (adjacentInstance != null && adjacentInstance.getRoom().equals(room) && !adjacentInstances.contains(adjacentInstance)) {
-
-                // Same room, see that we own it
-                MapTile tile = mapController.getMapData().getTile(p.x, p.y);
-                if (tile.getOwnerId() == playerId) {
-
-                    // Bingo!
-                    adjacentInstances.add(adjacentInstance);
-                }
-            }
-        }
-
-        // If any hits, merge to the first one, and update whole room
-        if (!adjacentInstances.isEmpty()) {
-
-            // Add the mergeable rooms to updatable tiles as well
-            RoomInstance firstInstance = null;
-            for (RoomInstance instance : adjacentInstances) {
-
-                // Merge to the first found room instance
-                if (firstInstance == null) {
-                    firstInstance = instance;
-                    substractGoldCapacityFromPlayer(firstInstance); // Important to update the gold here
-                    firstInstance.addCoordinates(instancePlots);
-                    for (Point p : instancePlots) {
-                        mapController.getRoomCoordinates().put(p, firstInstance);
-                    }
-
-                    // Update the merged room
-                    mapController.getRoomController(instance).construct();
-                } else {
-                    mapController.removeRoomInstances(instance);
-                }
-
-                for (Point p : instance.getCoordinates()) {
-                    updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
-                    if (!firstInstance.equals(instance)) {
-                        firstInstance.addCoordinate(p);
-                        mapController.getRoomCoordinates().put(p, firstInstance);
-                    }
-                }
-            }
-            // TODO: The room health! We need to make sure that the health is distributed evenly
-            addGoldCapacityToPlayer(firstInstance);
-        }
-
-        // Update
-        mapController.updateRooms(updatableTiles.toArray(new Point[updatableTiles.size()]));
-
-        // New room, calculate gold capacity
-        RoomInstance instance = mapController.getRoomCoordinates().get(instancePlots.get(0));
-        if (adjacentInstances.isEmpty()) {
-            addGoldCapacityToPlayer(instance);
-            //notifyOnBuild(instance.getOwnerId(), mapController.getRoomActuals().get(instance));
-        }
-
-        // Add any loose gold to the building
-        attachLooseGoldToRoom(mapController.getRoomController(instance), instance);
-
-        // Notify the build
-        notifyOnBuild(playerId, buildTiles);
-    }
-
-    private void attachLooseGoldToRoom(IRoomController roomController, RoomInstance instance) {
-        if (roomController.canStoreGold()) {
-            synchronized (goldLock) {
-                for (Entity entity : entityData.getEntities(Gold.class, Position.class)) {
-                    Position position = entityData.getComponent(entity.getId(), Position.class);
-                    if (instance.hasCoordinate(WorldUtils.vectorToPoint(position.position))) {
-                        Gold gold = entityData.getComponent(entity.getId(), Gold.class);
-                        int goldLeft = (int) roomController.getObjectControl(ObjectType.GOLD).addItem(gold.gold, WorldUtils.vectorToPoint(position.position));
-                        if (goldLeft == 0) {
-                            entityData.removeEntity(entity.getId());
-                        } else {
-                            gold.gold = goldLeft;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    @Override
-    public void sell(Vector2f start, Vector2f end, short playerId) {
-        List<MapTile> soldTiles = new ArrayList<>();
-        Set<Point> updatableTiles = new HashSet<>();
-        Set<RoomInstance> soldInstances = new HashSet<>();
-        List<Point> roomCoordinates = new ArrayList<>();
-        for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
-            for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
-
-                // See that is this valid
-                if (!mapController.isSellable(x, y, playerId)) {
-                    continue;
-                }
-
-                // Sell
-                Point p = new Point(x, y);
-                MapTile tile = mapController.getMapData().getTile(p);
-                if (tile == null) {
-                    continue;
-                }
-                soldTiles.add(tile);
-
-                Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-                if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                    Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
-                    if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
-                        tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-                    } else // Water or lava
-                    {
-                        if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
-                            tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
-                        } else {
-                            tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
-                        }
-                    }
-
-                    // Give money back
-                    int goldLeft = addGold(playerId, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100)));
-                    if (goldLeft > 0) {
-
-                        // Add loose gold to this tile
-                        objectController.addLooseGold(playerId, p.x, p.y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
-                    }
-                }
-
-                // Get the instance
-                soldInstances.add(mapController.getRoomCoordinates().get(p));
-                updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
-            }
-        }
-
-        // Remove the sold instances (will be regenerated) and add them to updatable
-        for (RoomInstance roomInstance : soldInstances) {
-            for (Point p : roomInstance.getCoordinates()) {
-                updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
-            }
-            roomCoordinates.addAll(roomInstance.getCoordinates());
-        }
-        mapController.removeRoomInstances(soldInstances.toArray(new RoomInstance[soldInstances.size()]));
-
-        // Update
-        mapController.updateRooms(updatableTiles.toArray(new Point[updatableTiles.size()]));
-
-        // See if any of the rooms survived
-        Set<RoomInstance> newInstances = new HashSet<>();
-        for (Point p : roomCoordinates) {
-            RoomInstance instance = mapController.getRoomCoordinates().get(p);
-            if (instance != null && !newInstances.contains(instance)) {
-                newInstances.add(instance);
-                addGoldCapacityToPlayer(instance);
-                attachLooseGoldToRoom(mapController.getRoomController(instance), instance);
-            }
-        }
-
-        // Notify
-        notifyOnSold(playerId, soldTiles);
-    }
-
-    @Override
-    public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-        mapController.selectTiles(start, end, select, playerId);
-    }
-
-    public IMapController getMapController() {
-        return mapController;
-    }
-
-    public Collection<IPlayerController> getPlayerControllers() {
-        return playerControllers.values();
+    public Keeper getPlayer(short playerId) {
+        return players.get(playerId);
     }
 
     public Collection<Keeper> getPlayers() {
         return players.values();
     }
 
-    /**
-     * If you want to get notified about player actiosns
-     *
-     * @param listener the listener
-     */
-    public void addListener(PlayerActionListener listener) {
-        listeners.add(listener);
+    public ActionPointState getActionPointState() {
+        return actionPointState;
     }
 
     /**
-     * Stop listening to player actions
+     * Get level variable value
      *
-     * @param listener the listener
+     * @param variable the variable type
+     * @return variable value
      */
-    public void removeListener(PlayerActionListener listener) {
-        listeners.remove(listener);
+    public float getLevelVariable(Variable.MiscVariable.MiscType variable) {
+        // TODO: player is able to change these, so need a wrapper and store these to GameState
+        return kwdFile.getVariables().get(variable).getValue();
     }
 
-    private void notifyOnBuild(short playerId, List<MapTile> buildTiles) {
-        for (PlayerActionListener listener : listeners.getArray()) {
-            listener.onBuild(playerId, buildTiles);
+    /**
+     * Get level score, not really a player score... kinda
+     *
+     * @return the level score
+     */
+    public int getLevelScore() {
+        return levelScore;
+    }
+
+    public void setLevelScore(int levelScore) {
+        this.levelScore = levelScore;
+    }
+
+    public CreatureTriggerState getCreatureTriggerState() {
+        return creatureTriggerState;
+    }
+
+    public ObjectTriggerState getObjectTriggerState() {
+        return objectTriggerState;
+    }
+
+    public DoorTriggerState getDoorTriggerState() {
+        return doorTriggerState;
+    }
+
+    public PartyTriggerState getPartyTriggerState() {
+        return partyTriggerState;
+    }
+
+    /**
+     * Creates alliance between two players
+     *
+     * @param playerOneId player ID 1
+     * @param playerTwoId player ID 2
+     */
+    public void createAlliance(short playerOneId, short playerTwoId) {
+        getPlayer(playerOneId).createAlliance(playerTwoId);
+        getPlayer(playerTwoId).createAlliance(playerOneId);
+    }
+
+    /**
+     * Breaks alliance between two players
+     *
+     * @param playerOneId player ID 1
+     * @param playerTwoId player ID 2
+     */
+    public void breakAlliance(short playerOneId, short playerTwoId) {
+        getPlayer(playerOneId).breakAlliance(playerTwoId);
+        getPlayer(playerTwoId).breakAlliance(playerOneId);
+    }
+
+    private void loadSounds() {
+        SoundsLoader.load(kwdFile.getGameLevel().getSoundCategory(), false);
+
+        List<ISoundable> items = new ArrayList<>();
+        items.addAll(kwdFile.getCreatureList());
+        items.addAll(kwdFile.getDoors());
+        items.addAll(kwdFile.getObjectList());
+        items.addAll(kwdFile.getKeeperSpells());
+        items.addAll(kwdFile.getRooms());
+        items.addAll(kwdFile.getShots());
+        items.addAll(kwdFile.getTerrainList());
+        items.addAll(kwdFile.getTraps());
+
+        for (ISoundable item : items) {
+            // all in global space
+            SoundsLoader.load(item.getSoundCategory());
         }
     }
 
-    private void notifyOnSold(short playerId, List<MapTile> soldTiles) {
-        for (PlayerActionListener listener : listeners.getArray()) {
-            listener.onSold(playerId, soldTiles);
+    @Nullable
+    public GameResult getGameResult() {
+        return gameResult;
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (exec != null) {
+            exec.shutdownNow();
         }
     }
 

@@ -41,7 +41,7 @@ public class PlayerController implements IPlayerController {
     private final PlayerSpellControl spellControl;
     private final PlayerManaControl manaControl;
 
-    public PlayerController(Keeper keeper, IMapController mapController, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public PlayerController(Keeper keeper, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.keeper = keeper;
 
         // Create the actual controllers
@@ -52,7 +52,7 @@ public class PlayerController implements IPlayerController {
 
         // Don't create mana control for neutral nor good player
         if (keeper.getId() != Player.GOOD_PLAYER_ID && keeper.getId() != Player.NEUTRAL_PLAYER_ID) {
-            manaControl = new PlayerManaControl(keeper, mapController, creatureControl, gameSettings);
+            manaControl = new PlayerManaControl(keeper, gameSettings);
         } else {
             manaControl = null;
         }

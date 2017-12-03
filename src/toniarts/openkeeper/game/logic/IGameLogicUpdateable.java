@@ -16,8 +16,6 @@
  */
 package toniarts.openkeeper.game.logic;
 
-import com.jme3.app.Application;
-
 /**
  * Simple interface for enabling game logic update
  *
@@ -31,8 +29,7 @@ public interface IGameLogicUpdateable {
      *
      * @param tpf time since the last call to update(), in seconds. Our tick
      * rate.
-     * @param app use the app to enque wanted render updates
      */
-    public void processTick(float tpf, Application app);
+    public void processTick(float tpf);
 
 }

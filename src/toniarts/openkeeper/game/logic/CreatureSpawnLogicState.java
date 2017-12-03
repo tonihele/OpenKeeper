@@ -77,7 +77,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
     }
 
     @Override
-    public void processTick(float tpf, Application app) {
+    public void processTick(float tpf) {
 
         // FIXME: really should use the listeners, I think this just produces unnecessary garbage
         // Maintain the players entrance registry
@@ -95,7 +95,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
                         entry.setValue(entry.getValue() + tpf);
                     }
 
-                    evaluateAndSpawnCreature(keeperRoomTimes.getKey(), entry.getKey(), app);
+                    evaluateAndSpawnCreature(keeperRoomTimes.getKey(), entry.getKey());
                 }
             }
 
@@ -113,7 +113,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
                     if (!keeperRoomTimes.getValue().containsKey(genericRoom)) {
                         keeperRoomTimes.getValue().put(genericRoom, Float.MAX_VALUE);
 
-                        evaluateAndSpawnCreature(keeperRoomTimes.getKey(), genericRoom, app);
+                        evaluateAndSpawnCreature(keeperRoomTimes.getKey(), genericRoom);
                     }
                 }
             }
@@ -121,14 +121,14 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
 
     }
 
-    private void evaluateAndSpawnCreature(IPlayerController player, IRoomController room, Application app) {
+    private void evaluateAndSpawnCreature(IPlayerController player, IRoomController room) {
         float spawnTime = entranceSpawnTimes.get(player).get(room);
         boolean spawned = false;
         if (spawnTime >= freeImpCoolDownTime && isDungeonHeart(room)) {
             if (player.getCreatureControl().getImpCount() < minimunImpCount) {
 
                 // Spawn imp
-                ((ICreatureEntrance) room).spawnCreature(kwdFile.getImp().getCreatureId(), app, thingLoader);
+//                ((ICreatureEntrance) room).spawnCreature(kwdFile.getImp().getCreatureId(), thingLoader);
                 spawned = true;
             }
         } else if (spawnTime >= Math.max(entranceCoolDownTime, entranceCoolDownTime * player.getCreatureControl().getTypeCount() * 0.5)
@@ -149,7 +149,7 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
             // Spawn random?
             if (!possibleCreatures.isEmpty()) {
                 short creatureId = Utils.getRandomItem(possibleCreatures).getCreatureId();
-                ((ICreatureEntrance) room).spawnCreature(creatureId, app, thingLoader);
+//                ((ICreatureEntrance) room).spawnCreature(creatureId, thingLoader);
                 spawned = true;
             }
         }

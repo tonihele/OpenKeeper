@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.logic;
 
-import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -35,9 +34,9 @@ public class CreatureLogicState extends AbstractAppState implements IGameLogicUp
     }
 
     @Override
-    public void processTick(float tpf, Application app) {
+    public void processTick(float tpf) {
         for (CreatureControl creatureControl : thingLoader.getCreatures()) {
-            creatureControl.processTick(tpf, app);
+            creatureControl.processTick(tpf);
         }
     }
 

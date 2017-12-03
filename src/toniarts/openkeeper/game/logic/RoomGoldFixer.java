@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.logic;
 
-import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.object.GoldObjectControl;
@@ -39,7 +38,7 @@ public class RoomGoldFixer extends AbstractAppState implements IGameLogicUpdatea
     }
 
     @Override
-    public void processTick(float tpf, Application app) {
+    public void processTick(float tpf) {
 
         // FIXME: Not all players can hold gold, like neutral or good players, they can have unclaimed treasuries and the original does not really merge the gold there
         synchronized (worldState.goldLock) {
@@ -52,18 +51,17 @@ public class RoomGoldFixer extends AbstractAppState implements IGameLogicUpdatea
                         GenericRoom room = worldState.getMapLoader().getRoomActuals().get(roomInstance);
                         if (room.hasObjectControl(GenericRoom.ObjectType.GOLD) && !room.isFullCapacity()) {
 
-                            app.enqueue(() -> {
-
-                                // Give the gold
-                                GoldObjectControl gold = (GoldObjectControl) objectControl;
-                                int goldLeft = (int) room.getObjectControl(GenericRoom.ObjectType.GOLD).addItem(gold.getGold(), gold.getTile().getLocation(), worldState.getThingLoader(), null);
-                                if (goldLeft == 0) {
-                                    gold.removeObject();
-                                } else {
-                                    gold.setGold(goldLeft);
-                                }
-                            });
-
+//                            app.enqueue(() -> {
+//
+//                                // Give the gold
+//                                GoldObjectControl gold = (GoldObjectControl) objectControl;
+//                                int goldLeft = (int) room.getObjectControl(GenericRoom.ObjectType.GOLD).addItem(gold.getGold(), gold.getTile().getLocation(), worldState.getThingLoader(), null);
+//                                if (goldLeft == 0) {
+//                                    gold.removeObject();
+//                                } else {
+//                                    gold.setGold(goldLeft);
+//                                }
+//                            });
                             return; // One at the time, with proper sync etc. we can change this
                         }
                     }
