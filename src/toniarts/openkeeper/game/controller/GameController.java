@@ -37,7 +37,6 @@ import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.GeneralLevel;
-import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.logic.GameLogicThread;
@@ -54,7 +53,6 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
-import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 
@@ -495,25 +493,6 @@ public class GameController implements IGameLogicUpdateable, AutoCloseable {
     public void breakAlliance(short playerOneId, short playerTwoId) {
         getPlayer(playerOneId).breakAlliance(playerTwoId);
         getPlayer(playerTwoId).breakAlliance(playerOneId);
-    }
-
-    private void loadSounds() {
-        SoundsLoader.load(kwdFile.getGameLevel().getSoundCategory(), false);
-
-        List<ISoundable> items = new ArrayList<>();
-        items.addAll(kwdFile.getCreatureList());
-        items.addAll(kwdFile.getDoors());
-        items.addAll(kwdFile.getObjectList());
-        items.addAll(kwdFile.getKeeperSpells());
-        items.addAll(kwdFile.getRooms());
-        items.addAll(kwdFile.getShots());
-        items.addAll(kwdFile.getTerrainList());
-        items.addAll(kwdFile.getTraps());
-
-        for (ISoundable item : items) {
-            // all in global space
-            SoundsLoader.load(item.getSoundCategory());
-        }
     }
 
     @Nullable

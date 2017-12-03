@@ -96,7 +96,10 @@ public class TaskManager {
     }
 
     public TaskManager(GameWorldController gameController, Collection<Keeper> players) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        this.worldState = null;
+
+        // Create a queue for each managed player (everybody except Good & Neutral)
+        taskQueues = new HashMap<>(players.size());
     }
 
     private void addListeners(Collection<Keeper> players) {
