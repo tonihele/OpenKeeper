@@ -235,18 +235,20 @@ public class Settings {
         private final Integer resourceKey;
         private final Integer specialKey;  // Control, Alt, Shift
     }
-    private final static Settings instance;
+    private final static Settings INSTANCE;
     private final AppSettings settings;
-    private final static int MAX_FPS = 90;
+    private final static int MAX_FPS = 200;
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(Main.TITLE).concat(File.separator);
     private final static String USER_SETTINGS_FILE = USER_HOME_FOLDER.concat("openkeeper.properties");
-    public final static List<String> opengl = new ArrayList<>(Arrays.asList(new String[]{AppSettings.LWJGL_OPENGL2, AppSettings.LWJGL_OPENGL3}));
-    public final static List<Integer> samples = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
-    public final static List<Integer> anisotrophies = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
-    private static final Logger logger = Logger.getLogger(Settings.class.getName());
+    public final static List<String> OPENGL = new ArrayList<>(Arrays.asList(new String[]{AppSettings.LWJGL_OPENGL2,
+        AppSettings.LWJGL_OPENGL3, AppSettings.LWJGL_OPENGL33, AppSettings.LWJGL_OPENGL4, AppSettings.LWJGL_OPENGL41,
+        AppSettings.LWJGL_OPENGL42, AppSettings.LWJGL_OPENGL43, AppSettings.LWJGL_OPENGL44, AppSettings.LWJGL_OPENGL45}));
+    public final static List<Integer> SAMPLES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
+    public final static List<Integer> ANISOTROPHIES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
+    private static final Logger LOGGER = Logger.getLogger(Settings.class.getName());
 
     static {
-        instance = new Settings(new AppSettings(true));
+        INSTANCE = new Settings(new AppSettings(true));
     }
 
     private Settings(final AppSettings settings) {
@@ -263,7 +265,7 @@ public class Settings {
             try (InputStream is = new FileInputStream(settingsFile)) {
                 this.settings.load(is);
             } catch (IOException ex) {
-                logger.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
+                LOGGER.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
             }
         }
         this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
@@ -279,7 +281,7 @@ public class Settings {
      * @return the game settings
      */
     public static Settings getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
     /**
