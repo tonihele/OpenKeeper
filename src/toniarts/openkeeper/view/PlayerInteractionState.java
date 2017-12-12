@@ -278,7 +278,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         // Update the cursor, the camera might have moved, a creature might have slipped by us... etc.
         if (timeFromLastUpdate > CURSOR_UPDATE_INTERVAL) {
-            updateCursor();
+            //updateCursor();
             updateStateFlags();
             timeFromLastUpdate = 0;
         }
@@ -526,7 +526,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
                 timeFromLastUpdate = 0;
                 updateStateFlags();
-                updateCursor();
+                //updateCursor();
             }
 
             @Override
