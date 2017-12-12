@@ -463,7 +463,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 // Populate the maps
                 populateMapSelection(true);
                 break;
-                
+
             case "myPetDungeon":
                 // check unlocked levels
                 unlockMPDMaps();
@@ -484,7 +484,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         Screen mpdScreen = nifty.getScreen("myPetDungeon");
         Element mpdList = mpdScreen.findElementById("mpdList");
         int childCount = mpdList.getChildrenCount();
-        
+
         for (int i = 2; i < childCount; i++) {
             Element button = mpdList.findElementById("mpd" + i);
 
@@ -673,7 +673,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 // modify movie list if changed
                 Element element = movies.findElementById("movie" + index);
                 final String oldImagePath = element.getElementType().getAttributes().get("image");
-                
+
                 // has the control changed?
                 if (oldImagePath == null || !oldImagePath.contains(image)) {
                     // insert before the old element
@@ -682,7 +682,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     control.parameter("click", action);
                     control.parameter("moviename", cutscene.moviename);
                     control.build(nifty, screen, movies, element);
-                    
+
                     // remove the old element
                     element.markForRemoval();
                 }
@@ -754,8 +754,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
         //Antialiasing
         DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
-        aa.addAllItems(Settings.samples);
-        if (Settings.samples.contains(settings.getSamples())) {
+        aa.addAllItems(Settings.SAMPLES);
+        if (Settings.SAMPLES.contains(settings.getSamples())) {
             aa.selectItem(settings.getSamples());
         } else {
             aa.addItem(settings.getSamples());
@@ -764,9 +764,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
         //Anisotropic filtering
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
-        af.addAllItems(Settings.anisotrophies);
+        af.addAllItems(Settings.ANISOTROPHIES);
         if (Main.getUserSettings().containsSetting(Settings.Setting.ANISOTROPY)
-                && Settings.anisotrophies.contains(Main.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY))) {
+                && Settings.ANISOTROPHIES.contains(Main.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY))) {
             af.selectItem(Main.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
         } else if (Main.getUserSettings().containsSetting(Settings.Setting.ANISOTROPY)) {
             af.addItem(Main.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
@@ -775,7 +775,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
         //OpenGL
         DropDown ogl = screen.findNiftyControl("openGl", DropDown.class);
-        ogl.addAllItems(Settings.opengl);
+        ogl.addAllItems(Settings.OPENGL);
         ogl.selectItem(settings.getRenderer());
 
         //SSAO
@@ -1116,7 +1116,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
             return status;
         }
-        
+
         private boolean isLevelCompleted(Level level) {
             return Settings.getInstance().getLevelStatus(level).equals(LevelStatus.COMPLETED);
         }

@@ -5,7 +5,7 @@ apply plugin: 'maven'
 apply plugin: 'idea'
 
 ext {
-    jmonkeyengine_version = '[3.1,3.2)'
+    jmonkeyengine_version = '[3.2,3.3)'
 }
 
 repositories {
@@ -60,7 +60,7 @@ dependencies {
     compile "org.jmonkeyengine:jme3-blender:$jmonkeyengine_version"
     compile "org.jmonkeyengine:jme3-bullet:$jmonkeyengine_version"
     compile "org.jmonkeyengine:jme3-bullet-native:$jmonkeyengine_version"
-    compile "org.jmonkeyengine:jme3-lwjgl:$jmonkeyengine_version"
+    compile "org.jmonkeyengine:jme3-lwjgl3:$jmonkeyengine_version"
     compile "org.jmonkeyengine:jme3-niftygui:$jmonkeyengine_version"
     compile "com.badlogicgames.gdx:gdx-ai:1.8.1"
     compile "javax.vecmath:vecmath:1.5.2"
@@ -68,9 +68,9 @@ dependencies {
     compile "com.simsilica:zay-es-net:1.2.1"
     compile "com.simsilica:sio2:1.1.0"
     compile "com.simsilica:sim-ethereal:1.2.1"
-    
+
     compile("org.jmonkeyengine:jme3-core:$jmonkeyengine_version") {
-        // We get Lemur through sio2 and it drags in JME core 3.2, force our version
+        // We get Lemur through sio2 and it drags in JME core 3.1+, force our version
         force = true
     }
 }
