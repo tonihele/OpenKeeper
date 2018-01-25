@@ -229,7 +229,7 @@ public class ConversionUtils {
      * @return fresh String
      */
     public static String toString(byte[] bytes) {
-        return new String(bytes, Charset.forName("US-ASCII"));
+        return new String(bytes, Charset.forName("windows-1252"));
     }
 
     /**
