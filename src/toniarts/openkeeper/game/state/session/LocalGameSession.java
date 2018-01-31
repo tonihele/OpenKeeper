@@ -54,11 +54,24 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
      * Creates and starts a local game session with given level and default
      * players
      *
+     * @param kwdFile map as KWD file
+     * @param campaign whether to start this level as a campaign level
+     * @param stateManager state manager instance for setting up the game
+     */
+    public static void CreateLocalGame(KwdFile kwdFile, boolean campaign, AppStateManager stateManager) {
+        CreateLocalGame(kwdFile, stateManager, campaign);
+    }
+
+    /**
+     * Creates and starts a local game session with given level and default
+     * players
+     *
      * @param level the level to load
+     * @param campaign whether to start this level as a campaign level
      * @param stateManager state manager instance for setting up the game
      * @throws java.io.IOException Problem with the map file
      */
-    public static void CreateLocalGame(String level, AppStateManager stateManager) throws IOException {
+    public static void CreateLocalGame(String level, boolean campaign, AppStateManager stateManager) throws IOException {
 
         // Try to load the file
         String mapFile = ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd");
@@ -67,6 +80,11 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
             throw new FileNotFoundException(mapFile);
         }
         KwdFile kwdFile = new KwdFile(Main.getDkIIFolder(), file);
+
+        CreateLocalGame(kwdFile, stateManager, campaign);
+    }
+
+    private static void CreateLocalGame(KwdFile kwdFile, AppStateManager stateManager, boolean campaign) {
 
         // Player and server
         LocalGameSession gameSession = new LocalGameSession();
@@ -81,7 +99,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
         stateManager.attach(gameClientState);
 
         // The game server
-        GameServerState gameServerState = new GameServerState(kwdFile, Arrays.asList(keeper), false, gameSession);
+        GameServerState gameServerState = new GameServerState(kwdFile, campaign ? null : Arrays.asList(keeper), campaign, gameSession);
         stateManager.attach(gameServerState);
     }
 
