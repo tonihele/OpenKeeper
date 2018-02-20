@@ -29,7 +29,7 @@ import toniarts.openkeeper.world.room.RoomInstance;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class RoomGoldFixer extends AbstractAppState implements IGameLogicUpdateable {
+public class RoomGoldFixer extends AbstractAppState implements IGameLogicUpdatable {
 
     private final WorldState worldState;
 
@@ -68,6 +68,16 @@ public class RoomGoldFixer extends AbstractAppState implements IGameLogicUpdatea
                 }
             }
         }
+    }
+
+    @Override
+    public void start() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void stop() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }

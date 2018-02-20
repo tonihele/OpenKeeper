@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
+import toniarts.openkeeper.utils.GameLoop;
 
 /**
  * Game server hosts lobby service for the game clients.
@@ -197,7 +198,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         entityUpdater = Executors.newSingleThreadScheduledExecutor((Runnable r) -> new Thread(r, "EntityDataUpdater"));
         entityUpdater.scheduleAtFixedRate(() -> {
             getServiceManager().getService(EntityDataHostedService.class).sendUpdates();
-        }, 100, 100, TimeUnit.MILLISECONDS);
+        }, 0, GameLoop.INTERVAL_FPS_60, TimeUnit.NANOSECONDS);
     }
 
     @Override

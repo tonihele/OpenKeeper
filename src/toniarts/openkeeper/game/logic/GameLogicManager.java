@@ -16,47 +16,27 @@
  */
 package toniarts.openkeeper.game.logic;
 
-import com.jme3.app.Application;
-import com.jme3.math.ColorRGBA;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.Main;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
- * Runs the game logic. Implements runnable, so supports running from a thread.
+ * Runs the game logic tasks, well, doesn't literally run them but wraps them up
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameLogicThread implements Runnable {
+public class GameLogicManager extends AbstractLogicManager {
 
-    private final float tpf;
-    private final IGameLogicUpdateable[] updatables;
     private long ticks = 0;
-    private final Application app;
-    private final Map<CreatureControl, ColorRGBA> creatureDebugColors;
-    private static final Logger logger = Logger.getLogger(GameLogicThread.class.getName());
+    private double timeElapsed = 0.0;
+    private static final Logger LOGGER = Logger.getLogger(GameLogicManager.class.getName());
 
-    public GameLogicThread(Application app, float tpf, IGameLogicUpdateable... updatables) {
-        this.app = app;
-        this.tpf = tpf;
-        this.updatables = updatables;
-        if (Main.isDebug()) {
-            creatureDebugColors = new HashMap<>();
-        } else {
-            creatureDebugColors = null;
-        }
+    public GameLogicManager(IGameLogicUpdatable... updatables) {
+        super(updatables);
     }
 
     @Override
-    public void run() {
-        // Please, use tryc in Threads. Because Exceptions here kill thread
-        try {
-            long start = System.currentTimeMillis();
-
-            // Before anything is run, update last known positions to our map
+    public void processTick(long delta) {
+        super.processTick(delta);
+        // Before anything is run, update last known positions to our map
 //            for (int y = 0; y < worldState.getMapData().getHeight(); y++) {
 //                for (int x = 0; x < worldState.getMapData().getWidth(); x++) {
 //                    worldState.getMapData().getTile(x, y).clearCreatures();
@@ -74,33 +54,13 @@ public class GameLogicThread implements Runnable {
 //            if (Main.isDebug()) {
 //                drawCreatureVisibilities();
 //            }
-            //
-            // Update updatables
-            for (IGameLogicUpdateable updatable : updatables) {
-                try {
-                    updatable.processTick(tpf);
-                } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Error in game logic tick on " + updatable.getClass() + "!", e);
-                }
-            }
+        //
+        // Update updatables
+        float tpf = delta / 1000000000f;
 
-            // Increase ticks
-            ticks++;
-
-            // Logging
-            long tickTime = System.currentTimeMillis() - start;
-            logger.log(tickTime < tpf * 1000 ? Level.FINEST : Level.SEVERE, "Tick took {0} ms!", tickTime);
-        } catch (Exception e) {
-            logger.severe(e.getLocalizedMessage());
-        }
-    }
-
-    /**
-     * Stops the game loop so that it is completely finished one tick. Blocks
-     * until
-     */
-    public void stop() {
-
+        // Increase ticks
+        ticks++;
+        timeElapsed += tpf;
     }
 
     /**
@@ -109,7 +69,16 @@ public class GameLogicThread implements Runnable {
      * @return the game time
      */
     public double getGameTime() {
-        return ticks * tpf;
+        return timeElapsed;
+    }
+
+    /**
+     * Get the amount of game ticks ticked over
+     *
+     * @param ticks the ticks
+     */
+    public void setTicks(long ticks) {
+        this.ticks = ticks;
     }
 
 //    private void drawCreatureVisibilities() {
@@ -156,4 +125,7 @@ public class GameLogicThread implements Runnable {
 //            worldState.getWorld().attachChild(node);
 //        });
 //    }
+    public long getTicks() {
+        return ticks;
+    }
 }

@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -39,8 +38,11 @@ import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
-import toniarts.openkeeper.game.logic.GameLogicThread;
-import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
+import toniarts.openkeeper.game.logic.CreatureEntitySystem;
+import toniarts.openkeeper.game.logic.GameLogicManager;
+import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
+import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
+import toniarts.openkeeper.game.logic.PositionSystem;
 import toniarts.openkeeper.game.state.*;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
@@ -53,6 +55,7 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.GameLoop;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 
@@ -61,7 +64,7 @@ import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameController implements IGameLogicUpdateable, AutoCloseable {
+public class GameController implements IGameLogicUpdatable, AutoCloseable {
 
     public static final int LEVEL_TIMER_MAX_COUNT = 16;
     private static final int LEVEL_FLAG_MAX_COUNT = 128;
@@ -76,7 +79,9 @@ public class GameController implements IGameLogicUpdateable, AutoCloseable {
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final EntityData entityData;
 
-    private GameLogicThread gameLogicThread;
+    private GameLoop gameLogicLoop;
+    private GameLoop steeringCalculatorLoop;
+    private GameLogicManager gameLogicThread;
     private TriggerControl triggerControl = null;
     private CreatureTriggerState creatureTriggerState;
     private ObjectTriggerState objectTriggerState;
@@ -198,11 +203,22 @@ public class GameController implements IGameLogicUpdateable, AutoCloseable {
         if (triggerId != 0) {
             //triggerControl = new TriggerControl(stateManager, triggerId);
         }
+
+        // Create the game loops ready to start
+        gameLogicThread = new GameLogicManager(new PositionSystem(gameWorldController.getMapController(), entityData),
+                new ManaCalculatorLogic(gameSettings, playerControllers.values(), gameWorldController.getMapController()),
+                new CreatureEntitySystem(entityData));
+        gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
+
+//        steeringCalculatorLoop = new GameLoop(new SteeringLogicManager(new MovableSystem(entityData)), GameLoop.INTERVAL_FPS_60, "SteeringCalculator");
     }
 
     public void startGame() {
 
         // Game logic thread & movement
+        gameLogicLoop.start();
+        steeringCalculatorLoop.start();
+
         exec = new PauseableScheduledThreadPoolExecutor(2, true);
         exec.setThreadFactory(new ThreadFactory() {
 
@@ -216,8 +232,8 @@ public class GameController implements IGameLogicUpdateable, AutoCloseable {
 //                            GameState.this, new CreatureLogicState(worldState.getThingLoader()),
 //                            new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this),
 //                            new RoomGoldFixer(worldState));
-        exec.scheduleAtFixedRate(gameLogicThread,
-                0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
+//        exec.scheduleAtFixedRate(gameLogicThread,
+//                0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
 //        exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()),
 //                0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
     }
@@ -298,14 +314,20 @@ public class GameController implements IGameLogicUpdateable, AutoCloseable {
     }
 
     public void pauseGame() {
-        if (exec != null) {
-            exec.pause();
+        if (steeringCalculatorLoop != null) {
+            steeringCalculatorLoop.pause();
+        }
+        if (gameLogicLoop != null) {
+            gameLogicLoop.pause();
         }
     }
 
     public void resumeGame() {
-        if (exec != null) {
-            exec.resume();
+        if (gameLogicLoop != null) {
+            gameLogicLoop.resume();
+        }
+        if (steeringCalculatorLoop != null) {
+            steeringCalculatorLoop.resume();
         }
     }
 
@@ -377,7 +399,7 @@ public class GameController implements IGameLogicUpdateable, AutoCloseable {
     }
 
     /**
-     * @see GameLogicThread#getGameTime()
+     * @see GameLogicManager#getGameTime()
      * @return the game time
      */
     public double getGameTime() {
@@ -502,13 +524,28 @@ public class GameController implements IGameLogicUpdateable, AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        if (exec != null) {
-            exec.shutdownNow();
+        if (steeringCalculatorLoop != null) {
+            steeringCalculatorLoop.stop();
+            steeringCalculatorLoop = null;
+        }
+        if (gameLogicLoop != null) {
+            gameLogicLoop.stop();
+            gameLogicLoop = null;
         }
     }
 
     public GameWorldController getGameWorldController() {
         return gameWorldController;
+    }
+
+    @Override
+    public void start() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void stop() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }

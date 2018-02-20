@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 OpenKeeper
+ * Copyright (C) 2014-2018 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,30 +14,31 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.logic;
-
-import com.jme3.app.state.AbstractAppState;
-import toniarts.openkeeper.world.ThingLoader;
-import toniarts.openkeeper.world.creature.CreatureControl;
+package toniarts.openkeeper.utils;
 
 /**
- * Handles creature logic updates
+ * Simple interface for enabling game logic update
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureLogicState extends AbstractAppState implements IGameLogicUpdateable {
+public interface IGameLoopManager {
 
-    private final ThingLoader thingLoader;
+    /**
+     * Signals start for the manager
+     */
+    public void start();
 
-    public CreatureLogicState(ThingLoader thingLoader) {
-        this.thingLoader = thingLoader;
-    }
+    /**
+     * Signals stop to the manager
+     */
+    public void stop();
 
-    @Override
-    public void processTick(float tpf) {
-        for (CreatureControl creatureControl : thingLoader.getCreatures()) {
-            creatureControl.processTick(tpf);
-        }
-    }
+    /**
+     * Process one game tick. Note that this is not likely run from a render
+     * loop. So you can't modify the scene from here.
+     *
+     * @param delta time since the last call to update(), in nanoseconds
+     */
+    public void processTick(long delta);
 
 }

@@ -17,19 +17,14 @@
 package toniarts.openkeeper.game.logic;
 
 /**
- * Simple interface for enabling game logic update
+ * Runs the steering tasks
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IGameLogicUpdateable {
+public class SteeringLogicManager extends AbstractLogicManager {
 
-    /**
-     * Process one game tick. Note that this is not likely run from a render
-     * loop. So you can't modify the scene from here.
-     *
-     * @param tpf time since the last call to update(), in seconds. Our tick
-     * rate.
-     */
-    public void processTick(float tpf);
+    public SteeringLogicManager(IGameLogicUpdatable... updatables) {
+        super(updatables);
+    }
 
 }

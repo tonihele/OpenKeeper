@@ -37,7 +37,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
-import toniarts.openkeeper.game.logic.GameLogicThread;
+import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
@@ -76,7 +76,7 @@ public class GameClientState extends AbstractPauseAwareState {
 
     private KwdFile kwdFile;
 
-    private GameLogicThread gameLogicThread;
+    private GameLogicManager gameLogicThread;
     private TriggerControl triggerControl = null;
     private CreatureTriggerState creatureTriggerState;
     private ObjectTriggerState objectTriggerState;

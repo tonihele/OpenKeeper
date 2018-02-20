@@ -47,7 +47,7 @@ import toniarts.openkeeper.world.room.ICreatureEntrance;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureSpawnLogicState extends AbstractAppState implements IGameLogicUpdateable {
+public class CreatureSpawnLogicState extends AbstractAppState implements IGameLogicUpdatable {
 
     private final ThingLoader thingLoader;
     private final int minimunImpCount;
@@ -216,6 +216,16 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
             return creaturePool.getValue() > creatures;
         }
         return false;
+    }
+
+    @Override
+    public void start() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void stop() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }

@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.controller.ai.CreatureState;
 
 /**
  * Simple creature component
@@ -50,5 +51,6 @@ public class CreatureEntity implements EntityComponent {
     public float meleeRecharge;
     public int efficiencyPercentage;
     public short creatureId;
+    public CreatureState creatureState;
 
 }

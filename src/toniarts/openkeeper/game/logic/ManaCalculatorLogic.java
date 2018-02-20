@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -33,8 +33,9 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ManaCalculatorLogic implements IGameLogicUpdateable {
+public class ManaCalculatorLogic implements IGameLogicUpdatable {
 
+    private float tick = 0;
     private final Map<Short, PlayerManaControl> manaControls = new HashMap<>(4);
     private final Map<Short, PlayerCreatureControl> creatureControls = new HashMap<>(4);
     private final Map<Short, Integer> manaGains;
@@ -43,7 +44,7 @@ public class ManaCalculatorLogic implements IGameLogicUpdateable {
     private final int manaGainBase;
     private final static int MANA_LOSE_PER_IMP = 7;  // I don't find in Creature.java
 
-    public ManaCalculatorLogic(Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, List<IPlayerController> playerControllers, IMapController mapController) {
+    public ManaCalculatorLogic(Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Collection<IPlayerController> playerControllers, IMapController mapController) {
         this.mapController = mapController;
         for (IPlayerController playerController : playerControllers) {
             PlayerManaControl manaControl = playerController.getManaControl();
@@ -59,10 +60,14 @@ public class ManaCalculatorLogic implements IGameLogicUpdateable {
 
     @Override
     public void processTick(float tpf) {
-        reset();
-        calculateGainFromMapTiles();
-        calculateLooseFromCreatures();
-        updateManaControls();
+        tick += tpf;
+        if (tick >= 1) {
+            reset();
+            calculateGainFromMapTiles();
+            calculateLooseFromCreatures();
+            updateManaControls(tpf);
+            tick -= 1;
+        }
     }
 
     private void reset() {
@@ -90,9 +95,19 @@ public class ManaCalculatorLogic implements IGameLogicUpdateable {
         }
     }
 
-    private void updateManaControls() {
+    private void updateManaControls(float tpf) {
         for (Map.Entry<Short, PlayerManaControl> entry : manaControls.entrySet()) {
             entry.getValue().updateMana(manaGains.getOrDefault(entry.getKey(), 0), manaLosses.getOrDefault(entry.getKey(), 0));
         }
+    }
+
+    @Override
+    public void start() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void stop() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

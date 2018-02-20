@@ -1894,4 +1894,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
             setAttributesByLevel();
         }
     }
+
+    @Override
+    public void start() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
 }

@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Trigger;
+import toniarts.openkeeper.game.controller.ai.CreatureState;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -162,6 +163,7 @@ public class CreaturesController {
         creatureComponent.bloodType = Utils.generateBloodType();
         creatureComponent.level = level;
         creatureComponent.creatureId = creatureId;
+        creatureComponent.creatureState = (entrance ? CreatureState.ENTERING_DUNGEON : CreatureState.IDLE);
 
         // Set every attribute by the level of the created creature
         setAttributesByLevel(creatureComponent, healthComponent, goldComponent, sensesComponent);

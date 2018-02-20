@@ -35,10 +35,21 @@ import java.awt.Point;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import toniarts.openkeeper.game.component.CreatureEntity;
+import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Movable;
 import toniarts.openkeeper.game.component.ObjectEntity;
+import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.Objective;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Spellbook;
+import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -88,11 +99,22 @@ public class NetworkServer {
         Serializer.registerClass(MapTile.class, new FieldSerializer());
         Serializer.registerClass(GameData.class, new FieldSerializer());
 
-        // Our entities
-        Serializer.registerClass(Position.class, new FieldSerializer());
-        Serializer.registerClass(ObjectEntity.class, new FieldSerializer());
+        // Our entity components
+        Serializer.registerClass(CreatureEntity.class, new FieldSerializer());
+        Serializer.registerClass(CreatureViewState.class, new FieldSerializer());
         Serializer.registerClass(Gold.class, new FieldSerializer());
+        Serializer.registerClass(Health.class, new FieldSerializer());
+        Serializer.registerClass(Interaction.class, new FieldSerializer());
+        Serializer.registerClass(Movable.class, new FieldSerializer());
+        Serializer.registerClass(ObjectEntity.class, new FieldSerializer());
+        Serializer.registerClass(ObjectViewState.class, new FieldSerializer());
+        Serializer.registerClass(Objective.class, new FieldSerializer());
+        Serializer.registerClass(Owner.class, new FieldSerializer());
+        Serializer.registerClass(Party.class, new FieldSerializer());
+        Serializer.registerClass(Position.class, new FieldSerializer());
+        Serializer.registerClass(Senses.class, new FieldSerializer());
         Serializer.registerClass(Spellbook.class, new FieldSerializer());
+        Serializer.registerClass(Trigger.class, new FieldSerializer());
     }
 
     public <T extends HostedService> T getService(Class<T> type) {

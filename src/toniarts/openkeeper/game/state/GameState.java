@@ -40,8 +40,8 @@ import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
-import toniarts.openkeeper.game.logic.GameLogicThread;
-import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
+import toniarts.openkeeper.game.logic.GameLogicManager;
+import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.MovementThread;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
@@ -66,7 +66,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameState extends AbstractPauseAwareState implements IGameLogicUpdateable {
+public class GameState extends AbstractPauseAwareState implements IGameLogicUpdatable {
 
     public static final int LEVEL_TIMER_MAX_COUNT = 16;
     private static final int LEVEL_FLAG_MAX_COUNT = 128;
@@ -80,7 +80,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private KwdFile kwdFile;
     private final toniarts.openkeeper.game.data.Level levelObject;
 
-    private GameLogicThread gameLogicThread;
+    private GameLogicManager gameLogicThread;
     private TriggerControl triggerControl = null;
     private CreatureTriggerState creatureTriggerState;
     private ObjectTriggerState objectTriggerState;
@@ -233,8 +233,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 //                            GameState.this, new CreatureLogicState(worldState.getThingLoader()),
 //                            new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this),
 //                            new RoomGoldFixer(worldState));
-                    exec.scheduleAtFixedRate(gameLogicThread,
-                            0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
+//                    exec.scheduleAtFixedRate(gameLogicThread,
+//                            0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
                     exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()),
                             0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
 
@@ -457,7 +457,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     }
 
     /**
-     * @see GameLogicThread#getGameTime()
+     * @see GameLogicManager#getGameTime()
      * @return the game time
      */
     public double getGameTime() {
@@ -607,5 +607,15 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     @Nullable
     public GameResult getGameResult() {
         return gameResult;
+    }
+
+    @Override
+    public void start() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void stop() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }
