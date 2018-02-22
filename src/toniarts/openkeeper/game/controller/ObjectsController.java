@@ -24,7 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Interaction;
-import toniarts.openkeeper.game.component.ObjectEntity;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -114,7 +114,7 @@ public class ObjectsController implements IObjectsController {
 
     private EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation, Integer money, Integer spellId, Integer triggerId, Integer maxMoney) {
         EntityId entity = entityData.createEntity();
-        entityData.setComponent(entity, new ObjectEntity(objectId));
+        entityData.setComponent(entity, new ObjectComponent(objectId));
         entityData.setComponent(entity, new Owner(ownerId));
 
         // Move to the center of the tile

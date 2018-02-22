@@ -24,7 +24,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.component.CreatureEntity;
+import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureEntrance;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
@@ -33,7 +35,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Trigger;
-import toniarts.openkeeper.game.controller.ai.CreatureState;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -57,6 +59,7 @@ public class CreaturesController {
     private EntityData entityData;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private Map<Integer, Party> creatureParties = new HashMap<>();
+    private IGameTimer gameTimer;
 
     private static final Logger logger = Logger.getLogger(CreaturesController.class.getName());
 
@@ -71,10 +74,11 @@ public class CreaturesController {
      * @param entityData the entity controller
      * @param gameSettings the game settings
      */
-    public CreaturesController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public CreaturesController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
+        this.gameTimer = gameTimer;
 
         // Load creatures
         loadCreatures();
@@ -158,13 +162,23 @@ public class CreaturesController {
         Senses sensesComponent = healthComponent != null ? new Senses(creature.getAttributes().getDistanceCanHear(), creature.getAttributes().getDistanceCanSee()) : null;
 
         // The creature itself
-        CreatureEntity creatureComponent = new toniarts.openkeeper.game.component.CreatureEntity();
+        CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.name = Utils.generateCreatureName();
         creatureComponent.bloodType = Utils.generateBloodType();
         creatureComponent.level = level;
         creatureComponent.creatureId = creatureId;
-        creatureComponent.creatureState = (entrance ? CreatureState.ENTERING_DUNGEON : CreatureState.IDLE);
 
+        // If we are entering, we don't get the AI component yet
+        if (entrance) {
+            ArtResource entranceAnimation = creature.getAnimation(Creature.AnimationType.ENTRANCE);
+            int frames = entranceAnimation.getData("frames");
+            int fps = entranceAnimation.getData("fps");
+            entityData.setComponent(entity, new CreatureEntrance(frames / (float) fps, gameTimer.getGameTime()));
+        } else {
+            entityData.setComponent(entity, new CreatureAi());
+        }
+
+        //creatureComponent.creatureState = (entrance ? CreatureState.ENTERING_DUNGEON : CreatureState.IDLE);
         // Set every attribute by the level of the created creature
         setAttributesByLevel(creatureComponent, healthComponent, goldComponent, sensesComponent);
 
@@ -192,7 +206,7 @@ public class CreaturesController {
         return entity;
     }
 
-    private void setAttributesByLevel(CreatureEntity creatureComponent, Health healthComponent, Gold goldComponent, Senses sensesComponent) {
+    private void setAttributesByLevel(CreatureComponent creatureComponent, Health healthComponent, Gold goldComponent, Senses sensesComponent) {
         Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
         Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = kwdFile.getCreatureStats(creatureComponent.level);
         Creature.Attributes attributes = creature.getAttributes();

@@ -66,15 +66,18 @@ public class GameWorldController implements IPlayerActions {
     private CreaturesController creaturesController;
     private final Map<Short, IPlayerController> playerControllers;
     private final SortedMap<Short, Keeper> players;
+    private final IGameTimer gameTimer;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final SafeArrayList<PlayerActionListener> listeners = new SafeArrayList<>(PlayerActionListener.class);
 
-    public GameWorldController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Collection<IPlayerController> players) {
+    public GameWorldController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Collection<IPlayerController> players, IGameTimer gameTimer) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
+        this.gameTimer = gameTimer;
+
         this.playerControllers = new HashMap<>(players.size());
         this.players = new TreeMap<>();
         for (IPlayerController player : players) {
@@ -89,7 +92,7 @@ public class GameWorldController implements IPlayerActions {
         objectController = new ObjectsController(kwdFile, entityData, gameSettings);
 
         // Load creatures
-        creaturesController = new CreaturesController(kwdFile, entityData, gameSettings);
+        creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer);
 
         // Load the map
         mapController = new MapController(kwdFile, objectController, gameSettings);

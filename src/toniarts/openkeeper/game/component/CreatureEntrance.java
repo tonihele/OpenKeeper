@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 OpenKeeper
+ * Copyright (C) 2014-2018 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,33 +14,27 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.logic;
+package toniarts.openkeeper.game.component;
+
+import com.simsilica.es.EntityComponent;
 
 /**
- * Simple interface for enabling game logic update
+ * Creature entrance
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IGameLogicUpdatable {
+public class CreatureEntrance implements EntityComponent {
 
-    /**
-     * Signals start for the updatable
-     */
-    public void start();
+    public float duration;
+    public double started;
 
-    /**
-     * Signals stop to the updatable
-     */
-    public void stop();
+    public CreatureEntrance() {
+        // For serialization
+    }
 
-    /**
-     * Process one game tick. Note that this is not likely run from a render
-     * loop. So you can't modify the scene from here.
-     *
-     * @param tpf time since the last call to update(), in seconds. Our tick
-     * rate.
-     * @param gameTime elapsed game time
-     */
-    public void processTick(float tpf, double gameTime);
+    public CreatureEntrance(float duration, double started) {
+        this.duration = duration;
+        this.started = started;
+    }
 
 }

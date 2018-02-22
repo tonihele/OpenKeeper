@@ -59,7 +59,7 @@ public class ManaCalculatorLogic implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf) {
+    public void processTick(float tpf, double gameTime) {
         tick += tpf;
         if (tick >= 1) {
             reset();

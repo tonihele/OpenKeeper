@@ -17,14 +17,13 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
-import toniarts.openkeeper.game.controller.ai.CreatureState;
 
 /**
  * Simple creature component
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureEntity implements EntityComponent {
+public class CreatureComponent implements EntityComponent {
 
     public String name;
     public String bloodType;
@@ -51,6 +50,5 @@ public class CreatureEntity implements EntityComponent {
     public float meleeRecharge;
     public int efficiencyPercentage;
     public short creatureId;
-    public CreatureState creatureState;
 
 }

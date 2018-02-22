@@ -235,7 +235,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     @Override
-    public void processTick(float tpf) {
+    public void processTick(float tpf, double gameTime) {
         visibilityList.clear();
         visibilityListUpdated = false;
         ourThreat = null;

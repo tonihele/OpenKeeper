@@ -25,33 +25,35 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import toniarts.openkeeper.game.component.CreatureEntity;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.controller.ai.CreatureController;
 import toniarts.openkeeper.game.controller.ai.ICreatureController;
 
 /**
- * Handles creature logic updates, the creature AI updates that is
+ * Handles creature logic updates, the creature AI updates that is. The AI is
+ * implemented elsewhere for clarity. This class just attaches the AI to the
+ * entity having this component and updates it periodically.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureEntitySystem implements IGameLogicUpdatable {
+public class CreatureAiSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final EntitySet creatureEntities;
     private final SafeArrayList<ICreatureController> creatureControllers;
     private final Map<EntityId, ICreatureController> creatureControllersByEntityId;
 
-    public CreatureEntitySystem(EntityData entityData) {
+    public CreatureAiSystem(EntityData entityData) {
         this.entityData = entityData;
 
-        creatureEntities = entityData.getEntities(CreatureEntity.class);
+        creatureEntities = entityData.getEntities(CreatureAi.class);
         creatureControllers = new SafeArrayList<>(ICreatureController.class);
         creatureControllersByEntityId = new HashMap<>();
         processAddedEntities(creatureEntities);
     }
 
     @Override
-    public void processTick(float tpf) {
+    public void processTick(float tpf, double gameTime) {
 
         // Add new & remove old
         if (creatureEntities.applyChanges()) {

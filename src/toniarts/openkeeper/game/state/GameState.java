@@ -395,7 +395,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     }
 
     @Override
-    public void processTick(float tpf) {
+    public void processTick(float tpf, double gameTime) {
 
         // Update time for AI
         GdxAI.getTimepiece().update(tpf);

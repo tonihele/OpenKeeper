@@ -16,51 +16,63 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.utils.IGameLoopManager;
 
 /**
  * Runs the game logic tasks, well, doesn't literally run them but wraps them up
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameLogicManager extends AbstractLogicManager {
+public class GameLogicManager implements IGameLoopManager {
 
     private long ticks = 0;
     private double timeElapsed = 0.0;
+    protected final IGameLogicUpdatable[] updatables;
     private static final Logger LOGGER = Logger.getLogger(GameLogicManager.class.getName());
 
     public GameLogicManager(IGameLogicUpdatable... updatables) {
-        super(updatables);
+        this.updatables = updatables;
+    }
+
+    @Override
+    public void start() {
+        for (IGameLogicUpdatable updatable : updatables) {
+            updatable.start();
+        }
     }
 
     @Override
     public void processTick(long delta) {
-        super.processTick(delta);
-        // Before anything is run, update last known positions to our map
-//            for (int y = 0; y < worldState.getMapData().getHeight(); y++) {
-//                for (int x = 0; x < worldState.getMapData().getWidth(); x++) {
-//                    worldState.getMapData().getTile(x, y).clearCreatures();
-//                }
-//            }
-//            for (CreatureControl creature : worldState.getThingLoader().getCreatures()) {
-//                Point p = creature.getCreatureCoordinates();
-//                if (p != null) {
-//                    TileData tile = worldState.getMapData().getTile(p);
-//                    if (tile != null) {
-//                        tile.addCreature(creature);
-//                    }
-//                }
-//            }
-//            if (Main.isDebug()) {
-//                drawCreatureVisibilities();
-//            }
-        //
-        // Update updatables
+
+        // Update game time
+        long start = System.nanoTime();
         float tpf = delta / 1000000000f;
 
-        // Increase ticks
-        ticks++;
+        // Update updatables
+        for (IGameLogicUpdatable updatable : updatables) {
+            try {
+                updatable.processTick(tpf, timeElapsed);
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error in game logic tick on " + updatable.getClass() + "!", e);
+            }
+        }
+
+        // Logging
+        long tickTime = System.nanoTime() - start;
+        LOGGER.log(tickTime < delta ? Level.FINEST : Level.SEVERE, "Tick took {0} ms!", tickTime);
+
+        // Increase ticks & time
         timeElapsed += tpf;
+        ticks++;
+    }
+
+    @Override
+    public void stop() {
+        for (IGameLogicUpdatable updatable : updatables) {
+            updatable.stop();
+        }
     }
 
     /**

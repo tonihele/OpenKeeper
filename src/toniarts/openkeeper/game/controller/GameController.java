@@ -38,7 +38,7 @@ import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
-import toniarts.openkeeper.game.logic.CreatureEntitySystem;
+import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
@@ -64,7 +64,7 @@ import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameController implements IGameLogicUpdatable, AutoCloseable {
+public class GameController implements IGameLogicUpdatable, AutoCloseable, IGameTimer {
 
     public static final int LEVEL_TIMER_MAX_COUNT = 16;
     private static final int LEVEL_FLAG_MAX_COUNT = 128;
@@ -172,7 +172,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable {
         setupPlayers();
 
         // The world
-        gameWorldController = new GameWorldController(kwdFile, entityData, gameSettings, playerControllers.values());
+        gameWorldController = new GameWorldController(kwdFile, entityData, gameSettings, playerControllers.values(), this);
         gameWorldController.createNewGame();
 
         // The triggers
@@ -207,7 +207,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable {
         // Create the game loops ready to start
         gameLogicThread = new GameLogicManager(new PositionSystem(gameWorldController.getMapController(), entityData),
                 new ManaCalculatorLogic(gameSettings, playerControllers.values(), gameWorldController.getMapController()),
-                new CreatureEntitySystem(entityData));
+                new CreatureAiSystem(entityData));
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
 
 //        steeringCalculatorLoop = new GameLoop(new SteeringLogicManager(new MovableSystem(entityData)), GameLoop.INTERVAL_FPS_60, "SteeringCalculator");
@@ -332,7 +332,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable {
     }
 
     @Override
-    public void processTick(float tpf) {
+    public void processTick(float tpf, double gameTime) {
 
         // Update time for AI
         GdxAI.getTimepiece().update(tpf);

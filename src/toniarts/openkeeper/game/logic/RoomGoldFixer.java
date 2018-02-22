@@ -38,7 +38,7 @@ public class RoomGoldFixer extends AbstractAppState implements IGameLogicUpdatab
     }
 
     @Override
-    public void processTick(float tpf) {
+    public void processTick(float tpf, double gameTime) {
 
         // FIXME: Not all players can hold gold, like neutral or good players, they can have unclaimed treasuries and the original does not really merge the gold there
         synchronized (worldState.goldLock) {

@@ -35,13 +35,13 @@ import java.awt.Point;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import toniarts.openkeeper.game.component.CreatureEntity;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Movable;
-import toniarts.openkeeper.game.component.ObjectEntity;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
@@ -69,6 +69,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  */
 public class NetworkServer {
 
+    private static boolean initialized = false;
     private final String host;
     private final int port;
     private String name;
@@ -82,39 +83,42 @@ public class NetworkServer {
         this.port = port;
     }
 
-    private void initialize() {
+    private static void initialize() {
+        if (!initialized) {
+            initialized = true;
 
-        // Messages
-        Serializer.registerClass(StreamedMessage.class, new FieldSerializer());
+            // Messages
+            Serializer.registerClass(StreamedMessage.class, new FieldSerializer());
 
-        // Lobby
-        Serializer.registerClass(ClientInfo.class, new FieldSerializer());
-        Serializer.registerClass(Keeper.class, new FieldSerializer());
+            // Lobby
+            Serializer.registerClass(ClientInfo.class, new FieldSerializer());
+            Serializer.registerClass(Keeper.class, new FieldSerializer());
 
-        // Needed for the game
-        Serializer.registerClass(Vector2f.class, new FieldSerializer());
-        Serializer.registerClass(Point.class, new FieldSerializer());
-        Serializer.registerClass(Tile.BridgeTerrainType.class, new EnumSerializer());
-        Serializer.registerClass(MapData.class, new FieldSerializer()); // FIXME: Savable serializer would be better...
-        Serializer.registerClass(MapTile.class, new FieldSerializer());
-        Serializer.registerClass(GameData.class, new FieldSerializer());
+            // Needed for the game
+            Serializer.registerClass(Vector2f.class, new FieldSerializer());
+            Serializer.registerClass(Point.class, new FieldSerializer());
+            Serializer.registerClass(Tile.BridgeTerrainType.class, new EnumSerializer());
+            Serializer.registerClass(MapData.class, new FieldSerializer()); // FIXME: Savable serializer would be better...
+            Serializer.registerClass(MapTile.class, new FieldSerializer());
+            Serializer.registerClass(GameData.class, new FieldSerializer());
 
-        // Our entity components
-        Serializer.registerClass(CreatureEntity.class, new FieldSerializer());
-        Serializer.registerClass(CreatureViewState.class, new FieldSerializer());
-        Serializer.registerClass(Gold.class, new FieldSerializer());
-        Serializer.registerClass(Health.class, new FieldSerializer());
-        Serializer.registerClass(Interaction.class, new FieldSerializer());
-        Serializer.registerClass(Movable.class, new FieldSerializer());
-        Serializer.registerClass(ObjectEntity.class, new FieldSerializer());
-        Serializer.registerClass(ObjectViewState.class, new FieldSerializer());
-        Serializer.registerClass(Objective.class, new FieldSerializer());
-        Serializer.registerClass(Owner.class, new FieldSerializer());
-        Serializer.registerClass(Party.class, new FieldSerializer());
-        Serializer.registerClass(Position.class, new FieldSerializer());
-        Serializer.registerClass(Senses.class, new FieldSerializer());
-        Serializer.registerClass(Spellbook.class, new FieldSerializer());
-        Serializer.registerClass(Trigger.class, new FieldSerializer());
+            // Our entity components
+            Serializer.registerClass(CreatureComponent.class, new FieldSerializer());
+            Serializer.registerClass(CreatureViewState.class, new FieldSerializer());
+            Serializer.registerClass(Gold.class, new FieldSerializer());
+            Serializer.registerClass(Health.class, new FieldSerializer());
+            Serializer.registerClass(Interaction.class, new FieldSerializer());
+            Serializer.registerClass(Movable.class, new FieldSerializer());
+            Serializer.registerClass(ObjectComponent.class, new FieldSerializer());
+            Serializer.registerClass(ObjectViewState.class, new FieldSerializer());
+            Serializer.registerClass(Objective.class, new FieldSerializer());
+            Serializer.registerClass(Owner.class, new FieldSerializer());
+            Serializer.registerClass(Party.class, new FieldSerializer());
+            Serializer.registerClass(Position.class, new FieldSerializer());
+            Serializer.registerClass(Senses.class, new FieldSerializer());
+            Serializer.registerClass(Spellbook.class, new FieldSerializer());
+            Serializer.registerClass(Trigger.class, new FieldSerializer());
+        }
     }
 
     public <T extends HostedService> T getService(Class<T> type) {

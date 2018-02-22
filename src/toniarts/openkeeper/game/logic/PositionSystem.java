@@ -53,7 +53,7 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
     }
 
     @Override
-    public void processTick(float tpf) {
+    public void processTick(float tpf, double gameTime) {
         if (positionedEntities.applyChanges()) {
 
             processAddedEntities(positionedEntities.getAddedEntities());

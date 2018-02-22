@@ -20,9 +20,11 @@ import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.component.CreatureAi;
 
 /**
- * Controls a creature entity. Basically supports the AI state machine.
+ * Controls an entity with {@link CreatureAi} component. Basically supports the
+ * AI state machine.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */

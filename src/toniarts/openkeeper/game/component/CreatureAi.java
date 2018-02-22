@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 OpenKeeper
+ * Copyright (C) 2014-2018 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,17 +14,18 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.logic;
+package toniarts.openkeeper.game.component;
+
+import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.controller.ai.CreatureState;
 
 /**
- * Runs the steering tasks
+ * Simple creature AI component
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SteeringLogicManager extends AbstractLogicManager {
+public class CreatureAi implements EntityComponent {
 
-    public SteeringLogicManager(IGameLogicUpdatable... updatables) {
-        super(updatables);
-    }
+    public CreatureState creatureState;
 
 }
