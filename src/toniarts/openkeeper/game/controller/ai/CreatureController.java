@@ -18,9 +18,20 @@ package toniarts.openkeeper.game.controller.ai;
 
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
+import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.awt.Point;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.Mobile;
+import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
+import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Controls an entity with {@link CreatureAi} component. Basically supports the
@@ -28,15 +39,17 @@ import toniarts.openkeeper.game.component.CreatureAi;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureController implements ICreatureController {
+public class CreatureController implements ICreatureController, INavigable {
 
     private final EntityId entityId;
     private final EntityData entityData;
+    private final IGameWorldController gameWorldController;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
 
-    public CreatureController(EntityId entityId, EntityData entityData) {
+    public CreatureController(EntityId entityId, EntityData entityData, IGameWorldController gameWorldController) {
         this.entityId = entityId;
         this.entityData = entityData;
+        this.gameWorldController = gameWorldController;
         this.stateMachine = new DefaultStateMachine<ICreatureController, CreatureState>(this) {
 
         };
@@ -49,17 +62,29 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public void unassingCurrentTask() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
     }
 
     @Override
     public void navigateToRandomPoint() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        final Position position = entityData.getComponent(entityId, Position.class);
+        final Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        final Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (position != null && mobile != null && owner != null) {
+            Point start = WorldUtils.vectorToPoint(position.position);
+            Point destination = gameWorldController.findRandomAccessibleTile(start, 10, this);
+            if (destination != null) {
+                GraphPath<MapTile> path = gameWorldController.findPath(start, destination, this);
+
+                entityData.setComponent(entityId, new Navigation(destination, null, SteeringUtils.pathToList(path)));
+            }
+        }
     }
 
     @Override
     public Object getParty() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return null;
     }
 
     @Override
@@ -69,162 +94,184 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean hasObjective() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean followObjective() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean needsLair() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean hasLair() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean findLair() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean isNeedForSleep() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean goToSleep() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean findWork() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean isWorker() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean isTooMuchGold() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean dropGoldToTreasury() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean isStopped() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return entityData.getComponent(entityId, Navigation.class) == null;
     }
 
     @Override
     public void die() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+// TODO:
     }
 
     @Override
     public void navigateToAssignedTask() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
     }
 
     @Override
     public boolean isAtAssignedTaskTarget() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public void dropGold() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
     }
 
     @Override
     public boolean isWorkNavigationRequired() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean isAssignedTaskValid() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return true;
     }
 
     @Override
     public ICreatureController getAttackTarget() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return null;
     }
 
     @Override
     public boolean isWithinAttackDistance(ICreatureController attackTarget) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public void stop() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
     }
 
     @Override
     public void executeAttack(ICreatureController attackTarget) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
     }
 
     @Override
     public void navigateToAttackTarget(ICreatureController attackTarget) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
     }
 
     @Override
     public ICreatureController getFollowTarget() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return null;
     }
 
     @Override
     public Object getAssignedTask() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return null;
     }
 
     @Override
     public float getDistanceToCreature(ICreatureController followTarget) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return 0f;
     }
 
     @Override
     public void navigateToRandomPointAroundTarget(ICreatureController followTarget, int i) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
     }
 
     @Override
     public void resetFollowTarget() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
     }
 
     @Override
     public void flee() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
     }
 
     @Override
     public boolean isAttacked() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override
     public boolean isEnoughSleep() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return true;
     }
 
     @Override
     public boolean isFullHealth() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return true;
     }
 
     @Override
@@ -253,6 +300,35 @@ public class CreatureController implements ICreatureController {
 
     private void initState() {
         stateMachine.changeState(CreatureState.IDLE);
+    }
+
+    @Override
+    public short getOwnerId() {
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        return owner.ownerId;
+    }
+
+    @Override
+    public boolean canFly() {
+        Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        return mobile.canFly;
+    }
+
+    @Override
+    public boolean canWalkOnWater() {
+        Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        return mobile.canWalkOnWater;
+    }
+
+    @Override
+    public boolean canWalkOnLava() {
+        Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        return mobile.canWalkOnLava;
+    }
+
+    @Override
+    public boolean canMoveDiagonally() {
+        return true;
     }
 
 }

@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ai.CreatureController;
 import toniarts.openkeeper.game.controller.ai.ICreatureController;
 
@@ -40,11 +41,15 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final EntitySet creatureEntities;
+
+    // TODO: The creature shouldn't be able to access the world like this, needs breaking up to pieces
+    private final IGameWorldController gameWorldController;
     private final SafeArrayList<ICreatureController> creatureControllers;
     private final Map<EntityId, ICreatureController> creatureControllersByEntityId;
 
-    public CreatureAiSystem(EntityData entityData) {
+    public CreatureAiSystem(EntityData entityData, IGameWorldController gameWorldController) {
         this.entityData = entityData;
+        this.gameWorldController = gameWorldController;
 
         creatureEntities = entityData.getEntities(CreatureAi.class);
         creatureControllers = new SafeArrayList<>(ICreatureController.class);
@@ -71,7 +76,7 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
 
     private void processAddedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            CreatureController creatureController = new CreatureController(entity.getId(), entityData);
+            CreatureController creatureController = new CreatureController(entity.getId(), entityData, gameWorldController);
             int index = Collections.binarySearch(creatureControllers, creatureController);
             creatureControllers.add(~index, creatureController);
             creatureControllersByEntityId.put(entity.getId(), creatureController);
@@ -94,6 +99,8 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         creatureEntities.release();
+        creatureControllers.clear();
+        creatureControllersByEntityId.clear();
     }
 
 }

@@ -38,9 +38,9 @@ import toniarts.openkeeper.Main;
  */
 public class Utils {
 
-    private static final Logger logger = Logger.getLogger(Utils.class.getName());
-    private static final ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
-    private static final Random random = new Random();
+    private static final Logger LOGGER = Logger.getLogger(Utils.class.getName());
+    private static final ResourceBundle BUNDLE = Main.getResourceBundle("Interface/Texts/Text");
+    private static final Random RANDOM = new Random();
     private static Boolean windows;
     private static final String[] BLOOD_TYPES = {"IkI", "BO", "PoE", "BA", "MoO", "O", "ARh"};
     private static final String[] CREATURE_NAMES = {
@@ -123,7 +123,7 @@ public class Utils {
      * @return name for your creature
      */
     public static String generateCreatureName() {
-        return CREATURE_NAMES[random.nextInt(CREATURE_NAMES.length)];
+        return CREATURE_NAMES[RANDOM.nextInt(CREATURE_NAMES.length)];
     }
 
     /**
@@ -132,7 +132,7 @@ public class Utils {
      * @return blood type for your creature
      */
     public static String generateBloodType() {
-        return BLOOD_TYPES[random.nextInt(BLOOD_TYPES.length)];
+        return BLOOD_TYPES[RANDOM.nextInt(BLOOD_TYPES.length)];
     }
 
     /**
@@ -146,7 +146,7 @@ public class Utils {
         if (list.size() == 1) {
             return list.get(0);
         }
-        return list.get(random.nextInt(list.size()));
+        return list.get(RANDOM.nextInt(list.size()));
     }
 
     /**
@@ -155,7 +155,7 @@ public class Utils {
      * @return the main text resource bundle
      */
     public static ResourceBundle getMainTextResourceBundle() {
-        return bundle;
+        return BUNDLE;
     }
 
     /**
@@ -169,7 +169,7 @@ public class Utils {
             Long bytes = (Long) mBeanServer.getAttribute(new ObjectName("java.lang", "type", "OperatingSystem"), "TotalPhysicalMemorySize");
             return (int) Math.round(bytes / 1024d / 1024d / 1024d);
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Failed to get system memory!", e);
+            LOGGER.log(Level.WARNING, "Failed to get system memory!", e);
         }
         return 0;
     }
@@ -195,7 +195,7 @@ public class Utils {
                 }
             }
         } catch (SocketException e) {
-            logger.log(Level.WARNING, "Failed to get local IP address!", e);
+            LOGGER.log(Level.WARNING, "Failed to get local IP address!", e);
         }
         return null;
     }

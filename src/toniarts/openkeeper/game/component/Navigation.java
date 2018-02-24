@@ -16,26 +16,30 @@
  */
 package toniarts.openkeeper.game.component;
 
+import com.badlogic.gdx.math.Vector2;
 import com.simsilica.es.EntityComponent;
 import java.awt.Point;
+import java.util.List;
 
 /**
- * An entity class marking... well.. target of navigation
+ * An entity class marking... well.. target of navigation with full path
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class NavigationTarget implements EntityComponent {
+public class Navigation implements EntityComponent {
 
     public Point target;
     public Point faceTarget;
+    public List<Vector2> navigationPath;
 
-    public NavigationTarget() {
+    public Navigation() {
         // For serialization
     }
 
-    public NavigationTarget(Point target, Point faceTarget) {
+    public Navigation(Point target, Point faceTarget, List<Vector2> navigationPath) {
         this.target = target;
         this.faceTarget = faceTarget;
+        this.navigationPath = navigationPath;
     }
 
 }

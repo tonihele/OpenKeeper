@@ -401,6 +401,11 @@ public final class MapController implements Savable, IMapController {
     }
 
     @Override
+    public Terrain getTerrain(MapTile tile) {
+        return kwdFile.getTerrain(tile.getTerrainId());
+    }
+
+    @Override
     public void write(JmeExporter ex) throws IOException {
         OutputCapsule out = ex.getCapsule(this);
         out.write(mapData, "mapData", null);

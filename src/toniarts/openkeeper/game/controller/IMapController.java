@@ -16,6 +16,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 
 /**
  * Map related actions available to all players
@@ -178,5 +179,14 @@ public interface IMapController {
      * @param coordinates the coordinates
      */
     public void updateRooms(Point[] coordinates);
+
+    /**
+     * Get terrain in given tile. FIXME: I don't think we should use the KWD
+     * file stuff in here anymore.
+     *
+     * @param tile the map tile
+     * @return the terrain
+     */
+    public Terrain getTerrain(MapTile tile);
 
 }

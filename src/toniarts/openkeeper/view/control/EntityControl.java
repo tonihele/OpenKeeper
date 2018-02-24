@@ -23,6 +23,7 @@ import com.jme3.scene.control.AbstractControl;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -49,7 +50,9 @@ public class EntityControl extends AbstractControl implements IEntityControl, An
 
     @Override
     protected void controlUpdate(float tpf) {
-
+        Position position = entityData.getComponent(entityId, Position.class);
+        getSpatial().setLocalTranslation(position.position);
+        getSpatial().setLocalRotation(getSpatial().getLocalRotation().fromAngles(0, -position.rotation, 0));
     }
 
     @Override

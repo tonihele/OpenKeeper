@@ -147,6 +147,8 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
     @Override
     public void stop() {
         positionedEntities.release();
+        entitiesByMapTile.clear();
+        mapTilesByEntities.clear();
     }
 
 }

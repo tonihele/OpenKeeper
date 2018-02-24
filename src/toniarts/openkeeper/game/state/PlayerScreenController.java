@@ -410,8 +410,8 @@ public class PlayerScreenController implements IPlayerScreenController {
                         if (s.getCreatureSpellId() == 0) {
                             continue;
                         }
-                        CreatureSpell cs = state.stateManager.getState(GameState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
-                        createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
+                        //CreatureSpell cs = state.stateManager.getState(GameState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
+                        //createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
                     }
                 }
                 updatePossessionSelectedItem(possessionAction);

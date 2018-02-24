@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.utils.IGameLoopManager;
@@ -61,7 +62,7 @@ public class GameLogicManager implements IGameLoopManager {
 
         // Logging
         long tickTime = System.nanoTime() - start;
-        LOGGER.log(tickTime < delta ? Level.FINEST : Level.SEVERE, "Tick took {0} ms!", tickTime);
+        LOGGER.log(tickTime < delta ? Level.FINEST : Level.SEVERE, "Tick took {0} ms!", TimeUnit.MILLISECONDS.convert(tickTime, TimeUnit.NANOSECONDS));
 
         // Increase ticks & time
         timeElapsed += tpf;

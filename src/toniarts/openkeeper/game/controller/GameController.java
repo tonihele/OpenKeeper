@@ -42,8 +42,8 @@ import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
+import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.PositionSystem;
-import toniarts.openkeeper.game.state.*;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
@@ -207,10 +207,10 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Create the game loops ready to start
         gameLogicThread = new GameLogicManager(new PositionSystem(gameWorldController.getMapController(), entityData),
                 new ManaCalculatorLogic(gameSettings, playerControllers.values(), gameWorldController.getMapController()),
-                new CreatureAiSystem(entityData));
+                new CreatureAiSystem(entityData, gameWorldController));
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
 
-//        steeringCalculatorLoop = new GameLoop(new SteeringLogicManager(new MovableSystem(entityData)), GameLoop.INTERVAL_FPS_60, "SteeringCalculator");
+        steeringCalculatorLoop = new GameLoop(new GameLogicManager(new MovementSystem(entityData)), GameLoop.INTERVAL_FPS_60, "SteeringCalculator");
     }
 
     public void startGame() {
@@ -434,7 +434,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
             try {
                 Main.getUserSettings().save();
             } catch (IOException ex) {
-                Logger.getLogger(GameState.class.getName()).log(Level.SEVERE, "Failed to save the level progress!", ex);
+                logger.log(Level.SEVERE, "Failed to save the level progress!", ex);
             }
         }
     }
