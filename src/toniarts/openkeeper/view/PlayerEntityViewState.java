@@ -140,14 +140,19 @@ public class PlayerEntityViewState extends AbstractAppState {
         // TODO: object & gold amount are now separate, how to display the different amounts of gold, the model index?
         // The server doesn't need to know it, physics are based on different things I assume, never in the server we load assets
         // Also maybe would be nice to batch up room pillars like before
-        Spatial result = new Node("Wat"); // FIXME: Yeah...
+        Spatial placeHolder = new Node("Wat"); // FIXME: Yeah...
+        Spatial result = placeHolder;
         ObjectViewState objectViewState = e.get(ObjectViewState.class);
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
-            EntityControl control = new EntityControl(e.getId(), entityData);
-            result.addControl(control);
-            nodeObjects.attachChild(result);
+            if (result != null) {
+                EntityControl control = new EntityControl(e.getId(), entityData);
+                result.addControl(control);
+            } else {
+                result = placeHolder;
+            }
         }
+        nodeObjects.attachChild(result);
         return result;
     }
 
