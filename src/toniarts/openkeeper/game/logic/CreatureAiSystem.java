@@ -70,7 +70,7 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
 
         // Process ticks
         for (ICreatureController creatureController : creatureControllers.getArray()) {
-            creatureController.processTick(tpf);
+            creatureController.processTick(tpf, gameTime);
         }
     }
 

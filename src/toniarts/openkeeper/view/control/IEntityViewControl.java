@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IEntityControl extends Control {
+public interface IEntityViewControl<T, S> extends Control {
 
     /**
      * Signifies a state or result for dropping the item
@@ -142,9 +142,10 @@ public interface IEntityControl extends Control {
      * @param tile tile to drop to
      * @param coordinates real world coordinates inside
      * @param control if there is already an
-     * {@link toniarts.openkeeper.view.control.IEntityControl} at the position
+     * {@link toniarts.openkeeper.view.control.IEntityViewControl} at the
+     * position
      */
-    public void drop(MapTile tile, Vector2f coordinates, IEntityControl control);
+    public void drop(MapTile tile, Vector2f coordinates, IEntityViewControl control);
 
     /**
      * When the control is hovered upon
@@ -180,4 +181,9 @@ public interface IEntityControl extends Control {
      * @return the entity ID
      */
     public EntityId getEntityId();
+
+    public void setTargetAnimation(S state);
+
+    public T getDataObject();
+
 }

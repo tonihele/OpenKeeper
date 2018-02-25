@@ -28,4 +28,11 @@ public class CreatureAi implements EntityComponent {
 
     public CreatureState creatureState;
 
+    public CreatureAi() {
+    }
+
+    public CreatureAi(CreatureState creatureState) {
+        this.creatureState = creatureState;
+    }
+
 }

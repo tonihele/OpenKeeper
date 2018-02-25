@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2017 OpenKeeper
+ * Copyright (C) 2014-2018 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,29 +14,22 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.component;
+package toniarts.openkeeper.view.control;
 
-import com.simsilica.es.EntityComponent;
+import com.jme3.asset.AssetManager;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 
 /**
- * Determines that the entity should be viewed as an object. Visual presentation
- * only.
+ * View control that is intended specifically for objects
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectViewState implements EntityComponent {
+public class ObjectViewControl extends EntityViewControl<GameObject, GameObject.State> {
 
-    public short objectId;
-    public GameObject.State state;
-
-    public ObjectViewState() {
-        // For serialization
-    }
-
-    public ObjectViewState(short objectId, GameObject.State state) {
-        this.objectId = objectId;
-        this.state = state;
+    public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, GameObject.State state, AssetManager assetManager) {
+        super(entityId, entityData, data, state, assetManager);
     }
 
 }

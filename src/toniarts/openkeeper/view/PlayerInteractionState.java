@@ -60,10 +60,10 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
-import toniarts.openkeeper.view.control.IEntityControl;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.view.control.IEntityViewControl;
 
 /**
  * State for managing player interactions in the world. Heavily drawn from
@@ -98,7 +98,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private RawInputListener inputListener;
     private boolean inputListenerAdded = false;
-    private IEntityControl interactiveControl;
+    private IEntityViewControl interactiveControl;
     private Label tooltip;
     private KeeperHand keeperHand;
 
@@ -435,7 +435,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
             // TODO: Now just creature control, but all interaction objects
             object = results.getCollision(i).getGeometry().getParent().getParent();
-            IEntityControl control = object.getControl(IEntityControl.class);
+            IEntityViewControl control = object.getControl(IEntityViewControl.class);
             if (control != null) {
                 setInteractiveControl(control);
                 return;
@@ -444,7 +444,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         setInteractiveControl(null);
     }
 
-    private void setInteractiveControl(IEntityControl interactiveControl) {
+    private void setInteractiveControl(IEntityViewControl interactiveControl) {
 
         // If it is the same, don't do anything
         if (interactiveControl != null && interactiveControl.equals(this.interactiveControl)) {
@@ -680,7 +680,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      * @param object the object to pickup
      * @return picked or not
      */
-    public boolean pickupObject(IEntityControl object) {
+    public boolean pickupObject(IEntityViewControl object) {
         if (object == null || keeperHand.isFull() || !object.isPickable(player.getPlayerId())) {
             return false;
         }

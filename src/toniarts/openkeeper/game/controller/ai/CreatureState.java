@@ -87,7 +87,7 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            if (!findStuffToDo(entity) && entity.isStopped()) {
+            if (entity.isTimeToReEvaluate() && !findStuffToDo(entity) && entity.isStopped()) {
                 entity.navigateToRandomPoint();
             }
         }

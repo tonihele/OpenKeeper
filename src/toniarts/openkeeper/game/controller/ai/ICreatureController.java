@@ -18,12 +18,13 @@ package toniarts.openkeeper.game.controller.ai;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 
 /**
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface ICreatureController extends Comparable<ICreatureController> {
+public interface ICreatureController extends Comparable<ICreatureController>, IGameLogicUpdatable {
 
     public boolean shouldFleeOrAttack();
 
@@ -99,10 +100,10 @@ public interface ICreatureController extends Comparable<ICreatureController> {
 
     public boolean isFullHealth();
 
-    public void processTick(float tpf);
-
     public EntityId getEntityId();
 
     public boolean isIncapacitated();
+
+    public boolean isTimeToReEvaluate();
 
 }

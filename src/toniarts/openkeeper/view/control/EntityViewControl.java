@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view.control;
 
+import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
@@ -35,16 +36,25 @@ import toniarts.openkeeper.world.animation.AnimationControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EntityControl extends AbstractControl implements IEntityControl, AnimationControl {
+public abstract class EntityViewControl<T, S> extends AbstractControl implements IEntityViewControl<T, S>, AnimationControl {
 
     private final EntityId entityId;
     private final EntityData entityData;
+    private final T data;
+    protected S currentAnimation;
+    protected S targetAnimation;
+    protected final AssetManager assetManager;
+    protected boolean isAnimationPlaying = false;
 
     private boolean active = false;
 
-    public EntityControl(EntityId entityId, EntityData entityData) {
+    public EntityViewControl(EntityId entityId, EntityData entityData, T data, S animation, AssetManager assetManager) {
         this.entityId = entityId;
         this.entityData = entityData;
+        this.currentAnimation = animation;
+        this.targetAnimation = animation;
+        this.assetManager = assetManager;
+        this.data = data;
     }
 
     @Override
@@ -93,7 +103,7 @@ public class EntityControl extends AbstractControl implements IEntityControl, An
     }
 
     @Override
-    public void drop(MapTile tile, Vector2f coordinates, IEntityControl control) {
+    public void drop(MapTile tile, Vector2f coordinates, IEntityViewControl control) {
 
     }
 
@@ -151,7 +161,8 @@ public class EntityControl extends AbstractControl implements IEntityControl, An
 
     @Override
     public void onAnimationStop() {
-
+        currentAnimation = null;
+        isAnimationPlaying = false;
     }
 
     @Override
@@ -161,7 +172,16 @@ public class EntityControl extends AbstractControl implements IEntityControl, An
 
     @Override
     public boolean isStopAnimation() {
-        return false;
+        return targetAnimation == null || targetAnimation != currentAnimation;
     }
 
+    @Override
+    public void setTargetAnimation(S state) {
+        this.targetAnimation = (S) state;
+    }
+
+    @Override
+    public T getDataObject() {
+        return data;
+    }
 }

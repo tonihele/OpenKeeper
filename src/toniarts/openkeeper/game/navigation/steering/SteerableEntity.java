@@ -21,7 +21,8 @@ import com.badlogic.gdx.math.Vector2;
 import toniarts.openkeeper.world.creature.steering.CreatureLocation;
 
 /**
- * Simple steerable entity
+ * Simple steerable entity. For saving games etc. I would perhaps store this
+ * data in an entity component still. This would manage the updating still.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */

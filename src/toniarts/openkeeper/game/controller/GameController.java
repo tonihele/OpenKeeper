@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
+import toniarts.openkeeper.game.logic.CreatureViewSystem;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
@@ -207,7 +208,8 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Create the game loops ready to start
         gameLogicThread = new GameLogicManager(new PositionSystem(gameWorldController.getMapController(), entityData),
                 new ManaCalculatorLogic(gameSettings, playerControllers.values(), gameWorldController.getMapController()),
-                new CreatureAiSystem(entityData, gameWorldController));
+                new CreatureAiSystem(entityData, gameWorldController),
+                new CreatureViewSystem(entityData));
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
 
         steeringCalculatorLoop = new GameLoop(new GameLogicManager(new MovementSystem(entityData)), GameLoop.INTERVAL_FPS_60, "SteeringCalculator");

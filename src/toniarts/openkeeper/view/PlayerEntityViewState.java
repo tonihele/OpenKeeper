@@ -33,11 +33,13 @@ import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.view.control.EntityControl;
+import toniarts.openkeeper.view.control.CreatureViewControl;
+import toniarts.openkeeper.view.control.EntityViewControl;
+import toniarts.openkeeper.view.control.IEntityViewControl;
+import toniarts.openkeeper.view.control.ObjectViewControl;
 import toniarts.openkeeper.view.loader.CreatureLoader;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.loader.ObjectLoader;
-import toniarts.openkeeper.world.animation.AnimationLoader;
 
 /**
  * A state that handles the showing of entities
@@ -147,7 +149,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
             if (result != null) {
-                EntityControl control = new EntityControl(e.getId(), entityData);
+                EntityViewControl control = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(objectViewState.objectId), objectViewState.state, assetManager);
                 result.addControl(control);
             } else {
                 result = placeHolder;
@@ -171,12 +173,16 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (creatureViewState != null) {
             Creature creature = kwdFile.getCreature(creatureViewState.creatureId);
             result = creatureLoader.load(assetManager, creatureViewState);
-            EntityControl control = new EntityControl(e.getId(), entityData);
+            EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager);
             result.addControl(control);
-            AnimationLoader.playAnimation(result, creature.getAnimation(creatureViewState.state), assetManager);
             nodeCreatures.attachChild(result);
         }
         return result;
+    }
+
+    private void updateModelAnimation(Spatial object, Entity e) {
+        CreatureViewState viewState = e.get(CreatureViewState.class);
+        object.getControl(IEntityViewControl.class).setTargetAnimation(viewState.state);
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -240,6 +246,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void updateObject(Spatial object, Entity e) {
             logger.log(Level.FINEST, "CreatureModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
+            updateModelAnimation(object, e);
         }
 
         @Override

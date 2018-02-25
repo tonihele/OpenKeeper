@@ -142,7 +142,7 @@ public class ObjectsController implements IObjectsController {
         }
 
         // The visual state
-        entityData.setComponent(entity, new ObjectViewState(objectId));
+        entityData.setComponent(entity, new ObjectViewState(objectId, null));
 
         return entity;
     }

@@ -45,12 +45,20 @@ public class CreatureController implements ICreatureController, INavigable {
     private final EntityData entityData;
     private final IGameWorldController gameWorldController;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
+    private float motionless = 0;
 
     public CreatureController(EntityId entityId, EntityData entityData, IGameWorldController gameWorldController) {
         this.entityId = entityId;
         this.entityData = entityData;
         this.gameWorldController = gameWorldController;
         this.stateMachine = new DefaultStateMachine<ICreatureController, CreatureState>(this) {
+
+            public void setCurrentState(CreatureState currentState) {
+                this.currentState = currentState;
+
+                // Also change our state component
+                entityData.setComponent(entityId, new CreatureAi(currentState));
+            }
 
         };
     }
@@ -274,15 +282,6 @@ public class CreatureController implements ICreatureController, INavigable {
     }
 
     @Override
-    public void processTick(float tpf) {
-        if (stateMachine.getCurrentState() == null) {
-            initState();
-        }
-
-        stateMachine.update();
-    }
-
-    @Override
     public EntityId getEntityId() {
         return entityId;
     }
@@ -329,6 +328,42 @@ public class CreatureController implements ICreatureController, INavigable {
     @Override
     public boolean canMoveDiagonally() {
         return true;
+    }
+
+    @Override
+    public void start() {
+
+    }
+
+    @Override
+    public void processTick(float tpf, double gameTime) {
+        if (stateMachine.getCurrentState() == null) {
+            initState();
+        }
+
+        /**
+         * The creatures have these time motionless stuff in different states,
+         * they seem to equal to kind of re-evaluate what to do. We should
+         * figure out a proper way to utilize these. We could also use the
+         * delayed telegram stuff. The hard part is just to kind of figure out
+         * the motionless part and not re-send messages always etc. We could
+         * probably go with pretty much event driven AI.
+         */
+        if (isStopped()) {
+            motionless += tpf;
+        } else {
+            motionless = 0;
+        }
+
+        stateMachine.update();
+    }
+
+    @Override
+    public boolean isTimeToReEvaluate() {
+
+        // See that we have been motionless for enough time, per state
+        // TODO: now just 5 seconds, it is the default for imps
+        return motionless >= 5f;
     }
 
 }

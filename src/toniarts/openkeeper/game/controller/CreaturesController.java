@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Trigger;
+import toniarts.openkeeper.game.controller.ai.CreatureState;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -176,7 +177,7 @@ public class CreaturesController {
             int fps = entranceAnimation.getData("fps");
             entityData.setComponent(entity, new CreatureEntrance(frames / (float) fps, gameTimer.getGameTime()));
         } else {
-            entityData.setComponent(entity, new CreatureAi());
+            entityData.setComponent(entity, new CreatureAi(CreatureState.IDLE));
         }
 
         //creatureComponent.creatureState = (entrance ? CreatureState.ENTERING_DUNGEON : CreatureState.IDLE);
