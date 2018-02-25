@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.network;
 
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.Vector2f;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.Network;
@@ -35,12 +36,14 @@ import java.awt.Point;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
-import toniarts.openkeeper.game.component.Movable;
+import toniarts.openkeeper.game.component.Mobile;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Objective;
@@ -50,6 +53,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.component.Trigger;
+import toniarts.openkeeper.game.controller.ai.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -96,19 +100,23 @@ public class NetworkServer {
 
             // Needed for the game
             Serializer.registerClass(Vector2f.class, new FieldSerializer());
+            Serializer.registerClass(Vector2.class, new FieldSerializer());
             Serializer.registerClass(Point.class, new FieldSerializer());
             Serializer.registerClass(Tile.BridgeTerrainType.class, new EnumSerializer());
             Serializer.registerClass(MapData.class, new FieldSerializer()); // FIXME: Savable serializer would be better...
             Serializer.registerClass(MapTile.class, new FieldSerializer());
             Serializer.registerClass(GameData.class, new FieldSerializer());
+            Serializer.registerClass(CreatureState.class, new EnumSerializer());
 
             // Our entity components
+            Serializer.registerClass(CreatureAi.class, new FieldSerializer());
             Serializer.registerClass(CreatureComponent.class, new FieldSerializer());
             Serializer.registerClass(CreatureViewState.class, new FieldSerializer());
             Serializer.registerClass(Gold.class, new FieldSerializer());
             Serializer.registerClass(Health.class, new FieldSerializer());
             Serializer.registerClass(Interaction.class, new FieldSerializer());
-            Serializer.registerClass(Movable.class, new FieldSerializer());
+            Serializer.registerClass(Mobile.class, new FieldSerializer());
+            Serializer.registerClass(Navigation.class, new FieldSerializer());
             Serializer.registerClass(ObjectComponent.class, new FieldSerializer());
             Serializer.registerClass(ObjectViewState.class, new FieldSerializer());
             Serializer.registerClass(Objective.class, new FieldSerializer());

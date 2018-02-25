@@ -75,7 +75,6 @@ public class CreatureController implements ICreatureController, INavigable {
             Point destination = gameWorldController.findRandomAccessibleTile(start, 10, this);
             if (destination != null) {
                 GraphPath<MapTile> path = gameWorldController.findPath(start, destination, this);
-
                 entityData.setComponent(entityId, new Navigation(destination, null, SteeringUtils.pathToList(path)));
             }
         }
@@ -290,7 +289,8 @@ public class CreatureController implements ICreatureController, INavigable {
 
     @Override
     public boolean isIncapacitated() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // TODO:
+        return false;
     }
 
     @Override

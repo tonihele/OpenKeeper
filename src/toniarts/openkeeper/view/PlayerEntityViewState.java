@@ -118,6 +118,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         // Detach entities
         app.getRootNode().detachChild(root);
         objectModelContainer.stop();
+        creatureModelContainer.stop();
 
         super.cleanup();
     }
@@ -181,7 +182,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void updateModelPosition(Spatial object, Entity e) {
         Position position = e.get(Position.class);
         object.setLocalTranslation(position.position);
-        object.setLocalRotation(object.getLocalRotation().fromAngles(0, position.rotation, 0));
+        object.setLocalRotation(object.getLocalRotation().fromAngles(0, -position.rotation, 0));
     }
 
     private void removeModel(Spatial spatial, Entity e) {

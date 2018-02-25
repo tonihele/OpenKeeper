@@ -168,21 +168,19 @@ public class MovementSystem implements IGameLogicUpdatable {
         if (INDEPENDENT_FACING) {
             steerableEntity.setOrientation(steerableEntity.getOrientation() + steerableEntity.getAngularVelocity() * tpf);
         } else // If we haven't got any velocity, then we can do nothing.
-        {
-            if (!steerableEntity.getLinearVelocity().isZero()) {
+         if (!steerableEntity.getLinearVelocity().isZero()) {
                 float newOrientation = SteeringUtils.calculateVectorToAngle(steerableEntity.getLinearVelocity());
                 steerableEntity.setAngularVelocity((newOrientation - steerableEntity.getOrientation()) * tpf);
                 steerableEntity.setOrientation(newOrientation);
             } else if (steerableEntity.getAngularVelocity() != 0) {
                 steerableEntity.setOrientation(steerableEntity.getOrientation() + steerableEntity.getAngularVelocity() * tpf);
             }
-        }
 
         // Also update the real components
-        Position position = entityData.getComponent(entityId, Position.class);
-        position.position.x = steerableEntity.getPosition().x;
-        position.position.z = steerableEntity.getPosition().y;
-        position.rotation = steerableEntity.getOrientation();
+        Position oldPosition = entityData.getComponent(entityId, Position.class);
+        oldPosition.position.x = steerableEntity.getPosition().x;
+        oldPosition.position.z = steerableEntity.getPosition().y;
+        entityData.setComponent(entityId, new Position(steerableEntity.getOrientation(), oldPosition.position));
     }
 
     @Override
