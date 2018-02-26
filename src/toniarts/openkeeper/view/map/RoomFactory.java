@@ -16,10 +16,10 @@
  */
 package toniarts.openkeeper.view.map;
 
-import toniarts.openkeeper.common.RoomInstance;
 import com.jme3.asset.AssetManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.view.map.construction.DoubleQuadConstructor;
 import toniarts.openkeeper.view.map.construction.FiveByFiveRotatedConstructor;
 import toniarts.openkeeper.view.map.construction.HeroGateConstructor;
@@ -30,6 +30,10 @@ import toniarts.openkeeper.view.map.construction.NormalConstructor;
 import toniarts.openkeeper.view.map.construction.QuadConstructor;
 import toniarts.openkeeper.view.map.construction.RoomConstructor;
 import toniarts.openkeeper.view.map.construction.ThreeByThreeConstructor;
+import toniarts.openkeeper.view.map.construction.room.CombatPitConstructor;
+import toniarts.openkeeper.view.map.construction.room.PrisonConstructor;
+import toniarts.openkeeper.view.map.construction.room.StoneBridgeConstructor;
+import toniarts.openkeeper.view.map.construction.room.WorkshopConstructor;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 
 /**
@@ -91,21 +95,25 @@ public final class RoomFactory {
 //                } else if (roomName.equalsIgnoreCase("Hatchery")) {
 //                    return new Hatchery(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                }
+                if (roomName.equalsIgnoreCase("Work Shop")) {
+                    return new WorkshopConstructor(assetManager, roomInstance);
+                }
                 return new NormalConstructor(assetManager, roomInstance);
 
             case QUAD:
-//                if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
-//                    return new StoneBridge(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                }
+                if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
+                    return new StoneBridgeConstructor(assetManager, roomInstance);
+                }
                 return new QuadConstructor(assetManager, roomInstance);
 //
             case DOUBLE_QUAD:
-//                if (roomName.equalsIgnoreCase("Prison")) {
-//                    return new Prison(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                } else if (roomName.equalsIgnoreCase("Combat Pit")) {
-//                    return new CombatPit(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                } else if (roomName.equalsIgnoreCase("Temple")) {
-//                    return new Temple(assetManager, roomInstance, objectLoader, worldState, effectManager);
+                if (roomName.equalsIgnoreCase("Prison")) {
+                    return new PrisonConstructor(assetManager, roomInstance);
+                } else if (roomName.equalsIgnoreCase("Combat Pit")) {
+                    return new CombatPitConstructor(assetManager, roomInstance);
+                }
+//                else if (roomName.equalsIgnoreCase("Temple")) {
+//                    return new TempleConstructor(assetManager, roomInstance);
 //                }
 //                // TODO use quad construction for different rooms
                 return new DoubleQuadConstructor(assetManager, roomInstance);
