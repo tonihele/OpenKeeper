@@ -19,7 +19,8 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Creature entrance
+ * Creature entrance. TODO: REMOVE!!! Just go on and be better on timed states.
+ * This is abusing of the ES system and bad design.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
