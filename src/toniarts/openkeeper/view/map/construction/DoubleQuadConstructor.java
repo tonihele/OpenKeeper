@@ -17,12 +17,15 @@
 package toniarts.openkeeper.view.map.construction;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.math.FastMath;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.common.RoomInstance;
-import static toniarts.openkeeper.view.map.construction.QuadConstructor.constructQuad;
+import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.world.MapLoader;
 
 /**
  *
@@ -59,6 +62,135 @@ public class DoubleQuadConstructor extends RoomConstructor {
         }
 
         return root;
+    }
+
+    public static Node constructQuad(AssetManager assetManager, String modelName,
+            boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW) {
+
+        Node quad = new Node();
+
+        for (int i = 0; i < 2; i++) {
+            for (int k = 0; k < 2; k++) {
+                // 4 - 8 - walls
+                int piece = 0;
+                float yAngle = 0;
+                Vector3f movement;
+                // Determine the piece
+                if (i == 0 && k == 0) { // North west corner
+                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                        piece = 13;
+                    } else if (N && E && S && W && NW && !SE) {
+                        piece = 12;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (N && E && SE && S && W && !NW) {
+                        piece = 2;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (!N && !W) {
+                        piece = 1;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (!S && !E && NW) {
+                        piece = 11;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (N && !W) {
+                        piece = 0;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (N && W && (!S || !SW)) {
+                        piece = 10;
+                        yAngle = FastMath.PI;
+                    } else if (N && W && (!E || !NE)) {
+                        piece = 10;
+                        yAngle = -FastMath.HALF_PI;
+                    }
+                    movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
+                } else if (i == 1 && k == 0) { // North east corner
+                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                        piece = 13;
+                    } else if (N && NE && E && S && W && !SW) {
+                        piece = 12;
+                    } else if (N && E && S && SW && W && !NE) {
+                        piece = 2;
+                    } else if (!N && !E) {
+                        piece = 1;
+                    } else if (!S && !W && NE) {
+                        piece = 11;
+                        yAngle = FastMath.PI;
+                    } else if (N && !E) {
+                        piece = 0;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (N && E && (!S || !SE)) {
+                        piece = 10;
+                        yAngle = FastMath.PI;
+                    } else if (N && E && (!W || !NW)) {
+                        piece = 10;
+                        yAngle = FastMath.HALF_PI;
+                    }
+                    movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
+                } else if (i == 0 && k == 1) { // South west corner
+                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                        piece = 13;
+                    } else if (N && E && S && SW && W && !NE) {
+                        piece = 12;
+                        yAngle = FastMath.PI;
+                    } else if (N && NE && E && S && W && !SW) {
+                        piece = 2;
+                        yAngle = FastMath.PI;
+                    } else if (!S && !W) {
+                        piece = 1;
+                        yAngle = FastMath.PI;
+                    } else if (!N && !E && SW) {
+                        piece = 11;
+                    } else if (!N && !W && S) {
+                        piece = 0;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (W && !S) {
+                        piece = 0;
+                        yAngle = FastMath.PI;
+                    } else if (S && W && (!E || !SE)) {
+                        piece = 10;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (S && W && (!N || !NW)) {
+                        piece = 10;
+                    }
+                    movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
+                } else { // South east corner  if (i == 1 && k == 1)
+                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                        piece = 13;
+                    } else if (N && E && SE && S && W && !NW) {
+                        piece = 12;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (N && E && S && W && NW && !SE) {
+                        piece = 2;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (!S && !E) {
+                        piece = 1;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (!N && !W && SE) {
+                        piece = 11;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (!N && !E && S) {
+                        piece = 0;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (E && !S) {
+                        piece = 0;
+                        yAngle = FastMath.PI;
+                    } else if (E && S && (!W || !SW)) {
+                        piece = 10;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (E && S && (!N || !NE)) {
+                        piece = 10;
+                    }
+                    movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
+                }
+                // Load the piece
+                Spatial part = AssetUtils.loadModel(assetManager, modelName + piece);
+                part.rotate(0, yAngle, 0);
+                part.move(movement);
+
+                quad.attachChild(part);
+            }
+        }
+
+        return quad;
     }
 
 }
