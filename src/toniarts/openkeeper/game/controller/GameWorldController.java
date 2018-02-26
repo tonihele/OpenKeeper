@@ -505,6 +505,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
         // Start growing the circle, always testing the tile
         getAccessibleNeighbours(getMapController().getMapData().getTile(start.x, start.y), radius, navigable, tiles);
+        tiles.remove(start);
 
         // Take a random point
         if (!tiles.isEmpty()) {
@@ -517,11 +518,6 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         if (radius > 0) {
             for (int y = startTile.getY() - 1; y <= startTile.getY() + 1; y++) {
                 for (int x = startTile.getX() - 1; x <= startTile.getX() + 1; x++) {
-
-                    // Skip start tile or tiles be already have
-                    if ((x == startTile.getX() && y == startTile.getY())) {
-                        continue;
-                    }
 
                     // If this is good, add and get neighbours
                     MapTile tile = getMapController().getMapData().getTile(x, y);
