@@ -16,12 +16,9 @@
  */
 package toniarts.openkeeper.game.navigation.pathfinding;
 
-import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.map.MapTile;
-import toniarts.openkeeper.tools.convert.map.Terrain;
 
 /**
  * A simple interface for an entity that can use path finding
@@ -52,31 +49,7 @@ public interface INavigable {
      * @return {@code null} if the to tile is not accessible
      */
     default public Float getCost(final MapTile from, final MapTile to, final IGameWorldController gameWorldController, final IMapController mapController) {
-        Terrain terrain = mapController.getTerrain(to);
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-
-            // Check for doors etc.
-//            DoorControl doorControl = worldState.getThingLoader().getDoor(to.getLocation());
-//            if (doorControl != null && !doorControl.isPassable(getOwnerId())) {
-//                return null;
-//            }
-            // Check terrain
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-
-                // Get room obstacles
-                RoomInstance roomInstance = mapController.getRoomInstanceByCoordinates(to.getLocation());
-                IRoomController room = mapController.getRoomController(roomInstance);
-                return room.isTileAccessible(from != null ? from.getLocation() : null, to.getLocation()) ? DEFAULT_COST : null;
-            } else if (canFly()) {
-                return DEFAULT_COST;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && canWalkOnLava()) {
-                return DEFAULT_COST;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && canWalkOnWater()) {
-                return WATER_COST;
-            }
-            return DEFAULT_COST;
-        }
-        return null;
+        return MapIndexedGraph.getCost(this, from, to, gameWorldController, mapController);
     }
 
     /**

@@ -20,9 +20,14 @@ import com.badlogic.gdx.ai.pfa.Connection;
 import com.badlogic.gdx.ai.pfa.DefaultConnection;
 import com.badlogic.gdx.ai.pfa.indexed.IndexedGraph;
 import com.badlogic.gdx.utils.Array;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.map.MapTile;
+import static toniarts.openkeeper.game.navigation.pathfinding.INavigable.DEFAULT_COST;
+import static toniarts.openkeeper.game.navigation.pathfinding.INavigable.WATER_COST;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 
 /**
  * Map representation for the path finding
@@ -97,7 +102,7 @@ public class MapIndexedGraph implements IndexedGraph<MapTile> {
         // Valid coordinate
         MapTile tile = mapController.getMapData().getTile(x, y);
         if (tile != null) {
-            Float cost = pathFindable.getCost(startTile, tile, gameWorldController, mapController);
+            Float cost = getCost(pathFindable, startTile, tile, gameWorldController, mapController, false);
             if (cost != null) {
                 connections.add(new DefaultConnection<MapTile>(startTile, tile) {
 
@@ -111,6 +116,75 @@ public class MapIndexedGraph implements IndexedGraph<MapTile> {
             }
         }
         return false;
+    }
+
+    /**
+     * Can the entity travel from A to B?
+     *
+     * @param navigable the navigable entity
+     * @param from the tile we are traversing from, always the adjacent tile
+     * which we know already being accessible
+     * @param to the tile we are travelling to
+     * @param gameWorldController the game world controller
+     * @param mapController the map controller
+     * @see #DEFAULT_COST
+     * @see #WATER_COST
+     * @return {@code null} if the to tile is not accessible
+     */
+    protected static Float getCost(final INavigable navigable, final MapTile from, final MapTile to, final IGameWorldController gameWorldController, final IMapController mapController) {
+        return getCost(navigable, from, to, gameWorldController, mapController, true);
+    }
+
+    private static Float getCost(final INavigable navigable, final MapTile from, final MapTile to, final IGameWorldController gameWorldController, final IMapController mapController, boolean checkDiagonal) {
+        Terrain terrain = mapController.getTerrain(to);
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+
+            // Check for doors etc.
+//            DoorControl doorControl = worldState.getThingLoader().getDoor(to.getLocation());
+//            if (doorControl != null && !doorControl.isPassable(getOwnerId())) {
+//                return null;
+//            }
+            // We can never squeeze through obstacles, even if able to move diagonally
+            if (checkDiagonal && from != null && from.getX() != to.getX() && from.getY() != to.getY()) {
+                if (!navigable.canMoveDiagonally()) {
+                    return null;
+                }
+
+                // Get the 2 neighbouring tiles (corners kinda)
+                boolean hasConnection = false;
+                MapTile hiCorner = mapController.getMapData().getTile(Math.max(from.getX(), to.getX()), Math.max(from.getY(), to.getY()));
+                MapTile loCorner = mapController.getMapData().getTile(Math.min(from.getX(), to.getX()), Math.min(from.getY(), to.getY()));
+                if (hiCorner != null && getCost(navigable, from, hiCorner, gameWorldController, mapController, false) != null) {
+                    hasConnection = true;
+                } else if (loCorner != null && getCost(navigable, from, loCorner, gameWorldController, mapController, false) != null) {
+                    hasConnection = true;
+                }
+
+                if (!hasConnection) {
+                    return null;
+                }
+            }
+
+            // Check terrain
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+
+                // Get room obstacles
+                RoomInstance roomInstance = mapController.getRoomInstanceByCoordinates(to.getLocation());
+                IRoomController room = mapController.getRoomController(roomInstance);
+                return room.isTileAccessible(from != null ? from.getLocation() : null, to.getLocation()) ? DEFAULT_COST : null;
+            } else if (navigable.canFly()) {
+                return DEFAULT_COST;
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !navigable.canWalkOnLava()) {
+                return null;
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER)) {
+                if (navigable.canWalkOnWater()) {
+                    return WATER_COST;
+                }
+                return null;
+            }
+            return DEFAULT_COST;
+        }
+        return null;
     }
 
 }
