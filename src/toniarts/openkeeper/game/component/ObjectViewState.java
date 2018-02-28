@@ -39,4 +39,9 @@ public class ObjectViewState implements EntityComponent {
         this.state = state;
     }
 
+    @Override
+    public String toString() {
+        return "ObjectViewState{" + "objectId=" + objectId + ", state=" + state + '}';
+    }
+
 }
