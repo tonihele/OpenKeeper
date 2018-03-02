@@ -366,4 +366,9 @@ public class CreatureController implements ICreatureController, INavigable {
         return motionless >= 5f;
     }
 
+    @Override
+    public void resetReEvaluationTimer() {
+        motionless = 0;
+    }
+
 }

@@ -106,4 +106,6 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public boolean isTimeToReEvaluate();
 
+    public void resetReEvaluationTimer();
+
 }
