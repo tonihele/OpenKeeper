@@ -264,12 +264,7 @@ public abstract class AbstractRoomController implements IRoomController {
         wallFurniture.clear();
     }
 
-    /**
-     * Is this room instance destroyed? Not in the world anymore.
-     *
-     * @see #destroy()
-     * @return is the room destroyed
-     */
+    @Override
     public boolean isDestroyed() {
         return destroyed;
     }

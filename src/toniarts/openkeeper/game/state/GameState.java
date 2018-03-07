@@ -197,8 +197,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     };
 
                     // Initialize tasks
-                    taskManager = new TaskManager(worldState, getPlayers());
-
+                    //taskManager = new TaskManager(worldState, getPlayers());
                     GameState.this.stateManager.attach(worldState);
 
                     GameState.this.stateManager.attach(new SoundState(false));

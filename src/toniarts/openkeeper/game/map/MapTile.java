@@ -286,9 +286,10 @@ public class MapTile implements Savable {
      *
      * @return true if full health
      */
-//    public boolean isAtFullHealth() {
-//        return (health == getTerrain().getMaxHealth());
-//    }
+    public boolean isAtFullHealth() {
+        return (health == maxHealth);
+    }
+
     @Override
     public int hashCode() {
         return this.index;
@@ -373,4 +374,5 @@ public class MapTile implements Savable {
 
         return result;
     }
+
 }

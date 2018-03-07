@@ -18,12 +18,14 @@ package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
 import java.util.Objects;
+import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
  * A task for creatures to capture a fallen enemy
@@ -32,20 +34,20 @@ import toniarts.openkeeper.world.room.GenericRoom;
  */
 public class CaptureEnemyCreatureTask extends AbstractTileTask {
 
-    private final CreatureControl creature;
+    private final ICreatureController creature;
 
-    public CaptureEnemyCreatureTask(WorldState worldState, CreatureControl creature, short playerId) {
-        super(worldState, creature.getCreatureCoordinates().x, creature.getCreatureCoordinates().y, playerId);
+    public CaptureEnemyCreatureTask(final IGameWorldController gameWorldController, final IMapController mapController, ICreatureController creature, short playerId) {
+        super(gameWorldController, mapController, WorldUtils.vectorToPoint(creature.getPosition()).x, WorldUtils.vectorToPoint(creature.getPosition()).y, playerId);
         this.creature = creature;
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
+    public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
+    public boolean isValid(ICreatureController creature) {
         return this.creature.isUnconscious() && !isPrisonCapacityFull();
     }
 
@@ -65,16 +67,16 @@ public class CaptureEnemyCreatureTask extends AbstractTileTask {
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
+    public void executeTask(ICreatureController creature) {
 
         // Assign carry to prison
-        if (worldState.getTaskManager().assignClosestRoomTask(creature, GenericRoom.ObjectType.PRISONER)) {
-            creature.setHaulable(this.creature);
-        }
+//        if (worldState.getTaskManager().assignClosestRoomTask(creature, GenericRoom.ObjectType.PRISONER)) {
+//            creature.setHaulable(this.creature);
+//        }
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
+    public ArtResource getTaskAnimation(ICreatureController creature) {
         return null;
     }
 
@@ -84,7 +86,7 @@ public class CaptureEnemyCreatureTask extends AbstractTileTask {
     }
 
     private boolean isPrisonCapacityFull() {
-        for (GenericRoom room : worldState.getMapLoader().getRoomsByFunction(GenericRoom.ObjectType.PRISONER, playerId)) {
+        for (IRoomController room : mapController.getRoomsByFunction(ObjectType.PRISONER, playerId)) {
             if (!room.isFullCapacity()) {
                 return false;
             }

@@ -97,4 +97,14 @@ public interface IRoomController {
 
     public void destroy();
 
+    /**
+     * Is this room instance destroyed? Not in the world anymore.
+     *
+     * @see #destroy()
+     * @return is the room destroyed
+     */
+    public boolean isDestroyed();
+
+    public boolean isFullCapacity();
+
 }

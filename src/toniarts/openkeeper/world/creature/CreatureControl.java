@@ -444,7 +444,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 && isAssignedTaskValid() && !workNavigationRequired) {
 
             // Different work based reactions
-            assignedTask.executeTask(this);
+//            assignedTask.executeTask(this);
         }
     }
 
@@ -460,11 +460,11 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
                 // Different work animations
                 playingAnimationType = AnimationType.WORK;
-                if (assignedTask != null && assignedTask.getTaskAnimation(this) != null) {
-                    playAnimation(assignedTask.getTaskAnimation(this));
-                } else {
-                    onAnimationCycleDone();
-                }
+//                if (assignedTask != null && assignedTask.getTaskAnimation(this) != null) {
+//                    playAnimation(assignedTask.getTaskAnimation(this));
+//                } else {
+//                    onAnimationCycleDone();
+//                }
             } else if (stateMachine.getCurrentState() == CreatureState.ENTERING_DUNGEON) {
                 playAnimation(creature.getAnimEntranceResource());
                 playingAnimationType = AnimationType.OTHER;
@@ -748,20 +748,19 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      */
     public boolean navigateToAssignedTask() {
 
-        Vector2f loc = assignedTask.getTarget(this);
-        workNavigationRequired = false;
-
-        if (loc != null) {
-            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState,
-                    this, this, WorldUtils.vectorToPoint(loc),
-                    assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
-            if (steering != null) {
-                steering.setEnabled(!isAnimationPlaying());
-                setSteeringBehavior(steering);
-                return true;
-            }
-        }
-
+//        Vector2f loc = assignedTask.getTarget(this);
+//        workNavigationRequired = false;
+//
+//        if (loc != null) {
+//            SteeringBehavior<Vector2> steering = CreatureSteeringCreator.navigateToPoint(worldState,
+//                    this, this, WorldUtils.vectorToPoint(loc),
+//                    assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
+//            if (steering != null) {
+//                steering.setEnabled(!isAnimationPlaying());
+//                setSteeringBehavior(steering);
+//                return true;
+//            }
+//        }
         return false;
     }
 
@@ -775,9 +774,9 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     }
 
     public void unassingCurrentTask() {
-        if (assignedTask != null) {
-            assignedTask.unassign(this);
-        }
+//        if (assignedTask != null) {
+//            assignedTask.unassign(this);
+//        }
         assignedTask = null;
     }
 
@@ -787,9 +786,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public boolean isAtAssignedTaskTarget() {
         // FIXME: not like this, universal solution
-        return (assignedTask != null && assignedTask.getTarget(this) != null
-                && !workNavigationRequired && steeringBehavior == null
-                && isNear(assignedTask.getTarget(this)));
+//        return (assignedTask != null && assignedTask.getTarget(this) != null
+//                && !workNavigationRequired && steeringBehavior == null
+//                && isNear(assignedTask.getTarget(this)));
+        return false;
     }
 
     public boolean isWorkNavigationRequired() {
@@ -798,7 +798,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public boolean isAssignedTaskValid() {
         // FIXME: yep
-        return (assignedTask != null && assignedTask.isValid(this));
+//        return (assignedTask != null && assignedTask.isValid(this));
+        return false;
     }
 
     public boolean isStopped() {
@@ -819,10 +820,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
     public boolean dropGoldToTreasury() {
         if (gold > 0 && isWorker()) {
-            if (worldState.getTaskManager().assignGoldToTreasuryTask(this)) {
-                navigateToAssignedTask();
-                return true;
-            }
+//            if (worldState.getTaskManager().assignGoldToTreasuryTask(this)) {
+//                navigateToAssignedTask();
+//                return true;
+//            }
         }
 
         return false;
@@ -909,7 +910,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
 
         // See if we have some available work
         if (isWorker()) {
-            return (worldState.getTaskManager().assignTask(this, false));
+//            return (worldState.getTaskManager().assignTask(this, false));
         }
 
         // See that is there a prefered job for us
@@ -917,15 +918,15 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
         List<Creature.JobPreference> jobs = new ArrayList<>();
         if (creature.getHappyJobs() != null) {
             for (Creature.JobPreference jobPreference : creature.getHappyJobs()) {
-                if (worldState.getTaskManager().isTaskAvailable(this, jobPreference.getJobType())) {
-                    jobs.add(jobPreference);
-                }
+//                if (worldState.getTaskManager().isTaskAvailable(this, jobPreference.getJobType())) {
+//                    jobs.add(jobPreference);
+//                }
             }
         }
 
         // Choose
         if (!jobs.isEmpty()) {
-            return (worldState.getTaskManager().assignTask(this, chooseOnWeight(jobs).getJobType()));
+//            return (worldState.getTaskManager().assignTask(this, chooseOnWeight(jobs).getJobType()));
         }
 
         return false;
@@ -953,7 +954,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return true if a lair task is found
      */
     public boolean findLair() {
-        return (worldState.getTaskManager().assignClosestRoomTask(this, GenericRoom.ObjectType.LAIR));
+//        return (worldState.getTaskManager().assignClosestRoomTask(this, GenericRoom.ObjectType.LAIR));
+        return false;
     }
 
     /**
@@ -962,7 +964,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
      * @return true if a sleep task is found
      */
     public boolean goToSleep() {
-        return (worldState.getTaskManager().assignSleepTask(this));
+//        return (worldState.getTaskManager().assignSleepTask(this));
+        return false;
     }
 
     /**
@@ -1036,7 +1039,8 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
     public boolean followObjective() {
 
         // See if we have some available work
-        return (worldState.getTaskManager().assignObjectiveTask(this, objective));
+//        return (worldState.getTaskManager().assignObjectiveTask(this, objective));
+        return false;
     }
 
     /**

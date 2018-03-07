@@ -189,4 +189,44 @@ public interface IMapController {
      */
     public Terrain getTerrain(MapTile tile);
 
+    /**
+     * Is claimable wall at tile point
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param playerId for the player
+     * @return is the wall claimable
+     */
+    public boolean isClaimableWall(int x, int y, short playerId);
+
+    /**
+     * Is claimable floor at tile point (not a room)
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param playerId for the player
+     * @return is the floor claimable
+     */
+    public boolean isClaimableTile(int x, int y, short playerId);
+
+    /**
+     * Is repairable wall at tile point
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param playerId for the player
+     * @return is the wall repairable
+     */
+    public boolean isRepairableWall(int x, int y, short playerId);
+
+    /**
+     * Is claimable room tile at tile point
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param playerId for the player
+     * @return is the room claimable
+     */
+    public boolean isClaimableRoom(int x, int y, short playerId);
+
 }

@@ -16,9 +16,10 @@
  */
 package toniarts.openkeeper.game.task;
 
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.GenericRoom;
+import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 
 /**
  * A base class for tasks that we should keep track off
@@ -29,14 +30,14 @@ public abstract class AbstractCapacityCriticalRoomTask extends AbstractRoomTask 
 
     protected final TaskManager taskManager;
 
-    public AbstractCapacityCriticalRoomTask(WorldState worldState, int x, int y, short playerId, GenericRoom room, TaskManager taskManager) {
-        super(worldState, x, y, playerId, room);
+    public AbstractCapacityCriticalRoomTask(final IGameWorldController gameWorldController, final IMapController mapController, int x, int y, short playerId, IRoomController room, TaskManager taskManager) {
+        super(gameWorldController, mapController, x, y, playerId, room);
 
         this.taskManager = taskManager;
     }
 
     @Override
-    public void unassign(CreatureControl creature) {
+    public void unassign(ICreatureController creature) {
         super.unassign(creature);
 
         // Remove us

@@ -19,9 +19,11 @@ package toniarts.openkeeper.game.controller.ai;
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
@@ -29,7 +31,6 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.map.MapTile;
-import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -39,7 +40,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureController implements ICreatureController, INavigable {
+public class CreatureController implements ICreatureController {
 
     private final EntityId entityId;
     private final EntityData entityData;
@@ -302,6 +303,12 @@ public class CreatureController implements ICreatureController, INavigable {
     }
 
     @Override
+    public Vector3f getPosition() {
+        Position position = entityData.getComponent(entityId, Position.class);
+        return position.position;
+    }
+
+    @Override
     public short getOwnerId() {
         Owner owner = entityData.getComponent(entityId, Owner.class);
         return owner.ownerId;
@@ -369,6 +376,61 @@ public class CreatureController implements ICreatureController, INavigable {
     @Override
     public void resetReEvaluationTimer() {
         motionless = 0;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 37 * hash + Objects.hashCode(this.entityId);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final CreatureController other = (CreatureController) obj;
+        if (!Objects.equals(this.entityId, other.entityId)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int getGold() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void substractGold(int i) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public Point getLairLocation() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public boolean isDragged() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public boolean isUnconscious() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public Point getCreatureCoordinates() {
+        return WorldUtils.vectorToPoint(getPosition());
     }
 
 }

@@ -19,8 +19,8 @@ package toniarts.openkeeper.game.task;
 import com.jme3.math.Vector2f;
 import java.awt.Point;
 import java.util.Date;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  *
@@ -34,7 +34,7 @@ public interface Task {
      * @param creature entity to be assigned
      * @param setToCreature set the task to creature right away, typically yes
      */
-    void assign(CreatureControl creature, boolean setToCreature);
+    void assign(ICreatureController creature, boolean setToCreature);
 
     /**
      * Can the entity be assigned to this task
@@ -42,14 +42,14 @@ public interface Task {
      * @param creature the tested entity
      * @return returns tru if the entity can be assigned to the task
      */
-    boolean canAssign(CreatureControl creature);
+    boolean canAssign(ICreatureController creature);
 
     /**
      * Execute task!
      *
      * @param creature creature executing the task
      */
-    void executeTask(CreatureControl creature);
+    void executeTask(ICreatureController creature);
 
     /**
      * How many workers have already been assigned to this task
@@ -79,7 +79,7 @@ public interface Task {
      * @param creature who wants to know?
      * @return the target coordinates
      */
-    Vector2f getTarget(CreatureControl creature);
+    Vector2f getTarget(ICreatureController creature);
 
     /**
      * Get the animation used for the task. Might be null if no animation is
@@ -88,7 +88,7 @@ public interface Task {
      * @param creature executing the task
      * @return the animation
      */
-    ArtResource getTaskAnimation(CreatureControl creature);
+    ArtResource getTaskAnimation(ICreatureController creature);
 
     Date getTaskCreated();
 
@@ -127,7 +127,7 @@ public interface Task {
      * @param creature the creature trying to reach this
      * @return is the task reachable
      */
-    boolean isReachable(CreatureControl creature);
+    boolean isReachable(ICreatureController creature);
 
     /**
      * Evaluates the task validity
@@ -136,14 +136,14 @@ public interface Task {
      * validity
      * @return the task validity
      */
-    boolean isValid(CreatureControl creature);
+    boolean isValid(ICreatureController creature);
 
     /**
      * Unassing a creature from the job. A place for doing some cleanup
      *
      * @param creature
      */
-    void unassign(CreatureControl creature);
+    void unassign(ICreatureController creature);
 
     /**
      * Evaluates the task validity, in a way that is it valid ever again and

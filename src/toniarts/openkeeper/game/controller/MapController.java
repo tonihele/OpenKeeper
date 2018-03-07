@@ -401,6 +401,46 @@ public final class MapController implements Savable, IMapController {
     }
 
     @Override
+    public boolean isRepairableWall(int x, int y, short playerId) {
+        MapTile tile = getMapData().getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return (!tile.isSelected(playerId) && tile.getOwnerId() == playerId && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !tile.isAtFullHealth());
+    }
+
+    @Override
+    public boolean isClaimableWall(int x, int y, short playerId) {
+        MapTile tile = getMapData().getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isClaimable(x, y, playerId));
+    }
+
+    @Override
+    public boolean isClaimableTile(int x, int y, short playerId) {
+        MapTile tile = getMapData().getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(x, y, playerId));
+    }
+
+    @Override
+    public boolean isClaimableRoom(int x, int y, short playerId) {
+        MapTile tile = getMapData().getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(x, y, playerId));
+    }
+
+    @Override
     public Terrain getTerrain(MapTile tile) {
         return kwdFile.getTerrain(tile.getTerrainId());
     }

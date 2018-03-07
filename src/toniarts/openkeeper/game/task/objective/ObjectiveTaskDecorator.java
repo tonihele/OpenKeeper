@@ -21,9 +21,9 @@ import java.awt.Point;
 import java.util.ArrayDeque;
 import java.util.Date;
 import java.util.Deque;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * A decorator for some simple task to create complex task chains
@@ -45,31 +45,30 @@ public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
+    public void executeTask(ICreatureController creature) {
         task.executeTask(creature);
         ObjectiveTask.super.executeTask(creature);
     }
 
     @Override
-    public void assign(CreatureControl creature, boolean setToCreature) {
+    public void assign(ICreatureController creature, boolean setToCreature) {
         task.assign(creature, false);
 
         // Override the assign
-        creature.setAssignedTask(this);
-
+//        creature.setAssignedTask(this);
         if (isWorkerPartyTask() && creature.getParty() != null) {
 
             // Assign to all workers
-            for (CreatureControl c : creature.getParty().getActualMembers()) {
-                if (!c.equals(creature) && c.isWorker() && task.canAssign(c)) {
-                    task.assign(c, true);
-                }
-            }
+//            for (CreatureControl c : creature.getParty().getActualMembers()) {
+//                if (!c.equals(creature) && c.isWorker() && task.canAssign(c)) {
+//                    task.assign(c, true);
+//                }
+//            }
         }
     }
 
     @Override
-    public boolean canAssign(CreatureControl creature) {
+    public boolean canAssign(ICreatureController creature) {
         return task.canAssign(creature);
     }
 
@@ -89,12 +88,12 @@ public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
+    public Vector2f getTarget(ICreatureController creature) {
         return task.getTarget(creature);
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
+    public ArtResource getTaskAnimation(ICreatureController creature) {
         return task.getTaskAnimation(creature);
     }
 
@@ -124,17 +123,17 @@ public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
     }
 
     @Override
-    public boolean isReachable(CreatureControl creature) {
+    public boolean isReachable(ICreatureController creature) {
         return task.isReachable(creature);
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
+    public boolean isValid(ICreatureController creature) {
         return task.isValid(creature);
     }
 
     @Override
-    public void unassign(CreatureControl creature) {
+    public void unassign(ICreatureController creature) {
         task.unassign(creature);
     }
 

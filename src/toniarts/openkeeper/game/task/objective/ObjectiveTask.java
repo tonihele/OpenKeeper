@@ -17,8 +17,8 @@
 package toniarts.openkeeper.game.task.objective;
 
 import java.util.Deque;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.game.task.Task;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Interface for chainable complex tasks
@@ -65,7 +65,7 @@ public interface ObjectiveTask extends Task {
     }
 
     @Override
-    public default void executeTask(CreatureControl creature) {
+    public default void executeTask(ICreatureController creature) {
         if (!isValid(creature)) {
 
             // Assign next task
@@ -74,11 +74,11 @@ public interface ObjectiveTask extends Task {
                 if (nextTask instanceof ObjectiveTask && ((ObjectiveTask) nextTask).isWorkerPartyTask() && creature.getParty() != null) {
 
                     // Assign to all workers
-                    for (CreatureControl c : creature.getParty().getActualMembers()) {
-                        if (!c.equals(creature) && c.isWorker() && nextTask.canAssign(c)) {
-                            nextTask.assign(c, true);
-                        }
-                    }
+//                    for (CreatureControl c : creature.getParty().getActualMembers()) {
+//                        if (!c.equals(creature) && c.isWorker() && nextTask.canAssign(c)) {
+//                            nextTask.assign(c, true);
+//                        }
+//                    }
                 }
                 nextTask.assign(creature, true);
             }

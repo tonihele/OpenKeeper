@@ -17,11 +17,12 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
+import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Go to sleep!
@@ -31,20 +32,20 @@ import toniarts.openkeeper.world.creature.CreatureControl;
 public class GoToSleep extends AbstractTileTask {
 
     private boolean executed = false;
-    private final CreatureControl creature;
+    private final ICreatureController creature;
 
-    public GoToSleep(WorldState worldState, CreatureControl creature) {
-        super(worldState, creature.getLairLocation().x, creature.getLairLocation().y, creature.getOwnerId());
+    public GoToSleep(final IGameWorldController gameWorldController, final IMapController mapController, ICreatureController creature) {
+        super(gameWorldController, mapController, creature.getLairLocation().x, creature.getLairLocation().y, creature.getOwnerId());
         this.creature = creature;
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
+    public boolean isValid(ICreatureController creature) {
         return !executed && this.creature.hasLair();
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
+    public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
@@ -54,15 +55,15 @@ public class GoToSleep extends AbstractTileTask {
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
-        creature.sleep();
+    public void executeTask(ICreatureController creature) {
+        //creature.sleep();
 
         // This is a one timer
         executed = true;
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
+    public ArtResource getTaskAnimation(ICreatureController creature) {
         return null;
     }
 

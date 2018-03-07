@@ -18,11 +18,12 @@ package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
 import java.util.Objects;
+import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * A task for creatures to rescue a fellow comrade from the harsh world
@@ -31,20 +32,20 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  */
 public class RescueCreatureTask extends AbstractTileTask {
 
-    private final CreatureControl creature;
+    private final ICreatureController creature;
 
-    public RescueCreatureTask(WorldState worldState, CreatureControl creature, short playerId) {
-        super(worldState, creature.getCreatureCoordinates().x, creature.getCreatureCoordinates().y, playerId);
+    public RescueCreatureTask(final IGameWorldController gameWorldController, final IMapController mapController, ICreatureController creature, short playerId) {
+        super(gameWorldController, mapController, WorldUtils.vectorToPoint(creature.getPosition()).x, WorldUtils.vectorToPoint(creature.getPosition()).y, playerId);
         this.creature = creature;
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
+    public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
+    public boolean isValid(ICreatureController creature) {
         return this.creature.isUnconscious() && this.creature.hasLair();
     }
 
@@ -64,16 +65,16 @@ public class RescueCreatureTask extends AbstractTileTask {
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
-        creature.setHaulable(this.creature);
+    public void executeTask(ICreatureController creature) {
+        //creature.setHaulable(this.creature);
 
         // Assign carry to lair
-        CarryCreatureToLairTask task = new CarryCreatureToLairTask(worldState, this.creature, playerId);
+        CarryCreatureToLairTask task = new CarryCreatureToLairTask(gameWorldController, mapController, this.creature, playerId);
         task.assign(creature, true);
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
+    public ArtResource getTaskAnimation(ICreatureController creature) {
         return null;
     }
 

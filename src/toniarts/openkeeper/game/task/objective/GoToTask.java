@@ -17,10 +17,11 @@
 package toniarts.openkeeper.game.task.objective;
 
 import com.jme3.math.Vector2f;
+import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * A simple task to order troops around
@@ -31,17 +32,17 @@ public class GoToTask extends AbstractObjectiveTask {
 
     private boolean executed = false;
 
-    public GoToTask(WorldState worldState, int x, int y, short playerId) {
-        super(worldState, x, y, playerId);
+    public GoToTask(final IGameWorldController gameWorldController, final IMapController mapController, int x, int y, short playerId) {
+        super(gameWorldController, mapController, x, y, playerId);
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
+    public boolean isValid(ICreatureController creature) {
         return !executed;
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
+    public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
@@ -51,12 +52,12 @@ public class GoToTask extends AbstractObjectiveTask {
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
+    public void executeTask(ICreatureController creature) {
         executed = true;
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
+    public ArtResource getTaskAnimation(ICreatureController creature) {
         return null;
     }
 

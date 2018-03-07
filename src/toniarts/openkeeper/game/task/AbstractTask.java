@@ -22,10 +22,11 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Base class for all tasks
@@ -35,13 +36,15 @@ import toniarts.openkeeper.world.creature.CreatureControl;
 public abstract class AbstractTask implements Task {
 
     private final Date taskCreated;
-    protected final WorldState worldState;
-    private final Set<CreatureControl> assignees = new HashSet<>();
-    private static final Logger logger = Logger.getLogger(AbstractTask.class.getName());
+    protected final IGameWorldController gameWorldController;
+    protected final IMapController mapController;
+    private final Set<ICreatureController> assignees = new HashSet<>();
+    private static final Logger LOGGER = Logger.getLogger(AbstractTask.class.getName());
 
-    public AbstractTask(final WorldState worldState) {
+    public AbstractTask(final IGameWorldController gameWorldController, final IMapController mapController) {
         this.taskCreated = new Date();
-        this.worldState = worldState;
+        this.gameWorldController = gameWorldController;
+        this.mapController = mapController;
     }
 
     @Override
@@ -55,18 +58,18 @@ public abstract class AbstractTask implements Task {
     }
 
     @Override
-    public void assign(CreatureControl creature, boolean setToCreature) {
+    public void assign(ICreatureController creature, boolean setToCreature) {
         if (assignees.size() == getMaxAllowedNumberOfAsignees()) {
-            logger.warning("Task already has the maximum number of assignees!");
+            LOGGER.warning("Task already has the maximum number of assignees!");
         }
         assignees.add(creature);
         if (setToCreature) {
-            creature.setAssignedTask(this);
+            //creature.setAssignedTask(this);
         }
     }
 
     @Override
-    public void unassign(CreatureControl creature) {
+    public void unassign(ICreatureController creature) {
         assignees.remove(creature);
     }
 
@@ -76,7 +79,7 @@ public abstract class AbstractTask implements Task {
     }
 
     @Override
-    public boolean canAssign(CreatureControl creature) {
+    public boolean canAssign(ICreatureController creature) {
         return (assignees.size() < getMaxAllowedNumberOfAsignees() && isValid(creature) && isReachable(creature));
     }
 
@@ -90,7 +93,7 @@ public abstract class AbstractTask implements Task {
     }
 
     @Override
-    public boolean isReachable(CreatureControl creature) {
+    public boolean isReachable(ICreatureController creature) {
         Vector2f target = getTarget(creature);
         if (target != null) {
             return isReachable(creature, target);
@@ -106,11 +109,11 @@ public abstract class AbstractTask implements Task {
      * @param target the target location
      * @return is the task reachable
      */
-    protected boolean isReachable(CreatureControl creature, Vector2f target) {
+    protected boolean isReachable(ICreatureController creature, Vector2f target) {
         Point targetTile = WorldUtils.vectorToPoint(target);
         boolean hasAccessibleNeighbour = false;
-        for (Point p : worldState.getMapLoader().getSurroundingTiles(targetTile, false)) {
-            if (worldState.isAccessible(worldState.getMapData().getTile(p), creature)) {
+        for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), targetTile, false)) {
+            if (gameWorldController.isAccessible(mapController.getMapData().getTile(p), mapController.getMapData().getTile(targetTile), creature)) {
                 hasAccessibleNeighbour = true;
                 break; // At least one accessible point
             }
@@ -120,7 +123,7 @@ public abstract class AbstractTask implements Task {
         }
 
         // Path find
-        return (worldState.findPath(WorldUtils.vectorToPoint(creature.getPosition()), targetTile, creature) != null);
+        return (gameWorldController.findPath(WorldUtils.vectorToPoint(creature.getPosition()), targetTile, creature) != null);
     }
 
     @Override

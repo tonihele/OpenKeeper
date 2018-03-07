@@ -440,13 +440,11 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else // Water or lava
-                    {
-                        if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+                     if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
                             tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
                         } else {
                             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                         }
-                    }
 
                     // Give money back
                     int goldLeft = addGold(playerId, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100)));
@@ -542,14 +540,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         return null;
     }
 
-    /**
-     * Check if given tile is accessible by the given creature
-     *
-     * @param from from where
-     * @param to to where
-     * @param navigable the entity to test with
-     * @return is accessible
-     */
+    @Override
     public boolean isAccessible(MapTile from, MapTile to, INavigable navigable) {
         Float cost = navigable.getCost(from, to, this, getMapController());
         return cost != null;

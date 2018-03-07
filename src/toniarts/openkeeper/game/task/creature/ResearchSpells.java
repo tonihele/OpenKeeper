@@ -17,15 +17,16 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
  * Research spells for the keeper
@@ -36,19 +37,19 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerSpellControl spellControl;
 
-    public ResearchSpells(WorldState worldState, int x, int y, short playerId, GenericRoom room, TaskManager taskManager) {
-        super(worldState, x, y, playerId, room, taskManager);
+    public ResearchSpells(final IGameWorldController gameWorldController, final IMapController mapController, int x, int y, short playerId, IRoomController room, TaskManager taskManager) {
+        super(gameWorldController, mapController, x, y, playerId, room, taskManager);
         spellControl = null;
         //worldState.getGameState().getPlayer(playerId).getSpellControl();
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
+    public boolean isValid(ICreatureController creature) {
         return (spellControl.isAnythingToReaseach() && !getRoom().isFullCapacity());
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
+    public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
@@ -58,25 +59,26 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
     }
 
     @Override
-    protected GenericRoom.ObjectType getRoomObjectType() {
-        return GenericRoom.ObjectType.RESEARCHER;
+    protected ObjectType getRoomObjectType() {
+        return ObjectType.RESEARCHER;
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
+    public void executeTask(ICreatureController creature) {
 
         // Advance players spell research
-        PlayerSpell playerSpell = spellControl.research(creature.getCreature().getAttributes().getResearchPerSecond());
-        if (playerSpell != null) {
+        //PlayerSpell playerSpell = spellControl.research(creature.getCreature().getAttributes().getResearchPerSecond());
+       // if (playerSpell != null) {
 
             // Create a spell book
-            getRoom().getObjectControl(GenericRoom.ObjectType.SPELL_BOOK).addItem(playerSpell, null, worldState.getThingLoader(), creature);
-        }
+        //    getRoom().getObjectControl(GenericRoom.ObjectType.SPELL_BOOK).addItem(playerSpell, null, worldState.getThingLoader(), creature);
+       // }
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
-        return creature.getCreature().getAnimResearchResource();
+    public ArtResource getTaskAnimation(ICreatureController creature) {
+        //return creature.getCreature().getAnimResearchResource();
+        return null;
     }
 
     @Override

@@ -100,4 +100,14 @@ public interface IGameWorldController {
      * @return output path, null if path not found
      */
     GraphPath<MapTile> findPath(Point start, Point end, INavigable navigable);
+
+    /**
+     * Check if given tile is accessible by the given creature
+     *
+     * @param from from where
+     * @param to to where
+     * @param navigable the entity to test with
+     * @return is accessible
+     */
+    boolean isAccessible(MapTile from, MapTile to, INavigable navigable);
 }

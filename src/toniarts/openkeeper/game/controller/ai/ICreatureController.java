@@ -17,14 +17,17 @@
 package toniarts.openkeeper.game.controller.ai;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
+import java.awt.Point;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
+import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 
 /**
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface ICreatureController extends Comparable<ICreatureController>, IGameLogicUpdatable {
+public interface ICreatureController extends Comparable<ICreatureController>, IGameLogicUpdatable, INavigable {
 
     public boolean shouldFleeOrAttack();
 
@@ -107,5 +110,19 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
     public boolean isTimeToReEvaluate();
 
     public void resetReEvaluationTimer();
+
+    public Vector3f getPosition();
+
+    public int getGold();
+
+    public void substractGold(int i);
+
+    public Point getLairLocation();
+
+    public boolean isDragged();
+
+    public boolean isUnconscious();
+
+    public Point getCreatureCoordinates();
 
 }

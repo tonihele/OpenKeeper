@@ -189,7 +189,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         //actionPointState.initialize(stateManager, app);
 
         // Initialize tasks
-        taskManager = new TaskManager(gameWorldController, getPlayers());
+        taskManager = new TaskManager(gameWorldController, gameWorldController.getMapController(), playerControllers.values());
 
         // Trigger data
         for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
