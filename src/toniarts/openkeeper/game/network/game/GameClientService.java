@@ -17,6 +17,9 @@
 package toniarts.openkeeper.game.network.game;
 
 import com.jme3.math.Vector2f;
+import com.jme3.network.Client;
+import com.jme3.network.Message;
+import com.jme3.network.MessageListener;
 import com.jme3.network.service.AbstractClientService;
 import com.jme3.network.service.ClientServiceManager;
 import com.jme3.network.service.rmi.RmiClientService;
@@ -33,6 +36,7 @@ import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.message.GameData;
+import toniarts.openkeeper.game.network.message.GameLoadProgressData;
 import toniarts.openkeeper.game.network.streaming.StreamedMessageListener;
 import toniarts.openkeeper.game.network.streaming.StreamingClientService;
 import toniarts.openkeeper.game.state.session.GameSession;
@@ -94,6 +98,9 @@ public class GameClientService extends AbstractClientService
             }
 
         });
+
+        // Listen for other client progresses
+        getClient().addMessageListener(new ClientMessageListener());
     }
 
     /**
@@ -148,6 +155,23 @@ public class GameClientService extends AbstractClientService
         return getService(EntityDataClientService.class).getEntityData();
     }
 
+    private class ClientMessageListener implements MessageListener<Client> {
+
+        public ClientMessageListener() {
+        }
+
+        @Override
+        public void messageReceived(Client source, Message message) {
+            if (message instanceof GameLoadProgressData) {
+                GameLoadProgressData data = (GameLoadProgressData) message;
+                logger.log(Level.FINEST, "onLoadStatusUpdate({0},{1})", new Object[]{data.getProgress(), data.getKeeperId()});
+                for (GameSessionListener l : listeners.getArray()) {
+                    l.onLoadStatusUpdate(data.getProgress(), data.getKeeperId());
+                }
+            }
+        }
+    }
+
     /**
      * Shared with the server over RMI so that it can notify us about account
      * related stuff.
@@ -182,10 +206,10 @@ public class GameClientService extends AbstractClientService
 
         @Override
         public void onLoadStatusUpdate(float progress, short keeperId) {
-            logger.log(Level.FINEST, "onLoadStatusUpdate({0},{1})", new Object[]{progress, keeperId});
-            for (GameSessionListener l : listeners.getArray()) {
-                l.onLoadStatusUpdate(progress, keeperId);
-            }
+//            logger.log(Level.FINEST, "onLoadStatusUpdate({0},{1})", new Object[]{progress, keeperId});
+//            for (GameSessionListener l : listeners.getArray()) {
+//                l.onLoadStatusUpdate(progress, keeperId);
+//            }
         }
 
         @Override

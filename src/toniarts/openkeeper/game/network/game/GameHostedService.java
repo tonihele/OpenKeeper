@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.network.game;
 
 import com.jme3.math.Vector2f;
+import com.jme3.network.Filters;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
@@ -39,6 +40,7 @@ import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.message.GameData;
+import toniarts.openkeeper.game.network.message.GameLoadProgressData;
 import toniarts.openkeeper.game.network.streaming.StreamingHostedService;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSession;
@@ -58,7 +60,8 @@ public class GameHostedService extends AbstractHostedConnectionService implement
      * Someone is listening on the other end, for that we need a message type
      */
     public enum MessageType {
-        GAME_DATA;
+        GAME_DATA,
+        GAME_LOAD_PROGRESS
     }
 
     private static final Logger logger = Logger.getLogger(GameHostedService.class.getName());
@@ -181,7 +184,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
                 // Data is too big, stream the data
                 getServiceManager().getService(StreamingHostedService.class).sendData(MessageType.GAME_DATA.ordinal(), new GameData(new ArrayList<>(players), mapData), null);
             } catch (IOException ex) {
-                logger.log(Level.SEVERE, null, ex);
+                logger.log(Level.SEVERE, "Failed to send the game data to clients!", ex);
             }
 
         }, "GameDataSender");
@@ -309,11 +312,8 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         public void loadStatus(float progress) {
             clientInfo.setLoadingProgress(progress);
 
-            // FIXME: we need to change this to messages or something, it really saturates the connection/channel/etc
-            // and nothing works then
-//            for (GameSessionImpl gameSession : players.values()) {
-//                gameSession.onLoadStatusUpdate(progress, clientInfo.getKeeper().getId());
-//            }
+            // Send this with UDP messages, otherwise this gets totally blocked and all connections fail
+            getServer().broadcast(Filters.notEqualTo(conn), new GameLoadProgressData(clientInfo.getKeeper().getId(), progress));
         }
 
         @Override

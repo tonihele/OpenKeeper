@@ -335,9 +335,14 @@ public class GameClientState extends AbstractPauseAwareState {
             playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId);
             playerMapViewState = new PlayerMapViewState(kwdFile, app.getAssetManager(), mapClientService, playerId) {
 
+                private float lastProgress = 0;
+
                 @Override
                 protected void updateProgress(float progress) {
-                    gameClientService.loadStatus(progress);
+                    if (progress - lastProgress >= 0.01f) {
+                        gameClientService.loadStatus(progress);
+                        lastProgress = progress;
+                    }
                 }
             };
             gameClientService.loadComplete();

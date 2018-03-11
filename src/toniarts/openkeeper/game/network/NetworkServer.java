@@ -61,6 +61,7 @@ import toniarts.openkeeper.game.network.chat.ChatHostedService;
 import toniarts.openkeeper.game.network.game.GameHostedService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
 import toniarts.openkeeper.game.network.message.GameData;
+import toniarts.openkeeper.game.network.message.GameLoadProgressData;
 import toniarts.openkeeper.game.network.message.StreamedMessage;
 import toniarts.openkeeper.game.network.session.AccountHostedService;
 import toniarts.openkeeper.game.network.streaming.StreamingHostedService;
@@ -93,6 +94,7 @@ public class NetworkServer {
 
             // Messages
             Serializer.registerClass(StreamedMessage.class, new FieldSerializer());
+            Serializer.registerClass(GameLoadProgressData.class, new FieldSerializer());
 
             // Lobby
             Serializer.registerClass(ClientInfo.class, new FieldSerializer());
