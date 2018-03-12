@@ -66,7 +66,10 @@ public class GameClientService extends AbstractClientService
 
     @Override
     public void loadStatus(float progress) {
-        getDelegate().loadStatus(progress);
+
+        // By UDP messages
+        //getDelegate().loadStatus(progress);
+        getClient().send(new GameLoadProgressData((short) 0, progress));
     }
 
     @Override
@@ -84,7 +87,7 @@ public class GameClientService extends AbstractClientService
         logger.log(Level.FINER, "onInitialize({0})", s);
         this.rmiService = getService(RmiClientService.class);
         if (rmiService == null) {
-            throw new RuntimeException("LobbyClientService requires RMI service");
+            throw new RuntimeException("GameClientService requires RMI service");
         }
         logger.finer("Sharing session callback.");
         rmiService.share(NetworkConstants.GAME_CHANNEL, sessionCallback, GameSessionListener.class);

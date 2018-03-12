@@ -19,6 +19,8 @@ package toniarts.openkeeper.game.network.game;
 import com.jme3.math.Vector2f;
 import com.jme3.network.Filters;
 import com.jme3.network.HostedConnection;
+import com.jme3.network.Message;
+import com.jme3.network.MessageListener;
 import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
@@ -70,6 +72,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     private final Object loadLock = new Object();
     private static final String ATTRIBUTE_SESSION = "game.session";
     private final Map<ClientInfo, GameSessionImpl> players = new ConcurrentHashMap<>(4, 0.75f, 5);
+    private final Map<HostedConnection, ClientInfo> playersByConnection = new ConcurrentHashMap<>(4, 0.75f, 5);
     private final SafeArrayList<GameSessionServiceListener> serverListeners = new SafeArrayList<>(GameSessionServiceListener.class);
     private RmiHostedService rmiService;
     private ScheduledExecutorService entityUpdater;
@@ -94,6 +97,9 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         if (rmiService == null) {
             throw new RuntimeException(getClass().getName() + " requires an RMI service.");
         }
+
+        // Listen for other client progresses
+        getServer().addMessageListener(new ServerMessageListener());
     }
 
     @Override
@@ -118,6 +124,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
         GameSessionImpl session = new GameSessionImpl(conn, clientInfo);
         players.put(clientInfo, session);
+        playersByConnection.put(conn, clientInfo);
 
         // Expose the session as an RMI resource to the client
         RmiRegistry rmi = rmiService.getRmiRegistry(conn);
@@ -143,6 +150,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
             // Remove player session from the active sessions list
             players.remove(player.clientInfo);
+            playersByConnection.remove(conn);
         }
     }
 
@@ -260,6 +268,27 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
     }
 
+    private class ServerMessageListener implements MessageListener<HostedConnection> {
+
+        public ServerMessageListener() {
+        }
+
+        @Override
+        public void messageReceived(HostedConnection source, Message message) {
+            ClientInfo clientInfo = playersByConnection.get(source);
+
+            if (message instanceof GameLoadProgressData) {
+                GameLoadProgressData data = (GameLoadProgressData) message;
+                logger.log(Level.FINEST, "onLoadStatus({0},{1})", new Object[]{data.getProgress(), clientInfo.getKeeper().getId()});
+
+                clientInfo.setLoadingProgress(data.getProgress());
+
+                // Send this with UDP messages, otherwise this gets totally blocked and all connections fail
+                getServer().broadcast(Filters.notEqualTo(source), new GameLoadProgressData(clientInfo.getKeeper().getId(), data.getProgress()));
+            }
+        }
+    }
+
     /**
      * The connection-specific 'host' for the GameSession. For convenience this
      * also implements the GameSessionListener. Since the methods don't collide
@@ -310,10 +339,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
         @Override
         public void loadStatus(float progress) {
-            clientInfo.setLoadingProgress(progress);
-
-            // Send this with UDP messages, otherwise this gets totally blocked and all connections fail
-            getServer().broadcast(Filters.notEqualTo(conn), new GameLoadProgressData(clientInfo.getKeeper().getId(), progress));
+            // This is dealt with messaging
         }
 
         @Override

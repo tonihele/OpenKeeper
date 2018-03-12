@@ -339,6 +339,10 @@ public class GameClientState extends AbstractPauseAwareState {
 
                 @Override
                 protected void updateProgress(float progress) {
+
+                    // Update ourselves
+                    onLoadStatusUpdate(progress, playerId);
+
                     if (progress - lastProgress >= 0.01f) {
                         gameClientService.loadStatus(progress);
                         lastProgress = progress;

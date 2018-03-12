@@ -153,9 +153,9 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
 
     @Override
     public void loadStatus(float progress) {
-        for (GameSessionListener listener : listeners.getArray()) {
-            listener.onLoadStatusUpdate(progress, Player.KEEPER1_ID);
-        }
+//        for (GameSessionListener listener : listeners.getArray()) {
+//            listener.onLoadStatusUpdate(progress, Player.KEEPER1_ID);
+//        }
     }
 
     @Override
