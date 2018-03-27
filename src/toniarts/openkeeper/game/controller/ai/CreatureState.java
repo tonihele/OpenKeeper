@@ -191,13 +191,16 @@ public enum CreatureState implements State<ICreatureController> {
             // Check arrival
             if (entity.isAtAssignedTaskTarget()) {
 
+                // Do the task we were supposed to do
+                entity.executeAssignedTask();
+
                 // If we have too much gold, drop it to the treasury
                 if (entity.isTooMuchGold()) {
                     if (!entity.dropGoldToTreasury()) {
                         entity.dropGold();
                     }
                 }
-            } else if (entity.isStopped() && entity.isWorkNavigationRequired()) {
+            } else if (entity.isStopped()) {
                 entity.navigateToAssignedTask();
             }
 

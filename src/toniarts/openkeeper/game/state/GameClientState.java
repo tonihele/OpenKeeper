@@ -31,6 +31,7 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.MapController;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -579,6 +580,11 @@ public class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public boolean isClaimableRoom(int x, int y, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public int damageTile(Point point, short playerId, ICreatureController creature) {
             throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
     }

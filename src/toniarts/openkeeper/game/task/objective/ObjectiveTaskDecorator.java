@@ -45,9 +45,9 @@ public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
-        task.executeTask(creature);
-        ObjectiveTask.super.executeTask(creature);
+    public void executeTask(ICreatureController creature, float executionDuration) {
+        task.executeTask(creature, executionDuration);
+        ObjectiveTask.super.executeTask(creature, executionDuration);
     }
 
     @Override

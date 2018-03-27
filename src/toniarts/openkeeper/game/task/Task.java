@@ -48,8 +48,10 @@ public interface Task {
      * Execute task!
      *
      * @param creature creature executing the task
+     * @param executionDuration the time spend executing the task, the worker is
+     * responsible for delivering this
      */
-    void executeTask(ICreatureController creature);
+    void executeTask(ICreatureController creature, float executionDuration);
 
     /**
      * How many workers have already been assigned to this task

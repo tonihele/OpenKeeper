@@ -63,7 +63,7 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
         int gold = creature.getGold();
         creature.substractGold(gold - gameWorldController.addGold(playerId, getTaskLocation(), gold));
 

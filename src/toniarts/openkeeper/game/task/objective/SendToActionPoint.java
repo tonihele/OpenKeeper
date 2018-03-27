@@ -48,7 +48,7 @@ public class SendToActionPoint extends GoToTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
 
         // TODO: Wait delay
         executed = true;

@@ -169,6 +169,7 @@ public class CreaturesController {
         creatureComponent.bloodType = Utils.generateBloodType();
         creatureComponent.level = level;
         creatureComponent.creatureId = creatureId;
+        creatureComponent.worker = creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER);
 
         // If we are entering, we don't get the AI component yet
         if (entrance) {
@@ -177,7 +178,7 @@ public class CreaturesController {
             int fps = entranceAnimation.getData("fps");
             entityData.setComponent(entity, new CreatureEntrance(frames / (float) fps, gameTimer.getGameTime()));
         } else {
-            entityData.setComponent(entity, new CreatureAi(CreatureState.IDLE));
+            entityData.setComponent(entity, new CreatureAi(CreatureState.IDLE, creatureId));
         }
 
         //creatureComponent.creatureState = (entrance ? CreatureState.ENTERING_DUNGEON : CreatureState.IDLE);
@@ -187,6 +188,7 @@ public class CreaturesController {
         entityData.setComponent(entity, creatureComponent);
         entityData.setComponent(entity, healthComponent);
         entityData.setComponent(entity, new Owner(ownerId));
+        entityData.setComponent(entity, goldComponent);
 
         // Position
         // FIXME: no floor height

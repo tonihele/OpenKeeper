@@ -48,13 +48,15 @@ public class DigTileTask extends AbstractTileTask {
 
         // Find an accessible target
         // TODO: entity's location?
-        for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
-            if (gameWorldController.isAccessible(mapController.getMapData().getTile(p), mapController.getMapData().getTile(getTaskLocation()), creature)) {
+        for (Point taskPerformLocation : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
+            for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
+                if (gameWorldController.isAccessible(mapController.getMapData().getTile(p), mapController.getMapData().getTile(taskPerformLocation), creature)) {
 
-                // TODO: intelligent coordinates?
-                Vector2f target = new Vector2f(p.x, p.y);
-                if (isReachable(creature, target)) {
-                    return target;
+                    // TODO: intelligent coordinates?
+                    Vector2f target = new Vector2f(p.x, p.y);
+                    if (isReachable(creature, target)) {
+                        return target;
+                    }
                 }
             }
         }
@@ -90,8 +92,14 @@ public class DigTileTask extends AbstractTileTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
-        //creature.addGold(worldState.damageTile(getTaskLocation(), playerId));
+    public void executeTask(ICreatureController creature, float executionDuration) {
+
+        // TODO: is this a general case or even smart to do this like this...?
+        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
+            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
+
+            creature.addGold(mapController.damageTile(getTaskLocation(), playerId, creature));
+        }
     }
 
     @Override

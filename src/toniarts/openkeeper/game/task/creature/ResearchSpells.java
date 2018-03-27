@@ -64,7 +64,7 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
 
         // Advance players spell research
         //PlayerSpell playerSpell = spellControl.research(creature.getCreature().getAttributes().getResearchPerSecond());

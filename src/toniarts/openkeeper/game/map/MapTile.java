@@ -235,6 +235,10 @@ public class MapTile implements Savable {
         this.p = p;
     }
 
+    public void setGold(int gold) {
+        this.gold = gold;
+    }
+
 //    public String getTooltip() {
 //        return bundle.getString(Integer.toString(getTerrain().getTooltipStringId()))
 //                .replaceAll("%37%", Integer.toString(getHealthPercent()))

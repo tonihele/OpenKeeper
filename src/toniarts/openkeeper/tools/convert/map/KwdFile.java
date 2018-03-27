@@ -109,6 +109,7 @@ public final class KwdFile {
     private boolean customOverrides = false;
     private boolean loaded = false;
     private Creature imp;
+    private Creature dwarf;
     private final String basePath;
     private GameObject levelGem;
 
@@ -1451,6 +1452,11 @@ public final class KwdFile {
             // Set the imp
             if (imp == null && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER) && creature.getFlags().contains(Creature.CreatureFlag.IS_EVIL)) {
                 imp = creature;
+            }
+
+            // Set the dwarf
+            if (dwarf == null && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER) && !creature.getFlags().contains(Creature.CreatureFlag.IS_EVIL)) {
+                dwarf = creature;
             }
 
             // Check file offset
@@ -3113,6 +3119,10 @@ public final class KwdFile {
 
     public Creature getImp() {
         return imp;
+    }
+
+    public Creature getDwarf() {
+        return dwarf;
     }
 
     public Room getPortal() {

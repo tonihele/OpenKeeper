@@ -63,7 +63,7 @@ public class KillPlayer extends AbstractObjectiveTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
 
     }
 

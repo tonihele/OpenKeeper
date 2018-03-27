@@ -19,8 +19,8 @@ package toniarts.openkeeper.game.task;
 import com.jme3.math.Vector2f;
 import java.awt.Point;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -38,13 +38,33 @@ public abstract class AbstractTask implements Task {
     private final Date taskCreated;
     protected final IGameWorldController gameWorldController;
     protected final IMapController mapController;
-    private final Set<ICreatureController> assignees = new HashSet<>();
+    private final Map<ICreatureController, Float> assignees = new HashMap<>();
     private static final Logger LOGGER = Logger.getLogger(AbstractTask.class.getName());
 
     public AbstractTask(final IGameWorldController gameWorldController, final IMapController mapController) {
         this.taskCreated = new Date();
         this.gameWorldController = gameWorldController;
         this.mapController = mapController;
+    }
+
+    /**
+     * Get the non-stop execution duration of a creature
+     *
+     * @param creature the executing creature
+     * @return the execution duration
+     */
+    protected float getExecutionDuration(ICreatureController creature) {
+        return assignees.get(creature);
+    }
+
+    /**
+     * Get the non-stop execution duration of a creature
+     *
+     * @param creature the executing creature
+     * @param duration the execution duration to store
+     */
+    protected void setExecutionDuration(ICreatureController creature, float duration) {
+        assignees.put(creature, duration);
     }
 
     @Override
@@ -62,9 +82,9 @@ public abstract class AbstractTask implements Task {
         if (assignees.size() == getMaxAllowedNumberOfAsignees()) {
             LOGGER.warning("Task already has the maximum number of assignees!");
         }
-        assignees.add(creature);
+        assignees.put(creature, 0.0f);
         if (setToCreature) {
-            //creature.setAssignedTask(this);
+            creature.setAssignedTask(this);
         }
     }
 

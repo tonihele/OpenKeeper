@@ -65,7 +65,7 @@ public class RescueCreatureTask extends AbstractTileTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
         //creature.setHaulable(this.creature);
 
         // Assign carry to lair

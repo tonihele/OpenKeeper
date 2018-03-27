@@ -31,12 +31,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -443,6 +445,113 @@ public final class MapController implements Savable, IMapController {
     @Override
     public Terrain getTerrain(MapTile tile) {
         return kwdFile.getTerrain(tile.getTerrainId());
+    }
+
+    @Override
+    public int damageTile(Point point, short playerId, ICreatureController creature) {
+        MapTile tile = getMapData().getTile(point);
+        Terrain terrain = getTerrain(tile);
+
+        // Calculate the damage
+        int damage = 0;
+        int returnedGold = 0;
+        int multiplier = (creature != null && kwdFile.getDwarf() == creature.getCreature() ? (int) getLevelVariable(Variable.MiscVariable.MiscType.DWARF_DIGGING_MULTIPLIER) : 1);
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                if (tile.getOwnerId() == playerId) {
+                    damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.DIG_OWN_WALL_HEALTH) * multiplier;
+                } else {
+                    damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.DIG_ENEMY_WALL_HEALTH) * multiplier;
+                }
+            } else if (tile.getGold() > 0) {
+                // This is how I believe the gold mining works, it is not health damage we do, it is substracting gold
+                // The mined tiles leave no loot, the loot is left by the imps if there is no place to store the gold
+                if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
+                    damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS);
+                } else {
+                    damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.MINE_GOLD_HEALTH);
+                }
+            } else {
+                damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH) * multiplier;
+            }
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
+
+            // Attack enemy tile
+            damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_TILE_HEALTH);
+        } else {
+            throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrain.getName() + " at " + point + "!");
+        }
+
+        // Do the damage
+        boolean tileDestroyed;
+        damage = Math.abs(damage);
+        if (tile.getGold() > 0) { // Mine
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
+                returnedGold = damage;
+                tileDestroyed = false;
+            } else {
+                returnedGold = mineGold(tile, damage);
+                tileDestroyed = (tile.getGold() < 1);
+            }
+        } else { // Apply damage
+            tileDestroyed = applyDamage(tile, damage);
+        }
+
+        // See the results
+        if (tileDestroyed) {
+
+            // TODO: effect, drop loot & checks, claimed walls should also get destroyed if all adjacent tiles are not in cotrol anymore
+            // The tile is dead
+//            if (terrain.getDestroyedEffectId() != 0) {
+//                effectManager.load(worldNode,
+//                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+//                        terrain.getDestroyedEffectId(), false);
+//            }
+            changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
+
+//            updateRoomWalls(tile);
+//            mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
+            // Notify
+//            notifyTileChange(point);
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
+//            mapLoader.updateTiles(point);
+        }
+
+        // Notify
+        List<MapTile> mapTiles = new ArrayList<>();
+        mapTiles.add(tile);
+        notifyTileChange(mapTiles);
+
+        return returnedGold;
+    }
+
+    public int mineGold(MapTile tile, int amount) {
+        int minedAmount = Math.min(amount, tile.getGold());
+        tile.setGold(tile.getGold() - minedAmount);
+        return minedAmount;
+    }
+
+    private boolean applyDamage(MapTile tile, int damage) {
+        tile.setHealth(Math.max(0, tile.getHealth() - damage));
+        return (tile.getHealth() == 0);
+    }
+
+    private void changeTerrain(MapTile tile, short terrainId) {
+        tile.setTerrainId(terrainId);
+        Terrain terrain = getTerrain(tile);
+        MapTile.setAttributesFromTerrain(tile, terrain);
+
+        // If the terrain is not taggable anymore, reset the tagging data
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+            tile.setSelected(false, Player.KEEPER1_ID);
+            tile.setSelected(false, Player.KEEPER2_ID);
+            tile.setSelected(false, Player.KEEPER3_ID);
+            tile.setSelected(false, Player.KEEPER4_ID);
+        }
+    }
+
+    private float getLevelVariable(Variable.MiscVariable.MiscType variable) {
+        return gameSettings.get(variable).getValue();
     }
 
     @Override

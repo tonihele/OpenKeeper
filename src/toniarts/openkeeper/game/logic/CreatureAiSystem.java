@@ -29,6 +29,8 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ai.CreatureController;
 import toniarts.openkeeper.game.controller.ai.ICreatureController;
+import toniarts.openkeeper.game.task.ITaskManager;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * Handles creature logic updates, the creature AI updates that is. The AI is
@@ -46,10 +48,15 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
     private final IGameWorldController gameWorldController;
     private final SafeArrayList<ICreatureController> creatureControllers;
     private final Map<EntityId, ICreatureController> creatureControllersByEntityId;
+    private final ITaskManager taskManager;
+    private final KwdFile kwdFile;
 
-    public CreatureAiSystem(EntityData entityData, IGameWorldController gameWorldController) {
+    public CreatureAiSystem(EntityData entityData, IGameWorldController gameWorldController, ITaskManager taskManager,
+            KwdFile kwdFile) {
         this.entityData = entityData;
         this.gameWorldController = gameWorldController;
+        this.taskManager = taskManager;
+        this.kwdFile = kwdFile;
 
         creatureEntities = entityData.getEntities(CreatureAi.class);
         creatureControllers = new SafeArrayList<>(ICreatureController.class);
@@ -76,7 +83,7 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
 
     private void processAddedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            CreatureController creatureController = new CreatureController(entity.getId(), entityData, gameWorldController);
+            CreatureController creatureController = new CreatureController(entity.getId(), entityData, kwdFile.getCreature(entity.get(CreatureAi.class).creatureId), gameWorldController, taskManager);
             int index = Collections.binarySearch(creatureControllers, creatureController);
             creatureControllers.add(~index, creatureController);
             creatureControllersByEntityId.put(entity.getId(), creatureController);

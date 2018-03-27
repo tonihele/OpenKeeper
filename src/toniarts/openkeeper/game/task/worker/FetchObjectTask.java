@@ -68,7 +68,7 @@ public class FetchObjectTask extends AbstractTileTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
         //object.creaturePicksUp(creature);
 
         // TODO: perhaps chaining? everything except gold, maybe a new task class...? Fetch & deliver

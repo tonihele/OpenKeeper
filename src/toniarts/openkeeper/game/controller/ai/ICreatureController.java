@@ -22,6 +22,8 @@ import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
+import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
  *
@@ -87,7 +89,7 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public ICreatureController getFollowTarget();
 
-    public Object getAssignedTask();
+    public Task getAssignedTask();
 
     public float getDistanceToCreature(ICreatureController followTarget);
 
@@ -115,7 +117,7 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public int getGold();
 
-    public void substractGold(int i);
+    public void substractGold(int amount);
 
     public Point getLairLocation();
 
@@ -124,5 +126,13 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
     public boolean isUnconscious();
 
     public Point getCreatureCoordinates();
+
+    public void setAssignedTask(Task task);
+
+    public void executeAssignedTask();
+
+    public Creature getCreature();
+
+    public void addGold(int amount);
 
 }

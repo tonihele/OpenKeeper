@@ -66,7 +66,7 @@ import toniarts.openkeeper.world.object.ObjectControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TaskManager {
+public class TaskManager implements ITaskManager {
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -101,6 +101,7 @@ public class TaskManager {
     }
 
     private void addListeners(Collection<IPlayerController> players) {
+
         // We want to be notified on tile changes, we are event based, not constantly scanning type
         this.mapController.addListener(new MapListener() {
 
@@ -231,14 +232,7 @@ public class TaskManager {
         }
     }
 
-    /**
-     * Assign a task to a creature
-     *
-     * @param creature the creature to assign a task to
-     * @param byDistance whether we should assign the closest task (i.e. if a
-     * player drops the creature somewhere)
-     * @return true if a task was assigned
-     */
+    @Override
     public boolean assignTask(ICreatureController creature, boolean byDistance) {
 
         Set<AbstractTask> taskQueue = taskQueues.get(creature.getOwnerId());
@@ -288,12 +282,7 @@ public class TaskManager {
         }
     }
 
-    /**
-     * Assigns gold to treasury task to the given creature
-     *
-     * @param creature the creature to assign to
-     * @return true if the task was assigned
-     */
+    @Override
     public boolean assignGoldToTreasuryTask(ICreatureController creature) {
 
         // See if the creature's player lacks of gold
@@ -304,13 +293,7 @@ public class TaskManager {
         return false;
     }
 
-    /**
-     * Assigns closest room task to a given creature of requested type
-     *
-     * @param creature the creature to assign to
-     * @param objectType the type of room service
-     * @return true if the task was assigned
-     */
+    @Override
     public boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType) {
         return assignClosestRoomTask(creature, objectType, true);
     }
@@ -425,13 +408,7 @@ public class TaskManager {
         }
     }
 
-    /**
-     * Assign a task according to the creature's objectives
-     *
-     * @param creature the creature
-     * @param objective the objective
-     * @return true if the objective task could be accomplished
-     */
+    @Override
     public boolean assignObjectiveTask(ICreatureController creature, Thing.HeroParty.Objective objective) {
         AbstractObjectiveTask task = null;
         switch (objective) {
@@ -457,24 +434,12 @@ public class TaskManager {
         return new FetchObjectTask(gameWorldController, mapController, objectControl, playerId);
     }
 
-    /**
-     * Test if a given task type is available
-     *
-     * @param creature the creature asking for the task
-     * @param jobType the job type to ask for
-     * @return true if task type is available
-     */
+    @Override
     public boolean isTaskAvailable(ICreatureController creature, Creature.JobType jobType) {
         return assignTask(creature, jobType, false);
     }
 
-    /**
-     * Assigns a creature to given task type
-     *
-     * @param creature the creature asking for the task
-     * @param jobType the job type to ask for
-     * @return true if the task was assigned
-     */
+    @Override
     public boolean assignTask(ICreatureController creature, Creature.JobType jobType) {
         return assignTask(creature, jobType, true);
     }
@@ -489,12 +454,7 @@ public class TaskManager {
         }
     }
 
-    /**
-     * Assigns a go to sleep task to the player if the lair is accessible
-     *
-     * @param creature the creature wanting to go to sleep
-     * @return true if the task was assigned
-     */
+    @Override
     public boolean assignSleepTask(ICreatureController creature) {
         GoToSleep task = new GoToSleep(gameWorldController, mapController, creature);
         if (task.isReachable(creature)) {

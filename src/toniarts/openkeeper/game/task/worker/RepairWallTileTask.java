@@ -56,7 +56,7 @@ public class RepairWallTileTask extends DigTileTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
         //worldState.applyClaimTile(getTaskLocation(), playerId);
     }
 

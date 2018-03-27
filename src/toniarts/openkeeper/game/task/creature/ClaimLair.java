@@ -65,7 +65,7 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
 
         // Create a lair
         RoomObjectControl control = getRoomObjectControl();

@@ -19,12 +19,18 @@ package toniarts.openkeeper.game.controller.ai;
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.FastMath;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
@@ -32,6 +38,9 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
+import toniarts.openkeeper.game.task.ITaskManager;
+import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -45,20 +54,28 @@ public class CreatureController implements ICreatureController {
     private final EntityId entityId;
     private final EntityData entityData;
     private final IGameWorldController gameWorldController;
+    private final ITaskManager taskManager;
+    // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
+    private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
+    private Task assignedTask;
+    private float taskDuration = 0.0f;
+    private boolean taskStarted = false;
     private float motionless = 0;
 
-    public CreatureController(EntityId entityId, EntityData entityData, IGameWorldController gameWorldController) {
+    public CreatureController(EntityId entityId, EntityData entityData, Creature creature, IGameWorldController gameWorldController, ITaskManager taskManager) {
         this.entityId = entityId;
         this.entityData = entityData;
         this.gameWorldController = gameWorldController;
+        this.taskManager = taskManager;
+        this.creature = creature;
         this.stateMachine = new DefaultStateMachine<ICreatureController, CreatureState>(this) {
 
             public void setCurrentState(CreatureState currentState) {
                 this.currentState = currentState;
 
                 // Also change our state component
-                entityData.setComponent(entityId, new CreatureAi(currentState));
+                entityData.setComponent(entityId, new CreatureAi(currentState, creature.getId()));
             }
 
         };
@@ -71,7 +88,11 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public void unassingCurrentTask() {
-        // TODO:
+        if (assignedTask != null) {
+            assignedTask.unassign(this);
+        }
+        assignedTask = null;
+        taskStarted = false;
     }
 
     @Override
@@ -144,14 +165,58 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean findWork() {
-        // TODO:
+
+        // See if we have some available work
+        if (isWorker()) {
+            return (taskManager.assignTask(this, false));
+        }
+
+        // See that is there a prefered job for us
+        // FIXME: moods
+        List<Creature.JobPreference> jobs = new ArrayList<>();
+        if (creature.getHappyJobs() != null) {
+            for (Creature.JobPreference jobPreference : creature.getHappyJobs()) {
+                if (taskManager.isTaskAvailable(this, jobPreference.getJobType())) {
+                    jobs.add(jobPreference);
+                }
+            }
+        }
+
+        // Choose
+        if (!jobs.isEmpty()) {
+            return (taskManager.assignTask(this, chooseOnWeight(jobs).getJobType()));
+        }
+
         return false;
+    }
+
+    private static Creature.JobPreference chooseOnWeight(List<Creature.JobPreference> items) {
+        double completeWeight = 0.0;
+        for (Creature.JobPreference item : items) {
+            completeWeight += item.getChance();
+        }
+        double r = FastMath.rand.nextDouble() * completeWeight;
+        double countWeight = 0.0;
+        for (Creature.JobPreference item : items) {
+            countWeight += item.getChance();
+            if (countWeight >= r) {
+                return item;
+            }
+        }
+        return null;
     }
 
     @Override
     public boolean isWorker() {
-        // TODO:
-        return false;
+        return entityData.getComponent(entityId, CreatureComponent.class).worker;
+    }
+
+    @Override
+    public void executeAssignedTask() {
+        taskStarted = true;
+        if (isAssignedTaskValid()) {
+            assignedTask.executeTask(this, taskDuration);
+        }
     }
 
     @Override
@@ -173,18 +238,32 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public void die() {
-// TODO:
+        // TODO:
     }
 
     @Override
     public void navigateToAssignedTask() {
-        // TODO:
+        Vector2f loc = assignedTask.getTarget(this);
+        //workNavigationRequired = false;
+
+        if (loc != null) {
+            Point destination = WorldUtils.vectorToPoint(loc);
+            GraphPath<MapTile> path = gameWorldController.findPath(getCreatureCoordinates(), destination, this);
+            entityData.setComponent(entityId, new Navigation(destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, SteeringUtils.pathToList(path)));
+        }
     }
 
     @Override
     public boolean isAtAssignedTaskTarget() {
-        // TODO:
-        return false;
+        return (assignedTask != null && assignedTask.getTarget(this) != null
+                //&& !workNavigationRequired
+                && isStopped()
+                && isNear(assignedTask.getTarget(this)));
+    }
+
+    private boolean isNear(Vector2f target) {
+        Vector3f currentPos = getPosition();
+        return (target.distanceSquared(currentPos.x, currentPos.z) < 0.5f);
     }
 
     @Override
@@ -200,8 +279,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean isAssignedTaskValid() {
-        // TODO:
-        return true;
+        return (assignedTask != null && assignedTask.isValid(this));
     }
 
     @Override
@@ -238,9 +316,8 @@ public class CreatureController implements ICreatureController {
     }
 
     @Override
-    public Object getAssignedTask() {
-        // TODO:
-        return null;
+    public Task getAssignedTask() {
+        return assignedTask;
     }
 
     @Override
@@ -362,6 +439,11 @@ public class CreatureController implements ICreatureController {
             motionless = 0;
         }
 
+        // Task timer
+        if (taskStarted) {
+            taskDuration += tpf;
+        }
+
         stateMachine.update();
     }
 
@@ -376,6 +458,59 @@ public class CreatureController implements ICreatureController {
     @Override
     public void resetReEvaluationTimer() {
         motionless = 0;
+    }
+
+    @Override
+    public void addGold(int amount) {
+        Gold gold = entityData.getComponent(entityId, Gold.class);
+        entityData.setComponent(entityId, new Gold(gold.gold + amount, gold.maxGold));
+    }
+
+    @Override
+    public int getGold() {
+        return entityData.getComponent(entityId, Gold.class).gold;
+    }
+
+    @Override
+    public void substractGold(int amount) {
+        Gold gold = entityData.getComponent(entityId, Gold.class);
+        entityData.setComponent(entityId, new Gold(gold.gold - amount, gold.maxGold));
+    }
+
+    @Override
+    public Point getLairLocation() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public boolean isDragged() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public boolean isUnconscious() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public Point getCreatureCoordinates() {
+        return WorldUtils.vectorToPoint(getPosition());
+    }
+
+    @Override
+    public void setAssignedTask(Task task) {
+
+        // Unassign previous task
+        unassingCurrentTask();
+
+        assignedTask = task;
+        taskDuration = 0.0f;
+        //workNavigationRequired = true;
+    }
+
+    @Override
+    public Creature getCreature() {
+        return creature;
     }
 
     @Override
@@ -401,36 +536,6 @@ public class CreatureController implements ICreatureController {
             return false;
         }
         return true;
-    }
-
-    @Override
-    public int getGold() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void substractGold(int i) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public Point getLairLocation() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public boolean isDragged() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public boolean isUnconscious() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public Point getCreatureCoordinates() {
-        return WorldUtils.vectorToPoint(getPosition());
     }
 
 }

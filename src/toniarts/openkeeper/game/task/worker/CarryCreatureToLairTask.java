@@ -60,7 +60,7 @@ public class CarryCreatureToLairTask extends AbstractTileTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
         //this.creature.sleepUntilHealed();
         executed = true;
     }

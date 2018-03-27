@@ -42,9 +42,9 @@ public class ObjectiveDigTileTask extends DigTileTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
         if (creature.isWorker()) { // Only workers
-            super.executeTask(creature);
+            super.executeTask(creature, executionDuration);
         }
     }
 

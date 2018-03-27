@@ -52,7 +52,7 @@ public class GoToTask extends AbstractObjectiveTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
         executed = true;
     }
 

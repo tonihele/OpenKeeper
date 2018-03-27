@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
@@ -228,5 +229,15 @@ public interface IMapController {
      * @return is the room claimable
      */
     public boolean isClaimableRoom(int x, int y, short playerId);
+
+    /**
+     * Damage a tile
+     *
+     * @param point the point
+     * @param playerId the player applying the damage
+     * @param creature optional, a creature that is damaging the tile
+     * @return you might get gold out of this
+     */
+    int damageTile(Point point, short playerId, ICreatureController creature);
 
 }

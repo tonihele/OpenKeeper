@@ -27,12 +27,14 @@ import toniarts.openkeeper.game.controller.ai.CreatureState;
 public class CreatureAi implements EntityComponent {
 
     public CreatureState creatureState;
+    public short creatureId;
 
     public CreatureAi() {
     }
 
-    public CreatureAi(CreatureState creatureState) {
+    public CreatureAi(CreatureState creatureState, short creatureId) {
         this.creatureState = creatureState;
+        this.creatureId = creatureId;
     }
 
 }

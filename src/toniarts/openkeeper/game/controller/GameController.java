@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.PositionSystem;
+import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
@@ -99,7 +100,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     private GameResult gameResult = null;
     private float timeTaken = 0;
     private Float timeLimit = null;
-    private TaskManager taskManager;
+    private ITaskManager taskManager;
     private PauseableScheduledThreadPoolExecutor exec;
 
     private static final Logger logger = Logger.getLogger(GameController.class.getName());
@@ -208,7 +209,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Create the game loops ready to start
         gameLogicThread = new GameLogicManager(new PositionSystem(gameWorldController.getMapController(), entityData),
                 new ManaCalculatorLogic(gameSettings, playerControllers.values(), gameWorldController.getMapController()),
-                new CreatureAiSystem(entityData, gameWorldController),
+                new CreatureAiSystem(entityData, gameWorldController, taskManager, kwdFile),
                 new CreatureViewSystem(entityData));
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
 
@@ -441,7 +442,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         }
     }
 
-    public TaskManager getTaskManager() {
+    public ITaskManager getTaskManager() {
         return taskManager;
     }
 

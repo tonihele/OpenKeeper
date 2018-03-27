@@ -64,7 +64,7 @@ public class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
 
         // A bit dirty but it is always a creature we are hauling
         //((CreatureControl) creature.getHaulable()).imprison();

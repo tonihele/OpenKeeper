@@ -67,7 +67,7 @@ public class CaptureEnemyCreatureTask extends AbstractTileTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
 
         // Assign carry to prison
 //        if (worldState.getTaskManager().assignClosestRoomTask(creature, GenericRoom.ObjectType.PRISONER)) {
