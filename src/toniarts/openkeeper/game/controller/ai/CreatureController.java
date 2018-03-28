@@ -221,13 +221,18 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean isTooMuchGold() {
-        // TODO:
-        return false;
+        return getGold() >= getMaxGold() && isWorker();
     }
 
     @Override
     public boolean dropGoldToTreasury() {
-        // TODO:
+        if (getGold() > 0 && isWorker()) {
+            if (taskManager.assignGoldToTreasuryTask(this)) {
+                navigateToAssignedTask();
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -469,6 +474,11 @@ public class CreatureController implements ICreatureController {
     @Override
     public int getGold() {
         return entityData.getComponent(entityId, Gold.class).gold;
+    }
+
+    @Override
+    public int getMaxGold() {
+        return entityData.getComponent(entityId, Gold.class).maxGold;
     }
 
     @Override

@@ -62,7 +62,13 @@ public class ClaimWallTileTask extends DigTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        //worldState.applyClaimTile(getTaskLocation(), playerId);
+
+        // TODO: is this a general case or even smart to do this like this...?
+        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
+            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
+
+            mapController.applyClaimTile(getTaskLocation(), playerId);
+        }
     }
 
     @Override

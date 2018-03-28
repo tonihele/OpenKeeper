@@ -587,6 +587,16 @@ public class GameClientState extends AbstractPauseAwareState {
         public int damageTile(Point point, short playerId, ICreatureController creature) {
             throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
+
+        @Override
+        public void applyClaimTile(Point point, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void healTile(Point point, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
     }
 
 }

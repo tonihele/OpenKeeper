@@ -21,7 +21,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.world.room.control.RoomObjectControl;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 
 /**
  * A base of a task that involves a room
@@ -51,7 +51,7 @@ public abstract class AbstractRoomTask extends AbstractTileTask {
 
     protected abstract ObjectType getRoomObjectType();
 
-    protected RoomObjectControl getRoomObjectControl() {
+    protected IRoomObjectControl getRoomObjectControl() {
         return getRoom().getObjectControl(getRoomObjectType());
     }
 

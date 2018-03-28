@@ -22,11 +22,11 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
 /**
  * Claim a lair for a creature
@@ -68,7 +68,7 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
     public void executeTask(ICreatureController creature, float executionDuration) {
 
         // Create a lair
-        RoomObjectControl control = getRoomObjectControl();
+        IRoomObjectControl control = getRoomObjectControl();
 //        if ((int) control.addItem(1, getTaskLocation(), worldState.getThingLoader(), creature) == 0) {
 //            creature.setCreatureLair((ObjectControl) control.getItems(getTaskLocation()).iterator().next());
 //        }

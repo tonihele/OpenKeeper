@@ -240,4 +240,21 @@ public interface IMapController {
      */
     int damageTile(Point point, short playerId, ICreatureController creature);
 
+    /**
+     * Attempt to claim the tile or room, applies either damage of heal,
+     * depending whose tile is it
+     *
+     * @param point tile coordinate
+     * @param playerId for the player
+     */
+    void applyClaimTile(Point point, short playerId);
+
+    /**
+     * Heal a tile
+     *
+     * @param point the point
+     * @param playerId the player applying the healing
+     */
+    void healTile(Point point, short playerId);
+
 }

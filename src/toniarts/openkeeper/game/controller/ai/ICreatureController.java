@@ -117,6 +117,8 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public int getGold();
 
+    public int getMaxGold();
+
     public void substractGold(int amount);
 
     public Point getLairLocation();

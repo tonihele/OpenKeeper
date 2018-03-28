@@ -328,6 +328,12 @@ public final class MapController implements Savable, IMapController {
         mapData.setTiles(tiles);
     }
 
+    private void notifyTileChange(MapTile updatedTile) {
+        List<MapTile> mapTiles = new ArrayList<>(1);
+        mapTiles.add(updatedTile);
+        notifyTileChange(mapTiles);
+    }
+
     private void notifyTileChange(List<MapTile> updatedTiles) {
         for (MapListener mapListener : listeners.getArray()) {
             mapListener.onTilesChange(updatedTiles);
@@ -448,6 +454,22 @@ public final class MapController implements Savable, IMapController {
     }
 
     @Override
+    public void applyClaimTile(Point point, short playerId) {
+        MapTile tile = getMapData().getTile(point);
+        Terrain terrain = getTerrain(tile);
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                damageRoom(point, playerId);
+            } else {
+                damageTile(point, playerId, null);
+            }
+        } else {
+            // TODO: Room healing
+            healTile(point, playerId);
+        }
+    }
+
+    @Override
     public int damageTile(Point point, short playerId, ICreatureController creature) {
         MapTile tile = getMapData().getTile(point);
         Terrain terrain = getTerrain(tile);
@@ -518,11 +540,127 @@ public final class MapController implements Savable, IMapController {
         }
 
         // Notify
-        List<MapTile> mapTiles = new ArrayList<>();
-        mapTiles.add(tile);
-        notifyTileChange(mapTiles);
+        notifyTileChange(tile);
 
         return returnedGold;
+    }
+
+    /**
+     * Heal a tile
+     *
+     * @param point the point
+     * @param playerId the player applying the healing
+     */
+    @Override
+    public void healTile(Point point, short playerId) {
+        MapTile tile = getMapData().getTile(point);
+        Terrain terrain = getTerrain(tile);
+
+        // See the amount of healing
+        // TODO: now just claiming of a tile (claim health variable is too big it seems)
+        int healing;
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                if (tile.getOwnerId() == playerId) {
+                    healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_WALL_HEALTH);
+                } else {
+                    healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.CLAIM_TILE_HEALTH);
+                }
+            } else {
+                healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.REINFORCE_WALL_HEALTH);
+            }
+        } else {
+            healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_TILE_HEALTH);
+        }
+
+        // Apply
+        if (applyHealing(tile, healing)) {
+
+            // TODO: effect & checks
+            // The tile is upgraded
+//            if (terrain.getMaxHealthEffectId() != 0) {
+//                effectManager.load(worldNode,
+//                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+//                        terrain.getMaxHealthEffectId(), false);
+//            }
+            if (terrain.getMaxHealthTypeTerrainId() != 0) {
+                changeTerrain(tile, terrain.getMaxHealthTypeTerrainId());
+                tile.setOwnerId(playerId);
+//                terrain = tile.getTerrain();
+//                if (tile.isAtFullHealth()) {
+//                    effectManager.load(worldNode,
+//                            WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+//                            terrain.getMaxHealthEffectId(), false);
+//                }
+            }
+
+//            updateRoomWalls(tile);
+//            mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
+            // Notify
+//            notifyTileChange(point);
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
+//            mapLoader.updateTiles(point);
+        }
+
+        // Notify
+        notifyTileChange(tile);
+    }
+
+    /**
+     * Damage a room
+     *
+     * @param point tile coordinate
+     * @param playerId for the player
+     */
+    private void damageRoom(Point point, short playerId) {
+        MapTile tile = getMapData().getTile(point);
+
+        // Calculate the damage
+        int damage;
+        short owner = tile.getOwnerId();
+        if (owner == Player.NEUTRAL_PLAYER_ID) {
+            damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.CONVERT_ROOM_HEALTH);
+        } else {
+            damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_ROOM_HEALTH);
+        }
+
+        // Get the room
+        RoomInstance room = getRoomInstanceByCoordinates(point);
+        List<Point> roomTiles = room.getCoordinates();
+
+        // Apply the damage equally to all tiles so that the overall condition can be checked easily
+        // I don't know if this model is correct or not, but like this the bigger the room the more effort it requires to claim
+        int damagePerTile = Math.abs(damage / roomTiles.size());
+        for (Point p : roomTiles) {
+            MapTile roomTile = getMapData().getTile(p);
+            if (applyDamage(roomTile, damagePerTile)) {
+
+                // If one of the tiles runs out (everyone should run out of the same time, unless a new tile has recently being added..)
+                for (Point p2 : roomTiles) {
+                    roomTile = getMapData().getTile(p2);
+                    roomTile.setOwnerId(playerId); // Claimed!
+                    applyHealing(roomTile, tile.getMaxHealth());
+
+//                    effectManager.load(worldNode,
+//                            WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+//                            tile.getTerrain().getMaxHealthEffectId(), false);
+//
+//                    // FIXME ROOM_CLAIM_ID is realy claim effect?
+//                    effectManager.load(worldNode,
+//                            WorldUtils.pointToVector3f(p2).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+//                            room.getRoom().getEffects().get(EffectManagerState.ROOM_CLAIM_ID), false);
+                    // TODO: Claimed room wall tiles lose the claiming I think?
+                    notifyTileChange(roomTile);
+                }
+
+                // Notify
+//                GenericRoom genericRoom = mapLoader.getRoomActuals().get(room);
+//                notifyOnCapturedByEnemy(owner, genericRoom);
+//                notifyOnCaptured(playerId, genericRoom);
+                break;
+            }
+        }
     }
 
     public int mineGold(MapTile tile, int amount) {
@@ -534,6 +672,11 @@ public final class MapController implements Savable, IMapController {
     private boolean applyDamage(MapTile tile, int damage) {
         tile.setHealth(Math.max(0, tile.getHealth() - damage));
         return (tile.getHealth() == 0);
+    }
+
+    public boolean applyHealing(MapTile tile, int healing) {
+        tile.setHealth((int) Math.min(tile.getMaxHealth(), (long) tile.getHealth() + healing));
+        return (tile.getMaxHealth() == tile.getMaxHealth());
     }
 
     private void changeTerrain(MapTile tile, short terrainId) {
