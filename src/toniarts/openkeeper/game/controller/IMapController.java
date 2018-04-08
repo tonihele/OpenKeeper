@@ -15,80 +15,14 @@ import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
-import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.game.map.IMapInformation;
 
 /**
  * Map related actions available to all players
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IMapController {
-
-    /**
-     * Get the map data
-     *
-     * @return the map data
-     */
-    MapData getMapData();
-
-    /**
-     * Sets some specified map tiles in place (updates the map data)
-     *
-     * @param tiles tiles to set
-     */
-    void setTiles(List<MapTile> tiles);
-
-    /**
-     * Determine if a tile at x & y is buildable by the player
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @param playerId the player
-     * @param roomId the room to be build
-     * @return is the tile buildable
-     */
-    boolean isBuildable(int x, int y, short playerId, short roomId);
-
-    /**
-     * Determine if a tile (maybe a room) at x & y is claimable by the player
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @param playerId the player
-     * @return is the tile claimable by you
-     */
-    boolean isClaimable(int x, int y, short playerId);
-
-    /**
-     * Determine if a tile at x & y is selected or not
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @param playerId selected by the player
-     * @return is the tile selected
-     */
-    boolean isSelected(int x, int y, short playerId);
-
-    /**
-     * Determine if a tile at x & y is selectable or not
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @return is the tile selectable
-     */
-    boolean isTaggable(int x, int y);
-
-    /**
-     * Is the tile (building) sellable by us
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @param playerId the player, the seller
-     * @return true if we can sell
-     */
-    public boolean isSellable(int x, int y, short playerId);
+public interface IMapController extends IMapInformation {
 
     /**
      * Set some tiles selected/undelected
@@ -180,55 +114,6 @@ public interface IMapController {
      * @param coordinates the coordinates
      */
     public void updateRooms(Point[] coordinates);
-
-    /**
-     * Get terrain in given tile. FIXME: I don't think we should use the KWD
-     * file stuff in here anymore.
-     *
-     * @param tile the map tile
-     * @return the terrain
-     */
-    public Terrain getTerrain(MapTile tile);
-
-    /**
-     * Is claimable wall at tile point
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @param playerId for the player
-     * @return is the wall claimable
-     */
-    public boolean isClaimableWall(int x, int y, short playerId);
-
-    /**
-     * Is claimable floor at tile point (not a room)
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @param playerId for the player
-     * @return is the floor claimable
-     */
-    public boolean isClaimableTile(int x, int y, short playerId);
-
-    /**
-     * Is repairable wall at tile point
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @param playerId for the player
-     * @return is the wall repairable
-     */
-    public boolean isRepairableWall(int x, int y, short playerId);
-
-    /**
-     * Is claimable room tile at tile point
-     *
-     * @param x x coordinate
-     * @param y y coordinate
-     * @param playerId for the player
-     * @return is the room claimable
-     */
-    public boolean isClaimableRoom(int x, int y, short playerId);
 
     /**
      * Damage a tile

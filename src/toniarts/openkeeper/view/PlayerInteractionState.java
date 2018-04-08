@@ -60,10 +60,10 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
+import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.view.control.IEntityViewControl;
 
 /**
  * State for managing player interactions in the world. Heavily drawn from
@@ -587,7 +587,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
                             // Determine if this is a select/deselect by the starting tile's status
                             boolean select = !gameClientState.getMapClientService().isSelected((int) Math.max(0, selectionArea.getRealStart().x), (int) Math.max(0, selectionArea.getRealStart().y), player.getPlayerId());
-                            gameClientState.getMapClientService().selectTiles(selectionArea.getStart(), selectionArea.getEnd(), select, player.getPlayerId());
+                            gameClientState.getGameClientService().selectTiles(selectionArea.getStart(), selectionArea.getEnd(), select);
                         } else if (interactionState.getType() == Type.ROOM && gameClientState.getMapClientService().isBuildable((int) selectionArea.getRealStart().x,
                                 (int) selectionArea.getRealStart().y, player.getPlayerId(), (short) interactionState.getItemId())) {
                             gameClientState.getGameClientService().build(selectionArea.getStart(), selectionArea.getEnd(), (short) interactionState.getItemId());

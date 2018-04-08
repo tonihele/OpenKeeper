@@ -18,8 +18,6 @@ package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
-import com.jme3.math.Vector2f;
-import java.awt.Point;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -27,18 +25,13 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.action.ActionPointState;
-import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.MapController;
-import toniarts.openkeeper.game.controller.ai.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
-import toniarts.openkeeper.game.controller.room.AbstractRoomController;
-import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.logic.GameLogicManager;
+import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
@@ -54,7 +47,6 @@ import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 import toniarts.openkeeper.view.PlayerEntityViewState;
@@ -103,7 +95,7 @@ public class GameClientState extends AbstractPauseAwareState {
     private IPlayerLoadingProgress loadingState;
     private final GameSessionClientService gameClientService;
     private final GameSessionListenerImpl gameSessionListener = new GameSessionListenerImpl();
-    private IMapController mapClientService;
+    private IMapInformation mapClientService;
     private PlayerState playerState;
 
     private PlayerMapViewState playerMapViewState;
@@ -332,7 +324,7 @@ public class GameClientState extends AbstractPauseAwareState {
             for (Keeper keeper : players) {
                 GameClientState.this.players.put(keeper.getId(), keeper);
             }
-            mapClientService = new ClientMapController(mapData, kwdFile);
+            mapClientService = new MapController(mapData, kwdFile);
             playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId);
             playerMapViewState = new PlayerMapViewState(kwdFile, app.getAssetManager(), mapClientService, playerId) {
 
@@ -446,157 +438,12 @@ public class GameClientState extends AbstractPauseAwareState {
 
     }
 
-    public IMapController getMapClientService() {
+    public IMapInformation getMapClientService() {
         return mapClientService;
     }
 
     public GameSessionClientService getGameClientService() {
         return gameClientService;
-    }
-
-    /**
-     * A local map map controller that relays commands to the client and
-     * maintains the data locally
-     */
-    private class ClientMapController implements IMapController {
-
-        private final IMapController localMap;
-
-        public ClientMapController(MapData mapData, KwdFile kwdFile) {
-            localMap = new MapController(mapData, kwdFile);
-        }
-
-        @Override
-        public MapData getMapData() {
-            return localMap.getMapData();
-        }
-
-        @Override
-        public void setTiles(List<MapTile> tiles) {
-            localMap.setTiles(tiles);
-        }
-
-        @Override
-        public boolean isBuildable(int x, int y, short playerId, short roomId) {
-            return localMap.isBuildable(x, y, playerId, roomId);
-        }
-
-        @Override
-        public boolean isClaimable(int x, int y, short playerId) {
-            return localMap.isClaimable(x, y, playerId);
-        }
-
-        @Override
-        public boolean isSelected(int x, int y, short playerId) {
-            return localMap.isSelected(x, y, playerId);
-        }
-
-        @Override
-        public boolean isTaggable(int x, int y) {
-            return localMap.isTaggable(x, y);
-        }
-
-        @Override
-        public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-
-            // Relay this to the client service
-            gameClientService.selectTiles(start, end, select);
-        }
-
-        @Override
-        public void addListener(MapListener listener) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public void removeListener(MapListener listener) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public Collection<IRoomController> getRoomControllers() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public RoomInstance getRoomInstanceByCoordinates(Point p) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public IRoomController getRoomController(RoomInstance roomInstance) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public List<IRoomController> getRoomsByFunction(AbstractRoomController.ObjectType objectType, Short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public Map<Point, RoomInstance> getRoomCoordinates() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public Map<RoomInstance, IRoomController> getRoomControllersByInstances() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public void removeRoomInstances(RoomInstance... instances) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public boolean isSellable(int x, int y, short playerId) {
-            return localMap.isSellable(x, y, playerId);
-        }
-
-        @Override
-        public void updateRooms(Point[] coordinates) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public Terrain getTerrain(MapTile tile) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public boolean isClaimableWall(int x, int y, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public boolean isClaimableTile(int x, int y, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public boolean isRepairableWall(int x, int y, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public boolean isClaimableRoom(int x, int y, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public int damageTile(Point point, short playerId, ICreatureController creature) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public void applyClaimTile(Point point, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
-
-        @Override
-        public void healTile(Point point, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
     }
 
 }

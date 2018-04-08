@@ -29,9 +29,9 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.Debug;
@@ -65,13 +65,13 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private final Queue<TileAction> actionQueue = new ConcurrentLinkedDeque<>();
     private static final float TICK = 1.250f; // FIXME: no, settings
     private float lastUpdate = 0;
-    private final IMapController mapClientService;
+    private final IMapInformation mapClientService;
 //    private final GameState gameState;
 //    private final FlashTileControl flashTileControl;
 
     private static final Logger logger = Logger.getLogger(PlayerMapViewState.class.getName());
 
-    public PlayerMapViewState(final KwdFile kwdFile, final AssetManager assetManager, IMapController mapClientService, short playerId) {
+    public PlayerMapViewState(final KwdFile kwdFile, final AssetManager assetManager, IMapInformation mapClientService, short playerId) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.mapClientService = mapClientService;
