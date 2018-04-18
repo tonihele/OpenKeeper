@@ -19,6 +19,7 @@ package toniarts.openkeeper.world.effect;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.DesktopAssetManager;
 import com.jme3.light.Light;
 import com.jme3.light.PointLight;
 import com.jme3.material.Material;
@@ -43,6 +44,7 @@ import java.awt.image.ImageFilter;
 import java.awt.image.ImageProducer;
 import java.awt.image.RGBImageFilter;
 import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -54,11 +56,13 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
  * @author ArchDemon
  */
 public class TorchControl extends BillboardControl {
+
     private final int frames = 20;
     private Material material;
     private Node torch;
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
+    private static final AssetKey<Spatial> ASSET_KEY = new AssetKey<>("TorchFlame");
 
     private static final Logger log = Logger.getLogger(TorchControl.class.getName());
 
@@ -70,37 +74,45 @@ public class TorchControl extends BillboardControl {
 
     @Override
     public void setSpatial(Spatial spatial) {
-       torch = (Node) spatial;
+        torch = (Node) spatial;
 
         if (torch != null) {
             this.spatial = createFlame();
             if (this.spatial != null) {
                 torch.attachChild(this.spatial);
-                torch.addLight(createLigth());
+                torch.addLight(createLight());
             }
         }
     }
 
     private Spatial createFlame() {
-        Spatial result = null;
+        Spatial result = ((DesktopAssetManager) assetManager).getFromCache(ASSET_KEY);
 
-        try {
-            material = createMaterial();
-            material.setTexture("DiffuseMap", createTexture());
+        if (result == null) {
+            try {
+                material = createMaterial();
+                material.setTexture("DiffuseMap", createTexture());
 
-            result = new Geometry("torch flame", createMesh(0.5f, 0.5f));
-            result.setMaterial(material);
-            result.setQueueBucket(RenderQueue.Bucket.Translucent);
-            result.move(0.14f, 0.2f, 0);
-            
-        } catch (Exception e) {
-            log.warning("Can`t create torch flame");
+                result = new Geometry("torch flame", createMesh(0.5f, 0.5f));
+                result.setMaterial(material);
+                result.setQueueBucket(RenderQueue.Bucket.Translucent);
+                result.move(0.14f, 0.2f, 0);
+
+            } catch (Exception e) {
+                log.log(Level.WARNING, "Can't create torch flame", e);
+            }
+
+            ((DesktopAssetManager) assetManager).addToCache(ASSET_KEY, result);
         }
 
-        return result;
+        if (result != null) {
+            return result.clone();
+        }
+
+        return null;
     }
 
-    private Light createLigth() {
+    private Light createLight() {
         PointLight result = new PointLight();
         result.setName("torch");
 
@@ -113,7 +125,6 @@ public class TorchControl extends BillboardControl {
         result.setRadius(kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_RADIUS_TILES).getValue());
 
         // float height = kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_HEIGHT_TILES).getValue();
-
         return result;
     }
 
@@ -157,7 +168,6 @@ public class TorchControl extends BillboardControl {
         //float[] scales = {1f, 1f, 1f, 1f};
         //float[] offsets = new float[4];
         //RescaleOp rop = new RescaleOp(scales, offsets, null);
-
         // Get the first frame, the frames need to be same size
         BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + name + "0.png"))).openStream());
 
@@ -180,12 +190,12 @@ public class TorchControl extends BillboardControl {
     }
 
     private static Image makeColorTransparent(BufferedImage image) {
-    	ImageFilter filter = new RGBImageFilter() {
+        ImageFilter filter = new RGBImageFilter() {
             @Override
             public final int filterRGB(int x, int y, int rgb) {
                 return (rgb < 0xFF303030) ? 0x00FFFFFF : rgb;
             }
-    	};
+        };
 
         ImageProducer ip = new FilteredImageSource(image.getSource(), filter);
         return Toolkit.getDefaultToolkit().createImage(ip);
