@@ -16,9 +16,11 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.simsilica.es.EntityData;
 import java.util.Map;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
+import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
@@ -40,8 +42,9 @@ public class PlayerController implements IPlayerController {
     private final PlayerRoomControl roomControl;
     private final PlayerSpellControl spellControl;
     private final PlayerManaControl manaControl;
+    private final PlayerHandControl handControl;
 
-    public PlayerController(Keeper keeper, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public PlayerController(Keeper keeper, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.keeper = keeper;
 
         // Create the actual controllers
@@ -50,11 +53,13 @@ public class PlayerController implements IPlayerController {
         roomControl = new PlayerRoomControl(keeper);
         spellControl = new PlayerSpellControl(keeper);
 
-        // Don't create mana control for neutral nor good player
+        // Don't create certain controls for neutral nor good player
         if (keeper.getId() != Player.GOOD_PLAYER_ID && keeper.getId() != Player.NEUTRAL_PLAYER_ID) {
             manaControl = new PlayerManaControl(keeper, gameSettings);
+            handControl = new PlayerHandControl(keeper, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_NUMBER_OF_THINGS_IN_HAND).getValue(), entityData);
         } else {
             manaControl = null;
+            handControl = null;
         }
     }
 
@@ -102,6 +107,11 @@ public class PlayerController implements IPlayerController {
     @Override
     public PlayerRoomControl getRoomControl() {
         return roomControl;
+    }
+
+    @Override
+    public PlayerHandControl getHandControl() {
+        return handControl;
     }
 
 }

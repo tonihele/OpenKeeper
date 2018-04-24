@@ -25,7 +25,9 @@ import com.jme3.network.service.ClientServiceManager;
 import com.jme3.network.service.rmi.RmiClientService;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.client.EntityDataClientService;
+import java.awt.Point;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
@@ -51,7 +53,7 @@ import toniarts.openkeeper.game.state.session.GameSessionListener;
 public class GameClientService extends AbstractClientService
         implements GameSessionClientService {
 
-    private static final Logger logger = Logger.getLogger(GameClientService.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(GameClientService.class.getName());
 
     private RmiClientService rmiService;
     private GameSession delegate;
@@ -84,18 +86,18 @@ public class GameClientService extends AbstractClientService
 
     @Override
     protected void onInitialize(ClientServiceManager s) {
-        logger.log(Level.FINER, "onInitialize({0})", s);
+        LOGGER.log(Level.FINER, "onInitialize({0})", s);
         this.rmiService = getService(RmiClientService.class);
         if (rmiService == null) {
             throw new RuntimeException("GameClientService requires RMI service");
         }
-        logger.finer("Sharing session callback.");
+        LOGGER.finer("Sharing session callback.");
         rmiService.share(NetworkConstants.GAME_CHANNEL, sessionCallback, GameSessionListener.class);
 
         // Listen for the streaming messages
         s.getService(StreamingClientService.class).addListener(GameHostedService.MessageType.GAME_DATA.ordinal(), (StreamedMessageListener<GameData>) (GameData data) -> {
 
-            logger.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{data});
+            LOGGER.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{data});
             for (GameSessionListener l : listeners.getArray()) {
                 l.onGameDataLoaded(data.getPlayers(), data.getMapData());
             }
@@ -113,7 +115,7 @@ public class GameClientService extends AbstractClientService
      */
     @Override
     public void start() {
-        logger.finer("start()");
+        LOGGER.finer("start()");
         super.start();
     }
 
@@ -125,7 +127,7 @@ public class GameClientService extends AbstractClientService
         if (delegate == null) {
             // Look it up
             this.delegate = rmiService.getRemoteObject(GameSession.class);
-            logger.log(Level.FINER, "delegate:{0}", delegate);
+            LOGGER.log(Level.FINER, "delegate:{0}", delegate);
             if (delegate == null) {
                 throw new RuntimeException("No game session found");
             }
@@ -158,6 +160,21 @@ public class GameClientService extends AbstractClientService
         return getService(EntityDataClientService.class).getEntityData();
     }
 
+    @Override
+    public void interact(EntityId entity) {
+        getDelegate().interact(entity);
+    }
+
+    @Override
+    public void pickUp(EntityId entity) {
+        getDelegate().pickUp(entity);
+    }
+
+    @Override
+    public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity) {
+        getDelegate().drop(entity, tile, coordinates, dropOnEntity);
+    }
+
     private class ClientMessageListener implements MessageListener<Client> {
 
         public ClientMessageListener() {
@@ -167,7 +184,7 @@ public class GameClientService extends AbstractClientService
         public void messageReceived(Client source, Message message) {
             if (message instanceof GameLoadProgressData) {
                 GameLoadProgressData data = (GameLoadProgressData) message;
-                logger.log(Level.FINEST, "onLoadStatusUpdate({0},{1})", new Object[]{data.getProgress(), data.getKeeperId()});
+                LOGGER.log(Level.FINEST, "onLoadStatusUpdate({0},{1})", new Object[]{data.getProgress(), data.getKeeperId()});
                 for (GameSessionListener l : listeners.getArray()) {
                     l.onLoadStatusUpdate(data.getProgress(), data.getKeeperId());
                 }
@@ -193,7 +210,7 @@ public class GameClientService extends AbstractClientService
 
         @Override
         public void onGameStarted() {
-            logger.log(Level.FINEST, "onGameStarted()");
+            LOGGER.log(Level.FINEST, "onGameStarted()");
             for (GameSessionListener l : listeners.getArray()) {
                 l.onGameStarted();
             }
@@ -201,7 +218,7 @@ public class GameClientService extends AbstractClientService
 
         @Override
         public void onLoadComplete(short keeperId) {
-            logger.log(Level.FINEST, "onLoadComplete({0})", new Object[]{keeperId});
+            LOGGER.log(Level.FINEST, "onLoadComplete({0})", new Object[]{keeperId});
             for (GameSessionListener l : listeners.getArray()) {
                 l.onLoadComplete(keeperId);
             }

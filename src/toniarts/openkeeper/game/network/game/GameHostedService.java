@@ -27,7 +27,9 @@ import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rmi.RmiRegistry;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.server.EntityDataHostedService;
+import java.awt.Point;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -66,7 +68,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         GAME_LOAD_PROGRESS
     }
 
-    private static final Logger logger = Logger.getLogger(GameHostedService.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(GameHostedService.class.getName());
 
     private boolean readyToLoad = false;
     private final Object loadLock = new Object();
@@ -110,7 +112,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
             try {
                 entityUpdater.awaitTermination(1, TimeUnit.MINUTES);
             } catch (InterruptedException ex) {
-                logger.log(Level.SEVERE, "Failed to wait for the entity updater to shutdown!", ex);
+                LOGGER.log(Level.SEVERE, "Failed to wait for the entity updater to shutdown!", ex);
             }
         }
     }
@@ -120,7 +122,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
      * generated player name.
      */
     public void startHostingOnConnection(HostedConnection conn, ClientInfo clientInfo) {
-        logger.log(Level.FINER, "startHostingOnConnection({0})", conn);
+        LOGGER.log(Level.FINER, "startHostingOnConnection({0})", conn);
 
         GameSessionImpl session = new GameSessionImpl(conn, clientInfo);
         players.put(clientInfo, session);
@@ -138,7 +140,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
     @Override
     public void stopHostingOnConnection(HostedConnection conn) {
-        logger.log(Level.FINER, "stopHostingOnConnection({0})", conn);
+        LOGGER.log(Level.FINER, "stopHostingOnConnection({0})", conn);
         GameSessionImpl player = getGameSession(conn);
         if (player != null) {
 
@@ -179,7 +181,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
                         try {
                             loadLock.wait();
                         } catch (InterruptedException ex) {
-                            logger.log(Level.SEVERE, "Game data sender interrupted!", ex);
+                            LOGGER.log(Level.SEVERE, "Game data sender interrupted!", ex);
                             return;
                         }
                     }
@@ -192,7 +194,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
                 // Data is too big, stream the data
                 getServiceManager().getService(StreamingHostedService.class).sendData(MessageType.GAME_DATA.ordinal(), new GameData(new ArrayList<>(players), mapData), null);
             } catch (IOException ex) {
-                logger.log(Level.SEVERE, "Failed to send the game data to clients!", ex);
+                LOGGER.log(Level.SEVERE, "Failed to send the game data to clients!", ex);
             }
 
         }, "GameDataSender");
@@ -279,7 +281,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
             if (message instanceof GameLoadProgressData) {
                 GameLoadProgressData data = (GameLoadProgressData) message;
-                logger.log(Level.FINEST, "onLoadStatus({0},{1})", new Object[]{data.getProgress(), clientInfo.getKeeper().getId()});
+                LOGGER.log(Level.FINEST, "onLoadStatus({0},{1})", new Object[]{data.getProgress(), clientInfo.getKeeper().getId()});
 
                 clientInfo.setLoadingProgress(data.getProgress());
 
@@ -403,6 +405,27 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         public void sell(Vector2f start, Vector2f end) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onSell(start, end, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void interact(EntityId entity) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onInteract(entity, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void pickUp(EntityId entity) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onPickUp(entity, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onDrop(entity, tile, coordinates, dropOnEntity, clientInfo.getKeeper().getId());
             }
         }
 

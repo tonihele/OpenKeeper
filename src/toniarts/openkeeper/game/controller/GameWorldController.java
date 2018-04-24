@@ -22,6 +22,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,9 +38,12 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
+import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
@@ -440,13 +444,11 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else // Water or lava
-                    {
-                        if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+                     if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
                             tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
                         } else {
                             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                         }
-                    }
 
                     // Give money back
                     int goldLeft = addGold(playerId, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100)));
@@ -495,6 +497,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         mapController.selectTiles(start, end, select, playerId);
     }
 
+    @Override
     public IMapController getMapController() {
         return mapController;
     }
@@ -577,6 +580,41 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     private void notifyOnSold(short playerId, List<MapTile> soldTiles) {
         for (PlayerActionListener listener : listeners.getArray()) {
             listener.onSold(playerId, soldTiles);
+        }
+    }
+
+    @Override
+    public void pickUp(EntityId entity, short playerId) {
+
+        // TODO: Verify that can we do this or not
+        PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
+        if (!playerHandControl.isFull()) {
+            playerHandControl.push(entity);
+
+            // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
+            // And also no need to create a system for this which saves resources
+            entityData.removeComponent(entity, Position.class);
+            entityData.removeComponent(entity, CreatureAi.class);
+            entityData.removeComponent(entity, Navigation.class);
+        }
+    }
+
+    @Override
+    public void interact(EntityId entity, short playerId) {
+    }
+
+    @Override
+    public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
+
+        // TODO: Verify that can we do this or not
+        PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
+        if (playerHandControl.peek() == entity) {
+            playerHandControl.pop();
+
+            // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
+            // And also no need to create a system for this which saves resources
+            // TODO: maybe somekind of a dropping component?
+            entityData.setComponent(entity, new Position(0, WorldUtils.pointToVector3f(tile)));
         }
     }
 

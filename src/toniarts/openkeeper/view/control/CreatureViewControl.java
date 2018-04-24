@@ -20,6 +20,8 @@ import com.google.common.base.Objects;
 import com.jme3.asset.AssetManager;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 
@@ -64,6 +66,21 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
         if (!Objects.equal(currentAnimation, targetAnimation)) {
             playAnimation(state);
         }
+    }
+
+    @Override
+    public ArtResource getInHandIcon() {
+        return getDataObject().getIcon1Resource();
+    }
+
+    @Override
+    public ArtResource getInHandMesh() {
+        return getDataObject().getAnimation(Creature.AnimationType.IN_HAND);
+    }
+
+    @Override
+    public CursorFactory.CursorType getInHandCursor() {
+        return CursorFactory.CursorType.HOLD_THING;
     }
 
 }

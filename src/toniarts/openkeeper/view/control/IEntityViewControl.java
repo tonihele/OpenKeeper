@@ -28,6 +28,8 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
  * A small interface telling that the control (creature, object...) is
  * interactive
  *
+ * @param <T> The type of entity
+ * @param <S> The animation type of the entity
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public interface IEntityViewControl<T, S> extends Control {

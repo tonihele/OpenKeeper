@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller;
 
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
+import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
@@ -25,6 +26,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerListener;
 
 /**
+ * Simple player related posession and action controller
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -43,6 +45,8 @@ public interface IPlayerController {
     PlayerRoomControl getRoomControl();
 
     PlayerSpellControl getSpellControl();
+
+    PlayerHandControl getHandControl();
 
     void removeListener(PlayerListener listener);
 

@@ -23,6 +23,7 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.control.AbstractControl;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.util.Objects;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -34,6 +35,8 @@ import toniarts.openkeeper.world.animation.AnimationControl;
 /**
  * General entity controller, a bridge between entities and view
  *
+ * @param <T> The type of the entity
+ * @param <S> The animation type
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class EntityViewControl<T, S> extends AbstractControl implements IEntityViewControl<T, S>, AnimationControl {
@@ -184,4 +187,30 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     public T getDataObject() {
         return data;
     }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 41 * hash + Objects.hashCode(this.entityId);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final EntityViewControl<?, ?> other = (EntityViewControl<?, ?>) obj;
+        if (!Objects.equals(this.entityId, other.entityId)) {
+            return false;
+        }
+        return true;
+    }
+
 }

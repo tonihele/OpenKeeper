@@ -20,6 +20,7 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.simsilica.es.EntityData;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +41,7 @@ import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -57,7 +59,9 @@ import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
 /**
- * The player state! GUI, camera, etc. Player interactions
+ * The player state! GUI, camera, etc. Player interactions. TODO: shouldn't
+ * really be persistent, only persistent due to Nifty screen, these screen
+ * controllers could be just the persistent ones
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -69,6 +73,8 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     protected AppStateManager stateManager;
 
     private short playerId;
+    private KwdFile kwdFile;
+    private EntityData entityData;
 
     private boolean paused = false;
 
@@ -166,7 +172,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
             appStates.add(possessionState);
 
             cameraState = new PlayerCameraState(player);
-            interactionState = new PlayerInteractionState(player) {
+            interactionState = new PlayerInteractionState(player, kwdFile, entityData) {
                 @Override
                 protected void onInteractionStateChange(InteractionState interactionState) {
                     PlayerState.this.screen.updateSelectedItem(interactionState);
@@ -208,6 +214,22 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
             appStates.clear();
             screen.goToScreen(PlayerScreenController.SCREEN_EMPTY_ID);
         }
+    }
+
+    public KwdFile getKwdFile() {
+        return kwdFile;
+    }
+
+    public void setKwdFile(KwdFile kwdFile) {
+        this.kwdFile = kwdFile;
+    }
+
+    public EntityData getEntityData() {
+        return entityData;
+    }
+
+    public void setEntityData(EntityData entityData) {
+        this.entityData = entityData;
     }
 
     public PlayerScreenController getScreen() {

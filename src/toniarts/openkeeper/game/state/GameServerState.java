@@ -20,12 +20,14 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
+import java.awt.Point;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.GameController;
-import toniarts.openkeeper.game.controller.GameWorldController;
+import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -59,7 +61,7 @@ public class GameServerState extends AbstractAppState {
     private final GameSessionServiceListener gameSessionListener = new GameSessionServiceListenerImpl();
     private final PlayerActionListener playerActionListener = new PlayerActionListenerImpl();
     private GameController gameController;
-    private GameWorldController gameWorldController;
+    private IGameWorldController gameWorldController;
 
     private static final Logger logger = Logger.getLogger(GameServerState.class.getName());
 
@@ -192,6 +194,21 @@ public class GameServerState extends AbstractAppState {
         @Override
         public void onSell(Vector2f start, Vector2f end, short playerId) {
             gameWorldController.sell(start, end, playerId);
+        }
+
+        @Override
+        public void onInteract(EntityId entity, short playerId) {
+            gameWorldController.interact(entity, playerId);
+        }
+
+        @Override
+        public void onPickUp(EntityId entity, short playerId) {
+            gameWorldController.pickUp(entity, playerId);
+        }
+
+        @Override
+        public void onDrop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
+            gameWorldController.drop(entity, tile, coordinates, dropOnEntity, playerId);
         }
     }
 

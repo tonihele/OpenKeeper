@@ -35,6 +35,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.control.AbstractControl;
+import com.simsilica.es.EntityData;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import java.awt.Point;
@@ -54,6 +55,7 @@ import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -85,6 +87,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private InputManager inputManager;
 
     private final Player player;
+    private final KwdFile kwdFile;
+    private final EntityData entityData;
     private SelectionHandler selectionHandler;
     private Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
     private InteractionState interactionState = new InteractionState();
@@ -100,12 +104,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private boolean inputListenerAdded = false;
     private IEntityViewControl interactiveControl;
     private Label tooltip;
-    private KeeperHand keeperHand;
+    private KeeperHandState keeperHandState;
 
     private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
 
-    public PlayerInteractionState(Player player) {
+    public PlayerInteractionState(Player player, KwdFile kwdFile, EntityData entityData) {
         this.player = player;
+        this.kwdFile = kwdFile;
+        this.entityData = entityData;
 
         // The input
         initializeInput();
@@ -125,8 +131,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         this.tooltip = psc.getTooltip();
 
         // Init the keeper hand
-        keeperHand = new KeeperHand(assetManager, (int) gameClientState.getLevelVariable(MiscType.MAX_NUMBER_OF_THINGS_IN_HAND));
-        this.app.getGuiNode().attachChild(keeperHand.getNode());
+        keeperHandState = new KeeperHandState((int) gameClientState.getLevelVariable(MiscType.MAX_NUMBER_OF_THINGS_IN_HAND), kwdFile, entityData, player.getPlayerId());
+        this.stateManager.attach(keeperHandState);
 
         // Init handler
         selectionHandler = new SelectionHandler(this.app) {
@@ -142,7 +148,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
                 switch (interactionState.getType()) {
                     case NONE:
-                        return (keeperHand.getItem() != null);
+                        return (keeperHandState.getItem() != null);
                     case SELL:
                     case ROOM:
                     case DOOR:
@@ -161,7 +167,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 } else {
                     pos = selectionHandler.getPointedTilePosition();
                 }
-                if (interactionState.getType() == Type.NONE && keeperHand.getItem() != null) {
+                if (interactionState.getType() == Type.NONE && keeperHandState.getItem() != null) {
                     MapTile tile = gameClientState.getMapClientService().getMapData().getTile((int) pos.x, (int) pos.y);
                     if (tile != null) {
                         //IEntityControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
@@ -249,7 +255,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     @Override
     public void cleanup() {
-        app.getGuiNode().detachChild(keeperHand.getNode());
+        this.stateManager.detach(keeperHandState);
+        keeperHandState = null;
         app.getInputManager().removeRawInputListener(inputListener);
         selectionHandler.cleanup();
         CheatState cheatState = this.stateManager.getState(CheatState.class);
@@ -480,7 +487,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     protected void updateCursor() {
-        keeperHand.setVisible(false);
+        keeperHandState.setVisible(false);
         if (Main.getUserSettings().getSettingBoolean(Settings.Setting.USE_CURSORS)) {
             if (isOnGui || isInteractable || interactionState.getType() == Type.SPELL) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
@@ -488,16 +495,16 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE_TAGGING, assetManager));
             } else if (isTaggable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE, assetManager));
-            } else if (keeperHand.getItem() != null) {
+            } else if (keeperHandState.getItem() != null) {
 
                 // Keeper hand item
-                inputManager.setMouseCursor(CursorFactory.getCursor(keeperHand.getItem().getInHandCursor(), assetManager));
-                keeperHand.setVisible(true);
+                inputManager.setMouseCursor(CursorFactory.getCursor(keeperHandState.getItem().getInHandCursor(), assetManager));
+                keeperHandState.setVisible(true);
             } else {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.IDLE, assetManager));
             }
-        } else if (keeperHand.getItem() != null) {
-            keeperHand.setVisible(true);
+        } else if (keeperHandState.getItem() != null) {
+            keeperHandState.setVisible(true);
         }
     }
 
@@ -522,7 +529,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             @Override
             public void onMouseMotionEvent(MouseMotionEvent evt) {
                 mousePosition.set(evt.getX(), evt.getY());
-                keeperHand.setPosition(evt.getX(), evt.getY());
+                keeperHandState.setPosition(evt.getX(), evt.getY());
 
                 timeFromLastUpdate = 0;
                 updateStateFlags();
@@ -556,7 +563,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         } else if (interactionState.getType() == Type.DOOR) {
                             //TODO put door
                         } else if (interactionState.getType() == Type.NONE
-                                && interactiveControl != null && !keeperHand.isFull()
+                                && interactiveControl != null && !keeperHandState.isFull()
                                 && interactiveControl.isPickable(player.getPlayerId())) {
                             pickupObject(interactiveControl);
                         } else if (interactionState.getType() == Type.NONE
@@ -604,8 +611,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     if (interactionState.getType() == Type.NONE) {
 
                         // Drop
-                        if (keeperHand.getItem() != null) {
-                            MapTile tile = gameClientState.getMapClientService().getMapData().getTile(p);
+                        if (keeperHandState.getItem() != null) {
+                            //gameClientState.getGameClientService().drop(keeperHand.getEntityId(), p, selectionHandler.getActualPointedPosition());
+                            //MapTile tile = gameClientState.getMapClientService().getMapData().getTile(p);
 //                            IEntityControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
 //                            if (status != IEntityControl.DroppableStatus.NOT_DROPPABLE) {
 //
@@ -681,11 +689,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      * @return picked or not
      */
     public boolean pickupObject(IEntityViewControl object) {
-        if (object == null || keeperHand.isFull() || !object.isPickable(player.getPlayerId())) {
+        if (object == null || keeperHandState.isFull() || !object.isPickable(player.getPlayerId())) {
             return false;
         }
 
         //keeperHand.push(object.pickUp(player.getPlayerId()));
+        gameClientState.getGameClientService().pickUp(object.getEntityId());
         updateCursor();
         return true;
     }
@@ -696,7 +705,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      * @return is keeper hand full
      */
     public boolean isKeeperHandFull() {
-        return keeperHand.isFull();
+        return keeperHandState.isFull();
     }
 
     /**

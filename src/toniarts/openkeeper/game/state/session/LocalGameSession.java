@@ -11,7 +11,9 @@ import com.jme3.export.binary.BinaryImporter;
 import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import java.awt.Point;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -182,6 +184,27 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     @Override
     public void markReady() {
         // We don't care really, locally if the client is started before the server, everything is fine
+    }
+
+    @Override
+    public void interact(EntityId entity) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onInteract(entity, Player.KEEPER1_ID);
+        }
+    }
+
+    @Override
+    public void pickUp(EntityId entity) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onPickUp(entity, Player.KEEPER1_ID);
+        }
+    }
+
+    @Override
+    public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onDrop(entity, tile, coordinates, dropOnEntity, Player.KEEPER1_ID);
+        }
     }
 
     @Override

@@ -18,6 +18,8 @@ package toniarts.openkeeper.game.state.session;
 
 import com.jme3.math.Vector2f;
 import com.jme3.network.service.rmi.Asynchronous;
+import com.simsilica.es.EntityId;
+import java.awt.Point;
 
 /**
  * Listener for the service. To listen to clients' requests
@@ -56,6 +58,36 @@ public interface GameSessionServiceListener {
      * @param playerId the player who selected the tile
      */
     @Asynchronous
-    void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId);
+    public void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId);
+
+    /**
+     * Player wants to interact with an entity
+     *
+     * @param entity the entity to be interacted upon
+     * @param playerId the player who interacts
+     */
+    @Asynchronous
+    public void onInteract(EntityId entity, short playerId);
+
+    /**
+     * Player wants to pick up an entity
+     *
+     * @param entity the entity to be picked up
+     * @param playerId the player who picks up
+     */
+    @Asynchronous
+    public void onPickUp(EntityId entity, short playerId);
+
+    /**
+     * Player wants to drop an entity
+     *
+     * @param entity the entity to be dropped
+     * @param tile the tile 2D coordinates to drop to
+     * @param coordinates the real world coordinates on the tile
+     * @param dropOnEntity if there is an entity to which we drop this one to
+     * @param playerId the player who drops
+     */
+    @Asynchronous
+    public void onDrop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId);
 
 }

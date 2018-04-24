@@ -19,6 +19,8 @@ package toniarts.openkeeper.view.control;
 import com.jme3.asset.AssetManager;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 
 /**
@@ -30,6 +32,24 @@ public class ObjectViewControl extends EntityViewControl<GameObject, GameObject.
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, GameObject.State state, AssetManager assetManager) {
         super(entityId, entityData, data, state, assetManager);
+    }
+
+    @Override
+    public ArtResource getInHandIcon() {
+        return getDataObject().getGuiIconResource();
+    }
+
+    @Override
+    public ArtResource getInHandMesh() {
+        return getDataObject().getInHandMeshResource();
+    }
+
+    @Override
+    public CursorFactory.CursorType getInHandCursor() {
+        if (getDataObject().getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
+            return CursorFactory.CursorType.HOLD_GOLD;
+        }
+        return CursorFactory.CursorType.HOLD_THING;
     }
 
 }

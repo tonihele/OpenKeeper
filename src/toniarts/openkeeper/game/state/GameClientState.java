@@ -363,6 +363,8 @@ public class GameClientState extends AbstractPauseAwareState {
 
             // Set the player stuff
             playerState = stateManager.getState(PlayerState.class);
+            playerState.setKwdFile(kwdFile);
+            playerState.setEntityData(gameClientService.getEntityData());
             playerState.setPlayerId(playerId);
 
             app.enqueue(() -> {

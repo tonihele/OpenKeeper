@@ -257,7 +257,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
 
             // Init
             if (keeper != null) {
-                PlayerController playerController = new PlayerController(keeper, gameSettings);
+                PlayerController playerController = new PlayerController(keeper, entityData, gameSettings);
                 playerControllers.put(entry.getKey(), playerController);
 
                 // Spells are all available for research unless otherwise stated
