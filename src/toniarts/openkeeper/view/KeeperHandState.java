@@ -158,11 +158,6 @@ public class KeeperHandState extends AbstractAppState {
         return currentItem;
     }
 
-    public IEntityViewControl peek() {
-        //return queue.peek();
-        return null;
-    }
-
     private KeeperHandItem addToHand(IEntityViewControl item, int index) {
         KeeperHandItem handItem = new KeeperHandItem();
         handItem.index = index;
@@ -170,41 +165,11 @@ public class KeeperHandState extends AbstractAppState {
         handItem.picture = getIcon(item.getInHandIcon());
         queue.add(handItem);
 
-//        addItem(item);
-//        addIcon(item.getInHandIcon(), 0);
-//
-//        if (queue.size() >= CURSOR_ITEMS_INLINE * CURSOR_ITEMS_LINES + 1) {
-//            cursor.getChildren().get(CURSOR_ITEMS_INLINE * CURSOR_ITEMS_LINES).removeFromParent();
-//            if (queue.size() == CURSOR_ITEMS_INLINE * CURSOR_ITEMS_LINES + 1) {
-//                addIcon(MORE_CREATURES, CURSOR_ITEMS_INLINE * CURSOR_ITEMS_LINES);
-//            }
-//        }
-//        moveIcons();
         return handItem;
     }
 
     private void removeFromHand(KeeperHandItem item) {
         queue.remove(item);
-    }
-
-    public IEntityViewControl pop() {
-        //IEntityViewControl result = queue.pop();
-
-        removeItem();
-        removeIcon();
-
-        if (queue.size() >= CURSOR_ITEMS_INLINE * CURSOR_ITEMS_LINES) {
-            //addIcon(queue.peek(CURSOR_ITEMS_INLINE * CURSOR_ITEMS_LINES - 1).getInHandIcon(), CURSOR_ITEMS_INLINE * CURSOR_ITEMS_LINES - 1);
-        }
-
-        moveIcons();
-
-        if (!queue.isEmpty()) {
-            //addItem(queue.peek());
-        }
-
-        //return result;
-        return null;
     }
 
     public boolean isFull() {
@@ -221,44 +186,6 @@ public class KeeperHandState extends AbstractAppState {
 
     public void setPosition(float x, float y) {
         rootNode.setLocalTranslation(x, y, 0);
-    }
-
-    private void addItem(IEntityViewControl interactiveControl) {
-
-        // Remove the old one
-//        if (item != null) {
-//            removeItem();
-//        }
-//
-//        // Set the item
-//        item = interactiveControl;
-//        if (item.getInHandMesh() != null) {
-//
-//            // Attach to GUI queueNode and play the animation
-//            item.getSpatial().setLocalTranslation(0, 0, 0);
-//            item.getSpatial().setLocalRotation(Matrix3f.ZERO);
-//            queueNode.attachChild(item.getSpatial());
-//            AnimationLoader.playAnimation(item.getSpatial(), item.getInHandMesh(), assetManager);
-//        }
-    }
-
-    private void removeItem() {
-//        if (item != null && item.getInHandMesh() != null) {
-//
-//            // Remove from GUI queueNode
-//            item.getSpatial().removeFromParent();
-//        }
-//        item = null;
-    }
-
-    private void removeIcon() {
-
-        if (cursor.getQuantity() > 0) {
-            cursor.getChildren().get(0).removeFromParent();
-            if (queue.size() == CURSOR_ITEMS_INLINE * CURSOR_ITEMS_LINES) {
-                cursor.getChildren().get(CURSOR_ITEMS_INLINE * CURSOR_ITEMS_LINES - 1).removeFromParent();
-            }
-        }
     }
 
     private Picture getIcon(final ArtResource image) {
@@ -283,18 +210,6 @@ public class KeeperHandState extends AbstractAppState {
         picture.setHeight(CURSOR_ITEM_SIZE);
 
         return picture;
-    }
-
-    private void moveIcons() {
-        for (int i = 0; i < cursor.getQuantity(); i++) {
-            Spatial child = cursor.getChild(i);
-            int y = i / CURSOR_ITEMS_INLINE;
-            if (y == CURSOR_ITEMS_LINES) {
-                y = CURSOR_ITEMS_LINES - 1;
-            }
-            int x = i - y * CURSOR_ITEMS_INLINE;
-            child.setLocalTranslation(CURSOR_ITEM_SIZE * x, -CURSOR_ITEM_SIZE * y, 0);
-        }
     }
 
     private void updateHand() {
