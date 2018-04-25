@@ -20,8 +20,10 @@ import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
@@ -39,16 +41,16 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
         if (!executed) {
-            return super.isValid();
+            return super.isValid(creature);
         }
         return false;
     }
 
     @Override
     public Vector2f getTarget(CreatureControl creature) {
-        return new Vector2f(getTaskLocation().x + 0.5f, getTaskLocation().y + 0.5f);
+        return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
     @Override
@@ -66,8 +68,8 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
 
         // Create a lair
         RoomObjectControl control = getRoomObjectControl();
-        if (control.addItem(1, getTaskLocation(), worldState.getThingLoader(), creature) == 0) {
-            creature.setCreatureLair(control.getItem(getTaskLocation()));
+        if ((int) control.addItem(1, getTaskLocation(), worldState.getThingLoader(), creature) == 0) {
+            creature.setCreatureLair((ObjectControl) control.getItems(getTaskLocation()).iterator().next());
         }
 
         // This is a one timer

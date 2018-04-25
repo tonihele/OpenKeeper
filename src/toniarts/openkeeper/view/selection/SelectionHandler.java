@@ -10,8 +10,9 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial.CullHint;
 import com.jme3.scene.debug.WireBox;
+import java.awt.Point;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.view.PlayerInteractionState;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -22,11 +23,11 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public abstract class SelectionHandler {
 
-    public enum SelectionColorIndicator {
+    public enum ColorIndicator {
 
         BLUE(ColorRGBA.Blue.mult(5)), RED(ColorRGBA.Red.mult(5));
 
-        private SelectionColorIndicator(ColorRGBA color) {
+        private ColorIndicator(ColorRGBA color) {
             this.color = color;
         }
 
@@ -35,56 +36,79 @@ public abstract class SelectionHandler {
         }
         private final ColorRGBA color;
     }
-    private Main app;
-    private final PlayerInteractionState state;
-    private final float appScaled = MapLoader.TILE_WIDTH;
-    private SelectionColorIndicator selectionColor = SelectionColorIndicator.BLUE;
+
+    private final Main app;
+    private ColorIndicator selectionColor = ColorIndicator.BLUE;
 
     /* Visuals for Selection */
     private Geometry wireBoxGeo;
     private WireBox wireBox;
     private Material matWireBox;
     /* The selected Area */
-    protected SelectionArea selectionArea;
-    protected boolean hasSelectedArea = false;
+    private final SelectionArea selectionArea;
+    private boolean active = false;
+    private final Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
+    private final Vector3f cameraPosition = new Vector3f(Vector3f.NAN);
+    private Point pointedTileIndex = new Point(); // Could be just point...
+    private Vector2f pointedTilePosition = new Vector2f(Vector2f.ZERO); // Could be just point...
+    private final Vector2f pointedPosition = new Vector2f(Vector2f.ZERO);
 
-    public SelectionHandler(Main app, PlayerInteractionState state) {
+    public SelectionHandler(Main app) {
         this.app = app;
-        this.state = state;
-        this.selectionArea = new SelectionArea(appScaled);
+        this.selectionArea = new SelectionArea(MapLoader.TILE_WIDTH);
 
         setupVisualsForSelection();
     }
 
-    /**
-     * Returns the mouse position as a Vector2f with rounded values (int)
-     *
-     * @return The position of the mouse
-     */
-    public Vector2f getRoundedMousePos() {
+    public boolean update(Vector2f mousePosition) {
         Camera cam = app.getCamera();
         Vector3f pos = cam.getLocation();
-        Vector3f tmp = cam.getWorldCoordinates(state.mousePosition, 0f).clone();
-        Vector3f dir = cam.getWorldCoordinates(state.mousePosition, 1f).subtractLocal(tmp).normalizeLocal();
-        dir.multLocal((MapLoader.TILE_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
 
-        Vector2f ret = new Vector2f(Math.round(dir.getX() + appScaled / 2), Math.round(dir.getZ() + appScaled / 2));
-        ret.multLocal(appScaled);
+        if (cameraPosition.equals(pos) && this.mousePosition.equals(mousePosition)) {
+            return false;
+        }
 
-        return ret;
-    }
+        cameraPosition.set(pos);
+        this.mousePosition.set(mousePosition);
 
-    public void setNoSelectedArea() {
-        hasSelectedArea = false;
+        Vector3f tmp = cam.getWorldCoordinates(this.mousePosition, 0f).clone();
+        Vector3f dir = cam.getWorldCoordinates(this.mousePosition, 1f).subtractLocal(tmp).normalizeLocal();
+        dir.multLocal((MapLoader.TOP_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
+        
+        pointedPosition.set(dir.getX(), dir.getZ());
+        pointedTileIndex = WorldUtils.vectorToPoint(pointedPosition);
+        pointedTilePosition = WorldUtils.pointToVector2f(pointedTileIndex);
+        
+        setPos(pointedTilePosition);
+
+        return true;
     }
 
     /**
-     * Should the selection be visible
+     * Get the actual pointed location
      *
-     * @return is visible
+     * @return the actual pointed location in 2D space
      */
-    protected boolean isVisible() {
-        return true;
+    public Vector2f getActualPointedPosition() {
+        return pointedPosition;
+    }
+
+    /**
+     * Show coordinate of tile pointed by mouse
+     *
+     * @return 2D rounded mouse position in tile plane
+     */
+    public Point getPointedTileIndex() {
+        return pointedTileIndex;
+    }
+    
+    /**
+     * Show coordinate of tile pointed by mouse
+     *
+     * @return 2D rounded mouse position in tile plane
+     */
+    public Vector2f getPointedTilePosition() {
+        return pointedTilePosition;
     }
 
     /**
@@ -92,7 +116,7 @@ public abstract class SelectionHandler {
      *
      * @return the selection indicator color
      */
-    protected SelectionColorIndicator getSelectionColorIndicator() {
+    protected ColorIndicator getColorIndicator() {
         return selectionColor;
     }
 
@@ -100,28 +124,58 @@ public abstract class SelectionHandler {
         return selectionArea;
     }
 
-    protected boolean isOnView() {
-        return true;
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+        if (!active) {
+            setPos(selectionArea.getRealEnd());
+        }
+    }
+
+    /**
+     * @param position the start or end to set
+     */
+    public void setPos(Vector2f position) {
+        boolean changed = false;
+
+        if (!active && (position != selectionArea.getRealStart())) {
+            selectionArea.setStart(position);
+            changed = true;
+        }
+
+        if (position != selectionArea.getRealEnd()) {
+            selectionArea.setEnd(position);
+            changed = true;
+        }
+
+        if (changed) {
+            updateSelectionBox();
+        }
     }
 
     public void updateSelectionBox() {
-        if (isOnView()) {
+        if (isVisible()) {
             float dx = selectionArea.getDeltaX();
             float dy = selectionArea.getDeltaY();
+            float delta = 0.01f;
 
             Vector2f position = selectionArea.getCenter();
-            wireBoxGeo.setLocalTranslation(position.x - appScaled / 2, appScaled / 2, position.y - appScaled / 2);
+            wireBoxGeo.setLocalTranslation(position.x, MapLoader.FLOOR_HEIGHT, position.y);
 
-            wireBox.updatePositions(appScaled / 2 * dx + 0.01f, appScaled / 2 + 0.01f, appScaled / 2 * dy + 0.01f);
+            wireBox.updatePositions(MapLoader.TILE_WIDTH / 2 * dx + delta,
+                    MapLoader.FLOOR_HEIGHT + delta,
+                    MapLoader.TILE_WIDTH / 2 * dy + delta);
 
             // Selection color indicator
-            SelectionColorIndicator newSelectionColor = getSelectionColorIndicator();
+            ColorIndicator newSelectionColor = getColorIndicator();
             if (!newSelectionColor.equals(selectionColor)) {
                 selectionColor = newSelectionColor;
                 matWireBox.setColor("Color", selectionColor.getColor());
             }
-        }
-        if (isVisible()) {
+
             this.wireBoxGeo.setCullHint(CullHint.Never);
         } else {
             this.wireBoxGeo.setCullHint(CullHint.Always);
@@ -132,10 +186,11 @@ public abstract class SelectionHandler {
         matWireBox = new Material(this.app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
         matWireBox.getAdditionalRenderState().setFaceCullMode(FaceCullMode.Off);
         matWireBox.setColor("Color", selectionColor.getColor());
+        matWireBox.getAdditionalRenderState().setLineWidth(6);
 
-        this.wireBox = new WireBox(appScaled, appScaled, appScaled);
+        this.wireBox = new WireBox(MapLoader.TILE_WIDTH, MapLoader.TILE_WIDTH, MapLoader.TILE_WIDTH);
         this.wireBox.setDynamic();
-        this.wireBox.setLineWidth(3);
+
         this.wireBoxGeo = new Geometry("wireBox", wireBox);
         this.wireBoxGeo.setMaterial(matWireBox);
         this.wireBoxGeo.setCullHint(CullHint.Never);
@@ -151,5 +206,10 @@ public abstract class SelectionHandler {
         this.app.getRootNode().detachChild(this.wireBoxGeo);
     }
 
-    public abstract void userSubmit(SelectionArea area);
+    /**
+     * Should the selection be visible
+     *
+     * @return is visible
+     */
+    abstract public boolean isVisible();
 }

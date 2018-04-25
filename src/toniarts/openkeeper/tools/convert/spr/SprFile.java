@@ -52,7 +52,7 @@ public class SprFile {
         try (RandomAccessFile data = new RandomAccessFile(sprFile, "r")) {
 
             header = new SprHeader();
-            header.magic = ConversionUtils.bytesToString(data, 4);
+            header.magic = ConversionUtils.readString(data, 4);
 
             if (!header.magic.equals(PSFB)) {
                 logger.log(Level.SEVERE, "This is not sprite file");

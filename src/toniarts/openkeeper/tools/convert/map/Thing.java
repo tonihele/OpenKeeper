@@ -19,6 +19,8 @@ package toniarts.openkeeper.tools.convert.map;
 import java.util.EnumSet;
 import java.util.List;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.game.data.IIndexable;
+import toniarts.openkeeper.game.data.ITriggerable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.map.Thing.HeroParty.Objective;
@@ -41,7 +43,7 @@ public abstract class Thing {
 //        uint8_t x17;
 //        char name[32]; /* 18 */
 //        };
-    public static class ActionPoint extends Thing implements Comparable<ActionPoint> {
+    public static class ActionPoint extends Thing implements Comparable<ActionPoint>, ITriggerable, IIndexable {
 
         /**
          * ActionPoint flags
@@ -125,6 +127,7 @@ public abstract class Thing {
             this.flags = flags;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }
@@ -133,6 +136,7 @@ public abstract class Thing {
             this.triggerId = triggerId;
         }
 
+        @Override
         public short getId() {
             return id;
         }
@@ -159,7 +163,9 @@ public abstract class Thing {
 
         @Override
         public String toString() {
-            return "[ID " + id + "] Action Point " + id + " [" + (startX + 1) + "," + (startY + 1) + "] - [" + (endX + 1) + "," + (endY + 1) + "]";
+            return "[ID " + id + "] Action Point " + id
+                    + " [" + (startX + 1) + "," + (startY + 1)
+                    + "] - [" + (endX + 1) + "," + (endY + 1) + "]";
         }
 
         @Override
@@ -285,24 +291,12 @@ public abstract class Thing {
         }
     }
 
-    //    struct Thing03Block {
-//        int32_t pos[3];
-//        uint16_t x0c;
-//        uint8_t x0e; /* level */
-//        uint8_t x0f; /* likely flags */
-//        int32_t x10;
-//        int32_t x14;
-//        uint16_t x18;
-//        uint8_t id; /* 1a */
-//        uint8_t x1b; /* player id */
-//        };
-    public static class KeeperCreature extends Creature {
+    public static class KeeperCreature extends Creature implements ITriggerable {
 
         private short level;
         private EnumSet<Creature.CreatureFlag> flags; // Short, likely flags
         private int initialHealth; // Percent
         private int objectiveTargetActionPointId;
-        private int x14;
         private int triggerId;
         private short playerId; // player id
 
@@ -338,14 +332,7 @@ public abstract class Thing {
             this.objectiveTargetActionPointId = objectiveTargetActionPointId;
         }
 
-        public int getX14() {
-            return x14;
-        }
-
-        protected void setX14(int x14) {
-            this.x14 = x14;
-        }
-
+        @Override
         public int getTriggerId() {
             return triggerId;
         }
@@ -502,27 +489,7 @@ public abstract class Thing {
             return roomType + " [" + (posX + 1) + "," + (posY + 1) + "]";
         }
     }
-//    struct Thing12Block {
-//        Position3D x00;
-//        Position3D x0c;
-//        Position3D x18;
-//        int32_t x24;
-//        int32_t x28;
-//        int32_t x2c;
-//        int32_t x30;
-//        int32_t x34;
-//        int32_t x38;
-//        int32_t x3c;
-//        int32_t x40;
-//        int32_t x44;
-//        int32_t x48; /* flags */
-//        uint16_t x4c;
-//        uint16_t x4e;
-//        uint16_t x50;
-//        uint8_t x52;
-//        };
 
-    // FIXME: these were camera positions, but found in variables???
     // Contains in GlobalVariables.kwd only
     public static class Camera extends Thing {
 
@@ -531,14 +498,14 @@ public abstract class Thing {
 
         public enum CameraFlag implements IFlagEnum {
 
-            DISABLE_CHANGE(0x80), // Never used. camera not enter and leave possession.
-            DISABLE_MOVE(0x40),
-            UNKNOWN_20(0x20),
-            UNKNOWN_10(0x10),
+            DISABLE_YAW(0x01), // fixed angleXY ?
+            DISABLE_ROLL(0x02), // fixed angleYZ ?
+            DISABLE_PITCH(0x04), // fixed angleXZ ?
             DISABLE_ZOOM(0x08),
-            DISABLE_PITCH(0x04),
-            DISABLE_ROLL(0x02),
-            DISABLE_YAW(0x01);
+            UNKNOWN_10(0x10), // fixed ViewDistance, Lens
+            UNKNOWN_20(0x20), // fixed ViewDistance, Lens
+            DISABLE_MOVE(0x40), // fixed Position
+            DISABLE_CHANGE(0x80); // Never used. camera not enter and leave possession.
 
             private CameraFlag(long flagValue) {
                 this.flagValue = flagValue;
@@ -552,18 +519,18 @@ public abstract class Thing {
             private final long flagValue;
         };
 
-        private Vector3f x00;
-        private Vector3f x0c;
-        private Vector3f x18;
-        private float fogDefault; // Volume fog. Used in Possession.
-        private float fogMin;
-        private float fogMax;
-        private float heightDefault; // in game zoom height
-        private float heightMin;
-        private float heightMax;
-        private float fovDefault; // field of view
-        private float fovMin;
-        private float fovMax;
+        private Vector3f position;
+        private Vector3f positionMinClipExtent;
+        private Vector3f positionMaxClipExtent;
+        private float viewDistanceValue; // Volume fog. Used in Possession.
+        private float viewDistanceMin;
+        private float viewDistanceMax;
+        private float zoomValue; // in game zoom height
+        private float zoomValueMin;
+        private float zoomValueMax;
+        private float lensValue; // field of view
+        private float lensValueMin;
+        private float lensValueMax;
         private EnumSet<CameraFlag> flags;
         private int angleYaw; // always 0
         private int angleRoll; // rotate camera around direction vector.
@@ -575,100 +542,100 @@ public abstract class Thing {
          */
         private short id;
 
-        public Vector3f getX00() {
-            return x00;
+        public Vector3f getPosition() {
+            return position;
         }
 
-        protected void setX00(Vector3f x00) {
-            this.x00 = x00;
+        protected void setPosition(float x, float y, float z) {
+            this.position = new Vector3f(x, y, z);
         }
 
-        public Vector3f getX0c() {
-            return x0c;
+        public Vector3f getPositionMinClipExtent() {
+            return positionMinClipExtent;
         }
 
-        protected void setX0c(Vector3f x0c) {
-            this.x0c = x0c;
+        protected void setPositionMinClipExtent(float x, float y, float z) {
+            this.positionMinClipExtent = new Vector3f(x, y, z);
         }
 
-        public Vector3f getX18() {
-            return x18;
+        public Vector3f getPositionMaxClipExtent() {
+            return positionMaxClipExtent;
         }
 
-        protected void setX18(Vector3f x18) {
-            this.x18 = x18;
+        protected void setPositionMaxClipExtent(float x, float y, float z) {
+            this.positionMaxClipExtent = new Vector3f(x, y, z);
         }
 
-        public float getFog() {
-            return fogDefault;
+        public float getViewDistanceValue() {
+            return viewDistanceValue;
         }
 
-        protected void setFog(float fog) {
-            this.fogDefault = fog;
+        protected void setViewDistanceValue(float fog) {
+            this.viewDistanceValue = fog;
         }
 
-        public float getFogMin() {
-            return fogMin;
+        public float getViewDistanceMin() {
+            return viewDistanceMin;
         }
 
-        protected void setFogMin(float fog) {
-            this.fogMin = fog;
+        protected void setViewDistanceMin(float distance) {
+            this.viewDistanceMin = distance;
         }
 
-        public float getFogMax() {
-            return fogMax;
+        public float getViewDistanceMax() {
+            return viewDistanceMax;
         }
 
-        protected void setFogMax(float fog) {
-            this.fogMax = fog;
+        protected void setViewDistanceMax(float distance) {
+            this.viewDistanceMax = distance;
         }
 
-        public float getHeight() {
-            return heightDefault;
+        public float getZoomValue() {
+            return zoomValue;
         }
 
-        protected void setHeight(float height) {
-            this.heightDefault = height;
+        protected void setZoomValue(float zoom) {
+            this.zoomValue = zoom;
         }
 
-        public float getHeightMin() {
-            return heightMin;
+        public float getZoomValueMin() {
+            return zoomValueMin;
         }
 
-        protected void setHeightMin(float height) {
-            this.heightMin = height;
+        protected void setZoomValueMin(float zoom) {
+            this.zoomValueMin = zoom;
         }
 
-        public float getHeightMax() {
-            return heightMax;
+        public float getZoomValueMax() {
+            return zoomValueMax;
         }
 
-        protected void setHeightMax(float height) {
-            this.heightMax = height;
+        protected void setZoomValueMax(float zoom) {
+            this.zoomValueMax = zoom;
         }
 
-        public float getFov() {
-            return fovDefault;
+        public float getLensValue() {
+            return lensValue;
         }
 
-        protected void setFov(float fov) {
-            this.fovDefault = fov;
+        protected void setLensValue(float lens) {
+            this.lensValue = lens;
         }
 
-        public float getFovMin() {
-            return fovMin;
+        public float getLensValueMin() {
+            return lensValueMin;
         }
 
-        protected void setFovMin(float fov) {
-            this.fovMin = fov;
+        protected void setLensValueMin(float lens) {
+            this.lensValueMin = lens;
         }
 
-        public float getFovMax() {
-            return fovMax;
+        public float getLensValueMax() {
+            return lensValueMax;
         }
 
-        protected void setFovMax(float fov) {
-            this.fovMax = fov;
+        protected void setLensValueMax(float lens) {
+            this.lensValueMax = lens;
         }
 
         public EnumSet<CameraFlag> getFlags() {
@@ -713,10 +680,19 @@ public abstract class Thing {
 
         @Override
         public String toString() {
-            return "Camera { " + "x00=" + x00 + ", x0c=" + x0c + ", x18=" + x18
-                    + ", x24=" + fogDefault + ", x28=" + fogMin + ", x2c=" + fogMax
-                    + ", height=" + heightDefault + ", heightMin=" + heightMin + ", heightMax=" + heightMax
-                    + ", fov=" + fovDefault + ", fovMin=" + fovMin + ", fovMax=" + fovMax
+            return "Camera { "
+                    + "position=" + position
+                    + ", positionMinClipExtent=" + positionMinClipExtent
+                    + ", positionMaxClipExtent=" + positionMaxClipExtent
+                    + ", viewDistanceValue=" + viewDistanceValue
+                    + ", viewDistanceMin=" + viewDistanceMin
+                    + ", viewDistanceMax=" + viewDistanceMax
+                    + ", zoomValue=" + zoomValue
+                    + ", zoomValueMin=" + zoomValueMin
+                    + ", zoomValueMax=" + zoomValueMax
+                    + ", lensValue=" + lensValue
+                    + ", lensValueMin=" + lensValueMin
+                    + ", lensValueMax=" + lensValueMax
                     + ", flags=" + flags
                     + ", angleYaw=" + angleYaw + ", angleRoll=" + angleRoll + ", anglePitch=" + anglePitch
                     + ", id=" + id + " }";
@@ -731,8 +707,15 @@ public abstract class Thing {
 //    int32_t x27;
 //    HeroPartyData x2b[16];
 //    };
-    public static class HeroParty extends Thing implements Comparable<HeroParty> {
+    public static class HeroParty extends Thing implements Comparable<HeroParty>, ITriggerable, IIndexable {
 
+        /**
+         * This is really a subset of
+         * {@link toniarts.openkeeper.tools.convert.map.Creature.JobType}, only
+         * includes the job types a hero party can do. FIXME: maybe we should
+         * unify these, just add a boolean whether it is available to parties
+         * only
+         */
         public enum Objective implements IValueEnum {
 
             NONE(0),
@@ -772,6 +755,7 @@ public abstract class Thing {
             this.name = name;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }
@@ -780,6 +764,7 @@ public abstract class Thing {
             this.triggerId = triggerId;
         }
 
+        @Override
         public short getId() {
             return id;
         }
@@ -864,7 +849,7 @@ public abstract class Thing {
         /**
          * Represents the party members
          */
-        public class HeroPartyData {
+        public class HeroPartyData implements ITriggerable {
 
             private int x00;
             private int x04;
@@ -946,6 +931,7 @@ public abstract class Thing {
                 this.initialHealth = initialHealth;
             }
 
+            @Override
             public int getTriggerId() {
                 return triggerId;
             }
@@ -1123,7 +1109,7 @@ public abstract class Thing {
         }
     }
 
-    public static class NeutralCreature extends Creature {
+    public static class NeutralCreature extends Creature implements ITriggerable {
 
         private short level; // level
         private EnumSet<CreatureFlag> flags; // Short, likely flags
@@ -1155,6 +1141,7 @@ public abstract class Thing {
             this.initialHealth = initialHealth;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }
@@ -1172,7 +1159,7 @@ public abstract class Thing {
         }
     }
 
-    public static class Door extends Thing {
+    public static class Door extends Thing implements ITriggerable {
 
         public enum DoorFlag implements IValueEnum {
 
@@ -1223,6 +1210,7 @@ public abstract class Thing {
             this.unknown1 = unknown1;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }
@@ -1264,7 +1252,7 @@ public abstract class Thing {
         }
     }
 
-    public static class Object extends Thing {
+    public static class Object extends Thing implements ITriggerable {
 
         private int posX; // 0-based coordinate
         private int posY; // 0-based coordinate
@@ -1315,6 +1303,7 @@ public abstract class Thing {
             this.moneyAmount = moneyAmount;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }
@@ -1407,7 +1396,7 @@ public abstract class Thing {
         }
     }
 
-    public static class GoodCreature extends Creature {
+    public static class GoodCreature extends Creature implements ITriggerable {
 
         private short level; // level
         private EnumSet<CreatureFlag> flags; // Short, likely flags
@@ -1451,6 +1440,7 @@ public abstract class Thing {
             this.initialHealth = initialHealth;
         }
 
+        @Override
         public int getTriggerId() {
             return triggerId;
         }

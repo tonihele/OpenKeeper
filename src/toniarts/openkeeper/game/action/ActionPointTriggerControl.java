@@ -19,43 +19,39 @@ package toniarts.openkeeper.game.action;
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
-
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  *
  * @author ArchDemon
  */
-
-
 public class ActionPointTriggerControl extends TriggerControl {
 
     private static final Logger logger = Logger.getLogger(ActionPointTriggerControl.class.getName());
+
+    private ActionPoint ap;
 
     public ActionPointTriggerControl() { // empty serialization constructor
         super();
     }
 
-    public ActionPointTriggerControl(final AppStateManager stateManager, int triggerId) {
+    public ActionPointTriggerControl(final AppStateManager stateManager, int triggerId, ActionPoint ap) {
         super(stateManager, triggerId);
+        this.ap = ap;
     }
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = super.isActive(trigger);
-        if (checked) {
-            return result;
-        }
+        boolean result = false;
 
         int target = 0;
         int value = 0;
-        ActionPoint ap = (ActionPoint) parent;
 
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
@@ -67,6 +63,16 @@ public class ActionPointTriggerControl extends TriggerControl {
                 switch (type) {
                     case 0:
                     case 3: // Creature
+                        MapData map = stateManager.getState(WorldState.class).getMapData();
+                        for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
+                            for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
+                                for (CreatureControl creature : map.getTile(x, y).getCreatures()) {
+                                    if ((playerId == 0 || creature.getOwnerId() == playerId) && (targetId == 0 || creature.getCreature().getCreatureId() == targetId)) {
+                                        target++;
+                                    }
+                                }
+                            }
+                        }
                         break;
                     case 6: // Object
                         break;
@@ -169,8 +175,7 @@ public class ActionPointTriggerControl extends TriggerControl {
                 return true;
 
             default:
-                logger.warning("Target Type not supported");
-                return false;
+                return super.isActive(trigger);
         }
 
         TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();

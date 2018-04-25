@@ -20,6 +20,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.game.data.ISoundable;
 
 /**
  * Container class for the Trap
@@ -30,27 +31,29 @@ import javax.vecmath.Vector3f;
  *
  * Thank you https://github.com/werkt
  */
-public class Trap implements Comparable<Trap> {
+public class Trap implements Comparable<Trap>, ISoundable {
 
     /**
      * Trap flags
      */
     public enum TrapFlag implements IFlagEnum {
 
+        DIE_WHEN_TRIGGERED(0x00001),
         REVEAL_WHEN_FIRED(0x00002),
-        UNKNOWN1(0x00008),
+        UNKNOWN1(0x00008), // always exist
         DISARMABLE(0x00010),
         INVISIBLE(0x00020),
         TRACK_NEAREST_TARGET(0x00080),
         REQUIRE_MANA(0x00100),
         LOOP_FIRE_ANIMATION(0x00200),
-        UNKNOWN2(0x00400),
+        UNKNOWN2(0x00400), // always exist
         GUARD_POST(0x00800),
         OBSTACLE(0x01000),
         DOOR_TRAP(0x02000),
         IS_GOOD(0x08000),
         FIRST_PERSON_OBSTACLE(0x10000),
         SOLID_OBSTACLE(0x20000);
+
         private final long flagValue;
 
         private TrapFlag(long flagValue) {
@@ -80,13 +83,11 @@ public class Trap implements Comparable<Trap> {
         }
         private final int id;
     }
-//  char name[32];
-//  ArtResource ref[5];
-//  uint8_t data[127];
+
     private String name;
     private ArtResource meshResource;
     private ArtResource guiIcon;
-    private ArtResource editorIcon; // ??
+    private ArtResource editorIcon; // Data\editor\Graphics\TrapIcons.bmp
     private ArtResource flowerIcon;
     private ArtResource fireResource;
     private float height;
@@ -98,7 +99,7 @@ public class Trap implements Comparable<Trap> {
     private int triggerData; // 2 bytes maybe enough, but 4 bytes is safe as well
     private int shotData1; // 2 bytes maybe enough, but 4 bytes is safe as well
     private int shotData2; // 2 bytes maybe enough, but 4 bytes is safe as well
-    private short unknown3[]; // 2
+    private int researchTime; // 2
     private int threat; // Short
     private EnumSet<TrapFlag> flags; // 4-bytes
     private int health; // Short
@@ -111,10 +112,10 @@ public class Trap implements Comparable<Trap> {
     private int strengthStringId;
     private int weaknessStringId;
     private int manaUsage; // Short
-    private short unknown4[]; // 2
+    private short unknown4[]; // 246,255; 0,0
     private int tooltipStringId;
     private int nameStringId;
-    private short unknown5;
+    private short shotsWhenArmed;
     private TriggerType triggerType;
     private short trapId;
     private short shotTypeId;
@@ -123,8 +124,7 @@ public class Trap implements Comparable<Trap> {
     private Material material;
     private short orderInEditor; // Byte
     private Vector3f shotOffset; // 4 bytes fixed point, x - y - z
-    private float shotDelay; // Short
-    private int unknown2; // Short
+    private float shotDelay; // int
     private int healthGain; // Short
 
     public String getName() {
@@ -247,12 +247,12 @@ public class Trap implements Comparable<Trap> {
         this.shotData2 = shotData2;
     }
 
-    public short[] getUnknown3() {
-        return unknown3;
+    public int getResearchTime() {
+        return researchTime;
     }
 
-    protected void setUnknown3(short[] unknown3) {
-        this.unknown3 = unknown3;
+    protected void setResearchTime(int researchTime) {
+        this.researchTime = researchTime;
     }
 
     public int getThreat() {
@@ -351,6 +351,10 @@ public class Trap implements Comparable<Trap> {
         this.manaUsage = manaUsage;
     }
 
+    /**
+     *
+     * @return 246,255; 0,0
+     */
     public short[] getUnknown4() {
         return unknown4;
     }
@@ -375,12 +379,12 @@ public class Trap implements Comparable<Trap> {
         this.nameStringId = nameStringId;
     }
 
-    public short getUnknown5() {
-        return unknown5;
+    public short getShotsWhenArmed() {
+        return shotsWhenArmed;
     }
 
-    protected void setUnknown5(short unknown5) {
-        this.unknown5 = unknown5;
+    protected void setShotsWhenArmed(short shotsWhenArmed) {
+        this.shotsWhenArmed = shotsWhenArmed;
     }
 
     public TriggerType getTriggerType() {
@@ -415,6 +419,7 @@ public class Trap implements Comparable<Trap> {
         this.manufCrateObjectId = manufCrateObjectId;
     }
 
+    @Override
     public String getSoundCategory() {
         return soundCategory;
     }
@@ -443,8 +448,8 @@ public class Trap implements Comparable<Trap> {
         return shotOffset;
     }
 
-    protected void setShotOffset(Vector3f shotOffset) {
-        this.shotOffset = shotOffset;
+    protected void setShotOffset(float x, float y, float z) {
+        this.shotOffset = new Vector3f(x, y, z);
     }
 
     public float getShotDelay() {
@@ -453,14 +458,6 @@ public class Trap implements Comparable<Trap> {
 
     protected void setShotDelay(float shotDelay) {
         this.shotDelay = shotDelay;
-    }
-
-    public int getUnknown2() {
-        return unknown2;
-    }
-
-    protected void setUnknown2(int unknown2) {
-        this.unknown2 = unknown2;
     }
 
     public int getHealthGain() {

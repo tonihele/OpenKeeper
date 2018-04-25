@@ -26,14 +26,12 @@ import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.control.IContainer;
 import toniarts.openkeeper.view.PlayerCamera;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  *
  * @author ArchDemon
  */
-
-
 public class PlayerCameraControl extends Control {
     private PlayerCamera camera;
     private Vector3f from, to;
@@ -65,14 +63,13 @@ public class PlayerCameraControl extends Control {
 
         if (parent instanceof ActionPoint) {
             ActionPoint ap = (ActionPoint) parent;
-            to = MapLoader.getCameraPositionOnMapPoint((int) ((ap.getStart().x + ap.getEnd().x) / 2),
-                    (int) ((ap.getStart().y + ap.getEnd().y) / 2));
+            to = WorldUtils.ActionPointToVector3f(ap);
         }
     }
 
     @Override
     public void updateControl(float tpf) {
-        if (parent == null || camera == null || !enabled) {
+        if (parent == null || camera == null) {
             return;
         }
 

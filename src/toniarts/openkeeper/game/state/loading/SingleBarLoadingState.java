@@ -30,7 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Callable;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
@@ -46,7 +46,7 @@ public abstract class SingleBarLoadingState extends LoadingState {
             "LoadingScreen1280x1024.png", "LoadingScreen1600x1200.png", "LoadingScreen400x300.png",
             "LoadingScreen512x384.png", "LoadingScreen640x480.png", "LoadingScreen800x600.png");
     private static final List<Integer> AVAILABLE_WIDTHS = new ArrayList<>(AVAILABLE_SCREENS.size());
-    private static final HashMap<Integer, String> SCREENS = new HashMap<>(AVAILABLE_SCREENS.size());
+    private static final Map<Integer, String> SCREENS = new HashMap<>(AVAILABLE_SCREENS.size());
     private static final float BAR_X = 3.875f;
     private static final float BAR_Y = 92.830f;
     private static final float BAR_WIDTH = 25.375f;
@@ -74,7 +74,8 @@ public abstract class SingleBarLoadingState extends LoadingState {
 
         // Set the loading bar
         progressBar = new Geometry("ProgressBar", new Quad(0, imageHeight * (BAR_HEIGHT / 100)));
-        progressBar.setLocalTranslation((((Main) app).getUserSettings().getAppSettings().getWidth() - imageWidth) / 2 + imageWidth * (BAR_X / 100), imageHeight - ((((Main) app).getUserSettings().getAppSettings().getHeight() - imageHeight) / 2 + imageHeight * (BAR_Y / 100)) - imageHeight * (BAR_HEIGHT / 100), 0);
+        progressBar.setLocalTranslation((Main.getUserSettings().getAppSettings().getWidth() - imageWidth) / 2 + imageWidth * (BAR_X / 100),
+                imageHeight - ((Main.getUserSettings().getAppSettings().getHeight() - imageHeight) / 2 + imageHeight * (BAR_Y / 100)) - imageHeight * (BAR_HEIGHT / 100), 0);
         Material mat = new Material(assetManager,
                 "Common/MatDefs/Misc/Unshaded.j3md");
         mat.setColor("Color", new ColorRGBA(BAR_COLOR.getRed() / 255f, BAR_COLOR.getGreen() / 255f, BAR_COLOR.getBlue() / 255f, BAR_COLOR.getAlpha() / 255f));
@@ -86,7 +87,7 @@ public abstract class SingleBarLoadingState extends LoadingState {
     protected Texture getLoadingScreenTexture() {
 
         // Use binary search to get the nearest resolution index
-        int index = Collections.binarySearch(AVAILABLE_WIDTHS, app.getUserSettings().getAppSettings().getWidth());
+        int index = Collections.binarySearch(AVAILABLE_WIDTHS, Main.getUserSettings().getAppSettings().getWidth());
         if (index < 0) {
             index = Math.min(AVAILABLE_WIDTHS.size() - 1, ~index + 1);
         }
@@ -105,16 +106,13 @@ public abstract class SingleBarLoadingState extends LoadingState {
     public void setProgress(final float progress) {
 
         // Since this method is called from another thread, we enqueue the changes to the progressbar to the update loop thread
-        app.enqueue(new Callable() {
-            @Override
-            public Object call() throws Exception {
+        app.enqueue(() -> {
 
-                // Adjust the progress bar
-                Quad q = (Quad) progressBar.getMesh();
-                q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
+            // Adjust the progress bar
+            Quad q = (Quad) progressBar.getMesh();
+            q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
 
-                return null;
-            }
+            return null;
         });
 
     }

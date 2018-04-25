@@ -18,24 +18,26 @@ package toniarts.openkeeper.tools.convert.map;
 
 import java.awt.Color;
 import java.util.EnumSet;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
+import toniarts.openkeeper.world.effect.IEffect;
 
 /**
  * Container class for EffectElements.kwd
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EffectElement implements Comparable<EffectElement> {
+public class EffectElement implements Comparable<EffectElement>, IEffect {
 
     /**
      * Effect element flags
      */
     public enum EffectElementFlag implements IFlagEnum {
 
-        DIES_WHEN_HIT_SOLID(0x0001),
-        SHRINKS(0x0002),
-        EXPANDS(0x0004),
-        FADES(0x0008),
+        DIE_WHEN_HIT_SOLID(0x0001),
+        SHRINK(0x0002),
+        EXPAND(0x0004),
+        FADE(0x0008),
         DIRECTIONAL_FRICTION(0x0010),
         CAN_BE_DISTURBED(0x0020),
         ROTATE_TO_MOVEMENT_DIRECTION(0x0040),
@@ -107,6 +109,7 @@ public class EffectElement implements Comparable<EffectElement> {
     private short fadePercentage; // b3
     private int nextEffectId; // b4
 
+    @Override
     public String getName() {
         return name;
     }
@@ -115,6 +118,8 @@ public class EffectElement implements Comparable<EffectElement> {
         this.name = name;
     }
 
+    @Override
+    @Nullable
     public ArtResource getArtResource() {
         return artResource;
     }
@@ -123,6 +128,7 @@ public class EffectElement implements Comparable<EffectElement> {
         this.artResource = artResource;
     }
 
+    @Override
     public float getMass() {
         return mass;
     }
@@ -131,6 +137,7 @@ public class EffectElement implements Comparable<EffectElement> {
         this.mass = mass;
     }
 
+    @Override
     public float getAirFriction() {
         return airFriction;
     }
@@ -139,6 +146,7 @@ public class EffectElement implements Comparable<EffectElement> {
         this.airFriction = airFriction;
     }
 
+    @Override
     public float getElasticity() {
         return elasticity;
     }
@@ -147,6 +155,7 @@ public class EffectElement implements Comparable<EffectElement> {
         this.elasticity = elasticity;
     }
 
+    @Override
     public float getMinSpeedXy() {
         return minSpeedXy;
     }
@@ -155,6 +164,7 @@ public class EffectElement implements Comparable<EffectElement> {
         this.minSpeedXy = minSpeedXy;
     }
 
+    @Override
     public float getMaxSpeedXy() {
         return maxSpeedXy;
     }
@@ -163,6 +173,7 @@ public class EffectElement implements Comparable<EffectElement> {
         this.maxSpeedXy = maxSpeedXy;
     }
 
+    @Override
     public float getMinSpeedYz() {
         return minSpeedYz;
     }
@@ -171,6 +182,7 @@ public class EffectElement implements Comparable<EffectElement> {
         this.minSpeedYz = minSpeedYz;
     }
 
+    @Override
     public float getMaxSpeedYz() {
         return maxSpeedYz;
     }
@@ -179,6 +191,7 @@ public class EffectElement implements Comparable<EffectElement> {
         this.maxSpeedYz = maxSpeedYz;
     }
 
+    @Override
     public float getMinScale() {
         return minScale;
     }
@@ -187,6 +200,7 @@ public class EffectElement implements Comparable<EffectElement> {
         this.minScale = minScale;
     }
 
+    @Override
     public float getMaxScale() {
         return maxScale;
     }
@@ -219,6 +233,7 @@ public class EffectElement implements Comparable<EffectElement> {
         this.effectElementId = effectElementId;
     }
 
+    @Override
     public int getMinHp() {
         return minHp;
     }
@@ -227,6 +242,7 @@ public class EffectElement implements Comparable<EffectElement> {
         this.minHp = minHp;
     }
 
+    @Override
     public int getMaxHp() {
         return maxHp;
     }
@@ -333,9 +349,7 @@ public class EffectElement implements Comparable<EffectElement> {
             return false;
         }
         final EffectElement other = (EffectElement) obj;
-        if (this.effectElementId != other.effectElementId) {
-            return false;
-        }
-        return true;
+
+        return this.effectElementId == other.effectElementId;
     }
 }

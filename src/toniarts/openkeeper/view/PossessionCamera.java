@@ -45,7 +45,7 @@ public class PossessionCamera {
         // Moving is strafing over the map plane
         Vector3f vel = camera.getLeft().clone();
         Vector3f pos = camera.getLocation().clone();
-        if (!sideways) {       
+        if (!sideways) {
             vel.crossLocal(Vector3f.UNIT_Y);
         }
 
@@ -60,7 +60,7 @@ public class PossessionCamera {
 
         Matrix3f mat = new Matrix3f();
         if (sideways) {
-            mat.fromAngleNormalAxis(ROTATION_SPEED * value, Vector3f.UNIT_Y.clone());           
+            mat.fromAngleNormalAxis(ROTATION_SPEED * value, Vector3f.UNIT_Y.clone());
         } else {
             mat.fromAngleNormalAxis(ROTATION_SPEED * value, camera.getLeft().clone());
         }
@@ -72,7 +72,7 @@ public class PossessionCamera {
         mat.mult(up, up);
         mat.mult(left, left);
         mat.mult(dir, dir);
-        
+
         if (dir.y < -Y_ANGLE_MAX || dir.y > Y_ANGLE_MAX) {
             return;
         }
@@ -81,9 +81,9 @@ public class PossessionCamera {
         q.fromAxes(left, up, dir);
         q.normalizeLocal();
 
-        camera.setAxes(q);    
+        camera.setAxes(q);
     }
-    
+
     public float getSpeed() {
         return speed;
     }
@@ -99,6 +99,4 @@ public class PossessionCamera {
     public void setOscillate(float oscillate) {
         this.oscillate = oscillate;
     }
-    
-    
 }

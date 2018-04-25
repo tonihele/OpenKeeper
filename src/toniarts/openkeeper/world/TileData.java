@@ -16,12 +16,18 @@
  */
 package toniarts.openkeeper.world;
 
+import com.jme3.math.Vector2f;
+import com.jme3.scene.Node;
 import java.awt.Point;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Wrapper for a map tile
@@ -31,6 +37,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
 public final class TileData extends Tile {
 
     private boolean selected = false;
+    private boolean flashed = false;
     private short selectedByPlayerId = 0;
     private Integer randomTextureIndex;
     private Terrain terrain;
@@ -39,6 +46,9 @@ public final class TileData extends Tile {
     private final Point p;
     private final int index;
     private final KwdFile kwdFile;
+    private final List<CreatureControl> creatures = new ArrayList<>();
+    private Node sideNode;
+    private Node topNode;
     private final static ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
 
     protected TileData(KwdFile kwdFile, Tile tile, Terrain terrain, int x, int y, int index) {
@@ -71,6 +81,14 @@ public final class TileData extends Tile {
         selectedByPlayerId = playerId;
     }
 
+    public boolean isFlashed() {
+        return flashed;
+    }
+
+    public void setFlashed(boolean flashed) {
+        this.flashed = flashed;
+    }
+
     public short getSelectedByPlayerId() {
         return selectedByPlayerId;
     }
@@ -97,6 +115,8 @@ public final class TileData extends Tile {
             if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
                 setSelected(false, (short) 0);
             }
+            // FIXME realy need?
+            setFlashed(false);
         }
     }
 
@@ -116,8 +136,20 @@ public final class TileData extends Tile {
         return p.y;
     }
 
+    /**
+     * Get tile index in MapData 2D array as Point
+     * @return
+     */
     public Point getLocation() {
         return p;
+    }
+
+    /**
+     * Get real tile position in 3D World as Vector2f
+     * @return
+     */
+    public Vector2f getWorldLocation() {
+        return new Vector2f(p.x * MapLoader.TILE_WIDTH, p.y * MapLoader.TILE_WIDTH);
     }
 
     public int getIndex() {
@@ -146,9 +178,18 @@ public final class TileData extends Tile {
         return gold;
     }
 
+    /**
+     * Set tile health, only internal usage
+     *
+     * @param health the health points to set
+     */
+    protected void setHealth(int health) {
+        this.health = health;
+    }
+
     public String getTooltip() {
         return bundle.getString(Integer.toString(getTerrain().getTooltipStringId()))
-                .replaceAll("%37", Integer.toString(getHealthPercent()))
+                .replaceAll("%37%", Integer.toString(getHealthPercent()))
                 .replaceAll("%66", Integer.toString(terrain.getManaGain()))
                 .replaceAll("%67", Integer.toString(gold));
     }
@@ -164,8 +205,8 @@ public final class TileData extends Tile {
      * @return true if the tile is "dead"
      */
     public boolean applyDamage(int damage) {
-        health -= damage;
-        return (health <= 0);
+        health = Math.max(0, health - damage);
+        return (health == 0);
     }
 
     /**
@@ -175,7 +216,7 @@ public final class TileData extends Tile {
      * @return true if the tile is at max
      */
     public boolean applyHealing(int healing) {
-        health = Math.min(getTerrain().getMaxHealth(), health + healing);
+        health = (int) Math.min(getTerrain().getMaxHealth(), (long) health + healing);
         return (health == getTerrain().getMaxHealth());
     }
 
@@ -200,4 +241,46 @@ public final class TileData extends Tile {
         return (health == getTerrain().getMaxHealth());
     }
 
+    /**
+     * Clears the tile creature record
+     */
+    public void clearCreatures() {
+        creatures.clear();
+    }
+
+    /**
+     * Add a creature to the tile creature record
+     *
+     * @param creature the creature to add
+     */
+    public void addCreature(CreatureControl creature) {
+        creatures.add(creature);
+    }
+
+    /**
+     * Get list of creatures currently wondering at this tile
+     *
+     * @return creatures at this tile
+     */
+    public List<CreatureControl> getCreatures() {
+        return creatures;
+    }
+
+    @Nullable
+    public Node getSideNode() {
+        return sideNode;
+    }
+
+    public void setSideNode(Node node) {
+        this.sideNode = node;
+    }
+
+    @Nullable
+    public Node getTopNode() {
+        return topNode;
+    }
+
+    public void setTopNode(Node node) {
+        this.topNode = node;
+    }
 }

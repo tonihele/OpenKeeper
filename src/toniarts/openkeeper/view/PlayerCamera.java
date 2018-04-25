@@ -46,18 +46,18 @@ public class PlayerCamera {
     }
 
     /**
-     * Load the initial main menu camera position
+     * Load the initial camera position and direction
      */
-    private void initialize() {
+    public final void initialize() {
         // FIXME maybe another default angles
         Quaternion q = new Quaternion().fromAngles(FastMath.PI * (0.5f - presets.getAnglePitch() / 1024f),
                 FastMath.PI * (0.75f + presets.getAngleYaw() / 1024f),
                 FastMath.PI * (0 + presets.getAngleRoll() / 1024f));
 
         cam.setRotation(q);
-        cam.setLocation(new Vector3f(0, presets.getHeight(), 0));
+        cam.setLocation(new Vector3f(0, presets.getZoomValue(), 0));
         // FIXME fov maybe have another formula. Need correct?
-        cam.setFrustumPerspective(presets.getFov() * FastMath.RAD_TO_DEG / 4, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
+        cam.setFrustumPerspective(presets.getLensValue() * FastMath.RAD_TO_DEG / 4, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
     }
 
     protected void zoom(float value) {
@@ -71,10 +71,10 @@ public class PlayerCamera {
         vel.multLocal(value);
         pos.addLocal(vel);
 
-        if (pos.y < presets.getHeightMin()) {
+        if (pos.y < presets.getZoomValueMin()) {
             //pos.setY(presets.getHeightMin());
             return;
-        } else if (pos.y > presets.getHeightMax()) {
+        } else if (pos.y > presets.getZoomValueMax()) {
             //pos.setY(presets.getHeightMax());
             return;
         }
@@ -199,6 +199,10 @@ public class PlayerCamera {
 
     public float getHeight() {
         return cam.getLocation().y;
+    }
+
+    public void setHeight(float height) {
+        cam.getLocation().addLocal(0, height, 0);
     }
 
     public Vector2f getLimit() {

@@ -23,24 +23,24 @@ import java.util.HashMap;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.WorldState;
 
 /**
  *
  * @author ArchDemon
  */
-
-
 public class ActionPointState extends AbstractAppState {
 
     private AppStateManager stateManager;
     private Main app;
     private HashMap<Integer, ActionPoint> actionPoints = null;
+    private HashMap<Integer, ActionPointTriggerControl> triggers = null;
 
     public ActionPointState() {
     }
 
     public ActionPointState(boolean enabled) {
-        super.setEnabled(false);
+        super.setEnabled(enabled);
     }
 
     @Override
@@ -51,13 +51,15 @@ public class ActionPointState extends AbstractAppState {
         this.app = (Main) app;
 
         actionPoints = new HashMap<>();
+        triggers = new HashMap<>();
 
         for (Thing thing : this.stateManager.getState(GameState.class).getLevelData().getThings()) {
             if (thing instanceof Thing.ActionPoint) {
                 Thing.ActionPoint temp = (Thing.ActionPoint) thing;
                 ActionPoint ap = new ActionPoint(temp);
+                ap.setParent(this);
                 if (temp.getTriggerId() != 0) {
-                    ap.addControl(new ActionPointTriggerControl(this.stateManager, temp.getTriggerId()));
+                    triggers.put(ap.getId(), new ActionPointTriggerControl(this.stateManager, temp.getTriggerId(), ap));
                 }
                 actionPoints.put(ap.getId(), ap);
             }
@@ -70,11 +72,31 @@ public class ActionPointState extends AbstractAppState {
             return;
         }
 
-        for (ActionPoint actionPoint : actionPoints.values()) {
-            actionPoint.update(tpf);
+        for (ActionPointTriggerControl triggerControl : triggers.values()) {
+            triggerControl.update(tpf);
         }
 
         super.update(tpf);
+    }
+
+    /**
+     * FIXME: rather quirky design this is, due to action point controls are
+     * visual and FPS related
+     *
+     * @param tpf
+     */
+    public void updateControls(float tpf) {
+        if (!isEnabled() || !isInitialized()) {
+            return;
+        }
+        // FIXME java.util.ConcurrentModificationException
+        for (ActionPoint actionPoint : actionPoints.values()) {
+            actionPoint.update(tpf);
+        }
+    }
+
+    public WorldState getWorldState() {
+        return stateManager.getState(WorldState.class);
     }
 
     public ActionPoint getActionPoint(int id) {

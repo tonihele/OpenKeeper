@@ -2,7 +2,9 @@
 <nifty-styles xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
 
     <style id="nifty-drop-down#panel">
-        <attributes backgroundImage="Textures/0-H-Scroll_Bar_BG.png" imageMode="resize:94,1,94,4,94,1,94,22,94,1,94,4" childLayout="horizontal" padding="4px,5px,4px,5px" height="31px" focusable="true" visibleToMouse="true"/>
+        <attributes childLayout="horizontal" backgroundImage="Textures/0-H-Scroll_Bar_BG.png" 
+                    imageMode="resize:5,4,5,4,5,179,5,22,5,4,5,4" padding="4px,5px,4px,5px" 
+                    height="31px" focusable="true" visibleToMouse="true"/>
         <effect>
             <onHover name="border" color="#622f" post="true"/>
         </effect>

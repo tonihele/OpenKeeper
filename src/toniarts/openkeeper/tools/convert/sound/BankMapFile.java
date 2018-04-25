@@ -19,8 +19,6 @@ package toniarts.openkeeper.tools.convert.sound;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.ArrayList;
-import java.util.List;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
@@ -33,13 +31,18 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  */
 public class BankMapFile {
 
+    private final static int HEADER_ID[] = new int[] {
+        0xE9612C01, // dword_674048
+        0x11D231D0, // dword_67404C
+        0xA00009B4, // dword_674050
+        0x03F293C9 // dword_674054
+    };
     // Header
-    private final short unknown1[]; // 20
-    private final int unknown2;
+    private final int unknown1; // 0 or 1 // not used
+    private final long unknown2; // 0, 32769, 0xFFFFFFFF // not used
     //
     private final File file;
-    private final List<BankMapFileEntry> bankMapFileEntries;
-    private final List<String> soundArchiveEntries;
+    private final BankMapFileEntry[] entries;
 
     /**
      * Reads the *Bank.map file structure
@@ -51,45 +54,43 @@ public class BankMapFile {
 
         //Read the file
         try (RandomAccessFile rawMap = new RandomAccessFile(file, "r")) {
-
             //Header
-            unknown1 = new short[20];
-            for (int x = 0; x < unknown1.length; x++) {
-                unknown1[x] = (short) rawMap.readUnsignedByte();
+            int[] check = new int[] {
+                ConversionUtils.readInteger(rawMap),
+                ConversionUtils.readInteger(rawMap),
+                ConversionUtils.readInteger(rawMap),
+                ConversionUtils.readInteger(rawMap)
+            };
+            for (int i = 0; i < HEADER_ID.length; i++) {
+                if (check[i] != HEADER_ID[i]) {
+                    throw new RuntimeException(file.getName() + ": The file header is not valid");
+                }
             }
-            unknown2 = ConversionUtils.readUnsignedInteger(rawMap);
-            int entries = ConversionUtils.readUnsignedInteger(rawMap);
+
+            unknown1 = ConversionUtils.readUnsignedInteger(rawMap);
+            unknown2 = ConversionUtils.readUnsignedIntegerAsLong(rawMap);
+            int count = ConversionUtils.readUnsignedInteger(rawMap);
 
             //Read the entries
-            bankMapFileEntries = new ArrayList<>(entries);
-            for (int i = 0; i < entries; i++) {
+            entries = new BankMapFileEntry[count];
+            for (int i = 0; i < entries.length; i++) {
 
                 //Entries are 11 bytes of size
-                //    long unknown00;
-                //    long unknown04;
-                //    char unknown08[3];
                 BankMapFileEntry entry = new BankMapFileEntry();
                 entry.setUnknown1(ConversionUtils.readUnsignedIntegerAsLong(rawMap));
-                entry.setUnknown2(ConversionUtils.readUnsignedInteger(rawMap));
-                short[] unknown3 = new short[3];
-                for (int x = 0; x < unknown3.length; x++) {
-                    unknown3[x] = (short) rawMap.readUnsignedByte();
-                }
-                entry.setUnknown3(unknown3);
+                entry.setUnknown2(ConversionUtils.readInteger(rawMap));
+                entry.setUnknown3(ConversionUtils.readUnsignedShort(rawMap));
+                entry.setUnknown4((short) rawMap.readUnsignedByte());
 
-                bankMapFileEntries.add(entry);
+                entries[i] = entry;
             }
 
             // After the entries there are names (that point to the SDT archives it seems)
             // It seems the amount is the same as entries
-            soundArchiveEntries = new ArrayList<>(entries);
-            for (int i = 0; i < entries; i++) {
-
+            for (BankMapFileEntry entry : entries) {
                 // 4 bytes = length of the name (including the null terminator)
                 int length = ConversionUtils.readUnsignedInteger(rawMap);
-                byte[] bytes = new byte[length];
-                rawMap.read(bytes);
-                soundArchiveEntries.add(ConversionUtils.bytesToString(bytes).trim());
+                entry.setName(ConversionUtils.readString(rawMap, length).trim());
             }
 
         } catch (IOException e) {
@@ -97,6 +98,10 @@ public class BankMapFile {
             //Fug
             throw new RuntimeException("Failed to open the file " + file + "!", e);
         }
+    }
+
+    public BankMapFileEntry[] getEntries() {
+        return entries;
     }
 
     @Override

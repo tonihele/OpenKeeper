@@ -25,8 +25,9 @@ public class SelectionArea {
     /**
      * For single square use only
      *
-     * @param vector2f
      * @param appScaled
+     * @param start Start position
+     * @param end End position
      */
     public SelectionArea(float appScaled, Vector2f start, Vector2f end) {
         this.start = start;
@@ -46,7 +47,7 @@ public class SelectionArea {
      *
      * @return
      */
-    public Vector2f getActualStartingCoordinates() {
+    public Vector2f getRealStart() {
         return start;
     }
 
@@ -63,6 +64,15 @@ public class SelectionArea {
      */
     public Vector2f getEnd() {
         return new Vector2f(Math.max(start.x, end.x), Math.max(start.y, end.y));
+    }
+
+    /**
+     * Get the real ending coordinates, the click release
+     *
+     * @return
+     */
+    public Vector2f getRealEnd() {
+        return end;
     }
 
     /**
@@ -91,14 +101,14 @@ public class SelectionArea {
     }
 
     /**
-     * @return the delta_xaxis
+     * @return the delta x axis
      */
     public float getDeltaX() {
         return (Math.abs(end.x - start.x) + 1) / scale;
     }
 
     /**
-     * @return the delta_yaxis
+     * @return the delta y axis
      */
     public float getDeltaY() {
         return (Math.abs(end.y - start.y) + 1) / scale;

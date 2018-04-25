@@ -18,9 +18,9 @@ package toniarts.openkeeper.tools.modelviewer;
 
 import com.jme3.animation.AnimChannel;
 import com.jme3.animation.AnimControl;
-import com.jme3.animation.LoopMode;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.plugins.FileLocator;
+import com.jme3.audio.AudioNode;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
@@ -45,47 +45,65 @@ import com.jme3.shadow.DirectionalLightShadowRenderer;
 import com.jme3.shadow.EdgeFilteringMode;
 import com.jme3.util.TangentBinormalGenerator;
 import de.lessvoid.nifty.Nifty;
-import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.controls.DropDown;
-import de.lessvoid.nifty.controls.DropDownSelectionChangedEvent;
 import de.lessvoid.nifty.controls.ListBox;
-import de.lessvoid.nifty.controls.ListBoxSelectionChangedEvent;
-import de.lessvoid.nifty.screen.Screen;
-import de.lessvoid.nifty.screen.ScreenController;
-import de.lessvoid.nifty.spi.render.RenderFont;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
+import toniarts.openkeeper.audio.plugins.MP2Loader;
+import toniarts.openkeeper.game.data.ISoundable;
+import toniarts.openkeeper.game.sound.SoundGroup;
+import toniarts.openkeeper.game.sound.SoundCategory;
+import toniarts.openkeeper.game.sound.SoundFile;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.Effect;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.TerrainLoader;
+import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  * Simple model viewer
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ModelViewer extends SimpleApplication implements ScreenController {
+public class ModelViewer extends SimpleApplication {
 
     public enum Types {
 
-        MODELS("Models"), TERRAIN("Terrain"), /*OBJECTS("Objects"),*/ MAPS("Maps");
+        MODELS("Models"),
+        TERRAIN("Terrain"),
+        OBJECTS("Objects"),
+        MAPS("Maps"),
+        CREATURES("Creatures"),
+        ROOMS("Rooms"),
+        DOORS("Doors"),
+        TRAPS("Traps"),
+        SHOTS("Shots"),
+        EFFECTS("Effects");
+
         private final String name;
 
         private Types(String name) {
@@ -97,11 +115,12 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
             return name;
         }
     }
+    //private final static float SCALE = 2;
     private static String dkIIFolder;
     private final Vector3f lightDir = new Vector3f(-1, -1, .5f).normalizeLocal();
     private DirectionalLight dl;
-    private Nifty nifty;
-    private Screen screen;
+    private NiftyJmeDisplay niftyDisplay;
+    private ModelViewerScreenController screen;
     private File kmfModel = null;
     private boolean wireframe = false;
     private boolean rotate = true;
@@ -110,6 +129,7 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private List<String> maps;
     private KwdFile kwdFile;
     private Node floorGeom;
+    //private SoundsLoader soundLoader;
     /**
      * The node name for the model (that is attached to the root)
      */
@@ -119,6 +139,28 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
     private static final String KEY_MAPPING_TOGGLE_WIREFRAME = "toggle wireframe";
     private static final String KEY_MAPPING_TOGGLE_ROTATION = "toggle rotation";
     private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
+
+    private EffectManagerState effectManagerState;
+
+    private final ActionListener actionListener = new ActionListener() {
+        @Override
+        public void onAction(String name, boolean pressed, float tpf) {
+
+            // Toggle wireframe
+            if (KEY_MAPPING_TOGGLE_WIREFRAME.equals(name) && !pressed) {
+                wireframe = !wireframe;
+                toggleWireframe();
+            } // Toggle rotation
+            else if (KEY_MAPPING_TOGGLE_ROTATION.equals(name) && !pressed) {
+                rotate = !rotate;
+                toggleRotate();
+            } // Normals
+            else if (KEY_MAPPING_SHOW_NORMALS.equals(name) && !pressed) {
+                showNormals = !showNormals;
+                toggleShowNormals();
+            }
+        }
+    };
 
     public static void main(String[] args) {
 
@@ -144,6 +186,99 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
 
     public ModelViewer() {
         super();
+    }
+
+
+    @Override
+    public void simpleInitApp() {
+
+        // Distribution locator
+        assetManager.registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
+        assetManager.registerLoader(MP2Loader.class, "mp2");
+
+        //Effects manager
+        this.effectManagerState = new EffectManagerState(getKwdFile(), assetManager);
+        stateManager.attach(effectManagerState);
+        // init sound loader
+        //soundLoader = new SoundsLoader(assetManager);
+
+        Nifty nifty = getNifty();
+        screen = new ModelViewerScreenController(this);
+        nifty.registerScreenController(screen);
+
+        String xml = "Interface/ModelViewer/ModelViewer.xml";
+        try {
+            nifty.validateXml(xml);
+            nifty.addXml(xml);
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to validate GUI file!", ex);
+        }
+
+        screen.goToScreen(ModelViewerScreenController.ID_SCREEN);
+
+        cam.setLocation(new Vector3f(0, 10, 10));
+        cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
+        flyCam.setMoveSpeed(10);
+        flyCam.setDragToRotate(true);
+
+        // Mouse cursor
+        inputManager.setCursorVisible(true);
+        inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
+
+        // Wireframe
+        inputManager.addMapping(KEY_MAPPING_TOGGLE_WIREFRAME, new KeyTrigger(KeyInput.KEY_T));
+        inputManager.addListener(actionListener, KEY_MAPPING_TOGGLE_WIREFRAME);
+
+        // Rotation
+        inputManager.addMapping(KEY_MAPPING_TOGGLE_ROTATION, new KeyTrigger(KeyInput.KEY_R));
+        inputManager.addListener(actionListener, KEY_MAPPING_TOGGLE_ROTATION);
+
+        // Normals
+        inputManager.addMapping(KEY_MAPPING_SHOW_NORMALS, new KeyTrigger(KeyInput.KEY_N));
+        inputManager.addListener(actionListener, KEY_MAPPING_SHOW_NORMALS);
+
+        setupLighting();
+        setupFloor();
+        setupDebug();
+
+        // Open a KMF model if set
+        if (kmfModel != null) {
+            try {
+                KmfFile kmf = new KmfFile(kmfModel);
+                KmfModelLoader loader = new KmfModelLoader();
+                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf, false);
+                Node node = (Node) loader.load(asset);
+                setupModel(node, false);
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Failed to handle: " + kmfModel, e);
+            }
+        }
+    }
+
+    @Override
+    public void simpleUpdate(float tpf) {
+    }
+
+    @Override
+    public void simpleRender(RenderManager rm) {
+        //TODO: add render code
+    }
+
+    private NiftyJmeDisplay getNiftyDisplay() {
+        if (niftyDisplay == null) {
+            niftyDisplay = new NiftyJmeDisplay(assetManager,
+                inputManager,
+                audioRenderer,
+                guiViewPort);
+
+            guiViewPort.addProcessor(niftyDisplay);
+        }
+
+        return niftyDisplay;
+    }
+
+    protected Nifty getNifty() {
+        return getNiftyDisplay().getNifty();
     }
 
     private void setupLighting() {
@@ -173,38 +308,19 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         Material mat = assetManager.loadMaterial("Materials/ModelViewer/FloorMarble.j3m");
 
         floorGeom = new Node("floorGeom");
-        Quad q = new Quad(100, 100);
-        q.scaleTextureCoordinates(new Vector2f(10, 10));
+        Quad q = new Quad(20, 20);
+        q.scaleTextureCoordinates(new Vector2f(1, 1));
         Geometry g = new Geometry("geom", q);
         g.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_X));
         g.setShadowMode(RenderQueue.ShadowMode.Receive);
         floorGeom.attachChild(g);
 
         TangentBinormalGenerator.generate(floorGeom);
-        floorGeom.setLocalTranslation(-50, 22, 60);
+        floorGeom.setLocalTranslation(-10, -1f, 10);
 
         floorGeom.setMaterial(mat);
         rootNode.attachChild(floorGeom);
     }
-    private ActionListener actionListener = new ActionListener() {
-        @Override
-        public void onAction(String name, boolean pressed, float tpf) {
-
-            // Toggle wireframe
-            if (KEY_MAPPING_TOGGLE_WIREFRAME.equals(name) && !pressed) {
-                wireframe = !wireframe;
-                toggleWireframe();
-            } // Toggle rotation
-            else if (KEY_MAPPING_TOGGLE_ROTATION.equals(name) && !pressed) {
-                rotate = !rotate;
-                toggleRotate();
-            } // Normals
-            else if (KEY_MAPPING_SHOW_NORMALS.equals(name) && !pressed) {
-                showNormals = !showNormals;
-                toggleShowNormals();
-            }
-        }
-    };
 
     private void toggleWireframe() {
         Spatial spat = rootNode.getChild(ModelViewer.NODE_NAME);
@@ -265,185 +381,133 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         }
     }
 
-    @Override
-    public void simpleInitApp() {
+    public void onSelectionChanged(Object selection) {
+        effectManagerState.setEnabled(false);
 
-        // Distribution locator
-        getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
+        switch (screen.getTypeControl().getSelection()) {
+            case MODELS: {
+                // Load the selected model
+                Node spat = (Node) AssetUtils.loadAsset(assetManager, (String) selection);
 
-        // The GUI
-        NiftyJmeDisplay niftyDisplay = new NiftyJmeDisplay(assetManager,
-                inputManager,
-                audioRenderer,
-                guiViewPort);
-        nifty = niftyDisplay.getNifty();
-        guiViewPort.addProcessor(niftyDisplay);
-        nifty.fromXml("Interface/ModelViewer/ModelViewer.xml", "start", this);
+                screen.setupItem(null, null);
+                setupModel(spat, false);
+                break;
+            }
+            case TERRAIN: {
+                // Load the selected terrain
+                Terrain terrain = (Terrain) selection;
+                effectManagerState.setEnabled(true);
+                Node spat = (Node) new TerrainsLoader().load(this.getAssetManager(),
+                        effectManagerState, terrain);
+                setupModel(spat, false);
 
-        // Set default font
-        RenderFont font = nifty.createFont("Interface/Fonts/Frontend14.fnt");
-        nifty.getRenderEngine().setFont(font);
-        nifty.registerMouseCursor("pointer", "Interface/Cursors/Idle.png", 4, 4);
+                screen.setupItem(terrain, loadSoundCategory(terrain));
+                break;
+            }
+            case MAPS: {
+                // Load the selected map
+                String file = (String) selection + ".kwd";
+                KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder + PathUtils.DKII_MAPS_FOLDER + file));
+                Node spat = (Node) new MapLoader(this.getAssetManager(), kwd,
+                        new EffectManagerState(kwd, this.getAssetManager()), null,
+                        new ObjectLoader(kwd, null)) {
+                    @Override
+                    protected void updateProgress(float progress) {
+                        // Do nothing
+                    }
+                }.load(this.getAssetManager(), kwd);
 
-        cam.setLocation(new Vector3f(-15.445636f, 30.162927f, 60.252777f));
-        cam.setRotation(new Quaternion(0.05173137f, 0.92363626f, -0.13454558f, 0.35513034f));
-        flyCam.setMoveSpeed(30);
-        flyCam.setDragToRotate(true);
+                GameLevel gameLevel = kwd.getGameLevel();
+                screen.setupItem(gameLevel, loadSoundCategory(gameLevel, false));
+                setupModel(spat, true);
+                break;
+            }
+            case OBJECTS: {
+                // Load the selected object
+                GameObject object = (GameObject) selection;
+                effectManagerState.setEnabled(true);
+                Node spat = (Node) new ObjectsLoader().load(this.getAssetManager(),
+                        effectManagerState, object);
+                setupModel(spat, false);
 
-        // Mouse cursor
-        inputManager.setCursorVisible(true);
-        inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
+                screen.setupItem(object, loadSoundCategory(object));
+                break;
+            }
+            case CREATURES: {
+                // Load the selected creature
+                Creature creature = (Creature) selection;
+                effectManagerState.setEnabled(true);
+                Node spat = (Node) new CreaturesLoader().load(this.getAssetManager(),
+                        effectManagerState, creature);
+                setupModel(spat, false);
 
-        // Wireframe
-        inputManager.addMapping(KEY_MAPPING_TOGGLE_WIREFRAME, new KeyTrigger(KeyInput.KEY_T));
-        inputManager.addListener(actionListener, KEY_MAPPING_TOGGLE_WIREFRAME);
+                screen.setupItem(creature, loadSoundCategory(creature));
+                break;
+            }
+            case TRAPS: {
+                // Load the selected trap
+                Trap trap = (Trap) selection;
+                effectManagerState.setEnabled(true);
+                Node spat = (Node) new TrapsLoader().load(this.getAssetManager(),
+                        effectManagerState, trap);
+                setupModel(spat, false);
 
-        // Rotation
-        inputManager.addMapping(KEY_MAPPING_TOGGLE_ROTATION, new KeyTrigger(KeyInput.KEY_R));
-        inputManager.addListener(actionListener, KEY_MAPPING_TOGGLE_ROTATION);
+                screen.setupItem(trap, loadSoundCategory(trap));
+                break;
+            }
+            case DOORS: {
+                // Load the selected door
+                Door door = (Door) selection;
+                effectManagerState.setEnabled(true);
+                Node spat = (Node) new DoorsLoader().load(this.getAssetManager(),
+                        effectManagerState, door);
+                setupModel(spat, false);
 
-        // Normals
-        inputManager.addMapping(KEY_MAPPING_SHOW_NORMALS, new KeyTrigger(KeyInput.KEY_N));
-        inputManager.addListener(actionListener, KEY_MAPPING_SHOW_NORMALS);
+                screen.setupItem(door, loadSoundCategory(door));
+                break;
+            }
+            case ROOMS: {
+                // Load the selected room
+                Room room = (Room) selection;
+                effectManagerState.setEnabled(true);
+                Node spat = (Node) new RoomsLoader().load(this.getAssetManager(),
+                        effectManagerState, room);
+                setupModel(spat, false);
 
-        setupLighting();
-        setupFloor();
+                screen.setupItem(room, loadSoundCategory(room));
+                break;
+            }
+            case SHOTS: {
+                // Load the selected shot
+                Shot shot = (Shot) selection;
+                effectManagerState.setEnabled(true);
+                Node spat = (Node) new ShotsLoader().load(this.getAssetManager(),
+                        effectManagerState, shot);
+                setupModel(spat, false);
 
-        // Open a KMF model if set
-        if (kmfModel != null) {
-            try {
-                KmfFile kmf = new KmfFile(kmfModel);
-                KmfModelLoader loader = new KmfModelLoader();
-                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf, AssetsConverter.getEngineTexturesFile(dkIIFolder), false);
-                Node node = (Node) loader.load(asset);
-                setupModel(node, false);
-            } catch (Exception e) {
-                logger.log(Level.SEVERE, "Failed to handle: " + kmfModel, e);
+                screen.setupItem(shot, loadSoundCategory(shot));
+                break;
+            }
+            case EFFECTS: {
+                // Load the selected effect
+                Node spat = new Node();
+                Effect effect = (Effect) selection;
+                effectManagerState.setEnabled(true);
+                // Load the selected effect
+                effectManagerState.loadSingleEffect(spat, new Vector3f(0, 0, 0),
+                        effect.getEffectId(), true);
+                setupModel(spat, false);
+
+                screen.setupItem(effect, null);
+                break;
             }
         }
+
     }
 
-    /**
-     * Fill the listbox with items
-     *
-     * @param object list of objects (cached)
-     * @param rootDirectory the root directory (i.e. DK II dir or the dev dir),
-     * must be relative to the actual directory of where the objects are
-     * gathered
-     * @param directory the actual directory where the objects are get
-     * @param extension the file extension of the objects wanted
-     */
-    public void fillWithFiles(List<String> object, final String rootDirectory, final String directory, final String extension) {
-        ListBox<String> listBox = getModelListBox();
-
-        if (object == null) {
-
-            //Find all the models
-            object = new ArrayList<>();
-            File f = new File(directory);
-            File[] files = f.listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.toLowerCase().endsWith(".".concat(extension));
-                }
-            });
-            Path path = new File(rootDirectory).toPath();
-            for (File file : files) {
-                String key = path.relativize(file.toPath()).toString();
-                object.add(key.substring(0, key.length() - 4));
-            }
-        }
-
-        // Add & sort
-        listBox.addAllItems(object);
-        listBox.sortAllItems(String.CASE_INSENSITIVE_ORDER);
-    }
-
-    private void fillTerrain() {
-        KwdFile kwfFile = getKwdFile();
-        Collection<Terrain> terrains = kwfFile.getTerrainList();
-        getModelListBox().addAllItems(Arrays.asList(terrains.toArray()));
-    }
-
-    private void fillObjects() {
-        KwdFile kwfFile = getKwdFile();
-        Collection<toniarts.openkeeper.tools.convert.map.Object> objects = kwfFile.getObjectList();
-        getModelListBox().addAllItems(Arrays.asList(objects.toArray()));
-    }
-
-    @NiftyEventSubscriber(id = "modelListBox")
-    public void onListBoxSelectionChanged(final String id, final ListBoxSelectionChangedEvent<Object> event) {
-        List<Object> selection = event.getSelection();
-        if (selection.size() == 1) {
-
-            switch (getTypeDropDown().getSelection()) {
-                case MODELS: {
-
-                    // Load the selected model
-                    Node spat = (Node) AssetUtils.loadModel(assetManager, ((String) selection.get(0)).concat(".j3o").replaceAll(Matcher.quoteReplacement(File.separator), "/"), false);
-                    setupModel(spat, false);
-                    break;
-                }
-                case TERRAIN: {
-
-                    // Load the selected terrain
-                    Node spat = (Node) new TerrainLoader().load(this.getAssetManager(), (Terrain) selection.get(0));
-                    setupModel(spat, false);
-                    break;
-                }
-                case MAPS: {
-
-                    // Load the selected map
-                    String file = ((String) selection.get(0)).concat(".kwd").replaceAll(Matcher.quoteReplacement(File.separator), "/");
-                    KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(file)));
-                    Node spat = (Node) new MapLoader(this.getAssetManager(), kwd, new EffectManagerState(kwdFile, this.getAssetManager()), null) {
-                        @Override
-                        protected void updateProgress(int progress, int max) {
-                            // Do nothing
-                        }
-                    }.load(this.getAssetManager(), kwd);
-                    setupModel(spat, true);
-                    break;
-                }
-//                case OBJECTS: {
-//
-//                    // Load the selected object
-//                    Node spat = (Node) new ObjectLoader().load(this.getAssetManager(), (toniarts.openkeeper.tools.convert.map.Object) selection.get(0));
-//                    setupModel(spat, false);
-//                    break;
-//                }
-            }
-        }
-    }
-
-    @NiftyEventSubscriber(id = "typeCombo")
-    public void onTypeChanged(final String id, final DropDownSelectionChangedEvent<Types> event) {
-        fillList(event.getSelection());
-    }
-
-    @Override
-    public void simpleUpdate(float tpf) {
-    }
-
-    @Override
-    public void simpleRender(RenderManager rm) {
-        //TODO: add render code
-    }
-
-    @Override
-    public void bind(Nifty nifty, Screen screen) {
-        this.screen = screen;
-
-        // Fill types
-        fillTypes();
-    }
-
-    @Override
-    public void onStartScreen() {
-    }
-
-    @Override
-    public void onEndScreen() {
+    private void setupDebug() {
+        Debug.showNodeAxes(assetManager, rootNode, 10);
+        Debug.attachWireFrameDebugGrid(assetManager, rootNode, Vector3f.ZERO, 20, ColorRGBA.DarkGray);
     }
 
     private void setupModel(final Node spat, boolean isMap) {
@@ -452,14 +516,14 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         if (!isMap) {
 
             // Reset the game translation and scale
-            for (Spatial subSpat : spat.getChildren()) {
-                subSpat.setLocalScale(1);
-                subSpat.setLocalTranslation(0, 0, 0);
-            }
+//            for (Spatial subSpat : spat.getChildren()) {
+//                subSpat.setLocalScale(1);
+//                subSpat.setLocalTranslation(0, 0, 0);
+//            }
 
             // Make it bigger and move
-            spat.scale(10);
-            spat.setLocalTranslation(10, 25, 30);
+//            spat.scale(10);
+//            spat.setLocalTranslation(10, 25, 30);
 
             // Make it rotate
             RotatorControl rotator = new RotatorControl();
@@ -486,19 +550,62 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
         toggleShowNormals();
 
         // Animate!
-        AnimControl animControl = (AnimControl) spat.getChild(0).getControl(AnimControl.class);
-        if (animControl != null) {
-            AnimChannel channel = animControl.createChannel();
-            channel.setAnim("anim");
-            channel.setLoopMode(LoopMode.Loop);
+        spat.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                AnimControl animControl = (AnimControl) spatial.getControl(AnimControl.class);
+                if (animControl != null) {
+                    AnimChannel channel = animControl.createChannel();
+                    channel.setAnim("anim");
+                    AnimationLoader.setLoopModeOnChannel(spatial, channel);
+                }
+            }
+        });
+    }
+
+    /**
+     * Fill the listbox with items
+     *
+     * @param object list of objects (cached)
+     * @param rootDirectory the root directory (i.e. DK II dir or the dev dir),
+     * must be relative to the actual directory of where the objects are
+     * gathered
+     * @param directory the actual directory where the objects are get
+     * @param extension the file extension of the objects wanted
+     */
+    private void fillWithFiles(List<String> object, final String rootDirectory,
+            final String directory, final String extension) {
+
+        ListBox<String> listBox = screen.getItemsControl();
+
+        if (object == null) {
+
+            //Find all the models
+            object = new ArrayList<>();
+            File f = new File(directory);
+            File[] files = f.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.toLowerCase().endsWith(".".concat(extension));
+                }
+            });
+            Path path = new File(rootDirectory).toPath();
+            for (File file : files) {
+                String key = file.getName();
+                object.add(key.substring(0, key.length() - 4));
+            }
         }
+
+        // Add & sort
+        listBox.addAllItems(object);
+        listBox.sortAllItems(String.CASE_INSENSITIVE_ORDER);
     }
 
     /**
      * Fills in the different types of objects we have
      */
-    private void fillTypes() {
-        DropDown<Types> dropDown = getTypeDropDown();
+    protected void fillTypes() {
+        DropDown<Types> dropDown = screen.getTypeControl();
         if (dkIIFolder != null) {
             dropDown.addAllItems(Arrays.asList(Types.values()));
         } else {
@@ -515,54 +622,102 @@ public class ModelViewer extends SimpleApplication implements ScreenController {
      *
      * @param type the selected type
      */
-    private void fillList(Types type) {
-        getModelListBox().clear();
+    protected void fillList(Types type) {
+        screen.getItemsControl().clear();
         switch (type) {
             case MODELS: {
-                fillWithFiles(models, AssetsConverter.getAssetsFolder(), AssetsConverter.getAssetsFolder().concat(AssetsConverter.MODELS_FOLDER).concat(File.separator), "j3o");
-                break;
-            }
-            case TERRAIN: {
-                fillTerrain();
+                fillWithFiles(models, AssetsConverter.getAssetsFolder(), AssetsConverter.getAssetsFolder()
+                        + AssetsConverter.MODELS_FOLDER + File.separator, "j3o");
                 break;
             }
             case MAPS: {
-                fillWithFiles(maps, dkIIFolder, dkIIFolder.concat(AssetsConverter.MAPS_FOLDER), "kwd");
+                fillWithFiles(maps, dkIIFolder, dkIIFolder + PathUtils.DKII_MAPS_FOLDER, "kwd");
                 break;
             }
-//            case OBJECTS: {
-//                fillObjects();
-//                break;
-//            }
+            case CREATURES: {
+                KwdFile kwfFile = getKwdFile();
+                Collection<Creature> creatures = kwfFile.getCreatureList();
+                screen.getItemsControl().addAllItems(creatures);
+                break;
+            }
+            case TERRAIN: {
+                KwdFile kwfFile = getKwdFile();
+                Collection<Terrain> terrains = kwfFile.getTerrainList();
+                screen.getItemsControl().addAllItems(terrains);
+                break;
+            }
+            case OBJECTS: {
+                KwdFile kwfFile = getKwdFile();
+                Collection<GameObject> objects = kwfFile.getObjectList();
+                screen.getItemsControl().addAllItems(objects);
+                break;
+            }
+            case ROOMS: {
+                KwdFile kwfFile = getKwdFile();
+                Collection<Room> rooms = kwfFile.getRooms();
+                screen.getItemsControl().addAllItems(rooms);
+                break;
+            }
+            case DOORS: {
+                KwdFile kwfFile = getKwdFile();
+                Collection<Door> doors = kwfFile.getDoors();
+                screen.getItemsControl().addAllItems(doors);
+                break;
+            }
+            case TRAPS: {
+                KwdFile kwfFile = getKwdFile();
+                Collection<Trap> traps = kwfFile.getTraps();
+                screen.getItemsControl().addAllItems(traps);
+                break;
+            }
+            case SHOTS: {
+                KwdFile kwfFile = getKwdFile();
+                Collection<Shot> shots = kwfFile.getShots();
+                screen.getItemsControl().addAllItems(shots);
+                break;
+            }
+            case EFFECTS: {
+                KwdFile kwfFile = getKwdFile();
+                Collection<Effect> effects = kwfFile.getEffects().values();
+                screen.getItemsControl().addAllItems(effects);
+                break;
+            }
         }
-    }
-
-    /**
-     * Get the listbox holding the models
-     *
-     * @return the listbox
-     */
-    private ListBox getModelListBox() {
-        ListBox<Object> listBox = (ListBox<Object>) screen.findNiftyControl("modelListBox", ListBox.class);
-        return listBox;
-    }
-
-    /**
-     * Get the dropdown selection for type
-     *
-     * @return the dropdown
-     */
-    private DropDown<Types> getTypeDropDown() {
-        DropDown<Types> dropDown = (DropDown<Types>) screen.findNiftyControl("typeCombo", DropDown.class);
-        return dropDown;
     }
 
     private synchronized KwdFile getKwdFile() {
         if (kwdFile == null) {
-
             // Read Alcatraz.kwd by default
-            kwdFile = new KwdFile(dkIIFolder, new File(dkIIFolder.concat(PathUtils.DKII_DATA_FOLDER).concat(File.separator).concat(PathUtils.DKII_EDITOR_FOLDER).concat(File.separator).concat(PathUtils.DKII_MAPS_FOLDER).concat(File.separator).concat("Alcatraz.kwd")));
+            kwdFile = new KwdFile(dkIIFolder,
+                    new File(dkIIFolder + PathUtils.DKII_MAPS_FOLDER + "Alcatraz.kwd"));
         }
+
         return kwdFile;
+    }
+
+    public void onSoundChanged(SoundFile soundFile) {
+        AudioNode node = SoundsLoader.getAudioNode(assetManager, soundFile);
+        node.setLooping(false);
+        node.setPositional(false);
+        node.play();
+    }
+
+    public List<SoundFile> loadSoundCategory(ISoundable item) {
+        return loadSoundCategory(item, true);
+    }
+
+    public List<SoundFile> loadSoundCategory(ISoundable item, boolean useGlobal) {
+        List<SoundFile> result = new ArrayList<>();
+
+        String soundCategory = item.getSoundCategory();
+        SoundCategory sc = SoundsLoader.load(soundCategory, useGlobal);
+        if (sc != null) {
+            for (SoundGroup sa : sc.getGroups().values()) {
+                result.addAll(sa.getFiles());
+            }
+        }
+        Collections.sort(result);
+
+        return result;
     }
 }

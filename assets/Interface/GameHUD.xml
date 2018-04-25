@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<nifty xmlns="http://nifty-gui.sourceforge.net/nifty-1.3.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<nifty xmlns="http://nifty-gui.lessvoid.com/nifty-gui" xmlns:xsi="http://www.w3.org/2001/XMLSchema">
+    <!-- styles -->
     <useStyles filename="nifty-default-styles.xml" />
+    <useStyles filename="Interface/ConsoleStyle.xml" />
     <useStyles filename="Interface/CustomTabStyle.xml" />
+    <useStyles filename="Interface/HintStyle.xml" />
+    <useStyles filename="Interface/ScrollbarSmallStyle.xml" />
+    <useStyles filename="Interface/ScrollpanelStyle.xml" />
+    <!-- controls -->
     <useControls filename="nifty-default-controls.xml" />
-    <useControls filename="Interface/MyControls.xml" />
     <useControls filename="Interface/CustomTabControl.xml" />
+    <useControls filename="Interface/MyControls.xml" />
     <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
-     <style id="textManaChange">
+    <style id="textManaChange">
         <attributes font="Interface/Fonts/Ingame10.fnt" />
     </style>
     <style id="textSmall">
@@ -18,10 +24,13 @@
     <style id="textNormal">
         <attributes font="Interface/Fonts/Ingame28.fnt" color="#bbbcbb" />
     </style>
+    <style id="textGold">
+        <attributes font="Interface/Fonts/Ingame28.fnt" color="#ffdd33" />
+    </style>
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- HUD -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="hud" controller="toniarts.openkeeper.game.state.PlayerState">
+    <screen id="hud" controller="toniarts.openkeeper.game.state.PlayerScreenController">
 
         <layer childLayout="vertical">
             <!--The upper panel-->
@@ -34,13 +43,24 @@
 
                 <panel width="100%" childLayout="horizontal">
                     <panel width="256px" align="left" valign="center" childLayout="overlay">
-                        <panel childLayout="horizontal" align="left" valign="center">
+                        <panel childLayout="horizontal" align="left" valign="center" visibleToMouse="true">
+                            <effect>
+                                <onHover name="hint" hintText="${menu.2133}" hintDelay="200" />
+                                <onHover name="simpleHint" hintText="${menu.2134}" targetElement="tooltip" />
+                                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                            </effect>
                             <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-00.png" />
                             <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-01.png" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
                             <panel backgroundImage="Textures/GUI/Windows/heart-hp.png" childLayout="center" valign="center">
+                                <effect>
+                                    <onHover name="hint" hintText="${menu.2139}" hintDelay="200" />
+                                    <onHover name="simpleHint" hintText="${CALL.getTooltipText(2140)}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                </effect>
                                 <image filename="Textures/GUI/Windows/heart-bg.png" align="left" valign="center">
+                                    <interact onSecondaryClick="zoomToDungeon()" />
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Windows/heart-alarm.png" post="true" neverStopRendering="true" />
                                     </effect>
@@ -57,12 +77,23 @@
                     </panel>
                     <panel width="16px" />
                     <panel width="256px" align="left" valign="center" childLayout="overlay">
-                        <panel childLayout="horizontal" align="left" valign="center">
+                        <panel childLayout="horizontal" align="left" valign="center" visibleToMouse="true">
+                            <interact onClick="grabGold()"/>
+                            <effect>
+                                <onHover name="hint" hintText="${menu.2141}" hintDelay="200" />
+                                <onHover name="simpleHint" hintText="${menu.2142}" targetElement="tooltip" />
+                                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                            </effect>
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-00.png" />
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
                             <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center">
+                                <effect>
+                                    <onHover name="hint" hintText="${menu.2143}" hintDelay="200" />
+                                    <onHover name="simpleHint" hintText="${CALL.getTooltipText(2144)}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                </effect>
                                 <image filename="Textures/GUI/Windows/payday-BG.png" align="left" valign="center" />
                             </panel>
                             <panel childLayout="center" valign="center" align="center" padding="0px,14px,0px,36px">
@@ -77,10 +108,95 @@
                     <panel width="64px" align="left" valign="center" />
                 </panel>
             </panel>
-            <!--Empty center-->
-            <panel height="*" width="100%" id="middle" />
+            <!-- center -->
+            <panel childLayout="absolute-inside" height="*" width="100%" id="middle">
+                <!-- Objective window -->
+                <panel childLayout="vertical" x="0" y="0" id="objective" visible="false" width="100%"
+                       height="100%" valign="top" backgroundColor="#0008" padding="10px">
+
+                    <text id="mainObjectivesTitle" text="${menu.1408}" style="textGold" align="left" />
+                    <panel childLayout="vertical" padding="10px">
+                        <control name="label" id="mainObjective" style="text"
+                                 textHAlign="left" textVAlign="top" wrap="true" />
+                    </panel>
+
+                    <text id="subObjectivesTitle" text="${menu.1409}" style="textGold" align="left" />
+                    <panel childLayout="vertical" padding="10px">
+                        <control name="label" id="subObjective1" style="text"
+                                 textHAlign="left" wrap="true" />
+                        <control name="label" id="subObjective2" style="text"
+                                 textHAlign="left" wrap="true" />
+                        <control name="label" id="subObjective3" style="text"
+                                 textHAlign="left" wrap="true" />
+                    </panel>
+                    <panel height="*" />
+                    <control name="iconText" icon="Textures/GUI/Options/i-accept.png"
+                             text="${menu.11}" click="toggleObjective()" />
+                </panel>
+
+                <panel id="statistics" x="5%" y="5%" height="90%" width="90%" align="left" valign="top" childLayout="vertical" visible="false">
+                    <panel childLayout="horizontal" height="80px" padding="10px">
+                        <panel width="*" />
+                        <control width="8%" name="guiIconNoClick" id="killStat" image="Textures/GUI/Icons/Info/Kills.png" hint="${menu.1518}" />
+                        <control width="8%" name="guiIconNoClick" id="deathStat" image="Textures/GUI/Icons/Info/Deaths.png" hint="${menu.1519}" />
+                        <control width="8%" name="guiIconNoClick" id="valueStat" image="Textures/GUI/Icons/Info/Value.png" hint="${menu.1520}" />
+                        <control width="8%" name="guiIconNoClick" id="manaStat" image="Textures/GUI/Icons/Info/Mana.png" hint="${menu.1521}" />
+                        <control width="8%" name="guiIconNoClick" id="creatureStat" image="Textures/GUI/Icons/Info/Creatures_Num.png" hint="${menu.1522}" />
+                        <control width="8%" name="guiIconNoClick" id="impStat" image="Textures/GUI/Creatures/Evil/imp.png" hint="${menu.1523}" />
+                        <control width="8%" name="guiIconNoClick" id="trapStat" image="Textures/GUI/Icons/Info/Traps.png" hint="${menu.1524}" />
+                        <control width="8%" name="guiIconNoClick" id="trainingStat" image="Textures/GUI/Rooms/training.png" hint="${menu.1525}" />
+                        <control width="8%" name="guiIconNoClick" id="researchStat" image="Textures/GUI/Rooms/dark_library.png" hint="${menu.1526}" />
+                        <control width="8%" name="guiIconNoClick" id="happinessStat" image="Textures/GUI/Icons/Info/Happiness.png" hint="${menu.1527}" />
+                        <control width="8%" name="guiIconNoClick" id="mapPercStat" image="Textures/GUI/Icons/Info/Map_Percent.png" hint="${menu.1528}" />
+                    </panel>
+                    <panel backgroundColor="#0008" height="*" childLayout="vertical">
+                        <panel id="playerStatistics" childLayout="vertical" height="*">
+                            <!-- player list -->
+                            <!--                            <control name="statisticEntry"
+                            player="Player"
+                            kill="0"
+                            death="0"
+                            value="3K"
+                            mana="200K"
+                            creature="0"
+                            imp="4"
+                            trap="0"
+                            training="1"
+                            research="0"
+                            happiness="100"
+                            mapPercent="0" />-->
+                        </panel>
+                        <control name="iconText" icon="Textures/GUI/Options/i-accept.png" text="${menu.142}" click="">
+                            <effect>
+                                <onClick name="hide" targetElement="statistics" />
+                            </effect>
+                        </control>
+                    </panel>
+
+                </panel>
+
+                <panel childLayout="vertical" id="optionsMenu" backgroundColor="#0008" height="100%" width="100%" paddingLeft="10px">
+                    <panel width="100%" align="left" valign="top" childLayout="vertical">
+                        <control name="label" id="#title" style="textNormal" text="${menu.94}" />
+                    </panel>
+
+                    <!--Two columns of options-->
+                    <panel width="100%" align="left" valign="top" childLayout="horizontal" padding="5px">
+                        <panel id="#columnOne" width="50%" align="left" valign="top" childLayout="vertical" padding="5px" />
+                        <panel id="#columnTwo" width="50%" align="left" valign="top" childLayout="vertical" padding="5px" />
+                    </panel>
+
+                    <!--Menu navigation-->
+                    <panel width="100%" align="left" valign="bottom" childLayout="horizontal" padding="5px">
+                        <panel id="#navigationColumnOne" width="50%" align="left" valign="bottom" childLayout="vertical" padding="5px" />
+                        <panel id="#navigationColumnTwo" width="50%" align="left" valign="bottom" childLayout="vertical" padding="5px" />
+                    </panel>
+                </panel>
+
+                <control x="45%" y="50%" name="messageBox" width="450px" height="250px" valign="bottom" paddingRight="20px" paddingBottom="20px" visible="false"/>
+            </panel>
             <!--The bottom panel-->
-            <panel height="220px" width="100%" align="left" valign="bottom" childLayout="overlay">
+            <panel id="bottomPanel" height="220px" width="100%" align="left" valign="bottom" childLayout="overlay">
                 <!-- first bottom layer -->
                 <panel childLayout="vertical" width="100%" align="left" valign="top">
                     <!--The top bar-->
@@ -95,7 +211,7 @@
                                imageMode="repeat:0,0,64,64" />
                     </panel>
                 </panel>
-                 <!-- second bottom layer -->
+                <!-- second bottom layer -->
                 <panel childLayout="horizontal" width="100%" align="left" valign="top">
                     <!--The map-->
                     <panel height="100%" width="230px" valign="top" childLayout="center" padding="0px,6px,6px,6px">
@@ -104,37 +220,50 @@
                         </panel>
                         <panel valign="center" backgroundImage="Textures/GUI/Map/map.png" childLayout="absolute-inside"
                                imageMode="resize:0,112,0,0,0,112,0,110,0,112,0,0" filter="true">
-                            <panel x="0" y="0" width="64px" height="64px">
+                            <!-- Query pointer -->
+                            <panel x="0" y="0" width="64px" height="64px" visibleToMouse="true">
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-00.png" post="true"/>
                                     <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-00.png" post="true"/>
+                                    <onHover name="hint" hintText="${menu.1803}" hintDelay="200" />
+                                    <onHover name="simpleHint" hintText="${menu.1804}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
 
                             <!--Sell-->
                             <panel x="100%" y="0" width="64px" height="64px" childLayout="center" id="tab-sell-content">
                                 <panel id="sell_0">
+                                    <interact onClick="select(sell,0)" />
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-01.png" post="true" />
                                         <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-01.png" post="true" neverStopRendering="true" />
+                                        <onHover name="hint" hintText="${menu.1805}" hintDelay="200" />
+                                        <onHover name="simpleHint" hintText="${menu.1806}" targetElement="tooltip" />
+                                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                     </effect>
-                                    <interact onClick="select(sell,0)" />
                                 </panel>
                             </panel>
                             <!--The menu-->
                             <panel id="menuButton" x="0" y="100%" width="64px" height="64px">
+                                <interact onClick="pauseMenu()"/>
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-02.png" post="true"/>
                                     <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-02.png" post="true" />
+                                    <onHover name="hint" hintText="${menu.1801}" hintDelay="200" />
+                                    <onHover name="simpleHint" hintText="${menu.1802}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
-                                <interact onClick="pauseMenu()"/>
                             </panel>
-
-                            <panel x="100%" y="100%" width="64px" height="64px">
+                            <!-- mag magnifier -->
+                            <panel x="100%" y="100%" width="64px" height="64px" visibleToMouse="true">
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-03.png" post="true" />
                                     <!-- original game have no next effect -->
                                     <onClick name="imageOverlay" filename="Textures/GUI/Map/mapbf-03.png" post="true" />
+                                    <onHover name="hint" hintText="${menu.1799}" hintDelay="200" />
+                                    <onHover name="simpleHint" hintText="${menu.1800}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
                         </panel>
@@ -142,79 +271,74 @@
                     <!-- bottom middle -->
                     <panel height="100%" width="*" childLayout="overlay">
                         <!-- popup messages and objective -->
-                        <panel width="100%" height="100%" childLayout="vertical">
-                            <panel childLayout="horizontal" width="*" height="64px" paddingLeft="280px">
+                        <panel width="100%" height="100%" childLayout="horizontal" paddingLeft="280px">
+                            <panel childLayout="horizontal" height="64px">
+                                <!-- Show/Hide Panel -->
+                                <image valign="center" filename="Textures/GUI/Icons/i-mise.png" height="64px" width="64px" filter="true" visibleToMouse="true">
+                                    <interact onClick="togglePanel()" />
+                                    <effect>
+                                        <onHover name="hint" hintText="${menu.2161}" hintDelay="200" />
+                                        <onHover name="simpleHint" hintText="${menu.2162}" targetElement="tooltip" />
+                                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                    </effect>
+                                </image>
                                 <!-- Objective -->
-                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-objective-00.png" marginLeft="6px">
+                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-objective-00.png" visibleToMouse="true">
+                                    <interact onClick="toggleObjective()" />
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-objective-01.png" post="true"/>
-                                    </effect>
-                                </image>
-                                <!-- Messages -->
-                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-info-00.png" marginLeft="4px">
-                                    <effect>
-                                        <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-info-01.png" post="true"/>
-                                    </effect>
-                                </image>
-                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-creature-00.png" marginLeft="4px" visible="false">
-                                    <effect>
-                                        <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-creature-01.png" post="true"/>
-                                    </effect>
-                                </image>
-                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-fight-00.png" marginLeft="4px" visible="false">
-                                    <effect>
-                                        <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-fight-01.png" post="true"/>
-                                        <onActive name="imageOverlayPulsate" filename="Textures/GUI/Tabs/Messages/mt-fight-02.png" post="true"/>
-                                    </effect>
-                                </image>
-                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-info-00.png" marginLeft="4px" visible="false">
-                                    <effect>
-                                        <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-info-01.png" post="true"/>
-                                        <onActive name="imageOverlayPulsate" filename="Textures/GUI/Tabs/Messages/mt-info-02.png" post="true"/>
+                                        <onHover name="hint" hintText="${menu.2163}" hintDelay="200" />
+                                        <onHover name="simpleHint" hintText="${menu.2164}" targetElement="tooltip" />
+                                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                     </effect>
                                 </image>
                             </panel>
-                            <panel width="100%" height="*" />
+                            <panel id="systemMessages" childLayout="horizontal" width="*" height="64px">
+                                <!-- Messages -->
+                                <!-- Just keeping it as a reference -->
+                                <!-- image valign="center" filename="Textures/GUI/Tabs/Messages/mt-info-00.png" marginLeft="4px" visibleToMouse="true">
+                                    <effect>
+                                        <onShow name="move" mode="in" direction="right" length="1000" startDelay="0" />
+                                        <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-info-01.png" post="true"/>
+                                        <onActive name="imageOverlayPulsate" filename="Textures/GUI/Tabs/Messages/mt-info-02.png" post="true"/>
+                                    </effect>
+                                </image -->
+                            </panel>
                         </panel>
                         <!--The rest-->
                         <control name="customTabGroup" height="100%" width="100%" valign="top" id="tabs-hud">
 
-                            <control name="customTab" id="tab-creature" image="Textures/GUI/Tabs/t-creatures.png"
-                                     active="Textures/GUI/Icons/selected-creature.png">
+                            <control name="customTab" id="tab-creature"
+                                     image="Textures/GUI/Tabs/t-creatures.png"
+                                     active="Textures/GUI/Icons/selected-creature.png"
+                                     hintText="${menu.2153}" tooltip="${menu.2154}">
                                 <panel childLayout="horizontal" align="left">
-                                     <!--The worker amount & status-->
-                                    <control name="workerAmount"  />
+                                    <!--The worker amount & status-->
+                                    <control name="workerAmount" id="tab-workers" />
                                     <!--The tab contents scroll-->
                                     <control name="tabScroll" />
                                     <!--The =, shown for creatures-->
-                                    <control name="workerEqual" />
-                                    <panel width="*" childLayout="horizontal" id="tab-creature-content">
-                                        <control name="creature" filename="Textures/GUI/Creatures/Evil/firefly-bg.png" total="0"/>
-                                        <control name="creature" filename="Textures/GUI/Creatures/Good/dwarf-bg.png" total="0"/>
-                                    </panel>
+                                    <control name="workerEqual" id="tab-workers-equal" />
+                                    <panel width="*" childLayout="horizontal" id="tab-creature-content" />
                                 </panel>
                             </control>
 
                             <control name="customTab" id="tab-room" image="Textures/GUI/Tabs/t-rooms.png"
-                                     active="Textures/GUI/Icons/selected-room.png">
-                                <panel childLayout="vertical" align="left">
-                                    <panel childLayout="horizontal" padding="3px,3px,0" id="tab-room-content" />
-                                </panel>
+                                     active="Textures/GUI/Icons/selected-room.png"
+                                     hintText="${menu.2155}" tooltip="${menu.2156}">
+                                <control name="flowLayout" id="tab-room-content" rows="2" padding="6px" />
                             </control>
 
                             <control name="customTab" id="tab-spell" image="Textures/GUI/Tabs/t-spells.png"
-                                     active="Textures/GUI/Icons/selected-spell.png">
-                                <panel childLayout="vertical" align="left">
-                                    <panel childLayout="horizontal" padding="3px,3px,0" id="tab-spell-content" />
-                                </panel>
+                                     active="Textures/GUI/Icons/selected-spell.png"
+                                     hintText="${menu.2157}" tooltip="${menu.2158}">
+                                <control name="flowLayout" id="tab-spell-content" rows="2" padding="6px" />
                             </control>
 
                             <control name="customTab" id="tab-workshop" image="Textures/GUI/Tabs/t-workshop.png"
-                                     active="Textures/GUI/Icons/selected-workshop.png">
-                                <panel childLayout="vertical" align="left">
-                                    <panel childLayout="horizontal" padding="3px,3px,0" id="tab-door-content" />
-                                    <panel childLayout="horizontal" padding="3px,3px,3px" id="tab-trap-content" />
-                                </panel>
+                                     active="Textures/GUI/Icons/selected-workshop.png"
+                                     hintText="${menu.2159}" tooltip="${menu.2160}">
+                                <control name="flowLayout" id="tab-workshop-content" rows="2" padding="6px" />
                             </control>
                         </control>
 
@@ -233,52 +357,36 @@
                 </panel>
             </panel>
         </layer>
-
-        <layer id="optionsMenu" childLayout="vertical" visible="false">
-            <panel height="72px" width="100%" align="left" valign="top" childLayout="center" />
-
-            <panel backgroundColor="#0008" height="*" width="100%" align="left" valign="top" childLayout="vertical" visibleToMouse="true" paddingLeft="3px">
-                <panel width="100%" align="left" valign="top" childLayout="vertical">
-                    <control name="label" id="optionsMenuTitle" style="textNormal" text="${menu.94}" />
-                </panel>
-
-                <!--Two columns of options-->
-                <panel width="100%" align="left" valign="top" childLayout="horizontal">
-                    <panel id="optionsColumnOne" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px" />
-                    <panel id="optionsColumnTwo" width="50%" align="left" valign="top" childLayout="vertical" paddingLeft="3px" />
-                </panel>
-
-                <!--Menu navigation-->
-                <panel width="100%" align="left" valign="bottom" childLayout="horizontal" paddingBottom="10px" paddingLeft="3px">
-                    <panel id="optionsNavigationColumnOne" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px" />
-                    <panel id="optionsNavigationColumnTwo" width="50%" align="left" valign="bottom" childLayout="vertical" paddingLeft="3px" />
-                </panel>
-            </panel>
-
-            <!--The bottom panel-->
-            <panel height="212px" width="100%" align="left" valign="bottom" childLayout="center" />
+        <!-- console layer-->
+        <layer childLayout="vertical">
+            <control id="console" name="nifty-console" style="custom-console" lines="25" visible="false">
+                <effect>
+                    <onShow name="move" neverStopRendering="true" length="200" mode="in" direction="top" />
+                    <onHide name="move" length="200" mode="out" direction="top" />
+                </effect>
+            </control>
         </layer>
 
     </screen>
 
-    <screen id="cinematic" controller="toniarts.openkeeper.game.state.PlayerState">
+    <screen id="cinematic" controller="toniarts.openkeeper.game.state.PlayerScreenController">
 
         <layer childLayout="vertical">
             <!--The upper panel-->
-            <panel height="12%" width="100%" valign="top" childLayout="center" backgroundColor="#000">
+            <panel height="12%" width="100%" valign="top" childLayout="center" backgroundColor="#000f">
                 <image align="right" filename="Textures/GUI/Icons/i-camera-no_go.png"  marginRight="10px" />
             </panel>
             <!--Empty center-->
             <panel height="*" width="100%" childLayout="horizontal" />
             <!--The bottom panel-->
-            <panel height="12%" width="100%" valign="bottom" backgroundColor="#000" childLayout="center">
+            <panel height="12%" width="100%" valign="bottom" backgroundColor="#000f" childLayout="center">
                 <control name="label" id="speechText" text="" style="text" wrap="true" width="90%" />
             </panel>
         </layer>
 
     </screen>
 
-    <screen id="possession" controller="toniarts.openkeeper.game.state.PlayerState">
+    <screen id="possession" controller="toniarts.openkeeper.game.state.PlayerScreenController">
         <!-- creature filter -->
         <layer childLayout="overlay">
             <panel childLayout="overlay" width="100%" height="100%" id="creature-filter" />

@@ -17,37 +17,43 @@
 package toniarts.openkeeper.utils;
 
 import java.io.File;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 public class PathUtils {
-    public static final String DKII_DATA_FOLDER = "Data";
-    public static final String DKII_SOUND_FOLDER = "Sound";
-    public static final String DKII_SFX_FOLDER = "sfx";
-    public static final String DKII_MOVIES_FOLDER = "Movies";
-    public static final String DKII_TEXT_FOLDER = "Text";
-    public static final String DKII_DEFAULT_FOLDER = "Default";
-    public static final String DKII_EDITOR_FOLDER = "editor";
-    public static final String DKII_MAPS_FOLDER = "maps";
+
+    public static final String DKII_DATA_FOLDER = getRealDKIIRelativeFolder("Data" + File.separator);
+    public static final String DKII_SFX_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Sound" + File.separator
+            + "sfx" + File.separator);
+    public static final String DKII_MOVIES_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Movies" + File.separator);
+    public static final String DKII_TEXT_DEFAULT_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Text" + File.separator
+            + "Default" + File.separator);
+    public static final String DKII_EDITOR_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "editor" + File.separator);
+    public static final String DKII_MAPS_FOLDER = getRealDKIIRelativeFolder(DKII_EDITOR_FOLDER + "maps" + File.separator);
+    public static final String DKII_SFX_GLOBAL_FOLDER = getRealDKIIRelativeFolder(DKII_SFX_FOLDER + "Global" + File.separator);
+
     private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
-    private final static String TEST_FILE = AssetsConverter.MAPS_FOLDER.concat("FrontEnd3DLevel.kwd");
-    
+    private final static String TEST_FILE = DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd";
+
     /**
      * Get the folder of the original Dungeon Keeper 2 installation
+     *
      * @return Dungeon Keeper 2 folder
      */
     public static String getDKIIFolder() {
-        return SettingUtils.getSettings().getString(DKII_FOLDER_KEY);
+        return SettingUtils.getInstance().getSettings().getString(DKII_FOLDER_KEY);
     }
 
     /**
      * Set the folder of the dk2 installation in the settings
-     * 
-     * @param dkIIFolder 
+     *
+     * @param dkIIFolder
      */
     public static void setDKIIFolder(String dkIIFolder) {
-        SettingUtils.getSettings().putString(DKII_FOLDER_KEY, dkIIFolder);
+        SettingUtils.getInstance().getSettings().putString(DKII_FOLDER_KEY, dkIIFolder);
     }
-    
+
     /**
      * Checks the DK 2 folder validity
      *
@@ -55,19 +61,19 @@ public class PathUtils {
      * @return true if the folder is valid
      */
     public static boolean checkDkFolder(String folder) {
+
         // Throw a simple test to the folder, try to find a test file
-        if (folder != null && !folder.isEmpty() && new File(folder).exists()) {
-            File testFile = new File(PathUtils.fixFilePath(folder).concat(TEST_FILE));
-            return testFile.exists();
+        if (folder != null && !folder.isEmpty()) {
+            return Files.exists(Paths.get(PathUtils.fixFilePath(folder).concat(TEST_FILE)));
         }
 
         // Better luck next time
         return false;
     }
-    
+
     /**
      * Adds a file separator to the folder path if it doesn't end with one
-     * 
+     *
      * @param folderPath path to the folder
      * @return folder with file separator at the end
      */
@@ -76,5 +82,19 @@ public class PathUtils {
             return folderPath.concat(File.separator);
         }
         return folderPath;
+    }
+
+    /**
+     * Get the relative folder that has been fixed for case sensitivity
+     *
+     * @param folder the path to fix
+     * @return fixed path relative to the DKII folder
+     */
+    public static String getRealDKIIRelativeFolder(final String folder) {
+        String rootFolder = getDKIIFolder();
+        if (rootFolder != null && !rootFolder.isEmpty()) {
+            return fixFilePath(ConversionUtils.getCanonicalRelativePath(rootFolder, folder));
+        }
+        return fixFilePath(folder);
     }
 }

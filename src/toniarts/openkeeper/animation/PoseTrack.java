@@ -52,6 +52,7 @@ import com.jme3.util.TempVars;
 import com.jme3.util.clone.Cloner;
 import java.io.IOException;
 import java.nio.FloatBuffer;
+import javax.annotation.Nullable;
 
 /**
  * A single track of pose animation associated with a certain mesh.
@@ -170,7 +171,11 @@ public final class PoseTrack implements Track, ClonableTrack {
      * @param weight weight on which to apply the interpolation
      * @param vertexBuffer the vertex buffer
      */
-    private void applyPose(Pose startPose, Pose endPose, float weight, FloatBuffer vertexBuffer) {
+    private void applyPose(@Nullable Pose startPose, Pose endPose, float weight, FloatBuffer vertexBuffer) {
+        if (startPose == null) {
+            // FIXME should we skip if null?
+            return;
+        }
         int[] startingIndices = startPose.getIndices();
         Vector3f interpOffset = new Vector3f();
         for (int i = 0; i < startingIndices.length; i++) {

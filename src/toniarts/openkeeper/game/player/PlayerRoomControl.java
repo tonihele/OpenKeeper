@@ -32,11 +32,12 @@ import toniarts.openkeeper.world.room.RoomInstance;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> implements RoomListener {
+public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<GenericRoom>> implements RoomListener {
 
     private int roomCount = 0;
     private boolean portalsOpen = true;
     private List<IRoomAvailabilityListener> roomAvailabilityListeners;
+    private GenericRoom dungeonHeart;
 
     public PlayerRoomControl(Application application) {
         super(application);
@@ -79,6 +80,9 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> 
         }
         roomSet.add(room);
         roomCount++;
+        if (dungeonHeart == null && room.isDungeonHeart()) {
+            dungeonHeart = room;
+        }
     }
 
     @Override
@@ -167,6 +171,15 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, GenericRoom> 
             roomAvailabilityListeners = new ArrayList<>();
         }
         roomAvailabilityListeners.add(listener);
+    }
+
+    /**
+     * Returns the dungeon heart of the player
+     *
+     * @return the dungeon heart
+     */
+    public GenericRoom getDungeonHeart() {
+        return dungeonHeart;
     }
 
     /**

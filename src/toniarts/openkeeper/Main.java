@@ -34,6 +34,7 @@ import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.renderer.RenderManager;
 import com.jme3.system.AppSettings;
 import com.jme3.system.JmeSystem;
+import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.render.batch.BatchRenderConfiguration;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -43,11 +44,13 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Queue;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -56,7 +59,6 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
-import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.MainMenuState;
@@ -67,6 +69,8 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.utils.UTF8Control;
@@ -86,10 +90,9 @@ public class Main extends SimpleApplication {
     private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
     private static final Object lock = new Object();
     private static final Logger logger = Logger.getLogger(Main.class.getName());
-    private static HashMap<String, String> params;
+    private static Map<String, String> params;
     private static boolean debug;
-    private NiftyJmeDisplay nifty;
-    private Settings userSettings;
+    private NiftyJmeDisplay niftyDisplay;
 
     private Main() {
         super(new StatsAppState(), new DebugKeysAppState());
@@ -177,7 +180,7 @@ public class Main extends SimpleApplication {
         }
 
         // If the folder is ok, check the conversion
-        if (folderOk && (AssetsConverter.conversionNeeded(app.getSettings()))) {
+        if (folderOk && (AssetsConverter.conversionNeeded(Main.getSettings()))) {
             logger.info("Need to convert the assets!");
             saveSetup = true;
 
@@ -190,7 +193,7 @@ public class Main extends SimpleApplication {
             DKConverter frame = new DKConverter(getDkIIFolder(), assetManager) {
                 @Override
                 protected void continueOk() {
-                    AssetsConverter.setConversionSettings(app.getSettings());
+                    AssetsConverter.setConversionSettings(Main.getSettings());
                     conversionOk = true;
                 }
             };
@@ -202,7 +205,7 @@ public class Main extends SimpleApplication {
         // If everything is ok, we might need to save the setup
         boolean result = folderOk && conversionOk;
         if (result && saveSetup) {
-            SettingUtils.saveSettings();
+            SettingUtils.getInstance().saveSettings();
         }
 
         return result;
@@ -215,8 +218,7 @@ public class Main extends SimpleApplication {
         new File(SCREENSHOTS_FOLDER).mkdirs();
 
         // Init the user settings (which in JME are app settings)
-        app.getUserSettings();
-
+        app.settings = Settings.getInstance().getAppSettings();
     }
 
     /**
@@ -224,16 +226,8 @@ public class Main extends SimpleApplication {
      *
      * @return the user settings
      */
-    public Settings getUserSettings() {
-        if (userSettings == null) {
-            settings = new AppSettings(true);
-            userSettings = Settings.getInstance(settings);
-
-            // Assing some app level settings
-            userSettings.getAppSettings().setTitle(TITLE);
-            userSettings.getAppSettings().setIcons(getApplicationIcons());
-        }
-        return userSettings;
+    public static Settings getUserSettings() {
+        return Settings.getInstance();
     }
 
     /**
@@ -243,8 +237,8 @@ public class Main extends SimpleApplication {
      * @see #getUserSettings()
      * @return application settings
      */
-    public AppSettings getSettings() {
-        return SettingUtils.getSettings();
+    public static AppSettings getSettings() {
+        return SettingUtils.getInstance().getSettings();
     }
 
     /**
@@ -263,16 +257,9 @@ public class Main extends SimpleApplication {
                     break;
                 }
             }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
-        //</editor-fold>
     }
 
     /**
@@ -353,8 +340,8 @@ public class Main extends SimpleApplication {
 
                     // Recording video
                     if (params.containsKey("record")) {
-                        float quality = getUserSettings().getSettingFloat(Settings.Setting.RECORDER_QUALITY);
-                        int frameRate = getUserSettings().getSettingInteger(Settings.Setting.RECORDER_FPS);
+                        float quality = Settings.getInstance().getSettingFloat(Settings.Setting.RECORDER_QUALITY);
+                        int frameRate = Settings.getInstance().getSettingInteger(Settings.Setting.RECORDER_FPS);
                         getSettings().setFrameRate(frameRate);
                         VideoRecorderAppState recorder = new VideoRecorderAppState(quality, frameRate);
                         String folder = params.get("record");
@@ -369,30 +356,30 @@ public class Main extends SimpleApplication {
                     }
 
                     // Nifty
-                    NiftyJmeDisplay niftyDisplay = getNifty();
+                    Nifty nifty = getNifty();
+                    nifty.setGlobalProperties(new Properties());
+                    nifty.getGlobalProperties().setProperty("MULTI_CLICK_TIME", "1");
 
                     // Validate the XML, great for debuging purposes
                     List<String> guiXMLs = Arrays.asList("Interface/MainMenu.xml", "Interface/GameHUD.xml");
                     for (String xml : guiXMLs) {
                         try {
-//                            niftyDisplay.getNifty().validateXml(xml); <-- Amazingly buggy?
+                            nifty.validateXml(xml);
                         } catch (Exception e) {
                             throw new RuntimeException("GUI file " + xml + " failed to validate!", e);
                         }
                     }
 
                     // Initialize persistent app states
-                    MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager);
-                    mainMenuState.setEnabled(false);
-                    PlayerState playerState = new PlayerState(Keeper.KEEPER1_ID, false);
+                    MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager, Main.this);
+                    PlayerState playerState = new PlayerState(Player.KEEPER1_ID, false);
 
                     stateManager.attach(mainMenuState);
                     stateManager.attach(playerState);
 
                     // Eventually we are going to use Nifty, the XML files take some time to parse
-                    niftyDisplay.getNifty().registerScreenController(mainMenuState, playerState);
                     for (String xml : guiXMLs) {
-                        niftyDisplay.getNifty().addXml(xml);
+                        nifty.addXml(xml);
                     }
 
                     // It is all a clever ruge, we don't actually load much here
@@ -445,7 +432,7 @@ public class Main extends SimpleApplication {
             public void assetRequested(AssetKey key) {
                 if (key.getExtension().equals("png") || key.getExtension().equals("jpg") || key.getExtension().equals("dds")) {
                     TextureKey tkey = (TextureKey) key;
-                    tkey.setAnisotropy(getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
+                    tkey.setAnisotropy(Settings.getInstance().getSettingInteger(Settings.Setting.ANISOTROPY));
                 }
             }
 
@@ -489,14 +476,14 @@ public class Main extends SimpleApplication {
     @Override
     public void restart() {
         try {
-            settings = getUserSettings().getAppSettings();
+            settings = Settings.getInstance().getAppSettings();
             super.restart();
 
             // FIXME: This should go to handle error
             try {
 
                 // Continue to save the settings
-                getUserSettings().save();
+                Settings.getInstance().save();
             } catch (IOException ex) {
                 logger.log(Level.WARNING, "Can not save the settings!", ex);
             }
@@ -517,12 +504,12 @@ public class Main extends SimpleApplication {
         viewPort.clearProcessors();
 
         // Add SSAO
-        if (getUserSettings().getSettingBoolean(Settings.Setting.SSAO)) {
+        if (Settings.getInstance().getSettingBoolean(Settings.Setting.SSAO)) {
             FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
-            SSAOFilter ssaoFilter = new SSAOFilter(getUserSettings().getSettingFloat(Settings.Setting.SSAO_SAMPLE_RADIUS),
-                    getUserSettings().getSettingFloat(Settings.Setting.SSAO_INTENSITY),
-                    getUserSettings().getSettingFloat(Settings.Setting.SSAO_SCALE),
-                    getUserSettings().getSettingFloat(Settings.Setting.SSAO_BIAS));
+            SSAOFilter ssaoFilter = new SSAOFilter(Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_SAMPLE_RADIUS),
+                    Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_INTENSITY),
+                    Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_SCALE),
+                    Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_BIAS));
             fpp.addFilter(ssaoFilter);
             viewPort.addProcessor(fpp);
         }
@@ -573,9 +560,17 @@ public class Main extends SimpleApplication {
     private void playIntro() {
 
         // The intro sequence
-        Queue<String> introSequence = new LinkedList<>();
-        introSequence.add(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat("BullfrogIntro.tgq")));
-        introSequence.add(getDkIIFolder().concat(PathUtils.DKII_DATA_FOLDER.concat(File.separator).concat(PathUtils.DKII_MOVIES_FOLDER).concat(File.separator).concat("INTRO.TGQ")));
+        Queue<String> introSequence = new ArrayDeque<>(2);
+        try {
+            introSequence.add(ConversionUtils.getRealFileName(getDkIIFolder(), PathUtils.DKII_MOVIES_FOLDER + "BullfrogIntro.tgq"));
+        } catch (IOException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.INFO, "Could not find the Bullfrog intro!", ex);
+        }
+        try {
+            introSequence.add(ConversionUtils.getRealFileName(getDkIIFolder(), PathUtils.DKII_MOVIES_FOLDER + "INTRO.TGQ"));
+        } catch (IOException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.INFO, "Could not find the game intro!", ex);
+        }
         playMovie(introSequence);
     }
 
@@ -614,8 +609,8 @@ public class Main extends SimpleApplication {
      *
      * @return the Nifty instance
      */
-    public NiftyJmeDisplay getNifty() {
-        if (nifty == null) {
+    private NiftyJmeDisplay getNiftyDisplay() {
+        if (niftyDisplay == null) {
 
             // Batching
             BatchRenderConfiguration config = new BatchRenderConfiguration();
@@ -626,26 +621,19 @@ public class Main extends SimpleApplication {
             config.useHighQualityTextures = true;
 
             // Init Nifty
-            nifty = NiftyJmeDisplay.newNiftyJmeDisplay(assetManager,
+            niftyDisplay = NiftyJmeDisplay.newNiftyJmeDisplay(assetManager,
                     inputManager,
                     getAudioRenderer(),
                     getGuiViewPort(), config);
 
-            // Unfortunate Nifty hack, see https://github.com/nifty-gui/nifty-gui/issues/414
-            nifty.getNifty().setLocale(Locale.ROOT);
-
             // Attach the nifty display to the gui view port as a processor
-            getGuiViewPort().addProcessor(nifty);
+            getGuiViewPort().addProcessor(niftyDisplay);
         }
-        return nifty;
+        return niftyDisplay;
     }
 
-    @Override
-    public void stop() {
-        super.stop();
-
-        // https://github.com/jMonkeyEngine/jmonkeyengine/issues/330 :(
-        System.exit(0);
+    public Nifty getNifty() {
+        return getNiftyDisplay().getNifty();
     }
 
     /**

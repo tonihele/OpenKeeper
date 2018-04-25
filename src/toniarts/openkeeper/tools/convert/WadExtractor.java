@@ -43,7 +43,7 @@ public class WadExtractor {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        final String dataFolder = dkIIFolder.concat(PathUtils.DKII_DATA_FOLDER).concat(File.separator);
+        final String dataFolder = dkIIFolder+ PathUtils.DKII_DATA_FOLDER;
 
         //And the destination
         String destination = PathUtils.fixFilePath(args[0]);

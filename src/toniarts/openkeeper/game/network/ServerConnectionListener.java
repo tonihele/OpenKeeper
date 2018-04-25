@@ -16,17 +16,16 @@
  */
 package toniarts.openkeeper.game.network;
 
-import toniarts.openkeeper.game.network.message.MessageChat;
 import com.jme3.network.ConnectionListener;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.Server;
-import toniarts.openkeeper.game.network.message.MessageServerInfo;
 
 /**
  *
  * @author ArchDemon
  */
 public class ServerConnectionListener implements ConnectionListener {
+
     private final NetworkServer host;
 
     public ServerConnectionListener(NetworkServer host) {
@@ -35,12 +34,15 @@ public class ServerConnectionListener implements ConnectionListener {
 
     @Override
     public void connectionAdded(Server server, HostedConnection conn) {
-        server.broadcast(new MessageChat("Server: connected " + conn.getId()));
-        server.broadcast(new MessageServerInfo(host.getName()));
+        //server.broadcast(new MessageChat("Server: connected " + conn.getId()));
+        //server.broadcast(new MessageServerInfo(host.getName()));
+//        getService(ChatHostedService.class).startHostingOnConnection(conn., name);
+//host
+        server.getGameName();
     }
 
     @Override
     public void connectionRemoved(Server server, HostedConnection conn) {
-        server.broadcast(new MessageChat("Server: disconnected " + conn.getId()));
+        //server.broadcast(new MessageChat("Server: disconnected " + conn.getId()));
     }
 }

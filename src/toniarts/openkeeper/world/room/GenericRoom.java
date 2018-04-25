@@ -25,15 +25,22 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.world.object.ObjectControl;
+import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
 /**
@@ -45,42 +52,92 @@ public abstract class GenericRoom {
 
     public enum ObjectType {
 
-        GOLD, LAIR;
+        GOLD, LAIR, SPELL_BOOK, RESEARCHER, PRISONER, TORTUREE;
 
     };
 
+    /**
+     * How the objects are laid out, there is always a 1 tile margin from the
+     * sides. I don't know where this information really is, so I hardcoded it.
+     */
+    public enum RoomObjectLayout {
+
+        /**
+         * Allow side-to-side, every tile
+         */
+        ALLOW_NEIGHBOUR,
+        /**
+         * Allow a neighbouring object diagonally
+         */
+        ALLOW_DIAGONAL_NEIGHBOUR_ONLY,
+        /**
+         * No touching!
+         */
+        ISOLATED;
+    }
+
     protected final AssetManager assetManager;
     protected final RoomInstance roomInstance;
-    protected final Thing.Room.Direction direction;
+    protected final WorldState worldState;
     private final static int[] wallIndexes = new int[]{7, 8};
     private Node root;
-    private final String tooltip;
+    protected String tooltip;
     private static String notOwnedTooltip = null;
     protected final EffectManagerState effectManager;
     private ObjectType defaultObjectType;
     private final Map<ObjectType, RoomObjectControl> objectControls = new HashMap<>();
-    private boolean destroyed = false;
+    protected boolean destroyed = false;
+    protected boolean[][] map;
+    protected Point start;
+    protected final ObjectLoader objectLoader;
+    private final Set<ObjectControl> floorFurniture = new HashSet<>();
+    private final Set<ObjectControl> wallFurniture = new HashSet<>();
 
-    public GenericRoom(AssetManager assetManager, EffectManagerState effectManager,
-            RoomInstance roomInstance, Thing.Room.Direction direction) {
+    // FIXME we need todo something
+    private static final Map<Integer, String> temp = new HashMap<>();
+    static {
+        temp.put(3, "%44"); // Portal
+        temp.put(2, "%45"); // Lairs
+        temp.put(4, "%46"); // Hatchery
+        temp.put(1, "%47"); // Treasure
+        temp.put(6, "%48"); // Library
+        temp.put(7, "%49"); // Training Room
+        temp.put(10, "%50"); // Workshop
+        temp.put(9, "%51"); // Guard Rooms
+        temp.put(16, "%53"); // Combat Pit
+        temp.put(12, "%54"); // Torture
+        temp.put(11, "%58"); // Prison
+        temp.put(14, "%61"); // Graveyard
+        temp.put(13, "%62"); // Temple
+        temp.put(15, "%63"); // Casino
+    }
+
+    public GenericRoom(AssetManager assetManager,
+            RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
         this.assetManager = assetManager;
         this.roomInstance = roomInstance;
-        this.direction = direction;
         this.effectManager = effectManager;
+        this.objectLoader = objectLoader;
+        this.worldState = worldState;
+
+        // sounds
+        SoundsLoader.load(roomInstance.getRoom().getSoundCategory());
 
         // Strings
         ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
         tooltip = bundle.getString(Integer.toString(roomInstance.getRoom().getTooltipStringId()));
         if (notOwnedTooltip == null) {
-            notOwnedTooltip = bundle.getString(Integer.toString(2471));
+            notOwnedTooltip = bundle.getString("2471");
         }
     }
 
-    public GenericRoom(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        this(assetManager, null, roomInstance, direction);
+    protected void setupCoordinates() {
+        map = roomInstance.getCoordinatesAsMatrix();
+        start = roomInstance.getMatrixStartPoint();
     }
 
     public Spatial construct() {
+        setupCoordinates();
 
         // Add the floor
         getRootNode().detachAllChildren();
@@ -92,12 +149,21 @@ public abstract class GenericRoom {
             getRootNode().attachChild(floorNode);
         }
 
+        // Custom wall
         BatchNode wallNode = constructWall();
         if (wallNode != null) {
             wallNode.setName("Wall");
             wallNode.setShadowMode(getWallShadowMode());
             wallNode.batch();
             getRootNode().attachChild(wallNode);
+        }
+
+        // The objects on the floor
+        Node objectsNode = constructObjects();
+        if (objectsNode != null) {
+            objectsNode.setName("Objects");
+            objectsNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+            getRootNode().attachChild(objectsNode);
         }
         return getRootNode();
     }
@@ -123,6 +189,99 @@ public abstract class GenericRoom {
         return null;
     }
 
+    /**
+     * Construct room objects
+     *
+     * @return node with all the room objects
+     */
+    protected Node constructObjects() {
+        floorFurniture.clear();
+        wallFurniture.clear();
+
+        // Floor objects 0-2
+        Room room = roomInstance.getRoom();
+        int index = -1;
+        Node objects = new Node();
+        if (room.getObjects().get(0) > 0 || room.getObjects().get(1) > 0 || room.getObjects().get(2) > 0) {
+
+            // Object map
+            boolean[][] objectMap = new boolean[map.length][map[0].length];
+
+            for (int x = 0; x < map.length; x++) {
+                for (int y = 0; y < map[x].length; y++) {
+
+                    // Skip non-room tiles
+                    if (!map[x][y]) {
+                        continue;
+                    }
+
+                    // See neighbouring tiles
+                    boolean N = hasSameTile(map, x, y - 1);
+                    boolean NE = hasSameTile(map, x + 1, y - 1);
+                    boolean E = hasSameTile(map, x + 1, y);
+                    boolean SE = hasSameTile(map, x + 1, y + 1);
+                    boolean S = hasSameTile(map, x, y + 1);
+                    boolean SW = hasSameTile(map, x - 1, y + 1);
+                    boolean W = hasSameTile(map, x - 1, y);
+                    boolean NW = hasSameTile(map, x - 1, y - 1);
+
+                    if (N && NE && E && SE && S && SW && W && NW) {
+
+                        // Building options
+                        N = hasSameTile(objectMap, x, y - 1);
+                        NE = hasSameTile(objectMap, x + 1, y - 1);
+                        E = hasSameTile(objectMap, x + 1, y);
+                        SE = hasSameTile(objectMap, x + 1, y + 1);
+                        S = hasSameTile(objectMap, x, y + 1);
+                        SW = hasSameTile(objectMap, x - 1, y + 1);
+                        W = hasSameTile(objectMap, x - 1, y);
+                        NW = hasSameTile(objectMap, x - 1, y - 1);
+                        if (getRoomObjectLayout() == RoomObjectLayout.ALLOW_DIAGONAL_NEIGHBOUR_ONLY
+                                && (N || E || S || W)) {
+                            continue;
+                        }
+                        if (getRoomObjectLayout() == RoomObjectLayout.ISOLATED
+                                && (N || E || S || W || NE || SE || SW || NW)) {
+                            continue;
+                        }
+                        do {
+                            if (index > 1) {
+                                index = -1;
+                            }
+                            index++;
+                        } while (room.getObjects().get(index) == 0);
+
+                        // Add object
+                        objectMap[x][y] = true;
+                        Spatial object = objectLoader.load(assetManager, start.x + x, start.y + y,
+                                room.getObjects().get(index), roomInstance.getOwnerId());
+                        objects.attachChild(object);
+                        floorFurniture.add(object.getControl(ObjectControl.class));
+                    }
+                }
+            }
+        }
+
+        // Wall objects 3-5
+        if (room.getObjects().get(3) > 0 || room.getObjects().get(4) > 0 || room.getObjects().get(5) > 0) {
+
+        }
+        return objects;
+    }
+
+    protected static boolean hasSameTile(boolean[][] map, int x, int y) {
+
+        // Check for out of bounds
+        if (x < 0 || x >= map.length || y < 0 || y >= map[x].length) {
+            return false;
+        }
+        return map[x][y];
+    }
+
+    protected RoomObjectLayout getRoomObjectLayout() {
+        return RoomObjectLayout.ALLOW_NEIGHBOUR;
+    }
+
     protected RenderQueue.ShadowMode getFloorShadowMode() {
         return RenderQueue.ShadowMode.Receive;
     }
@@ -133,7 +292,7 @@ public abstract class GenericRoom {
 
     public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
         float yAngle = FastMath.PI;
-        String resource = AssetsConverter.MODELS_FOLDER + "/" + roomInstance.getRoom().getCompleteResource().getName();
+        String resource = roomInstance.getRoom().getCompleteResource().getName();
 
         for (WallSection section : roomInstance.getWallSections()) {
 
@@ -154,11 +313,11 @@ public abstract class GenericRoom {
                     Vector3f moveSecond;
                     if (section.getDirection() == WallSection.WallDirection.WEST
                             || section.getDirection() == WallSection.WallDirection.SOUTH) {
-                        moveFirst = new Vector3f(-0.25f, 0, -0.25f);
-                        moveSecond = new Vector3f(-0.75f, 0, -0.25f);
+                        moveFirst = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -3 * MapLoader.TILE_WIDTH / 4);
+                        moveSecond = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -3 * MapLoader.TILE_WIDTH / 4);
                     } else { // NORTH, EAST
-                        moveFirst = new Vector3f(-0.75f, 0, -0.25f);
-                        moveSecond = new Vector3f(-0.25f, 0, -0.25f);
+                        moveFirst = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -3 * MapLoader.TILE_WIDTH / 4);
+                        moveSecond = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -3 * MapLoader.TILE_WIDTH / 4);
                     }
 
                     spatial = new BatchNode();
@@ -169,8 +328,7 @@ public abstract class GenericRoom {
                     }
 
                     // Load the piece
-                    Spatial part = AssetUtils.loadModel(assetManager, resource + firstPiece + ".j3o", false);
-                    resetSpatial(part);
+                    Spatial part = AssetUtils.loadModel(assetManager, resource + firstPiece);
                     part.move(moveFirst);
                     part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
@@ -182,8 +340,7 @@ public abstract class GenericRoom {
                         secondPiece = 4; // The sorting direction forces us to do this
                     }
 
-                    part = AssetUtils.loadModel(assetManager, resource + secondPiece + ".j3o", false);
-                    resetSpatial(part);
+                    part = AssetUtils.loadModel(assetManager, resource + secondPiece);
                     part.move(moveSecond);
                     part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
@@ -191,25 +348,30 @@ public abstract class GenericRoom {
                     ((BatchNode) spatial).batch();
                 } else {
                     // Complete walls, 8, 7, 8, 7 and so forth
-                    spatial = AssetUtils.loadModel(assetManager, resource + getWallIndex(i) + ".j3o", false);
-                    resetSpatial(spatial);
+                    spatial = AssetUtils.loadModel(assetManager, resource + getWallIndex(i));
                     spatial.rotate(0, yAngle, 0);
 
-                    if (section.getDirection() == WallSection.WallDirection.WEST) {
-                        spatial.move(-MapLoader.TILE_WIDTH / 2, 0, MapLoader.TILE_WIDTH / 2);
-                    } else if (section.getDirection() == WallSection.WallDirection.SOUTH) {
-                        spatial.move(MapLoader.TILE_WIDTH / 2, 0, MapLoader.TILE_WIDTH / 2);
-                    } else if (section.getDirection() == WallSection.WallDirection.EAST) {
-                        spatial.move(MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
-                    } else { // NORTH
-                        spatial.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                    switch (section.getDirection()) {
+                        case WEST:
+                            spatial.move(-MapLoader.TILE_WIDTH, 0, 0);
+                            break;
+                        case SOUTH:
+                            spatial.move(0, 0, MapLoader.TILE_WIDTH);
+                            break;
+                        case EAST:
+                            spatial.move(MapLoader.TILE_WIDTH, 0, 0);
+                            break;
+                        default:
+                            // NORTH
+                            spatial.move(0, 0, -MapLoader.TILE_WIDTH);
+                            break;
                     }
                 }
 
                 return spatial;
-
             }
         }
+
         return null;
     }
 
@@ -221,49 +383,23 @@ public abstract class GenericRoom {
      * @param start start point
      * @param p the tile point
      */
-    protected void resetAndMoveSpatial(Spatial tile, Point start, Point p) {
-
+    protected void moveSpatial(Spatial tile, Point start, Point p) {
         // Reset, really, the size is 1 after this...
-        if (tile instanceof Node) {
-            for (Spatial subSpat : ((Node) tile).getChildren()) {
-                subSpat.setLocalScale(1);
-                subSpat.setLocalTranslation(0, 0, 0);
-            }
-        } else {
-            tile.setLocalScale(1);
-            tile.setLocalTranslation(0, 0, 0);
-        }
-        tile.move(p.x - start.x, -MapLoader.TILE_HEIGHT, p.y - start.y);
+        //resetSpatial(tile);
+        tile.move(p.x - start.x, 0, p.y - start.y);
     }
 
     /**
      * Resets (scale & translation) and moves the spatial to the point. The
      * point is relative to the start point
      *
-     * @param tile the tile, spatial
+     * @param tile the tile, Spatial
      * @param start start point
      */
-    protected void resetAndMoveSpatial(Node tile, Point start) {
-
+    protected void moveSpatial(Spatial tile, Point start) {
         // Reset, really, the size is 1 after this...
-        for (Spatial subSpat : tile.getChildren()) {
-            subSpat.setLocalScale(MapLoader.TILE_WIDTH);
-            subSpat.setLocalTranslation(0, 0, 0);
-        }
-        tile.move(start.x, -MapLoader.TILE_HEIGHT, start.y);
-    }
-
-    protected void resetSpatial(Spatial tile) {
-        if (tile instanceof Node) {
-            for (Spatial subSpat : ((Node) tile).getChildren()) {
-                subSpat.setLocalScale(MapLoader.TILE_WIDTH);
-                subSpat.setLocalTranslation(0, 0, 0);
-            }
-        } else {
-            tile.setLocalScale(MapLoader.TILE_WIDTH);
-            tile.setLocalTranslation(0, 0, 0);
-        }
-        tile.move(0, -MapLoader.TILE_HEIGHT, 0);
+        //resetSpatial(tile);
+        tile.move(start.x, 0, start.y);
     }
 
     public int getWallIndex(int index) {
@@ -271,27 +407,37 @@ public abstract class GenericRoom {
         return wallIndexes[pointer];
     }
 
-    public boolean isTileAccessible(int x, int y) {
+    public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
         return true;
     }
 
-    public boolean isTileAccessible(Point p) {
-        return isTileAccessible(p.x, p.y);
+    public final boolean isTileAccessible(Point from, Point to) {
+        return isTileAccessible(from != null ? from.x : null, (from != null ? from.y : null), to.x, to.y);
     }
 
     public String getTooltip(short playerId) {
-        if (roomInstance.getOwnerId() != playerId && roomInstance.isAttackable()) {
+        if (roomInstance.getOwnerId() != playerId) {
             return notOwnedTooltip;
         }
-        return tooltip.replaceAll("%37", Integer.toString(roomInstance.getHealthPercentage())).replaceAll("%38", Integer.toString(getUsedCapacity())).replaceAll("%39", Integer.toString(getMaxCapacity()));
+
+        String temp = tooltip;
+        RoomCount total = getRoomCount();
+        if (total != null) {
+            temp = tooltip.replaceAll(total.placeholder, String.valueOf(total.amount));
+        }
+
+        return temp.replaceAll("%37%", Integer.toString(roomInstance.getHealthPercentage()))
+                .replaceAll("%38", Integer.toString(getUsedCapacity()))
+                .replaceAll("%39", Integer.toString(getMaxCapacity()));
     }
 
     protected final Spatial loadModel(String model) {
-        return AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER
-                + "/" + model + ".j3o", false);
+        Spatial spatial = AssetUtils.loadModel(assetManager, model);
+        //resetSpatial(spatial);
+        return spatial;
     }
 
-    protected void addObjectControl(RoomObjectControl control) {
+    protected final void addObjectControl(RoomObjectControl control) {
         objectControls.put(control.getObjectType(), control);
         if (defaultObjectType == null) {
             defaultObjectType = control.getObjectType();
@@ -351,6 +497,14 @@ public abstract class GenericRoom {
         return 0;
     }
 
+    private String getOwner() {
+        short ownerId = roomInstance.getOwnerId();
+        String result = worldState.getLevelData().getPlayer(ownerId).getName();
+
+        return result;
+    }
+
+
     /**
      * Get used capacity
      *
@@ -402,4 +556,97 @@ public abstract class GenericRoom {
         return false;
     }
 
+    public WorldState getWorldState() {
+        return worldState;
+    }
+
+    /**
+     * Get the total number of furniture in room
+     *
+     * @return furniture count
+     */
+    public int getFurnitureCount() {
+        return wallFurniture.size() + floorFurniture.size();
+    }
+
+    /**
+     * Get the number of floor furniture in a room
+     *
+     * @return floor furniture count
+     */
+    public int getFloorFurnitureCount() {
+        return floorFurniture.size();
+    }
+
+    /**
+     * Get the number of wall furniture in a room
+     *
+     * @return wall furniture count
+     */
+    public int getWallFurnitureCount() {
+        return wallFurniture.size();
+    }
+
+    public Set<ObjectControl> getFloorFurniture() {
+        return floorFurniture;
+    }
+
+    public Set<ObjectControl> getWallFurniture() {
+        return wallFurniture;
+    }
+
+    @Nullable
+    public GameObject getPillarObject() {
+        // TODO hardcode maybe something else?
+        switch (roomInstance.getRoom().getRoomId()) {
+            case 1:  // Treasury
+                return worldState.getLevelData().getObject(76);
+            case 2:  // Lair
+                return worldState.getLevelData().getObject(77);
+            case 4:  // Hatchery
+                return worldState.getLevelData().getObject(78);
+            case 10:  // Workshop
+                return worldState.getLevelData().getObject(80);
+            case 11:  // Prison
+                return worldState.getLevelData().getObject(81);
+            case 12:  // Torture
+                return worldState.getLevelData().getObject(82);
+            case 13:  // Temple
+                return worldState.getLevelData().getObject(83);
+            case 14: // Graveyard
+                return worldState.getLevelData().getObject(84);
+            case 15: // Casino
+                return worldState.getLevelData().getObject(85);
+            case 16: // Pit
+                return worldState.getLevelData().getObject(79);
+            case 26: // Crypt
+                return worldState.getLevelData().getObject(141);
+        }
+
+        return null;
+    }
+
+    @Nullable
+    private RoomCount getRoomCount() {
+
+        int roomId = roomInstance.getRoom().getRoomId();
+        if (!temp.containsKey(roomId)) {
+            return null;
+        }
+
+        Keeper player = worldState.getGameState().getPlayer(roomInstance.getOwnerId());
+        int total = player.getRoomControl().getTypeCount(roomInstance.getRoom());
+
+        return new RoomCount(temp.get(roomId), total);
+    }
+
+    private static class RoomCount {
+        public String placeholder;
+        public int amount;
+
+        public RoomCount(String placeholder, int amount) {
+            this.placeholder = placeholder;
+            this.amount = amount;
+        }
+    }
 }

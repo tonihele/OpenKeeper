@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.task;
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -31,22 +32,36 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
+import toniarts.openkeeper.game.task.creature.GoToSleep;
+import toniarts.openkeeper.game.task.creature.ResearchSpells;
+import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
+import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
+import toniarts.openkeeper.game.task.worker.CaptureEnemyCreatureTask;
+import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
 import toniarts.openkeeper.game.task.worker.ClaimRoomTask;
 import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
+import toniarts.openkeeper.game.task.worker.FetchObjectTask;
 import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
+import toniarts.openkeeper.game.task.worker.RescueCreatureTask;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.world.listener.CreatureListener;
+import toniarts.openkeeper.world.listener.ObjectListener;
 import toniarts.openkeeper.world.listener.TileChangeListener;
+import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
@@ -61,18 +76,25 @@ public class TaskManager {
     private final Map<GenericRoom, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
     private static final Logger logger = Logger.getLogger(TaskManager.class.getName());
 
-    public TaskManager(WorldState worldState, short... playerIds) {
+    public TaskManager(WorldState worldState, Collection<Keeper> players) {
         this.worldState = worldState;
 
-        // Create a queue for each managed player
-        taskQueues = new HashMap<>(playerIds.length);
-        for (short playerId : playerIds) {
-            taskQueues.put(playerId, new HashSet<>());
+        // Create a queue for each managed player (everybody except Good & Neutral)
+        taskQueues = new HashMap<>(players.size());
+        for (Keeper keeper : players) {
+            if (keeper.getId() != Player.GOOD_PLAYER_ID && keeper.getId() != Player.NEUTRAL_PLAYER_ID) {
+                taskQueues.put(keeper.getId(), new HashSet<>());
+            }
         }
 
         // Scan the initial tasks
         scanInitialTasks();
 
+        // Add task listeners
+        addListeners(players);
+    }
+
+    private void addListeners(Collection<Keeper> players) {
         // We want to be notified on tile changes, we are event based, not constantly scanning type
         this.worldState.addListener(new TileChangeListener() {
 
@@ -82,6 +104,59 @@ public class TaskManager {
                 scanTerrainTasks(mapData, x, y, true, true);
             }
         });
+
+        // Get notified by object tasks
+        this.worldState.getThingLoader().addListener(new ObjectListener() {
+
+            @Override
+            public void onAdded(ObjectControl objectControl) {
+                for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+                    entry.getValue().add(getObjectTask(objectControl, entry.getKey()));
+                }
+            }
+
+            @Override
+            public void onRemoved(ObjectControl objectControl) {
+                for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+                    entry.getValue().remove(getObjectTask(objectControl, entry.getKey()));
+                }
+            }
+        });
+
+        // Get notified by fallen comrades and enemies
+        for (Keeper keeper : players) {
+            this.worldState.getThingLoader().addListener(keeper.getId(), new CreatureListener() {
+                @Override
+                public void onSpawn(CreatureControl creature) {
+
+                }
+
+                @Override
+                public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
+                    if (newState == CreatureState.UNCONSCIOUS) {
+
+                        // Add rescue mission for the own troops and capture for the enemy
+                        for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+                            if (entry.getKey() == creature.getOwnerId()) {
+
+                                // Rescue
+                                entry.getValue().add(new RescueCreatureTask(worldState, creature, entry.getKey()));
+                            } else {
+
+                                // Capture
+                                entry.getValue().add(new CaptureEnemyCreatureTask(worldState, creature, entry.getKey()));
+                            }
+                        }
+                    }
+                }
+
+                @Override
+                public void onDie(CreatureControl creature) {
+                    // TODO: Rob the corpses
+                }
+
+            });
+        }
     }
 
     private void scanInitialTasks() {
@@ -89,6 +164,13 @@ public class TaskManager {
         for (int y = 0; y < mapData.getHeight(); y++) {
             for (int x = 0; x < mapData.getWidth(); x++) {
                 scanTerrainTasks(mapData, x, y, false, false);
+            }
+        }
+
+        // Object tasks
+        for (ObjectControl objectControl : worldState.getThingLoader().getObjects()) {
+            for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+                entry.getValue().add(getObjectTask(objectControl, entry.getKey()));
             }
         }
     }
@@ -103,7 +185,7 @@ public class TaskManager {
                     AbstractTask task = iter.next();
                     if (task instanceof AbstractTileTask) {
                         AbstractTileTask tileTask = (AbstractTileTask) task;
-                        if (!tileTask.isValid()) {
+                        if (tileTask.isRemovable()) {
                             iter.remove();
                         }
                     }
@@ -182,7 +264,7 @@ public class TaskManager {
             if (task.canAssign(creature)) {
 
                 // Assign to first task
-                task.assign(creature);
+                task.assign(creature, true);
                 return true;
             }
         }
@@ -224,12 +306,27 @@ public class TaskManager {
      * @return true if the task was assigned
      */
     public boolean assignClosestRoomTask(CreatureControl creature, GenericRoom.ObjectType objectType) {
+        return assignClosestRoomTask(creature, objectType, true);
+    }
+
+    /**
+     * Assigns closest room task to a given creature of requested type or check
+     * for validity
+     *
+     * @param creature the creature to assign to
+     * @param objectType the type of room service
+     * @param assign whether to actually assign the creature to the task or just
+     * test
+     * @return true if the task was assigned
+     */
+    private boolean assignClosestRoomTask(CreatureControl creature, GenericRoom.ObjectType objectType, boolean assign) {
         Point currentPosition = creature.getCreatureCoordinates();
 
         // Get all the rooms of the given type
+        List<GenericRoom> rooms = worldState.getMapLoader().getRoomsByFunction(objectType, creature.getOwnerId());
         Map<Integer, GenericRoom> distancesToRooms = new TreeMap<>();
-        for (GenericRoom room : worldState.getMapLoader().getRoomActuals().values()) {
-            if (room.getRoomInstance().getOwnerId() == creature.getOwnerId() && room.hasObjectControl(objectType) && !room.isFullCapacity()) {
+        for (GenericRoom room : rooms) {
+            if (!room.isFullCapacity()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[room.getRoomInstance().getCoordinates().size()])), room
                 );
             }
@@ -238,15 +335,14 @@ public class TaskManager {
         // See that are they really accessible starting from the least distance one
         for (GenericRoom room : distancesToRooms.values()) {
 
+            // FIXME: if we are to have more capacity than one per tile, we need to refactor
             // The whole rooms are always accessible, take a random point from the room like DK II seems to do
-            // TODO: a point where the task can be done
-            // FIXME: now just eliminate the non-accessible ones
-            List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
+            List<Point> coordinates = new ArrayList<>(room.getObjectControl(objectType).getAvailableCoordinates());
             Iterator<Point> iter = coordinates.iterator();
             Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(room);
             while (iter.hasNext()) {
                 Point p = iter.next();
-                if (!room.isTileAccessible(p) || (taskPoints != null && taskPoints.containsKey(p))) {
+                if (!room.isTileAccessible(null, p) || (taskPoints != null && taskPoints.containsKey(p))) {
                     iter.remove();
                 }
             }
@@ -254,11 +350,17 @@ public class TaskManager {
             // Assign
             if (!coordinates.isEmpty()) {
                 Point target = Utils.getRandomItem(coordinates);
-                GraphPath<TileData> path = worldState.findPath(creature.getCreatureCoordinates(), target, creature.getCreature());
+                GraphPath<TileData> path = worldState.findPath(creature.getCreatureCoordinates(), target, creature);
                 if (path != null || target == creature.getCreatureCoordinates()) {
 
                     // Assign the task
                     AbstractTask task = getRoomTask(objectType, target, creature, room);
+
+                    // See if really assign
+                    if (!assign) {
+                        return task.isValid(creature);
+                    }
+
                     if (task instanceof AbstractCapacityCriticalRoomTask) {
                         if (taskPoints == null) {
                             taskPoints = new HashMap<>();
@@ -266,7 +368,7 @@ public class TaskManager {
                         taskPoints.put(target, (AbstractCapacityCriticalRoomTask) task);
                         roomTasks.put(room, taskPoints);
                     }
-                    task.assign(creature);
+                    task.assign(creature, true);
                     return true;
                 }
             }
@@ -299,6 +401,12 @@ public class TaskManager {
             case LAIR: {
                 return new ClaimLair(worldState, target.x, target.y, creature.getOwnerId(), room, this);
             }
+            case RESEARCHER: {
+                return new ResearchSpells(worldState, target.x, target.y, creature.getOwnerId(), room, this);
+            }
+            case PRISONER: {
+                return new CarryEnemyCreatureToPrison(worldState, target.x, target.y, creature.getOwnerId(), room, this);
+            }
         }
         return null;
     }
@@ -319,12 +427,73 @@ public class TaskManager {
      * @return true if the objective task could be accomplished
      */
     public boolean assignObjectiveTask(CreatureControl creature, Thing.HeroParty.Objective objective) {
+        AbstractObjectiveTask task = null;
         switch (objective) {
             case SEND_TO_ACTION_POINT: {
-                AbstractTask task = new SendToActionPoint(worldState, creature.getObjectiveTargetActionPoint(), creature.getOwnerId());
-                task.assign(creature);
-                return true;
+                task = new SendToActionPoint(worldState, creature.getObjectiveTargetActionPoint(), creature.getOwnerId());
+                break;
             }
+            case KILL_PLAYER: {
+                task = new KillPlayer(worldState, creature.getObjectiveTargetPlayerId(), creature);
+                break;
+            }
+        }
+
+        // Assign
+        if (task != null) {
+            task.getTask().assign(creature, true);
+            return true;
+        }
+        return false;
+    }
+
+    private AbstractTask getObjectTask(ObjectControl objectControl, short playerId) {
+        return new FetchObjectTask(worldState, objectControl, playerId);
+    }
+
+    /**
+     * Test if a given task type is available
+     *
+     * @param creature the creature asking for the task
+     * @param jobType the job type to ask for
+     * @return true if task type is available
+     */
+    public boolean isTaskAvailable(CreatureControl creature, Creature.JobType jobType) {
+        return assignTask(creature, jobType, false);
+    }
+
+    /**
+     * Assigns a creature to given task type
+     *
+     * @param creature the creature asking for the task
+     * @param jobType the job type to ask for
+     * @return true if the task was assigned
+     */
+    public boolean assignTask(CreatureControl creature, Creature.JobType jobType) {
+        return assignTask(creature, jobType, true);
+    }
+
+    private boolean assignTask(CreatureControl creature, Creature.JobType jobType, boolean assign) {
+        switch (jobType) {
+            case RESEARCH: {
+                return assignClosestRoomTask(creature, GenericRoom.ObjectType.RESEARCHER, assign);
+            }
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Assigns a go to sleep task to the player if the lair is accessible
+     *
+     * @param creature the creature wanting to go to sleep
+     * @return true if the task was assigned
+     */
+    public boolean assignSleepTask(CreatureControl creature) {
+        GoToSleep task = new GoToSleep(worldState, creature);
+        if (task.isReachable(creature)) {
+            task.assign(creature, true);
+            return true;
         }
         return false;
     }

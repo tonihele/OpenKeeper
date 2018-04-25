@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -43,7 +44,6 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.EntityInstance;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.WaterConstructor;
 
 /**
  * Don't let the name fool you, this bad boy also handles lava construction. The
@@ -141,14 +141,18 @@ public class Water {
 
         // Create new mesh
         Mesh mesh = new Mesh();
-        List<Vector3f> vertices = new ArrayList<>();
-        List<Vector2f> textureCoordinates = new ArrayList<>();
-        List<Integer> indexes = new ArrayList<>();
-        List<Vector3f> normals = new ArrayList<>();
+        int tiles = 0;
+        for (EntityInstance<Terrain> entityInstance : entityInstances) {
+            tiles += entityInstance.getCoordinates().size();
+        }
+        List<Vector3f> vertices = new ArrayList<>(tiles * 4);
+        List<Vector2f> textureCoordinates = new ArrayList<>(tiles * 4);
+        List<Integer> indexes = new ArrayList<>(tiles * 6);
+        List<Vector3f> normals = new ArrayList<>(tiles * 4);
 
         // Handle each river/lake separately
         for (EntityInstance<Terrain> entityInstance : entityInstances) {
-            HashMap<Vector3f, Integer> verticeHash = new HashMap<>(entityInstance.getCoordinates().size());
+            Map<Vector3f, Integer> verticeHash = new HashMap<>(entityInstance.getCoordinates().size());
             for (Point tile : entityInstance.getCoordinates()) {
 
                 // For each tile, create a quad, in a way
@@ -159,25 +163,36 @@ public class Water {
                 Vector2f textureCoord4 = new Vector2f(1, 1);
 
                 // Vertices
-                Vector3f vertice1 = new Vector3f(tile.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH, -WaterConstructor.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH);
-                Vector3f vertice2 = new Vector3f(tile.x * MapLoader.TILE_WIDTH, -WaterConstructor.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH);
-                Vector3f vertice3 = new Vector3f(tile.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH, -WaterConstructor.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH);
-                Vector3f vertice4 = new Vector3f(tile.x * MapLoader.TILE_WIDTH, -WaterConstructor.WATER_LEVEL, tile.y * MapLoader.TILE_WIDTH);
-                int vertice1Index = addVertice(verticeHash, vertice1, vertices, textureCoord1, textureCoordinates, normals, shareVertices);
-                int vertice2Index = addVertice(verticeHash, vertice2, vertices, textureCoord2, textureCoordinates, normals, shareVertices);
-                int vertice3Index = addVertice(verticeHash, vertice3, vertices, textureCoord3, textureCoordinates, normals, shareVertices);
-                int vertice4Index = addVertice(verticeHash, vertice4, vertices, textureCoord4, textureCoordinates, normals, shareVertices);
+                Vector3f vertice1 = new Vector3f((tile.x - 0.5f) * MapLoader.TILE_WIDTH,
+                        MapLoader.WATER_LEVEL, (tile.y - 0.5f) * MapLoader.TILE_WIDTH);
+                Vector3f vertice2 = new Vector3f((tile.x + 0.5f)* MapLoader.TILE_WIDTH,
+                        MapLoader.WATER_LEVEL, (tile.y - 0.5f) * MapLoader.TILE_WIDTH);
+                Vector3f vertice3 = new Vector3f((tile.x - 0.5f) * MapLoader.TILE_WIDTH,
+                        MapLoader.WATER_LEVEL, (tile.y + 0.5f) * MapLoader.TILE_WIDTH);
+                Vector3f vertice4 = new Vector3f((tile.x + 0.5f) * MapLoader.TILE_WIDTH,
+                        MapLoader.WATER_LEVEL, (tile.y + 0.5f) * MapLoader.TILE_WIDTH);
+
+                int vertice1Index = addVertice(verticeHash, vertice1, vertices, textureCoord1,
+                        textureCoordinates, normals, shareVertices);
+                int vertice2Index = addVertice(verticeHash, vertice2, vertices, textureCoord2,
+                        textureCoordinates, normals, shareVertices);
+                int vertice3Index = addVertice(verticeHash, vertice3, vertices, textureCoord3,
+                        textureCoordinates, normals, shareVertices);
+                int vertice4Index = addVertice(verticeHash, vertice4, vertices, textureCoord4,
+                        textureCoordinates, normals, shareVertices);
 
                 // Indexes
                 indexes.addAll(Arrays.asList(vertice3Index, vertice4Index, vertice2Index, vertice2Index, vertice1Index, vertice3Index));
             }
         }
+
         // Assign the mesh data
         mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices.toArray(new Vector3f[vertices.size()])));
         mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(textureCoordinates.toArray(new Vector2f[textureCoordinates.size()])));
         mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(toIntArray(indexes)));
         mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals.toArray(new Vector3f[normals.size()])));
         mesh.updateBound();
+
         return mesh;
     }
 
@@ -195,7 +210,7 @@ public class Water {
      * needed
      * @return index of the given vertice
      */
-    private static int addVertice(final HashMap<Vector3f, Integer> verticeHash, final Vector3f vertice, final List<Vector3f> vertices, final Vector2f textureCoord, final List<Vector2f> textureCoordinates, final List<Vector3f> normals, final boolean shareVertices) {
+    private static int addVertice(final Map<Vector3f, Integer> verticeHash, final Vector3f vertice, final List<Vector3f> vertices, final Vector2f textureCoord, final List<Vector2f> textureCoordinates, final List<Vector3f> normals, final boolean shareVertices) {
         if (!shareVertices || (shareVertices && !verticeHash.containsKey(vertice))) {
             vertices.add(vertice);
             verticeHash.put(vertice, vertices.size() - 1);

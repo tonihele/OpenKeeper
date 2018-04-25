@@ -18,39 +18,84 @@ package toniarts.openkeeper.gui.nifty.table;
 
 import de.lessvoid.nifty.controls.ListBox;
 import de.lessvoid.nifty.elements.Element;
+import de.lessvoid.nifty.elements.render.ImageRenderer;
 import de.lessvoid.nifty.elements.render.TextRenderer;
+import de.lessvoid.nifty.render.NiftyImage;
+import de.lessvoid.nifty.tools.SizeValue;
 
 /**
  * Converts table row to Nifty listbox item
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
+ * @param <T> the table row class
  */
-public class TableRowViewConverter implements ListBox.ListBoxViewConverter<TableRow> {
+public class TableRowViewConverter<T extends TableRow> implements ListBox.ListBoxViewConverter<T> {
 
     @Override
-    public void display(final Element listBoxItem, final TableRow item) {
+    public void display(final Element listBoxItem, final T item) {
         int i = 0;
-        for (String s : item.getData()) {
+        for (Object obj : item.getData()) {
 
             // Get the text element for the row
-            Element textElement = listBoxItem.findElementById("#col-" + String.valueOf(i));
-            textElement.getRenderer(TextRenderer.class).setText(s);
+            Element element = listBoxItem.findElementById("#col-" + String.valueOf(i));
+            if (obj instanceof String) {
+                displayString(element, item, obj.toString());
+            } else if (obj instanceof Boolean) {
+                displayBoolean(element, item, (boolean) obj);
+            }
             i++;
         }
     }
 
     @Override
-    public int getWidth(final Element listBoxItem, final TableRow item) {
+    public int getWidth(final Element listBoxItem, final T item) {
         int width = 0;
         int i = 0;
-        for (String s : item.getData()) {
-            if (s == null) {
-                s = "";
+
+        for (Object obj : item.getData()) {
+            Element element = listBoxItem.findElementById("#col-" + String.valueOf(i));
+            if (obj instanceof String) {
+                TextRenderer renderer = element.getRenderer(TextRenderer.class);
+                width += renderer.getFont().getWidth(obj.toString());
+            } else if (obj instanceof Boolean) {
+                ImageRenderer renderer = element.getRenderer(ImageRenderer.class);
+                if (renderer.getImage() != null) {
+                    width += renderer.getImage().getWidth();
+                }
             }
-            TextRenderer renderer = listBoxItem.findElementById("#col-" + String.valueOf(i)).getRenderer(TextRenderer.class);
-            width += renderer.getFont().getWidth(s);
             i++;
         }
         return width;
+    }
+
+    /**
+     * Display a String data in cell
+     *
+     * @param element the cell element
+     * @param item the row item
+     * @param itemData the cell data
+     */
+    protected void displayString(Element element, T item, String itemData) {
+        element.getRenderer(TextRenderer.class).setText(itemData);
+    }
+
+    /**
+     * Display a Boolean data in cell
+     *
+     * @param element the cell element
+     * @param item the row item
+     * @param itemData the cell data
+     */
+    protected void displayBoolean(Element element, T item, boolean itemData) {
+        ImageRenderer renderer = element.getRenderer(ImageRenderer.class);
+        if (itemData) {
+            NiftyImage img = element.getNifty().createImage("Textures/Tick-1.png", true);
+            renderer.setImage(img);
+            element.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
+            element.setConstraintHeight(new SizeValue(img.getHeight() + "px"));
+            element.getParent().layoutElements();
+        } else {
+            renderer.setImage(null);
+        }
     }
 }

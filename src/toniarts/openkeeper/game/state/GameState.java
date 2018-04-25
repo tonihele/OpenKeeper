@@ -20,8 +20,9 @@ import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,25 +31,36 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.GameTimer;
 import toniarts.openkeeper.game.action.ActionPointState;
+import toniarts.openkeeper.game.data.GameResult;
+import toniarts.openkeeper.game.data.GeneralLevel;
+import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.logic.CreatureLogicState;
 import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.game.logic.GameLogicThread;
 import toniarts.openkeeper.game.logic.IGameLogicUpdateable;
 import toniarts.openkeeper.game.logic.MovementThread;
-import toniarts.openkeeper.game.party.PartyState;
+import toniarts.openkeeper.game.logic.RoomGoldFixer;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
+import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
+import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
+import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 import toniarts.openkeeper.world.WorldState;
 
@@ -61,26 +73,35 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     public static final int LEVEL_TIMER_MAX_COUNT = 16;
     private static final int LEVEL_FLAG_MAX_COUNT = 128;
+    private static final float MOVEMENT_UPDATE_TPF = 0.02f;
 
     private Main app;
 
     private AppStateManager stateManager;
 
-    private String level;
+    private final String level;
     private KwdFile kwdFile;
+    private final toniarts.openkeeper.game.data.Level levelObject;
 
     private GameLogicThread gameLogicThread;
     private TriggerControl triggerControl = null;
-    private final Map<Short, Integer> flags = new HashMap<>(LEVEL_FLAG_MAX_COUNT);
+    private CreatureTriggerState creatureTriggerState;
+    private ObjectTriggerState objectTriggerState;
+    private DoorTriggerState doorTriggerState;
+    private PartyTriggerState partyTriggerState;
+    private ActionPointState actionPointState;
+    private final List<Integer> flags = new ArrayList<>(LEVEL_FLAG_MAX_COUNT);
     // TODO What timer class we should take ?
-    private final Map<Byte, GameTimer> timers = new HashMap<>(LEVEL_TIMER_MAX_COUNT);
+    private final List<GameTimer> timers = new ArrayList<>(LEVEL_TIMER_MAX_COUNT);
     private int levelScore = 0;
 
+    private GameResult gameResult = null;
+    private float timeTaken = 0;
     private Float timeLimit = null;
     private TaskManager taskManager;
     private final Map<Short, Keeper> players = new TreeMap<>();
     private PauseableScheduledThreadPoolExecutor exec;
-    private static final float MOVEMENT_UPDATE_TPF = 0.02f;
+
     private static final Logger logger = Logger.getLogger(GameState.class.getName());
 
     /**
@@ -90,6 +111,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
      */
     public GameState(String level) {
         this.level = level;
+        this.levelObject = null;
     }
 
     /**
@@ -99,11 +121,28 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
      * @param players player participating in this game, can be {@code null}
      */
     public GameState(KwdFile level, List<Keeper> players) {
+        this.level = null;
         this.kwdFile = level;
+        this.levelObject = null;
         if (players != null) {
             for (Keeper keeper : players) {
                 this.players.put(keeper.getId(), keeper);
             }
+        }
+    }
+
+    /**
+     * Single use game states
+     *
+     * @param selectedLevel the level to load
+     */
+    public GameState(GeneralLevel selectedLevel) {
+        this.level = null;
+        this.kwdFile = selectedLevel.getKwdFile();
+        if (selectedLevel instanceof toniarts.openkeeper.game.data.Level) {
+            this.levelObject = (toniarts.openkeeper.game.data.Level) selectedLevel;
+        } else {
+            this.levelObject = null;
         }
     }
 
@@ -123,47 +162,55 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     // Load the level data
                     if (level != null) {
                         kwdFile = new KwdFile(Main.getDkIIFolder(),
-                                new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), AssetsConverter.MAPS_FOLDER + level + ".kwd")));
+                                new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd")));
                     } else {
                         kwdFile.load();
                     }
+                    AssetUtils.prewarmAssets(kwdFile, assetManager, app);
                     setProgress(0.1f);
+
+                    // load sounds
+                    loadSounds();
 
                     // The players
                     setupPlayers();
 
-                    GameState.this.stateManager.attach(new ActionPointState(false));
-                    CreatureTriggerState creatureTriggerState = new CreatureTriggerState(false);
-                    GameState.this.stateManager.attach(creatureTriggerState);
+                    // Triggers
+                    partyTriggerState = new PartyTriggerState(true);
+                    partyTriggerState.initialize(stateManager, app);
+                    creatureTriggerState = new CreatureTriggerState(true);
+                    creatureTriggerState.initialize(stateManager, app);
+                    objectTriggerState = new ObjectTriggerState(true);
+                    objectTriggerState.initialize(stateManager, app);
+                    doorTriggerState = new DoorTriggerState(true);
+                    doorTriggerState.initialize(stateManager, app);
+                    actionPointState = new ActionPointState(true);
+                    actionPointState.initialize(stateManager, app);
                     setProgress(0.20f);
 
                     // Create the actual level
-                    WorldState worldState = new WorldState(kwdFile, assetManager, GameState.this, creatureTriggerState) {
+                    WorldState worldState = new WorldState(kwdFile, assetManager, GameState.this) {
                         @Override
-                        protected void updateProgress(int progress, int max) {
-                            setProgress(0.2f + ((float) progress / max * 0.6f));
+                        protected void updateProgress(float progress) {
+                            setProgress(0.2f + progress * 0.6f);
                         }
                     };
 
                     // Initialize tasks
-                    // FIXME: for all players managed by this computer
-                    taskManager = new TaskManager(worldState, (short) 3);
+                    taskManager = new TaskManager(worldState, getPlayers());
 
                     GameState.this.stateManager.attach(worldState);
 
                     GameState.this.stateManager.attach(new SoundState(false));
                     setProgress(0.60f);
 
-                    GameState.this.stateManager.attach(new PartyState(false));
-                    setProgress(0.80f);
-
                     // Trigger data
                     for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
-                        flags.put(i, 0);
+                        flags.add(i, 0);
                     }
 
                     for (byte i = 0; i < LEVEL_TIMER_MAX_COUNT; i++) {
-                        timers.put(i, new GameTimer());
+                        timers.add(i, new GameTimer());
                     }
 
                     int triggerId = kwdFile.getGameLevel().getTriggerId();
@@ -181,9 +228,15 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                             return new Thread(r, "GameLogicAndMovementThread");
                         }
                     });
-                    gameLogicThread = new GameLogicThread(GameState.this.app, 1.0f / kwdFile.getGameLevel().getTicksPerSec(), GameState.this, new CreatureLogicState(worldState.getThingLoader()), new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this));
-                    exec.scheduleAtFixedRate(gameLogicThread, 0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
-                    exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()), 0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
+                    gameLogicThread = new GameLogicThread(GameState.this.app,
+                            worldState, 1.0f / kwdFile.getGameLevel().getTicksPerSec(),
+                            GameState.this, new CreatureLogicState(worldState.getThingLoader()),
+                            new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this),
+                            new RoomGoldFixer(worldState));
+                    exec.scheduleAtFixedRate(gameLogicThread,
+                            0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
+                    exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()),
+                            0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
 
                     setProgress(1.0f);
                 } catch (Exception e) {
@@ -202,7 +255,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     if (players.containsKey(entry.getKey())) {
                         keeper = players.get(entry.getKey());
                         keeper.setPlayer(entry.getValue());
-                    } else if (addMissingPlayers || entry.getKey() < Keeper.KEEPER1_ID) {
+                    } else if (addMissingPlayers || entry.getKey() < Player.KEEPER1_ID) {
                         keeper = new Keeper(entry.getValue(), app);
                         players.put(entry.getKey(), keeper);
                     }
@@ -210,13 +263,20 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     // Init
                     if (keeper != null) {
                         keeper.initialize(stateManager, app);
+
+                        // Spells are all available for research unless otherwise stated
+                        for (KeeperSpell spell : kwdFile.getKeeperSpells()) {
+                            if (spell.getBonusRTime() != 0) {
+                                keeper.getSpellControl().setTypeAvailable(spell, true);
+                            }
+                        }
                     }
                 }
 
                 // Set player availabilities
                 // TODO: the player customized game settings
                 for (Variable.Availability availability : kwdFile.getAvailabilities()) {
-                    if (availability.getPlayerId() == 0) {
+                    if (availability.getPlayerId() == 0 && availability.getType() != Variable.Availability.AvailabilityType.SPELL) {
 
                         // All players
                         for (Keeper player : getPlayers()) {
@@ -224,7 +284,11 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                         }
                     } else {
                         Keeper player = getPlayer((short) availability.getPlayerId());
-                        setAvailability(player, availability);
+
+                        // Not all the players are participating...
+                        if (player != null) {
+                            setAvailability(player, availability);
+                        }
                     }
                 }
             }
@@ -239,17 +303,26 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                         player.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
                         break;
                     }
+                    case SPELL: {
+                        if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
+
+                            // Enable the spell, no need to research it
+                            player.getSpellControl().setSpellDiscovered(kwdFile.getKeeperSpellById(availability.getTypeId()), true);
+                        } else {
+                            player.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), false);
+                        }
+                    }
                 }
             }
 
             @Override
             public void onLoadComplete() {
 
+                // Prewarm the whole scene
+                GameState.this.app.getRenderManager().preloadScene(rootNode);
+
                 // Enable player state
                 GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);
-                GameState.this.stateManager.getState(CreatureTriggerState.class).setEnabled(true);
-                GameState.this.stateManager.getState(ActionPointState.class).setEnabled(true);
-                GameState.this.stateManager.getState(PartyState.class).setEnabled(true);
                 GameState.this.stateManager.getState(SoundState.class).setEnabled(true);
 
                 // Set initialized
@@ -287,9 +360,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     private void detachRelatedAppStates() {
         stateManager.detach(stateManager.getState(WorldState.class));
-        stateManager.detach(stateManager.getState(ActionPointState.class));
-        stateManager.detach(stateManager.getState(PartyState.class));
-        stateManager.detach(stateManager.getState(CreatureTriggerState.class));
         stateManager.detach(stateManager.getState(SoundState.class));
     }
 
@@ -299,7 +369,9 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
      * might crash.
      */
     public void detach() {
-        exec.shutdownNow();
+        if (exec != null) {
+            exec.shutdownNow();
+        }
         stateManager.detach(this);
         detachRelatedAppStates();
     }
@@ -314,6 +386,15 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     }
 
     @Override
+    public void update(float tpf) {
+        super.update(tpf);
+        if (actionPointState != null) {
+            actionPointState.updateControls(tpf);
+        }
+        timeTaken += tpf;
+    }
+
+    @Override
     public void processTick(float tpf, Application app) {
 
         // Update time for AI
@@ -323,12 +404,30 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
             timeLimit -= tpf;
         }
 
-        for (GameTimer timer : timers.values()) {
+        for (GameTimer timer : timers) {
             timer.update(tpf);
         }
 
         if (triggerControl != null) {
             triggerControl.update(tpf);
+        }
+
+        if (partyTriggerState != null) {
+            partyTriggerState.update(tpf);
+        }
+
+        if (creatureTriggerState != null) {
+            creatureTriggerState.update(tpf);
+        }
+
+        if (objectTriggerState != null) {
+            objectTriggerState.update(tpf);
+        }
+        if (doorTriggerState != null) {
+            doorTriggerState.update(tpf);
+        }
+        if (actionPointState != null) {
+            actionPointState.update(tpf);
         }
 
         for (Keeper player : players.values()) {
@@ -346,15 +445,15 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     }
 
     public int getFlag(int id) {
-        return flags.get((short) id);
+        return flags.get(id);
     }
 
     public void setFlag(int id, int value) {
-        flags.put((short) id, value);
+        flags.set(id, value);
     }
 
     public GameTimer getTimer(int id) {
-        return timers.get((byte) id);
+        return timers.get(id);
     }
 
     /**
@@ -377,8 +476,26 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     }
 
     public void setEnd(boolean win) {
-        // TODO make lose and win the game
-        stateManager.getState(MainMenuState.class).setEnabled(true);
+
+        gameResult = new GameResult();
+        gameResult.setData(GameResult.ResultType.LEVEL_WON, win);
+        gameResult.setData(GameResult.ResultType.TIME_TAKEN, timeTaken);
+
+        // Enable the end game state
+        stateManager.getState(PlayerState.class).endGame(win);
+
+        // Mark the achievement if campaign level
+        if (levelObject != null) {
+            Main.getUserSettings().increaseLevelAttempts(levelObject);
+            if (win) {
+                Main.getUserSettings().setLevelStatus(levelObject, Settings.LevelStatus.COMPLETED);
+            }
+            try {
+                Main.getUserSettings().save();
+            } catch (IOException ex) {
+                Logger.getLogger(GameState.class.getName()).log(Level.SEVERE, "Failed to save the level progress!", ex);
+            }
+        }
     }
 
     public TaskManager getTaskManager() {
@@ -399,7 +516,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     }
 
     public ActionPointState getActionPointState() {
-        return stateManager.getState(ActionPointState.class);
+        return actionPointState;
     }
 
     /**
@@ -430,4 +547,65 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         this.levelScore = levelScore;
     }
 
+    public CreatureTriggerState getCreatureTriggerState() {
+        return creatureTriggerState;
+    }
+
+    public ObjectTriggerState getObjectTriggerState() {
+        return objectTriggerState;
+    }
+
+    public DoorTriggerState getDoorTriggerState() {
+        return doorTriggerState;
+    }
+
+    public PartyTriggerState getPartyTriggerState() {
+        return partyTriggerState;
+    }
+
+    /**
+     * Creates alliance between two players
+     *
+     * @param playerOneId player ID 1
+     * @param playerTwoId player ID 2
+     */
+    public void createAlliance(short playerOneId, short playerTwoId) {
+        getPlayer(playerOneId).createAlliance(playerTwoId);
+        getPlayer(playerTwoId).createAlliance(playerOneId);
+    }
+
+    /**
+     * Breaks alliance between two players
+     *
+     * @param playerOneId player ID 1
+     * @param playerTwoId player ID 2
+     */
+    public void breakAlliance(short playerOneId, short playerTwoId) {
+        getPlayer(playerOneId).breakAlliance(playerTwoId);
+        getPlayer(playerTwoId).breakAlliance(playerOneId);
+    }
+
+    private void loadSounds() {
+        SoundsLoader.load(kwdFile.getGameLevel().getSoundCategory(), false);
+
+        List<ISoundable> items = new ArrayList<>();
+        items.addAll(kwdFile.getCreatureList());
+        items.addAll(kwdFile.getDoors());
+        items.addAll(kwdFile.getObjectList());
+        items.addAll(kwdFile.getKeeperSpells());
+        items.addAll(kwdFile.getRooms());
+        items.addAll(kwdFile.getShots());
+        items.addAll(kwdFile.getTerrainList());
+        items.addAll(kwdFile.getTraps());
+
+        for (ISoundable item : items) {
+            // all in global space
+            SoundsLoader.load(item.getSoundCategory());
+        }
+    }
+
+    @Nullable
+    public GameResult getGameResult() {
+        return gameResult;
+    }
 }

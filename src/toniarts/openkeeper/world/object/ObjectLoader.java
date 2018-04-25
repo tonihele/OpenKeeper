@@ -17,65 +17,130 @@
 package toniarts.openkeeper.world.object;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector2f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import java.awt.Point;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
+import javax.annotation.Nonnull;
+import toniarts.openkeeper.game.player.PlayerSpell;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Object;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 
 /**
- * Loads up object
+ * Loads up object TODO: remove unnecessary methods
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class ObjectLoader implements ILoader<Thing.Object> {
 
+    public final static short OBJECT_GOLD_ID = 1;
+    //public final static short OBJECT_GOLD_BAG_ID = 2;
+    public final static short OBJECT_GOLD_PILE_ID = 3;
+    public final static short OBJECT_SPELL_BOOK_ID = 4;
+
     private final KwdFile kwdFile;
     private final WorldState worldState;
     private static final Logger logger = Logger.getLogger(ObjectLoader.class.getName());
 
-    public ObjectLoader(KwdFile kwdFile, WorldState worldState) {
+    public ObjectLoader(@Nonnull KwdFile kwdFile, WorldState worldState) {
         this.kwdFile = kwdFile;
         this.worldState = worldState;
     }
 
     @Override
     public Spatial load(AssetManager assetManager, Thing.Object object) {
-        return load(assetManager, object.getPosX(), object.getPosY(), object.getKeeperSpellId(), object.getMoneyAmount(), object.getTriggerId(), object.getObjectId(), object.getPlayerId());
+        Vector2f pos = WorldUtils.pointToVector2f(object.getPosX(), object.getPosY());
+
+        return load(assetManager, pos,
+                object.getKeeperSpellId(), object.getMoneyAmount(), object.getTriggerId(),
+                object.getObjectId(), object.getPlayerId(),
+                (int) worldState.getGameState().getLevelVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY));
     }
 
-    public Spatial load(AssetManager assetManager, int posX, int posY, int keeperSpellId, int moneyAmount, int triggerId, short objectId, short playerId) {
-        toniarts.openkeeper.tools.convert.map.Object obj = kwdFile.getObject(objectId);
-        KeeperSpell keeperSpell = null;
+    public Spatial load(AssetManager assetManager, int posX, int posY, short objectId, short playerId) {
+        Vector2f pos = WorldUtils.pointToVector2f(posX, posY);
+
+        return load(assetManager, pos, 0, 0, 0, objectId, playerId, 0);
+    }
+
+    public Spatial load(AssetManager assetManager, Point p, int keeperSpellId,
+            int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
+
+        Vector2f pos = WorldUtils.pointToVector2f(p);
+
+        return load(assetManager, pos, keeperSpellId, moneyAmount, triggerId,
+                objectId, playerId, maxMoney);
+    }
+
+    public Spatial load(AssetManager assetManager, Vector2f pos, int keeperSpellId,
+            int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
+
+        PlayerSpell playerSpell = null;
         if (keeperSpellId > 0) {
-            keeperSpell = kwdFile.getKeeperSpellById(keeperSpellId);
+            KeeperSpell keeperSpell = kwdFile.getKeeperSpellById(keeperSpellId);
+
+            // Create a wrapper for it
+            playerSpell = new PlayerSpell(keeperSpell, true);
         }
 
+        return load(assetManager, pos, playerSpell,
+                moneyAmount, triggerId, objectId, playerId, maxMoney);
+    }
+
+    public Spatial load(AssetManager assetManager, Point p, PlayerSpell playerSpell,
+            int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
+
+        Vector2f pos = WorldUtils.pointToVector2f(p);
+
+        return load(assetManager, pos, playerSpell, moneyAmount,
+                triggerId, objectId, playerId, maxMoney);
+    }
+
+    public Spatial load(AssetManager assetManager, Vector2f pos, PlayerSpell playerSpell,
+            int moneyAmount, int triggerId, short objectId, short playerId, int maxMoney) {
+
+        Point p = WorldUtils.vectorToPoint(pos);
+        TileData tile = null;
+        if (worldState != null) {
+            tile = worldState.getMapData().getTile(p);
+        }
+
+        GameObject obj = kwdFile.getObject(objectId);
+
         // Load
-        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, AssetsConverter.MODELS_FOLDER + "/" + obj.getMeshResource().getName() + ".j3o", false);
-        ObjectControl objectControl = getControl(playerId, obj, moneyAmount);
+        ObjectControl objectControl = getControl(tile, obj, moneyAmount, maxMoney, playerSpell);
+        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, objectControl.getResource().getName());
         nodeObject.addControl(objectControl);
 
         // Move to the center of the tile
-        nodeObject.setLocalTranslation(
-                posX * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f,
-                0 * MapLoader.TILE_HEIGHT,
-                posY * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2f);
+        nodeObject.setLocalTranslation(pos.x, 0, pos.y);
+        nodeObject.move(0, MapLoader.FLOOR_HEIGHT, 0);
+
+        // Orientation
+        nodeObject.setLocalRotation(nodeObject.getLocalRotation().fromAngles(0, -objectControl.getOrientation(), 0));
 
         return nodeObject;
     }
 
-    private ObjectControl getControl(short playerId, Object obj, int moneyAmount) {
-        if (obj.getFlags().contains(Object.ObjectFlag.OBJECT_TYPE_GOLD)) {
-            return new GoldObjectControl(playerId, obj, worldState, moneyAmount);
+    private ObjectControl getControl(TileData tile, GameObject obj, int moneyAmount,
+            int maxMoney, PlayerSpell playerSpell) {
+
+        if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
+            return new GoldObjectControl(tile, obj, worldState, moneyAmount, maxMoney);
+        } else if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPELL_BOOK)) {
+            return new SpellBookObjectControl(tile, obj, worldState, playerSpell);
         }
-        return new ObjectControl(playerId, obj, worldState);
+
+        return new ObjectControl(tile, obj, worldState);
     }
 }

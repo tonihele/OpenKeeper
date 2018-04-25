@@ -47,7 +47,7 @@ public class DigTileTask extends AbstractTileTask {
         // Find an accessible target
         // TODO: entity's location?
         for (Point p : worldState.getMapLoader().getSurroundingTiles(getTaskLocation(), false)) {
-            if (worldState.isAccessible(worldState.getMapData().getTile(p), creature.getCreature())) {
+            if (worldState.isAccessible(worldState.getMapData().getTile(p), creature)) {
 
                 // TODO: intelligent coordinates?
                 Vector2f target = new Vector2f(p.x, p.y);
@@ -66,7 +66,7 @@ public class DigTileTask extends AbstractTileTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
         TileData tile = worldState.getMapData().getTile(getTaskLocation());
         return tile.isSelectedByPlayerId(playerId);
     }
@@ -100,6 +100,11 @@ public class DigTileTask extends AbstractTileTask {
     @Override
     public String getTaskIcon() {
         return "Textures/GUI/moods/SJ-Dig.png";
+    }
+
+    @Override
+    public boolean isFaceTarget() {
+        return true;
     }
 
 }

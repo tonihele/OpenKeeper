@@ -19,6 +19,7 @@ package toniarts.openkeeper.gui.nifty.table;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.HoverEffectBuilder;
+import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
 import de.lessvoid.nifty.builder.TextBuilder;
 import de.lessvoid.nifty.controls.Parameters;
@@ -35,13 +36,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Table control, build on top of the Nifty ListBox<br/>
+ * Table control, build on top of the Nifty ListBox<br>
  * With help from:
  * https://github.com/void256/nifty-gui/tree/1.3/nifty-examples/src/main/java/de/lessvoid/nifty/examples/table
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
+ * @param <T> The table row class
  */
-public class TableControl<T> extends ListBoxControl<T> {
+public class TableControl<T extends TableRow> extends ListBoxControl<T> {
 
     private List<TableColumn> tableColumns;
     private Element headers;
@@ -94,6 +96,14 @@ public class TableControl<T> extends ListBoxControl<T> {
                             control(new LabelBuilder("#headerCol-" + i, col.getHeader()) {
                                 {
                                     style("menuTextSmall");
+                                }
+                            });
+                        } else {
+
+                            // Boolean
+                            image(new ImageBuilder("#headerCol-" + i) {
+                                {
+                                    filename("Textures/Tick-0.png");
                                 }
                             });
                         }
@@ -171,6 +181,13 @@ public class TableControl<T> extends ListBoxControl<T> {
                             text(new TextBuilder("#col-" + i) {
                                 {
                                     style("menuTextSmall");
+                                }
+                            });
+                        } else {
+
+                            // Boolean
+                            image(new ImageBuilder("#col-" + i) {
+                                {
                                 }
                             });
                         }

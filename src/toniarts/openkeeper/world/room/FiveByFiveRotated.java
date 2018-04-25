@@ -18,17 +18,31 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.animation.AnimChannel;
 import com.jme3.animation.AnimControl;
-import com.jme3.animation.LoopMode;
+import com.jme3.app.Application;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
+import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.tools.convert.map.Thing;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ResourceBundle;
+import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
+import toniarts.openkeeper.game.player.PlayerManaControl;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
+import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.world.ThingLoader;
+import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.animation.AnimationLoader;
+import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.PlugControl;
 import toniarts.openkeeper.world.room.control.RoomGoldControl;
 
@@ -37,37 +51,54 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance {
+public class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance {
 
+    private static final short OBJECT_HEART_ID = 13;
+    private static final short OBJECT_ARCHES_ID = 86;
+    private static final short OBJECT_BIG_STEPS_ID = 88;
+    private static final short OBJECT_PLUG_ID = 96;
+    private static final String TOOLTIP_STRING_ID = String.valueOf(2579);
+
+    private final List<CreatureControl> attractedCreatures = new ArrayList<>();
+    private Integer goldPerTile;
     private int centreDecay = -1;
-    private boolean destroyed = false;
     private boolean created = false;
 
-    public FiveByFiveRotated(AssetManager assetManager, EffectManagerState effectManager,
-            RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, effectManager, roomInstance, direction);
-        addObjectControl(new RoomGoldControl(this) {
+    public FiveByFiveRotated(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
+        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
 
-            @Override
-            protected int getObjectsPerTile() {
-                return FiveByFiveRotated.this.getGoldPerTile();
-            }
+        addObjectControl(new RoomGoldControl(this) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
                 return 16;
             }
+
+            @Override
+            protected int getGoldPerObject() {
+                return FiveByFiveRotated.this.getGoldPerTile();
+            }
+
         });
+        // override Jelly
+        ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
+        tooltip = bundle.getString(TOOLTIP_STRING_ID);
     }
 
-    protected abstract int getGoldPerTile();
+    protected int getGoldPerTile() {
+        if (goldPerTile == null) {
+            goldPerTile = (int) worldState.getLevelVariable(MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE);
+        }
+
+        return goldPerTile;
+    }
 
     @Override
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
         // 5 by 5
         // DHeart Piece[1-20]Exp.j3o
-        Point start = roomInstance.getCoordinates().get(0);
+        //Point start = roomInstance.getCoordinates().get(0);
         String resource = (destroyed) ? "Dungeon_Destroyed" : roomInstance.getRoom().getCompleteResource().getName();
         for (Point p : roomInstance.getCoordinates()) {
 
@@ -129,7 +160,7 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
 
             if (piece != -1) {
                 tile = loadModel(resource + piece);
-                resetAndMoveSpatial(tile, start, p);
+                moveSpatial(tile, start, p);
                 if (yAngle != 0) {
                     tile.rotate(0, yAngle, 0);
                 }
@@ -142,75 +173,88 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
 
                 if (destroyed) {
                     tile = loadModel(resource + 4);
-                    resetAndMoveSpatial(tile, start, p);
+                    moveSpatial(tile, start, p);
                     root.attachChild(tile);
 
                     // The steps between the arches
                     tile = loadModel(resource + 5);
-                    resetAndMoveSpatial(tile, start, p);
-                    root.attachChild(tile.move(0, -MapLoader.TILE_HEIGHT * 0.42f, 0));
+                    moveSpatial(tile, start, p);
+                    root.attachChild(tile);
 
                 } else {
                     // The arches
-                    tile = loadModel("DHeart Arches");
-                    resetAndMoveSpatial(tile, start, p);
+                    tile = objectLoader.load(assetManager, 0, 0, OBJECT_ARCHES_ID, getRoomInstance().getOwnerId());
+                    tile.move(0, -MapLoader.FLOOR_HEIGHT, 0);
+                    moveSpatial(tile, start, p);
                     root.attachChild(tile);
 
                     // The steps between the arches
-                    tile = loadModel("DHeart BigSteps");
-                    resetAndMoveSpatial(tile, start, p);
+                    tile = objectLoader.load(assetManager, 0, 0, OBJECT_BIG_STEPS_ID, getRoomInstance().getOwnerId());
+                    tile.move(0, -MapLoader.FLOOR_HEIGHT, 0);
+                    moveSpatial(tile, start, p);
                     root.attachChild(tile);
 
-                    tile = loadModel("DHeart BigSteps");
-                    resetAndMoveSpatial(tile, start, p);
+                    tile = objectLoader.load(assetManager, 0, 0, OBJECT_BIG_STEPS_ID, getRoomInstance().getOwnerId());
+                    tile.move(0, -MapLoader.FLOOR_HEIGHT, 0);
+                    moveSpatial(tile, start, p);
                     tile.rotate(0, -FastMath.TWO_PI / 3, 0);
                     root.attachChild(tile);
 
-                    tile = loadModel("DHeart BigSteps");
-                    resetAndMoveSpatial(tile, start, p);
+                    tile = objectLoader.load(assetManager, 0, 0, OBJECT_BIG_STEPS_ID, getRoomInstance().getOwnerId());
+                    tile.move(0, -MapLoader.FLOOR_HEIGHT, 0);
+                    moveSpatial(tile, start, p);
                     tile.rotate(0, FastMath.TWO_PI / 3, 0);
                     root.attachChild(tile);
 
                     // The alfa & omega! The heart, TODO: use object loader once it is in decent condition, this after all is a real object
                     if (centreDecay == -1) {
-                        tile = loadModel("Dungeon centre");
+                        tile = objectLoader.load(assetManager, 0, 0, OBJECT_HEART_ID, getRoomInstance().getOwnerId());
+                        tile.move(0, -MapLoader.FLOOR_HEIGHT, 0);
                     } else {
                         tile = loadModel("DungeonCentre_DECAY" + centreDecay);
                     }
-                    resetAndMoveSpatial(tile, start, p);
+                    moveSpatial(tile, start, p);
 
                     // Animate
-                    AnimControl animControl = (AnimControl) ((Node) tile).getChild(0).getControl(AnimControl.class);
-                    if (animControl != null) {
-                        AnimChannel channel = animControl.createChannel();
-                        channel.setAnim("anim");
-                        channel.setLoopMode(LoopMode.Loop);
+                    tile.breadthFirstTraversal(new SceneGraphVisitor() {
+                        @Override
+                        public void visit(Spatial spatial) {
+                            AnimControl animControl = spatial.getControl(AnimControl.class);
+                            if (animControl != null) {
+                                AnimChannel channel = animControl.createChannel();
+                                channel.setAnim("anim");
+                                AnimationLoader.setLoopModeOnChannel(spatial, channel);
 
-                        // Don't batch animated objects, seems not to work
-                        tile.setBatchHint(Spatial.BatchHint.Never);
-                    }
-
-                    for (Integer id : roomInstance.getRoom().getEffects()) {
-                        effectManager.load(root, new Vector3f(p.x - start.x, -MapLoader.TILE_HEIGHT, p.y - start.y), id, true);
-                    }
+                                // Don't batch animated objects, seems not to work
+                                spatial.setBatchHint(Spatial.BatchHint.Never);
+                            }
+                        }
+                    });
 
                     root.attachChild(tile.move(0, MapLoader.TILE_HEIGHT / 4, 0));
+
+                    for (Integer id : roomInstance.getRoom().getEffects()) {
+                        if (id > 0) {
+                            effectManager.load(root, new Vector3f(p.x - start.x, MapLoader.UNDERFLOOR_HEIGHT, p.y - start.y), id, true);
+                        }
+                    }
 
                     if (!created) {
                         created = true;
 
-                        tile = loadModel("DHeartPlug");
+                        tile = objectLoader.load(assetManager, 0, 0, OBJECT_PLUG_ID, getRoomInstance().getOwnerId());
+                        tile.move(0, -MapLoader.FLOOR_HEIGHT, 0);
                         tile.setName("plug");
                         tile.setBatchHint(Spatial.BatchHint.Never);
                         tile.rotate(0, FastMath.QUARTER_PI, 0);
-                        resetAndMoveSpatial(tile, start, p);
-                        root.attachChild(tile.move(0, MapLoader.TILE_HEIGHT, 0));
+                        moveSpatial(tile, start, p);
+                        root.attachChild(tile.move(0, MapLoader.FLOOR_HEIGHT, 0));
 
                         Node plug = getPlug();
                         plug.setName("plug_decay");
                         plug.setCullHint(Spatial.CullHint.Always);
                         plug.setBatchHint(Spatial.BatchHint.Never);
-                        root.attachChild(plug.move(x, MapLoader.TILE_HEIGHT, y));
+                        root.attachChild(plug.move(x, MapLoader.FLOOR_HEIGHT, y));
 
                         root.addControl(new PlugControl());
                     }
@@ -219,8 +263,8 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
         }
 
         // Set the transform and scale to our scale and 0 the transform
-        root.move(start.x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2, 0, start.y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2);
-        root.scale(MapLoader.TILE_WIDTH, MapLoader.TILE_HEIGHT, MapLoader.TILE_WIDTH);
+        AssetUtils.translateToTile(root, start);
+        //root.scale(MapLoader.TILE_WIDTH, MapLoader.TILE_HEIGHT, MapLoader.TILE_WIDTH);
 
         return root;
     }
@@ -230,7 +274,7 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
         float step, rp, r = 0.69f;
 
         for (int i = 1; i < 10; i++) {
-
+            // FIXME load object or object group
             Spatial piece = loadModel("DHeartPlug" + i);
             /*
              * with no reset spatial
@@ -274,8 +318,6 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
              }
              */
 
-            resetAndMoveSpatial(piece, new Point(), new Point());
-
             if (i == 1) {
                 rp = 0.031f;
                 step = 0.40f;
@@ -313,16 +355,11 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
     }
 
     @Override
-    public boolean isTileAccessible(int x, int y) {
+    public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
 
         // The center 3x3 is not accessible
-        Point roomPoint = roomInstance.worldCoordinateToLocalCoordinate(x, y);
+        Point roomPoint = roomInstance.worldCoordinateToLocalCoordinate(toX, toY);
         return ((roomPoint.x == 0 || roomPoint.x == 4) || (roomPoint.y == 0 || roomPoint.y == 4));
-    }
-
-    @Override
-    protected BatchNode constructWall() {
-        return null;
     }
 
     @Override
@@ -332,8 +369,47 @@ public abstract class FiveByFiveRotated extends GenericRoom implements ICreature
 
     @Override
     public Point getEntranceCoordinate() {
-        // FIXME: hmm, some random or logical point?
-        return roomInstance.getCoordinates().get(0);
+        List<Point> points = new ArrayList<>(1);
+        for (Point p : roomInstance.getCoordinates()) {
+            if (isTileAccessible(null, null, p.x, p.y)) {
+                points.add(p);
+            }
+        }
+
+        return Utils.getRandomItem(points);
+    }
+
+    @Override
+    public String getTooltip(short playerId) {
+        String result = super.getTooltip(playerId);
+
+        if (playerId == roomInstance.getOwnerId()) {
+            PlayerManaControl pmc = worldState.getGameState().getPlayer(playerId).getManaControl();
+            result = result.replaceAll("%40", String.valueOf(pmc.getMana())) // mana held
+                .replaceAll("%41", String.valueOf(pmc.getManaMax())); // max mana held
+        }
+
+        return result;
+    }
+
+    @Override
+    public List<CreatureControl> getAttractedCreatures() {
+        return attractedCreatures;
+    }
+
+    @Override
+    public CreatureControl spawnCreature(short creatureId, short level, Application app, ThingLoader thingLoader) {
+
+        CreatureControl creature = CreatureSpawnLogicState.spawnCreature(creatureId,
+                roomInstance.getOwnerId(), level, app, thingLoader, getEntranceCoordinate(), true);
+        attractedCreatures.add(creature);
+
+        return creature;
+    }
+
+    @Override
+    public CreatureControl spawnCreature(short creatureId, Application app, ThingLoader thingLoader) {
+        return spawnCreature(creatureId, (short) 1, app, thingLoader);
     }
 
 }

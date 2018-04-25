@@ -23,29 +23,32 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author ArchDemon
  */
-
-
 public class AI {
-    
+
     public enum AIType implements IValueEnum {
 
-        MASTER_KEEPER(0),
-        CONQUEROR(1),
-        PSYCHOTIC(2),
-        STALWART(3),
-        GREYMAN(4),
-        IDIOT(5),
-        GUARDIAN(6),
-        THICK_SKINNED(7),
-        PARANOID(8);
+        MASTER_KEEPER(0, "1604"),
+        CONQUEROR(1, "1605"),
+        PSYCHOTIC(2, "1606"),
+        STALWART(3, "1607"),
+        GREYMAN(4, "1608"),
+        IDIOT(5, "1609"),
+        GUARDIAN(6, "1610"),
+        THICK_SKINNED(7, "1611"),
+        PARANOID(8, "1612");
 
-        private AIType(int id) {
+        private AIType(int id, String translationKey) {
             this.id = id;
+            this.translationKey = translationKey;
         }
 
         @Override
         public int getValue() {
             return id;
+        }
+
+        public String getTranslationKey() {
+            return translationKey;
         }
 
         @Override
@@ -61,9 +64,11 @@ public class AI {
             }
             return sb.toString();
         }
+
         private final int id;
+        private final String translationKey;
     }
-    
+
     public enum Distance implements IValueEnum {
 
         CLOSE(0),

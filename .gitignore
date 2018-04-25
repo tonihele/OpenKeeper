@@ -1,5 +1,7 @@
 /nbproject/private/
 /build/
+.idea/
+*.iml
 /assets/Converted/
 # property file which holds the configuration
 openkeeper.properties
@@ -38,3 +40,6 @@ local.properties
 
 *.dylib
 /build/
+
+# gradle stuff #
+/private/

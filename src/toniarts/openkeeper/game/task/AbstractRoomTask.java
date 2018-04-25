@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.control.RoomObjectControl;
 
@@ -40,7 +41,7 @@ public abstract class AbstractRoomTask extends AbstractTileTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
 
         // See that the room exists and has capacity etc.
         return room.getRoomInstance().getOwnerId() == playerId && !room.isDestroyed() && !getRoomObjectControl().isFullCapacity();

@@ -17,47 +17,69 @@
 package toniarts.openkeeper.game.action;
 
 import com.jme3.math.Vector2f;
+import java.awt.Point;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import toniarts.openkeeper.game.control.Container;
+import toniarts.openkeeper.game.data.ITriggerable;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
  *
  * @author ArchDemon
  */
-public class ActionPoint extends Container {
+public class ActionPoint extends Container implements ITriggerable {
 
     private final int id;
+    private ActionPointState parent;
     private final int triggerId;
-    private final Vector2f start;
-    private final Vector2f end;
+    private final Point start;
+    private final Point end;
     private final EnumSet<Thing.ActionPoint.ActionPointFlag> flags;
     private final int waitDelay;
     private final int nextWaypointId;
+    private final List<Point> points;
 
     public ActionPoint(Thing.ActionPoint acionPoint) {
         id = acionPoint.getId();
-        start = new Vector2f(acionPoint.getStartX(), acionPoint.getStartY());
-        end = new Vector2f(acionPoint.getEndX(), acionPoint.getEndY());
+        start = new Point(acionPoint.getStartX(), acionPoint.getStartY());
+        end = new Point(acionPoint.getEndX(), acionPoint.getEndY());
         waitDelay = acionPoint.getWaitDelay();
         nextWaypointId = acionPoint.getNextWaypointId();
         flags = acionPoint.getFlags();
         triggerId = acionPoint.getTriggerId();
+
+        points = new ArrayList<>((end.x - start.x + 1) * (end.y - start.y + 1));
+        for (int x = start.x; x <= end.x; x++) {
+            for (int y = start.y; y <= end.y; y++) {
+                points.add(new Point(x, y));
+            }
+        }
     }
 
     public int getId() {
         return id;
     }
 
+    public ActionPointState getParent() {
+        return parent;
+    }
+
+    protected void setParent(ActionPointState parent) {
+        this.parent = parent;
+    }
+
+    @Override
     public int getTriggerId() {
         return triggerId;
     }
 
-    public Vector2f getStart() {
+    public Point getStart() {
         return start;
     }
 
-    public Vector2f getEnd() {
+    public Point getEnd() {
         return end;
     }
 
@@ -75,6 +97,10 @@ public class ActionPoint extends Container {
 
     public Vector2f getCenter() {
         return new Vector2f((start.x + end.x) / 2, (start.y + end.y) / 2);
+    }
+
+    public List<Point> getPoints() {
+        return points;
     }
 
     @Override

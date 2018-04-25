@@ -31,6 +31,7 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
@@ -41,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,28 +54,36 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.game.state.SoundState;
+import toniarts.openkeeper.game.state.SystemMessageState;
 import toniarts.openkeeper.game.task.TaskManager;
-import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.tools.modelviewer.Debug;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.world.animation.AnimationLoader;
+import toniarts.openkeeper.world.control.FlashTileControl;
+import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.creature.CreatureLoader;
-import toniarts.openkeeper.world.creature.pathfinding.MapDistance;
-import toniarts.openkeeper.world.creature.pathfinding.MapIndexedGraph;
-import toniarts.openkeeper.world.creature.pathfinding.MapPathFinder;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.listener.CreatureListener;
 import toniarts.openkeeper.world.listener.RoomListener;
 import toniarts.openkeeper.world.listener.TileChangeListener;
+import toniarts.openkeeper.world.object.GoldObjectControl;
+import toniarts.openkeeper.world.object.ObjectControl;
+import toniarts.openkeeper.world.pathfinding.MapDistance;
+import toniarts.openkeeper.world.pathfinding.MapIndexedGraph;
+import toniarts.openkeeper.world.pathfinding.MapPathFinder;
+import toniarts.openkeeper.world.pathfinding.PathFindable;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 import toniarts.openkeeper.world.room.control.RoomGoldControl;
@@ -101,10 +111,12 @@ public abstract class WorldState extends AbstractAppState {
     private List<TileChangeListener> tileChangeListener;
     private Map<Short, List<RoomListener>> roomListeners;
     private final GameState gameState;
+    private final FlashTileControl flashTileControl;
+    public final Object goldLock = new Object();
 
     private static final Logger logger = Logger.getLogger(WorldState.class.getName());
 
-    public WorldState(final KwdFile kwdFile, final AssetManager assetManager, GameState gameState, CreatureTriggerState creatureTriggerState) {
+    public WorldState(final KwdFile kwdFile, final AssetManager assetManager, GameState gameState) {
         this.kwdFile = kwdFile;
         this.gameState = gameState;
 
@@ -113,15 +125,20 @@ public abstract class WorldState extends AbstractAppState {
 
         // World node
         worldNode = new Node("World");
+        if (Main.isDebug()) {
+            Debug.showNodeAxes(assetManager, worldNode, 10);
+        }
 
         // Create physics state
         bulletAppState = new BulletAppState();
+        bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
 
         // Create the actual map
-        this.mapLoader = new MapLoader(assetManager, kwdFile, effectManager, this) {
+        thingLoader = new ThingLoader(this, kwdFile, assetManager);
+        this.mapLoader = new MapLoader(assetManager, kwdFile, effectManager, this, thingLoader.getObjectLoader()) {
             @Override
-            protected void updateProgress(int progress, int max) {
-                WorldState.this.updateProgress(progress, max);
+            protected void updateProgress(float progress) {
+                WorldState.this.updateProgress(progress);
             }
         };
         worldNode.attachChild(mapLoader.load(assetManager, kwdFile));
@@ -132,9 +149,10 @@ public abstract class WorldState extends AbstractAppState {
         heuristic = new MapDistance();
 
         // Things
-        thingLoader = new ThingLoader(this, kwdFile, assetManager);
-        thingsNode = thingLoader.loadAll(creatureTriggerState);
+        thingsNode = thingLoader.loadAll(gameState.getCreatureTriggerState(), gameState.getObjectTriggerState(), gameState.getDoorTriggerState(), gameState.getPartyTriggerState());
         worldNode.attachChild(thingsNode);
+
+        flashTileControl = new FlashTileControl(this, (Main) gameState.getApplication());
 
         // Player money
         initPlayerMoney();
@@ -177,6 +195,24 @@ public abstract class WorldState extends AbstractAppState {
 
                 @Override
                 public void onSpawn(CreatureControl creature) {
+                    if (player.getId() == stateManager.getState(PlayerState.class).getPlayerId() && player.getCreatureControl().getTypeCount(creature.getCreature()) == 0) {
+
+                        // First appearance
+                        String message;
+                        Integer overrideTextId = kwdFile.getGameLevel().getIntroductionOverrideTextIds().get(creature.getCreature().getCreatureId());
+                        if (overrideTextId != null) {
+                            message = String.format("${level.%d}", overrideTextId - 1);
+                            stateManager.getState(SoundState.class).attachLevelSpeech(overrideTextId);
+
+                            stateManager.getState(PlayerState.class).setText(overrideTextId, true, 0);
+                        } else {
+                            // default entrance message
+                            message = "${speech.376}";
+                            stateManager.getState(SoundState.class).attachMentorSpeech(376);
+                        }
+
+                        stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.CREATURE, message);
+                    }
                     player.getCreatureControl().onSpawn(creature);
                 }
 
@@ -251,11 +287,20 @@ public abstract class WorldState extends AbstractAppState {
         for (CreatureControl creature : getThingLoader().getCreatures()) {
             creature.setEnabled(enabled);
             if (enabled) {
-                CreatureLoader.resumeAnimations(creature.getSpatial());
+                AnimationLoader.resumeAnimations(creature.getSpatial());
             } else {
-                CreatureLoader.pauseAnimations(creature.getSpatial());
+                AnimationLoader.pauseAnimations(creature.getSpatial());
             }
         }
+    }
+
+    @Override
+    public void update(float tpf) {
+        if (!isInitialized() || !isEnabled()) {
+            return;
+        }
+
+        flashTileControl.update(tpf);
     }
 
     public AssetManager getAssetManager() {
@@ -265,10 +310,9 @@ public abstract class WorldState extends AbstractAppState {
     /**
      * If you want to monitor the map loading progress, use this method
      *
-     * @param progress current progress
-     * @param max max progress
+     * @param progress current progress from 0.0 to 1.0
      */
-    protected abstract void updateProgress(int progress, int max);
+    protected abstract void updateProgress(final float progress);
 
     /**
      * If you want to get notified about tile changes
@@ -464,7 +508,7 @@ public abstract class WorldState extends AbstractAppState {
         keeper.getGoldControl().addGold(value);
     }
 
-    public void alterTerrain(Point pos, short terrainId, short playerId) {
+    public void alterTerrain(Point pos, short terrainId, short playerId, boolean enqueue) {
         TileData tile = getMapData().getTile(pos.x, pos.y);
         if (tile == null) {
             return;
@@ -475,10 +519,35 @@ public abstract class WorldState extends AbstractAppState {
         if (playerId != 0) {
             tile.setPlayerId(playerId);
         }
+
         // See if room walls are allowed and does this touch any rooms
         updateRoomWalls(tile);
+
         // update one
-        mapLoader.updateTiles(mapLoader.getSurroundingTiles(pos, true));
+        updateTiles(enqueue, mapLoader.getSurroundingTiles(pos, true));
+    }
+
+    /**
+     * Update map tiles, on the scene graph
+     *
+     * @param enqueue if {@code false} this is executed in the current thread,
+     * otherwise it is enqueued to the update loop
+     * @param points the map points to update
+     */
+    protected void updateTiles(boolean enqueue, Point... points) {
+
+        // Enqueue if app is set
+        if (enqueue) {
+
+            app.enqueue(() -> {
+
+                mapLoader.updateTiles(points);
+
+                return null;
+            });
+        } else {
+            mapLoader.updateTiles(points);
+        }
     }
 
     /**
@@ -500,9 +569,11 @@ public abstract class WorldState extends AbstractAppState {
         }
 
         // FIXME: this is just a debug stuff, remove when the imps can carry the gold
-        addPlayerGold(Keeper.KEEPER1_ID, terrain.getGoldValue());
+        addPlayerGold(Player.KEEPER1_ID, terrain.getGoldValue());
 
         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
+        tile.setSelected(false, Player.KEEPER1_ID);
+        tile.setFlashed(false);
 
         // See if room walls are allowed and does this touch any rooms
         updateRoomWalls(tile);
@@ -527,8 +598,8 @@ public abstract class WorldState extends AbstractAppState {
         }
     }
 
-    public void flashTile(int x, int y, int time, boolean enabled) {
-        mapLoader.flashTile(x, y, time, enabled);
+    public void flashTile(boolean enabled, List<Point> points) {
+        flashTileControl.attach(points, enabled);
     }
 
     /**
@@ -586,16 +657,25 @@ public abstract class WorldState extends AbstractAppState {
                     continue;
                 }
 
-                // Build
-                TileData tile = getMapData().getTile(x, y);
-                tile.setPlayerId(player.getPlayerId());
-                tile.setTerrainId(room.getTerrainId());
-
                 Point p = new Point(x, y);
                 instancePlots.add(p);
                 buildPlots.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, false)));
                 updatableTiles.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, true)));
             }
+        }
+
+        // See that can we afford the building
+        int cost = instancePlots.size() * room.getCost();
+        if (instancePlots.size() * room.getCost() > gameState.getPlayer(player.getPlayerId()).getGoldControl().getGold()) {
+            return;
+        }
+        substractGoldFromPlayer(cost, player.getPlayerId());
+
+        // Build
+        for (Point p : instancePlots) {
+            TileData tile = getMapData().getTile(p);
+            tile.setPlayerId(player.getPlayerId());
+            tile.setTerrainId(room.getTerrainId());
         }
 
         // See if we hit any of the adjacent rooms
@@ -650,10 +730,31 @@ public abstract class WorldState extends AbstractAppState {
         mapLoader.updateTiles(updatableTiles.toArray(new Point[updatableTiles.size()]));
 
         // New room, calculate gold capacity
+        RoomInstance instance = mapLoader.getRoomCoordinates().get(instancePlots.get(0));
         if (adjacentInstances.isEmpty()) {
-            RoomInstance instance = mapLoader.getRoomCoordinates().get(instancePlots.get(0));
             addGoldCapacityToPlayer(instance);
             notifyOnBuild(instance.getOwnerId(), mapLoader.getRoomActuals().get(instance));
+        }
+
+        // Add any loose gold to the building
+        attachLooseGoldToRoom(mapLoader.getRoomActuals().get(instance), instance);
+    }
+
+    private void attachLooseGoldToRoom(GenericRoom genericRoom, RoomInstance instance) {
+        if (genericRoom.canStoreGold()) {
+            synchronized (goldLock) {
+                for (ObjectControl objectControl : thingLoader.getObjects()) {
+                    if (objectControl instanceof GoldObjectControl && instance.hasCoordinate(objectControl.getTile().getLocation())) {
+                        GoldObjectControl gold = (GoldObjectControl) objectControl;
+                        int goldLeft = (int) genericRoom.getObjectControl(GenericRoom.ObjectType.GOLD).addItem(gold.getGold(), gold.getTile().getLocation(), thingLoader, null);
+                        if (goldLeft == 0) {
+                            gold.removeObject();
+                        } else {
+                            gold.setGold(goldLeft);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -695,7 +796,8 @@ public abstract class WorldState extends AbstractAppState {
                 }
 
                 // Sell
-                TileData tile = getMapData().getTile(x, y);
+                Point p = new Point(x, y);
+                TileData tile = getMapData().getTile(p);
                 if (tile == null) {
                     continue;
                 }
@@ -704,19 +806,23 @@ public abstract class WorldState extends AbstractAppState {
                     Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-                    } else {
-
-                        // Water or lava
-                        if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
+                    } else // Water or lava
+                     if (tile.getFlag() == Tile.BridgeTerrainType.LAVA) {
                             tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
                         } else {
                             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                         }
+
+                    // Give money back
+                    int goldLeft = addGold(player.getPlayerId(), room.getCost() / 2);
+                    if (goldLeft > 0) {
+
+                        // Add loose gold to this tile
+                        getThingLoader().addLooseGold(p, player.getPlayerId(), goldLeft);
                     }
                 }
 
                 // Get the instance
-                Point p = new Point(x, y);
                 soldInstances.add(mapLoader.getRoomCoordinates().get(p));
                 updatableTiles.addAll(Arrays.asList(mapLoader.getSurroundingTiles(p, true)));
             }
@@ -739,8 +845,8 @@ public abstract class WorldState extends AbstractAppState {
             RoomInstance instance = mapLoader.getRoomCoordinates().get(p);
             if (instance != null && !newInstances.contains(instance)) {
                 newInstances.add(instance);
-                // TODO: The loose gold should be added to the room if the room can hold gold
                 addGoldCapacityToPlayer(instance);
+                attachLooseGoldToRoom(mapLoader.getRoomActuals().get(instance), instance);
             }
         }
     }
@@ -756,7 +862,9 @@ public abstract class WorldState extends AbstractAppState {
 
         // We might cache these per file? Then they would be persistent, just move them, does it matter?
         // Since creation of new objects and all, I don't know if they stay in the scene graph..
-        AudioNode audio = new AudioNode(assetManager, ConversionUtils.getCanonicalAssetKey(AssetsConverter.SOUNDS_FOLDER + soundFile), AudioData.DataType.Buffer);
+        AudioNode audio = new AudioNode(assetManager,
+                ConversionUtils.getCanonicalAssetKey(AssetsConverter.SOUNDS_FOLDER + soundFile),
+                AudioData.DataType.Buffer);
         audio.setPositional(true);
         audio.setReverbEnabled(false);
         audio.setLocalTranslation(x, 0, y);
@@ -772,10 +880,10 @@ public abstract class WorldState extends AbstractAppState {
      * @param creature
      * @return a random tile if one is found
      */
-    public Point findRandomAccessibleTile(Point start, int radius, Creature creature) {
+    public Point findRandomAccessibleTile(Point start, int radius, CreatureControl creature) {
         List<Point> tiles = new ArrayList<>(radius * radius - 1);
-        for (int y = start.y - radius / 2; y < start.y + radius / 2; y++) {
-            for (int x = start.x - radius / 2; x < start.x + radius / 2; x++) {
+        for (int y = start.y - radius; y <= start.y + radius; y++) {
+            for (int x = start.x - radius; x <= start.x + radius; x++) {
 
                 // Skip start tile
                 if (x == start.x && y == start.y) {
@@ -801,56 +909,30 @@ public abstract class WorldState extends AbstractAppState {
      *
      * @param start start point
      * @param end end point
-     * @param creature the creature to find path for
+     * @param pathFindable the entity to find path for
      * @return output path, null if path not found
      */
-    public GraphPath<TileData> findPath(Point start, Point end, Creature creature) {
-        pathFindingMap.setCreature(creature);
+    public GraphPath<TileData> findPath(Point start, Point end, PathFindable pathFindable) {
+        pathFindingMap.setPathFindable(pathFindable);
         GraphPath<TileData> outPath = new DefaultGraphPath<>();
-        if (pathFinder.searchNodePath(getMapData().getTile(start.x, start.y), getMapData().getTile(end.x, end.y), heuristic, outPath)) {
+        TileData startTile = getMapData().getTile(start.x, start.y);
+        TileData endTile = getMapData().getTile(end.x, end.y);
+        if (startTile != null && endTile != null && pathFinder.searchNodePath(startTile, endTile, heuristic, outPath)) {
             return outPath;
         }
         return null;
     }
 
     /**
-     * Get tile coordinates from 3D coordinates
-     *
-     * @param location position
-     * @return tile coordinates
-     */
-    public Point getTileCoordinates(Vector3f location) {
-        return new Point((int) Math.floor(location.x + 0.5f), (int) Math.floor(location.z + 0.5f));
-    }
-
-    /**
      * Check if given tile is accessible by the given creature
      *
      * @param tile the tile
-     * @param creature creature
+     * @param pathFindable the entity to test with
      * @return is accessible
      */
-    public boolean isAccessible(TileData tile, Creature creature) {
-        Terrain terrain = tile.getTerrain();
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-
-            // TODO: Rooms, obstacles and what not, should create an universal isAccessible(Creature) to map loader / world handler maybe
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-
-                // Get room obstacles
-                RoomInstance roomInstance = getMapLoader().getRoomCoordinates().get(new Point(tile.getX(), tile.getY()));
-                GenericRoom room = getMapLoader().getRoomActuals().get(roomInstance);
-                return room.isTileAccessible(tile.getX(), tile.getY());
-            } else if (creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY)) {
-                return true;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
-                return false;
-            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) && !creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER)) {
-                return false;
-            }
-            return true;
-        }
-        return false;
+    public boolean isAccessible(TileData tile, PathFindable pathFindable) {
+        Float cost = pathFindable.getCost(null, tile, this);
+        return cost != null;
     }
 
     /**
@@ -862,11 +944,13 @@ public abstract class WorldState extends AbstractAppState {
         for (Segment<Vector2> segment : linePath.getSegments()) {
 
             Line line = new Line(new Vector3f(segment.getBegin().x, 0.25f, segment.getBegin().y), new Vector3f(segment.getEnd().x, 0.25f, segment.getEnd().y));
-            Geometry geometry = new Geometry("Bullet", line);
+
             Material orange = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
             orange.setColor("Color", ColorRGBA.Red);
             orange.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
             orange.getAdditionalRenderState().setLineWidth(2);
+
+            Geometry geometry = new Geometry("Bullet", line);
             geometry.setCullHint(Spatial.CullHint.Never);
             geometry.setMaterial(orange);
             getWorld().attachChild(geometry);
@@ -945,8 +1029,13 @@ public abstract class WorldState extends AbstractAppState {
         boolean tileDestroyed;
         damage = Math.abs(damage);
         if (tile.getGold() > 0) { // Mine
-            returnedGold = tile.mineGold(damage);
-            tileDestroyed = (tile.getGold() < 1);
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
+                returnedGold = damage;
+                tileDestroyed = false;
+            } else {
+                returnedGold = tile.mineGold(damage);
+                tileDestroyed = (tile.getGold() < 1);
+            }
         } else { // Apply damage
             tileDestroyed = tile.applyDamage(damage);
         }
@@ -957,7 +1046,9 @@ public abstract class WorldState extends AbstractAppState {
             // TODO: effect, drop loot & checks, claimed walls should also get destroyed if all adjacent tiles are not in cotrol anymore
             // The tile is dead
             if (terrain.getDestroyedEffectId() != 0) {
-                effectManager.load(worldNode, new Vector3f(point.x + 0.5f, 0, point.y + 0.5f), terrain.getDestroyedEffectId(), false);
+                effectManager.load(worldNode,
+                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                        terrain.getDestroyedEffectId(), false);
             }
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
 
@@ -1007,11 +1098,19 @@ public abstract class WorldState extends AbstractAppState {
             // TODO: effect & checks
             // The tile is upgraded
             if (terrain.getMaxHealthEffectId() != 0) {
-                effectManager.load(worldNode, new Vector3f(point.x + 0.5f, 0, point.y + 0.5f), terrain.getMaxHealthEffectId(), false);
+                effectManager.load(worldNode,
+                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                        terrain.getMaxHealthEffectId(), false);
             }
-            if (terrain.getMaxHealthTypeTerrainId() > 0) {
+            if (terrain.getMaxHealthTypeTerrainId() != 0) {
                 tile.setTerrainId(terrain.getMaxHealthTypeTerrainId());
                 tile.setPlayerId(playerId);
+                terrain = tile.getTerrain();
+                if (tile.isAtFullHealth()) {
+                    effectManager.load(worldNode,
+                            WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                            terrain.getMaxHealthEffectId(), false);
+                }
             }
 
             updateRoomWalls(tile);
@@ -1124,7 +1223,7 @@ public abstract class WorldState extends AbstractAppState {
         // Calculate the damage
         int damage;
         short owner = tile.getPlayerId();
-        if (owner == 0) {
+        if (owner == Player.NEUTRAL_PLAYER_ID) {
             damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.CONVERT_ROOM_HEALTH);
         } else {
             damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_ROOM_HEALTH);
@@ -1145,7 +1244,16 @@ public abstract class WorldState extends AbstractAppState {
                 for (Point p2 : roomTiles) {
                     roomTile = getMapData().getTile(p2);
                     roomTile.setPlayerId(playerId); // Claimed!
-                    roomTile.applyHealing(Integer.MAX_VALUE);
+                    roomTile.applyHealing(tile.getTerrain().getMaxHealth());
+
+                    effectManager.load(worldNode,
+                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                        tile.getTerrain().getMaxHealthEffectId(), false);
+
+                    // FIXME ROOM_CLAIM_ID is realy claim effect?
+                    effectManager.load(worldNode,
+                            WorldUtils.pointToVector3f(p2).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                            room.getRoom().getEffects().get(EffectManagerState.ROOM_CLAIM_ID), false);
 
                     // TODO: Claimed room wall tiles lose the claiming I think?
                     notifyTileChange(p2);
@@ -1169,7 +1277,7 @@ public abstract class WorldState extends AbstractAppState {
      * @param sum the gold sum
      * @return returns a sum of gold that could not be added to player's gold
      */
-    final public int addGold(short playerId, int sum) {
+    public int addGold(short playerId, int sum) {
         return addGold(playerId, null, sum);
     }
 
@@ -1183,7 +1291,6 @@ public abstract class WorldState extends AbstractAppState {
      * @return returns a sum of gold that could not be added to player's gold
      */
     public int addGold(short playerId, Point p, int sum) {
-        int originalSum = sum;
 
         // Gold to specified point/room
         if (p != null) {
@@ -1195,11 +1302,7 @@ public abstract class WorldState extends AbstractAppState {
                 if (room.canStoreGold()) {
                     RoomGoldControl control = room.getObjectControl(GenericRoom.ObjectType.GOLD);
                     sum = control.addItem(sum, p, thingLoader, null);
-                } else {
-                    // TODO: generate loose gold
                 }
-            } else {
-                // TODO: generate loose gold
             }
         } else {
 
@@ -1215,18 +1318,12 @@ public abstract class WorldState extends AbstractAppState {
             }
         }
 
-        // Add to the player
-        addPlayerGold(playerId, originalSum - sum);
         return sum;
     }
 
     private void removeRoomInstances(RoomInstance... instances) {
         for (RoomInstance instance : instances) {
-            substractGoldCapacityFromPlayer(instance);
             notifyOnSold(instance.getOwnerId(), mapLoader.getRoomActuals().get(instance));
-
-            // TODO: The gold stored should turn into a loose gold
-            // Not only gold but all items that the rooms can hold
         }
         mapLoader.removeRoomInstances(instances);
     }
@@ -1310,6 +1407,108 @@ public abstract class WorldState extends AbstractAppState {
                 listener.onSold(room);
             }
         }
+    }
+
+    public EffectManagerState getEffectManager() {
+        return effectManager;
+    }
+
+    /**
+     * Drop object to the world
+     *
+     * @param object the object to drop
+     * @param tile the tile to drop on
+     * @param coordinates coordinates inside the tile
+     * @param control control that this object was dropped on
+     */
+    public void dropObject(ObjectControl object, TileData tile, Vector2f coordinates, IInteractiveControl control) {
+        if (object instanceof GoldObjectControl) {
+            dropGold((GoldObjectControl) object, tile, coordinates, control);
+        } else {
+            throw new UnsupportedOperationException("Dropping " + object.getClass() + " not supported yet.");
+        }
+    }
+
+    /**
+     * Drop a gold object to tile
+     *
+     * @param gold the gold to drop
+     * @param tile the tile to drop on
+     * @param coordinates coordinates inside the tile
+     * @param control control that this gold was dropped on
+     */
+    private void dropGold(GoldObjectControl gold, TileData tile, Vector2f coordinates, IInteractiveControl control) {
+
+        // In the original game:
+        // Floor: If the drop point is quite accurately on top of another pile of gold -> fuse the gold together. Otherwise create another pile, even to the same tile.
+        // Room: Add to the room, but any excess gold IS added to the floor tile of the room as loose gold. This loose gold is then automatically transfered to the room when there is room with a small delay.
+        // Merge to another loose gold
+        if (control != null && control instanceof GoldObjectControl && ((GoldObjectControl) control).getState() == ObjectControl.ObjectState.NORMAL) {
+
+            // Merge
+            GoldObjectControl goc = (GoldObjectControl) control;
+            goc.setGold(goc.getGold() + gold.getGold());
+            return;
+        }
+
+        // Add to room
+        int goldLeft = addGold(gold.getOwnerId(), tile.getLocation(), gold.getGold());
+        if (goldLeft > 0) {
+
+            // Create a gold pile
+            thingLoader.addLooseGold(tile.getLocation(), gold.getOwnerId(), goldLeft);
+        }
+    }
+
+    /**
+     * Substract gold from player
+     *
+     * @param amount the amount to try to substract
+     * @param playerId the player id
+     * @return amount of money that could not be substracted from the player
+     */
+    public int substractGoldFromPlayer(int amount, short playerId) {
+
+        // See if the player has any gold even
+        Keeper keeper = gameState.getPlayer(playerId);
+        if (keeper.getGoldControl().getGold() == 0) {
+            return amount;
+        }
+
+        // The gold is subtracted evenly from all treasuries
+        List<GenericRoom> playersTreasuries = getMapLoader().getRoomsByFunction(GenericRoom.ObjectType.GOLD, playerId);
+        while (amount > 0 && !playersTreasuries.isEmpty()) {
+            Iterator<GenericRoom> iter = playersTreasuries.iterator();
+            int goldToRemove = (int) Math.ceil((float) amount / playersTreasuries.size());
+            while (iter.hasNext()) {
+                GenericRoom room = iter.next();
+                RoomGoldControl control = room.getObjectControl(GenericRoom.ObjectType.GOLD);
+                goldToRemove = Math.min(amount, goldToRemove); // Rounding...
+                amount -= goldToRemove - control.removeGold(goldToRemove);
+                if (control.getCurrentCapacity() == 0) {
+                    iter.remove();
+                }
+                if (amount == 0) {
+                    break;
+                }
+            }
+        }
+
+        return amount;
+    }
+
+    /**
+     * Tests if there is a room in the given location
+     *
+     * @param p the point to test
+     * @return returns the room, or {@code null} if no room is found
+     */
+    public GenericRoom getRoomAtPoint(Point p) {
+        RoomInstance roomInstance = mapLoader.getRoomCoordinates().get(p);
+        if (roomInstance != null) {
+            return mapLoader.getRoomActuals().get(roomInstance);
+        }
+        return null;
     }
 
 }

@@ -18,11 +18,11 @@ package toniarts.openkeeper.game.player;
 
 import com.jme3.app.Application;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Abstract base for player controls that have availabilities
@@ -34,7 +34,7 @@ import java.util.Set;
 public abstract class AbstractPlayerControl<K extends Comparable<K>, V> {
 
     private final List<K> typesAvailable = new ArrayList<>();
-    protected final Map<K, Set<V>> types = new LinkedHashMap<>();
+    protected final Map<K, V> types = new LinkedHashMap<>();
     protected final Application application;
 
     public AbstractPlayerControl(Application application) {
@@ -70,15 +70,15 @@ public abstract class AbstractPlayerControl<K extends Comparable<K>, V> {
      *
      * @return the objects
      */
-    public Map<K, Set<V>> getTypes() {
+    public Map<K, V> getTypes() {
         return types;
     }
 
-    protected Set<V> get(K key) {
+    protected V get(K key) {
         return types.get(key);
     }
 
-    protected Set<V> put(K key, Set<V> value) {
+    protected V put(K key, V value) {
         return types.put(key, value);
     }
 
@@ -89,9 +89,13 @@ public abstract class AbstractPlayerControl<K extends Comparable<K>, V> {
      * @return amount of types
      */
     public int getTypeCount(K key) {
-        Set<V> set = types.get(key);
+        V set = types.get(key);
         if (set != null) {
-            return set.size();
+            if (set instanceof Collection) {
+                return ((Collection) set).size();
+            } else {
+                return 1;
+            }
         }
         return 0;
     }

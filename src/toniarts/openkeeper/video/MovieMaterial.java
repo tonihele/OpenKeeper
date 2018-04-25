@@ -23,6 +23,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.texture.Image;
 import com.jme3.texture.Image.Format;
 import com.jme3.texture.Texture2D;
+import com.jme3.texture.image.ColorSpace;
 import com.jme3.util.BufferUtils;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
@@ -37,7 +38,7 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
  */
 public class MovieMaterial {
 
-    private static Image emptyImage = new Image(Format.ABGR8, 1, 1, BufferUtils.createByteBuffer(new byte[]{0, 0, 0, 0}));
+    private static final Image emptyImage = new Image(Format.ABGR8, 1, 1, BufferUtils.createByteBuffer(new byte[]{0, 0, 0, 0}), ColorSpace.Linear);
     private boolean noFrame = true;
     private final boolean letterbox;
     private final ColorRGBA letterboxColor = ColorRGBA.Red.clone();
@@ -48,7 +49,7 @@ public class MovieMaterial {
     private Texture2D textureLuma;
     private Texture2D textureCr;
     private Texture2D textureCb;
-    private Application app;
+    private final Application app;
     private TgqFrame latestFrame;
     private TgqFrame jmeFrame;
     private Material material;
@@ -96,7 +97,7 @@ public class MovieMaterial {
             return;
         }
         if (tex.getImage().getData(0).capacity() != buf.capacity()) {
-            Image img = new Image(Format.Luminance8, stride, buf.capacity() / stride, buf);
+            Image img = new Image(Format.Luminance8, stride, buf.capacity() / stride, buf, ColorSpace.Linear);
             tex.setImage(img);
         } else {
             tex.getImage().setData(buf);

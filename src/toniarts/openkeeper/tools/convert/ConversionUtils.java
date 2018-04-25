@@ -26,19 +26,22 @@ import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Contains static helper methods
@@ -47,9 +50,11 @@ import java.util.regex.Pattern;
  */
 public class ConversionUtils {
 
-    private static final Logger logger = Logger.getLogger(ConversionUtils.class.getName());
-    private static final HashMap<String, String> fileNameCache = new HashMap<>();
-    private static final Object fileNameLock = new Object();
+    private static final Logger LOGGER = Logger.getLogger(ConversionUtils.class.getName());
+    private static final Map<String, String> FILENAME_CACHE = new HashMap<>();
+    private static final PathTree PATH_CACHE = new PathTree();
+    private static final Object FILENAME_LOCK = new Object();
+    private static final String QUOTED_FILE_SEPARATOR = Matcher.quoteReplacement(File.separator);
 
     public static final float FLOAT = 4096f; // or DIVIDER_FLOAT Fixed Point Single Precision Divider
     public static final float DOUBLE = 65536f; // or DIVIDER_DOUBLE Fixed Point Double Precision Divider
@@ -67,6 +72,14 @@ public class ConversionUtils {
         return ConversionUtils.readInteger(file) & 0xFFFFFFFFL;
     }
 
+    public static float readIntegerAsFloat(RandomAccessFile file) throws IOException {
+        return readInteger(file) / ConversionUtils.FLOAT;
+    }
+
+    public static float readIntegerAsDouble(RandomAccessFile file) throws IOException {
+        return readInteger(file) / ConversionUtils.DOUBLE;
+    }
+
     /**
      * Reads 4 bytes and converts it to JAVA int from LITTLE ENDIAN unsigned int
      *
@@ -78,7 +91,7 @@ public class ConversionUtils {
     public static int readUnsignedInteger(RandomAccessFile file) throws IOException {
         byte[] unsignedInt = new byte[4];
         file.read(unsignedInt);
-        return readUnsignedInteger(unsignedInt);
+        return toUnsignedInteger(unsignedInt);
     }
 
     /**
@@ -89,13 +102,13 @@ public class ConversionUtils {
      * @return JAVA native int
      * @see #readUnsignedIntegerAsLong(java.io.RandomAccessFile)
      */
-    public static int readUnsignedInteger(byte[] unsignedInt) {
-        int result = readInteger(unsignedInt);
+    public static int toUnsignedInteger(byte[] unsignedInt) {
+        int result = toInteger(unsignedInt);
         if (result < 0) {
 
             // Yes, this should be long, however, in our purpose this might be sufficient as int
             // Safety measure
-            logger.warning("This unsigned integer doesn't fit to JAVA integer! Use a different method!");
+            LOGGER.warning("This unsigned integer doesn't fit to JAVA integer! Use a different method!");
         }
         return result;
     }
@@ -110,7 +123,7 @@ public class ConversionUtils {
     public static int readInteger(RandomAccessFile file) throws IOException {
         byte[] signedInt = new byte[4];
         file.read(signedInt);
-        return readInteger(signedInt);
+        return toInteger(signedInt);
     }
 
     /**
@@ -120,7 +133,7 @@ public class ConversionUtils {
      * @param signedInt the byte array
      * @return JAVA native int
      */
-    public static int readInteger(byte[] signedInt) {
+    public static int toInteger(byte[] signedInt) {
         ByteBuffer buffer = ByteBuffer.wrap(signedInt);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         return buffer.getInt();
@@ -137,7 +150,7 @@ public class ConversionUtils {
     public static int readUnsignedShort(RandomAccessFile file) throws IOException {
         byte[] unsignedShort = new byte[2];
         file.read(unsignedShort);
-        return readUnsignedShort(unsignedShort);
+        return toUnsignedShort(unsignedShort);
     }
 
     /**
@@ -147,8 +160,8 @@ public class ConversionUtils {
      * @param unsignedShort the byte array
      * @return JAVA native int
      */
-    public static int readUnsignedShort(byte[] unsignedShort) {
-        return readShort(unsignedShort) & 0xFFFF;
+    public static int toUnsignedShort(byte[] unsignedShort) {
+        return toShort(unsignedShort) & 0xFFFF;
     }
 
     /**
@@ -162,7 +175,11 @@ public class ConversionUtils {
     public static short readShort(RandomAccessFile file) throws IOException {
         byte[] signedShort = new byte[2];
         file.read(signedShort);
-        return readShort(signedShort);
+        return toShort(signedShort);
+    }
+
+    public static float readShortAsFloat(RandomAccessFile file) throws IOException {
+        return readShort(file) / ConversionUtils.FLOAT;
     }
 
     /**
@@ -172,7 +189,7 @@ public class ConversionUtils {
      * @param signedShort the byte array
      * @return JAVA native short
      */
-    public static short readShort(byte[] signedShort) {
+    public static short toShort(byte[] signedShort) {
         ByteBuffer buffer = ByteBuffer.wrap(signedShort);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         return buffer.getShort();
@@ -188,7 +205,7 @@ public class ConversionUtils {
     public static float readFloat(RandomAccessFile file) throws IOException {
         byte[] f = new byte[4];
         file.read(f);
-        return readFloat(f);
+        return toFloat(f);
     }
 
     /**
@@ -198,7 +215,7 @@ public class ConversionUtils {
      * @param f the byte array
      * @return JAVA native float
      */
-    public static float readFloat(byte[] f) {
+    public static float toFloat(byte[] f) {
         ByteBuffer buffer = ByteBuffer.wrap(f);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         return buffer.getFloat();
@@ -208,11 +225,11 @@ public class ConversionUtils {
      * Converts a byte array to a JAVA String
      *
      * @param bytes the bytearray to convert
-     * @see #bytesToString(java.io.RandomAccessFile, int)
+     * @see #readString(java.io.RandomAccessFile, int)
      * @return fresh String
      */
-    public static String bytesToString(byte[] bytes) {
-        return new String(bytes, Charset.forName("US-ASCII"));
+    public static String toString(byte[] bytes) {
+        return new String(bytes, Charset.forName("windows-1252"));
     }
 
     /**
@@ -220,14 +237,14 @@ public class ConversionUtils {
      *
      * @param file the file
      * @param length string length
-     * @see #bytesToString(byte[])
+     * @see #toString(byte[])
      * @return fresh String
      * @throws IOException the reading may fail
      */
-    public static String bytesToString(RandomAccessFile file, int length) throws IOException {
+    public static String readString(RandomAccessFile file, int length) throws IOException {
         byte[] bytes = new byte[length];
         file.read(bytes);
-        return bytesToString(bytes);
+        return toString(bytes);
     }
 
     /**
@@ -235,14 +252,14 @@ public class ConversionUtils {
      *
      * @param file the file
      * @param length string length
-     * @see #bytesToStringUtf16(byte[])
+     * @see #toStringUtf16(byte[])
      * @return fresh String
      * @throws IOException the reading may fail
      */
-    public static String bytesToStringUtf16(RandomAccessFile file, int length) throws IOException {
+    public static String readStringUtf16(RandomAccessFile file, int length) throws IOException {
         byte[] bytes = new byte[length * 2];
         file.read(bytes);
-        return bytesToStringUtf16(bytes);
+        return toStringUtf16(bytes);
     }
 
     /**
@@ -252,7 +269,7 @@ public class ConversionUtils {
      * @param bytes the bytearray to convert
      * @return fresh String
      */
-    public static String bytesToStringUtf16(byte[] bytes) {
+    public static String toStringUtf16(byte[] bytes) {
         return new String(bytes, Charset.forName("UTF_16LE"));
     }
 
@@ -279,7 +296,7 @@ public class ConversionUtils {
             result.add(bytes[i + 1]);
         }
 
-        return ConversionUtils.bytesToStringUtf16(toByteArray(result));
+        return ConversionUtils.toStringUtf16(toByteArray(result));
     }
 
     /**
@@ -331,7 +348,7 @@ public class ConversionUtils {
         file.read(bytes);
         for (byte b : bytes) {
             if (b != 0) {
-                logger.log(Level.WARNING, "Value not 0! Was {0}!", b);
+                LOGGER.log(Level.WARNING, "Value not 0! Was {0}!", b);
             }
         }
     }
@@ -360,9 +377,32 @@ public class ConversionUtils {
                     break;
                 }
             } while (true);
-            strings.add(ConversionUtils.bytesToString(toByteArray(bytes)));
+            strings.add(ConversionUtils.toString(toByteArray(bytes)));
         }
         return strings;
+    }
+
+    /**
+     * Reads string of varying length (ASCII NULL terminated) from the file
+     *
+     * @param rawKmf rawKmf the file to read from
+     * @param length bytes to reed from file
+     * @return string read from the file
+     * @throws java.io.IOException
+     */
+    public static String readVaryingLengthString(RandomAccessFile rawKmf, int length) throws IOException {
+        byte[] bytes = new byte[length];
+        rawKmf.read(bytes);
+        List<Byte> string = new ArrayList();
+        // A bit tricky, read until 0 byte
+        for (byte b : bytes) {
+            if (b == 0) {
+                break;
+            }
+            string.add(b);
+        }
+
+        return ConversionUtils.toString(toByteArray(string));
     }
 
     /**
@@ -420,13 +460,22 @@ public class ConversionUtils {
      * @return fully qualified and working asset key
      */
     public static String getCanonicalAssetKey(String asset) {
-        String assetsFolder = AssetsConverter.getAssetsFolder();
+        return getCanonicalRelativePath(AssetsConverter.getAssetsFolder(), asset).replaceAll(QUOTED_FILE_SEPARATOR, "/");
+    }
+
+    /**
+     * Returns case sensitive and valid relative path
+     *
+     * @param rootPath the working start path, used to relativize the path
+     * @param path the unknown path to fix
+     * @return fully qualified and working relative path
+     */
+    public static String getCanonicalRelativePath(String rootPath, String path) {
         try {
-            File file = new File(getRealFileName(assetsFolder, asset)).getCanonicalFile();
-            return file.getPath().substring(assetsFolder.length()).replaceAll(Pattern.quote(File.separator), "/");
+            return getRealFileName(rootPath, path).substring(rootPath.length());
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Can not locate asset " + asset + "!", e);
-            return asset;
+            LOGGER.log(Level.WARNING, "Can not locate path " + path + " from " + rootPath + "!", e);
+            return path;
         }
     }
 
@@ -437,7 +486,7 @@ public class ConversionUtils {
      * @return the file name with native file separators
      */
     public static String convertFileSeparators(String fileName) {
-        return fileName.replaceAll("[/\\\\]", Matcher.quoteReplacement(File.separator));
+        return fileName.replaceAll("[/\\\\]", QUOTED_FILE_SEPARATOR);
     }
 
     /**
@@ -461,27 +510,43 @@ public class ConversionUtils {
         String fileKey = fileName.toLowerCase();
 
         // See cache
-        String cachedName = fileNameCache.get(fileKey);
+        String cachedName = FILENAME_CACHE.get(fileKey);
         if (cachedName == null) {
-            synchronized (fileNameLock) {
+            synchronized (FILENAME_LOCK) {
 
                 // If it exists as such, that is super!
-                File testFile = new File(fileName);
-                if (testFile.exists()) {
-                    fileNameCache.put(fileKey, testFile.getCanonicalPath());
-                    cachedName = testFile.getCanonicalPath();
+                Path testFile = Paths.get(fileName);
+                if (Files.exists(testFile)) {
+                    cachedName = testFile.toRealPath().toString();
+                    FILENAME_CACHE.put(fileKey, cachedName);
                 } else {
 
                     // Otherwise we need to do a recursive search
-                    final String[] path = uncertainPath.split(Matcher.quoteReplacement(File.separator));
-                    final Path realPathAsPath = new File(realPath).toPath();
+                    String certainPath = PATH_CACHE.getCertainPath(fileName, realPath);
+                    final String[] path = fileName.substring(certainPath.length()).split(QUOTED_FILE_SEPARATOR);
+
+                    // If the path length is 1, lets try, maybe it was just the file name
+                    if (path.length == 1 && !certainPath.equalsIgnoreCase(realPath)) {
+                        Path p = Paths.get(certainPath, path[0]);
+                        if (Files.exists(p)) {
+                            cachedName = p.toRealPath().toString();
+                            FILENAME_CACHE.put(fileKey, cachedName);
+                            return cachedName;
+                        }
+                    }
+
+                    // Find the file
+                    final Path realPathAsPath = Paths.get(certainPath);
                     FileFinder fileFinder = new FileFinder(realPathAsPath, path);
                     Files.walkFileTree(realPathAsPath, fileFinder);
-                    fileNameCache.put(fileKey, fileFinder.file);
+                    FILENAME_CACHE.put(fileKey, fileFinder.file);
                     cachedName = fileFinder.file;
                     if (fileFinder.file == null) {
                         throw new IOException("File not found " + testFile + "!");
                     }
+
+                    // Cache the known path
+                    PATH_CACHE.setPathToCache(fileFinder.file);
                 }
             }
         }
@@ -503,7 +568,7 @@ public class ConversionUtils {
             long flagValue = e.getFlagValue();
             if ((flagValue & flag) == flagValue) {
                 set.add(e);
-                leftOver = leftOver - flagValue;
+                leftOver -= flagValue;
             }
         }
         if (leftOver > 0) {
@@ -511,7 +576,7 @@ public class ConversionUtils {
             // Check the values not defined (there must be a better way to do this but me and numbers...)
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < 64; i++) {
-                long val = (int) Math.pow(2, i);
+                long val = (long) Math.pow(2, i);
                 if (val > leftOver) {
                     break;
                 } else if ((val & leftOver) == val) {
@@ -521,7 +586,7 @@ public class ConversionUtils {
                     sb.append(val);
                 }
             }
-            logger.log(Level.WARNING, "Value(s) {0} not specified for enum set class {1}!", new java.lang.Object[]{sb.toString(), enumeration.getName()});
+            LOGGER.log(Level.WARNING, "Value(s) {0} not specified for enum set class {1}!", new java.lang.Object[]{sb.toString(), enumeration.getName()});
         }
         return set;
     }
@@ -540,7 +605,7 @@ public class ConversionUtils {
                 return e;
             }
         }
-        logger.log(Level.WARNING, "Value {0} not specified for enum class {1}!", new java.lang.Object[]{value, enumeration.getName()});
+        LOGGER.log(Level.WARNING, "Value {0} not specified for enum class {1}!", new java.lang.Object[]{value, enumeration.getName()});
         return null;
 
     }
@@ -571,7 +636,7 @@ public class ConversionUtils {
                 } else {
 
                     // We are looking for a directory and we found it
-                    this.file = dir.toFile().getCanonicalPath().concat(File.separator);
+                    this.file = dir.toRealPath().toString().concat(File.separator);
                     return FileVisitResult.TERMINATE;
                 }
             }
@@ -583,7 +648,7 @@ public class ConversionUtils {
 
             // See if this is the file we are looking for
             if (level == path.length - 1 && file.getName(file.getNameCount() - 1).toString().equalsIgnoreCase(path[level])) {
-                this.file = file.toFile().getCanonicalPath();
+                this.file = file.toRealPath().toString();
                 return FileVisitResult.TERMINATE;
             }
 
@@ -594,5 +659,157 @@ public class ConversionUtils {
         public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
             return FileVisitResult.TERMINATE; // We already missed our window here
         }
+    }
+
+    /**
+     * Represents a simple path tree cache, with unlimited number of roots.
+     * Offers some methods to manage the tree.
+     */
+    private static class PathTree extends HashMap<String, PathNode> {
+
+        /**
+         * Add the path to cache from KNOWN file
+         *
+         * @param file the known and existing file
+         */
+        public void setPathToCache(String file) {
+            List<String> paths = new ArrayList<>(Arrays.asList(file.split(QUOTED_FILE_SEPARATOR)));
+            if (!paths.isEmpty()) {
+                if (!file.endsWith(File.separator)) {
+                    paths.remove(paths.size() - 1);
+                }
+                PathNode node = null;
+                for (String folder : paths) {
+                    node = getPath(folder, node, true);
+                }
+            }
+        }
+
+        private PathNode getPath(String folder, PathNode node, boolean add) {
+            String key = folder.toLowerCase();
+            Map<String, PathNode> leaf;
+            if (node != null) {
+                leaf = node.children;
+            } else {
+                leaf = this;
+            }
+            PathNode result = leaf.get(key);
+            if (result == null && add) {
+                result = new PathNode(folder, (node != null ? node.level + 1 : 0), node);
+                leaf.put(key, result);
+            }
+            return result;
+        }
+
+        /**
+         * Get certain path from cache
+         *
+         * @param fileName the file name we aim to find, if folder, we expect
+         * path separator at the end
+         * @param defaultPath the default path we know that exists, we'll return
+         * it if no cached path found
+         * @return the cached known path, quaranteed to be exactly the default
+         * path or deeper
+         */
+        public String getCertainPath(String fileName, String defaultPath) {
+            List<String> paths = new ArrayList<>(Arrays.asList(fileName.split(QUOTED_FILE_SEPARATOR)));
+            if (!paths.isEmpty()) {
+                if (!fileName.endsWith(File.separator)) {
+                    paths.remove(paths.size() - 1);
+                }
+                PathNode node = null;
+                for (String folder : paths) {
+                    PathNode nextNode = getPath(folder, node, false);
+                    if (nextNode != null) {
+                        node = nextNode;
+                    } else {
+                        break;
+                    }
+                }
+
+                // Return if we have longer path
+                if (node != null && node.path.length() > defaultPath.length()) {
+                    return node.path;
+                }
+            }
+            return defaultPath;
+        }
+
+    }
+
+    /**
+     * Path node that represents a single folder
+     */
+    private static class PathNode {
+
+        private final String path;
+        private final String name;
+        private final int level;
+        private final PathNode parent;
+        private final Map<String, PathNode> children = new HashMap<>();
+
+        public PathNode(String name, int level, PathNode parent) {
+            this.name = name;
+            this.level = level;
+            this.parent = parent;
+
+            StringBuilder sb = new StringBuilder();
+            if (parent != null) {
+                sb.append(parent.path);
+            }
+            sb.append(name);
+            sb.append(File.separator);
+            path = sb.toString();
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public int getLevel() {
+            return level;
+        }
+
+        public PathNode getParent() {
+            return parent;
+        }
+
+        public Map<String, PathNode> getChildren() {
+            return children;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 3;
+            hash = 67 * hash + Objects.hashCode(this.name);
+            hash = 67 * hash + this.level;
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final PathNode other = (PathNode) obj;
+            if (this.level != other.level) {
+                return false;
+            }
+            if (!Objects.equals(this.name, other.name)) {
+                return false;
+            }
+            return true;
+        }
+
     }
 }

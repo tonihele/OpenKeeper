@@ -43,16 +43,20 @@ public class MovementThread implements Runnable {
 
     @Override
     public void run() {
-        long start = System.currentTimeMillis();
+        try {
+            long start = System.currentTimeMillis();
 
-        // Update movement
-        for (AbstractCreatureSteeringControl steerable : thingLoader.getCreatures()) {
-            steerable.processSteeringTick(tpf, app);
+            // Update movement
+            for (AbstractCreatureSteeringControl steerable : thingLoader.getCreatures()) {
+                steerable.processSteeringTick(tpf, app);
+            }
+
+            // Logging
+            long tickTime = System.currentTimeMillis() - start;
+            logger.log(tickTime < tpf * 1000 ? Level.FINEST : Level.SEVERE, "Movement took {0}ms!", tickTime);
+        } catch (Exception e) {
+            logger.severe(e.getLocalizedMessage());
         }
-
-        // Logging
-        long tickTime = System.currentTimeMillis() - start;
-        logger.log(tickTime < tpf * 1000 ? Level.FINEST : Level.SEVERE, "Movement took {0}ms!", tickTime);
     }
 
 }

@@ -18,7 +18,6 @@ package toniarts.openkeeper.world;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
-import com.jme3.bounding.BoundingBox;
 import com.jme3.light.Light;
 import com.jme3.light.PointLight;
 import com.jme3.material.Material;
@@ -41,19 +40,22 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.world.control.FlashTileControl;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.world.effect.TorchControl;
+import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomConstructor;
 import toniarts.openkeeper.world.room.RoomInstance;
@@ -70,11 +72,21 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
+    public final static float TORCH_HEIGHT = 3 * TILE_HEIGHT / 2; // FIXME use Terrain Torch Height
+    public final static float TOP_HEIGHT = 2 * TILE_HEIGHT;
+    public final static float FLOOR_HEIGHT = 1 * TILE_HEIGHT;
+    public final static float UNDERFLOOR_HEIGHT = 0 * TILE_HEIGHT;
+    public final static float WATER_LEVEL = MapLoader.FLOOR_HEIGHT - 0.07f;
 
+    public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
+    public final static ColorRGBA COLOR_TAG = new ColorRGBA(0, 0, 0.8f, 1);
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
     private final static int FLOOR_INDEX = 0;
     private final static int WALL_INDEX = 1;
     private final static int TOP_INDEX = 2;
+    private final static String MAP_NODE = "Map";
+    private final static String TERRAIN_NODE = "Terrain";
+    private final static String ROOM_NODE = "Rooms";
     private List<Node> pages;
     private final KwdFile kwdFile;
     private Node map;
@@ -84,6 +96,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private Node roomsNode;
     private final Map<Point, Light> lightMap = new HashMap<>();
     private final WorldState worldState;
+    private final ObjectLoader objectLoader;
     private final List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
     private final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
@@ -93,11 +106,12 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
-    public MapLoader(AssetManager assetManager, KwdFile kwdFile, EffectManagerState effectManager, WorldState worldState) {
+    public MapLoader(AssetManager assetManager, KwdFile kwdFile, EffectManagerState effectManager, WorldState worldState, ObjectLoader objectLoader) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.effectManager = effectManager;
         this.worldState = worldState;
+        this.objectLoader = objectLoader;
 
         // Create modifiable tiles
         mapData = new MapData(kwdFile);
@@ -107,11 +121,19 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     public Spatial load(AssetManager assetManager, KwdFile object) {
 
         //Create a root
-        map = new Node("Map");
-        Node terrain = new Node("Terrain");
+        map = new Node(MAP_NODE);
+        Node terrain = new Node(TERRAIN_NODE);
         generatePages(terrain);
-        roomsNode = new Node("Rooms");
+        roomsNode = new Node(ROOM_NODE);
         terrain.attachChild(roomsNode);
+
+        // Go through the fixed rooms and construct them
+        for (Thing thing : kwdFile.getThings()) {
+            if (thing instanceof Thing.Room) {
+                Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
+                handleRoom(p, kwdFile.getRoomByTerrain(mapData.getTile(p).getTerrain().getTerrainId()), (Thing.Room) thing);
+            }
+        }
 
         // Go through the map
         int tilesCount = mapData.getWidth() * object.getMap().getHeight();
@@ -126,7 +148,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 }
 
                 // Update progress
-                updateProgress(y * object.getMap().getWidth() + x + 1, tilesCount);
+                updateProgress((float) (y * object.getMap().getWidth() + x + 1) / tilesCount);
             }
         }
 
@@ -164,7 +186,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
         // Reconstruct all tiles in the area
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
-        Node terrainNode = (Node) map.getChild(0);
+        Node terrainNode = (Node) map.getChild(TERRAIN_NODE);
         for (Point point : points) {
             TileData tile = mapData.getTile(point);
             // Reconstruct and mark for patching
@@ -196,7 +218,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             }
 
             // Reconstruct
-            handleTile(tile, (Node) map.getChild(0));
+            handleTile(tile, (Node) map.getChild(TERRAIN_NODE));
         }
 
         // Batch
@@ -213,53 +235,63 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private void setTileMaterialToGeometries(final TileData tile, final Node node) {
 
         // Change the material on geometries
-        if (tile.isSelected() || tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.DECAY)) {
-            node.depthFirstTraversal(new SceneGraphVisitor() {
-                @Override
-                public void visit(Spatial spatial) {
-                    if (spatial instanceof Geometry) {
-                        Material material = ((Geometry) spatial).getMaterial();
+        if (!tile.isFlashed() && !tile.isSelected()
+                && !tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.DECAY)) {
+            return;
+        }
 
-                        // Decay
-                        if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.DECAY) && tile.getTerrain().getTextureFrames() > 1) {
+        node.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (!(spatial instanceof Geometry)) {
+                    return;
+                }
 
-                            Integer texCount = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
-                            if (texCount != null) {
+                Material material = ((Geometry) spatial).getMaterial();
 
-                                // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
-                                // Now we have a random starting texture...
-                                int textureIndex = tile.getTerrain().getTextureFrames() - (int) Math.ceil(tile.getHealthPercent() / (100f / tile.getTerrain().getTextureFrames()));
-                                String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName().replaceFirst("_DECAY\\d", ""); // Unharmed texture
-                                if (textureIndex > 0) {
+                // Decay
+                if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.DECAY) && tile.getTerrain().getTextureFrames() > 1) {
 
-                                    // The first one doesn't have a number
-                                    if (textureIndex == 1) {
-                                        diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY.png");
-                                    } else {
-                                        diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY" + textureIndex + ".png");
-                                    }
-                                }
-                                try {
-                                    Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
-                                    material.setTexture("DiffuseMap", texture);
+                    Integer texCount = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
+                    if (texCount != null) {
 
-                                    AssetUtils.assignMapsToMaterial(assetManager, material);
-                                } catch (Exception e) {
-                                    logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, tile.getTerrain().getName(), e.getMessage()});
-                                }
+                        // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
+                        // Now we have a random starting texture...
+                        int textureIndex = tile.getTerrain().getTextureFrames() - (int) Math.ceil(tile.getHealthPercent() / (100f / tile.getTerrain().getTextureFrames()));
+                        String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName().replaceFirst("_DECAY\\d", ""); // Unharmed texture
+                        if (textureIndex > 0) {
+
+                            // The first one doesn't have a number
+                            if (textureIndex == 1) {
+                                diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY.png");
+                            } else {
+                                diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY" + textureIndex + ".png");
                             }
                         }
+                        try {
+                            Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
+                            material.setTexture("DiffuseMap", texture);
 
-                        // Selection
-                        if (tile.isSelected()) {
-                            material.setColor("Ambient", new ColorRGBA(0, 0, 0.8f, 1));
-                            material.setBoolean("UseMaterialColors", true);
+                            AssetUtils.assignMapsToMaterial(assetManager, material);
+                        } catch (Exception e) {
+                            logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, tile.getTerrain().getName(), e.getMessage()});
                         }
                     }
                 }
+
+                if (tile.isFlashed()) {
+                    material.setColor("Ambient", COLOR_FLASH);
+                    material.setBoolean("UseMaterialColors", true);
+                }
+                if (tile.isSelected()) {
+                    material.setColor("Ambient", COLOR_TAG);
+                    material.setBoolean("UseMaterialColors", true);
+                }
+
             }
-            );
-        }
+
+        });
+
     }
 
     /**
@@ -329,7 +361,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
         // Check for out of bounds
         if (neigbourTile == null) {
-            return loadModel(modelName, true);
+            return loadModel(modelName);
         }
 
         if (neigbourTile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
@@ -337,32 +369,20 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         }
 
         if (!(tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS))) {
-            return loadModel(modelName, true);
+            return loadModel(modelName);
         } else if (hasRoomWalls(neigbourTile)) {
             return getRoomWall(neigbourTile, direction);
         }
 
-        return loadModel(modelName, true);
+        return loadModel(modelName);
     }
 
     private Spatial getRoomWall(TileData tile, WallDirection direction) {
         Point p = tile.getLocation();
         Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
-        RoomInstance roomInstance = handleRoom(p, room);
+        RoomInstance roomInstance = handleRoom(p, room, null);
         GenericRoom gr = roomActuals.get(roomInstance);
         return gr.getWallSpatial(p, direction);
-    }
-
-    private Spatial transformWall(Spatial wall, int x, int y, float yAngle) {
-
-        // Move the ceiling to a correct tile
-        if (wall != null) {
-            if (yAngle != 0) {
-                wall.rotate(0, yAngle, 0);
-            }
-            wall.move(x * TILE_WIDTH, 0, y * TILE_WIDTH);
-        }
-        return wall;
     }
 
     /**
@@ -407,55 +427,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         });
     }
 
-    /**
-     * Loads the given asset and resets its scale and translation to match our
-     * give grid
-     *
-     * @param assetManager the asset manager
-     * @param asset the name and location of the asset (asset key)
-     * @param wall is this wall? Used to distinquish between sea levels and
-     * @return the asset loaded & ready to rock
-     */
-    public static Spatial loadAsset(final AssetManager assetManager, final String asset, final boolean wall) {
-        return loadAsset(assetManager, asset, wall, false);
-    }
+    private Spatial loadModel(final String model) {
+        Spatial spatial = AssetUtils.loadModel(assetManager, model);
 
-    /**
-     * Loads the given asset and resets its scale and translation to match our
-     * give grid
-     *
-     * @param assetManager the asset manager
-     * @param asset the name and location of the asset (asset key)
-     * @param wall is this wall? Used to distinquish between sea levels and
-     * @param useWeakCache use weak cache walls
-     * @return the asset loaded & ready to rock
-     */
-    public static Spatial loadAsset(final AssetManager assetManager, final String asset, final boolean wall, final boolean useWeakCache) {
-        Spatial spatial = AssetUtils.loadModel(assetManager, asset, useWeakCache);
-
-        // Set the transform and scale to our scale and 0 the transform
-        spatial.breadthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spatial) {
-                if (spatial instanceof Node && spatial.getParent() != null) {
-                    Node n = (Node) spatial;
-
-                    // "Reset"
-                    n.setLocalTranslation(0, 0, 0);
-                    n.setLocalScale(1f);
-
-                    // Set the translation so that everything moves similarly
-                    BoundingBox worldBound = (BoundingBox) n.getWorldBound();
-                    Vector3f boundCenter = worldBound.getCenter();
-                    n.setLocalTranslation(0 - boundCenter.x - worldBound.getXExtent(), 0 - boundCenter.y - (wall ? -worldBound.getYExtent() : worldBound.getYExtent()), 0 - boundCenter.z - worldBound.getZExtent());
-                }
-            }
-        });
         return spatial;
-    }
-
-    private Spatial loadModel(final String model, final boolean wall) {
-        return loadAsset(assetManager, AssetsConverter.MODELS_FOLDER + "/" + model + ".j3o", wall, false);
     }
 
     /**
@@ -472,7 +447,8 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         Node pageNode = getPageNode(p, root);
 
         // Torch (see https://github.com/tonihele/OpenKeeper/issues/128)
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && tile.getX() % 2 != 0 && tile.getY() % 2 != 0) {
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && (tile.getX() % 2 == 0 || tile.getY() % 2 == 0)) {
             handleTorch(tile, pageNode);
         }
 
@@ -481,7 +457,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
             // Construct the actual room
             Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-            handleRoom(p, room);
+            handleRoom(p, room, null);
 
             // Swap the terrain if this is a bridge
             terrain = kwdFile.getTerrainBridge(tile.getFlag(), room);
@@ -501,31 +477,49 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         // The rooms actually contain the torch model resource, but it is always the same,
         // and sometimes even null and there is still a torch. So I don't think they are used
         // Take the first direction where we can put a torch
-        Spatial spatial = null;
-        if (canPlaceTorch(tile.getX(), tile.getY() + 1)) { // North
-            spatial = loadModel("Torch1", false);
-            spatial = transformWall(spatial, 0, 0, FastMath.HALF_PI);
-            spatial.move(-TILE_WIDTH / 2 + 0.05f, 0, -0.175f);
-            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
-        } else if (canPlaceTorch(tile.getX() - 1, tile.getY())) { // East
-            spatial = loadModel("Torch1", false);
-            spatial.move(-TILE_WIDTH / 1.5f - 0.175f, 0, -TILE_WIDTH / 2 + 0.05f);
-            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
-        } else if (canPlaceTorch(tile.getX(), tile.getY() - 1)) { // South
-            spatial = loadModel("Torch1", false);
-            spatial = transformWall(spatial, 0, 0, -FastMath.HALF_PI);
-            spatial.move(-TILE_WIDTH / 2 - 0.05f, 0, -TILE_WIDTH / 1.5f - 0.175f);
-            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
-        } else if (canPlaceTorch(tile.getX() + 1, tile.getY())) { // West
-            spatial = loadModel("Torch1", false);
-            spatial = transformWall(spatial, 0, 0, FastMath.PI);
-            spatial.move(-0.175f, 0, -TILE_WIDTH / 2 - 0.05f);
-            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
+        String name = null;
+        float angleY = 0;
+        Vector3f position = Vector3f.ZERO;
+
+        if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() - 1)) { // North
+            name = "Torch1";
+            angleY = -FastMath.HALF_PI;
+            position = new Vector3f(0, TORCH_HEIGHT, -TILE_WIDTH / 2);
+
+        } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() - 1, tile.getY())) { // West
+            name = "Torch1";
+            position = new Vector3f(-TILE_WIDTH / 2, TORCH_HEIGHT, 0);
+
+        } else if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() + 1)) { // South
+            name = "Torch1";
+            angleY = FastMath.HALF_PI;
+            position = new Vector3f(0, TORCH_HEIGHT, TILE_WIDTH / 2);
+
+        } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() + 1, tile.getY())) { // East
+            name = "Torch1";
+            angleY = FastMath.PI;
+            position = new Vector3f(TILE_WIDTH / 2, TORCH_HEIGHT, 0);
         }
 
         // Move to tile and right height
-        if (spatial != null) {
-            spatial.move(tile.getX(), 0.75f, tile.getY());
+        if (name != null) {
+            // if room get room torch
+            if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                RoomInstance roomInstance = roomCoordinates.get(tile.getLocation());
+                if (roomInstance != null) {
+                    ArtResource torch = roomInstance.getRoom().getTorch();
+                    if (torch == null) {
+                        return;
+                    }
+                    name = torch.getName();
+                }
+            }
+            Spatial spatial = AssetUtils.loadModel(assetManager, name);
+            spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
+            spatial.rotate(0, angleY, 0);
+            spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));
+
+            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
 
             // Light
             PointLight light = new PointLight(spatial.getLocalTranslation(), ColorRGBA.Orange, TILE_WIDTH * 2);
@@ -541,16 +535,25 @@ public abstract class MapLoader implements ILoader<KwdFile> {
 
     }
 
-    private RoomInstance handleRoom(Point p, Room room) {
+    private RoomInstance handleRoom(Point p, Room room, Thing.Room thing) {
         if (roomCoordinates.containsKey(p)) {
             RoomInstance roomInstance = roomCoordinates.get(p);
             return roomInstance;
         }
 
-        RoomInstance roomInstance = new RoomInstance(room, mapData);
+        RoomInstance roomInstance = new RoomInstance(room, mapData, thing);
         findRoom(p, roomInstance);
         findRoomWallSections(roomInstance);
         rooms.add(roomInstance);
+
+        // Put the thing attributes in
+        if (thing != null) {
+            for (Point roomPoint : roomInstance.getCoordinates()) {
+                TileData tile = mapData.getTile(roomPoint);
+                tile.setPlayerId(thing.getPlayerId());
+                tile.setHealth((int) (tile.getTerrain().getMaxHealth() * (thing.getInitialHealth() / 100f)));
+            }
+        }
 
         Spatial roomNode = handleRoom(roomInstance);
         roomsNode.attachChild(roomNode);
@@ -599,7 +602,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
                 model = terrain.getTopResource();
             }
-            spatial = loadModel(model.getName(), false);
+            spatial = loadModel(model.getName());
         }
 
         if (terrain.getFlags().contains(Terrain.TerrainFlag.RANDOM_TEXTURE)) {
@@ -609,82 +612,42 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         Node topTileNode;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             topTileNode = getTileNode(p, (Node) pageNode.getChild(TOP_INDEX));
-            spatial.move(0, TILE_HEIGHT, 0);
-
         } else {
             topTileNode = getTileNode(p, (Node) pageNode.getChild(FLOOR_INDEX));
-            spatial.move(0, 0, 0);
         }
+
         topTileNode.attachChild(spatial);
         setTileMaterialToGeometries(tile, topTileNode);
-        topTileNode.move(p.x * TILE_WIDTH, 0, p.y * TILE_WIDTH);
+        AssetUtils.translateToTile(topTileNode, p);
+
+        tile.setTopNode(topTileNode);
     }
 
     private void handleSide(TileData tile, Node pageNode) {
         Point p = tile.getLocation();
         Node sideTileNode = getTileNode(p, (Node) pageNode.getChild(WALL_INDEX));
 
-        // North
-        Spatial wall = getWallSpatial(tile, WallDirection.NORTH);
-        if (wall != null) {
-            sideTileNode.attachChild(transformWall(wall, 0, -1, 0));
-        }
-
-        // South
-        wall = getWallSpatial(tile, WallDirection.SOUTH);
-        if (wall != null) {
-            sideTileNode.attachChild(transformWall(wall, -1, 0, FastMath.PI));
-        }
-
-        // East
-        wall = getWallSpatial(tile, WallDirection.EAST);
-        if (wall != null) {
-            sideTileNode.attachChild(transformWall(wall, 0, 0, -FastMath.HALF_PI));
-        }
-
-        // West
-        wall = getWallSpatial(tile, WallDirection.WEST);
-        if (wall != null) {
-            sideTileNode.attachChild(transformWall(wall, -1, -1, FastMath.HALF_PI));
+        for (WallDirection direction : WallDirection.values()) {
+            Spatial wall = getWallSpatial(tile, direction);
+            if (wall != null) {
+                wall.rotate(0, direction.getAngle(), 0);
+                sideTileNode.attachChild(wall);
+            }
         }
 
         setTileMaterialToGeometries(tile, sideTileNode);
+        AssetUtils.translateToTile(sideTileNode, p);
 
-        sideTileNode.setLocalTranslation(p.x * TILE_WIDTH, 0, p.y * TILE_WIDTH);
+        tile.setSideNode(sideTileNode);
     }
 
-    public void flashTile(int x, int y, int time, boolean enabled) {
+    public void flashTile(boolean enabled, List<Point> points) {
 
-        Point p = new Point(x, y);
-        Node terrainNode = (Node) map.getChild(0);
-        Node pageNode = getPageNode(p, terrainNode);
-
-        Node tileNode = getTileNode(p, (Node) pageNode.getChild(FLOOR_INDEX));
-        if (tileNode != null) {
-            if (enabled) {
-                tileNode.addControl(new FlashTileControl(time));
-            } else {
-                tileNode.removeControl(FlashTileControl.class);
-            }
+        for (Point p : points) {
+            mapData.getTile(p.x, p.y).setFlashed(enabled);
         }
 
-        tileNode = getTileNode(p, (Node) pageNode.getChild(WALL_INDEX));
-        if (tileNode != null) {
-            if (enabled) {
-                tileNode.addControl(new FlashTileControl(time));
-            } else {
-                tileNode.removeControl(FlashTileControl.class);
-            }
-        }
-
-        tileNode = getTileNode(p, (Node) pageNode.getChild(TOP_INDEX));
-        if (tileNode != null) {
-            if (enabled) {
-                tileNode.addControl(new FlashTileControl(time));
-            } else {
-                tileNode.removeControl(FlashTileControl.class);
-            }
-        }
+        updateTiles(points.toArray(new Point[points.size()]));
     }
 
     /**
@@ -835,23 +798,10 @@ public abstract class MapLoader implements ILoader<KwdFile> {
      * @param roomInstance the room instance
      */
     private Spatial handleRoom(RoomInstance roomInstance) {
-        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, effectManager, kwdFile, worldState);
+        GenericRoom room = RoomConstructor.constructRoom(roomInstance, assetManager, effectManager, worldState, objectLoader);
         roomActuals.put(roomInstance, room);
         updateRoomWalls(roomInstance);
         return room.construct();
-    }
-
-    /**
-     * Get a standard camera position vector on given map point
-     *
-     * @param x tile x coordinate
-     * @param y tile y coordinate
-     * @return camera location
-     */
-    public static Vector3f getCameraPositionOnMapPoint(final int x, final int y) {
-        return new Vector3f((x * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2),
-                0f,
-                (y * MapLoader.TILE_WIDTH - MapLoader.TILE_WIDTH / 2));
     }
 
     /**
@@ -1078,8 +1028,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     }
 
     private void addIfValidCoordinate(final int x, final int y, List<Point> tileCoords) {
-        if ((x >= 0 && x < mapData.getWidth() && y >= 0 && y < mapData.getHeight())) {
-            tileCoords.add(new Point(x, y));
+        TileData tile = mapData.getTile(x, y);
+        if (tile != null) {
+            tileCoords.add(tile.getLocation());
         }
     }
 
@@ -1121,11 +1072,30 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     }
 
     /**
+     * Get rooms by function.<br> FIXME: Should the player have ready lists?
+     *
+     * @param objectType the function
+     * @param playerId the player id, can be null
+     * @return list of rooms that match the criteria
+     */
+    public List<GenericRoom> getRoomsByFunction(GenericRoom.ObjectType objectType, Short playerId) {
+        List<GenericRoom> roomsList = new ArrayList<>();
+        for (Entry<RoomInstance, GenericRoom> entry : roomActuals.entrySet()) {
+            if (playerId != null && entry.getKey().getOwnerId() != playerId) {
+                continue;
+            }
+            if (entry.getValue().hasObjectControl(objectType)) {
+                roomsList.add(entry.getValue());
+            }
+        }
+        return roomsList;
+    }
+
+    /**
      * If you want to monitor the map loading progress, use this method
      *
-     * @param progress current progress
-     * @param max max progress
+     * @param progress current progress from 0.0 to 1.0
      */
-    protected abstract void updateProgress(final int progress, final int max);
+    protected abstract void updateProgress(final float progress);
 
 }

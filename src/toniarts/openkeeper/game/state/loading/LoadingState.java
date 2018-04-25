@@ -49,7 +49,7 @@ public abstract class LoadingState extends AbstractAppState {
     private Geometry titleScreen;
     private boolean load = true;
     private Future loadFuture = null;
-    private ExecutorService exec = Executors.newSingleThreadExecutor();
+    private final ExecutorService exec = Executors.newSingleThreadExecutor();
     protected int imageWidth;
     protected int imageHeight;
 
@@ -86,8 +86,8 @@ public abstract class LoadingState extends AbstractAppState {
         int imgWidth = tex.getImage().getWidth();
         int imgHeight = tex.getImage().getHeight();
         float imageRatio = imgWidth / (float) imgHeight;
-        int height = app.getUserSettings().getAppSettings().getHeight();
-        int width = app.getUserSettings().getAppSettings().getWidth();
+        int height = Main.getUserSettings().getAppSettings().getHeight();
+        int width = Main.getUserSettings().getAppSettings().getWidth();
         imageWidth = (int) (height * imageRatio);
         imageHeight = (int) (width / imageRatio);
         if (width / (float) height > imageRatio) {
@@ -137,12 +137,7 @@ public abstract class LoadingState extends AbstractAppState {
 
         super.cleanup();
     }
-    private final Callable<Void> loadingCallable = new Callable<Void>() {
-        @Override
-        public Void call() {
-            return onLoad();
-        }
-    };
+    private final Callable<Void> loadingCallable = () -> onLoad();
 
     /**
      * Add your loading logic here, <b>do NOT</b> manipulate the scene from

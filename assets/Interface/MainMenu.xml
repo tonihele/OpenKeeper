@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<nifty xmlns="http://nifty-gui.sourceforge.net/nifty-1.3.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<nifty xmlns="http://nifty-gui.lessvoid.com/nifty-gui" xmlns:xsi="http://www.w3.org/2001/XMLSchema">
     <useStyles filename="nifty-default-styles.xml" />
     <useStyles filename="Interface/DropDownStyle.xml" />
     <useStyles filename="Interface/ScrollbarStyle.xml" />
@@ -13,8 +13,8 @@
     <useControls filename="Interface/CreditsControl.xml" />
     <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
 
-    <registerSound id="buttonClick" filename="Sounds/Global/FE3D CLICK ON T.mp2" />
-    <registerSound id="menuClick" filename="Sounds/Global/FE BUTTON BIG 5.mp2" />
+    <registerSound id="buttonClick" filename="Sounds/Global/GuiHD/FE3D CLICK ON T.mp2" />
+    <registerSound id="menuClick" filename="Sounds/Global/FrontEndHD/FE BUTTON BIG 5.mp2" />
 
     <style id="text">
         <attributes font="Interface/Fonts/Frontend14.fnt" color="#bbbcbb" />
@@ -29,11 +29,14 @@
             <onClick neverStopRendering="true" name="playSound" sound="menuClick"/>
         </effect>
     </style>
+    <style id="menuTextDisabled">
+        <attributes font="Interface/Fonts/Frontend28.fnt" color="#bbbcbb" />
+    </style>
     <style id="menuTitleText">
         <attributes font="Interface/Fonts/Frontend36.fnt" color="#ff5f00" />
     </style>
 
-     <style id="menuSubTitleText">
+    <style id="menuSubTitleText">
         <attributes font="Interface/Fonts/Frontend20.fnt" color="#ffdd33" />
     </style>
 
@@ -47,14 +50,14 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- empty screen -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="empty" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="empty" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer />
     </screen>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- start screen -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="start" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="start" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel height="20%" childLayout="center" valign="center" align="center">
                 <image filename="Textures/Logo.png" align="center" />
@@ -99,7 +102,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- single player game -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="singlePlayer" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="singlePlayer" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel height="14%" childLayout="center" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.71}" align="center" />
@@ -115,7 +118,7 @@
                     <text style="text" text="" align="center" /><!-- empty string -->
 
                     <text style="menuText" text="${menu.141}" align="center">
-                        <interact onClick="doTransition(271,skirmish,273)" />
+                        <interact onClick="startSkirmish()" />
                     </text>
                     <text id="loadGame" style="menuText" text="${menu.145}" align="center" />
                 </panel>
@@ -129,7 +132,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- quit game -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="quitGame" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="quitGame" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel height="14%" childLayout="center" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.28}" align="center" />
@@ -139,7 +142,7 @@
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control name="cancelButton" click="goToScreen(start)" />
-                <control name="okButton" click="quitGame()" />
+                <control name="okButton" click="quitToOS()" />
             </panel>
         </layer>
     </screen>
@@ -147,7 +150,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Campaign map, level selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="selectCampaignLevel" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="selectCampaignLevel" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel height="*" />
             <panel childLayout="horizontal" align="right" valign="bottom">
@@ -159,7 +162,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Campaign level briefing -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="campaign" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="briefing" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" align="center" valign="center" height="14%">
                 <text style="menuTitleText" text="${menu.1476}" align="center" />
@@ -171,7 +174,7 @@
 
             <panel height="26px" />
             <!--Main objectives-->
-            <panel childLayout="horizontal" width="100%" align="center" valign="center">
+            <panel childLayout="horizontal" id="mainObjectivePanel" width="100%" align="center" valign="center">
                 <panel childLayout="center" width="160px" align="center" valign="center">
                     <image align="center" valign="top" id="mainObjectiveImage" width="144px" />
                 </panel>
@@ -196,7 +199,7 @@
                     <panel childLayout="vertical" width="100%" backgroundColor="#f508" >
                         <text align="left" margin="0,8px" id="subObjectivesTitle" style="menuSubTitleText" text="${menu.1409}" />
                     </panel>
-                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="8px">
+                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="4px">
                         <control name="label" style="menuTextSmall" id="subObjective1"  margin="0,8px"
                                  textHAlign="left" wrap="true" />
                         <control name="label" style="menuTextSmall" id="subObjective2"  margin="0,8px"
@@ -217,9 +220,116 @@
     </screen>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Campaign level debriefing -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="debriefing" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
+        <layer childLayout="vertical">
+            <panel childLayout="center" align="center" valign="center" height="14%">
+                <text style="menuTitleText" text="${menu.1478}" align="center" />
+            </panel>
+
+            <panel childLayout="center" align="center" valign="center">
+                <control name="label" id="dLevelTitle" style="menuSubTitleText" align="center" />
+            </panel>
+
+            <panel height="26px" />
+            <!--Main objectives-->
+            <panel childLayout="horizontal" width="100%" align="center" valign="center">
+                <panel childLayout="center" width="160px" align="center" valign="center">
+                    <image align="center" valign="top" id="dMainObjectiveImage" width="144px" />
+                </panel>
+                <panel childLayout="vertical" width="*" align="left" valign="top">
+                    <panel childLayout="vertical" backgroundColor="#f508" width="100%" paddingLeft="10px" >
+                        <text text="${menu.2898}" style="menuSubTitleText" align="left" />
+                    </panel>
+                    <panel childLayout="horizontal" backgroundColor="#0008" marginTop="4px">
+                        <panel childLayout="vertical" width="70%" paddingLeft="10px">
+                            <text text="${menu.1641}" align="left" style="menuTextSmall" />
+                            <text text="${menu.1637}" align="left" style="menuTextSmall" />
+                            <text text="${menu.1638}" align="left" style="menuTextSmall" />
+                        </panel>
+                        <panel childLayout="vertical" width="*">
+                            <control name="label" id="totalEvilRating" text="?" style="menuTextSmall"
+                                     textHAlign="left" textVAlign="top" />
+                            <control name="label" id="overallTotalEvilRating" text="?" style="menuTextSmall"
+                                     textHAlign="left" textVAlign="top" />
+                            <control name="label" id="specialsFound" text="?/?" style="menuTextSmall"
+                                     textHAlign="left" textVAlign="top" />
+                        </panel>
+                    </panel>
+                </panel>
+            </panel>
+
+            <panel height="10px" />
+            <!--Subobjectives-->
+            <panel childLayout="horizontal" width="100%" align="center" valign="center">
+                <panel childLayout="center" width="160px" align="center" valign="center">
+                    <image align="center" valign="top" id="dSubObjectiveImage" width="144px"/>
+                </panel>
+                <panel childLayout="overlay" width="*" align="left" valign="top" backgroundColor="#f508">
+                    <control name="scrollPanel" horizontal="false" stepSizeY="30">
+                        <!-- TODO maybe use Table ? -->
+                        <panel childLayout="horizontal" width="100%">
+                            <panel childLayout="vertical" width="70%" paddingLeft="10px">
+                                <text text="${menu.1516}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1410}" align="left" style="menuTextSmall" /> <!-- or 987 -->
+                                <text text="${menu.1413}" align="left" style="menuTextSmall" /> <!-- or 988 -->
+                                <text text="${menu.1509}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1510}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1511}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1411}" align="left" style="menuTextSmall" /> <!-- or 994 -->
+                                <text text="${menu.1512}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1513}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1514}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1429}" align="left" style="menuTextSmall" /> <!-- or 1002 -->
+                                <text text="${menu.1515}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1636}" align="left" style="menuTextSmall" />
+                            </panel>
+                            <panel childLayout="vertical" width="*" paddingRight="30px">
+                                <control name="label" id="levelWon" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="timeTaken" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="enemyCreaturesKilled" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="heroesDestroyed" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="roomsCaptured" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="landOwned" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="GoldMined" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="ManaStored" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="itemsManufactured" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="creaturesCommanded" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="creaturesConverted" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="creatureTraning" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                                <control name="label" id="AttemptsAtLevel" text="?" style="menuSubTitleText"
+                                         textHAlign="right" textVAlign="center" width="100%" />
+                            </panel>
+                        </panel>
+                    </control>
+                </panel>
+            </panel>
+
+            <panel height="*" />
+
+            <panel childLayout="horizontal" align="right" valign="bottom">
+                <control name="okButton" click="cancelLevelSelect()" />
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Options, main selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="optionsMain" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="optionsMain" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.94}" align="center" />
@@ -248,7 +358,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Graphic options -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="optionsGraphics" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="optionsGraphics" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.96}" align="center" />
@@ -305,7 +415,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Sound Options -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="optionsSound" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="optionsSound" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.95}" align="center" />
@@ -325,7 +435,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Control Options -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="optionsControl" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="optionsControl" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.98}" align="center" />
@@ -379,7 +489,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Extras -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="extras" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="extras" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.73}" align="center" />
@@ -415,7 +525,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Top players -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="hiscores" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="hiscores" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.2802}" align="center"/>
@@ -432,14 +542,14 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- View Movies -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="movies" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="movies" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.93}" />
             </panel>
 
             <control id="moviePanel" name="scrollPanel" align="center" valign="center"
-                     horizontal="false" height="*" width="80%">
+                     horizontal="false" height="*" width="80%" stepSizeY="30">
                 <panel id="movieList" childLayout="vertical">
                     <!-- placeholder for movies -->
                 </panel>
@@ -453,7 +563,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Movie still locked message -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="cutsceneLocked" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="cutsceneLocked" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel height="14%" />
 
@@ -470,13 +580,13 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Credits -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="credits" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="credits" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.372}" />
             </panel>
             <panel childClip="true" align="center" valign="center" childLayout="vertical" height="*" visibleToMouse="false">
-                <control name="creditsPanel" width="80%"/>
+                <control name="creditsPanel" width="80%" action="restartCredits()" />
             </panel>
             <panel childLayout="center" align="right" valign="bottom">
                 <control name="okButton" click="doTransition(266,extras,261)" />
@@ -487,9 +597,9 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Multi player game -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="multiplayer" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="multiplayer" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
-           <panel childLayout="center" height="14%" align="center" valign="center">
+            <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.149}" />
             </panel>
 
@@ -511,9 +621,9 @@
         </layer>
     </screen>
 
-    <screen id="multiplayerLocal" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="multiplayerLocal" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
-           <panel childLayout="center" height="14%" align="center" valign="center">
+            <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.168}" />
             </panel>
 
@@ -568,9 +678,10 @@
         </layer>
     </screen>
 
-    <screen id="multiplayerWatch" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="multiplayerWatch" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
+
         <layer childLayout="vertical">
-           <panel childLayout="center" height="14%" align="center" valign="center">
+            <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.2729}" />
             </panel>
 
@@ -579,11 +690,11 @@
                     <panel align="center" childLayout="horizontal" >
                         <!-- TODO Need normal server connection -->
                         <text style="menuTitleText" text="Name" />
-                        <control name="textfield" id="playerName" text="ArchDemon" maxLength="20" />
+                        <control name="textfield" id="playerName" text="" maxLength="20" />
                     </panel>
                     <panel align="center" childLayout="horizontal">
                         <text style="menuTitleText" text="Address" />
-                        <control name="textfield" id="hostAddress" text="192.168.0.100" maxLength="20" />
+                        <control name="textfield" id="hostAddress" text="" maxLength="20" />
                     </panel>
                     <panel align="right" childLayout="horizontal">
                         <text style="menuText" text="Connect">
@@ -599,23 +710,38 @@
         </layer>
     </screen>
 
-    <screen id="multiplayerCreate" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <!-- A popup that says connecting... -->
+    <popup id="connectingLayer" childLayout="center" backgroundColor="#000a">
+        <text style="menuTitleText" text="${menu.2070}" />
+    </popup>
+
+    <!-- Error message, TODO: beautify... -->
+    <popup id="errorMessage" childLayout="center" backgroundColor="#000a">
+        <panel childLayout="center" height="*" align="center" valign="center">
+            <panel childLayout="vertical" align="center" valign="center" visibleToMouse="true">
+                <control name="label" style="menuTitleText" id="title" text="" />
+                <control name="label" id="message" style="menuTextSmall" />
+                <control name="okButton" align="right" click="closeErrorMessage()" />
+            </panel>
+        </panel>
+    </popup>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Skirmish (& also MP with changes) level selection -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="skirmishLobby" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
-           <panel childLayout="center" height="14%" align="center" valign="center">
+            <panel childLayout="center" height="14%" align="center" valign="center">
                 <control name="label" style="menuTitleText" id="multiplayerTitle" text="" />
             </panel>
 
             <!--Two panels, left the game stuff, right the map selection stuff-->
             <panel width="95%" childLayout="horizontal" align="center" valign="center">
-                <panel width="66%" childLayout="vertical" align="center" valign="top" paddingRight="5%">
-                    <control id="playersTable" name="table" vertical="optional" displayItems="4" selection="Single"
-                             colCount="5"
-                             col0="${menu.1688};34;java.lang.String;#32050c30"
-                             col1="${menu.263};33;java.lang.String;#32050c30"
-                             col2="${menu.195};11;java.lang.String;#00752430"
-                             col3="${menu.1499};11;java.lang.String;#00779e30"
-                             col4=";11;java.lang.String;#00752430"
-                    />
+                <panel id="playersPanel" width="66%" childLayout="vertical" align="center" valign="top" paddingRight="5%">
+                    <panel backgroundColor="#80808030" id="ipPanel" childLayout="horizontal" marginBottom="8px">
+                        <control name="label" id="ip" style="menuTextSmall" />
+                    </panel>
+                    <!--Players table is dynamically added here -->
                 </panel>
                 <panel width="*" childLayout="vertical" align="center" valign="top">
                     <panel backgroundColor="#f508" width="100%" childLayout="center" marginBottom="8px">
@@ -632,36 +758,26 @@
             <panel width="95%" childLayout="horizontal" align="center" valign="center" paddingTop="10px">
 
                 <panel width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
-                    <panel width="100%" childLayout="horizontal">
+                    <panel width="100%" childLayout="horizontal" id="multiplayerPlayerControl">
                         <panel width="50%" childLayout="vertical">
                             <text style="menuText" text="${menu.270}" align="left">
-                                <!--<interact onClick="kickPlayer()" />-->
+                                <interact onClick="kickPlayer()" />
                             </text>
                         </panel>
                         <panel width="50%" childLayout="vertical">
-                            <text style="menuText" text="${menu.2121}" align="center">
-                                <!--<interact onClick="changeAI()" />-->
+                            <text id="changeAi" style="menuText" text="${menu.2121}" align="right">
+                                <interact onClick="changeAI()" />
                             </text>
-                            <text style="menuText" text="${menu.1547}" align="center">
-                                <!--<interact onClick="addComputerPlayer()" />-->
+                            <text style="menuText" text="${menu.1547}" align="right">
+                                <interact onClick="addComputerPlayer()" />
                             </text>
                         </panel>
                     </panel>
-                    <panel height="*" align="center" valign="bottom" childLayout="center" visibleToMouse="true">
-                        <!-- TODO Use chat control or custom ?
-                        <control id="#chatBox" name="listBox" vertical="optional" horizontal="optional" selection="Disabled"
-                             displayItems="5" />
-                        <control id="multiplayerChatText" name="textfield" />
-                        <control id="multiplayerChatSend" name="button" width="" label="Send">
-                            <interact onClick="multiplayerSend()"/>
-                        </control>
-                        -->
-                        <!-- TODO sendLabel="Send Message" -->
-                        <control id="multiplayerChat" name="nifty-chat" width="100%" height="100%" lines="5" />
-
+                    <panel id="chatPanel" height="*" align="center" valign="bottom" childLayout="center" visibleToMouse="true">
+                        <control id="multiplayerChat" name="chat" width="100%" height="100%" lines="5" />
                     </panel>
                 </panel>
-                <panel width="*" childLayout="vertical" align="center" valign="top">
+                <panel width="*" childLayout="vertical" align="center" valign="top" id="multiplayerMapControl">
                     <text style="menuText" text="${menu.1495}" align="center">
                         <interact onClick="goToScreen(skirmishMapSelect)" />
                     </text>
@@ -678,42 +794,33 @@
             <panel height="*" />
 
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control name="okButton" click="startLevel(multiplayer)" />
-                <control name="cancelButton" click="goToScreen(multiplayerLocal)" />
+                <control name="cancelButton" click="cancelMultiplayer()" />
+                <control name="okButton" click="setPlayerReady()" />
             </panel>
         </layer>
     </screen>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <!-- MPD -->
+    <!-- MPD Main -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="myPetDungeon" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="myPetDungeon" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.1675}" />
             </panel>
 
-            <panel height="*" align="center" valign="center" childLayout="vertical">
-                <text style="menuText" text="${mpd1.0}" align="center">
+            <panel id="mpdList" height="*" align="center" valign="center" childLayout="vertical">
+                <text id="mpd1" style="menuText" text="${mpd1.0}" align="center">
                     <interact onClick="selectMPDLevel(1)" />
                 </text>
-                <text style="menuText" text="${mpd2.0}" align="center">
-                    <interact onClick="selectMPDLevel(2)" />
+                <text id="mpd2" style="menuTextDisabled" text="${mpd2.0}" align="center"></text>
+                <text id="mpd3" style="menuTextDisabled" text="${mpd3.0}" align="center"></text>
+                <text id="mpd4" style="menuTextDisabled" text="${mpd4.0}" align="center"></text>
+                <text id="mpd5" style="menuTextDisabled" text="${mpd5.0}" align="center"></text>
+                <text id="mpd6" style="menuTextDisabled" text="${mpd6.0}" align="center"></text>
+                <text id="mpdOther" style="menuText" text="${menu.1618}" align="center">
+                    <interact onClick="goToScreen(myPetDungeonMapSelect)" />
                 </text>
-                <text style="menuText" text="${mpd3.0}" align="center">
-                    <interact onClick="selectMPDLevel(3)" />
-                </text>
-                <text style="menuText" text="${mpd4.0}" align="center">
-                    <interact onClick="selectMPDLevel(4)" />
-                </text>
-                <text style="menuText" text="${mpd5.0}" align="center">
-                    <interact onClick="selectMPDLevel(5)" />
-                </text>
-                <text style="menuText" text="${mpd6.0}" align="center">
-                    <interact onClick="selectMPDLevel(6)" />
-                </text>
-                <!-- TODO -->
-                <text id="mpdOther" style="menuText" text="${menu.1618}" align="center"/>
             </panel>
 
             <panel childLayout="horizontal" align="right" valign="bottom">
@@ -724,75 +831,30 @@
     </screen>
 
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <!-- Skirmish (& also MP with changes) level selection -->
+    <!-- MPD Map Selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="skirmish" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="myPetDungeonMapSelect" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
-                <text style="menuTitleText" text="${menu.141}" />
+                <text style="menuTitleText" text="${menu.1675}" />
             </panel>
-            <!--Two panels, left the game stuff, right the map selection stuff-->
-            <panel width="95%" childLayout="horizontal" align="center" valign="center">
-                <panel width="66%" childLayout="vertical" align="center" valign="top" paddingRight="5%">
-                    <control id="playersTable" name="table" vertical="optional" displayItems="4" selection="Single"
-                             colCount="5"
-                             col0="${menu.1688};34;java.lang.String;#32050c30"
-                             col1=";33;java.lang.String;#32050c30"
-                             col2=";11;java.lang.String;#00752430"
-                             col3=";11;java.lang.String;#00779e30"
-                             col4=";11;java.lang.String;#00752430"
+
+            <panel id="mpdPanel" width="95%" childLayout="horizontal" align="center" valign="center">
+                <panel id="mapsPanel" childLayout="vertical" align="center" valign="top">
+                    <control id="mapsTable" name="table" vertical="on" displayItems="15"
+                             selection="Single" forceSelection="false" colCount="3"
+                             col0="${menu.1544};50;java.lang.String;#32050c30"
+                             col1="${menu.2960};25;java.lang.String;#32050c30"
+                             col2="${menu.1545};25;java.lang.String;#00752430"
                     />
                 </panel>
-                <panel width="*" childLayout="vertical" align="center" valign="top">
-                    <panel backgroundColor="#f508" width="100%" childLayout="center" marginBottom="8px">
-                        <control name="label" align="center" id="mapNameTitle" style="menuTextSmall" />
-                    </panel>
-                    <panel childLayout="horizontal" valign="center" align="center">
-                        <text style="menuTextSmall" text="${menu.1492}" />
-                        <control name="label" id="playerCount" style="menuTextSmall" />
-                    </panel>
-                    <image align="center" id="mapImage" />
-                </panel>
-            </panel>
-            <!--Two panels, left the game stuff, right the map selection stuff-->
-            <panel width="95%" childLayout="horizontal" align="center" valign="center" paddingTop="10px">
-
-                <panel width="66%" childLayout="vertical" align="center" valign="center" paddingRight="5%">
-                    <panel id="skirmishPlayerControl" width="100%" childLayout="horizontal">
-                        <panel width="50%" childLayout="vertical">
-                            <text style="menuText" text="${menu.270}" align="left">
-                                <!--<interact onClick="kickPlayer()" />-->
-                            </text>
-                        </panel>
-                        <panel width="50%" childLayout="vertical">
-                            <text style="menuText" text="${menu.2121}" align="center">
-                                <!--<interact onClick="changeAI()" />-->
-                            </text>
-                            <text style="menuText" text="${menu.1547}" align="center">
-                                <!--<interact onClick="addComputerPlayer()" />-->
-                            </text>
-                        </panel>
-                    </panel>
-                </panel>
-                <panel id="skirmishGameControl" width="*" childLayout="vertical" align="center" valign="top">
-                    <text style="menuText" text="${menu.1495}" align="center">
-                        <interact onClick="goToScreen(skirmishMapSelect)" />
-                    </text>
-                    <text style="menuText" text="${menu.1496}" align="center">
-                        <interact onClick="selectRandomMap()" />
-                    </text>
-                    <text style="menuText" text="${menu.2803}" align="center">
-                        <!--<interact onClick="gameSettings()" />-->
-                    </text>
-                </panel>
-
             </panel>
 
             <panel height="*" />
 
             <panel childLayout="horizontal" align="right" valign="bottom">
-                <control name="cancelButton" click="doTransition(272,singlePlayer,274)" />
-                <control name="okButton" click="startLevel(skirmish)" />
+                <control name="cancelButton" click="goToScreen(myPetDungeon)" />
+                <text style="menuText" text="" width="48px" margin="5px" />
             </panel>
         </layer>
     </screen>
@@ -800,7 +862,7 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Map selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
-    <screen id="skirmishMapSelect" controller="toniarts.openkeeper.game.state.MainMenuState">
+    <screen id="skirmishMapSelect" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel childLayout="center" height="14%" align="center" valign="center">
                 <text style="menuTitleText" text="${menu.2800}" />

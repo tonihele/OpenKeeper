@@ -17,7 +17,11 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
-import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.world.object.ObjectLoader;
+import toniarts.openkeeper.world.room.control.RoomResearcherControl;
+import toniarts.openkeeper.world.room.control.RoomSpellBookControl;
 
 /**
  * The library
@@ -26,8 +30,23 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public class Library extends Normal {
 
-    public Library(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    public Library(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
+        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
+
+        addObjectControl(new RoomResearcherControl(this) {
+
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                return getFurnitureCount();
+            }
+        });
+        addObjectControl(new RoomSpellBookControl(this) {
+
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                return getFloorFurnitureCount();
+            }
+        });
     }
 
     @Override

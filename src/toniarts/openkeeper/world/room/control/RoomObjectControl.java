@@ -18,7 +18,9 @@ package toniarts.openkeeper.world.room.control;
 
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.world.ThingLoader;
@@ -27,15 +29,17 @@ import toniarts.openkeeper.world.object.ObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
- * Room object controller
+ * Room object controller. FIXME: Cache the coorninates and listen to changes in
+ * rooms
  *
  * @param <T> the held object type
+ * @param <V> the value type to add
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomObjectControl<T extends ObjectControl> {
+public abstract class RoomObjectControl<T extends ObjectControl, V> {
 
     protected final GenericRoom parent;
-    protected final Map<Point, T> objects = new HashMap<>();
+    protected final Map<Point, Collection<T>> objectsByCoordinate = new HashMap<>();
 
     public RoomObjectControl(GenericRoom parent) {
         this.parent = parent;
@@ -67,22 +71,22 @@ public abstract class RoomObjectControl<T extends ObjectControl> {
     /**
      * Add item to room
      *
-     * @param sum the number of items to add
+     * @param value the number of items to add
      * @param p preferred dropping point for the item
      * @param thingLoader thing loader for displaying the actual item
      * @param creature the creature adding the item
      * @return the item count that doesn't fit
      */
-    public abstract int addItem(int sum, Point p, ThingLoader thingLoader, CreatureControl creature);
+    public abstract V addItem(V value, Point p, ThingLoader thingLoader, CreatureControl creature);
 
     /**
-     * Get a room object
+     * Get a room objects
      *
      * @param p the object from point
-     * @return the object in given point
+     * @return the objects in given point
      */
-    public T getItem(Point p) {
-        return objects.get(p);
+    public Collection<T> getItems(Point p) {
+        return objectsByCoordinate.get(p);
     }
 
     /**
@@ -109,17 +113,59 @@ public abstract class RoomObjectControl<T extends ObjectControl> {
      * @param object the object
      */
     public void removeItem(T object) {
-        objects.values().remove(object);
+        object.setRoomObjectControl(null);
+        for (Collection<T> objects : objectsByCoordinate.values()) {
+            if (objects.remove(object)) {
+                break;
+            }
+        }
     }
 
     /**
      * Removes all objects (for real)
      */
     protected void removeAllObjects() {
-        List<ObjectControl> objectList = new ArrayList<>(objects.values());
-        for (ObjectControl obj : objectList) {
-            obj.removeObject();
+        List<Collection<T>> objectList = new ArrayList<>(objectsByCoordinate.values());
+        for (Collection<T> objects : objectList) {
+            for (T obj : objects) {
+                obj.removeObject();
+            }
         }
+    }
+
+    /**
+     * Gets all coordinates, coordinates that can handle the objects
+     *
+     * @return list of all coordinates
+     */
+    protected Collection<Point> getCoordinates() {
+        List<Point> coordinates = new ArrayList<>(parent.getRoomInstance().getCoordinates());
+        Iterator<Point> iter = coordinates.iterator();
+        while (iter.hasNext()) {
+            Point p = iter.next();
+            if (!parent.isTileAccessible(null, p)) {
+                iter.remove();
+            }
+        }
+        return coordinates;
+    }
+
+    /**
+     * Gets available coordinates
+     *
+     * @return list of available coordinates
+     */
+    public Collection<Point> getAvailableCoordinates() {
+        List<Point> coordinates = new ArrayList<>(getCoordinates());
+        Iterator<Point> iter = coordinates.iterator();
+        while (iter.hasNext()) {
+            Point p = iter.next();
+            Collection<T> items = getItems(p);
+            if (items != null && items.size() == getObjectsPerTile()) {
+                iter.remove();
+            }
+        }
+        return coordinates;
     }
 
 }

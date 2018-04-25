@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.task.worker;
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.task.AbstractRoomTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
@@ -37,16 +38,16 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
         if (!executed) {
-            return super.isValid();
+            return super.isValid(creature);
         }
         return false;
     }
 
     @Override
     public Vector2f getTarget(CreatureControl creature) {
-        return new Vector2f(getTaskLocation().x + 0.5f, getTaskLocation().y + 0.5f);
+        return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
     @Override

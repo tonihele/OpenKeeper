@@ -53,7 +53,7 @@ public class Bf4Extractor {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        final String textFolder = dkIIFolder.concat(PathUtils.DKII_DATA_FOLDER).concat(File.separator).concat(PathUtils.DKII_TEXT_FOLDER).concat(File.separator).concat(PathUtils.DKII_DEFAULT_FOLDER).concat(File.separator);
+        final String textFolder = dkIIFolder + PathUtils.DKII_TEXT_DEFAULT_FOLDER;
 
         //And the destination
         String destination = PathUtils.fixFilePath(args[0]);
@@ -81,9 +81,11 @@ public class Bf4Extractor {
 
             for (Bf4Entry entry : bf4) {
                 if (entry.getImage() != null) {
-                    String baseDir = destination.concat(ConversionUtils.stripFileName(file.getName())).concat(File.separator);
+                    String baseDir = destination + ConversionUtils.stripFileName(file.getName()) + File.separator;
                     new File(baseDir).mkdirs();
-                    ImageIO.write(entry.getImage(), "png", new File(baseDir.concat(ConversionUtils.stripFileName(entry.toString()).concat("_").concat(Integer.toString(entry.getCharacter())).concat(".png"))));
+                    ImageIO.write(entry.getImage(), "png", new File(baseDir
+                            + ConversionUtils.stripFileName(entry.toString()) + "_"
+                            + Integer.toString(entry.getCharacter()) + ".png"));
                 }
             }
         }

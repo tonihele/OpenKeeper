@@ -25,15 +25,13 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  *
  * @author ArchDemon
  */
-
-
 public class TriggerGenericData extends TriggerData {
 
     private TriggerGeneric.ComparisonType comparison; // Target comparison type
     private TriggerGeneric.TargetType target;
     private short repeatTimes; // Repeat x times, 255 = always
     private TriggerGenericData lastTrigger = null;
-    private SafeArrayList<TriggerData> children = new SafeArrayList<>(TriggerData.class);
+    private final SafeArrayList<TriggerData> children = new SafeArrayList<>(TriggerData.class);
     private static final Logger logger = Logger.getLogger(TriggerGenericData.class.getName());
 
     public TriggerGenericData() {
@@ -92,8 +90,10 @@ public class TriggerGenericData extends TriggerData {
     }
 
     /**
-     * <code>getChild</code> returns the first child found with exactly the given id (case sensitive.) This method does a depth first
-     * recursive search of all descendants of this node, it will return the first spatial found with a matching name.
+     * <code>getChild</code> returns the first child found with exactly the
+     * given id (case sensitive.) This method does a depth first recursive
+     * search of all descendants of this node, it will return the first spatial
+     * found with a matching name.
      *
      * @param i the id of the child to retrieve. If null, we'll return null.
      * @return the child if found, or null.
@@ -103,7 +103,8 @@ public class TriggerGenericData extends TriggerData {
     }
 
     /**
-     * determines if the provided TriggerActionData is contained in the children map of this TriggerGenericData.
+     * determines if the provided TriggerActionData is contained in the children
+     * map of this TriggerGenericData.
      *
      * @param trigger the child object to look for.
      * @return true if the object is contained, false otherwise.
@@ -123,7 +124,8 @@ public class TriggerGenericData extends TriggerData {
     }
 
     /**
-     * Returns all children to this TriggerGenericData. Note that modifying that given list is not allowed.
+     * Returns all children to this TriggerGenericData. Note that modifying that
+     * given list is not allowed.
      *
      * @return a list containing all children to this node
      */
@@ -133,8 +135,9 @@ public class TriggerGenericData extends TriggerData {
 
     /**
      *
-     * <code>attachChildAt</code> attaches a child to this node at an index. This node becomes the child's parent. The current number of
-     * children maintained is returned.
+     * <code>attachChildAt</code> attaches a child to this node at an index.
+     * This node becomes the child's parent. The current number of children
+     * maintained is returned.
      * <br>
      * If the child already had a parent it is detached from that former parent.
      *
@@ -165,8 +168,9 @@ public class TriggerGenericData extends TriggerData {
 
     /**
      *
-     * <code>attachChild</code> attaches a child to this TriggerGenericData at an index. This node becomes the child's parent. The current
-     * number of children maintained is returned.
+     * <code>attachChild</code> attaches a child to this TriggerGenericData at
+     * an index. This node becomes the child's parent. The current number of
+     * children maintained is returned.
      * <br>
      * If the child already had a parent it is detached from that former parent.
      *
@@ -197,7 +201,8 @@ public class TriggerGenericData extends TriggerData {
 
     /**
      *
-     * <code>detachAllChildren</code> removes all children attached to this TriggerGenericData.
+     * <code>detachAllChildren</code> removes all children attached to this
+     * TriggerGenericData.
      */
     public void detachAllChildren() {
         for (int i = children.size() - 1; i >= 0; i--) {
@@ -223,10 +228,11 @@ public class TriggerGenericData extends TriggerData {
     }
 
     /**
-     * <code>detachChild</code> removes a given child from the TriggerGenericData's map. This child will no longe be
-     * maintained. Only the first child with a matching id is removed.
+     * <code>detachChild</code> removes a given child from the
+     * TriggerGenericData's map. This child will no longer be maintained. Only
+     * the first child with a matching id is removed.
      *
-     * @param id the child to remove.
+     * @param index the child to remove
      * @return the index the child was at. -1 if the child was not in the list.
      */
     public TriggerData detachChildAt(int index) {
@@ -247,10 +253,12 @@ public class TriggerGenericData extends TriggerData {
     }
 
     /**
-     * <code>getChildIndex</code> returns the index of the given TriggerData in this TriggerGenericData's list of children.
+     * <code>getChildIndex</code> returns the index of the given TriggerData in
+     * this TriggerGenericData's list of children.
      *
      * @param child The TriggerData to look up
-     * @return The index of the TriggerData in the TriggerGenericData's children, or -1 if the TriggerData is not attached to this node
+     * @return The index of the TriggerData in the TriggerGenericData's
+     * children, or -1 if the TriggerData is not attached to this node
      */
     public int getChildIndex(TriggerData child) {
         return children.indexOf(child);

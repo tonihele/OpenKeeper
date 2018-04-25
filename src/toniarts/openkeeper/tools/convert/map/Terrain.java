@@ -18,6 +18,7 @@ package toniarts.openkeeper.tools.convert.map;
 
 import java.awt.Color;
 import java.util.EnumSet;
+import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 
 /**
@@ -28,7 +29,7 @@ import toniarts.openkeeper.tools.convert.IFlagEnum;
  *
  * Thank you https://github.com/werkt
  */
-public class Terrain implements Comparable<Terrain> {
+public class Terrain implements Comparable<Terrain>, ISoundable {
 
     /**
      * Terrain flags
@@ -87,7 +88,7 @@ public class Terrain implements Comparable<Terrain> {
     //  uint32_t light_height; /* 18c */
     //  uint32_t flags; /* 190 */
     //  uint16_t damage; /* 194 */
-    //  uint16_t unk196; /* 196 */
+    //  uint16_t editorTextureId; /* 196 */
     //  uint16_t unk198; /* 198 */
     //  uint16_t gold_value; /* 19a */
     //  uint16_t mana_gain; /* 19c */
@@ -126,7 +127,7 @@ public class Terrain implements Comparable<Terrain> {
     private float lightHeight; // 18c, fixed point
     private EnumSet<TerrainFlag> flags; // 190
     private int damage; // 194
-    private int unk196; // 196
+    private int editorTextureId; // 196 Data\editor\Graphics\TerrainIcons.bmp
     private int unk198; // 198
     private int goldValue; // 19a
     private int manaGain; // 19c
@@ -195,12 +196,12 @@ public class Terrain implements Comparable<Terrain> {
         this.damage = damage;
     }
 
-    public int getUnk196() {
-        return unk196;
+    public int getEditorTextureId() {
+        return editorTextureId;
     }
 
-    protected void setUnk196(int unk196) {
-        this.unk196 = unk196;
+    protected void setEditorTextureId(int editorTextureId) {
+        this.editorTextureId = editorTextureId;
     }
 
     public int getUnk198() {
@@ -379,6 +380,7 @@ public class Terrain implements Comparable<Terrain> {
         this.textureFrames = textureFrames;
     }
 
+    @Override
     public String getSoundCategory() {
         return soundCategory;
     }

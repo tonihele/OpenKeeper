@@ -26,12 +26,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  * @author Toni Helenius <helenius.toni@gmail.com>
  * @author ArchDemon
  */
-public class Variable { //    struct VariableBlock {
-//        int x00;
-//        int x04;
-//        int x08;
-//        int x0c;
-//        };
+public class Variable {
 
     public enum SacrificeType implements IValueEnum {
 
@@ -147,8 +142,8 @@ public class Variable { //    struct VariableBlock {
 
         public enum AvailabilityValue implements IValueEnum {
 
-            DISABLE(2),
             EMPTY(1),
+            DISABLE(2),
             ENABLE(3),
             EMPTY_ROOM(4);
 

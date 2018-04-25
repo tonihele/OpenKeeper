@@ -18,13 +18,20 @@ package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
-import java.util.PriorityQueue;
+import java.io.File;
+import java.util.ArrayDeque;
+import java.util.Queue;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.sound.SoundCategory;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 
 /**
  * This state plays different sounds
@@ -37,7 +44,7 @@ public class SoundState extends AbstractPauseAwareState {
     private AppStateManager stateManager;
     private AudioNode speech = null;
     private AudioNode background = null;
-    private PriorityQueue<Integer> speechQueue = new PriorityQueue<>();
+    private final Queue<String> speechQueue = new ArrayDeque<>();
     private static final Logger logger = Logger.getLogger(SoundState.class.getName());
 
     public SoundState() {
@@ -60,14 +67,43 @@ public class SoundState extends AbstractPauseAwareState {
         return false;
     }
 
-    public void attachSpeech(int speechId) {
-        speechQueue.add(speechId);
+    /**
+     * Plays mentor speeches for the current level
+     *
+     * @param speechId
+     */
+    public void attachLevelSpeech(int speechId) {
+        String soundCategory = stateManager.getState(GameState.class).getLevelData().getGameLevel().getSoundCategory();
+        attachSpeech(soundCategory, speechId);
     }
 
-    private void playSpeech(int speechId) {
-        String file = String.format("Sounds/%s/lvlspe%02d.mp2", stateManager.getState(GameState.class).getLevelData().getGameLevel().getSpeechStr().toLowerCase(), speechId);
-        speech = new AudioNode(app.getAssetManager(), file, false);
-        if (background == null) {
+    /**
+     * Plays general mentor speeches
+     *
+     * @param speechId
+     */
+    public void attachMentorSpeech(int speechId) {
+        attachSpeech(SoundCategory.SPEECH_MENTOR, speechId);
+    }
+
+    private void attachSpeech(String soundCategory, int speechId) {
+        try {
+            SoundCategory sc = SoundsLoader.load(soundCategory, false);
+            if (sc == null) {
+                throw new RuntimeException("Sound category " + soundCategory + " not found");
+            }
+
+            String file = AssetsConverter.SOUNDS_FOLDER + File.separator
+                    + sc.getGroup(speechId).getFiles().get(0).getFilename();
+            speechQueue.add(file);
+        } catch (Exception e) {
+            logger.log(Level.WARNING, e.getLocalizedMessage());
+        }
+    }
+
+    private void playSpeech(String file) {
+        speech = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
+        if (speech == null) {
             logger.log(Level.WARNING, "Audio file {0} not found", file);
             return;
         }
@@ -84,7 +120,7 @@ public class SoundState extends AbstractPauseAwareState {
 
     private void playBackground() {
         String file = this.getRandomSoundFile();
-        background = new AudioNode(app.getAssetManager(), file, false);
+        background = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
         if (background == null) {
             logger.log(Level.WARNING, "Audio file {0} not found", file);
             return;
@@ -140,7 +176,9 @@ public class SoundState extends AbstractPauseAwareState {
                 third = random.nextInt(23) + 1;
             }
 
-            return String.format("Sounds/Global/%dpt%d-%03d.mp2", first, second, third);
+            final String formatted = String.format("Sounds/Global/Track_%d_%dHD/%dpt%d-%03d.mp2",
+                    first, second, first, second, third);
+            return ConversionUtils.getCanonicalAssetKey(formatted);
         }
     }
 
@@ -150,8 +188,8 @@ public class SoundState extends AbstractPauseAwareState {
 
         if (!speechQueue.isEmpty()) {
             if (speech == null || speech.getStatus() == AudioSource.Status.Stopped) {
-                Integer speechId = speechQueue.poll();
-                playSpeech(speechId);
+                String speechFile = speechQueue.poll();
+                playSpeech(speechFile);
             }
         }
 
@@ -159,4 +197,5 @@ public class SoundState extends AbstractPauseAwareState {
             playBackground();
         }
     }
+
 }

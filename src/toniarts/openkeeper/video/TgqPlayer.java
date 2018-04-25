@@ -18,6 +18,7 @@ package toniarts.openkeeper.video;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,13 +45,13 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
  */
 public abstract class TgqPlayer {
 
-    private File file;
+    private final File file;
     private static final int FPS = 25; // The specs say 15 FPS, but with this they are totally in sync, dunno why
     private static final int FRAME_INTERVAL = (int) Math.floor(1000 / FPS); // In milliseconds
     private static final float FRAME_BUFFER_SIZE = 3; // In seconds, there is no fancy counter etc.
     private static final int MAX_FRAME_COUNT_IN_BUFFER = (int) (FPS * FRAME_BUFFER_SIZE);
-    private ConcurrentLinkedQueue<EAAudioFrame> audioFrames = new ConcurrentLinkedQueue<>();
-    private ConcurrentLinkedQueue<TgqFrame> videoFrames = new ConcurrentLinkedQueue<>();
+    private final Queue<EAAudioFrame> audioFrames = new ConcurrentLinkedQueue<>();
+    private final Queue<TgqFrame> videoFrames = new ConcurrentLinkedQueue<>();
     private volatile EAAudioHeader audioHeader;
     private Thread decoderThread;
     private Thread videoPlaybackThread;

@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task.worker;
 
 import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Claim a room
@@ -30,7 +31,7 @@ public class ClaimRoomTask extends ClaimTileTask {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isValid(CreatureControl creature) {
         return worldState.isClaimableRoom(getTaskLocation().x, getTaskLocation().y, playerId);
     }
 

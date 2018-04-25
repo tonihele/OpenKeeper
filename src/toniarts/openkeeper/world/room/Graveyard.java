@@ -17,9 +17,9 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.world.WorldState;
+import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  * The graveyard
@@ -28,12 +28,20 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public class Graveyard extends Normal {
 
-    public Graveyard(AssetManager assetManager, RoomInstance roomInstance, Thing.Room.Direction direction) {
-        super(assetManager, roomInstance, direction);
+    public Graveyard(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
+        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
     }
 
     @Override
     protected String getPillarResource() {
-        return ConversionUtils.getCanonicalAssetKey(AssetsConverter.MODELS_FOLDER + "/Graveyard_Pillar.j3o");
+        return "Graveyard_Pillar";
+    }
+
+    @Override
+    public String getTooltip(short playerId) {
+        String result = super.getTooltip(playerId);
+
+        return result;//.replaceAll("%59", ) // TODO Vampires Attracted
+                //.replaceAll("%60", ) // TODO Vampires Attracted Max
     }
 }

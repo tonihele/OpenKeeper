@@ -31,14 +31,14 @@ public class Material {
 
     public enum MaterialFlag implements IFlagEnum {
 
-        UNKNOWN1(0x0001), // Seems to be present with some multiple textures like HIGHLIGHT, DECAY & animated
-        UNKNOWN2(0x0002), // Translucency???
-        UNKNOWN3(0x0004),
+        HAS_ALPHA(0x0001),
+        UNKNOWN2(0x0002), // Some sort of shininess
+        ALPHA_ADDITIVE(0x0004), // Also emits "light" / glows..?
         UNKNOWN4(0x0008),
         UNKNOWN5(0x0010),
         UNKNOWN6(0x0020),
         UNKNOWN7(0x0040),
-        UNKNOWN8(0x0080),
+        UNKNOWN8(0x0080), // Some sort of glow?
         UNKNOWN9(0x0100); // Environment mapped, invisible guys have this???
         private final long flagValue;
 
@@ -139,14 +139,16 @@ public class Material {
 
     @Override
     public int hashCode() {
-        int hash = 7;
-        hash = 41 * hash + Objects.hashCode(this.name.toLowerCase());
-        hash = 41 * hash + Objects.hashCode((this.textures != null && this.textures.size() > 0 ? this.textures.get(0).toLowerCase() : this.textures));
+        int hash = 5;
+        hash = 13 * hash + Objects.hashCode(this.name);
         return hash;
     }
 
     @Override
     public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
         if (obj == null) {
             return false;
         }
@@ -154,12 +156,25 @@ public class Material {
             return false;
         }
         final Material other = (Material) obj;
-        if (!Objects.equals((this.name != null ? this.name.toLowerCase() : null), (other.name != null ? other.name.toLowerCase() : null))) {
+        if (Float.floatToIntBits(this.brightness) != Float.floatToIntBits(other.brightness)) {
             return false;
         }
-        if (!equalsIgnoreCase(this.textures, other.textures)) {
+        if (Float.floatToIntBits(this.gamma) != Float.floatToIntBits(other.gamma)) {
+            return false;
+        }
+        if (!Objects.equals(this.name, other.name)) {
+            return false;
+        }
+        if (!Objects.equals(this.environmentMappingTexture, other.environmentMappingTexture)) {
+            return false;
+        }
+        if (!Objects.equals(this.textures, other.textures)) {
+            return false;
+        }
+        if (!Objects.equals(this.flag, other.flag)) {
             return false;
         }
         return true;
     }
+
 }

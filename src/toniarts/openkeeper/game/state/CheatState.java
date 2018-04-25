@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
+import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.input.RawInputListener;
 import com.jme3.input.event.JoyAxisEvent;
@@ -27,6 +28,7 @@ import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
 
 /**
  * State for handling cheats
@@ -35,8 +37,8 @@ import java.util.logging.Logger;
  */
 public abstract class CheatState extends AbstractPauseAwareState implements RawInputListener {
 
-    private static final Logger logger = Logger.getLogger(CheatState.class.getName());
-    private Application app;
+    private static final Logger LOGGER = Logger.getLogger(CheatState.class.getName());
+    private final Application app;
     private String cheat = "";
     private boolean success = false;
 
@@ -44,13 +46,13 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
 
         MONEY("show me the money"),
         MANA("ha ha thisaway ha ha thataway"),
-        LEVELUP("feel the power"),
+        LEVEL_MAX("feel the power"),
         UNLOCK_ROOMS("this is my church"),
         UNLOCK_SPELLS("i believe its magic"),
         UNLOCK_ROOMS_TRAPS("fit the best"),
         REMOVE_FOW("now the rain has gone"),
         WIN_LEVEL("do not fear the reaper");
-        private String cheatMessage;
+        private final String cheatMessage;
 
         private CheatType(final String cheatMessage) {
             this.cheatMessage = cheatMessage;
@@ -80,8 +82,8 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
     }
 
     private void playSound(boolean enabled) {
-        String file = String.format("Sounds/Global/ms_1ft0%s.mp2", enabled ? "1" : "2");
-        AudioNode sound = new AudioNode(app.getAssetManager(), file, false);
+        String file = String.format("Sounds/Global/MistressHW/ms_1ft0%s.mp2", enabled ? "1" : "2");
+        AudioNode sound = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
         sound.setLooping(false);
         sound.setPositional(false);
         sound.play();
@@ -102,16 +104,16 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         super.setEnabled(enabled);
         this.playSound(enabled);
         if (enabled) {
-            logger.log(Level.INFO, "Cheat mode activated. Please enter your cheat code");
+            LOGGER.log(Level.INFO, "Cheat mode activated. Please enter your cheat code");
             this.app.getInputManager().addRawInputListener(this);
         } else {
             this.app.getInputManager().removeRawInputListener(this);
             if (!this.success) {
-                logger.log(Level.INFO, "Wrong cheat code. You entered {0}", this.cheat);
+                LOGGER.log(Level.INFO, "Wrong cheat code. You entered {0}", this.cheat);
             }
             this.cheat = "";
         }
-        success = false;
+        this.success = false;
     }
 
     @Override
@@ -135,12 +137,16 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
             // Check if cheat code is completely entered
             CheatType cheatCode = CheatType.getCheatType(this.cheat);
             if (cheatCode != null) {
-                logger.log(Level.INFO, "Executing cheat {0}", cheatCode.toString());
-                this.onSuccess(cheatCode);
+                executeCheat(cheatCode);
                 this.success = true;
                 this.setEnabled(false);
             }
         }
+    }
+
+    public void executeCheat(@Nonnull CheatType cheatCode) {
+        LOGGER.log(Level.INFO, "Executing cheat {0}", cheatCode.toString());
+        this.onSuccess(cheatCode);
     }
 
     public abstract void onSuccess(CheatType cheat);

@@ -19,33 +19,26 @@ package toniarts.openkeeper.game.trigger;
 import com.jme3.app.state.AppStateManager;
 import java.awt.Point;
 import java.util.EnumSet;
-import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.action.ActionPoint;
-import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
-import toniarts.openkeeper.game.party.Party;
-import toniarts.openkeeper.game.party.PartyState;
 import toniarts.openkeeper.game.player.PlayerCameraControl;
-import toniarts.openkeeper.game.player.PlayerCameraRotateControl;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
-import toniarts.openkeeper.game.state.SoundState;
-import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerAction.FlagTargetValueActionType;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.GenericRoom;
-import toniarts.openkeeper.world.room.ICreatureEntrance;
+import toniarts.openkeeper.world.creature.Party;
 
 /**
  *
@@ -60,7 +53,7 @@ public class TriggerControl extends Control {
     protected TriggerGenericData root;
 
     protected AppStateManager stateManager;
-    protected boolean checked = true;
+
     private static final Logger logger = Logger.getLogger(TriggerControl.class.getName());
 
     /**
@@ -123,10 +116,10 @@ public class TriggerControl extends Control {
     }
 
     protected boolean isActive(TriggerGenericData trigger) {
+        boolean result = false;
+
         int value = 0;
         int target = 0;
-        boolean result = false;
-        checked = true;
 
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
@@ -166,8 +159,7 @@ public class TriggerControl extends Control {
             case LEVEL_PLAYED:
                 return false;
             default:
-                checked = false;
-                // logger.warning("Target Type not supported");
+                logger.warning("Target Type not supported");
                 return false;
         }
 
@@ -184,19 +176,26 @@ public class TriggerControl extends Control {
 
         TriggerAction.ActionType type = trigger.getType();
         switch (type) {
+
             case CREATE_CREATURE:
+                // TODO this
+                short creatureId = trigger.getUserData("creatureId", short.class);
+                short playerId = trigger.getUserData("playerId", short.class);
+                short level = trigger.getUserData("level", short.class);
+                EnumSet<Creature.CreatureFlag> flags = ConversionUtils.parseFlagValue(trigger.getUserData("flag", short.class), Creature.CreatureFlag.class);
+                Point p = new Point(trigger.getUserData("posX", int.class) - 1,
+                        trigger.getUserData("posY", int.class) - 1);
                 break;
-            case DISPLAY_OBJECTIVE:
-                break;
+
             case MAKE:
                 TriggerAction.MakeType flag = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
                         TriggerAction.MakeType.class);
                 boolean available = trigger.getUserData("available", short.class) != 0;
-                short playerId = trigger.getUserData("playerId", short.class);
+                playerId = trigger.getUserData("playerId", short.class);
                 Keeper keeper = getPlayer(playerId);
                 KwdFile kwdFile = stateManager.getState(GameState.class).getLevelData();
                 short targetId = trigger.getUserData("targetId", short.class);
-
+                // TODO this
                 switch (flag) {
                     case CREATURE:
                         keeper.getCreatureControl().setTypeAvailable(kwdFile.getCreature(targetId), available);
@@ -204,6 +203,7 @@ public class TriggerControl extends Control {
                     case DOOR:
                         break;
                     case KEEPER_SPELL:
+                        keeper.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(targetId), available);
                         break;
                     case ROOM:
                         keeper.getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
@@ -237,165 +237,85 @@ public class TriggerControl extends Control {
                     value = trigger.getUserData("value", int.class);
                     stateManager.getState(GameState.class).setTimeLimit(value);
                 } else {
-                    stateManager.getState(GameState.class).getTimer(timerId).setActive(true);
+                    stateManager.getState(GameState.class).getTimer(timerId).initialize();
                 }
                 break;
 
-            case FLASH_BUTTON:
-                PlayerState player = stateManager.getState(PlayerState.class);
-                TriggerAction.MakeType buttonType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
-                        TriggerAction.MakeType.class);
-                targetId = trigger.getUserData("targetId", short.class);
-                boolean enable = trigger.getUserData("available", short.class) != 0;
-                int time = trigger.getUserData("value", int.class);
-                player.flashButton(targetId, buttonType, enable, time);
-                break;
-
-            case WIN_GAME:
-                stateManager.getState(GameState.class).setEnd(true);
-                break;
-
-            case LOSE_GAME:
-                stateManager.getState(GameState.class).setEnd(false);
-                break;
-
             case CREATE_HERO_PARTY:
-                Party party = getParty(trigger.getUserData("partyId", short.class));
+                ThingLoader loader = stateManager.getState(WorldState.class).getThingLoader();
+                Party party = loader.getParty(trigger.getUserData("partyId", short.class));
                 party.setType(ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Party.Type.class));
                 ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
 
                 // Load the party members
-                ThingLoader loader = stateManager.getState(WorldState.class).getThingLoader();
                 for (Thing.GoodCreature creature : party.getMembers()) {
-                    CreatureControl creatureInstance = loader.spawnCreature(creature, ap.getCenter(), stateManager.getApplication());
+                    CreatureControl creatureInstance = loader.spawnCreature(creature,
+                            WorldUtils.ActionPointToVector2f(ap), stateManager.getApplication());
                     creatureInstance.setParty(party);
-                    party.addMemberInstance(creatureInstance);
+                    party.addMemberInstance(creature, creatureInstance);
 
                     // Also add to the creature trigger control
                     if (creature.getTriggerId() != 0) {
-                        stateManager.getState(CreatureTriggerState.class).addCreature(creature.getTriggerId(), creatureInstance);
+                        stateManager.getState(GameState.class).getCreatureTriggerState().setThing(creature.getTriggerId(), creatureInstance);
                     }
                 }
                 party.setCreated(true);
                 break;
 
-            case SET_OBJECTIVE:
-                break;
-            case FLASH_ACTION_POINT:
-                WorldState world = stateManager.getState(WorldState.class);
-                ap = getActionPoint((Short) trigger.getUserData("actionPointId"));
-                time = trigger.getUserData("value", int.class);
-                enable = trigger.getUserData("available", short.class) != 0;
-                for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                    for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                        world.flashTile(x, y, time, enable);
-                    }
+            case SET_ALLIANCE:
+                short playerOneId = trigger.getUserData("playerOneId", short.class);
+                short playerTwoId = trigger.getUserData("playerTwoId", short.class);
+                available = trigger.getUserData("available", short.class) == 0; // 0 = Create, !0 = Break
+                if (available) {
+                    stateManager.getState(GameState.class).createAlliance(playerOneId, playerTwoId);
+                } else {
+                    stateManager.getState(GameState.class).breakAlliance(playerOneId, playerTwoId);
                 }
                 break;
 
-            case REVEAL_ACTION_POINT:
-                // remove fog of war from tiles in action point
-                // or
-                // add fog of war to tiles in action point
-                break;
-            case SET_ALLIANCE:
-                break;
             case ALTER_TERRAIN_TYPE:
-                Point pos = new Point(trigger.getUserData("posX", int.class), trigger.getUserData("posY", int.class));
+                p = new Point(trigger.getUserData("posX", int.class) - 1,
+                        trigger.getUserData("posY", int.class) - 1);
                 short terrainId = trigger.getUserData("terrainId", short.class);
                 playerId = trigger.getUserData("playerId", short.class);
-                stateManager.getState(WorldState.class).alterTerrain(pos, terrainId, playerId);
-                break;
-
-            case PLAY_SPEECH:
-                int speechId = trigger.getUserData("speechId", int.class);
-                stateManager.getState(SoundState.class).attachSpeech(speechId);
-
-                int pathId = trigger.getUserData("pathId", int.class);
-                // text show when Cinematic camera by pathId
-                boolean introduction = trigger.getUserData("introduction", short.class) != 0;
-                if (trigger.getUserData("text", short.class) == 0) {
-                    stateManager.getState(PlayerState.class).setText(speechId, introduction, pathId);
-                }
-                break;
-
-            case DISPLAY_TEXT_MESSAGE:
-                int textId = trigger.getUserData("textId", int.class);
-                // TODO display text message
-                break;
-
-            case ZOOM_TO_ACTION_POINT:
-                PlayerCameraState pcs = stateManager.getState(PlayerCameraState.class);
-                ap = getActionPoint(trigger.getUserData("targetId", short.class));
-                ap.addControl(new PlayerCameraControl(pcs.getCamera()));
-                break;
-
-            case ROTATE_AROUND_ACTION_POINT:
-                ap = getActionPoint(trigger.getUserData("targetId", short.class));
-                boolean isRelative = trigger.getUserData("available", short.class) == 0;
-                int angle = trigger.getUserData("angle", int.class);
-                time = trigger.getUserData("time", int.class);
-
-                pcs = stateManager.getState(PlayerCameraState.class);
-                ap.addControl(new PlayerCameraRotateControl(pcs.getCamera(), isRelative, angle, time));
-                break;
-
-            case GENERATE_CREATURE:
-                short creatureId = trigger.getUserData("creatureId", short.class);
-                short level = trigger.getUserData("level", short.class);
-                keeper = getPlayer((short) 0);
-
-                // Get first spawn point of the player (this flag is only for the players)
-                Set<GenericRoom> rooms = keeper.getRoomControl().getTypes().get(stateManager.getState(GameState.class).getLevelData().getPortal());
-                if (rooms == null || rooms.isEmpty()) {
-                    logger.warning("Generate creature triggered but no entrances found!");
-                    break;
-                }
-                Point p = ((ICreatureEntrance) rooms.iterator().next()).getEntranceCoordinate();
-                CreatureSpawnLogicState.spawnCreature(creatureId, keeper.getId(), level, stateManager.getState(GameState.class).getApplication(), stateManager.getState(WorldState.class).getThingLoader(), p, true);
-                break;
-
-            case FOLLOW_CAMERA_PATH:
-                // TODO disable control
-                //GameState.setEnabled(false);
-                pcs = stateManager.getState(PlayerCameraState.class);
-                ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-                pcs.doTransition(trigger.getUserData("pathId", short.class), ap);
+                stateManager.getState(WorldState.class).alterTerrain(p, terrainId, playerId, true);
                 break;
 
             case COLLAPSE_HERO_GATE:
-                break;
-            case SET_PORTAL_STATUS:
-                available = trigger.getUserData("available", short.class) != 0;
-                getPlayer((short) 0).getRoomControl().setPortalsOpen(available);
-                break;
-
-            case SET_WIDESCREEN_MODE:
-                PlayerState ps = stateManager.getState(PlayerState.class);
-                enable = trigger.getUserData("available", short.class) != 0;
-                ps.setWideScreen(enable);
+                // TODO this
+                p = new Point(trigger.getUserData("posX", int.class) - 1,
+                        trigger.getUserData("posY", int.class) - 1);
                 break;
 
-            case MAKE_OBJECTIVE:
-                break;
-            case ZOOM_TO:
-                break;
             case SET_CREATURE_MOODS:
+                // TODO this
+                available = trigger.getUserData("available", short.class) != 0;
                 break;
+
             case SET_SYSTEM_MESSAGES:
+                // TODO this
+                available = trigger.getUserData("available", short.class) != 0;
                 break;
-            case DISPLAY_SLAB_OWNER:
-                break;
-            case DISPLAY_NEXT_ROOM_TYPE:
-                break;
+
             case CHANGE_ROOM_OWNER:
+                // TODO this
+                playerId = trigger.getUserData("playerId", short.class);
+                p = new Point(trigger.getUserData("posX", int.class) - 1,
+                        trigger.getUserData("posY", int.class) - 1);
                 break;
+
             case SET_SLAPS_LIMIT:
+                // TODO this
+                value = trigger.getUserData("value", int.class); // 0 = Off
                 break;
+
             case SET_TIMER_SPEECH:
+                // TODO this
+                available = trigger.getUserData("available", short.class) != 0;
                 break;
+
             default:
-                logger.warning("Action not supported");
+                logger.warning("Trigger Action not supported!");
                 break;
         }
     }
@@ -429,11 +349,7 @@ public class TriggerControl extends Control {
     }
 
     protected ActionPoint getActionPoint(int id) {
-        return stateManager.getState(ActionPointState.class).getActionPoint(id);
-    }
-
-    protected Party getParty(int id) {
-        return stateManager.getState(PartyState.class).getParty(id);
+        return stateManager.getState(GameState.class).getActionPointState().getActionPoint(id);
     }
 
     private int getTargetValue(int base, int value, EnumSet<FlagTargetValueActionType> flagType) {
@@ -456,6 +372,13 @@ public class TriggerControl extends Control {
             return gameState.getPlayer(this.stateManager.getState(PlayerState.class).getPlayerId()); // Current player
         } else {
             return gameState.getPlayer(playerId);
+        }
+    }
+
+    protected void zoomToAP(int apId) {
+        if (apId != 0) {
+            PlayerCameraState pcs = stateManager.getState(PlayerCameraState.class);
+            getActionPoint(apId).addControl(new PlayerCameraControl(pcs.getCamera()));
         }
     }
 }

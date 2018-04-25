@@ -54,7 +54,7 @@ public class TriggerAction extends Trigger {
         ALTER_TERRAIN_TYPE(22),
         SET_TIME_LIMIT(23), // text like : X Seconds
         PLAY_SPEECH(24),
-        DISPLAY_TEXT_MESSAGE(25),
+        DISPLAY_TEXT_STRING(25),
         ZOOM_TO_ACTION_POINT(26),
         ROTATE_AROUND_ACTION_POINT(27),
         GENERATE_CREATURE(28),
@@ -62,7 +62,7 @@ public class TriggerAction extends Trigger {
         SHOW_HEALTH_FLOWER(30),
         FOLLOW_CAMERA_PATH(31),
         COLLAPSE_HERO_GATE(32),
-        SET_SPEED(33),
+        ALTER_SPEED(33),
         SET_MUSIC_LEVEL(34), // text like X
         REMOVE_FROM_MAP(35),
         SET_FIGHT_FLAG(36),
@@ -224,7 +224,7 @@ public class TriggerAction extends Trigger {
             case SHOW_HEALTH_FLOWER:
                 result += " [ " + getUserData("value") + " Seconds ]";
                 break;
-            case SET_SPEED:
+            case ALTER_SPEED:
                 result += " [ " + ((Short) getUserData("available") == 0 ? "Walk" : "Run") + " ]";
                 break;
             case SET_FIGHT_FLAG:

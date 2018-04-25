@@ -28,7 +28,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  */
 public class EAAudioFrame implements Comparable<EAAudioFrame> {
 
-    private static int EA_ADPCM_TABLE[] = {
+    private static final int EA_ADPCM_TABLE[] = {
         0, 240, 460, 392,
         0, 0, -208, -220,
         0, 1, 3, 4,
@@ -77,9 +77,9 @@ public class EAAudioFrame implements Comparable<EAAudioFrame> {
             // Decoding
             for (int count1 = 0; count1 < codedSamples / 28; count1++) {
                 int b = ConversionUtils.toUnsignedByte(buf.get());
-                int coeff1l = EA_ADPCM_TABLE[ b >> 4];
+                int coeff1l = EA_ADPCM_TABLE[b >> 4];
                 int coeff2l = EA_ADPCM_TABLE[(b >> 4) + 4];
-                int coeff1r = EA_ADPCM_TABLE[ b & 0x0F];
+                int coeff1r = EA_ADPCM_TABLE[b & 0x0F];
                 int coeff2r = EA_ADPCM_TABLE[(b & 0x0F) + 4];
 
                 b = ConversionUtils.toUnsignedByte(buf.get());

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-styles>
+    <!-- console background -->
+    <style id="nifty-console-panel">
+        <attributes childLayout="vertical" backgroundColor="#333b"/>
+    </style>
+
+    <!-- console line -->
+    <style id="nifty-console-line">
+        <attributes font="console.fnt" backgroundColor="#1116" align="left" />
+    </style>
+
+    <!-- the background of the textfield -->
+    <style id="nifty-console-textfield#panel">
+        <attributes backgroundColor="#1116" childLayout="overlay" height="20px" />
+    </style>
+</nifty-styles>

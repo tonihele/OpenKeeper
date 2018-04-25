@@ -1,7 +1,7 @@
 MaterialDef Phong Lighting {
 
     MaterialParameters {
-	
+
 	// Animation
         Int NumberOfTiles : 1
         Int Speed
@@ -11,7 +11,7 @@ MaterialDef Phong Lighting {
         Boolean VertexLighting
 
         // Alpha threshold for fragment discarding
-        Float AlphaDiscardThreshold 
+        Float AlphaDiscardThreshold
 
         // Use the provided ambient, diffuse, and specular colors
         Boolean UseMaterialColors
@@ -44,10 +44,10 @@ MaterialDef Phong Lighting {
         Texture2D ParallaxMap -LINEAR
 
         //Set to true is parallax map is stored in the alpha channel of the normal map
-        Boolean PackedNormalParallax   
+        Boolean PackedNormalParallax
 
         //Sets the relief height for parallax mapping
-        Float ParallaxHeight : 0.05       
+        Float ParallaxHeight : 0.05
 
         //Set to true to activate Steep Parallax mapping
         Boolean SteepParallax
@@ -93,7 +93,7 @@ MaterialDef Phong Lighting {
         //pointLights
         Texture2D ShadowMap4
         Texture2D ShadowMap5
-        
+
         Float ShadowIntensity
         Vector4 Splits
         Vector2 FadeInfo
@@ -104,7 +104,7 @@ MaterialDef Phong Lighting {
         Matrix4 LightViewProjectionMatrix3
         //pointLight
         Matrix4 LightViewProjectionMatrix4
-        Matrix4 LightViewProjectionMatrix5   
+        Matrix4 LightViewProjectionMatrix5
         Vector3 LightPos
         Vector3 LightDir
 
@@ -114,14 +114,16 @@ MaterialDef Phong Lighting {
         // For hardware skinning
         Int NumberOfBones
         Matrix4Array BoneMatrices
-                
+
         //For instancing
         Boolean UseInstancing
+
+        Boolean BackfaceShadows : false
     }
 
  Technique {
         LightMode SinglePass
-        
+
         VertexShader GLSL100:   Common/MatDefs/Light/SPLighting.vert
         FragmentShader GLSL100: Common/MatDefs/Light/SPLighting.frag
 
@@ -132,16 +134,16 @@ MaterialDef Phong Lighting {
             ViewMatrix
             CameraPosition
             WorldMatrix
-            ViewProjectionMatrix     
+            ViewProjectionMatrix
 
             // For the animation
-            Time			
+            Time
         }
 
-        Defines {           
+        Defines {
             VERTEX_COLOR : UseVertexColor
-            VERTEX_LIGHTING : VertexLighting           
-            MATERIAL_COLORS : UseMaterialColors         
+            VERTEX_LIGHTING : VertexLighting
+            MATERIAL_COLORS : UseMaterialColors
             DIFFUSEMAP : DiffuseMap
             NORMALMAP : NormalMap
             SPECULARMAP : SpecularMap
@@ -154,8 +156,8 @@ MaterialDef Phong Lighting {
             SEPARATE_TEXCOORD : SeparateTexCoord
             DISCARD_ALPHA : AlphaDiscardThreshold
             USE_REFLECTION : EnvMap
-            SPHERE_MAP : SphereMap  
-            NUM_BONES : NumberOfBones                        
+            SPHERE_MAP : SphereMap
+            NUM_BONES : NumberOfBones
             INSTANCING : UseInstancing
         }
     }
@@ -174,15 +176,15 @@ MaterialDef Phong Lighting {
             ViewMatrix
             CameraPosition
             WorldMatrix
-            ViewProjectionMatrix       
+            ViewProjectionMatrix
 
             // For the animation
-            Time			
+            Time
         }
 
         Defines {
             VERTEX_COLOR : UseVertexColor
-            VERTEX_LIGHTING : VertexLighting            
+            VERTEX_LIGHTING : VertexLighting
             MATERIAL_COLORS : UseMaterialColors
             DIFFUSEMAP : DiffuseMap
             NORMALMAP : NormalMap
@@ -196,13 +198,13 @@ MaterialDef Phong Lighting {
             SEPARATE_TEXCOORD : SeparateTexCoord
             DISCARD_ALPHA : AlphaDiscardThreshold
             USE_REFLECTION : EnvMap
-            SPHERE_MAP : SphereMap  
-            NUM_BONES : NumberOfBones                        
+            SPHERE_MAP : SphereMap
+            NUM_BONES : NumberOfBones
             INSTANCING : UseInstancing
         }
     }
 
-   
+
 
     Technique PreShadow {
 
@@ -214,7 +216,7 @@ MaterialDef Phong Lighting {
             WorldViewMatrix
             ViewProjectionMatrix
             ViewMatrix
-			
+
             // For the animation
             Time
         }
@@ -246,7 +248,7 @@ MaterialDef Phong Lighting {
             WorldMatrix
             ViewProjectionMatrix
             ViewMatrix
-			
+
             // For the animation
             Time
         }
@@ -255,7 +257,7 @@ MaterialDef Phong Lighting {
             HARDWARE_SHADOWS : HardwareShadows
             FILTER_MODE : FilterMode
             PCFEDGE : PCFEdge
-            DISCARD_ALPHA : AlphaDiscardThreshold           
+            DISCARD_ALPHA : AlphaDiscardThreshold
             COLOR_MAP : ColorMap
             SHADOWMAP_SIZE : ShadowMapSize
             FADE : FadeInfo
@@ -267,13 +269,13 @@ MaterialDef Phong Lighting {
 
         ForcedRenderState {
             Blend Modulate
-            DepthWrite Off                 
+            DepthWrite Off
             PolyOffset -0.1 0
         }
     }
 
     Technique PostShadow{
-        VertexShader GLSL100:   Shaders/SpritePostShadow.vert
+        VertexShader GLSL100:   Shaders/PostShadowSprite.vert
         FragmentShader GLSL100: Common/MatDefs/Shadow/PostShadow.frag
 
         WorldParameters {
@@ -281,7 +283,7 @@ MaterialDef Phong Lighting {
             WorldMatrix
             ViewProjectionMatrix
             ViewMatrix
-			            
+
             // For the animation
             Time
         }
@@ -290,7 +292,7 @@ MaterialDef Phong Lighting {
             HARDWARE_SHADOWS : HardwareShadows
             FILTER_MODE : FilterMode
             PCFEDGE : PCFEdge
-            DISCARD_ALPHA : AlphaDiscardThreshold           
+            DISCARD_ALPHA : AlphaDiscardThreshold
             COLOR_MAP : ColorMap
             SHADOWMAP_SIZE : ShadowMapSize
             FADE : FadeInfo
@@ -302,8 +304,8 @@ MaterialDef Phong Lighting {
 
         ForcedRenderState {
             Blend Modulate
-            DepthWrite Off   
-            PolyOffset -0.1 0  
+            DepthWrite Off
+            PolyOffset -0.1 0
         }
     }
 
@@ -337,7 +339,7 @@ MaterialDef Phong Lighting {
         WorldParameters {
             WorldViewProjectionMatrix
             WorldViewMatrix
-            NormalMatrix                        
+            NormalMatrix
             ViewProjectionMatrix
             ViewMatrix
         }

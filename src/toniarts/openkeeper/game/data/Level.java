@@ -19,12 +19,16 @@ package toniarts.openkeeper.game.data;
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.utils.PathUtils;
 
-public class Level {
+public class Level extends GeneralLevel {
+
+    private KwdFile kwdFile;
+    private static final Logger logger = Logger.getLogger(Level.class.getName());
 
     public enum LevelType {
 
@@ -32,11 +36,14 @@ public class Level {
     }
     private final LevelType type;
     private final int level;
-    private final String variation;
-    private KwdFile kwdFile = null;
-    private static final Logger logger = Logger.getLogger(Level.class.getName());
+    private String variation = null;
 
-    public Level(LevelType type, int level, String variation) {
+    public Level(LevelType type, int level) {
+        this.type = type;
+        this.level = level;
+    }
+    
+    public Level(LevelType type, int level, @Nullable String variation) {
         this.type = type;
         this.level = level;
         this.variation = variation;
@@ -54,17 +61,18 @@ public class Level {
         return variation != null ? variation : "";
     }
 
-    public String getFullName() {
-        return getType().toString() + (getLevel() > 0 ? getLevel() : "") + getVariation();
+    @Override
+    public String getFileName() {
+        return String.format("%s%s", getType(), this.toString());
     }
 
+    @Override
     public KwdFile getKwdFile() {
         if (kwdFile == null) {
             try {
-
                 // Load the actual level info
                 kwdFile = new KwdFile(Main.getDkIIFolder(),
-                        new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), AssetsConverter.MAPS_FOLDER + String.format("%s%s%s", getType(), getLevel(), getVariation()) + ".kwd")), false);
+                        new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + getFileName() + ".kwd")), false);
             } catch (IOException ex) {
                 logger.log(java.util.logging.Level.SEVERE, "Failed to load the level file!", ex);
             }
@@ -72,4 +80,8 @@ public class Level {
         return kwdFile;
     }
 
+    @Override
+    public String toString() {
+        return String.format("%s%s", getLevel() > 0 ? getLevel() : "", getVariation());
+    }
 }

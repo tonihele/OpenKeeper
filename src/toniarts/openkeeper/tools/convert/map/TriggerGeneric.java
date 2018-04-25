@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.Map.Entry;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
@@ -74,6 +75,8 @@ public class TriggerGeneric extends Trigger {
         CREATURE_LEAVES(14), // Event, This creature is
         CREATURE_STUNNED(15), // Event, This creature is
         CREATURE_DYING(16), // Event, This creature is
+        DOOR_DESTROYED(17), // Event, This door is
+        OBJECT_CLAIMED(18), // Event, This object is
         PLAYER_CREATURES(19), // Player
         PLAYER_HAPPY_CREATURES(20), // Player
         PLAYER_ANGRY_CREATURES(21), // Player
@@ -174,7 +177,6 @@ public class TriggerGeneric extends Trigger {
     private int targetValue; // Target value
     private TargetType target;
 
-
     public TriggerGeneric(KwdFile kwdFile) {
         super(kwdFile);
     }
@@ -219,8 +221,8 @@ public class TriggerGeneric extends Trigger {
 
         result += " " + getUserData("value");
 
-        if (userData != null) {
-            for (java.util.Map.Entry<String, Number> entry : userData.entrySet()) {
+        if (data != null) {
+            for (Entry<String, Number> entry : data.entrySet()) {
                 String key = entry.getKey();
                 Number value = entry.getValue();
 

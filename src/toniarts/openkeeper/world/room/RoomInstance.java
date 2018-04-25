@@ -18,8 +18,10 @@ package toniarts.openkeeper.world.room;
 
 import java.awt.Point;
 import java.util.List;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.world.EntityInstance;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;
@@ -33,10 +35,16 @@ public class RoomInstance extends EntityInstance<Room> {
 
     private List<WallSection> wallSections;
     private final MapData mapData;
+    private final Thing.Room thing;
 
     public RoomInstance(Room room, MapData mapData) {
+        this(room, mapData, null);
+    }
+
+    public RoomInstance(Room room, MapData mapData, Thing.Room thing) {
         super(room);
         this.mapData = mapData;
+        this.thing = thing;
     }
 
     public Room getRoom() {
@@ -66,7 +74,9 @@ public class RoomInstance extends EntityInstance<Room> {
      * @return is attackable
      */
     boolean isAttackable() {
-        return mapData.getTile(getCoordinates().get(0)).getTerrain().getFlags().contains(Terrain.TerrainFlag.ATTACKABLE);
+        // FIXME what correct?
+        return getEntity().getFlags().contains(Room.RoomFlag.ATTACKABLE);
+        //return mapData.getTile(getCoordinates().get(0)).getTerrain().getFlags().contains(Terrain.TerrainFlag.ATTACKABLE);
     }
 
     /**
@@ -83,6 +93,20 @@ public class RoomInstance extends EntityInstance<Room> {
             maxHealth += tile.getTerrain().getMaxHealth();
         }
         return (int) (health / (float) maxHealth * 100.0);
+    }
+
+    /**
+     * Get the room instance direction. Some fixed rooms may have this.
+     *
+     * @return room direction
+     */
+    @Nullable
+    public Thing.Room.Direction getDirection() {
+        if (thing == null) {
+            return null;
+        }
+
+        return thing.getDirection();
     }
 
 }

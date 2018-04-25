@@ -18,7 +18,6 @@ package toniarts.openkeeper.game.logic;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
-import com.jme3.math.Vector2f;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,7 +36,9 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.ThingLoader;
+import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.ICreatureEntrance;
 
@@ -127,10 +128,11 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
             if (player.getCreatureControl().getImpCount() < minimunImpCount) {
 
                 // Spawn imp
-                spawnCreature(kwdFile.getImp().getCreatureId(), player.getId(), (short) 1, app, thingLoader, ((ICreatureEntrance) room).getEntranceCoordinate(), false);
+                ((ICreatureEntrance) room).spawnCreature(kwdFile.getImp().getCreatureId(), app, thingLoader);
                 spawned = true;
             }
-        } else if (spawnTime >= Math.max(entranceCoolDownTime, entranceCoolDownTime * player.getCreatureControl().getTypeCount() * 0.5) && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
+        } else if (spawnTime >= Math.max(entranceCoolDownTime, entranceCoolDownTime * player.getCreatureControl().getTypeCount() * 0.5)
+                && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
 
             // Evaluate what creature can we spawn
             Map<Integer, CreaturePool> pool = kwdFile.getCreaturePool(player.getId());
@@ -138,14 +140,16 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
             Iterator<Creature> iter = possibleCreatures.iterator();
             while (iter.hasNext()) {
                 Creature creature = iter.next();
-                if (!isCreatureAvailableFromPool(creature, player, pool) || !isCreatureRequirementsSatisfied(creature, player)) {
+                if (!isCreatureAvailableFromPool(creature, player, pool)
+                        || !isCreatureRequirementsSatisfied(creature, player)) {
                     iter.remove();
                 }
             }
 
             // Spawn random?
             if (!possibleCreatures.isEmpty()) {
-                spawnCreature(Utils.getRandomItem(possibleCreatures).getCreatureId(), player.getId(), (short) 1, app, thingLoader, ((ICreatureEntrance) room).getEntranceCoordinate(), true);
+                short creatureId = Utils.getRandomItem(possibleCreatures).getCreatureId();
+                ((ICreatureEntrance) room).spawnCreature(creatureId, app, thingLoader);
                 spawned = true;
             }
         }
@@ -161,10 +165,12 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
         return room.isDungeonHeart();
     }
 
-    public static void spawnCreature(short creatureId, short playerId, short level, Application app, ThingLoader thingLoader, Point tile, boolean entrance) {
+    public static CreatureControl spawnCreature(short creatureId, short playerId, short level,
+            Application app, ThingLoader thingLoader, Point tile, boolean entrance) {
 
         // Spawn the creature
-        thingLoader.spawnCreature(creatureId, playerId, level, new Vector2f(tile.x + 0.5f, tile.y + 0.5f), entrance, app);
+        return thingLoader.spawnCreature(creatureId, playerId, level,
+                WorldUtils.pointToVector2f(tile), entrance, app);
     }
 
     private boolean isCreatureLimitReached(Keeper player) {

@@ -27,63 +27,85 @@ public class SdtFileEntry {
 
     public enum SoundType implements IValueEnum {
 
-        NONE(0),
-        WAV(2),
-        MP2_MONO(36),
-        MP2_STEREO(37);
+        NONE(0, ""),
+        WAV_MONO(2, "wav"),
+        WAV_STEREO(3, "wav"), // FIXME really stereo not mono ?
+        MP2_MONO(36, "mp2"),
+        MP2_STEREO(37, "mp2");
 
         private final int type;
+        private final String extension;
 
-        private SoundType(int type) {
+        private SoundType(int type, String extension) {
             this.type = type;
+            this.extension = extension;
         }
 
         @Override
         public int getValue() {
             return this.type;
         }
+
+        public String getExtension() {
+            return extension;
+        }
     }
 
-    private int indexSize;
-    private int size;
-    private int samplingRate; // 22050
-    private short unknown2; // 16
+    private int headerSize; // dataSize of header data include this field (exclude data field)
+    private int dataSize;
+    private String name;
+    private int sampleRate; // 22050
+    private short bitsPerSample; // 16 bits
     private SoundType type; // 36 on mp2 (64kbit/s mono), 37 on mp2 (112kbit/s stereo), 2 on wav, 0 on blanks
-    private int unknown3;
+    private int unknown3; // 0 in all files. Compression, byteRate, blockAlign
     private int nSamples;
-    private int unknown4;
-    private long dataOffset;
+    private int unknown4; // 0 in all files. DataStart, LoopOffset, LoopLength
 
-    public int getIndexSize() {
-        return indexSize;
+    private long dataOffset; // not contains in file structure
+
+    public int getHeaderSize() {
+        return headerSize;
     }
 
-    protected void setIndexSize(int indexSize) {
-        this.indexSize = indexSize;
+    protected void setHeaderSize(int headerSize) {
+        this.headerSize = headerSize;
     }
 
-    public int getSize() {
-        return size;
+    public int getDataSize() {
+        return dataSize;
     }
 
-    protected void setSize(int size) {
-        this.size = size;
+    protected void setDataSize(int size) {
+        this.dataSize = size;
     }
 
-    public int getSamplingRate() {
-        return samplingRate;
+    public String getName() {
+        return name;
     }
 
-    protected void setSamplingRate(int samplingRate) {
-        this.samplingRate = samplingRate;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public short getUnknown2() {
-        return unknown2;
+    public int getSampleRate() {
+        return sampleRate;
     }
 
-    protected void setUnknown2(short unknown2) {
-        this.unknown2 = unknown2;
+    protected void setSampleRate(int sampleRate) {
+        this.sampleRate = sampleRate;
+    }
+
+    /**
+     * Resolution of sound data in bits
+     *
+     * @return
+     */
+    public short getBitsPerSample() {
+        return bitsPerSample;
+    }
+
+    protected void setBitsPerSample(short bitsPerSample) {
+        this.bitsPerSample = bitsPerSample;
     }
 
     public SoundType getType() {

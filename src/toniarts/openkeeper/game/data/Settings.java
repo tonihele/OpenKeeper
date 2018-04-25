@@ -22,10 +22,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import static toniarts.openkeeper.Main.TITLE;
+import static toniarts.openkeeper.Main.getApplicationIcons;
 import static toniarts.openkeeper.game.data.Level.LevelType.Level;
 import static toniarts.openkeeper.game.data.Level.LevelType.MPD;
 import static toniarts.openkeeper.game.data.Level.LevelType.Secret;
@@ -58,6 +63,7 @@ public class Settings {
     public enum Setting implements ISetting {
 
         // Campaign
+// Campaign
         LEVEL_NUMBER(Integer.class, 0, SettingCategory.CAMPAIGN),
         LEVEL_ATTEMPTS(Integer.class, 0, SettingCategory.CAMPAIGN),
         LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN),
@@ -159,7 +165,8 @@ public class Settings {
         // Multiplayer settings
         PLAYER_NAME(String.class, System.getProperty("user.name"), SettingCategory.MISCELLANEOUS),
         GAME_NAME(String.class, "My OpenKeeper game", SettingCategory.MISCELLANEOUS),
-        LAST_CONNECTION(String.class, "127.0.0.1", SettingCategory.MISCELLANEOUS);
+        MULTIPLAYER_LAST_IP(String.class, "127.0.0.1", SettingCategory.MISCELLANEOUS),
+        MULTIPLAYER_LAST_PORT(Integer.class, 7575, SettingCategory.MISCELLANEOUS);
 
         private Setting(Class clazz, Integer specialKey, Object defValue, SettingCategory category, Integer resourceKey) {
             this.clazz = clazz;
@@ -195,7 +202,7 @@ public class Settings {
 
         @Override
         public Object getDefaultValue() {
-            return defValue;
+            return defValue.getClass().isEnum() ? defValue.toString() : defValue;
         }
 
         public Integer getSpecialKey() {
@@ -228,12 +235,21 @@ public class Settings {
         private final Integer resourceKey;
         private final Integer specialKey;  // Control, Alt, Shift
     }
-    private static volatile Settings instance;
+    private final static Settings INSTANCE;
     private final AppSettings settings;
-    private final static int MAX_FPS = 90;
+    private final static int MAX_FPS = 200;
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(Main.TITLE).concat(File.separator);
     private final static String USER_SETTINGS_FILE = USER_HOME_FOLDER.concat("openkeeper.properties");
-    private static final Logger logger = Logger.getLogger(Settings.class.getName());
+    public final static List<String> OPENGL = new ArrayList<>(Arrays.asList(new String[]{AppSettings.LWJGL_OPENGL2,
+        AppSettings.LWJGL_OPENGL3, AppSettings.LWJGL_OPENGL33, AppSettings.LWJGL_OPENGL4, AppSettings.LWJGL_OPENGL41,
+        AppSettings.LWJGL_OPENGL42, AppSettings.LWJGL_OPENGL43, AppSettings.LWJGL_OPENGL44, AppSettings.LWJGL_OPENGL45}));
+    public final static List<Integer> SAMPLES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
+    public final static List<Integer> ANISOTROPHIES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
+    private static final Logger LOGGER = Logger.getLogger(Settings.class.getName());
+
+    static {
+        INSTANCE = new Settings(new AppSettings(true));
+    }
 
     private Settings(final AppSettings settings) {
 
@@ -246,24 +262,26 @@ public class Settings {
         }
         File settingsFile = new File(USER_SETTINGS_FILE);
         if (settingsFile.exists()) {
-            try {
-                this.settings.load(new FileInputStream(settingsFile));
+            try (InputStream is = new FileInputStream(settingsFile)) {
+                this.settings.load(is);
             } catch (IOException ex) {
-                logger.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
+                LOGGER.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
             }
         }
         this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
+
+        // Assing some app level settings
+        settings.setTitle(TITLE);
+        settings.setIcons(getApplicationIcons());
     }
 
-    public static Settings getInstance(final AppSettings settings) {
-        if (instance == null) {
-            synchronized (Settings.class) {
-                if (instance == null) {
-                    instance = new Settings(settings);
-                }
-            }
-        }
-        return instance;
+    /**
+     * Get the settings instance
+     *
+     * @return the game settings
+     */
+    public static Settings getInstance() {
+        return INSTANCE;
     }
 
     /**
@@ -277,9 +295,13 @@ public class Settings {
 
     /**
      * Save the settings
+     *
+     * @throws java.io.IOException may fail to save
      */
     public void save() throws IOException {
-        settings.save(new FileOutputStream(new File(USER_SETTINGS_FILE)));
+        try (OutputStream os = new FileOutputStream(new File(USER_SETTINGS_FILE))) {
+            settings.save(os);
+        }
     }
 
     /**
@@ -398,7 +420,6 @@ public class Settings {
      * Get level attempts
      *
      * @param level the level
-     * @return number of attempts to a level
      */
     public void increaseLevelAttempts(Level level) {
         setSetting(Setting.LEVEL_ATTEMPTS.toString() + level, getLevelAttempts(level) + 1);
@@ -408,14 +429,16 @@ public class Settings {
      * Get level status (MPD or normal)
      *
      * @param level the level
-     * @return the level status
+     * @param status the level status
      */
     public void setLevelStatus(Level level, LevelStatus status) {
         switch (level.getType()) {
             case Level:
                 setSetting(Setting.LEVEL_STATUS.toString() + level, status);
+                break;
             case MPD:
                 setSetting(Setting.MPD_LEVEL_STATUS.toString() + level, status);
+                break;
         }
     }
 
@@ -423,7 +446,7 @@ public class Settings {
      * Get secret level status
      *
      * @param level the secret level
-     * @return the secret level status
+     * @param status the secret level status
      */
     public void setSecredLevelStatus(Level level, SecretLevelStatus status) {
         switch (level.getType()) {
