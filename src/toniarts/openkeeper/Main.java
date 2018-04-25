@@ -69,8 +69,8 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.utils.UTF8Control;
@@ -537,7 +537,11 @@ public class Main extends SimpleApplication {
 
     @Override
     public void simpleRender(RenderManager rm) {
-        //TODO: add render code
+
+        // set the default light mode to single pass (only necessary for lighting.j3md, PBRLighting only uses single pass)
+        //renderManager.setPreferredLightMode(TechniqueDef.LightMode.SinglePass);
+        // Set the maximum number of light to handle in one pass per geometry.
+        //renderManager.setSinglePassLightBatchSize(5);
     }
 
     /**
