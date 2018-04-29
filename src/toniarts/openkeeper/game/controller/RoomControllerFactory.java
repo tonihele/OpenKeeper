@@ -56,16 +56,19 @@ public final class RoomControllerFactory {
 
             case HERO_GATE:
             //return new HeroGateConstructor(assetManager, roomInstance);
-
             case HERO_GATE_FRONT_END:
             //return new HeroGateFrontEndConstructor(assetManager, roomInstance);
-
             case HERO_GATE_2_BY_2:
-            //return new HeroGateTwoByTwoConstructor(assetManager, roomInstance);
+                //return new HeroGateTwoByTwoConstructor(assetManager, roomInstance);
+                //        case HERO_GATE_3_BY_1:
+                return new NormalRoomController(roomInstance, objectsController) {
+                    @Override
+                    public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
+                        return false;
+                    }
 
-            case HERO_GATE_3_BY_1:
+                };
             //return new HeroGateThreeByOneConstructor(assetManager, roomInstance);
-
             case _5_BY_5_ROTATED:
                 return new FiveByFiveRotatedController(roomInstance, objectsController, gameSettings);
 
@@ -94,7 +97,7 @@ public final class RoomControllerFactory {
                 }
                 return new NormalRoomController(roomInstance, objectsController);
 
-            case QUAD:
+//            case QUAD:
 //                if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
 //                    return new StoneBridge(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                }
