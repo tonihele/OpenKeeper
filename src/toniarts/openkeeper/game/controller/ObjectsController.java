@@ -31,6 +31,8 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
+import static toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController.OBJECT_HEART_ID;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -119,7 +121,7 @@ public class ObjectsController implements IObjectsController {
 
         // Move to the center of the tile
         Vector3f pos = WorldUtils.pointToVector3f(x, y);
-        pos.y = MapLoader.FLOOR_HEIGHT; // FIXME: no
+        pos.y = (objectId == OBJECT_HEART_ID || objectId == FiveByFiveRotatedController.OBJECT_BIG_STEPS_ID || objectId == FiveByFiveRotatedController.OBJECT_ARCHES_ID ? MapLoader.UNDERFLOOR_HEIGHT : MapLoader.FLOOR_HEIGHT); // FIXME: no
         entityData.setComponent(entity, new Position(rotation, pos));
 
         // Add additional components
@@ -142,7 +144,7 @@ public class ObjectsController implements IObjectsController {
         }
 
         // The visual state
-        entityData.setComponent(entity, new ObjectViewState(objectId, null));
+        entityData.setComponent(entity, new ObjectViewState(objectId, null, true));
 
         return entity;
     }

@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
 import toniarts.openkeeper.game.logic.CreatureViewSystem;
+import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
@@ -103,12 +104,14 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     private Float timeLimit = null;
     private ITaskManager taskManager;
 
-    private static final Logger logger = Logger.getLogger(GameController.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(GameController.class.getName());
 
     /**
      * Single use game states
      *
      * @param level the level to load
+     * @param entityData
+     * @param gameSettings
      */
     public GameController(String level, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.level = level;
@@ -170,7 +173,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 kwdFile.load();
             }
         } catch (IOException ex) {
-            logger.log(Level.SEVERE, "Failed to load the map file!", ex);
+            LOGGER.log(Level.SEVERE, "Failed to load the map file!", ex);
             throw new RuntimeException(level, ex);
         }
 
@@ -219,7 +222,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
 
         // Animation systems
-        gameAnimationThread = new GameLogicManager(new CreatureFallSystem(entityData));
+        gameAnimationThread = new GameLogicManager(new DungeonHeartConstruction(entityData, getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS)), new CreatureFallSystem(entityData));
         gameAnimationLoop = new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "GameAnimation");
 
         // Steering
@@ -436,7 +439,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
             try {
                 Main.getUserSettings().save();
             } catch (IOException ex) {
-                logger.log(Level.SEVERE, "Failed to save the level progress!", ex);
+                LOGGER.log(Level.SEVERE, "Failed to save the level progress!", ex);
             }
         }
     }

@@ -322,6 +322,7 @@ public abstract class AbstractRoomController implements IRoomController {
      *
      * @return max capacity used
      */
+    @Override
     public boolean isFullCapacity() {
         return getUsedCapacity() >= getMaxCapacity();
     }

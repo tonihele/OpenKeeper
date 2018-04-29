@@ -29,14 +29,16 @@ public class ObjectViewState implements EntityComponent {
 
     public short objectId;
     public GameObject.State state;
+    public boolean visible;
 
     public ObjectViewState() {
         // For serialization
     }
 
-    public ObjectViewState(short objectId, GameObject.State state) {
+    public ObjectViewState(short objectId, GameObject.State state, boolean visible) {
         this.objectId = objectId;
         this.state = state;
+        this.visible = visible;
     }
 
     @Override

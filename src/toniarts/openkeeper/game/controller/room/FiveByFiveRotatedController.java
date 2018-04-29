@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.jme3.math.FastMath;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,10 +33,10 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class FiveByFiveRotatedController extends AbstractRoomController implements ICreatureEntrance {
 
-    private static final short OBJECT_HEART_ID = 13;
-    private static final short OBJECT_ARCHES_ID = 86;
-    private static final short OBJECT_BIG_STEPS_ID = 88;
-    private static final short OBJECT_PLUG_ID = 96;
+    public static final short OBJECT_HEART_ID = 13;
+    public static final short OBJECT_ARCHES_ID = 86;
+    public static final short OBJECT_BIG_STEPS_ID = 88;
+    public static final short OBJECT_PLUG_ID = 96;
 
     private final List<Point> spawnPoints = new ArrayList<>(16);
 
@@ -77,7 +78,18 @@ public class FiveByFiveRotatedController extends AbstractRoomController implemen
         // Because of physics and whatnot, the object are on server, so what about the creation animation?
         // The creation animation should be on the client perhaps... We don't care about it...
         Point center = roomInstance.getCenter();
-        objectsController.loadObject(OBJECT_HEART_ID, (short) 0, center.x, center.y);
+        objectsController.loadObject(OBJECT_HEART_ID, roomInstance.getOwnerId(), center.x, center.y);
+
+        // Construct the plug
+        objectsController.loadObject(OBJECT_PLUG_ID, roomInstance.getOwnerId(), center.x, center.y);
+
+        // The arches
+        objectsController.loadObject(OBJECT_ARCHES_ID, roomInstance.getOwnerId(), center.x, center.y);
+
+        // The steps between the arches
+        objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y);
+        objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y, -FastMath.TWO_PI / 3);
+        objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y, FastMath.TWO_PI / 3);
     }
 
     @Override

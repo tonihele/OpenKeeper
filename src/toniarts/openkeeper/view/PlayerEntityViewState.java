@@ -155,6 +155,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 result = placeHolder;
             }
         }
+        result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
         nodeObjects.attachChild(result);
         return result;
     }
@@ -216,6 +217,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void updateObject(Spatial object, Entity e) {
             logger.log(Level.FINEST, "ObjectModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
+            ObjectViewState objectViewState = e.get(ObjectViewState.class);
+            object.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
         }
 
         @Override
