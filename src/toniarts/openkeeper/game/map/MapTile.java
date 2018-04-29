@@ -165,11 +165,11 @@ public class MapTile implements Savable {
         this.bridgeTerrainType = bridgeTerrainType;
     }
 
-    public Integer getRandomTextureIndex() {
+    public int getRandomTextureIndex() {
         return randomTextureIndex;
     }
 
-    public void setRandomTextureIndex(Integer randomTextureIndex) {
+    public void setRandomTextureIndex(int randomTextureIndex) {
         this.randomTextureIndex = randomTextureIndex;
     }
 
@@ -355,7 +355,7 @@ public class MapTile implements Savable {
         InputCapsule in = im.getCapsule(this);
         selection = readShortBooleanMap(in, "selection");
         flashing = readShortBooleanMap(in, "flashing");
-        randomTextureIndex = in.readInt("randomTextureIndex", -1);
+        randomTextureIndex = in.readInt("randomTextureIndex", 0);
         health = in.readInt("health", 0);
         maxHealth = in.readInt("maxHealth", 0);
         gold = in.readInt("gold", 0);

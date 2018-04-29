@@ -105,7 +105,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final Map<RoomInstance, RoomConstructor> roomActuals = new HashMap<>(); // Rooms by room constructor
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
-    private static final Logger logger = Logger.getLogger(MapViewController.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(MapViewController.class.getName());
 
     public MapViewController(AssetManager assetManager, KwdFile kwdFile, IMapInformation mapClientService, short playerId) {
         this.kwdFile = kwdFile;
@@ -142,7 +142,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                 try {
                     handleTile(getMapData().getTile(x, y), terrain);
                 } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Failed to handle tile at " + x + ", " + y + "!", e);
+                    LOGGER.log(Level.SEVERE, "Failed to handle tile at " + x + ", " + y + "!", e);
                 }
 
                 // Update progress
@@ -299,7 +299,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
                             AssetUtils.assignMapsToMaterial(assetManager, material);
                         } catch (Exception e) {
-                            logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
+                            LOGGER.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
                         }
                     }
                 }
@@ -425,31 +425,26 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                 Integer texCount = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
                 if (texCount != null) {
 
-                    // On redrawing, see if we already randomized this
                     // The principle is bit wrong, the random texture is tied to the tile, and not material etc.
                     // But it is probably just the tops of few tiles, so...
-                    int tex;
-                    if (tile.getRandomTextureIndex() != null) {
-                        tex = tile.getRandomTextureIndex();
-
-                        // FIXME: Rock top fails, we may have a problem in the material naming
-                        if (texCount >= tex) {
-                            tex = texCount - 1;
-                        }
-                    } else {
-                        tex = FastMath.rand.nextInt(texCount);
-                        tile.setRandomTextureIndex(tex);
-                    }
+                    int tex = tile.getRandomTextureIndex();
                     if (tex != 0) { // 0 is the default anyway
                         Geometry g = (Geometry) spatial;
                         Material m = g.getMaterial();
                         String asset = m.getAssetName();
 
                         // Load new material
-                        Material newMaterial = assetManager.loadMaterial(asset.substring(0,
-                                asset.lastIndexOf(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR) + 1).concat(tex + ".j3m"));
-                        AssetUtils.assignMapsToMaterial(assetManager, newMaterial);
-                        g.setMaterial(newMaterial);
+                        try {
+                            Material newMaterial = assetManager.loadMaterial(asset.substring(0,
+                                    asset.lastIndexOf(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR) + 1).concat(tex + ".j3m"));
+                            AssetUtils.assignMapsToMaterial(assetManager, newMaterial);
+                            g.setMaterial(newMaterial);
+                        } catch (Exception e) {
+
+                            // FIXME: Rock top fails, we may have a problem in the material naming
+                            LOGGER.log(Level.WARNING, "Failed to load a random texture to terrain id " + tile.getTerrainId() + ", texture index " + tex + "!", e);
+                        }
+
                     }
                 }
             }
