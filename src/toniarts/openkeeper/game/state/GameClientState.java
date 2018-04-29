@@ -25,12 +25,9 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.controller.MapController;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
-import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -40,15 +37,9 @@ import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
-import toniarts.openkeeper.game.task.TaskManager;
-import toniarts.openkeeper.game.trigger.TriggerControl;
-import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
-import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
-import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
-import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
-import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
 
@@ -59,36 +50,15 @@ import toniarts.openkeeper.view.PlayerMapViewState;
  */
 public class GameClientState extends AbstractPauseAwareState {
 
-    public static final int LEVEL_TIMER_MAX_COUNT = 16;
-    private static final int LEVEL_FLAG_MAX_COUNT = 128;
-    private static final float MOVEMENT_UPDATE_TPF = 0.02f;
-
     private Main app;
 
-//    private ExecutorService loader = Executors.newSingleThreadExecutor();
     private AppStateManager stateManager;
 
-    private KwdFile kwdFile;
+    private final KwdFile kwdFile;
 
-    private GameLogicManager gameLogicThread;
-    private TriggerControl triggerControl = null;
-    private CreatureTriggerState creatureTriggerState;
-    private ObjectTriggerState objectTriggerState;
-    private DoorTriggerState doorTriggerState;
-    private PartyTriggerState partyTriggerState;
-    private ActionPointState actionPointState;
-    // TODO What timer class we should take ?
-    private int levelScore = 0;
-    private boolean campaign;
-
-    private GameResult gameResult = null;
-    private float timeTaken = 0;
-    private Float timeLimit = null;
-    private TaskManager taskManager;
     private final Map<Short, Keeper> players = new TreeMap<>();
     private final Object loadingObject = new Object();
     private volatile boolean gameStarted = false;
-    private PauseableScheduledThreadPoolExecutor exec;
 
     //private final GameSessionService gameService;
     private final Short playerId;
@@ -101,13 +71,15 @@ public class GameClientState extends AbstractPauseAwareState {
     private PlayerMapViewState playerMapViewState;
     private PlayerEntityViewState playerModelViewState;
 
-    private static final Logger logger = Logger.getLogger(GameClientState.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(GameClientState.class.getName());
 
     /**
      * Single use game states
      *
      * @param level the level to load
+     * @param playerId our player ID
      * @param players players participating in this game
+     * @param gameClientService client services
      */
     public GameClientState(KwdFile level, Short playerId, List<ClientInfo> players, GameSessionClientService gameClientService) {
         this.kwdFile = level;
@@ -243,28 +215,12 @@ public class GameClientState extends AbstractPauseAwareState {
     }
 
     private void onGameLoadComplete() {
-        // Prewarm the whole scene
-//                GameClientState.this.app.getRenderManager().preloadScene(rootNode);
-//
-//                // Enable player state
-//                GameClientState.this.stateManager.getState(PlayerState.class).setEnabled(true);
-//                GameClientState.this.stateManager.getState(SoundState.class).setEnabled(true);
-//
-//                // Set initialized
+
+        // Set initialized
         GameClientState.this.initialized = true;
-//
-//                // Set the processors
-//                GameClientState.this.app.setViewProcessors();
-//
-//                // FIXME: this is not correct
-//                // Enqueue the thread starting to next frame so that the states are initialized
-//                app.enqueue(() -> {
-//
-//                    // Enable game logic thread
-//                    exec.resume();
-//
-//                    return null;
-//                });
+
+        // Set the processors
+        GameClientState.this.app.setViewProcessors();
     }
 
     private Void onGameLoad() {
@@ -280,7 +236,7 @@ public class GameClientState extends AbstractPauseAwareState {
             }
 
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Failed to load the game!", e);
+            LOGGER.log(Level.SEVERE, "Failed to load the game!", e);
         }
 
         return null;
@@ -321,6 +277,7 @@ public class GameClientState extends AbstractPauseAwareState {
 
             // Now we have the game data, start loading the map
             kwdFile.load();
+            AssetUtils.prewarmAssets(kwdFile, app.getAssetManager(), app);
             for (Keeper keeper : players) {
                 GameClientState.this.players.put(keeper.getId(), keeper);
             }
@@ -342,6 +299,11 @@ public class GameClientState extends AbstractPauseAwareState {
                     }
                 }
             };
+
+            // Prewarm the whole scene
+            app.getRenderManager().preloadScene(app.getRootNode());
+
+            // Signal our readiness
             gameClientService.loadComplete();
         }
 
