@@ -77,6 +77,9 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
                         case IDLE:
                             targetState = Creature.AnimationType.IDLE_1;
                             break;
+                        case STUNNED:
+                            targetState = Creature.AnimationType.STUNNED;
+                            break;
                     }
                 }
             }

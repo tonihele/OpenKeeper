@@ -251,6 +251,7 @@ public class KeeperHandState extends AbstractAppState {
 
             // Attach to GUI queueNode and play the animation
             Node itemNode = new Node("CurrentItem");
+            currentItem.setSpatial(null);
             itemNode.addControl(currentItem);
             itemNode.setLocalTranslation(0, 0, 0);
             itemNode.setLocalRotation(Matrix3f.ZERO);

@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -39,6 +38,7 @@ import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
+import toniarts.openkeeper.game.logic.CreatureFallSystem;
 import toniarts.openkeeper.game.logic.CreatureViewSystem;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
@@ -59,7 +59,6 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameLoop;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
 
 /**
  * The game controller, runs the game simulation itself
@@ -83,6 +82,8 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
 
     private GameLoop gameLogicLoop;
     private GameLoop steeringCalculatorLoop;
+    private GameLoop gameAnimationLoop;
+    private GameLogicManager gameAnimationThread;
     private GameLogicManager gameLogicThread;
     private TriggerControl triggerControl = null;
     private CreatureTriggerState creatureTriggerState;
@@ -101,7 +102,6 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     private float timeTaken = 0;
     private Float timeLimit = null;
     private ITaskManager taskManager;
-    private PauseableScheduledThreadPoolExecutor exec;
 
     private static final Logger logger = Logger.getLogger(GameController.class.getName());
 
@@ -122,6 +122,8 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
      *
      * @param level the level to load
      * @param players player participating in this game, can be {@code null}
+     * @param entityData
+     * @param gameSettings
      */
     public GameController(KwdFile level, List<Keeper> players, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.level = null;
@@ -140,6 +142,8 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
      * Single use game states
      *
      * @param selectedLevel the level to load
+     * @param entityData
+     * @param gameSettings
      */
     public GameController(GeneralLevel selectedLevel, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.level = null;
@@ -207,12 +211,18 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         }
 
         // Create the game loops ready to start
+        // Game logic
         gameLogicThread = new GameLogicManager(new PositionSystem(gameWorldController.getMapController(), entityData),
                 new ManaCalculatorLogic(gameSettings, playerControllers.values(), gameWorldController.getMapController()),
                 new CreatureAiSystem(entityData, gameWorldController, taskManager, kwdFile),
                 new CreatureViewSystem(entityData));
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
 
+        // Animation systems
+        gameAnimationThread = new GameLogicManager(new CreatureFallSystem(entityData));
+        gameAnimationLoop = new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "GameAnimation");
+
+        // Steering
         steeringCalculatorLoop = new GameLoop(new GameLogicManager(new MovementSystem(entityData)), GameLoop.INTERVAL_FPS_60, "SteeringCalculator");
     }
 
@@ -220,25 +230,8 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
 
         // Game logic thread & movement
         gameLogicLoop.start();
+        gameAnimationLoop.start();
         steeringCalculatorLoop.start();
-
-        exec = new PauseableScheduledThreadPoolExecutor(2, true);
-        exec.setThreadFactory(new ThreadFactory() {
-
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "GameLogicAndMovementThread");
-            }
-        });
-//                    gameLogicThread = new GameLogicThread(GameState.this.app,
-//                            worldState, 1.0f / kwdFile.getGameLevel().getTicksPerSec(),
-//                            GameState.this, new CreatureLogicState(worldState.getThingLoader()),
-//                            new CreatureSpawnLogicState(worldState.getThingLoader(), getPlayers(), GameState.this),
-//                            new RoomGoldFixer(worldState));
-//        exec.scheduleAtFixedRate(gameLogicThread,
-//                0, 1000 / kwdFile.getGameLevel().getTicksPerSec(), TimeUnit.MILLISECONDS);
-//        exec.scheduleAtFixedRate(new MovementThread(GameState.this.app, MOVEMENT_UPDATE_TPF, worldState.getThingLoader()),
-//                0, (long) (MOVEMENT_UPDATE_TPF * 1000), TimeUnit.MILLISECONDS);
     }
 
     private void setupPlayers() {
@@ -320,6 +313,9 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         if (steeringCalculatorLoop != null) {
             steeringCalculatorLoop.pause();
         }
+        if (gameAnimationLoop != null) {
+            gameAnimationLoop.pause();
+        }
         if (gameLogicLoop != null) {
             gameLogicLoop.pause();
         }
@@ -328,6 +324,9 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     public void resumeGame() {
         if (gameLogicLoop != null) {
             gameLogicLoop.resume();
+        }
+        if (gameAnimationLoop != null) {
+            gameAnimationLoop.resume();
         }
         if (steeringCalculatorLoop != null) {
             steeringCalculatorLoop.resume();
@@ -530,6 +529,10 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         if (steeringCalculatorLoop != null) {
             steeringCalculatorLoop.stop();
             steeringCalculatorLoop = null;
+        }
+        if (gameAnimationLoop != null) {
+            gameAnimationLoop.stop();
+            gameAnimationLoop = null;
         }
         if (gameLogicLoop != null) {
             gameLogicLoop.stop();

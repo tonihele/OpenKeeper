@@ -170,8 +170,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 if (interactionState.getType() == Type.NONE && keeperHandState.getItem() != null) {
                     MapTile tile = gameClientState.getMapClientService().getMapData().getTile((int) pos.x, (int) pos.y);
                     if (tile != null) {
-                        //IEntityControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
-                        //return (status != IEntityControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
+                        IEntityViewControl.DroppableStatus status = keeperHandState.getItem().getDroppableStatus(tile, gameClientState.getMapClientService().getTerrain(tile), player.getPlayerId());
+                        return (status != IEntityViewControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
                     }
                     return ColorIndicator.RED;
                 }
@@ -611,8 +611,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     if (interactionState.getType() == Type.NONE) {
 
                         // Drop
-                        if (keeperHandState.getItem() != null) {
-                            //gameClientState.getGameClientService().drop(keeperHand.getEntityId(), p, selectionHandler.getActualPointedPosition());
+                        IEntityViewControl entityViewControl = keeperHandState.getItem();
+                        if (entityViewControl != null) {
+                            MapTile mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
+                            if (entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
+                                gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
+                            }
                             //MapTile tile = gameClientState.getMapClientService().getMapData().getTile(p);
 //                            IEntityControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
 //                            if (status != IEntityControl.DroppableStatus.NOT_DROPPABLE) {
@@ -623,6 +627,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 //                            }
                         } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
 //                            getWorldHandler().playSoundAtTile(p.x, p.y, KeeperHand.getSlapSound());
+                            gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
                             interactiveControl.interact(player.getPlayerId());
                         } else if (Main.isDebug()) {
                             // taggable -> "dig"

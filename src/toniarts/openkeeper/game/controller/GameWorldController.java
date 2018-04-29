@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
@@ -39,6 +40,8 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
@@ -444,11 +447,13 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else // Water or lava
-                     if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+                    {
+                        if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
                             tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
                         } else {
                             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                         }
+                    }
 
                     // Give money back
                     int goldLeft = addGold(playerId, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100)));
@@ -611,10 +616,22 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         if (playerHandControl.peek() == entity) {
             playerHandControl.pop();
 
-            // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
-            // And also no need to create a system for this which saves resources
-            // TODO: maybe somekind of a dropping component?
-            entityData.setComponent(entity, new Position(0, WorldUtils.pointToVector3f(tile)));
+            // Stuff drop differently
+            if (entityData.getComponent(entity, CreatureComponent.class) != null) {
+
+                // Add position
+                // Maybe in the future the physics deal with this and we just need to detect that we are airborne
+                Vector3f pos = new Vector3f(coordinates.x, 2, coordinates.y);
+                entityData.setComponent(entity, new Position(0, pos));
+
+                // Add the dropping component to the creature
+                entityData.setComponent(entity, new CreatureFall());
+            } else {
+
+                // TODO: handle giving item to creature & dropping to room
+                Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
+                entityData.setComponent(entity, new Position(0, pos));
+            }
         }
     }
 

@@ -23,6 +23,7 @@ import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 
 /**
  * A small interface telling that the control (creature, object...) is
@@ -133,10 +134,11 @@ public interface IEntityViewControl<T, S> extends Control {
      * happen if...
      *
      * @param tile the tile to be tested against
+     * @param terrain the terrain
      * @param playerId the player who wants to drop
      * @return the result if the control were to be dropped here
      */
-    public DroppableStatus getDroppableStatus(MapTile tile, short playerId);
+    public DroppableStatus getDroppableStatus(MapTile tile, Terrain terrain, short playerId);
 
     /**
      * Drop the control on the tile

@@ -24,10 +24,12 @@ import com.jme3.scene.control.AbstractControl;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Objects;
+import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import static toniarts.openkeeper.view.map.MapViewController.COLOR_FLASH;
 import toniarts.openkeeper.world.animation.AnimationControl;
@@ -77,12 +79,20 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public boolean isPickable(short playerId) {
-        return true;
+        Interaction interaction = entityData.getComponent(entityId, Interaction.class);
+        if (interaction == null) {
+            return false;
+        }
+        return interaction.pickUppable;
     }
 
     @Override
     public boolean isInteractable(short playerId) {
-        return true;
+        Interaction interaction = entityData.getComponent(entityId, Interaction.class);
+        if (interaction == null) {
+            return false;
+        }
+        return interaction.interactable && getOwnerId() == playerId;
     }
 
     @Override
@@ -101,8 +111,10 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     }
 
     @Override
-    public DroppableStatus getDroppableStatus(MapTile tile, short playerId) {
-        return DroppableStatus.NOT_DROPPABLE;
+    public DroppableStatus getDroppableStatus(MapTile tile, Terrain terrain, short playerId) {
+        return (tile.getOwnerId() == playerId
+                && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
     }
 
     @Override
@@ -117,7 +129,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public void onHoverStart(short playerId) {
-        setHighlight(true);
+        setHighlight(isInteractable(playerId) || isPickable(playerId));
     }
 
     @Override
@@ -149,7 +161,11 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public boolean isSlappable(short playerId) {
-        return true;
+        Interaction interaction = entityData.getComponent(entityId, Interaction.class);
+        if (interaction == null) {
+            return false;
+        }
+        return interaction.slappable;
     }
 
     @Override
