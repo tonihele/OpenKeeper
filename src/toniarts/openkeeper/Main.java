@@ -45,8 +45,6 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.AbstractMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -73,8 +71,8 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.utils.UTF8Control;
@@ -366,10 +364,10 @@ public class Main extends SimpleApplication {
                     setupNiftyResourceBundles(nifty);
 
                     // Load the XMLs, since we also validate them, Nifty will read them twice
-                    String basePath = AssetsConverter.getCurrentFolder() + "assets" + File.separator;
                     List<Map.Entry<String, byte[]>> guiXMLs = new ArrayList<>(2);
-                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/MainMenu.xml", Files.readAllBytes(Paths.get(basePath + "Interface/MainMenu.xml"))));
-                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/GameHUD.xml", Files.readAllBytes(Paths.get(basePath + "Interface/GameHUD.xml"))));
+
+                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/MainMenu.xml", PathUtils.getBytesFromInputStream(Main.this.getClass().getResourceAsStream("/Interface/MainMenu.xml"))));
+                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/GameHUD.xml", PathUtils.getBytesFromInputStream(Main.this.getClass().getResourceAsStream("/Interface/GameHUD.xml"))));
 
                     // Validate the XML, great for debuging purposes
                     for (Map.Entry<String, byte[]> xml : guiXMLs) {
