@@ -111,6 +111,9 @@ public class MainMenuState extends AbstractAppState {
         if (enabled) {
             loadMenuScene(null, assetManager, app);
         }
+
+        screen = new MainMenuScreenController(this, app.getNifty());
+        app.getNifty().registerScreenController(screen);
     }
 
     /**
@@ -158,9 +161,6 @@ public class MainMenuState extends AbstractAppState {
         this.stateManager = this.app.getStateManager();
         inputManager = this.app.getInputManager();
         //viewPort = this.app.getViewPort();
-
-        screen = new MainMenuScreenController(this);
-        this.app.getNifty().registerScreenController(screen);
     }
 
     /**
@@ -243,7 +243,7 @@ public class MainMenuState extends AbstractAppState {
             if (menuNode == null) {
 
                 // Set up the loading screen
-                SingleBarLoadingState loader = new SingleBarLoadingState() {
+                SingleBarLoadingState loader = new SingleBarLoadingState(stateManager) {
                     @Override
                     public Void onLoad() {
                         loadMenuScene(this, MainMenuState.this.assetManager, MainMenuState.this.app);

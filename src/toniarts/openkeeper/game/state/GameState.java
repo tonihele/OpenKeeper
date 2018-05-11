@@ -149,7 +149,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         this.stateManager = stateManager;
 
         // Set up the loading screen
-        MultiplayerLoadingState loader = new MultiplayerLoadingState() {
+        MultiplayerLoadingState loader = new MultiplayerLoadingState(stateManager) {
 
             @Override
             public Void onLoad() {

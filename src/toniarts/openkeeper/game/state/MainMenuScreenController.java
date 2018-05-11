@@ -128,20 +128,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         CUTSCENES.add(new Cutscene("Outro", "Outro", "${menu.2843}"));
     }
 
-    public MainMenuScreenController(MainMenuState state) {
+    public MainMenuScreenController(MainMenuState state, Nifty nifty) {
         this.state = state;
-        nifty = state.app.getNifty();
-        screen = nifty.getCurrentScreen();
-
-        // Set some Nifty stuff
-        nifty.addResourceBundle("menu", Main.getResourceBundle("Interface/Texts/Text"));
-        nifty.addResourceBundle("speech", Main.getResourceBundle("Interface/Texts/Speech"));
-        nifty.addResourceBundle("mpd1", Main.getResourceBundle("Interface/Texts/LEVELMPD1_BRIEFING"));
-        nifty.addResourceBundle("mpd2", Main.getResourceBundle("Interface/Texts/LEVELMPD2_BRIEFING"));
-        nifty.addResourceBundle("mpd3", Main.getResourceBundle("Interface/Texts/LEVELMPD3_BRIEFING"));
-        nifty.addResourceBundle("mpd4", Main.getResourceBundle("Interface/Texts/LEVELMPD4_BRIEFING"));
-        nifty.addResourceBundle("mpd5", Main.getResourceBundle("Interface/Texts/LEVELMPD5_BRIEFING"));
-        nifty.addResourceBundle("mpd6", Main.getResourceBundle("Interface/Texts/LEVELMPD6_BRIEFING"));
+        this.nifty = nifty;
     }
 
     @Override

@@ -181,7 +181,7 @@ public class GameClientState extends AbstractPauseAwareState {
         // Create the appropriate loaging screen
         IPlayerLoadingProgress loader;
         if (multiplayer) {
-            loader = new MultiplayerLoadingState() {
+            loader = new MultiplayerLoadingState(stateManager) {
 
                 @Override
                 public Void onLoad() {
@@ -196,7 +196,7 @@ public class GameClientState extends AbstractPauseAwareState {
                 }
             };
         } else {
-            loader = new SingleBarLoadingState() {
+            loader = new SingleBarLoadingState(stateManager) {
 
                 @Override
                 public Void onLoad() {

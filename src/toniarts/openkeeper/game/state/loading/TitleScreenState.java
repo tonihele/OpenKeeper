@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.state.loading;
 
+import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.texture.Texture;
 import java.util.Locale;
@@ -26,6 +27,10 @@ import java.util.Locale;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class TitleScreenState extends LoadingState {
+
+    public TitleScreenState(AppStateManager stateManager) {
+        super(stateManager);
+    }
 
     @Override
     protected Texture getLoadingScreenTexture() {

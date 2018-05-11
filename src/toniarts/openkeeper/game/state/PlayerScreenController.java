@@ -106,10 +106,9 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     private static final Logger logger = Logger.getLogger(PlayerScreenController.class.getName());
 
-    public PlayerScreenController(PlayerState state) {
+    public PlayerScreenController(PlayerState state, Nifty nifty) {
         this.state = state;
-        this.nifty = state.app.getNifty();
-        this.screen = nifty.getCurrentScreen();
+        this.nifty = nifty;
     }
 
     @Override

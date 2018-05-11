@@ -89,12 +89,15 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
 
     private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
 
-    public PlayerState(int playerId) {
+    public PlayerState(int playerId, Main app) {
         this.playerId = (short) playerId;
+
+        screen = new PlayerScreenController(this, app.getNifty());
+        app.getNifty().registerScreenController(screen);
     }
 
-    public PlayerState(int playerId, boolean enabled) {
-        this(playerId);
+    public PlayerState(int playerId, boolean enabled, Main app) {
+        this(playerId, app);
         super.setEnabled(enabled);
     }
 
@@ -105,9 +108,6 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         this.app = (Main) app;
         assetManager = this.app.getAssetManager();
         this.stateManager = stateManager;
-
-        screen = new PlayerScreenController(this);
-        this.app.getNifty().registerScreenController(screen);
     }
 
     @Override
