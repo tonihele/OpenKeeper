@@ -365,7 +365,6 @@ public class Main extends SimpleApplication {
 
                     // Load the XMLs, since we also validate them, Nifty will read them twice
                     List<Map.Entry<String, byte[]>> guiXMLs = new ArrayList<>(2);
-
                     guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/MainMenu.xml", PathUtils.getBytesFromInputStream(Main.this.getClass().getResourceAsStream("/Interface/MainMenu.xml"))));
                     guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/GameHUD.xml", PathUtils.getBytesFromInputStream(Main.this.getClass().getResourceAsStream("/Interface/GameHUD.xml"))));
 
