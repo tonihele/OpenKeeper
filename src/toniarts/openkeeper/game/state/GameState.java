@@ -319,7 +319,9 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
             public void onLoadComplete() {
 
                 // Prewarm the whole scene
-                GameState.this.app.getRenderManager().preloadScene(rootNode);
+                app.enqueue(() -> {
+                    GameState.this.app.getRenderManager().preloadScene(rootNode);
+                });
 
                 // Enable player state
                 GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);
