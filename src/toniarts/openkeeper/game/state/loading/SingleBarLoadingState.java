@@ -68,6 +68,10 @@ public abstract class SingleBarLoadingState extends LoadingState {
         Collections.sort(AVAILABLE_WIDTHS);
     }
 
+    public SingleBarLoadingState(AppStateManager stateManager) {
+        super(stateManager);
+    }
+
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
         super.initialize(stateManager, app);

@@ -39,13 +39,17 @@ import de.lessvoid.nifty.render.batch.BatchRenderConfiguration;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.AbstractMap;
 import java.util.ArrayDeque;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -319,7 +323,7 @@ public class Main extends SimpleApplication {
         getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
 
         // Initiate the title screen
-        TitleScreenState gameLoader = new TitleScreenState() {
+        TitleScreenState gameLoader = new TitleScreenState(stateManager) {
             @Override
             public Void onLoad() {
                 try {
@@ -359,27 +363,33 @@ public class Main extends SimpleApplication {
                     Nifty nifty = getNifty();
                     nifty.setGlobalProperties(new Properties());
                     nifty.getGlobalProperties().setProperty("MULTI_CLICK_TIME", "1");
+                    setupNiftyResourceBundles(nifty);
+
+                    // Load the XMLs, since we also validate them, Nifty will read them twice
+                    String basePath = AssetsConverter.getCurrentFolder() + "assets" + File.separator;
+                    List<Map.Entry<String, byte[]>> guiXMLs = new ArrayList<>(2);
+                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/MainMenu.xml", Files.readAllBytes(Paths.get(basePath + "Interface/MainMenu.xml"))));
+                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/GameHUD.xml", Files.readAllBytes(Paths.get(basePath + "Interface/GameHUD.xml"))));
 
                     // Validate the XML, great for debuging purposes
-                    List<String> guiXMLs = Arrays.asList("Interface/MainMenu.xml", "Interface/GameHUD.xml");
-                    for (String xml : guiXMLs) {
+                    for (Map.Entry<String, byte[]> xml : guiXMLs) {
                         try {
-                            nifty.validateXml(xml);
+                            nifty.validateXml(new ByteArrayInputStream(xml.getValue()));
                         } catch (Exception e) {
-                            throw new RuntimeException("GUI file " + xml + " failed to validate!", e);
+                            throw new RuntimeException("GUI file " + xml.getKey() + " failed to validate!", e);
                         }
                     }
 
                     // Initialize persistent app states
                     MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager, Main.this);
-                    PlayerState playerState = new PlayerState(Player.KEEPER1_ID, false);
+                    PlayerState playerState = new PlayerState(Player.KEEPER1_ID, false, Main.this);
 
                     stateManager.attach(mainMenuState);
                     stateManager.attach(playerState);
 
                     // Eventually we are going to use Nifty, the XML files take some time to parse
-                    for (String xml : guiXMLs) {
-                        nifty.addXml(xml);
+                    for (Map.Entry<String, byte[]> xml : guiXMLs) {
+                        nifty.addXml(new ByteArrayInputStream(xml.getValue()));
                     }
 
                     // It is all a clever ruge, we don't actually load much here
@@ -413,6 +423,19 @@ public class Main extends SimpleApplication {
                     // The fireworks!
                     playIntro();
                 }
+            }
+
+            private void setupNiftyResourceBundles(Nifty nifty) {
+
+                // For main menu
+                nifty.addResourceBundle("menu", Main.getResourceBundle("Interface/Texts/Text"));
+                nifty.addResourceBundle("speech", Main.getResourceBundle("Interface/Texts/Speech"));
+                nifty.addResourceBundle("mpd1", Main.getResourceBundle("Interface/Texts/LEVELMPD1_BRIEFING"));
+                nifty.addResourceBundle("mpd2", Main.getResourceBundle("Interface/Texts/LEVELMPD2_BRIEFING"));
+                nifty.addResourceBundle("mpd3", Main.getResourceBundle("Interface/Texts/LEVELMPD3_BRIEFING"));
+                nifty.addResourceBundle("mpd4", Main.getResourceBundle("Interface/Texts/LEVELMPD4_BRIEFING"));
+                nifty.addResourceBundle("mpd5", Main.getResourceBundle("Interface/Texts/LEVELMPD5_BRIEFING"));
+                nifty.addResourceBundle("mpd6", Main.getResourceBundle("Interface/Texts/LEVELMPD6_BRIEFING"));
             }
         };
         this.stateManager.attach(gameLoader);

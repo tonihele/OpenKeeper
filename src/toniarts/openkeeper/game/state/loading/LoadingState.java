@@ -22,15 +22,15 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.input.InputManager;
 import com.jme3.material.Material;
+import com.jme3.math.ColorRGBA;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Quad;
 import com.jme3.texture.Texture;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 
 /**
@@ -46,12 +46,17 @@ public abstract class LoadingState extends AbstractAppState {
     protected AppStateManager stateManager;
     protected InputManager inputManager;
     protected ViewPort viewPort;
-    private Geometry titleScreen;
-    private boolean load = true;
-    private Future loadFuture = null;
-    private final ExecutorService exec = Executors.newSingleThreadExecutor();
+    private Node titleScreen;
+    private final Thread loadingThread = new LoadingThread();
     protected int imageWidth;
     protected int imageHeight;
+
+    private static final Logger LOGGER = Logger.getLogger(LoadingState.class.getName());
+
+    public LoadingState(final AppStateManager stateManager) {
+        this.stateManager = stateManager;
+        loadingThread.start();
+    }
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
@@ -59,7 +64,7 @@ public abstract class LoadingState extends AbstractAppState {
         this.app = (Main) app;
         rootNode = this.app.getRootNode();
         assetManager = this.app.getAssetManager();
-        this.stateManager = this.app.getStateManager();
+        this.stateManager = stateManager;
         inputManager = this.app.getInputManager();
         viewPort = this.app.getViewPort();
 
@@ -68,8 +73,6 @@ public abstract class LoadingState extends AbstractAppState {
 
         // Load up the title screen
         setupTitleScreen();
-
-        this.app.getGuiNode().attachChild(titleScreen);
     }
 
     /**
@@ -81,6 +84,7 @@ public abstract class LoadingState extends AbstractAppState {
 
     private void setupTitleScreen() {
         Texture tex = getLoadingScreenTexture();
+        titleScreen = new Node("LoadingScreenNode");
 
         // Set full screen but obey the aspect ratio
         int imgWidth = tex.getImage().getWidth();
@@ -96,39 +100,44 @@ public abstract class LoadingState extends AbstractAppState {
             imageWidth = width;
         }
 
-        // The canvas
-        titleScreen = new Geometry("TitleScreen", new Quad(imageWidth, imageHeight));
-        titleScreen.setLocalTranslation((width - imageWidth) / 2, (height - imageHeight) / 2, 0);
+        // Since the loading screen might not fill the whole screen
+        // and we might pop in the actual scene when we are done with this still in...
+        // It looks ugly, so hide everything
+        Geometry black = new Geometry("BlackCanvas", new Quad(width, height));
+        black.setLocalTranslation(0, 0, 0);
         Material mat = new Material(assetManager,
                 "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", ColorRGBA.Black);
+        black.setMaterial(mat);
+        titleScreen.attachChild(black);
+
+        // The canvas
+        Geometry title = new Geometry("TitleScreen", new Quad(imageWidth, imageHeight));
+        title.setLocalTranslation((width - imageWidth) / 2, (height - imageHeight) / 2, 0);
+        mat = new Material(assetManager,
+                "Common/MatDefs/Misc/Unshaded.j3md");
         mat.setTexture("ColorMap", tex);
-        titleScreen.setMaterial(mat);
+        title.setMaterial(mat);
+        titleScreen.attachChild(title);
+
+        this.app.getGuiNode().attachChild(titleScreen);
     }
 
     @Override
     public void update(float tpf) {
-        if (load) {
-            if (loadFuture == null) {
 
-                // If we have not started loading yet, submit the Callable to the executor
-                loadFuture = exec.submit(loadingCallable);
-            }
-
-            // Check if the execution on the other thread is done
-            if (loadFuture.isDone()) {
-
-                // Detach us
-                stateManager.detach(this);
-
-                load = false;
-                onLoadComplete();
-            }
-        }
     }
 
     @Override
     public void cleanup() {
-        exec.shutdownNow();
+        if (loadingThread.isAlive()) {
+            loadingThread.interrupt();
+            try {
+                loadingThread.join();
+            } catch (InterruptedException ex) {
+                LOGGER.log(Level.SEVERE, "Failed to wait for the thread to complete!", ex);
+            }
+        }
 
         // Remove the title screen
         if (titleScreen != null) {
@@ -137,7 +146,6 @@ public abstract class LoadingState extends AbstractAppState {
 
         super.cleanup();
     }
-    private final Callable<Void> loadingCallable = () -> onLoad();
 
     /**
      * Add your loading logic here, <b>do NOT</b> manipulate the scene from
@@ -148,7 +156,32 @@ public abstract class LoadingState extends AbstractAppState {
     abstract public Void onLoad();
 
     /**
-     * Called when loading is complete
+     * Called when loading is complete. <b>Do NOT</b> manipulate the scene from
+     * here!
      */
     abstract public void onLoadComplete();
+
+    private class LoadingThread extends Thread {
+
+        public LoadingThread() {
+            super("Loading");
+        }
+
+        @Override
+        public void run() {
+            try {
+                Callable<Void> loadingCallable = () -> onLoad();
+                loadingCallable.call();
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, "Failed to load!", ex);
+            }
+
+            // Finally call the completion
+            onLoadComplete();
+
+            // Detach us
+            stateManager.detach(LoadingState.this);
+        }
+
+    }
 }
