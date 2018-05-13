@@ -573,7 +573,9 @@ public class Main extends SimpleApplication {
         } else {
 
             // Enable the start menu
-            stateManager.getState(MainMenuState.class).setEnabled(true);
+            enqueue(() -> {
+                stateManager.getState(MainMenuState.class).setEnabled(true);
+            });
         }
     }
 
