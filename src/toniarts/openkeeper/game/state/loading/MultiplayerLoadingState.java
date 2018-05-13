@@ -74,6 +74,10 @@ public abstract class MultiplayerLoadingState extends LoadingState implements IP
         super(stateManager);
     }
 
+    public MultiplayerLoadingState(AppStateManager stateManager) {
+        super(stateManager);
+    }
+
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
         super.initialize(stateManager, app);

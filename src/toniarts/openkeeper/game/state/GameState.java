@@ -43,7 +43,7 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.MovementThread;
-import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
+import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
@@ -149,7 +149,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         this.stateManager = stateManager;
 
         // Set up the loading screen
-        MultiplayerLoadingState loader = new MultiplayerLoadingState(stateManager) {
+        SingleBarLoadingState loader = new SingleBarLoadingState(stateManager) {
 
             @Override
             public Void onLoad() {
@@ -318,7 +318,9 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
             public void onLoadComplete() {
 
                 // Prewarm the whole scene
-                GameState.this.app.getRenderManager().preloadScene(rootNode);
+                app.enqueue(() -> {
+                    GameState.this.app.getRenderManager().preloadScene(rootNode);
+                });
 
                 // Enable player state
                 GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);

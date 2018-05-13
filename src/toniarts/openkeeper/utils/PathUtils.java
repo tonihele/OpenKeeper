@@ -16,7 +16,10 @@
  */
 package toniarts.openkeeper.utils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -97,4 +100,22 @@ public class PathUtils {
         }
         return fixFilePath(folder);
     }
+
+    /**
+     * Read input stream to bytes. Can be removed in Java 9 as the InputStream
+     * provides this functionality then
+     *
+     * @param is the input stream to read
+     * @return byte array read from the input stream
+     * @throws IOException may fail
+     */
+    public static byte[] getBytesFromInputStream(InputStream is) throws IOException {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        byte[] buffer = new byte[0xFFFF];
+        for (int len = is.read(buffer); len != -1; len = is.read(buffer)) {
+            os.write(buffer, 0, len);
+        }
+        return os.toByteArray();
+    }
+
 }
