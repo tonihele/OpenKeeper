@@ -31,7 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
-import toniarts.openkeeper.game.controller.ai.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
@@ -707,6 +707,25 @@ public final class MapController implements Savable, IMapController {
     public void read(JmeImporter im) throws IOException {
         InputCapsule in = im.getCapsule(this);
         mapData = (MapData) in.readSavable("mapData", null);
+    }
+
+    @Override
+    public void alterTerrain(Point pos, short terrainId, short playerId) {
+        MapTile tile = getMapData().getTile(pos.x, pos.y);
+        if (tile == null) {
+            return;
+        }
+
+        // Alter
+        changeTerrain(tile, terrainId);
+        tile.setTerrainId(terrainId);
+
+        // Set owner
+        if (playerId != 0) {
+            tile.setOwnerId(playerId);
+        }
+
+        notifyTileChange(tile);
     }
 
 }

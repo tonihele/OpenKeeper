@@ -26,11 +26,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureAi;
-import toniarts.openkeeper.game.controller.IGameWorldController;
-import toniarts.openkeeper.game.controller.ai.CreatureController;
-import toniarts.openkeeper.game.controller.ai.ICreatureController;
-import toniarts.openkeeper.game.task.ITaskManager;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 
 /**
  * Handles creature logic updates, the creature AI updates that is. The AI is
@@ -44,19 +41,13 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
     private final EntityData entityData;
     private final EntitySet creatureEntities;
 
-    // TODO: The creature shouldn't be able to access the world like this, needs breaking up to pieces
-    private final IGameWorldController gameWorldController;
     private final SafeArrayList<ICreatureController> creatureControllers;
     private final Map<EntityId, ICreatureController> creatureControllersByEntityId;
-    private final ITaskManager taskManager;
-    private final KwdFile kwdFile;
+    private final ICreaturesController creaturesController;
 
-    public CreatureAiSystem(EntityData entityData, IGameWorldController gameWorldController, ITaskManager taskManager,
-            KwdFile kwdFile) {
+    public CreatureAiSystem(EntityData entityData, ICreaturesController creaturesController) {
         this.entityData = entityData;
-        this.gameWorldController = gameWorldController;
-        this.taskManager = taskManager;
-        this.kwdFile = kwdFile;
+        this.creaturesController = creaturesController;
 
         creatureEntities = entityData.getEntities(CreatureAi.class);
         creatureControllers = new SafeArrayList<>(ICreatureController.class);
@@ -83,7 +74,7 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
 
     private void processAddedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            CreatureController creatureController = new CreatureController(entity.getId(), entityData, kwdFile.getCreature(entity.get(CreatureAi.class).creatureId), gameWorldController, taskManager);
+            ICreatureController creatureController = creaturesController.createController(entity.getId());
             int index = Collections.binarySearch(creatureControllers, creatureController);
             creatureControllers.add(~index, creatureController);
             creatureControllersByEntityId.put(entity.getId(), creatureController);

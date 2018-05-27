@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.ai.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 

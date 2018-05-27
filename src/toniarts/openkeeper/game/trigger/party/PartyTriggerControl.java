@@ -16,27 +16,33 @@
  */
 package toniarts.openkeeper.game.trigger.party;
 
-import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameController;
+import toniarts.openkeeper.game.controller.IGameTimer;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.IPartyController;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.creature.Party;
 
 public class PartyTriggerControl extends TriggerControl {
 
-    private Party party;
+    private IPartyController partyController;
 
-    private static final Logger logger = Logger.getLogger(PartyTriggerControl.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(PartyTriggerControl.class.getName());
 
     public PartyTriggerControl() { // empty serialization constructor
         super();
     }
 
-    public PartyTriggerControl(final AppStateManager stateManager, int triggerId, Party party) {
-        super(stateManager, triggerId);
-        this.party = party;
+    public PartyTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer,
+            final IMapController mapController, final ICreaturesController creaturesController, int triggerId,
+            final IPartyController partyController) {
+        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId);
+        this.partyController = partyController;
     }
 
     @Override
@@ -49,13 +55,13 @@ public class PartyTriggerControl extends TriggerControl {
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case PARTY_CREATED:
-                return party.isCreated();
+                return partyController.isCreated();
 
             case PARTY_MEMBERS_KILLED:
                 short unknown = (short) trigger.getUserData("unknown");
                 value = (int) trigger.getUserData("value");
-                if (party.isCreated()) {
-                    for (CreatureControl creature : party.getActualMembers()) {
+                if (partyController.isCreated()) {
+                    for (ICreatureController creature : partyController.getActualMembers()) {
                         if (creature.isDead()) {
                             target++;
                         }
@@ -71,8 +77,8 @@ public class PartyTriggerControl extends TriggerControl {
             case PARTY_MEMBERS_INCAPACITATED:
                 unknown = (short) trigger.getUserData("unknown");
                 value = (int) trigger.getUserData("value");
-                if (party.isCreated()) {
-                    for (CreatureControl creature : party.getActualMembers()) {
+                if (partyController.isCreated()) {
+                    for (ICreatureController creature : partyController.getActualMembers()) {
                         if (creature.isIncapacitated()) {
                             target++;
                         }

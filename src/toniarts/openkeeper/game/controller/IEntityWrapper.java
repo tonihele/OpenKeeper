@@ -14,27 +14,26 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.component;
+package toniarts.openkeeper.game.controller;
 
-import com.simsilica.es.EntityComponent;
-import toniarts.openkeeper.game.controller.creature.CreatureState;
+import com.simsilica.es.EntityId;
 
 /**
- * Simple creature AI component
+ * Wraps entities in controllers
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
+ * @param <T> The entity wrapper
  */
-public class CreatureAi implements EntityComponent {
+public interface IEntityWrapper<T> {
 
-    public CreatureState creatureState;
-    public short creatureId;
+    T createController(EntityId entityId);
 
-    public CreatureAi() {
-    }
-
-    public CreatureAi(CreatureState creatureState, short creatureId) {
-        this.creatureState = creatureState;
-        this.creatureId = creatureId;
-    }
+    /**
+     * Test whether the entity can the wrapped as T
+     *
+     * @param entityId the entity to check
+     * @return true if you can wrap
+     */
+    boolean isValidEntity(EntityId entityId);
 
 }

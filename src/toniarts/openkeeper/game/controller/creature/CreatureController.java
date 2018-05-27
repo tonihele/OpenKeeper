@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.controller.ai;
+package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
@@ -521,6 +521,39 @@ public class CreatureController implements ICreatureController {
     @Override
     public Creature getCreature() {
         return creature;
+    }
+
+    @Override
+    public void stopCreature() {
+        //TODO:
+    }
+
+    @Override
+    public Object getObjectiveTargetActionPoint() {
+        // TODO
+        return null;
+    }
+
+    @Override
+    public void setObjectiveTargetActionPoint(Object actionPoint) {
+        //TODO
+    }
+
+    @Override
+    public Object getObjective() {
+        // TODO
+        return null;
+    }
+
+    @Override
+    public void setObjective(Object objective) {
+        // TODO
+    }
+
+    @Override
+    public boolean isDead() {
+        // TODO
+        return false;
     }
 
     @Override

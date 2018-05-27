@@ -11,7 +11,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
-import toniarts.openkeeper.game.controller.ai.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
@@ -141,5 +141,14 @@ public interface IMapController extends IMapInformation {
      * @param playerId the player applying the healing
      */
     void healTile(Point point, short playerId);
+
+    /**
+     * Alter terrain type
+     *
+     * @param pos the coordinates
+     * @param terrainId the new terrain id
+     * @param playerId the new tile owner
+     */
+    void alterTerrain(Point pos, short terrainId, short playerId);
 
 }

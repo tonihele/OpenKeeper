@@ -63,7 +63,7 @@ public class GameServerState extends AbstractAppState {
     private GameController gameController;
     private IGameWorldController gameWorldController;
 
-    private static final Logger logger = Logger.getLogger(GameServerState.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(GameServerState.class.getName());
 
     /**
      * Single use game states
@@ -113,7 +113,7 @@ public class GameServerState extends AbstractAppState {
             try {
                 gameController.close();
             } catch (Exception ex) {
-                logger.log(Level.SEVERE, "Failed to close the game!", ex);
+                LOGGER.log(Level.SEVERE, "Failed to close the game!", ex);
             }
         }
     }

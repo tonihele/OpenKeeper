@@ -20,26 +20,25 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  *
  * @author ArchDemon
  */
-
-
 public abstract class TriggerData {
 
     /**
      * This TriggerActionData's id.
      */
-    protected int id;
+    protected final int id;
     /**
      * TriggerActionData's parent, or null if it has none.
      */
     protected transient TriggerGenericData parent;
     protected Map<String, Number> userData = null;
-    private static final Logger logger = Logger.getLogger(TriggerData.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(TriggerData.class.getName());
 
     public TriggerData() {
         id = 0; // FIXME
@@ -64,16 +63,8 @@ public abstract class TriggerData {
     }
 
     /**
-     * Sets the id of this TriggerData.
-     *
-     * @param id The TriggerActionData's new id.
-     */
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    /**
-     * <code>getParent</code> retrieves this node's parent. If the parent is null this is the root node.
+     * <code>getParent</code> retrieves this node's parent. If the parent is
+     * null this is the root node.
      *
      * @return the parent of this node.
      */
@@ -82,8 +73,10 @@ public abstract class TriggerData {
     }
 
     /**
-     * Called by {@link TriggerGenericData#attachChildAt(TriggerActionData)} and     * {@link TriggerGenericData#detachChild(TriggerActionData)} - don't call directly.
-     * <code>setParent</code> sets the parent of this TriggerActionData.
+     * Called by {@link TriggerGenericData#attachChildAt(TriggerActionData)} and
+     * * {@link TriggerGenericData#detachChild(TriggerActionData)} - don't call
+     * directly. <code>setParent</code> sets the parent of this
+     * TriggerActionData.
      *
      * @param parent the parent of this TriggerActionData.
      */
@@ -92,7 +85,8 @@ public abstract class TriggerData {
     }
 
     /**
-     * determines if the provided TriggerGenericData is the parent, or parent's parent, etc. of this TriggerActionData.
+     * determines if the provided TriggerGenericData is the parent, or parent's
+     * parent, etc. of this TriggerActionData.
      *
      * @param ancestor the ancestor object to look for.
      * @return true if the ancestor is found, false otherwise.
@@ -117,7 +111,7 @@ public abstract class TriggerData {
         } else if (data instanceof Number) {
             userData.put(key, (Number) data);
         } else {
-            logger.severe("Unexpected class");
+            LOGGER.log(Level.SEVERE, "Unexpected class {0}!", data);
             throw new RuntimeException("Unexpected class");
         }
     }

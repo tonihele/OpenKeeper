@@ -33,7 +33,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.action.ActionPointState;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.GeneralLevel;
@@ -49,7 +48,7 @@ import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
-import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
+import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -85,8 +84,8 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private CreatureTriggerState creatureTriggerState;
     private ObjectTriggerState objectTriggerState;
     private DoorTriggerState doorTriggerState;
-    private PartyTriggerState partyTriggerState;
-    private ActionPointState actionPointState;
+    private PartyTriggerLogicController partyTriggerState;
+    //private ActionPointState actionPointState;
     private final List<Integer> flags = new ArrayList<>(LEVEL_FLAG_MAX_COUNT);
     // TODO What timer class we should take ?
     private final List<GameTimer> timers = new ArrayList<>(LEVEL_TIMER_MAX_COUNT);
@@ -173,16 +172,16 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     setupPlayers();
 
                     // Triggers
-                    partyTriggerState = new PartyTriggerState(true);
-                    partyTriggerState.initialize(stateManager, app);
-                    creatureTriggerState = new CreatureTriggerState(true);
-                    creatureTriggerState.initialize(stateManager, app);
-                    objectTriggerState = new ObjectTriggerState(true);
-                    objectTriggerState.initialize(stateManager, app);
-                    doorTriggerState = new DoorTriggerState(true);
-                    doorTriggerState.initialize(stateManager, app);
-                    actionPointState = new ActionPointState(true);
-                    actionPointState.initialize(stateManager, app);
+                    // partyTriggerState = new PartyTriggerLogicController(true);
+                    //partyTriggerState.initialize(stateManager, app);
+                    //creatureTriggerState = new CreatureTriggerState(true);
+                    //creatureTriggerState.initialize(stateManager, app);
+                    //objectTriggerState = new ObjectTriggerState(true);
+                    //objectTriggerState.initialize(stateManager, app);
+                    // doorTriggerState = new DoorTriggerState(true);
+                    //doorTriggerState.initialize(stateManager, app);
+                    //actionPointState = new ActionPointState(true);
+                    //actionPointState.initialize(stateManager, app);
                     setProgress(0.20f, Player.KEEPER1_ID);
                     setProgress(0.20f, Player.KEEPER2_ID);
                     setProgress(0.20f, Player.KEEPER3_ID);
@@ -214,7 +213,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
                     int triggerId = kwdFile.getGameLevel().getTriggerId();
                     if (triggerId != 0) {
-                        triggerControl = new TriggerControl(stateManager, triggerId);
+                        //triggerControl = new TriggerControl(stateManager, triggerId);
                         setProgress(0.90f, Player.KEEPER1_ID);
                     }
 
@@ -261,7 +260,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
                     // Init
                     if (keeper != null) {
-                        keeper.initialize(stateManager, app);
+                        //keeper.initialize(stateManager, app);
 
                         // Spells are all available for research unless otherwise stated
                         for (KeeperSpell spell : kwdFile.getKeeperSpells()) {
@@ -389,9 +388,9 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     @Override
     public void update(float tpf) {
         super.update(tpf);
-        if (actionPointState != null) {
-            actionPointState.updateControls(tpf);
-        }
+        //if (actionPointState != null) {
+        //    actionPointState.updateControls(tpf);
+        //}
         timeTaken += tpf;
     }
 
@@ -410,26 +409,26 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         }
 
         if (triggerControl != null) {
-            triggerControl.update(tpf);
+            //triggerControl.update(tpf);
         }
 
         if (partyTriggerState != null) {
-            partyTriggerState.update(tpf);
+            //partyTriggerState.update(tpf);
         }
 
         if (creatureTriggerState != null) {
-            creatureTriggerState.update(tpf);
+            //creatureTriggerState.update(tpf);
         }
 
         if (objectTriggerState != null) {
-            objectTriggerState.update(tpf);
+            // objectTriggerState.update(tpf);
         }
         if (doorTriggerState != null) {
-            doorTriggerState.update(tpf);
+            // doorTriggerState.update(tpf);
         }
-        if (actionPointState != null) {
-            actionPointState.update(tpf);
-        }
+//        if (actionPointState != null) {
+//            actionPointState.update(tpf);
+//        }
 
         for (Keeper player : players.values()) {
 //            player.update(tpf);
@@ -516,10 +515,9 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         return true;
     }
 
-    public ActionPointState getActionPointState() {
-        return actionPointState;
-    }
-
+//    public ActionPointState getActionPointState() {
+//        return actionPointState;
+//    }
     /**
      * Get level variable value
      *
@@ -560,7 +558,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         return doorTriggerState;
     }
 
-    public PartyTriggerState getPartyTriggerState() {
+    public PartyTriggerLogicController getPartyTriggerState() {
         return partyTriggerState;
     }
 

@@ -14,27 +14,30 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.component;
+package toniarts.openkeeper.game.controller.creature;
 
-import com.simsilica.es.EntityComponent;
-import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
- * Simple creature AI component
+ * Party type
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureAi implements EntityComponent {
+public enum PartyType implements IValueEnum {
 
-    public CreatureState creatureState;
-    public short creatureId;
+    NONE(0x0),
+    INVASION_PARTY(0x1),
+    RANDOM_CREATURE_TYPES(0x2);
 
-    public CreatureAi() {
+    private PartyType(int id) {
+        this.id = id;
     }
 
-    public CreatureAi(CreatureState creatureState, short creatureId) {
-        this.creatureState = creatureState;
-        this.creatureId = creatureId;
+    @Override
+    public int getValue() {
+        return id;
     }
+
+    private final int id;
 
 }

@@ -29,7 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IEntityWrapper;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -44,9 +47,11 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
     private final EntitySet positionedEntities;
     private final Map<MapTile, Set<EntityId>> entitiesByMapTile = new HashMap<>();
     private final Map<EntityId, MapTile> mapTilesByEntities = new HashMap<>();
+    private final Map<Class, IEntityWrapper<?>> entityWrappers = new HashMap<>();
 
-    public PositionSystem(IMapController mapController, EntityData entityData) {
+    public PositionSystem(IMapController mapController, EntityData entityData, ICreaturesController creaturesController) {
         this.mapController = mapController;
+        entityWrappers.put(ICreatureController.class, creaturesController);
 
         positionedEntities = entityData.getEntities(Position.class);
         processAddedEntities(positionedEntities);
@@ -137,6 +142,38 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
     @Override
     public MapTile getEntityLocation(EntityId entityId) {
         return mapTilesByEntities.get(entityId);
+    }
+
+    @Override
+    public <T> List<T> getEntityTypesInLocation(Point p, Class<T> clazz) {
+        MapTile mapTile = mapController.getMapData().getTile(p);
+        return getEntityTypesInLocation(mapTile, clazz);
+    }
+
+    @Override
+    public <T> List<T> getEntityTypesInLocation(int x, int y, Class<T> clazz) {
+        MapTile mapTile = mapController.getMapData().getTile(x, y);
+        return getEntityTypesInLocation(mapTile, clazz);
+    }
+
+    @Override
+    public <T> List<T> getEntityTypesInLocation(MapTile mapTile, Class<T> clazz) {
+        Set<EntityId> entityIds = entitiesByMapTile.get(mapTile);
+        if (entityIds != null) {
+            IEntityWrapper<T> entityWrapper = (IEntityWrapper<T>) entityWrappers.get(clazz);
+            if (entityWrapper == null) {
+                throw new RuntimeException("No entity wrappers registered with type " + clazz + "!");
+            }
+            List<T> entities = new ArrayList<>(entityIds.size());
+            for (EntityId entityId : new ArrayList<>(entityIds)) {
+                if (entityWrapper.isValidEntity(entityId)) {
+                    entities.add(entityWrapper.createController(entityId));
+                }
+            }
+            return entities;
+        }
+
+        return Collections.emptyList();
     }
 
     @Override

@@ -18,7 +18,7 @@ package toniarts.openkeeper.game.task.objective;
 
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.ai.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
 import toniarts.openkeeper.tools.convert.map.Terrain;

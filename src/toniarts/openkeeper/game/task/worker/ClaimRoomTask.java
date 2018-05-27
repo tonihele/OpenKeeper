@@ -18,7 +18,7 @@ package toniarts.openkeeper.game.task.worker;
 
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.ai.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 
 /**
  * Claim a room

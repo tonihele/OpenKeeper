@@ -36,7 +36,7 @@ import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
-import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
+import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -162,7 +162,7 @@ public class ThingLoader {
      * @param partyTriggerState
      * @return the things node
      */
-    public Node loadAll(CreatureTriggerState creatureTriggerState, ObjectTriggerState objectTriggerState, DoorTriggerState doorTriggerState, PartyTriggerState partyTriggerState) {
+    public Node loadAll(CreatureTriggerState creatureTriggerState, ObjectTriggerState objectTriggerState, DoorTriggerState doorTriggerState, PartyTriggerLogicController partyTriggerState) {
 
         // Load the thing
         for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
@@ -171,7 +171,7 @@ public class ThingLoader {
                     Thing.HeroParty partyThing = (Thing.HeroParty) obj;
                     Party party = new Party(partyThing);
                     if (partyThing.getTriggerId() != 0) {
-                        partyTriggerState.addParty(partyThing.getTriggerId(), party);
+//                        partyTriggerState.addParty(partyThing.getTriggerId(), party);
                     }
                     creatureParties.put(party.getId(), party);
                 } else if (obj instanceof Thing.Creature) {

@@ -16,10 +16,10 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
-import toniarts.openkeeper.game.action.ActionPoint;
+import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.ai.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 
 /**
  * Send to action point task

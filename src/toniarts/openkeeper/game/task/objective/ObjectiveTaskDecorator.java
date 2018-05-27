@@ -21,7 +21,7 @@ import java.awt.Point;
 import java.util.ArrayDeque;
 import java.util.Date;
 import java.util.Deque;
-import toniarts.openkeeper.game.controller.ai.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 

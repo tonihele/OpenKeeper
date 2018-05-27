@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller;
 
 import com.badlogic.gdx.ai.GdxAI;
+import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import java.io.File;
 import java.io.IOException;
@@ -29,9 +30,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.action.ActionPointState;
+import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.GeneralLevel;
@@ -49,14 +49,16 @@ import toniarts.openkeeper.game.logic.PositionSystem;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
+import toniarts.openkeeper.game.trigger.actionpoint.ActionPointTriggerLogicController;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
-import toniarts.openkeeper.game.trigger.party.PartyTriggerState;
+import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameLoop;
 import toniarts.openkeeper.utils.PathUtils;
@@ -66,11 +68,10 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameController implements IGameLogicUpdatable, AutoCloseable, IGameTimer {
+public class GameController implements IGameLogicUpdatable, AutoCloseable, IGameTimer, ILevelInfo, IGameController {
 
     public static final int LEVEL_TIMER_MAX_COUNT = 16;
     private static final int LEVEL_FLAG_MAX_COUNT = 128;
-    private static final float MOVEMENT_UPDATE_TPF = 0.02f;
 
     private String level;
     private KwdFile kwdFile;
@@ -90,17 +91,17 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     private CreatureTriggerState creatureTriggerState;
     private ObjectTriggerState objectTriggerState;
     private DoorTriggerState doorTriggerState;
-    private PartyTriggerState partyTriggerState;
-    private ActionPointState actionPointState;
+    private PartyTriggerLogicController partyTriggerState;
+    private ActionPointTriggerLogicController actionPointController;
     private final List<Integer> flags = new ArrayList<>(LEVEL_FLAG_MAX_COUNT);
-    private final List<GameTimer> timers = new ArrayList<>(LEVEL_TIMER_MAX_COUNT);
+    private final SafeArrayList<GameTimer> timers = new SafeArrayList<>(GameTimer.class, LEVEL_TIMER_MAX_COUNT);
+    private final Map<Integer, ActionPoint> actionPointsById = new HashMap<>();
+    private final List<ActionPoint> actionPoints = new ArrayList<>();
     private int levelScore = 0;
     private boolean campaign;
-    private IMapController mapController;
     private GameWorldController gameWorldController;
 
     private GameResult gameResult = null;
-    private float timeTaken = 0;
     private Float timeLimit = null;
     private ITaskManager taskManager;
 
@@ -180,21 +181,24 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // The players
         setupPlayers();
 
+        // Action points
+        loadActionPoints();
+
         // The world
-        gameWorldController = new GameWorldController(kwdFile, entityData, gameSettings, playerControllers.values(), this);
-        gameWorldController.createNewGame();
+        gameWorldController = new GameWorldController(kwdFile, entityData, gameSettings, players, playerControllers, this);
+        gameWorldController.createNewGame(this);
+
+        PositionSystem positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData, gameWorldController.getCreaturesController());
 
         // The triggers
-        partyTriggerState = new PartyTriggerState(true);
-        //partyTriggerState.initialize(stateManager, app);
+        partyTriggerState = new PartyTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController());
         creatureTriggerState = new CreatureTriggerState(true);
         //creatureTriggerState.initialize(stateManager, app);
         objectTriggerState = new ObjectTriggerState(true);
         //objectTriggerState.initialize(stateManager, app);
         doorTriggerState = new DoorTriggerState(true);
         //doorTriggerState.initialize(stateManager, app);
-        actionPointState = new ActionPointState(true);
-        //actionPointState.initialize(stateManager, app);
+        actionPointController = new ActionPointTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), positionSystem);
 
         // Initialize tasks
         taskManager = new TaskManager(gameWorldController, gameWorldController.getMapController(), playerControllers.values());
@@ -210,14 +214,15 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
 
         int triggerId = kwdFile.getGameLevel().getTriggerId();
         if (triggerId != 0) {
-            //triggerControl = new TriggerControl(stateManager, triggerId);
+            triggerControl = new TriggerControl(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), triggerId);
         }
 
         // Create the game loops ready to start
         // Game logic
-        gameLogicThread = new GameLogicManager(new PositionSystem(gameWorldController.getMapController(), entityData),
+        gameLogicThread = new GameLogicManager(positionSystem,
+                this,
                 new ManaCalculatorLogic(gameSettings, playerControllers.values(), gameWorldController.getMapController()),
-                new CreatureAiSystem(entityData, gameWorldController, taskManager, kwdFile),
+                new CreatureAiSystem(entityData, gameWorldController.getCreaturesController()),
                 new CreatureViewSystem(entityData));
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
 
@@ -308,10 +313,28 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         }
     }
 
+    private void loadActionPoints() {
+        for (Thing thing : getLevelData().getThings()) {
+            if (thing instanceof Thing.ActionPoint) {
+                Thing.ActionPoint temp = (Thing.ActionPoint) thing;
+                ActionPoint ap = new ActionPoint(temp);
+                actionPointsById.put(ap.getId(), ap);
+                actionPoints.add(ap);
+            }
+        }
+    }
+
+    @Override
+    public IPlayerController getPlayerController(short playerId) {
+        return playerControllers.get(playerId);
+    }
+
+    @Override
     public Collection<IPlayerController> getPlayerControllers() {
         return playerControllers.values();
     }
 
+    @Override
     public void pauseGame() {
         if (steeringCalculatorLoop != null) {
             steeringCalculatorLoop.pause();
@@ -324,6 +347,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         }
     }
 
+    @Override
     public void resumeGame() {
         if (gameLogicLoop != null) {
             gameLogicLoop.resume();
@@ -342,16 +366,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Update time for AI
         GdxAI.getTimepiece().update(tpf);
 
-        if (actionPointState != null) {
-            actionPointState.updateControls(tpf);
-        }
-        timeTaken += tpf;
-
-        if (timeLimit != null && timeLimit > 0) {
-            timeLimit -= tpf;
-        }
-
-        for (GameTimer timer : timers) {
+        for (GameTimer timer : timers.getArray()) {
             timer.update(tpf);
         }
 
@@ -360,7 +375,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         }
 
         if (partyTriggerState != null) {
-            partyTriggerState.update(tpf);
+            partyTriggerState.processTick(tpf, gameTime);
         }
 
         if (creatureTriggerState != null) {
@@ -373,12 +388,17 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         if (doorTriggerState != null) {
             doorTriggerState.update(tpf);
         }
-        if (actionPointState != null) {
-            actionPointState.update(tpf);
+        if (actionPointController != null) {
+            actionPointController.processTick(tpf, gameTime);
         }
 
         for (Keeper player : players.values()) {
 //            player.update(tpf);
+        }
+
+        if (timeLimit != null && gameTime > timeLimit) {
+            //TODO:
+            throw new RuntimeException("Level time limit exceeded!");
         }
     }
 
@@ -387,18 +407,22 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
      *
      * @return the KWD
      */
+    @Override
     public KwdFile getLevelData() {
         return kwdFile;
     }
 
+    @Override
     public int getFlag(int id) {
         return flags.get(id);
     }
 
+    @Override
     public void setFlag(int id, int value) {
         flags.set(id, value);
     }
 
+    @Override
     public GameTimer getTimer(int id) {
         return timers.get(id);
     }
@@ -407,6 +431,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
      * @see GameLogicManager#getGameTime()
      * @return the game time
      */
+    @Override
     public double getGameTime() {
         if (gameLogicThread != null) {
             return gameLogicThread.getGameTime();
@@ -414,19 +439,27 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         return 0;
     }
 
+    @Override
     public Float getTimeLimit() {
         return timeLimit;
     }
 
+    @Override
     public void setTimeLimit(float timeLimit) {
         this.timeLimit = timeLimit;
     }
 
+    @Override
+    public void endGame(short playerId, boolean win) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
     public void setEnd(boolean win) {
 
+        // TODO: this is client stuff, we should only determine here what happens to the game & players
         gameResult = new GameResult();
         gameResult.setData(GameResult.ResultType.LEVEL_WON, win);
-        gameResult.setData(GameResult.ResultType.TIME_TAKEN, timeTaken);
+        gameResult.setData(GameResult.ResultType.TIME_TAKEN, gameLogicThread.getGameTime());
 
         // Enable the end game state
 //        stateManager.getState(PlayerState.class).endGame(win);
@@ -444,20 +477,19 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         }
     }
 
+    @Override
     public ITaskManager getTaskManager() {
         return taskManager;
     }
 
+    @Override
     public Keeper getPlayer(short playerId) {
         return players.get(playerId);
     }
 
+    @Override
     public Collection<Keeper> getPlayers() {
         return players.values();
-    }
-
-    public ActionPointState getActionPointState() {
-        return actionPointState;
     }
 
     /**
@@ -476,10 +508,12 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
      *
      * @return the level score
      */
+    @Override
     public int getLevelScore() {
         return levelScore;
     }
 
+    @Override
     public void setLevelScore(int levelScore) {
         this.levelScore = levelScore;
     }
@@ -496,7 +530,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         return doorTriggerState;
     }
 
-    public PartyTriggerState getPartyTriggerState() {
+    public PartyTriggerLogicController getPartyTriggerState() {
         return partyTriggerState;
     }
 
@@ -506,6 +540,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
      * @param playerOneId player ID 1
      * @param playerTwoId player ID 2
      */
+    @Override
     public void createAlliance(short playerOneId, short playerTwoId) {
         getPlayer(playerOneId).createAlliance(playerTwoId);
         getPlayer(playerTwoId).createAlliance(playerOneId);
@@ -517,12 +552,13 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
      * @param playerOneId player ID 1
      * @param playerTwoId player ID 2
      */
+    @Override
     public void breakAlliance(short playerOneId, short playerTwoId) {
         getPlayer(playerOneId).breakAlliance(playerTwoId);
         getPlayer(playerTwoId).breakAlliance(playerOneId);
     }
 
-    @Nullable
+    @Override
     public GameResult getGameResult() {
         return gameResult;
     }
@@ -543,18 +579,28 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         }
     }
 
-    public GameWorldController getGameWorldController() {
+    public IGameWorldController getGameWorldController() {
         return gameWorldController;
     }
 
     @Override
     public void start() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+
     }
 
     @Override
     public void stop() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+
+    }
+
+    @Override
+    public ActionPoint getActionPoint(int id) {
+        return actionPointsById.get(id);
+    }
+
+    @Override
+    public List<ActionPoint> getActionPoints() {
+        return actionPoints;
     }
 
 }

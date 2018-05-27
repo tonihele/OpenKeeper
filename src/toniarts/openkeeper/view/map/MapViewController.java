@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.view.map;
 
+import com.jme3.asset.AssetInfo;
+import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
@@ -434,17 +436,19 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                         String asset = m.getAssetName();
 
                         // Load new material
-                        try {
-                            Material newMaterial = assetManager.loadMaterial(asset.substring(0,
-                                    asset.lastIndexOf(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR) + 1).concat(tex + ".j3m"));
-                            AssetUtils.assignMapsToMaterial(assetManager, newMaterial);
-                            g.setMaterial(newMaterial);
-                        } catch (Exception e) {
+                        AssetInfo newMaterialInfo = assetManager.locateAsset(new AssetKey<>(asset.substring(0,
+                                asset.lastIndexOf(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR) + 1).concat(tex + ".j3m")));
+                        if (newMaterialInfo != null) {
+                            try {
+                                Material newMaterial = assetManager.loadMaterial(newMaterialInfo.getKey().getName());
+                                AssetUtils.assignMapsToMaterial(assetManager, newMaterial);
+                                g.setMaterial(newMaterial);
+                            } catch (Exception e) {
 
-                            // FIXME: Rock top fails, we may have a problem in the material naming
-                            LOGGER.log(Level.WARNING, "Failed to load a random texture to terrain id " + tile.getTerrainId() + ", texture index " + tex + "!", e);
+                                // FIXME: Rock top fails, we may have a problem in the material naming
+                                LOGGER.log(Level.WARNING, "Failed to load a random texture to terrain id " + tile.getTerrainId() + ", texture index " + tex + "!", e);
+                            }
                         }
-
                     }
                 }
             }

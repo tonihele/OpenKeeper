@@ -26,7 +26,7 @@ import toniarts.openkeeper.world.control.IInteractiveControl;
  * @param <T> the thing control type
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractThingTriggerControl<T extends IInteractiveControl> extends PlayerTriggerControl {
+public abstract class AbstractThingTriggerControl<T extends IInteractiveControl> extends AbstractPlayerTriggerControl {
 
     protected T instanceControl;
     private static final Logger logger = Logger.getLogger(AbstractThingTriggerControl.class.getName());
@@ -36,7 +36,7 @@ public abstract class AbstractThingTriggerControl<T extends IInteractiveControl>
     }
 
     public AbstractThingTriggerControl(final AppStateManager stateManager, int triggerId) {
-        super(stateManager, triggerId);
+        //super(stateManager, triggerId);
     }
 
     /**

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.controller.ai;
+package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.jme3.math.Vector3f;
@@ -81,7 +81,7 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public boolean isWithinAttackDistance(ICreatureController attackTarget);
 
-    public void stop();
+    public void stopCreature();
 
     public void executeAttack(ICreatureController attackTarget);
 
@@ -136,5 +136,15 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
     public Creature getCreature();
 
     public void addGold(int amount);
+
+    public Object getObjectiveTargetActionPoint();
+
+    public void setObjectiveTargetActionPoint(Object actionPoint);
+
+    public Object getObjective();
+
+    public void setObjective(Object objective);
+
+    public boolean isDead();
 
 }

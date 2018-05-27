@@ -19,7 +19,6 @@ package toniarts.openkeeper.game.trigger.creature;
 import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.ObjectiveType;
-import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
@@ -157,9 +156,9 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
 
             case SHOW_HEALTH_FLOWER:
                 if (instanceControl != null) {
-                    stateManager.getApplication().enqueue(() -> {
-                        instanceControl.showUnitFlower(trigger.getUserData("value", Integer.class));
-                    });
+//                    stateManager.getApplication().enqueue(() -> {
+//                        instanceControl.showUnitFlower(trigger.getUserData("value", Integer.class));
+//                    });
                 }
                 break;
 
@@ -176,7 +175,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
 
             case ZOOM_TO:
                 if (instanceControl != null) {
-                    stateManager.getState(PlayerState.class).zoomToCreature(instanceControl);
+//                    stateManager.getState(PlayerState.class).zoomToCreature(instanceControl);
                 }
                 break;
 
@@ -188,7 +187,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
                 // Assign to creature
                 if (instanceControl != null) {
                     if (apId != 0) {
-                        instanceControl.setObjectiveTargetActionPoint(getActionPoint(apId));
+//                        instanceControl.setObjectiveTargetActionPoint(getActionPoint(apId));
                     }
                     instanceControl.setObjectiveTargetPlayerId(playerId);
                     instanceControl.setObjective(jobType);

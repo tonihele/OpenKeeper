@@ -61,4 +61,10 @@ public interface IEntityPositionLookup {
      */
     MapTile getEntityLocation(EntityId entityId);
 
+    <T> List<T> getEntityTypesInLocation(Point p, Class<T> clazz);
+
+    <T> List<T> getEntityTypesInLocation(int x, int y, Class<T> clazz);
+
+    <T> List<T> getEntityTypesInLocation(MapTile mapTile, Class<T> clazz);
+
 }

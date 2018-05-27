@@ -23,7 +23,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.controller.ai.CreatureState;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 
 /**
  * Handles creature falling (dropped from hand)

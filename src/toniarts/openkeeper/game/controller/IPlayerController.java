@@ -22,6 +22,7 @@ import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerListener;
 
@@ -47,6 +48,8 @@ public interface IPlayerController {
     PlayerSpellControl getSpellControl();
 
     PlayerHandControl getHandControl();
+
+    PlayerStatsControl getStatsControl();
 
     void removeListener(PlayerListener listener);
 

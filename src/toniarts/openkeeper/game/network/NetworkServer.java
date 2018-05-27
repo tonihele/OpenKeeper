@@ -55,7 +55,7 @@ import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.component.ViewType;
-import toniarts.openkeeper.game.controller.ai.CreatureState;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -82,7 +82,7 @@ public class NetworkServer {
     private String name;
 
     private Server server = null;
-    private long start = System.nanoTime();
+    private long start;
 
     public NetworkServer(String name, int port) throws UnknownHostException {
         this.host = InetAddress.getLocalHost().getCanonicalHostName();
@@ -190,10 +190,6 @@ public class NetworkServer {
             }
 
             server.close();
-
-            // FIXME: Really, I'm sure this is not meant to be
-            // https://hub.jmonkeyengine.org/t/solved-for-now-serializer-locked-error-what-does-it-mean-version-jme-3-1/33671
-            Serializer.setReadOnly(false);
         }
     }
 

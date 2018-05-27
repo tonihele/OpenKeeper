@@ -25,13 +25,13 @@ import com.simsilica.es.EntityComponent;
  */
 public class Party implements EntityComponent {
 
-    public int partyId;
+    public long partyId;
 
     public Party() {
         // For serialization
     }
 
-    public Party(int partyId) {
+    public Party(long partyId) {
         this.partyId = partyId;
     }
 

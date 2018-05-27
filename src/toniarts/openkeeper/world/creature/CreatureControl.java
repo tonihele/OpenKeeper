@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.ai.creature.CreatureState;
-import toniarts.openkeeper.game.action.ActionPoint;
+import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -201,7 +201,7 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                 objective = ((GoodCreature) creatureInstance).getObjective();
                 objectiveTargetPlayerId = ((GoodCreature) creatureInstance).getObjectiveTargetPlayerId();
                 if (((GoodCreature) creatureInstance).getObjectiveTargetActionPointId() != 0) {
-                    objectiveTargetActionPoint = worldState.getGameState().getActionPointState().getActionPoint(((GoodCreature) creatureInstance).getObjectiveTargetActionPointId());
+                    //objectiveTargetActionPoint = worldState.getGameState().getActionPointState().getActionPoint(((GoodCreature) creatureInstance).getObjectiveTargetActionPointId());
                 }
                 flags = ((GoodCreature) creatureInstance).getFlags();
             } else if (creatureInstance instanceof NeutralCreature) {

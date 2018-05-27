@@ -35,7 +35,7 @@ import com.jme3.scene.control.CameraControl.ControlDirection;
 import java.awt.Point;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.action.ActionPoint;
+import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.utils.WorldUtils;

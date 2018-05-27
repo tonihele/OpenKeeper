@@ -28,8 +28,6 @@ import java.util.ArrayList;
  *
  * @author ArchDemon
  */
-
-
 public class Container implements IContainer {
 
     protected SafeArrayList<IControl> controls = new SafeArrayList<>(IControl.class);
@@ -60,6 +58,7 @@ public class Container implements IContainer {
     /**
      * Removes the first control that is an instance of the given class.
      *
+     * @param controlType control class
      * @see Container#addControl(IControl)
      */
     public void removeControl(Class<? extends IControl> controlType) {
@@ -75,7 +74,8 @@ public class Container implements IContainer {
      * Removes the given control from this Container's controls.
      *
      * @param control The control to remove
-     * @return True if the control was successfuly removed. False if the control is not assigned to this Container.
+     * @return True if the control was successfuly removed. False if the control
+     * is not assigned to this Container.
      *
      * @see Container#addControl(IControl)
      */
@@ -90,8 +90,10 @@ public class Container implements IContainer {
     }
 
     /**
-     * Returns the first control that is an instance of the given class, or null if no such control exists.
+     * Returns the first control that is an instance of the given class, or null
+     * if no such control exists.
      *
+     * @param <T> control class
      * @param controlType The superclass of the control to look for.
      * @return The first instance in the list of the controlType class, or null.
      *
@@ -112,7 +114,8 @@ public class Container implements IContainer {
      * @param index The index of the control in the list to find.
      * @return The control at the given index.
      *
-     * @throws IndexOutOfBoundsException If the index is outside the range [0, getNumControls()-1]
+     * @throws IndexOutOfBoundsException If the index is outside the range [0,
+     * getNumControls()-1]
      *
      * @see Container#addControl(IControl)
      */
@@ -131,8 +134,8 @@ public class Container implements IContainer {
     }
 
     /**
-     * <code>updateLogicalState</code> calls the
-     * <code>updateContol()</code> method for all controls attached to this Container.
+     * <code>updateLogicalState</code> calls the <code>updateContol()</code>
+     * method for all controls attached to this Container.
      *
      * @param tpf Time per frame.
      *

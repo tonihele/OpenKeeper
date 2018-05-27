@@ -27,8 +27,6 @@ import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -36,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -76,8 +73,8 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     public final Object goldLock = new Object();
     private final KwdFile kwdFile;
     private final EntityData entityData;
-    private IObjectsController objectController;
-    private CreaturesController creaturesController;
+    private IObjectsController objectsController;
+    private ICreaturesController creaturesController;
     private final Map<Short, IPlayerController> playerControllers;
     private final SortedMap<Short, Keeper> players;
     private final IGameTimer gameTimer;
@@ -89,30 +86,25 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final SafeArrayList<PlayerActionListener> listeners = new SafeArrayList<>(PlayerActionListener.class);
 
-    public GameWorldController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Collection<IPlayerController> players, IGameTimer gameTimer) {
+    public GameWorldController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, SortedMap<Short, Keeper> players, Map<Short, IPlayerController> playerControllers, IGameTimer gameTimer) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.gameTimer = gameTimer;
-
-        this.playerControllers = new HashMap<>(players.size());
-        this.players = new TreeMap<>();
-        for (IPlayerController player : players) {
-            this.playerControllers.put(player.getKeeper().getId(), player);
-            this.players.put(player.getKeeper().getId(), player.getKeeper());
-        }
+        this.playerControllers = playerControllers;
+        this.players = players;
     }
 
-    public void createNewGame() {
+    public void createNewGame(IGameController gameController) {
 
         // Load objects
-        objectController = new ObjectsController(kwdFile, entityData, gameSettings);
+        objectsController = new ObjectsController(kwdFile, entityData, gameSettings);
 
         // Load creatures
-        creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer);
+        creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, this, gameController);
 
         // Load the map
-        mapController = new MapController(kwdFile, objectController, gameSettings);
+        mapController = new MapController(kwdFile, objectsController, gameSettings);
 
         // Setup player stuff
         initPlayerMoney();
@@ -447,20 +439,18 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else // Water or lava
-                    {
-                        if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+                     if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
                             tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
                         } else {
                             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                         }
-                    }
 
                     // Give money back
                     int goldLeft = addGold(playerId, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100)));
                     if (goldLeft > 0) {
 
                         // Add loose gold to this tile
-                        objectController.addLooseGold(playerId, p.x, p.y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+                        objectsController.addLooseGold(playerId, p.x, p.y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
                     }
                 }
 
@@ -633,6 +623,10 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                 entityData.setComponent(entity, new Position(0, pos));
             }
         }
+    }
+
+    public ICreaturesController getCreaturesController() {
+        return creaturesController;
     }
 
 }

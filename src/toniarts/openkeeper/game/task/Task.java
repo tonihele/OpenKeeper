@@ -19,7 +19,7 @@ package toniarts.openkeeper.game.task;
 import com.jme3.math.Vector2f;
 import java.awt.Point;
 import java.util.Date;
-import toniarts.openkeeper.game.controller.ai.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 
 /**

@@ -16,8 +16,6 @@
  */
 package toniarts.openkeeper.game.data;
 
-import com.jme3.app.Application;
-import com.jme3.app.state.AppStateManager;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -47,13 +45,6 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
 
     private transient Player player;
     private short id;
-//    private transient PlayerGoldControl goldControl;
-//    private transient PlayerCreatureControl creatureControl;
-//    private transient PlayerSpellControl spellControl;
-//    private transient PlayerStatsControl statsControl = new PlayerStatsControl();
-//    private transient PlayerRoomControl roomControl;
-//    private transient PlayerTriggerControl triggerControl;
-//    private transient PlayerManaControl manaControl;
     private boolean destroyed = false;
     private final Set<Short> allies = new HashSet<>(4);
 
@@ -69,23 +60,6 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
     public Keeper(Player player) {
         this.player = player;
         this.id = player.getPlayerId();
-    }
-
-    public void initialize(final AppStateManager stateManager, final Application app) {
-//        goldControl = new PlayerGoldControl(this);
-//        creatureControl = new PlayerCreatureControl(this);
-//        roomControl = new PlayerRoomControl(this);
-//        spellControl = new PlayerSpellControl(this);
-
-//        int triggerId = player.getTriggerId();
-//        if (triggerId != 0) {
-//            triggerControl = new PlayerTriggerControl(stateManager, triggerId);
-//            triggerControl.setPlayer(id);
-//        }
-        // Don't create mana control for neutral nor good player
-//        if (id != Player.GOOD_PLAYER_ID && id != Player.NEUTRAL_PLAYER_ID) {
-//            manaControl = new PlayerManaControl(null, null, null, null);
-//        }
     }
 
     @Override
@@ -125,43 +99,6 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
         return manaLoose;
     }
 
-//    public PlayerGoldControl getGoldControl() {
-//        return goldControl;
-//    }
-//
-//    public PlayerCreatureControl getCreatureControl() {
-//        return creatureControl;
-//    }
-//
-//    public PlayerStatsControl getStatsControl() {
-//        return statsControl;
-//    }
-//
-//    public PlayerRoomControl getRoomControl() {
-//        return roomControl;
-//    }
-//
-//    public PlayerTriggerControl getTriggerControl() {
-//        return triggerControl;
-//    }
-//
-//    public PlayerManaControl getManaControl() {
-//        return manaControl;
-//    }
-//
-//    public PlayerSpellControl getSpellControl() {
-//        return spellControl;
-//    }
-//
-//    public void update(float tpf) {
-//        if (triggerControl != null) {
-//            triggerControl.update(tpf);
-//        }
-//
-//        if (manaControl != null) {
-//            manaControl.update(tpf);
-//        }
-//    }
     public void setPlayer(Player player) {
         this.player = player;
     }

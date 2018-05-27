@@ -20,7 +20,9 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -33,10 +35,16 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Trigger;
-import toniarts.openkeeper.game.controller.ai.CreatureState;
+import toniarts.openkeeper.game.controller.creature.CreatureController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.IPartyController;
+import toniarts.openkeeper.game.controller.creature.PartyController;
+import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -46,7 +54,6 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.creature.Party;
 
 /**
  * This is a controller that controls all the game objects in the world TODO:
@@ -55,19 +62,25 @@ import toniarts.openkeeper.world.creature.Party;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreaturesController {
+public class CreaturesController implements ICreaturesController {
 
-    private KwdFile kwdFile;
-    private EntityData entityData;
-    private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
-    private Map<Integer, Party> creatureParties = new HashMap<>();
-    private IGameTimer gameTimer;
+    private final KwdFile kwdFile;
+    private final EntityData entityData;
+    private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
+    private final Map<Short, IPartyController> creaturePartiesByPartyId = new HashMap<>();
+    /**
+     * These are the actual living parties on the map by the generated party ID
+     */
+    private final Map<Long, IPartyController> creaturePartiesById = new HashMap<>();
+    /**
+     * These are the map defined parties
+     */
+    private final Map<Short, Thing.HeroParty> heroParties = new HashMap<>();
+    private final IGameTimer gameTimer;
+    private final IGameWorldController gameWorldController;
+    private final IGameController gameController;
 
-    private static final Logger logger = Logger.getLogger(CreaturesController.class.getName());
-
-    public CreaturesController() {
-        // For serialization
-    }
+    private static final Logger LOGGER = Logger.getLogger(CreaturesController.class.getName());
 
     /**
      * Load creatures from a KWD file straight (new game)
@@ -75,12 +88,18 @@ public class CreaturesController {
      * @param kwdFile the KWD file
      * @param entityData the entity controller
      * @param gameSettings the game settings
+     * @param gameTimer
+     * @param gameWorldController
+     * @param gameController
      */
-    public CreaturesController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
+    public CreaturesController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
+            IGameWorldController gameWorldController, IGameController gameController) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.gameTimer = gameTimer;
+        this.gameWorldController = gameWorldController;
+        this.gameController = gameController;
 
         // Load creatures
         loadCreatures();
@@ -94,25 +113,16 @@ public class CreaturesController {
                     spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
                 } else if (obj instanceof Thing.HeroParty) {
                     Thing.HeroParty partyThing = (Thing.HeroParty) obj;
-                    Party party = new Party(partyThing);
-//                    if (partyThing.getTriggerId() != 0) {
-//                        partyTriggerState.addParty(partyThing.getTriggerId(), party);
-//                    }
-                    creatureParties.put(party.getId(), party);
+                    heroParties.put(partyThing.getId(), partyThing);
+                    creaturePartiesByPartyId.put(partyThing.getId(), new PartyController(partyThing));
                 }
             } catch (Exception ex) {
-                logger.log(Level.WARNING, "Could not load Thing.", ex);
+                LOGGER.log(Level.WARNING, "Could not load Thing " + obj + "!", ex);
             }
         }
     }
 
-    /**
-     * Spawn a creature
-     *
-     * @param creature creature data
-     * @param position the position to spawn to, may be {@code null}
-     * @return the actual spawned creature
-     */
+    @Override
     public EntityId spawnCreature(Thing.Creature creature, Vector2f position) {
         Integer triggerId = null;
         short ownerId = 0;
@@ -138,17 +148,7 @@ public class CreaturesController {
         return loadCreature(creature.getCreatureId(), ownerId, level, v.getX(), v.getZ(), 0f, healthPercentage, creature.getGoldHeld(), triggerId, false);
     }
 
-    /**
-     * Spawn a creature
-     *
-     * @param creatureId the creature ID to generate
-     * @param playerId the owner
-     * @param level the creature level
-     * @param position the position to spawn to, may be {@code null}
-     * @param entrance whether this an enrance for the creature (coming out of a
-     * portal)
-     * @return the actual spawned creature
-     */
+    @Override
     public EntityId spawnCreature(short creatureId, short playerId, short level, Vector2f position, boolean entrance) {
         return loadCreature(creatureId, playerId, level, position.x, position.y, 0, 100, 0, null, entrance);
     }
@@ -245,7 +245,7 @@ public class CreaturesController {
         if (sensesComponent != null) {
             sensesComponent.distanceCanHear = attributes.getDistanceCanHear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.DISTANCE_CAN_HEAR_TILES).getValue() : 100) / 100);
         }
-        // TODO initialGoldHeld = attributes.getInitialGoldHeld() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.INITIAL_GOLD_HELD).getValue() : 100) / 100);
+        goldComponent.gold = attributes.getInitialGoldHeld() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.INITIAL_GOLD_HELD).getValue() : 100) / 100);
         creatureComponent.meleeDamage = creature.getMeleeDamage() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_DAMAGE).getValue() : 100) / 100);
         creatureComponent.meleeRecharge = creature.getMeleeRecharge() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_RECHARGE_TIME_SECONDS).getValue() : 100) / 100);
 
@@ -254,8 +254,62 @@ public class CreaturesController {
         //setMaxLinearSpeed(speed);
     }
 
-    public EntityData getEntityData() {
-        return entityData;
+    @Override
+    public void spawnHeroParty(short partyId, PartyType partyType, Vector2f position) {
+        /**
+         * In the game manual it is said that it is entirely possible to have
+         * multiple parties with the same party ID, the old party just isn't
+         * controlled anymore
+         */
+        IPartyController partyController = creaturePartiesByPartyId.get(partyId);
+        if (partyController.isCreated()) {
+            partyController = new PartyController(heroParties.get(partyId));
+            LOGGER.log(Level.FINE, "Re-spawning party {0}!", partyId);
+        }
+        partyController.setType(partyType);
+        for (Thing.GoodCreature creature : partyController.getMembers()) {
+            EntityId entityId = spawnCreature(creature, position);
+            entityData.setComponent(entityId, new Party(partyController.getId()));
+
+            partyController.addMemberInstance(creature, createController(entityId));
+        }
+        partyController.create();
+
+        creaturePartiesByPartyId.put(partyId, partyController);
+
+        // TODO: Hmm, should we clean these up...
+        creaturePartiesById.put(partyController.getId(), partyController);
+
+        // TODO: listener, mainly for the PartyTrigger, to replace the party with new instance just in case
+    }
+
+    @Override
+    public IPartyController getParty(short partyId) {
+        return creaturePartiesByPartyId.get(partyId);
+    }
+
+    @Override
+    public IPartyController getPartyById(long id) {
+        return creaturePartiesById.get(id);
+    }
+
+    @Override
+    public List<IPartyController> getParties() {
+        return new ArrayList<>(creaturePartiesByPartyId.values());
+    }
+
+    @Override
+    public ICreatureController createController(EntityId entityId) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        if (creatureComponent == null) {
+            throw new RuntimeException("Entity " + entityId + " doesn't represent a creature!");
+        }
+        return new CreatureController(entityId, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameWorldController, gameController.getTaskManager());
+    }
+
+    @Override
+    public boolean isValidEntity(EntityId entityId) {
+        return entityData.getComponent(entityId, CreatureComponent.class) != null;
     }
 
 }
