@@ -72,7 +72,6 @@ public class ActionPointTriggerControl extends TriggerControl {
                 switch (type) {
                     case 0:
                     case 3: // Creature
-                        MapData map = mapController.getMapData();
                         for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
                             for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
                                 for (ICreatureController creature : entityPositionLookup.getEntityTypesInLocation(x, y, ICreatureController.class)) {

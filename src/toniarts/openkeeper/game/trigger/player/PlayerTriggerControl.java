@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.trigger;
+package toniarts.openkeeper.game.trigger.player;
 
 import java.util.Set;
 import java.util.logging.Level;
@@ -27,6 +27,9 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.trigger.TriggerActionData;
+import toniarts.openkeeper.game.trigger.TriggerControl;
+import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -37,19 +40,19 @@ import toniarts.openkeeper.world.room.ICreatureEntrance;
  *
  * @author ArchDemon
  */
-public abstract class AbstractPlayerTriggerControl extends TriggerControl {
+public class PlayerTriggerControl extends TriggerControl {
 
     private short playerId;
-    private static final Logger LOGGER = Logger.getLogger(AbstractPlayerTriggerControl.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(PlayerTriggerControl.class.getName());
 
     /**
      * empty serialization constructor
      */
-    public AbstractPlayerTriggerControl() {
+    public PlayerTriggerControl() {
         super();
     }
 
-    public AbstractPlayerTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
+    public PlayerTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId) {
         super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId);
         this.playerId = playerId;

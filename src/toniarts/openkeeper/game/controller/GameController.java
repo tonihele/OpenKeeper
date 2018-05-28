@@ -54,6 +54,7 @@ import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
 import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
+import toniarts.openkeeper.game.trigger.player.PlayerTriggerLogicController;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -93,6 +94,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     private DoorTriggerState doorTriggerState;
     private PartyTriggerLogicController partyTriggerState;
     private ActionPointTriggerLogicController actionPointController;
+    private PlayerTriggerLogicController playerTriggerLogicController;
     private final List<Integer> flags = new ArrayList<>(LEVEL_FLAG_MAX_COUNT);
     private final SafeArrayList<GameTimer> timers = new SafeArrayList<>(GameTimer.class, LEVEL_TIMER_MAX_COUNT);
     private final Map<Integer, ActionPoint> actionPointsById = new HashMap<>();
@@ -199,6 +201,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         doorTriggerState = new DoorTriggerState(true);
         //doorTriggerState.initialize(stateManager, app);
         actionPointController = new ActionPointTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), positionSystem);
+        playerTriggerLogicController = new PlayerTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController());
 
         // Initialize tasks
         taskManager = new TaskManager(gameWorldController, gameWorldController.getMapController(), playerControllers.values());
@@ -385,15 +388,17 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         if (objectTriggerState != null) {
             objectTriggerState.update(tpf);
         }
+
         if (doorTriggerState != null) {
             doorTriggerState.update(tpf);
         }
+
         if (actionPointController != null) {
             actionPointController.processTick(tpf, gameTime);
         }
 
-        for (Keeper player : players.values()) {
-//            player.update(tpf);
+        if (playerTriggerLogicController != null) {
+            playerTriggerLogicController.processTick(tpf, gameTime);
         }
 
         if (timeLimit != null && gameTime > timeLimit) {
