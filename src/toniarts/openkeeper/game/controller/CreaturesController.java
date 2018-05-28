@@ -52,7 +52,6 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
-import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -129,23 +128,25 @@ public class CreaturesController implements ICreaturesController {
         Integer healthPercentage = null;
         short level = 1;
         if (creature instanceof Thing.GoodCreature) {
-            triggerId = ((Thing.GoodCreature) creature).getTriggerId();
-            healthPercentage = ((Thing.GoodCreature) creature).getInitialHealth();
-            level = ((Thing.GoodCreature) creature).getLevel();
+            Thing.GoodCreature goodCreature = (Thing.GoodCreature) creature;
+            triggerId = goodCreature.getTriggerId();
+            healthPercentage = goodCreature.getInitialHealth();
+            level = goodCreature.getLevel();
             ownerId = Player.GOOD_PLAYER_ID;
         } else if (creature instanceof Thing.NeutralCreature) {
-            triggerId = ((Thing.NeutralCreature) creature).getTriggerId();
-            healthPercentage = ((Thing.NeutralCreature) creature).getInitialHealth();
-            level = ((Thing.NeutralCreature) creature).getLevel();
+            Thing.NeutralCreature neutralCreature = (Thing.NeutralCreature) creature;
+            triggerId = neutralCreature.getTriggerId();
+            healthPercentage = neutralCreature.getInitialHealth();
+            level = neutralCreature.getLevel();
             ownerId = Player.NEUTRAL_PLAYER_ID;
         } else if (creature instanceof Thing.KeeperCreature) {
-            triggerId = ((Thing.KeeperCreature) creature).getTriggerId();
-            healthPercentage = ((Thing.KeeperCreature) creature).getInitialHealth();
-            level = ((Thing.KeeperCreature) creature).getLevel();
-            ownerId = ((Thing.KeeperCreature) creature).getPlayerId();
+            Thing.KeeperCreature keeperCreature = (Thing.KeeperCreature) creature;
+            triggerId = keeperCreature.getTriggerId();
+            healthPercentage = keeperCreature.getInitialHealth();
+            level = keeperCreature.getLevel();
+            ownerId = keeperCreature.getPlayerId();
         }
-        Vector3f v = WorldUtils.pointToVector3f(creature.getPosX(), creature.getPosY());
-        return loadCreature(creature.getCreatureId(), ownerId, level, v.getX(), v.getZ(), 0f, healthPercentage, creature.getGoldHeld(), triggerId, false);
+        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(), triggerId, false);
     }
 
     @Override
