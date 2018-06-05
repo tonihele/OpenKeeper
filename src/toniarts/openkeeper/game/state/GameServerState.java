@@ -147,7 +147,7 @@ public class GameServerState extends AbstractAppState {
             kwdFile.load();
 
             // Create the central game controller
-            gameController = new GameController(kwdFile, players, gameService.getEntityData(), kwdFile.getVariables());
+            gameController = new GameController(kwdFile, players, gameService.getEntityData(), kwdFile.getVariables(), gameService);
             gameController.createNewGame();
 
             gameWorldController = gameController.getGameWorldController();
@@ -210,6 +210,21 @@ public class GameServerState extends AbstractAppState {
         public void onDrop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
             gameWorldController.drop(entity, tile, coordinates, dropOnEntity, playerId);
         }
+
+        @Override
+        public void onTransitionEnd(short playerId) {
+            // We are not really interested in this, the status is also tracked in the local clients
+        }
+
+        @Override
+        public void onPauseRequest(short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void onResumeRequest(short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
     }
 
     /**
@@ -224,7 +239,7 @@ public class GameServerState extends AbstractAppState {
     }
 
     /**
-     * Listen for the map changes
+     * Listen for the player actions
      */
     private class PlayerActionListenerImpl implements PlayerActionListener {
 

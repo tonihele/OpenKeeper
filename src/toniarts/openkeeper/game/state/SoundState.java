@@ -31,6 +31,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 
 /**
@@ -44,10 +45,12 @@ public class SoundState extends AbstractPauseAwareState {
     private AppStateManager stateManager;
     private AudioNode speech = null;
     private AudioNode background = null;
+    private KwdFile kwdFile;
     private final Queue<String> speechQueue = new ArrayDeque<>();
-    private static final Logger logger = Logger.getLogger(SoundState.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(SoundState.class.getName());
 
-    public SoundState() {
+    public SoundState(KwdFile kwdFile) {
+        this.kwdFile = kwdFile;
     }
 
     public SoundState(boolean enabled) {
@@ -73,7 +76,7 @@ public class SoundState extends AbstractPauseAwareState {
      * @param speechId
      */
     public void attachLevelSpeech(int speechId) {
-        String soundCategory = stateManager.getState(GameState.class).getLevelData().getGameLevel().getSoundCategory();
+        String soundCategory = kwdFile.getGameLevel().getSoundCategory();
         attachSpeech(soundCategory, speechId);
     }
 
@@ -97,14 +100,14 @@ public class SoundState extends AbstractPauseAwareState {
                     + sc.getGroup(speechId).getFiles().get(0).getFilename();
             speechQueue.add(file);
         } catch (Exception e) {
-            logger.log(Level.WARNING, e.getLocalizedMessage());
+            LOGGER.log(Level.WARNING, e.getLocalizedMessage());
         }
     }
 
     private void playSpeech(String file) {
         speech = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
         if (speech == null) {
-            logger.log(Level.WARNING, "Audio file {0} not found", file);
+            LOGGER.log(Level.WARNING, "Audio file {0} not found", file);
             return;
         }
         speech.setLooping(false);
@@ -122,7 +125,7 @@ public class SoundState extends AbstractPauseAwareState {
         String file = this.getRandomSoundFile();
         background = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
         if (background == null) {
-            logger.log(Level.WARNING, "Audio file {0} not found", file);
+            LOGGER.log(Level.WARNING, "Audio file {0} not found", file);
             return;
         }
         background.setLooping(false);

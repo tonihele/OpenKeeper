@@ -104,7 +104,7 @@ public class PlayerScreenController implements IPlayerScreenController {
     private String cinematicText;
     private PossessionInteractionState.Action possessionAction = PossessionInteractionState.Action.MELEE;
 
-    private static final Logger logger = Logger.getLogger(PlayerScreenController.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(PlayerScreenController.class.getName());
 
     public PlayerScreenController(PlayerState state, Nifty nifty) {
         this.state = state;
@@ -441,7 +441,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             try {
                 nifty.addResourceBundle("level", Main.getResourceBundle(levelResource));
             } catch (Exception ex) {
-                logger.log(Level.WARNING, "Failed to load the level dictionary!", ex);
+                LOGGER.log(Level.WARNING, "Failed to load the level dictionary!", ex);
             }
         }
 
@@ -559,7 +559,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             ImageRenderer renderer = panel.getRenderer(ImageRenderer.class);
             renderer.setImage(niftyImage);
         } catch (IOException ex) {
-            logger.log(Level.SEVERE, "Failed to open the background image!", ex);
+            LOGGER.log(Level.SEVERE, "Failed to open the background image!", ex);
         }
 
 //        PlayerManaControl manaControl = state.getPlayer().getManaControl();

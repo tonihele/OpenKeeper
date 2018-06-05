@@ -90,4 +90,28 @@ public interface GameSessionServiceListener {
     @Asynchronous
     public void onDrop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId);
 
+    /**
+     * Player UI transition has ended
+     *
+     * @param playerId the player whose transition ended
+     */
+    @Asynchronous
+    public void onTransitionEnd(short playerId);
+
+    /**
+     * Player has requested to pause the game
+     *
+     * @param playerId the player who wants to pause the game
+     */
+    @Asynchronous
+    public void onPauseRequest(short playerId);
+
+    /**
+     * Player has requested to resume the game
+     *
+     * @param playerId the player who wants to resume the game
+     */
+    @Asynchronous
+    public void onResumeRequest(short playerId);
+
 }

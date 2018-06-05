@@ -109,6 +109,25 @@ public interface GameSession {
      * @param coordinates real world coordinates inside
      * @param dropOnEntity if there is already an entity at the position
      */
+    @Asynchronous
     public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity);
+
+    /**
+     * Signals that any UI transition has ended
+     */
+    @Asynchronous
+    public void transitionEnd();
+
+    /**
+     * Request for pausing the game
+     */
+    @Asynchronous
+    public void pauseGame();
+
+    /**
+     * Request for resuming the game
+     */
+    @Asynchronous
+    public void resumeGame();
 
 }

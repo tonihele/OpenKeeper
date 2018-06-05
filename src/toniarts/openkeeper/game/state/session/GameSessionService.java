@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.state.session;
 
+import com.jme3.network.service.rmi.Asynchronous;
 import com.simsilica.es.EntityData;
 import java.util.Collection;
 import java.util.List;
@@ -30,7 +31,7 @@ import toniarts.openkeeper.game.map.MapTile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface GameSessionService extends PlayerListener {
+public interface GameSessionService extends PlayerListener, PlayerService {
 
     /**
      * Get the entity data
@@ -57,6 +58,7 @@ public interface GameSessionService extends PlayerListener {
      *
      * @param updatedTiles the changed tiles
      */
+    @Asynchronous
     public void updateTiles(List<MapTile> updatedTiles);
 
 }

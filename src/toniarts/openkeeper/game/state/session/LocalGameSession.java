@@ -9,6 +9,7 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.export.binary.BinaryExporter;
 import com.jme3.export.binary.BinaryImporter;
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -44,6 +45,8 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class LocalGameSession implements GameSessionServerService, GameSessionClientService {
 
+    private static final short PLAYER_ID = Player.KEEPER1_ID;
+    private boolean playerInTransition = false;
     private final EntityData entityData = new DefaultEntityData();
     private final SafeArrayList<GameSessionListener> listeners = new SafeArrayList<>(GameSessionListener.class);
     private final SafeArrayList<GameSessionServiceListener> serverListeners = new SafeArrayList<>(GameSessionServiceListener.class);
@@ -90,14 +93,14 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
 
         // Player and server
         LocalGameSession gameSession = new LocalGameSession();
-        Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
+        Keeper keeper = new Keeper(false, PLAYER_ID);
         ClientInfo clientInfo = new ClientInfo(0, null, 0);
         clientInfo.setName(Utils.getMainTextResourceBundle().getString("58"));
         clientInfo.setKeeper(keeper);
         clientInfo.setReady(true);
 
         // The client
-        GameClientState gameClientState = new GameClientState(kwdFile, Player.KEEPER1_ID, Arrays.asList(clientInfo), gameSession);
+        GameClientState gameClientState = new GameClientState(kwdFile, PLAYER_ID, Arrays.asList(clientInfo), gameSession);
         stateManager.attach(gameClientState);
 
         // The game server
@@ -144,9 +147,37 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
+    public void setWidescreen(boolean enable, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onSetWidescreen(enable);
+            }
+        }
+    }
+
+    @Override
+    public void playSpeech(int speechId, boolean showText, boolean introduction, int pathId, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onPlaySpeech(speechId, showText, introduction, pathId);
+            }
+        }
+    }
+
+    @Override
+    public void doTransition(short pathId, Vector3f start, short playerId) {
+        if (playerId == PLAYER_ID) {
+            playerInTransition = true;
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onDoTransition(pathId, start);
+            }
+        }
+    }
+
+    @Override
     public void loadComplete() {
         for (GameSessionListener listener : listeners.getArray()) {
-            listener.onLoadComplete(Player.KEEPER1_ID);
+            listener.onLoadComplete(PLAYER_ID);
         }
 
         // Only one player, start the game once everything ready
@@ -156,28 +187,28 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     @Override
     public void loadStatus(float progress) {
 //        for (GameSessionListener listener : listeners.getArray()) {
-//            listener.onLoadStatusUpdate(progress, Player.KEEPER1_ID);
+//            listener.onLoadStatusUpdate(progress, PLAYER_ID);
 //        }
     }
 
     @Override
     public void selectTiles(Vector2f start, Vector2f end, boolean select) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
-            listener.onSelectTiles(start, end, select, Player.KEEPER1_ID);
+            listener.onSelectTiles(start, end, select, PLAYER_ID);
         }
     }
 
     @Override
     public void build(Vector2f start, Vector2f end, short roomId) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
-            listener.onBuild(start, end, roomId, Player.KEEPER1_ID);
+            listener.onBuild(start, end, roomId, PLAYER_ID);
         }
     }
 
     @Override
     public void sell(Vector2f start, Vector2f end) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
-            listener.onSell(start, end, Player.KEEPER1_ID);
+            listener.onSell(start, end, PLAYER_ID);
         }
     }
 
@@ -189,21 +220,48 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     @Override
     public void interact(EntityId entity) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
-            listener.onInteract(entity, Player.KEEPER1_ID);
+            listener.onInteract(entity, PLAYER_ID);
         }
     }
 
     @Override
     public void pickUp(EntityId entity) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
-            listener.onPickUp(entity, Player.KEEPER1_ID);
+            listener.onPickUp(entity, PLAYER_ID);
         }
     }
 
     @Override
     public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
-            listener.onDrop(entity, tile, coordinates, dropOnEntity, Player.KEEPER1_ID);
+            listener.onDrop(entity, tile, coordinates, dropOnEntity, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void transitionEnd() {
+        playerInTransition = false;
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onTransitionEnd(PLAYER_ID);
+        }
+    }
+
+    @Override
+    public boolean isInTransition() {
+        return playerInTransition;
+    }
+
+    @Override
+    public void pauseGame() {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onPauseRequest(PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void resumeGame() {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onResumeRequest(PLAYER_ID);
         }
     }
 

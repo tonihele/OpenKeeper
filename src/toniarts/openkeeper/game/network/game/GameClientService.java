@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.network.game;
 
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.jme3.network.Client;
 import com.jme3.network.Message;
 import com.jme3.network.MessageListener;
@@ -175,6 +176,21 @@ public class GameClientService extends AbstractClientService
         getDelegate().drop(entity, tile, coordinates, dropOnEntity);
     }
 
+    @Override
+    public void transitionEnd() {
+        getDelegate().transitionEnd();
+    }
+
+    @Override
+    public void pauseGame() {
+        getDelegate().pauseGame();
+    }
+
+    @Override
+    public void resumeGame() {
+        getDelegate().resumeGame();
+    }
+
     private class ClientMessageListener implements MessageListener<Client> {
 
         public ClientMessageListener() {
@@ -285,6 +301,41 @@ public class GameClientService extends AbstractClientService
         public void onSold(short keeperId, List<MapTile> tiles) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onSold(keeperId, tiles);
+            }
+        }
+
+        @Override
+        public void onGamePaused() {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onGamePaused();
+            }
+        }
+
+        @Override
+        public void onGameResumed() {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onGameResumed();
+            }
+        }
+
+        @Override
+        public void onSetWidescreen(boolean enable) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onSetWidescreen(enable);
+            }
+        }
+
+        @Override
+        public void onPlaySpeech(int speechId, boolean showText, boolean introduction, int pathId) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onPlaySpeech(speechId, showText, introduction, pathId);
+            }
+        }
+
+        @Override
+        public void onDoTransition(short pathId, Vector3f start) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onDoTransition(pathId, start);
             }
         }
     }

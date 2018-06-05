@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.state.session;
 
+import com.jme3.math.Vector3f;
 import com.jme3.network.service.rmi.Asynchronous;
 import java.util.Collection;
 import toniarts.openkeeper.game.data.Keeper;
@@ -61,5 +62,45 @@ public interface GameSessionListener extends MapListener, PlayerListener {
      */
     @Asynchronous
     public void onGameStarted();
+
+    /**
+     * The game has been paused
+     */
+    @Asynchronous
+    public void onGamePaused();
+
+    /**
+     * The game has been resumed
+     */
+    @Asynchronous
+    public void onGameResumed();
+
+    /**
+     * The client should set widescreen mode
+     *
+     * @param enable on/off
+     */
+    @Asynchronous
+    public void onSetWidescreen(boolean enable);
+
+    /**
+     * The client should play a speech
+     *
+     * @param speechId     speech ID
+     * @param showText     show subtitles
+     * @param introduction introduction
+     * @param pathId       camera path ID
+     */
+    @Asynchronous
+    public void onPlaySpeech(int speechId, boolean showText, boolean introduction, int pathId);
+
+    /**
+     * The client should do a transition
+     *
+     * @param pathId the camera path ID
+     * @param start  the starting coordinates
+     */
+    @Asynchronous
+    public void onDoTransition(short pathId, Vector3f start);
 
 }

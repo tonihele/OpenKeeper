@@ -26,7 +26,9 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
@@ -43,6 +45,7 @@ import toniarts.openkeeper.world.room.ICreatureEntrance;
 public class PlayerTriggerControl extends TriggerControl {
 
     private short playerId;
+    private PlayerService playerService;
     private static final Logger LOGGER = Logger.getLogger(PlayerTriggerControl.class.getName());
 
     /**
@@ -53,9 +56,11 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     public PlayerTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
-            final ICreaturesController creaturesController, final int triggerId, final short playerId) {
+            final ICreaturesController creaturesController, final int triggerId, final short playerId,
+            final PlayerService playerService) {
         super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId);
         this.playerId = playerId;
+        this.playerService = playerService;
     }
 
     public void setPlayer(short playerId) {
@@ -229,7 +234,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
 
             case GUI_TRANSITION_ENDS:
-                return true;
+                return !playerService.isInTransition();
 //                return playerState.isTransitionEnd();
 
             case GUI_BUTTON_PRESSED:
@@ -294,9 +299,10 @@ public class PlayerTriggerControl extends TriggerControl {
 //                    // TODO disable control
 //                    //GameState.setEnabled(false);
 //                    PlayerCameraState pcs = stateManager.getState(PlayerCameraState.class);
-//                    ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
+                    ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
 //                    pcs.doTransition(trigger.getUserData("pathId", short.class), ap);
 //                }
+                playerService.doTransition(trigger.getUserData("pathId", short.class), WorldUtils.ActionPointToVector3f(ap), playerId);
                 break;
 
             case MAKE_OBJECTIVE: // Game part
@@ -361,17 +367,14 @@ public class PlayerTriggerControl extends TriggerControl {
                 break;
 
             case PLAY_SPEECH: // Info part
-//                if (playerId == playerState.getPlayerId()) {
-//                    int speechId = trigger.getUserData("speechId", int.class);
-//                    stateManager.getState(SoundState.class).attachLevelSpeech(speechId);
-//                    stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
-//                    int pathId = trigger.getUserData("pathId", int.class);
-//                    // text show when Cinematic camera by pathId
-//                    boolean introduction = trigger.getUserData("introduction", short.class) != 0;
-//                    if (trigger.getUserData("text", short.class) == 0) {
-//                        playerState.setText(speechId, introduction, pathId);
-//                    }
-//                }
+                int speechId = trigger.getUserData("speechId", int.class);
+                //stateManager.getState(SoundState.class).attachLevelSpeech(speechId);
+                //stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
+                int pathId = trigger.getUserData("pathId", int.class);
+                // text show when Cinematic camera by pathId
+                boolean introduction = trigger.getUserData("introduction", short.class) != 0;
+                boolean showText = trigger.getUserData("text", short.class) == 0;
+                playerService.playSpeech(speechId, showText, introduction, pathId, playerId);
                 break;
 
             case DISPLAY_TEXT_STRING: // Info part
@@ -382,10 +385,8 @@ public class PlayerTriggerControl extends TriggerControl {
                 break;
 
             case SET_WIDESCREEN_MODE: // Info part
-//                if (playerId == playerState.getPlayerId()) {
-//                    available = trigger.getUserData("available", short.class) != 0;
-//                    playerState.setWideScreen(available);
-//                }
+                available = trigger.getUserData("available", short.class) != 0;
+                playerService.setWidescreen(available, playerId);
                 break;
 
             case DISPLAY_SLAB_OWNER: // Info part

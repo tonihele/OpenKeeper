@@ -32,8 +32,8 @@ import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.Cinematic;
@@ -64,7 +64,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     private Camera storedCamera;
     private final Player player;
 
-    private final List<Integer> keys = new ArrayList<>();
+    private final Set<Integer> keys = new HashSet<>();
 
     // Extra keys
     private static final float ZOOM_MOUSE = 0.08f;
@@ -77,7 +77,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     private static final String SPECIAL_KEY_ALT = "SPECIAL_KEY_ALT";
     private static final String SPECIAL_KEY_SHIFT = "SPECIAL_KEY_SHIFT";
     // User set keys
-    private static final String[] mappings = new String[]{
+    private static final String[] MAPPINGS = new String[]{
         Settings.Setting.CAMERA_DOWN.name(),
         Settings.Setting.CAMERA_LEFT.name(),
         Settings.Setting.CAMERA_RIGHT.name(),
@@ -100,7 +100,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         SPECIAL_KEY_ALT,
         SPECIAL_KEY_SHIFT,};
 
-    private static final Logger logger = Logger.getLogger(PlayerCameraState.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(PlayerCameraState.class.getName());
 
     public PlayerCameraState(Player player) {
         this.player = player;
@@ -207,10 +207,14 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     }
 
     public void doTransition(int sweepFileId, final ActionPoint point) {
+        this.doTransition(sweepFileId, WorldUtils.ActionPointToVector3f(point), null);
+    }
+
+    public void doTransition(int sweepFileId, final Vector3f start, final CinematicEventListener listener) {
         String sweepFile = "EnginePath" + sweepFileId;
 
         // Do cinematic transition
-        Cinematic c = new Cinematic(app, sweepFile, point);
+        Cinematic c = new Cinematic(app, sweepFile, start);
         c.addListener(new CinematicEventListener() {
             @Override
             public void onPlay(CinematicEvent cinematic) {
@@ -231,6 +235,9 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
                 PlayerCameraState.this.cameraRestore();
             }
         });
+        if (listener != null) {
+            c.addListener(listener);
+        }
         // GuiEvent ce = new GuiEvent(app.getNifty(), PlayerState.CINEMATIC_SCREEN_ID);
         // c.addCinematicEvent(0, ce);
         // SoundEvent se = new SoundEvent(sweepFile);
@@ -293,11 +300,11 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         inputManager.addMapping(CAMERA_MOUSE_ZOOM_IN, new MouseAxisTrigger(MouseInput.AXIS_WHEEL, false));
         inputManager.addMapping(CAMERA_MOUSE_ZOOM_OUT, new MouseAxisTrigger(MouseInput.AXIS_WHEEL, true));
 
-        inputManager.addListener(this, mappings);
+        inputManager.addListener(this, MAPPINGS);
     }
 
     private void unregisterInput() {
-        for (String s : mappings) {
+        for (String s : MAPPINGS) {
             inputManager.deleteMapping(s);
         }
 

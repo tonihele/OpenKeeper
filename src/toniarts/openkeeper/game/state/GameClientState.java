@@ -18,6 +18,9 @@ package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.cinematic.events.CinematicEvent;
+import com.jme3.cinematic.events.CinematicEventListener;
+import com.jme3.math.Vector3f;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +43,7 @@ import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
 
@@ -70,6 +74,7 @@ public class GameClientState extends AbstractPauseAwareState {
 
     private PlayerMapViewState playerMapViewState;
     private PlayerEntityViewState playerModelViewState;
+    private SoundState soundState;
 
     private static final Logger LOGGER = Logger.getLogger(GameClientState.class.getName());
 
@@ -120,8 +125,9 @@ public class GameClientState extends AbstractPauseAwareState {
     }
 
     private void detachRelatedAppStates() {
-//        stateManager.detach(stateManager.getState(WorldState.class));
-//        stateManager.detach(stateManager.getState(SoundState.class));
+        stateManager.detach(stateManager.getState(SoundState.class));
+        stateManager.detach(stateManager.getState(PlayerEntityViewState.class));
+        stateManager.detach(stateManager.getState(PlayerMapViewState.class));
     }
 
     /**
@@ -299,6 +305,7 @@ public class GameClientState extends AbstractPauseAwareState {
                     }
                 }
             };
+            soundState = new SoundState(kwdFile);
 
             // Prewarm the whole scene
             app.getRenderManager().preloadScene(app.getRootNode());
@@ -333,6 +340,7 @@ public class GameClientState extends AbstractPauseAwareState {
                 playerState.setEnabled(true);
                 stateManager.attach(playerMapViewState);
                 stateManager.attach(playerModelViewState);
+                stateManager.attach(soundState);
 
                 // Release the lock and enter to the game phase
                 synchronized (loadingObject) {
@@ -398,6 +406,49 @@ public class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onSold(short keeperId, List<MapTile> tiles) {
             playerMapViewState.onSold(keeperId, tiles);
+        }
+
+        @Override
+        public void onGamePaused() {
+            playerState.setPaused(true);
+        }
+
+        @Override
+        public void onGameResumed() {
+            playerState.setPaused(false);
+        }
+
+        @Override
+        public void onSetWidescreen(boolean enable) {
+            playerState.setWideScreen(enable);
+        }
+
+        @Override
+        public void onPlaySpeech(int speechId, boolean showText, boolean introduction, int pathId) {
+            stateManager.getState(SoundState.class).attachLevelSpeech(speechId);
+            if (showText) {
+                playerState.setText(speechId, introduction, pathId);
+            }
+        }
+
+        @Override
+        public void onDoTransition(short pathId, Vector3f start) {
+            stateManager.getState(PlayerCameraState.class).doTransition(pathId, start, new CinematicEventListener() {
+                @Override
+                public void onPlay(CinematicEvent cinematic) {
+
+                }
+
+                @Override
+                public void onPause(CinematicEvent cinematic) {
+
+                }
+
+                @Override
+                public void onStop(CinematicEvent cinematic) {
+                    gameClientService.transitionEnd();
+                }
+            });
         }
 
     }

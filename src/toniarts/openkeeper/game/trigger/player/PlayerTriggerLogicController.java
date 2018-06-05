@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
+import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
@@ -37,12 +38,12 @@ public class PlayerTriggerLogicController implements IGameLogicUpdatable {
     private final SafeArrayList<PlayerTriggerControl> playerTriggerControls = new SafeArrayList<>(PlayerTriggerControl.class);
 
     public PlayerTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
-            final ICreaturesController creaturesController) {
+            final ICreaturesController creaturesController, final PlayerService playerService) {
         Map<Short, Player> players = levelInfo.getLevelData().getPlayers();
         for (Keeper keeper : levelInfo.getPlayers()) {
             int triggerId = players.get(keeper.getId()).getTriggerId();
             if (triggerId != 0) {
-                playerTriggerControls.add(new PlayerTriggerControl(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, keeper.getId()));
+                playerTriggerControls.add(new PlayerTriggerControl(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, keeper.getId(), playerService));
             }
         }
 

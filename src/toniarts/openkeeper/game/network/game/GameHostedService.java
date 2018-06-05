@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.network.game;
 
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.jme3.network.Filters;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.Message;
@@ -75,6 +76,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     private static final String ATTRIBUTE_SESSION = "game.session";
     private final Map<ClientInfo, GameSessionImpl> players = new ConcurrentHashMap<>(4, 0.75f, 5);
     private final Map<HostedConnection, ClientInfo> playersByConnection = new ConcurrentHashMap<>(4, 0.75f, 5);
+    private final Map<ClientInfo, Boolean> playersInTransition = new ConcurrentHashMap<>(4, 0.75f, 5);
     private final SafeArrayList<GameSessionServiceListener> serverListeners = new SafeArrayList<>(GameSessionServiceListener.class);
     private RmiHostedService rmiService;
     private ScheduledExecutorService entityUpdater;
@@ -127,6 +129,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         GameSessionImpl session = new GameSessionImpl(conn, clientInfo);
         players.put(clientInfo, session);
         playersByConnection.put(conn, clientInfo);
+        playersInTransition.put(clientInfo, false);
 
         // Expose the session as an RMI resource to the client
         RmiRegistry rmi = rmiService.getRmiRegistry(conn);
@@ -153,6 +156,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
             // Remove player session from the active sessions list
             players.remove(player.clientInfo);
             playersByConnection.remove(conn);
+            playersInTransition.remove(player.clientInfo);
         }
     }
 
@@ -220,6 +224,47 @@ public class GameHostedService extends AbstractHostedConnectionService implement
             gameSession.onTilesChange(updatedTiles);
         }
     }
+
+    @Override
+    public void setWidescreen(boolean enable, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onSetWidescreen(enable);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void playSpeech(int speechId, boolean showText, boolean introduction, int pathId, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onPlaySpeech(speechId, showText, introduction, pathId);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void doTransition(short pathId, Vector3f start, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onDoTransition(pathId, start);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public boolean isInTransition() {
+        for (boolean inTransition : playersInTransition.values()) {
+            if (inTransition) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     @Override
     public void onAdded(PlayerSpell spell) {
@@ -430,6 +475,28 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
+        public void transitionEnd() {
+            playersInTransition.put(clientInfo, false);
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onTransitionEnd(clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void pauseGame() {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onPauseRequest(clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void resumeGame() {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onResumeRequest(clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public EntityData getEntityData() {
             return null; // Cached on client...
         }
@@ -467,6 +534,32 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         @Override
         public void onSold(short keeperId, List<MapTile> tiles) {
             getCallback().onSold(keeperId, tiles);
+        }
+
+        @Override
+        public void onGamePaused() {
+            getCallback().onGamePaused();
+        }
+
+        @Override
+        public void onGameResumed() {
+            getCallback().onGameResumed();
+        }
+
+        @Override
+        public void onSetWidescreen(boolean enable) {
+            getCallback().onSetWidescreen(enable);
+        }
+
+        @Override
+        public void onPlaySpeech(int speechId, boolean showText, boolean introduction, int pathId) {
+            getCallback().onPlaySpeech(speechId, showText, introduction, pathId);
+        }
+
+        @Override
+        public void onDoTransition(short pathId, Vector3f start) {
+            playersInTransition.put(clientInfo, true);
+            getCallback().onDoTransition(pathId, start);
         }
 
     }

@@ -46,6 +46,7 @@ import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.PositionSystem;
+import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
@@ -82,6 +83,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     private final Map<Short, IPlayerController> playerControllers = new HashMap<>();
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final EntityData entityData;
+    private final PlayerService playerService;
 
     private GameLoop gameLogicLoop;
     private GameLoop steeringCalculatorLoop;
@@ -115,12 +117,14 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
      * @param level the level to load
      * @param entityData
      * @param gameSettings
+     * @param playerService
      */
-    public GameController(String level, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public GameController(String level, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, PlayerService playerService) {
         this.level = level;
         this.levelObject = null;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
+        this.playerService = playerService;
     }
 
     /**
@@ -130,13 +134,15 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
      * @param players player participating in this game, can be {@code null}
      * @param entityData
      * @param gameSettings
+     * @param playerService
      */
-    public GameController(KwdFile level, List<Keeper> players, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public GameController(KwdFile level, List<Keeper> players, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, PlayerService playerService) {
         this.level = null;
         this.kwdFile = level;
         this.levelObject = null;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
+        this.playerService = playerService;
         if (players != null) {
             for (Keeper keeper : players) {
                 this.players.put(keeper.getId(), keeper);
@@ -150,12 +156,14 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
      * @param selectedLevel the level to load
      * @param entityData
      * @param gameSettings
+     * @param playerService
      */
-    public GameController(GeneralLevel selectedLevel, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public GameController(GeneralLevel selectedLevel, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, PlayerService playerService) {
         this.level = null;
         this.kwdFile = selectedLevel.getKwdFile();
         this.entityData = entityData;
         this.gameSettings = gameSettings;
+        this.playerService = playerService;
         if (selectedLevel instanceof toniarts.openkeeper.game.data.Level) {
             this.levelObject = (toniarts.openkeeper.game.data.Level) selectedLevel;
         } else {
@@ -201,7 +209,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         doorTriggerState = new DoorTriggerState(true);
         //doorTriggerState.initialize(stateManager, app);
         actionPointController = new ActionPointTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), positionSystem);
-        playerTriggerLogicController = new PlayerTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController());
+        playerTriggerLogicController = new PlayerTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService);
 
         // Initialize tasks
         taskManager = new TaskManager(gameWorldController, gameWorldController.getMapController(), playerControllers.values());
