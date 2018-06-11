@@ -98,7 +98,7 @@ public abstract class SingleBarLoadingState extends LoadingState {
 
         // Load up the texture, there are few localized ones available
         String screen = SCREENS.get(AVAILABLE_WIDTHS.get(index));
-        TextureKey texKey = new TextureKey("Textures/LoadingScreen-Japanese/" + screen);
+        TextureKey texKey = new TextureKey(getLocalizedLoadingScreenTextureFolder() + screen);
         return assetManager.loadTexture(texKey);
     }
 
