@@ -92,7 +92,7 @@ public abstract class AssetsConverter {
      */
     public enum ConvertProcess {
 
-        TEXTURES(4),
+        TEXTURES(5),
         MODELS(6),
         MOUSE_CURSORS(4),
         MUSIC_AND_SOUNDS(4),
@@ -152,7 +152,7 @@ public abstract class AssetsConverter {
     public static final String TEXTS_FOLDER = INTERFACE_FOLDER + "Texts";
     public static final String PATHS_FOLDER = INTERFACE_FOLDER + "Paths";
 
-    private static final Logger logger = Logger.getLogger(AssetsConverter.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(AssetsConverter.class.getName());
 
     public AssetsConverter(String dungeonKeeperFolder, AssetManager assetManager) {
         this.dungeonKeeperFolder = dungeonKeeperFolder;
@@ -196,8 +196,8 @@ public abstract class AssetsConverter {
     public void convertAssets() {
         long start = System.currentTimeMillis();
         String currentFolder = getCurrentFolder();
-        logger.log(Level.INFO, "Starting asset convertion from DK II folder: {0}", dungeonKeeperFolder);
-        logger.log(Level.INFO, "Current folder set to: {0}", currentFolder);
+        LOGGER.log(Level.INFO, "Starting asset convertion from DK II folder: {0}", dungeonKeeperFolder);
+        LOGGER.log(Level.INFO, "Current folder set to: {0}", currentFolder);
 
         //Create an assets folder
         currentFolder = currentFolder.concat(ASSETS_FOLDER).concat(File.separator);
@@ -234,7 +234,7 @@ public abstract class AssetsConverter {
 
         // Log the time taken
         long duration = System.currentTimeMillis() - start;
-        logger.log(Level.INFO, "Conversion took {0} seconds!", TimeUnit.SECONDS.convert(duration, TimeUnit.MILLISECONDS));
+        LOGGER.log(Level.INFO, "Conversion took {0} seconds!", TimeUnit.SECONDS.convert(duration, TimeUnit.MILLISECONDS));
     }
 
     /**
@@ -247,7 +247,7 @@ public abstract class AssetsConverter {
         if (!ConvertProcess.TEXTURES.isOutdated()) {
             return;
         }
-        logger.log(Level.INFO, "Extracting textures to: {0}", destination);
+        LOGGER.log(Level.INFO, "Extracting textures to: {0}", destination);
         updateStatus(null, null, ConvertProcess.TEXTURES);
         AssetUtils.deleteFolder(new File(destination));
         EngineTexturesFile etFile = getEngineTexturesFile(dungeonKeeperFolder);
@@ -282,7 +282,7 @@ public abstract class AssetsConverter {
                 } else if (!OVERWRITE_DATA && newFile.exists()) {
 
                     // Delete the extracted file
-                    logger.log(Level.INFO, "File {0} already exists, skipping!", newFile);
+                    LOGGER.log(Level.INFO, "File {0} already exists, skipping!", newFile);
                     f.delete();
                     continue;
                 }
@@ -308,7 +308,7 @@ public abstract class AssetsConverter {
         if (!ConvertProcess.MODELS.isOutdated()) {
             return;
         }
-        logger.log(Level.INFO, "Extracting models to: {0}", destination);
+        LOGGER.log(Level.INFO, "Extracting models to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MODELS);
         AssetUtils.deleteFolder(new File(destination));
 
@@ -332,7 +332,7 @@ public abstract class AssetsConverter {
 
                 // See if we already have this model
                 if (!OVERWRITE_DATA && new File(destination.concat(entry.substring(0, entry.length() - 4)).concat(".j3o")).exists()) {
-                    logger.log(Level.INFO, "File {0} already exists, skipping!", entry);
+                    LOGGER.log(Level.INFO, "File {0} already exists, skipping!", entry);
                     i++;
                     continue;
                 }
@@ -373,7 +373,7 @@ public abstract class AssetsConverter {
                     kmfs.put(entry, kmfFile);
                 }
             } catch (Exception ex) {
-                logger.log(Level.SEVERE, "Failed to create a file for WAD entry " + entry + "!", ex);
+                LOGGER.log(Level.SEVERE, "Failed to create a file for WAD entry " + entry + "!", ex);
                 throw ex;
             }
         }
@@ -408,7 +408,7 @@ public abstract class AssetsConverter {
             exporter.save(n, file);
         } catch (Exception ex) {
             String msg = "Failed to convert KMF entry " + entry.getKey() + "!";
-            logger.log(Level.SEVERE, msg, ex);
+            LOGGER.log(Level.SEVERE, msg, ex);
             throw new RuntimeException(msg, ex);
         }
     }
@@ -423,7 +423,7 @@ public abstract class AssetsConverter {
         if (!ConvertProcess.MOUSE_CURSORS.isOutdated()) {
             return;
         }
-        logger.log(Level.INFO, "Extracting mouse cursors to: {0}", destination);
+        LOGGER.log(Level.INFO, "Extracting mouse cursors to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MOUSE_CURSORS);
         AssetUtils.deleteFolder(new File(destination));
 
@@ -448,7 +448,7 @@ public abstract class AssetsConverter {
                     sprFile.extract(destinationFolder.getPath(), fileName.substring(0, fileName.length() - 4));
                     extracted.delete();
                 } catch (Exception ex) {
-                    logger.log(Level.SEVERE, "Error Sprite: {0}", ex);
+                    LOGGER.log(Level.SEVERE, "Error Sprite: {0}", ex);
                 }
             }
         }
@@ -464,7 +464,7 @@ public abstract class AssetsConverter {
         if (!ConvertProcess.MUSIC_AND_SOUNDS.isOutdated()) {
             return;
         }
-        logger.log(Level.INFO, "Extracting sounds to: {0}", destination);
+        LOGGER.log(Level.INFO, "Extracting sounds to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MUSIC_AND_SOUNDS);
         AssetUtils.deleteFolder(new File(destination));
         String dataDirectory = PathUtils.DKII_SFX_FOLDER;
@@ -489,7 +489,7 @@ public abstract class AssetsConverter {
             });
         } catch (IOException ex) {
             String msg = "Failed to scan sounds folder " + dataDirectory + "!";
-            logger.log(Level.SEVERE, msg, ex);
+            LOGGER.log(Level.SEVERE, msg, ex);
             throw new RuntimeException(msg, ex);
         }
 
@@ -562,7 +562,7 @@ public abstract class AssetsConverter {
         if (!ConvertProcess.INTERFACE_TEXTS.isOutdated()) {
             return;
         }
-        logger.log(Level.INFO, "Extracting texts to: {0}", destination);
+        LOGGER.log(Level.INFO, "Extracting texts to: {0}", destination);
         updateStatus(null, null, ConvertProcess.INTERFACE_TEXTS);
         AssetUtils.deleteFolder(new File(destination));
         String dataDirectory = dungeonKeeperFolder + PathUtils.DKII_TEXT_DEFAULT_FOLDER;
@@ -586,7 +586,7 @@ public abstract class AssetsConverter {
             });
         } catch (IOException ex) {
             String msg = "Failed to scan texts folder " + dataDirectory + "!";
-            logger.log(Level.SEVERE, msg, ex);
+            LOGGER.log(Level.SEVERE, msg, ex);
             throw new RuntimeException(msg, ex);
         }
 
@@ -618,7 +618,7 @@ public abstract class AssetsConverter {
                 }
             } catch (IOException ex) {
                 String msg = "Failed to save the dictionary file to " + dictFile + "!";
-                logger.log(Level.SEVERE, msg, ex);
+                LOGGER.log(Level.SEVERE, msg, ex);
                 throw new RuntimeException(msg, ex);
             }
         }
@@ -641,10 +641,9 @@ public abstract class AssetsConverter {
             if (entry.endsWith(".444")) {
                 LoadingScreenFile lsf = new LoadingScreenFile(wad.getFileData(entry));
                 try {
-
-                    // Simulate the extraction of the WAD entry, do this because of the funny subdir logic
-                    File dest = wad.extractFileData(entry, destination, true);
-                    String destFilename = dest.getCanonicalPath();
+                    File destFile = new File(destination + entry);
+                    String destFilename = destFile.getCanonicalPath();
+                    destFile.getParentFile().mkdirs();
                     ImageIO.write(lsf.getImage(), "png", new File(destFilename.substring(0, destFilename.length() - 3).concat("png")));
                 } catch (IOException ex) {
                     throw new RuntimeException("Failed to save the wad entry " + entry + "!", ex);
@@ -665,7 +664,7 @@ public abstract class AssetsConverter {
         if (!ConvertProcess.PATHS.isOutdated()) {
             return;
         }
-        logger.log(Level.INFO, "Extracting paths to: {0}", destination);
+        LOGGER.log(Level.INFO, "Extracting paths to: {0}", destination);
         updateStatus(null, null, ConvertProcess.PATHS);
         AssetUtils.deleteFolder(new File(destination));
 
@@ -719,7 +718,7 @@ public abstract class AssetsConverter {
 
             } catch (Exception ex) {
                 String msg = "Failed to save the path file to " + destination + "!";
-                logger.log(Level.SEVERE, msg, ex);
+                LOGGER.log(Level.SEVERE, msg, ex);
                 throw new RuntimeException(msg, ex);
             }
         }
@@ -734,7 +733,7 @@ public abstract class AssetsConverter {
         if (!ConvertProcess.HI_SCORES.isOutdated()) {
             return;
         }
-        logger.log(Level.INFO, "Converting hiscores");
+        LOGGER.log(Level.INFO, "Converting hiscores");
         updateStatus(0, 1, ConvertProcess.HI_SCORES);
         try {
 
@@ -749,7 +748,7 @@ public abstract class AssetsConverter {
             }
             updateStatus(1, 1, ConvertProcess.HI_SCORES);
         } catch (Exception ex) {
-            logger.log(Level.WARNING, "Can not convert HiScores!", ex);
+            LOGGER.log(Level.WARNING, "Can not convert HiScores!", ex);
 
             // By no means fatal :D
         }
@@ -765,7 +764,7 @@ public abstract class AssetsConverter {
         if (!ConvertProcess.FONTS.isOutdated()) {
             return;
         }
-        logger.log(Level.INFO, "Extracting fonts to: {0}", destination);
+        LOGGER.log(Level.INFO, "Extracting fonts to: {0}", destination);
         updateStatus(null, null, ConvertProcess.FONTS);
         AssetUtils.deleteFolder(new File(destination));
 
@@ -805,7 +804,7 @@ public abstract class AssetsConverter {
                 Matcher matcher = pattern.matcher(file.getName());
                 boolean found = matcher.find();
                 if (!found) {
-                    logger.log(Level.SEVERE, "Font name {0} not recognized!", file.getName());
+                    LOGGER.log(Level.SEVERE, "Font name {0} not recognized!", file.getName());
                     throw new RuntimeException("Unknown font name!");
                 } else {
                     fontSize = Integer.parseInt(matcher.group("size"));
@@ -837,7 +836,7 @@ public abstract class AssetsConverter {
 
         } catch (Exception ex) {
             String msg = "Failed to save the font file to " + destination + "!";
-            logger.log(Level.SEVERE, msg, ex);
+            LOGGER.log(Level.SEVERE, msg, ex);
             throw new RuntimeException(msg, ex);
         }
     }
@@ -852,7 +851,7 @@ public abstract class AssetsConverter {
         if (!ConvertProcess.MAP_THUMBNAILS.isOutdated()) {
             return;
         }
-        logger.log(Level.INFO, "Generating map thumbnails to: {0}", destination);
+        LOGGER.log(Level.INFO, "Generating map thumbnails to: {0}", destination);
         updateStatus(null, null, ConvertProcess.MAP_THUMBNAILS);
         File destFolder = new File(destination);
         AssetUtils.deleteFolder(destFolder);
@@ -889,7 +888,7 @@ public abstract class AssetsConverter {
             }
         } catch (Exception ex) {
             String msg = "Failed to process the map thumbnails to " + destination + "!";
-            logger.log(Level.WARNING, msg, ex); // Not fatal
+            LOGGER.log(Level.WARNING, msg, ex); // Not fatal
         }
     }
 

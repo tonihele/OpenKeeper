@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.utils.PathUtils;
 
@@ -42,10 +43,9 @@ import toniarts.openkeeper.utils.PathUtils;
 public class WadFile {
 
     private final File file;
-    private final LinkedHashMap<String, WadFileEntry> wadFileEntries;
+    private final Map<String, WadFileEntry> wadFileEntries;
     private static final String WAD_HEADER_IDENTIFIER = "DWFB";
     private static final int WAD_HEADER_VERSION = 2;
-    private String subdir = "";
 
     /**
      * Constructs a new Wad file reader<br>
@@ -56,23 +56,23 @@ public class WadFile {
     public WadFile(File file) {
         this.file = file;
 
-        //Read the file
+        // Read the file
         try (RandomAccessFile rawWad = new RandomAccessFile(file, "r")) {
 
-            //Check the header
+            // Check the header
             byte[] header = new byte[4];
             rawWad.read(header);
             if (!WAD_HEADER_IDENTIFIER.equals(ConversionUtils.toString(header))) {
                 throw new RuntimeException("Header should be " + WAD_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
 
-            //See the version
+            // See the version
             int version = ConversionUtils.readUnsignedInteger(rawWad);
             if (WAD_HEADER_VERSION != version) {
                 throw new RuntimeException("Version header should be " + WAD_HEADER_VERSION + " and it was " + version + "! Cancelling!");
             }
 
-            //Seek
+            // Seek
             rawWad.seek(0x48);
 
             int files = ConversionUtils.readUnsignedInteger(rawWad);
@@ -80,7 +80,7 @@ public class WadFile {
             int nameSize = ConversionUtils.readUnsignedInteger(rawWad);
             int unknown = ConversionUtils.readUnsignedInteger(rawWad);
 
-            //Loop through the file count
+            // Loop through the file count
             List<WadFileEntry> entries = new ArrayList<>(files);
             for (int i = 0; i < files; i++) {
                 WadFileEntry wadInfo = new WadFileEntry();
@@ -112,16 +112,28 @@ public class WadFile {
                 entries.add(wadInfo);
             }
 
-            //Read the file names and put them to a hashmap
+            // Read the file names and put them to a hashmap
+            // If the file has a path, carry that path all the way to next entry with path
+            // The file names itself aren't unique, but with the path they are
             rawWad.seek(nameOffset);
             byte[] nameArray = new byte[nameSize];
             rawWad.read(nameArray);
-            int offset = 0;
             wadFileEntries = new LinkedHashMap<>(files);
+            String path = "";
             for (WadFileEntry entry : entries) {
+                int offset = entry.getNameOffset() - nameOffset;
                 String name = ConversionUtils.toString(Arrays.copyOfRange(nameArray, offset, offset + entry.getNameSize())).trim();
-                wadFileEntries.put(ConversionUtils.convertFileSeparators(name), entry);
-                offset += entry.getNameSize();
+
+                // The path
+                name = ConversionUtils.convertFileSeparators(name);
+                int index = name.lastIndexOf(File.separator);
+                if (index > -1) {
+                    path = name.substring(0, index + 1);
+                } else if (!path.isEmpty()) {
+                    name = path + name;
+                }
+
+                wadFileEntries.put(name, entry);
             }
         } catch (IOException e) {
 
@@ -155,15 +167,15 @@ public class WadFile {
      */
     public void extractFileData(String destination) {
 
-        //Open the WAD for extraction
+        // Open the WAD for extraction
         try (RandomAccessFile rawWad = new RandomAccessFile(file, "r")) {
 
             for (String fileName : wadFileEntries.keySet()) {
-                extractFileData(fileName, destination, rawWad, false);
+                extractFileData(fileName, destination, rawWad);
             }
         } catch (Exception e) {
 
-            //Fug
+            // Fug
             throw new RuntimeException("Failed to read the WAD file!", e);
         }
     }
@@ -175,29 +187,21 @@ public class WadFile {
      * @param destination destination directory
      * @param rawWad the opened WAD file
      */
-    private File extractFileData(String fileName, String destination, RandomAccessFile rawWad, boolean simulation) {
+    private File extractFileData(String fileName, String destination, RandomAccessFile rawWad) {
 
-        //See that the destination is formatted correctly and create it if it does not exist
+        // See that the destination is formatted correctly and create it if it does not exist
         String dest = PathUtils.fixFilePath(destination);
 
         String mkdir = dest;
         if (fileName.contains(File.separator)) {
-            this.subdir = fileName.substring(0, fileName.lastIndexOf(File.separator) + 1);
-            mkdir += this.subdir;
-        } else {
-            dest += this.subdir;
+            mkdir += fileName.substring(0, fileName.lastIndexOf(File.separator) + 1);
         }
 
         File destinationFolder = new File(mkdir);
         destinationFolder.mkdirs();
         dest = dest.concat(fileName);
 
-        // Simulation?
-        if (simulation) {
-            return new File(dest);
-        }
-
-        //Write to the file
+        // Write to the file
         try (OutputStream outputStream = new FileOutputStream(dest)) {
             getFileData(fileName, rawWad).writeTo(outputStream);
             return new File(dest);
@@ -211,27 +215,16 @@ public class WadFile {
      *
      * @param fileName file to extract
      * @param destination destination directory
+     * @return the file for the extracted contents
      */
     public File extractFileData(String fileName, String destination) {
-        return extractFileData(fileName, destination, false);
-    }
 
-    /**
-     * Extract a single file to a given location
-     *
-     * @param fileName file to extract
-     * @param destination destination directory
-     * @param simulation simulate only, no extraction is done, but set subdir
-     * scheming gets preserved and the directoried get made
-     */
-    public File extractFileData(String fileName, String destination, boolean simulation) {
-
-        //Open the WAD for extraction
+        // Open the WAD for extraction
         try (RandomAccessFile rawWad = new RandomAccessFile(file, "r")) {
-            return extractFileData(fileName, destination, rawWad, simulation);
+            return extractFileData(fileName, destination, rawWad);
         } catch (Exception e) {
 
-            //Fug
+            // Fug
             throw new RuntimeException("Failed to read the WAD file!", e);
         }
     }
@@ -246,7 +239,7 @@ public class WadFile {
     private ByteArrayOutputStream getFileData(String fileName, RandomAccessFile rawWad) {
         ByteArrayOutputStream result = null;
 
-        //Get the file
+        // Get the file
         WadFileEntry fileEntry = wadFileEntries.get(fileName);
         if (fileEntry == null) {
             throw new RuntimeException("File " + fileName + " not found from the WAD archive!");
@@ -254,14 +247,14 @@ public class WadFile {
 
         try {
 
-            //Seek to the file we want and read it
+            // Seek to the file we want and read it
             rawWad.seek(fileEntry.getOffset());
             byte[] bytes = new byte[fileEntry.getCompressedSize()];
             rawWad.read(bytes);
 
             result = new ByteArrayOutputStream();
 
-            //See if the file is compressed
+            // See if the file is compressed
             if (fileEntry.isCompressed()) {
                 result.write(decompressFileData(bytes, fileName));
             } else {
@@ -270,7 +263,7 @@ public class WadFile {
 
         } catch (Exception e) {
 
-            //Fug
+            // Fug
             throw new RuntimeException("Failed to read the WAD file!", e);
         }
 
@@ -285,12 +278,12 @@ public class WadFile {
      */
     public ByteArrayOutputStream getFileData(String fileName) {
 
-        //Open the WAD for extraction
+        // Open the WAD for extraction
         try (RandomAccessFile rawWad = new RandomAccessFile(file, "r")) {
             return getFileData(fileName, rawWad);
         } catch (Exception e) {
 
-            //Fug
+            // Fug
             throw new RuntimeException("Failed to read the WAD file!", e);
         }
     }

@@ -28,6 +28,7 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Quad;
 import com.jme3.texture.Texture;
+import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -73,6 +74,21 @@ public abstract class LoadingState extends AbstractAppState {
 
         // Load up the title screen
         setupTitleScreen();
+    }
+
+    /**
+     * Gets the localized texture folder, some updated versions of the game come
+     * also with Japanese loading screens
+     *
+     * @return loading screen texture folder, ready for asset key
+     */
+    protected String getLocalizedLoadingScreenTextureFolder() {
+        Locale locale = Locale.getDefault();
+        if (locale.getISO3Language().equals("jpn")) {
+            return "Textures/LoadingScreen-Japanese/";
+        }
+
+        return "Textures/LoadingScreen/";
     }
 
     /**
