@@ -16,11 +16,11 @@
  */
 package toniarts.openkeeper.game.state;
 
-import toniarts.openkeeper.view.SystemMessageState;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -52,6 +52,7 @@ import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PossessionCameraState;
 import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -440,6 +441,18 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
 
     protected InteractionState getInteractionState() {
         return interactionState.getInteractionState();
+    }
+
+    public void rotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time) {
+        cameraState.rotateAroundPoint(point, relative, angle, time);
+    }
+
+    public void showMessage(int textId) {
+        stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", textId));
+    }
+
+    public void zoomToPoint(Vector3f point) {
+        cameraState.zoomToPoint(point);
     }
 
     protected void grabGold(int amount) {

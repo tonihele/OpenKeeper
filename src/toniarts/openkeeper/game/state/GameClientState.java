@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.PlayerCameraState;
@@ -437,6 +438,8 @@ public class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onDoTransition(short pathId, Vector3f start) {
+
+            // TODO: Refactor
             stateManager.getState(PlayerCameraState.class).doTransition(pathId, start, new CinematicEventListener() {
                 @Override
                 public void onPlay(CinematicEvent cinematic) {
@@ -453,6 +456,26 @@ public class GameClientState extends AbstractPauseAwareState {
                     gameClientService.transitionEnd();
                 }
             });
+        }
+
+        @Override
+        public void onFlashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time) {
+            playerState.flashButton(targetId, buttonType, available, time);
+        }
+
+        @Override
+        public void onRotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time) {
+            playerState.rotateViewAroundPoint(point, relative, angle, time);
+        }
+
+        @Override
+        public void onShowMessage(int textId) {
+            playerState.showMessage(textId);
+        }
+
+        @Override
+        public void onZoomViewToPoint(Vector3f point) {
+            playerState.zoomToPoint(point);
         }
 
     }

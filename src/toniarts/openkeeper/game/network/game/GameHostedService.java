@@ -52,6 +52,7 @@ import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
+import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.GameLoop;
 
 /**
@@ -250,6 +251,46 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
                 gameSession.getValue().onDoTransition(pathId, start);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void flashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onFlashButton(targetId, buttonType, available, time);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void rotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onRotateViewAroundPoint(point, relative, angle, time);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void showMessage(int textId, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onShowMessage(textId);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void zoomViewToPoint(Vector3f point, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onZoomViewToPoint(point);
                 break;
             }
         }
@@ -560,6 +601,26 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         public void onDoTransition(short pathId, Vector3f start) {
             playersInTransition.put(clientInfo, true);
             getCallback().onDoTransition(pathId, start);
+        }
+
+        @Override
+        public void onFlashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time) {
+            getCallback().onFlashButton(targetId, buttonType, available, time);
+        }
+
+        @Override
+        public void onRotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time) {
+            getCallback().onRotateViewAroundPoint(point, relative, angle, time);
+        }
+
+        @Override
+        public void onShowMessage(int textId) {
+            getCallback().onShowMessage(textId);
+        }
+
+        @Override
+        public void onZoomViewToPoint(Vector3f point) {
+            getCallback().onZoomViewToPoint(point);
         }
 
     }

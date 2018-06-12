@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.network.streaming.StreamingClientService;
 import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
+import toniarts.openkeeper.tools.convert.map.TriggerAction;
 
 /**
  * Client side service for the game lobby services
@@ -336,6 +337,34 @@ public class GameClientService extends AbstractClientService
         public void onDoTransition(short pathId, Vector3f start) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onDoTransition(pathId, start);
+            }
+        }
+
+        @Override
+        public void onFlashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onFlashButton(targetId, buttonType, available, time);
+            }
+        }
+
+        @Override
+        public void onRotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onRotateViewAroundPoint(point, relative, angle, time);
+            }
+        }
+
+        @Override
+        public void onShowMessage(int textId) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onShowMessage(textId);
+            }
+        }
+
+        @Override
+        public void onZoomViewToPoint(Vector3f point) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onZoomViewToPoint(point);
             }
         }
     }

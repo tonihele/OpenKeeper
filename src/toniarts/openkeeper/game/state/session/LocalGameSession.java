@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.Utils;
 
@@ -170,6 +171,42 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
             playerInTransition = true;
             for (GameSessionListener listener : listeners.getArray()) {
                 listener.onDoTransition(pathId, start);
+            }
+        }
+    }
+
+    @Override
+    public void flashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onFlashButton(targetId, buttonType, available, time);
+            }
+        }
+    }
+
+    @Override
+    public void rotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onRotateViewAroundPoint(point, relative, angle, time);
+            }
+        }
+    }
+
+    @Override
+    public void showMessage(int textId, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onShowMessage(textId);
+            }
+        }
+    }
+
+    @Override
+    public void zoomViewToPoint(Vector3f point, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onZoomViewToPoint(point);
             }
         }
     }

@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.state.session;
 
 import com.jme3.math.Vector3f;
+import toniarts.openkeeper.tools.convert.map.TriggerAction;
 
 /**
  * Handles player related requests
@@ -59,5 +60,44 @@ public interface PlayerService {
      * @param playerId the player ID who should play the transition
      */
     public void doTransition(short pathId, Vector3f start, short playerId);
+
+    /**
+     * Flash UI button for player
+     *
+     * @param targetId   the ID of the record, type specified by
+     *                   {@link #TriggerAction.MakeType}
+     * @param buttonType the record type, TODO: create own enum for this
+     * @param available  turn flashing on/off ?
+     * @param time       time to flash
+     * @param playerId   the player ID whose button should flash
+     */
+    public void flashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time, short playerId);
+
+    /**
+     * Rotate camera around a point
+     *
+     * @param point    the point to rotate around
+     * @param relative relative to current position?
+     * @param angle    rotation angle
+     * @param time     time to rotate
+     * @param playerId the player ID whose camera should rotate
+     */
+    public void rotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time, short playerId);
+
+    /**
+     * Show info message for player
+     *
+     * @param textId   the text ID
+     * @param playerId the player ID who should get the message
+     */
+    public void showMessage(int textId, short playerId);
+
+    /**
+     * Zoom camera to a point
+     *
+     * @param point    the point to zoom to
+     * @param playerId the player ID whose camera should be moved
+     */
+    public void zoomViewToPoint(Vector3f point, short playerId);
 
 }

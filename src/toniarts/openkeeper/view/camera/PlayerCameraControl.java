@@ -22,11 +22,8 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 
 import java.io.IOException;
-import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.control.Control;
-import toniarts.openkeeper.game.control.IContainer;
 import toniarts.openkeeper.view.PlayerCamera;
-import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  *
@@ -44,9 +41,10 @@ public class PlayerCameraControl extends Control {
     public PlayerCameraControl() {
     }
 
-    public PlayerCameraControl(PlayerCamera camera) {
+    public PlayerCameraControl(PlayerCamera camera, Vector3f to) {
         this.camera = camera;
-        from = this.camera.getLookAt();
+        this.from = this.camera.getLookAt();
+        this.to = to;
     }
 
     public PlayerCamera getCamera() {
@@ -55,16 +53,6 @@ public class PlayerCameraControl extends Control {
 
     public void setCamera(PlayerCamera camera) {
         this.camera = camera;
-    }
-
-    @Override
-    public void setParent(IContainer parent) {
-        super.setParent(parent);
-
-        if (parent instanceof ActionPoint) {
-            ActionPoint ap = (ActionPoint) parent;
-            to = WorldUtils.ActionPointToVector3f(ap);
-        }
     }
 
     @Override

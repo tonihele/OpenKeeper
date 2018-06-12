@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.game.map.MapData;
+import toniarts.openkeeper.tools.convert.map.TriggerAction;
 
 /**
  * The game callbacks the server sends to the client
@@ -102,5 +103,17 @@ public interface GameSessionListener extends MapListener, PlayerListener {
      */
     @Asynchronous
     public void onDoTransition(short pathId, Vector3f start);
+
+    @Asynchronous
+    public void onFlashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time);
+
+    @Asynchronous
+    public void onRotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time);
+
+    @Asynchronous
+    public void onShowMessage(int textId);
+
+    @Asynchronous
+    public void onZoomViewToPoint(Vector3f point);
 
 }

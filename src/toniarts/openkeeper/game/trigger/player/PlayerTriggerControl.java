@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -285,11 +286,12 @@ public class PlayerTriggerControl extends TriggerControl {
 
             case FLASH_BUTTON: // gui part. Only for keeper x
 //                if (playerId == playerState.getPlayerId()) {
-//                    TriggerAction.MakeType buttonType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
-//                            TriggerAction.MakeType.class);
-//                    short targetId = trigger.getUserData("targetId", short.class);
-//                    available = trigger.getUserData("available", short.class) != 0;
-//                    int time = trigger.getUserData("value", int.class);
+                TriggerAction.MakeType buttonType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
+                        TriggerAction.MakeType.class);
+                short targetId = trigger.getUserData("targetId", short.class);
+                available = trigger.getUserData("available", short.class) != 0;
+                int time = trigger.getUserData("value", int.class);
+                playerService.flashButton(targetId, buttonType, available, time, playerId);
 //                    playerState.flashButton(targetId, buttonType, available, time);
 //                }
                 break;
@@ -299,14 +301,14 @@ public class PlayerTriggerControl extends TriggerControl {
 //                    // TODO disable control
 //                    //GameState.setEnabled(false);
 //                    PlayerCameraState pcs = stateManager.getState(PlayerCameraState.class);
-                    ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
+                ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
 //                    pcs.doTransition(trigger.getUserData("pathId", short.class), ap);
 //                }
                 playerService.doTransition(trigger.getUserData("pathId", short.class), WorldUtils.ActionPointToVector3f(ap), playerId);
                 break;
 
             case MAKE_OBJECTIVE: // Game part
-                short targetId = trigger.getUserData("targetId", short.class);
+                targetId = trigger.getUserData("targetId", short.class);
                 if (targetId == 0) { // 0 = Off
                     makeObjectiveOff();
                 } else {
@@ -339,30 +341,31 @@ public class PlayerTriggerControl extends TriggerControl {
 
             case ZOOM_TO_ACTION_POINT: // AP part
 //                if (playerId == playerState.getPlayerId()) {
-//                    short apId = trigger.getUserData("targetId", short.class);
-//                    zoomToAP(apId);
+                short apId = trigger.getUserData("targetId", short.class);
+                zoomToAP(apId);
 //                }
                 break;
 
             case ROTATE_AROUND_ACTION_POINT: // AP part
 //                if (playerId == playerState.getPlayerId()) {
-//                    ActionPoint ap = getActionPoint(trigger.getUserData("targetId", short.class));
-//                    boolean isRelative = trigger.getUserData("available", short.class) == 0;
-//                    int angle = trigger.getUserData("angle", int.class);
-//                    int time = trigger.getUserData("time", int.class);
+                ap = levelInfo.getActionPoint(trigger.getUserData("targetId", short.class));
+                boolean isRelative = trigger.getUserData("available", short.class) == 0;
+                int angle = trigger.getUserData("angle", int.class);
+                time = trigger.getUserData("time", int.class);
 //
 //                    PlayerCameraState pcs = stateManager.getState(PlayerCameraState.class);
 //                    ap.addControl(new PlayerCameraRotateControl(pcs.getCamera(), isRelative, angle, time));
+                playerService.rotateViewAroundPoint(WorldUtils.ActionPointToVector3f(ap), isRelative, angle, time, playerId);
 //                }
                 break;
 
             case DISPLAY_OBJECTIVE: // Info part
 //                if (playerId == playerState.getPlayerId()) {
-//                    // TODO this
-//                    int objectiveId = trigger.getUserData("objectiveId", int.class); // limit 32767
-//                    short apId = trigger.getUserData("actionPointId", short.class);
-//                    // if != 0 => Zoom To AP = this
-//                    zoomToAP(apId);
+                // TODO this
+                int objectiveId = trigger.getUserData("objectiveId", int.class); // limit 32767
+                apId = trigger.getUserData("actionPointId", short.class);
+                // if != 0 => Zoom To AP = this
+                zoomToAP(apId);
 //                }
                 break;
 
@@ -379,8 +382,8 @@ public class PlayerTriggerControl extends TriggerControl {
 
             case DISPLAY_TEXT_STRING: // Info part
 //                if (playerId == playerState.getPlayerId()) {
-//                    int textId = trigger.getUserData("textId", int.class);
-//                    // TODO display text message
+                int textId = trigger.getUserData("textId", int.class);
+                playerService.showMessage(textId, playerId);
 //                }
                 break;
 
@@ -439,5 +442,12 @@ public class PlayerTriggerControl extends TriggerControl {
 
     protected void makeObjectiveOff() {
         //TODO this
+    }
+
+    private void zoomToAP(short actionPointId) {
+        ActionPoint ap = levelInfo.getActionPoint(actionPointId);
+        if (ap != null) {
+            playerService.zoomViewToPoint(WorldUtils.ActionPointToVector3f(ap), playerId);
+        }
     }
 }

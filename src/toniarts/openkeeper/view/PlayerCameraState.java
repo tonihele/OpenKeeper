@@ -37,6 +37,8 @@ import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.Cinematic;
+import toniarts.openkeeper.game.control.Container;
+import toniarts.openkeeper.game.control.IContainer;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
@@ -48,6 +50,8 @@ import toniarts.openkeeper.tools.convert.map.GameMap;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.camera.PlayerCameraControl;
+import toniarts.openkeeper.view.camera.PlayerCameraRotateControl;
 
 /**
  * The player camera state. Listens for camera movement inputs.
@@ -60,6 +64,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     private AppStateManager stateManager;
     private InputManager inputManager;
 
+    private final IContainer container;
     private PlayerCamera camera;
     private Camera storedCamera;
     private final Player player;
@@ -98,12 +103,13 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         CAMERA_MOUSE_ZOOM_OUT,
         SPECIAL_KEY_CONTROL,
         SPECIAL_KEY_ALT,
-        SPECIAL_KEY_SHIFT,};
+        SPECIAL_KEY_SHIFT};
 
     private static final Logger LOGGER = Logger.getLogger(PlayerCameraState.class.getName());
 
     public PlayerCameraState(Player player) {
         this.player = player;
+        this.container = new Container();
     }
 
     @Override
@@ -247,6 +253,14 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         c.play();
     }
 
+    public void zoomToPoint(Vector3f point) {
+        container.addControl(new PlayerCameraControl(camera, point));
+    }
+
+    public void rotateAroundPoint(Vector3f point, boolean relative, int angle, int time) {
+        container.addControl(new PlayerCameraRotateControl(camera, relative, angle, time));
+    }
+
     @Override
     public void cleanup() {
 
@@ -259,6 +273,10 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     @Override
     public void update(float tpf) {
         super.update(tpf);
+
+        // Update the container
+        container.update(tpf);
+
         // Update audio listener position
         app.getListener().setLocation(app.getCamera().getLocation());
         app.getListener().setRotation(app.getCamera().getRotation());
