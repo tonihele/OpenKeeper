@@ -14,16 +14,16 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.state;
+package toniarts.openkeeper.view;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
-import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import static toniarts.openkeeper.game.state.PlayerScreenController.HUD_SCREEN_ID;
 import toniarts.openkeeper.gui.nifty.message.SystemMessageControl;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -33,18 +33,30 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  * @author ufdada
  */
 public class SystemMessageState extends AbstractPauseAwareState {
-    private final float lifeTime = 60000f;
+
+    private static final float MESSAGE_LIFETIME = 60000f;
+
     private Main app;
     private final Screen hud;
     private final Element systemMessagesQueue;
 
     public enum MessageType {
-        INFO,
-        FIGHT,
-        ALLY,
-        ALLYMSG,
-        PLAYEREXIT,
-        CREATURE
+        INFO("info"),
+        FIGHT("fight"),
+        ALLY("ally"),
+        ALLY_MSG("allymsg"),
+        PLAYER_EXIT("playerexit"),
+        CREATURE("creature");
+
+        private MessageType(String icon) {
+            this.icon = icon;
+        }
+
+        public String getIcon() {
+            return icon;
+        }
+
+        private final String icon;
     };
 
     public SystemMessageState(Element systemMessages, boolean enabled) {
@@ -70,8 +82,8 @@ public class SystemMessageState extends AbstractPauseAwareState {
     /**
      * Adds a message to the message queue
      *
-     * @param type
-     * @param text
+     * @param type message type
+     * @param text message text
      */
     public void addMessage(MessageType type, String text) {
         if (!this.isEnabled() || !isInitialized()) {
@@ -88,7 +100,7 @@ public class SystemMessageState extends AbstractPauseAwareState {
     }
 
     public void addMessageIcon(MessageType type, String text) {
-        final String icon = String.format("Textures/GUI/Tabs/Messages/mt-%s-$index.png", type.toString().toLowerCase());
+        final String icon = String.format("Textures/GUI/Tabs/Messages/mt-%s-$index.png", type.getIcon());
         final String normalIcon = ConversionUtils.getCanonicalAssetKey(icon.replace("$index", "00"));
         final String hoverIcon = ConversionUtils.getCanonicalAssetKey(icon.replace("$index", "01"));
         final String activeIcon = ConversionUtils.getCanonicalAssetKey(icon.replace("$index", "02"));
@@ -107,7 +119,7 @@ public class SystemMessageState extends AbstractPauseAwareState {
         if (systemMessagesQueue != null) {
             for(Element child : systemMessagesQueue.getChildren()) {
                 SystemMessageControl control = child.getControl(SystemMessageControl.class);
-                if (control != null && System.currentTimeMillis() - control.getCreatedAt() > lifeTime) {
+                if (control != null && System.currentTimeMillis() - control.getCreatedAt() > MESSAGE_LIFETIME) {
                     child.markForRemoval();
                 }
             }

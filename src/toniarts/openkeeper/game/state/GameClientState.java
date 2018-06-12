@@ -46,6 +46,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
+import toniarts.openkeeper.view.SystemMessageState;
 
 /**
  * The game client state
@@ -425,7 +426,10 @@ public class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onPlaySpeech(int speechId, boolean showText, boolean introduction, int pathId) {
+
+            // TODO: Refactor these, we don't maybe want this logic here, borderline visuals
             stateManager.getState(SoundState.class).attachLevelSpeech(speechId);
+            stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
             if (showText) {
                 playerState.setText(speechId, introduction, pathId);
             }
