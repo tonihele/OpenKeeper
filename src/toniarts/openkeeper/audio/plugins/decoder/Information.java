@@ -101,7 +101,7 @@ public interface Information {
      *
      * @return a <code>Hashtable</code> representation of      * this <code>Information</code> object
      */
-    public Hashtable getHashtable();
+    public Map<String, Object> getHashtable();
 
     /**
      * Obtains a

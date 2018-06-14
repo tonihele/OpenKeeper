@@ -34,7 +34,7 @@ import java.io.*;
 final class FrameContent {
 
     private byte[] encodedData;
-    private int size;
+    private final int size;
     private int readPos;
     private boolean unincoding;
     private int coding;
@@ -45,7 +45,7 @@ final class FrameContent {
         size = b.length;
 
         if (checkCharEncodingType) {
-            unincoding = encodedData[0] >= 1 ? true : false;
+            unincoding = encodedData[0] >= 1;
             coding = encodedData[0];
             readPos++;
         }

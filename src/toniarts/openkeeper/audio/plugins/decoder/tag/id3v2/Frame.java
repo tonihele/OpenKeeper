@@ -75,7 +75,7 @@ final class Frame {
                 return;
             }
             if (!verifyKeyString((int) b[0], (int) b[1], (int) b[2], (int) b[3])) {
-                if (!tag.contains(new String(b))) {
+                if (!tag.containsValue(new String(b))) {
                     if (!sync(stream, b, version)) {
                         shortKey = "DUMMY";
                         return;
@@ -161,7 +161,7 @@ final class Frame {
                 return;
             }
             if (!verifyKeyString((int) b[0], (int) b[1], (int) b[2])) {
-                if (!tag.contains(new String(b, 0, 2))) {
+                if (!tag.containsValue(new String(b, 0, 2))) {
                     if (!sync(stream, b, version)) {
                         shortKey = "DUMMY";
                         return;
@@ -321,14 +321,14 @@ final class Frame {
             if (version >= 3) {
                 stream.read(b, 1, 3);
                 if (verifyChar((int) b[1], true) && verifyChar((int) b[2], true) && verifyCharWithNumber((int) b[3], true)) {
-                    if (tag.contains(new String(b))) {
+                    if (tag.containsValue(new String(b))) {
                         stop = true;
                     }
                 }
             } else {
                 stream.read(b, 1, 2);
                 if (verifyChar((int) b[1], true) && verifyCharWithNumber((int) b[2], true)) {
-                    if (tag.contains(new String(b, 0, 2))) {
+                    if (tag.containsValue(new String(b, 0, 2))) {
                         stop = true;
                     }
                 }

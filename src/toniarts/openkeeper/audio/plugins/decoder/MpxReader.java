@@ -330,9 +330,9 @@ public class MpxReader extends Frame {
         }
         microseconds = playtimeLength;
         if (xing || vbr) {
-            put(I_BITRATE, new Integer((int) Math.round(netByteLength * 8000000 / (double) microseconds)));
+            put(I_BITRATE, (int) Math.round(netByteLength * 8000000 / (double) microseconds));
         }
-        put(L_MICROSECONDS, new Long(microseconds));
+        put(L_MICROSECONDS, microseconds);
     }
 
     /**
@@ -409,11 +409,11 @@ public class MpxReader extends Frame {
     }
 
     private void loadMediaInformation() {
-        put(I_MAXIMUM_CODEC_SAMPLE_RATE, new Integer(48000));
+        put(I_MAXIMUM_CODEC_SAMPLE_RATE, 48000);
         put(B_AUDIO, true);
         put(S_MEDIA_TYPE, "Audio");
-        put(S_MEDIA_FORMAT, "Mpeg" + versionString + "-Layer" + new Integer(layer).toString());
-        put(S_MEDIA_FILE_FORMAT, "MP" + new Integer(layer).toString());
+        put(S_MEDIA_FORMAT, "Mpeg" + versionString + "-Layer" + Integer.toString(layer));
+        put(S_MEDIA_FILE_FORMAT, "MP" + Integer.toString(layer));
 
         if (mode == STEREO) {
             put(S_MULTI_CHANNEL_MODE, "Stereo");
@@ -431,17 +431,17 @@ public class MpxReader extends Frame {
             noLenghtData = false;
         }
         if (freeMode) {
-            put(I_BITRATE, new Integer(getBitrate()));
+            put(I_BITRATE, getBitrate());
         }
         if (noLenghtData) { // can only be triggered in case of xing header
-            netByteLength = correctedBytePosition(((Long) get(AudioInformation.L_GROSS_BYTE_LENGTH)).longValue(), false);
-            put(I_BITRATE, new Integer((int) (netByteLength * 8 / timePerFrame / (double) (framesMinusOne + 1))));
-            put(L_BYTE_LENGTH, new Long(netByteLength));
+            netByteLength = correctedBytePosition(((Long) get(AudioInformation.L_GROSS_BYTE_LENGTH)), false);
+            put(I_BITRATE, (int) (netByteLength * 8 / timePerFrame / (double) (framesMinusOne + 1)));
+            put(L_BYTE_LENGTH, netByteLength);
         } else if (!vbr && !xing && !info) {
-            netByteLength = correctedBytePosition(((Long) get(AudioInformation.L_GROSS_BYTE_LENGTH)).longValue(), false);
-            put(L_BYTE_LENGTH, new Long(netByteLength));
+            netByteLength = correctedBytePosition(((Long) get(AudioInformation.L_GROSS_BYTE_LENGTH)), false);
+            put(L_BYTE_LENGTH, netByteLength);
         } else if (vbr || xing || info) {
-            put(L_BYTE_LENGTH, new Long(netByteLength));
+            put(L_BYTE_LENGTH, netByteLength);
         }
         if (toc != null && microseconds > 0) {
             spline = new Spline();
@@ -483,8 +483,8 @@ public class MpxReader extends Frame {
                     return null;
                 }
             }
-            put(I_SAMPLE_RATE, new Integer(FREQUENCY[version][frequencyIndex]));
-            put(I_BITRATE, new Integer(RATE[version][layer - 1][bitrateIndex]));
+            put(I_SAMPLE_RATE, FREQUENCY[version][frequencyIndex]);
+            put(I_BITRATE, RATE[version][layer - 1][bitrateIndex]);
 
             if (vbr) {
                 return handleVbr(stream);
@@ -518,12 +518,12 @@ public class MpxReader extends Frame {
 
         framesPerTime = (framesMinusOne + 1) * 1000000 / (double) microseconds;
         if (microseconds > 0) {
-            put(I_BITRATE, new Integer((int) Math.round(netByteLength * 8000000 / (double) microseconds)));
+            put(I_BITRATE, (int) Math.round(netByteLength * 8000000 / (double) microseconds));
         }
         put(F_FRAME_RATE, new Float(framesPerTime));
-        put(I_FRAME_NUMBER, new Integer(framesMinusOne + 1));
+        put(I_FRAME_NUMBER, framesMinusOne + 1);
         put(B_VBR_AUDIO, true);
-        put(L_MICROSECONDS, new Long(microseconds));
+        put(L_MICROSECONDS, microseconds);
 
         b[0] = b[3];
         b[1] = (byte) stream.read();
@@ -576,7 +576,7 @@ public class MpxReader extends Frame {
 
     private AudioInformation handleXing(InputStream stream) throws IOException {
         int bitRate;
-        long grossByteLength = ((Long) get(AudioInformation.L_GROSS_BYTE_LENGTH)).longValue();
+        long grossByteLength = ((Long) get(AudioInformation.L_GROSS_BYTE_LENGTH));
 
         stream.read(b, 0, 4);
 
@@ -646,15 +646,15 @@ public class MpxReader extends Frame {
         }
         if (!noLenghtData && !info) { // info == cbr, main header info is more relyable
             bitRate = (int) (netByteLength * 8 / timePerFrame / (double) (framesMinusOne + 1));
-            put(I_BITRATE, new Integer(bitRate));
+            put(I_BITRATE, bitRate);
         }
-        put(I_FRAME_NUMBER, new Integer(framesMinusOne + 1));
+        put(I_FRAME_NUMBER, framesMinusOne + 1);
         if (video) {
             toc = null;
             return this;
         }
         microseconds = (long) Math.round(timePerFrame * (double) (framesMinusOne + 1) * 1000000D);
-        put(L_MICROSECONDS, new Long(microseconds));
+        put(L_MICROSECONDS, microseconds);
 
         if (toc != null) {
             for (j = 0; j < toc.length; j++) {
@@ -673,16 +673,16 @@ public class MpxReader extends Frame {
         } else {
             channels = 2;
         }
-        put(I_CHANNEL_NUMBER, new Integer(channels));
+        put(I_CHANNEL_NUMBER, channels);
         if (mode == DUAL_CHANNEL) {
-            put(I_DEVICE_CHANNEL_NUMBER, new Integer(1));
+            put(I_DEVICE_CHANNEL_NUMBER, 1);
         }
         if (layer == 1) {
-            put(I_OUTPUT_BUFFER_SIZE, new Integer(Output.OBUFFERSIZE * channels / 3));
+            put(I_OUTPUT_BUFFER_SIZE, Output.OBUFFERSIZE * channels / 3);
         } else if (layer == 3 && version != 1) {
-            put(I_OUTPUT_BUFFER_SIZE, new Integer(Output.OBUFFERSIZE * channels / 2));
+            put(I_OUTPUT_BUFFER_SIZE, Output.OBUFFERSIZE * channels / 2);
         } else {
-            put(I_OUTPUT_BUFFER_SIZE, new Integer(Output.OBUFFERSIZE * channels));
+            put(I_OUTPUT_BUFFER_SIZE, Output.OBUFFERSIZE * channels);
         }
     }
 
@@ -728,7 +728,7 @@ public class MpxReader extends Frame {
      */
     public Decoder getDecoder(InputStream inputstream, boolean eomDeterminable) throws UnsupportedMediaException {
         if (eomDeterminable && tag == null && !video) {
-            long length = ((Long) get(L_GROSS_BYTE_LENGTH)).longValue();
+            long length = ((Long) get(L_GROSS_BYTE_LENGTH));
 
             length = correctedBytePosition(length, false);
 

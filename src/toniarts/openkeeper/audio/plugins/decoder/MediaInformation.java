@@ -51,7 +51,7 @@ import java.util.*;
  *
  * @author	Michael Scheerer
  */
-public class MediaInformation extends Hashtable implements Hashkeys, Information {
+public class MediaInformation extends HashMap<String, Object> implements Hashkeys, Information {
 
     /**
      * The media type key. A media type string should contain a senseful word to
@@ -129,19 +129,19 @@ public class MediaInformation extends Hashtable implements Hashkeys, Information
      * <code>MediaInformation</code> performing presettings.
      */
     protected MediaInformation() {
-        put(B_AUDIO, false);
-        put(B_BIT_PROTECTION, false);
-        put(B_VIDEO, false);
-        put(B_SYSTEM, false);
-        put(B_FAST_SEEKING, false);
-        put(I_BITRATE, new Integer(-1));
-        put(L_GROSS_BYTE_LENGTH, new Long(-1));
-        put(L_BYTE_LENGTH, new Long(-1));
-        put(L_MICROSECONDS, new Long(-1));
-        put(L_MICROSECONDS_DETECTION_BYTE_OFFSET, new Long(-1));
-        put(S_MEDIA_TYPE, "");
-        put(S_MEDIA_FORMAT, "");
-        put(S_MEDIA_FILE_FORMAT, "");
+        super.put(B_AUDIO, false);
+        super.put(B_BIT_PROTECTION, false);
+        super.put(B_VIDEO, false);
+        super.put(B_SYSTEM, false);
+        super.put(B_FAST_SEEKING, false);
+        super.put(I_BITRATE, -1);
+        super.put(L_GROSS_BYTE_LENGTH, -1l);
+        super.put(L_BYTE_LENGTH, -1l);
+        super.put(L_MICROSECONDS, -1l);
+        super.put(L_MICROSECONDS_DETECTION_BYTE_OFFSET, -1l);
+        super.put(S_MEDIA_TYPE, "");
+        super.put(S_MEDIA_FORMAT, "");
+        super.put(S_MEDIA_FILE_FORMAT, "");
     }
 
     /**
@@ -149,7 +149,7 @@ public class MediaInformation extends Hashtable implements Hashkeys, Information
      */
     public void close() {
         if (get(TAG) != null) {
-            ((Hashtable) get(TAG)).clear();
+            ((Map) get(TAG)).clear();
         }
         clear();
     }
@@ -176,12 +176,8 @@ public class MediaInformation extends Hashtable implements Hashkeys, Information
      */
     public final void embed(MediaInformation information) {
         if (information != null) {
-            int i = information.size();
-            Enumeration ekeys = information.keys();
-            Enumeration evalues = information.elements();
-
-            for (int j = 0; j < i; j++) {
-                put(ekeys.nextElement(), evalues.nextElement());
+            for (Map.Entry<String, Object> entry : information.entrySet()) {
+                put(entry.getKey(), entry.getValue());
             }
         }
     }
@@ -194,8 +190,9 @@ public class MediaInformation extends Hashtable implements Hashkeys, Information
      * @return a <code>Hashtable</code> representation of *
      * this <code>Information</code> object
      */
-    public final Hashtable getHashtable() {
-        return (Hashtable) this.clone();
+    @Override
+    public final Map<String, Object> getHashtable() {
+        return (Map<String, Object>) this.clone();
     }
 
     /**
@@ -204,23 +201,19 @@ public class MediaInformation extends Hashtable implements Hashkeys, Information
      *
      * @return a clone of this instance
      */
+    @Override
     public Object clone() {
         MediaInformation hash = new MediaInformation();
 
-        int i = size();
-
-        Enumeration ekeys = keys();
-        Enumeration evalues = elements();
-        Object value;
-
-        for (int j = 0; j < i; j++) {
-            value = evalues.nextElement();
+        for (Map.Entry<String, Object> entry : this.entrySet()) {
+            Object value = entry.getValue();
             if (value instanceof Information) {
-                hash.put(ekeys.nextElement(), ((Information) value).getHashtable());
+                hash.put(entry.getKey(), ((Information) value).getHashtable());
             } else {
-                hash.put(ekeys.nextElement(), value);
+                hash.put(entry.getKey(), value);
             }
         }
         return hash;
     }
+
 }

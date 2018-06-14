@@ -241,7 +241,7 @@ public abstract class Frame extends AudioInformation /*extends FormatReader*/ {
     /**
      * Frees all system resources, which are bounded to this object.
      */
-//    @Override
+    @Override
     public void close() {
 //        super.close();
         crc = null;

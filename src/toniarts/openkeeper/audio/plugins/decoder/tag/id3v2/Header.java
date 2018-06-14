@@ -20,7 +20,6 @@ package toniarts.openkeeper.audio.plugins.decoder.tag.id3v2;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import toniarts.openkeeper.audio.plugins.decoder.tag.TagException;
 
 /**
@@ -67,12 +66,12 @@ final class Header {
                     throw new TagException("Wrong ID3v2 version");
                 }
                 i = read(stream) & 0xFF;
-                unsynchronizated = (i >>> 7 & 0x1) == 1 ? true : false;
+                unsynchronizated = (i >>> 7 & 0x1) == 1;
                 if (version >= 3) {
-                    extendedHeader = (i >>> 6 & 0x1) == 1 ? true : false;
-                    experimental = (i >>> 5 & 0x1) == 1 ? true : false;
+                    extendedHeader = (i >>> 6 & 0x1) == 1;
+                    experimental = (i >>> 5 & 0x1) == 1;
                     if (version == 4) {
-                        footer = (i >>> 4 & 0x1) == 1 ? true : false;
+                        footer = (i >>> 4 & 0x1) == 1;
                     }
                 }
                 read(stream, b, 0, 4);
@@ -93,7 +92,7 @@ final class Header {
                     i = b[0] << 8 & 0xFF00 | b[1] & 0xFF;
 
                     if (version == 3) {
-                        protection = (i >>> 15 & 0x1) == 1 ? true : false;
+                        protection = (i >>> 15 & 0x1) == 1;
                         read(stream, b, 0, 4);
 
                         paddingSize = b[0] << 24 | b[1] << 16 & 0xFF0000 | b[2] << 8 & 0xFF00 | b[3] & 0xFF;
@@ -103,11 +102,11 @@ final class Header {
                             crc = b[0] << 24 | b[1] << 16 & 0xFF0000 | b[2] << 8 & 0xFF00 | b[3] & 0xFF;
                         }
                     } else {
-                        tagIsUpdate = (i >>> 14 & 0x1) == 1 ? true : false;
+                        tagIsUpdate = (i >>> 14 & 0x1) == 1;
                         if (tagIsUpdate) {
                             skip(stream, 1); // length always 0
                         }
-                        protection = (i >>> 13 & 0x1) == 1 ? true : false;
+                        protection = (i >>> 13 & 0x1) == 1;
                         if (protection) {
                             skip(stream, 1); // length always 5
                             read(stream, b, 0, 5);
@@ -116,7 +115,7 @@ final class Header {
                             // zeroed.
                             crc = b[0] << 28 & 0x0F00000000L | b[1] << 21 & 0xFF000000 | b[2] << 14 & 0xFF0000 | b[3] << 7 & 0xFF00 | b[4] & 0xFF;
                         }
-                        tagRestrictions = (i >>> 12 & 0x1) == 1 ? true : false;
+                        tagRestrictions = (i >>> 12 & 0x1) == 1;
                         if (tagRestrictions) {
                             skip(stream, 2); // length always 1
                         }

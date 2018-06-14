@@ -116,21 +116,21 @@ public class AudioInformation extends MediaInformation implements AudioHashkeys 
         super.put(B_SIGNED, true); // Defaultvalue
         super.put(B_BIG_ENDIAN, false); // Defaultvalue
         super.put(B_MUTE, false);
-        super.put(I_SAMPLE_RATE, new Integer(-1));
-        super.put(I_MAXIMUM_CODEC_SAMPLE_RATE, new Integer(44100));
-        super.put(I_SAMPLE_SIZE, new Integer(16)); // Defaultvalue
-        super.put(I_DEVICE_SAMPLE_RATE, new Integer(-1));
-        super.put(F_FRAME_RATE, new Float(-1));
-        super.put(I_FRAME_SIZE, new Integer(-1));
-        super.put(I_FRAME_NUMBER, new Integer(-1));
-        super.put(I_CHANNEL_NUMBER, new Integer(-1));
-        super.put(I_DEVICE_CHANNEL_NUMBER, new Integer(-1));
-        super.put(I_OUTPUT_BUFFER_SIZE, new Integer(-1));
-        super.put(I_DEVICE_BUFFER_SIZE, new Integer(-1));
+        super.put(I_SAMPLE_RATE, -1);
+        super.put(I_MAXIMUM_CODEC_SAMPLE_RATE, 44100);
+        super.put(I_SAMPLE_SIZE, 16); // Defaultvalue
+        super.put(I_DEVICE_SAMPLE_RATE, -1);
+        super.put(F_FRAME_RATE, -1f);
+        super.put(I_FRAME_SIZE, -1);
+        super.put(I_FRAME_NUMBER, -1);
+        super.put(I_CHANNEL_NUMBER, -1);
+        super.put(I_DEVICE_CHANNEL_NUMBER, -1);
+        super.put(I_OUTPUT_BUFFER_SIZE, -1);
+        super.put(I_DEVICE_BUFFER_SIZE, -1);
         super.put(FA_CHANNEL_MAPPING, new float[0]);
-        super.put(F_BALANCE, new Float(-1));
-        super.put(F_GAIN, new Float(-1));
-        super.put(F_VOLUME, new Float(-1));
+        super.put(F_BALANCE, -1f);
+        super.put(F_GAIN, -1f);
+        super.put(F_VOLUME, -1f);
         super.put(FA_EQUALIZE, new float[0]);
     }
 
@@ -149,11 +149,11 @@ public class AudioInformation extends MediaInformation implements AudioHashkeys 
      * @exception NullPointerException if the key or value is <code>null</code>
      */
     @Override
-    public Object put(Object key, Object value) throws NullPointerException {
-        if (key.equals(I_SAMPLE_RATE) && get(I_DEVICE_SAMPLE_RATE) != null && ((Integer) get(I_DEVICE_SAMPLE_RATE)).intValue() == -1) {
+    public Object put(String key, Object value) throws NullPointerException {
+        if (key.equals(I_SAMPLE_RATE) && get(I_DEVICE_SAMPLE_RATE) != null && ((Integer) get(I_DEVICE_SAMPLE_RATE)) == -1) {
             super.put(I_DEVICE_SAMPLE_RATE, value);
         }
-        if (key.equals(I_CHANNEL_NUMBER) && get(I_DEVICE_CHANNEL_NUMBER) != null && ((Integer) get(I_DEVICE_CHANNEL_NUMBER)).intValue() == -1) {
+        if (key.equals(I_CHANNEL_NUMBER) && get(I_DEVICE_CHANNEL_NUMBER) != null && ((Integer) get(I_DEVICE_CHANNEL_NUMBER)) == -1) {
             super.put(I_DEVICE_CHANNEL_NUMBER, value);
         }
         return super.put(key, value);

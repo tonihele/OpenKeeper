@@ -451,34 +451,22 @@ public final class ID3v2 extends Tag {
      */
     @Override
     public String toString() {
+        if (isEmpty()) {
+            return "{}";
+        }
+
+        boolean first = true;
         StringBuilder buff = new StringBuilder();
-        int counter = 0, counter1 = 0;
-        Object key;
-        Object value;
-        Enumeration ekeys1 = keys();
-
-        if (!ekeys1.hasMoreElements()) {
-            buff.append("{}");
-            return buff.toString();
-        }
-        for (key = ekeys1.nextElement(); ekeys1.hasMoreElements(); key = ekeys1.nextElement()) {
-            value = get(key);
-            if (value != null) {
-                counter++;
-            }
-        }
-        Enumeration ekeys = keys();
-
         buff.append("{");
-        for (key = ekeys.nextElement(); ekeys.hasMoreElements(); key = ekeys.nextElement()) {
-            value = get(key);
+        for (Map.Entry<String, Object> entry : entrySet()) {
+            Object value = entry.getValue();
             if (value != null) {
-                buff.append(key).append("=");
-                buff.append(value);
-                counter1++;
-                if (counter1 < counter) {
+                if (!first) {
                     buff.append(", ");
+                    first = false;
                 }
+                buff.append(entry.getKey()).append("=");
+                buff.append(value);
             }
         }
         buff.append("}");
@@ -494,6 +482,7 @@ public final class ID3v2 extends Tag {
      * @param position         the current byte position
      * @return                 the corrected byte position
      */
+    @Override
     public long correctedBytePosition(long position, boolean seeking) {
 
         if (seeking) {

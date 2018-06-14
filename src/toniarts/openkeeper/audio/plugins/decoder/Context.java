@@ -62,25 +62,25 @@ import java.util.*;
  */
 public final class Context {
 
-    private static String version = System.getProperty("java.version");
-    private static String vendor = System.getProperty("java.vendor");
-    private static String osName = System.getProperty("os.name");
-    private static String osVersion = System.getProperty("os.version");
-    private static String classVersion = System.getProperty("java.class.version");
+    private static final String VERSION = System.getProperty("java.version");
+    private static final String VENDOR = System.getProperty("java.vendor");
+    private static final String OS_NAME = System.getProperty("os.name");
+    private static final String OS_VERSION = System.getProperty("os.version");
+    private static final String CLASS_VERSION = System.getProperty("java.class.version");
     private static boolean applet = true;
     private static boolean isJava1;
     private static boolean isJsharp;
     private static boolean javasoundApi = true;
     private static int streamCountLimit = 1;
     private static int inputBufferSize = 51200;
-    private static int minimumInputBufferSize = 1024;
+    private static final int MINIMUM_INPUT_BUFFER_SIZE = 1024;
     private static int scanDepth = 600;
     private static boolean logging;
-    private static Vector plugIns = new Vector();
+    private static final Set<String> PLUG_INS = new HashSet<>();
 
     static {
 
-        if (version == null) {
+        if (VERSION == null) {
             isJsharp = true;
         } else {
             int index = -1;
@@ -92,11 +92,11 @@ public final class Context {
             if (index > -1) {
                 isJsharp = true;
                 javasoundApi = false;
-            } else if (version.startsWith("1.0") || version.startsWith("1.1")) {
+            } else if (VERSION.startsWith("1.0") || VERSION.startsWith("1.1")) {
                 isJava1 = true;
                 javasoundApi = false;
             }
-            if (version.startsWith("1.2")) {
+            if (VERSION.startsWith("1.2")) {
                 javasoundApi = false;
             }
         }
@@ -111,9 +111,7 @@ public final class Context {
      * format plug-in
      */
     public static void activatePlugIn(String pluginName) {
-        if (!plugIns.contains(pluginName)) {
-            plugIns.addElement(pluginName);
-        }
+        PLUG_INS.add(pluginName);
     }
 
     /**
@@ -124,8 +122,8 @@ public final class Context {
      *
      * @return the number of existing LJMF media format plug-ins
      */
-    public static Vector getActivePlugIns() {
-        return plugIns;
+    public static Set<String> getActivePlugIns() {
+        return PLUG_INS;
     }
 
     /**
@@ -158,8 +156,8 @@ public final class Context {
      * @param s the size of the input stream buffer
      */
     public static void setInputBufferSize(int s) {
-        if (s < minimumInputBufferSize) {
-            s = minimumInputBufferSize;
+        if (s < MINIMUM_INPUT_BUFFER_SIZE) {
+            s = MINIMUM_INPUT_BUFFER_SIZE;
         }
         inputBufferSize = s;
     }
@@ -228,7 +226,7 @@ public final class Context {
      * @return the vendor
      */
     public static String getVendor() {
-        return vendor;
+        return VENDOR;
     }
 
     /**
@@ -237,7 +235,7 @@ public final class Context {
      * @return the version
      */
     public static String getVersion() {
-        return version;
+        return VERSION;
     }
 
     /**
@@ -246,7 +244,7 @@ public final class Context {
      * @return the operating system version
      */
     public static String getOsVersion() {
-        return osVersion;
+        return OS_VERSION;
     }
 
     /**
@@ -255,7 +253,7 @@ public final class Context {
      * @return the class version
      */
     public static String getClassVersion() {
-        return classVersion;
+        return CLASS_VERSION;
     }
 
     /**
@@ -264,7 +262,7 @@ public final class Context {
      * @return the operation system
      */
     public static String getOs() {
-        return osName;
+        return OS_NAME;
     }
 
     /**
