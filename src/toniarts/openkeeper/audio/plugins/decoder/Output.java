@@ -207,7 +207,7 @@ abstract class Output extends Initializer {
      * @exception NullPointerException if the key or value is <code>null</code>
      */
     @Override
-    public Object put(Object key, Object value) throws NullPointerException {
+    public Object put(String key, Object value) throws NullPointerException {
         if (key.equals(S_AUDIO_DATA_ANALYZE_MODE)) {
             if (((String) value).equals(FREQUENCY)) {
                 information.put(AudioInformation.S_AUDIO_DATA_ANALYZE_MODE, FREQUENCY);

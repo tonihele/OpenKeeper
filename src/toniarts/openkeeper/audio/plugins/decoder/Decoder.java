@@ -234,7 +234,7 @@ import java.io.*;
  */
 public abstract class Decoder extends AudioInformation implements AudioHashkeys, Hashkeys, Events {
 
-    private InputStream stream;
+    private final InputStream stream;
     protected Frame information;
     /**
      * Marks the integer id for no returned value, which is returned from the
@@ -290,7 +290,8 @@ public abstract class Decoder extends AudioInformation implements AudioHashkeys,
      * <code>decodeFrame()</code> method must perform a
      * <code>super</code> call to ensure an analyzer view update.
      *
-     * @param an event id number as an integer value send by an overwritten
+     * @param eventId an event id number as an integer value send by an
+     *                overwritten
      * method
      * @return an event id number as an integer value
      * @exception IOException if an I/O error occurs

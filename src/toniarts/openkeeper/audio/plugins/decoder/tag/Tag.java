@@ -20,7 +20,6 @@ package toniarts.openkeeper.audio.plugins.decoder.tag;
 
 import java.util.*;
 import toniarts.openkeeper.audio.plugins.decoder.Information;
-import toniarts.openkeeper.audio.plugins.decoder.Information;
 
 /**
  * The
@@ -190,7 +189,7 @@ import toniarts.openkeeper.audio.plugins.decoder.Information;
  *
  * @author Michael Scheerer
  */
-public abstract class Tag extends Hashtable implements Information {
+public abstract class Tag extends HashMap<String, Object> implements Information {
 
     /**
      * The predefined tag version key.
@@ -267,7 +266,7 @@ public abstract class Tag extends Hashtable implements Information {
      * <code>update()</code>.
      */
     public Tag() {
-        put(S_TAG_FORMAT, new String(""));
+        put(S_TAG_FORMAT, "");
     }
 
     /**
@@ -299,8 +298,9 @@ public abstract class Tag extends Hashtable implements Information {
      * @return a <code>Hashtable</code> representation of
      * this <code>Information</code> <code>Object</code>
      */
-    public Hashtable getHashtable() {
-        return (Hashtable) this.clone();
+    @Override
+    public Map<String, Object> getHashtable() {
+        return (Map<String, Object>) this.clone();
     }
 
     /**
@@ -309,14 +309,15 @@ public abstract class Tag extends Hashtable implements Information {
      *
      * @return a clone of this instance
      */
+    @Override
     public Object clone() {
-        class BaseTag extends Hashtable implements Information {
+        class BaseTag extends HashMap<String, Object> implements Information {
 
-            public Hashtable getHashtable() {
-                return (Hashtable) this.clone();
+            @Override
+            public Map<String, Object> getHashtable() {
+                return (Map<String, Object>) this.clone();
             }
         }
-        ;
 
         BaseTag hash = new BaseTag();
 
@@ -326,17 +327,13 @@ public abstract class Tag extends Hashtable implements Information {
             return hash;
         }
 
-        Enumeration ekeys = keys();
-        Object key, value;
-
-        for (int j = 0; j < i; j++) {
-            key = ekeys.nextElement();
-            value = get(key);
+        for (Map.Entry<String, Object> entry : entrySet()) {
+            Object value = entry.getValue();
             if (value != null) {
                 if (value instanceof TagContent) {
                     value = ((TagContent) value).clone();
                 }
-                hash.put(key, value);
+                hash.put(entry.getKey(), value);
             }
         }
         return hash;

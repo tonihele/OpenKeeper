@@ -36,7 +36,7 @@ final class Equalizer {
     Equalizer(Object eqArray, Spline spline, Frame information) {
         int length = 0;
 
-        int sampleRate = ((Integer) information.get(AudioInformation.I_SAMPLE_RATE)).intValue();
+        int sampleRate = ((Integer) information.get(AudioInformation.I_SAMPLE_RATE));
 
         int numberOfSubbands = information.numberOfSubbands;
 

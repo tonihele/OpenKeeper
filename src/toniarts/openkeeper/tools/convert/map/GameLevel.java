@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -644,7 +643,7 @@ public class GameLevel implements ISoundable, ITriggerable {
 
             @Override
             public Enumeration<String> getKeys() {
-                return Collections.enumeration(new HashMap().keySet());
+                return Collections.emptyEnumeration();
             }
         };
     }

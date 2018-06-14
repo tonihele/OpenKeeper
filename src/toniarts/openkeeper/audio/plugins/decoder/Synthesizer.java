@@ -122,7 +122,7 @@ final class Synthesizer {
     private double[][] u;
     private double[] v;
     private int writePos, writePos1, writePos2, writePos3, writePos4, writePos5, writePos6, writePos7, writePos8, writePos9, writePos10, writePos11, writePos12, writePos13, writePos14, writePos15;
-    private int channelNumber;
+    private final int channelNumber;
     private float winTemp[];
     private int i, j;
 

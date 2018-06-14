@@ -60,7 +60,7 @@ public abstract class Trigger {
             return data.keySet();
         }
 
-        return Collections.EMPTY_SET;
+        return Collections.emptySet();
     }
 
     public int getId() {

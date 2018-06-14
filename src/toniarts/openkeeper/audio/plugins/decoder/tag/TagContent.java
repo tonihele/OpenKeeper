@@ -20,7 +20,6 @@ package toniarts.openkeeper.audio.plugins.decoder.tag;
 
 import java.util.*;
 import toniarts.openkeeper.audio.plugins.decoder.Information;
-import toniarts.openkeeper.audio.plugins.decoder.Information;
 
 /**
  * The
@@ -34,7 +33,7 @@ import toniarts.openkeeper.audio.plugins.decoder.Information;
  *
  * @author Michael Scheerer
  */
-public class TagContent extends Hashtable implements Information {
+public class TagContent extends HashMap<String, Object> implements Information {
 
     /**
      * String content keys
@@ -235,21 +234,12 @@ public class TagContent extends Hashtable implements Information {
      *
      * @return a clone of this instance
      */
+    @Override
     public Object clone() {
-        int i = size();
+        TagContent clone = new TagContent(size());
 
-        TagContent clone = new TagContent(i);
-
-        Enumeration ekeys = keys();
-        Object key, value;
-
-        for (int j = 0; j < i; j++) {
-            key = ekeys.nextElement();
-            value = get(key);
-
-            if (value != null) {
-                clone.put(key, value);
-            }
+        for (Map.Entry<String, Object> entry : this.entrySet()) {
+            clone.put(entry.getKey(), entry.getValue());
         }
         return clone;
     }
@@ -263,8 +253,9 @@ public class TagContent extends Hashtable implements Information {
      * @return a <code>Hashtable</code> representation of
      * this <code>Information</code> <code>Object</code>
      */
-    public Hashtable getHashtable() {
-        return (Hashtable) this.clone();
+    @Override
+    public Map<String, Object> getHashtable() {
+        return (Map<String, Object>) this.clone();
     }
 
     /**

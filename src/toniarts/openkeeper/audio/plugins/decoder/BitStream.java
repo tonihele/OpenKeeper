@@ -43,7 +43,7 @@ abstract class BitStream extends BitrateVariation {
     private int byteIdx;
     private int bitIdx;
     private boolean header;
-    private InputStream source;
+    private final InputStream source;
 
     /**
      * Constructs an instance of

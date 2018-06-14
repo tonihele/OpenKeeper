@@ -34,7 +34,7 @@ abstract class BitrateVariation extends Output {
     int headerlessFrameSize;
     private long[] positionOfFrame;
     private long position;
-    private long byteLength;
+    private final long byteLength;
     private int limiter;
     private boolean completeCached;
     private boolean fastSeek;
@@ -53,15 +53,15 @@ abstract class BitrateVariation extends Output {
     BitrateVariation(Frame info, InputStream in) {
         super(info, in);
 
-        fastSeek = ((Boolean) get(B_FAST_SEEKING)).booleanValue();
+        fastSeek = ((Boolean) get(B_FAST_SEEKING));
         info.put(B_FAST_SEEKING, fastSeek);
 
         frameCount = startFrameCount = info.startFrameCount;
         framesMinusOne = info.framesMinusOne;
 
-        byteLength = ((Long) info.get(AudioInformation.L_GROSS_BYTE_LENGTH)).longValue();
+        byteLength = ((Long) info.get(AudioInformation.L_GROSS_BYTE_LENGTH));
 
-        bitRate = ((Integer) info.get(AudioInformation.I_BITRATE)).intValue();
+        bitRate = ((Integer) info.get(AudioInformation.I_BITRATE));
 
         if (!info.vbr && !info.xing || fastSeek) {
             framesMinusOne = 0;
@@ -92,9 +92,10 @@ abstract class BitrateVariation extends Output {
      * @return the previous value of the specified key in this hashtable, * *      * or <code>null</code> if it did not have one
      * @exception NullPointerException if the key or value is <code>null</code>
      */
+    @Override
     public final Object put(String key, Object value) throws NullPointerException {
         if (key.equals(B_FAST_SEEKING)) {
-            fastSeek = ((Boolean) value).booleanValue();
+            fastSeek = ((Boolean) value);
 
             if (!((MpxReader) information).vbr && !((MpxReader) information).xing || fastSeek) {
                 framesMinusOne = 0;
@@ -126,6 +127,7 @@ abstract class BitrateVariation extends Output {
      * @exception InterruptedIOException if the decoding process is interrupted
      * caused by malformed media data
      */
+    @Override
     public final int decodeFrame(int eventId) throws IOException {
         int l;
 
@@ -168,6 +170,7 @@ abstract class BitrateVariation extends Output {
      * @param position the current byte position
      * @return the corrected byte position
      */
+    @Override
     public final long correctedBytePosition(long position, boolean seeking) {
         if (framesMinusOne > 0) {
             if (seeking) {
@@ -231,6 +234,7 @@ abstract class BitrateVariation extends Output {
      * @see #ACTIVE_SEEKING_FAILED
      * @see #ACTIVE_SEEKING_ABORTED
      */
+    @Override
     public final long seek(long n) throws IOException {
         if (!((Frame) information).audio) {
             return n;
@@ -297,6 +301,7 @@ abstract class BitrateVariation extends Output {
      *
      * @param playtimeLength the given playtime length in microseconds
      */
+    @Override
     public final void setPlaytimeLength(long playtimeLength) {
         if (playtimeLength <= 0 || !((Frame) information).audio || ((Frame) information).video) {
             return;
@@ -304,7 +309,7 @@ abstract class BitrateVariation extends Output {
 
         ((MpxReader) information).setPlaytimeLength(playtimeLength);
 
-        bitRate = ((Integer) info.get(AudioInformation.I_BITRATE)).intValue();
+        bitRate = ((Integer) info.get(AudioInformation.I_BITRATE));
     }
 
     /**
@@ -315,6 +320,7 @@ abstract class BitrateVariation extends Output {
      *
      * @param playtime the given playtime in microseconds
      */
+    @Override
     public final void setCurrentPlaytime(long playtime) {
         if (!((Frame) information).audio) {
             return;
@@ -355,6 +361,7 @@ abstract class BitrateVariation extends Output {
      * playtime since the last video key frame on index 1 in microseconds * *      * or <code>NO_VALUE</code>
      * @see #NO_VALUE
      */
+    @Override
     public final long[] fetchPlaytime() {
         long[] ret = new long[1];
 
@@ -378,10 +385,12 @@ abstract class BitrateVariation extends Output {
      * @see org.ljmf.media.MediaInformation#B_BYTE_POSITION_FETCHABLE
      * @see #NO_VALUE
      */
+    @Override
     public final long fetchBytePosition(long playtime) {
         return ((MpxReader) information).fetchBytePosition(playtime);
     }
 
+    @Override
     void reset() {
         filter1.reset();
         if (filter2 != null) {
@@ -393,6 +402,7 @@ abstract class BitrateVariation extends Output {
     /**
      * Frees all system resources, which are bounded to this object.
      */
+    @Override
     public void close() {
         super.close();
         positionOfFrame = null;

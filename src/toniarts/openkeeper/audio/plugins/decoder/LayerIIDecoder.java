@@ -100,7 +100,7 @@ class LayerIIDecoder extends LayerIDecoder {
     private double[][] sam1 = new double[3][SBLIMIT];
     private int[] scfsi = new int[SBLIMIT];
     private int[] scfsi1 = new int[SBLIMIT];
-    private int tableGroup;
+    private final int tableGroup;
 
     LayerIIDecoder(Frame info, InputStream in) {
         super(info, in);
